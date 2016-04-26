@@ -31,6 +31,27 @@ EXTERNALPROJECT_ADD(FFTW
         --enable-sse2 --enable-openmp --enable-avx
         CFLAGS=-O3 MAKEINFO=missing)
 
+# ACCFFT also needs the float version; we can't make it at once, so
+# we have got to add an additional three steps for the float version
+EXTERNALPROJECT_ADD_STEP(FFTW lfftw-config
+  DEPENDEES install
+  COMMAND cd ${COLD_FFTW_DIR}/src && ./configure
+        --prefix=${COLD_FFTW_DIR}/build
+        --enable-mpi --enable-threads --enable-shared
+        --enable-sse2 --enable-openmp --enable-avx
+        --enable-float CFLAGS=-O3 MAKEINFO=missing)
+
+EXTERNALPROJECT_ADD_STEP(FFTW lfftw-build
+  DEPENDEES lfftw-config
+  COMMAND cd ${COLD_FFTW_DIR}/src && make)
+
+EXTERNALPROJECT_ADD_STEP(FFTW lfftw-install
+  DEPENDEES lfftw-build
+  COMMAND cd ${COLD_FFTW_DIR}/src && make install)
+
+
+
+
 
 ##################################
 # ACCFFT
