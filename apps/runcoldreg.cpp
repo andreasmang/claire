@@ -21,6 +21,7 @@
 
 #include "RegOpt.h"
 #include "RegUtils.h"
+#include "Optimizer.h"
 #include "PreProcessingRegistration.h"
 #include "SynProbRegistration.h"
 #include "DataReadWriteRegistration.h"
@@ -100,25 +101,15 @@ int main(int argc,char **argv)
     N_MISC *miscopt = NULL;
     reg::RegOpt* opt = NULL;
 
-    typedef reg::DataReadWriteRegistration ReadWriteType;
-    typedef reg::SynProbRegistration SynProbType;
-    typedef reg::LargeDeformationRegistration LDRegType;
-    typedef reg::OptimalControlRegistration OCRegType;
-    typedef reg::OptimalControlRegistrationIC OCRegTypeIC;
-
-    ReadWriteType* io = NULL;
-    LDRegType* registration = NULL;
-    SynProbType* synprob = NULL;
+    reg::LargeDeformationRegistration* registration = NULL;
+    reg::DataReadWriteRegistration* io = NULL;
+    reg::SynProbRegistration* synprob = NULL;
+    reg::Optimizer* optimizer = NULL;
 
     // init petsc
     PetscInitialize(&argc,&argv,NULL,help);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
     MPI_Comm_rank(PETSC_COMM_WORLD,&procid);
-
-    // init gpu
-    //ScalarType *dummy_d;
-    //cudaMallocHost((void**)&dummy_d, sizeof(ScalarType));
-    //cudaFreeHost(dummy_d);
 
     ierr=PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"optimal control registration","");
     ierr=PetscOptionsGetBool(NULL,NULL,"-help",&flag,NULL); CHKERRQ(ierr);
@@ -132,20 +123,26 @@ int main(int argc,char **argv)
     ParseArguments(&opt,&miscopt,&plan,setuptime,c_comm);
 
     // allocate class for io
-    try{ io = new ReadWriteType(opt); }
+    try{ io = new reg::DataReadWriteRegistration(opt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // allocate class for io
+    try{ optimizer = new reg::Optimizer(opt); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
     // allocate class for registration
     if (opt->InCompressible()){
-        try{ registration = new OCRegTypeIC(opt); }
+        try{ registration = new reg::OptimalControlRegistrationIC(opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
     else{
-        try{ registration = new OCRegType(opt); }
+        try{ registration = new reg::OptimalControlRegistration(opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -153,11 +150,9 @@ int main(int argc,char **argv)
 
     ierr=registration->SetIO(io); CHKERRQ(ierr);
 
-    ierr=reg::Msg("running registration"); CHKERRQ(ierr);
-
+    // get sizes
     nl = opt->GetNLocal();
     ng = opt->GetNGlobal();
-
 
     if(opt->ReadImagesFromFile()){
 
@@ -186,7 +181,7 @@ int main(int argc,char **argv)
         ierr=VecSet(mT,0.0); CHKERRQ(ierr);
 
         // allocate class for registration
-        try{ synprob = new SynProbType(opt); }
+        try{ synprob = new reg::SynProbRegistration(opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -199,119 +194,6 @@ int main(int argc,char **argv)
         ierr=registration->SetupSyntheticProb(mT); CHKERRQ(ierr);
     }
 
-    Vec v0;
-    IntType nlukwn,ngukwn;
-    nlukwn = 3*miscopt->N_local;
-    ngukwn = 3*miscopt->N_global;
-
-    // allocate vector fields
-    ierr=VecCreate(PETSC_COMM_WORLD,&v0); CHKERRQ(ierr);
-    ierr=VecSetSizes(v0,nlukwn,ngukwn); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(v0); CHKERRQ(ierr);
-    ierr=VecSet(v0,0.0); CHKERRQ(ierr);
-
-    // create tao solver
-    Tao tao=NULL;
-    std::string method = "nls";
-    ierr=TaoCreate(PETSC_COMM_WORLD,&tao); CHKERRQ(ierr);
-    ierr=TaoSetType(tao,"nls"); CHKERRQ(ierr);
-    ierr=TaoSetInitialVector(tao,v0); CHKERRQ(ierr);
-
-    // set the routine to evaluate the objective and compute the gradient
-    ierr=TaoSetObjectiveRoutine(tao,reg::EvaluateObjective,(void*)registration); CHKERRQ(ierr);
-    ierr=TaoSetGradientRoutine(tao,reg::EvaluateGradient,(void*)registration); CHKERRQ(ierr);
-    ierr=TaoSetObjectiveAndGradientRoutine(tao,reg::EvaluateObjectiveGradient,(void*)registration); CHKERRQ(ierr);
-
-    // set the monitor for the optimization process
-    ierr=TaoCancelMonitors(tao); CHKERRQ(ierr);
-    ierr=TaoSetMonitor(tao,reg::OptimizationMonitor,registration,NULL); CHKERRQ(ierr);
-
-    TaoLineSearch ls;
-    ierr=TaoGetLineSearch(tao,&ls); CHKERRQ(ierr);
-    ierr=TaoLineSearchSetType(ls,"armijo"); CHKERRQ(ierr);
-
-    // set tolearances for optimizer
-    ScalarType gatol,grtol,gttol;
-    gatol = opt->GetOptTol(0);
-    grtol = opt->GetOptTol(1);
-    gttol = opt->GetOptTol(2);
-    ierr=TaoSetTolerances(tao,gatol,grtol,gttol); CHKERRQ(ierr);
-
-    ierr=TaoSetMaximumIterations(tao,opt->GetOptMaxit() - 1); CHKERRQ(ierr);
-
-    Mat HMatVec;
-    ierr=MatCreateShell(PETSC_COMM_WORLD,nlukwn,nlukwn,ngukwn,ngukwn,static_cast<void*>(registration),&HMatVec); CHKERRQ(ierr);
-    ierr=MatShellSetOperation(HMatVec,MATOP_MULT,(void(*)(void))reg::HessianMatVec); CHKERRQ(ierr);
-    ierr=MatSetOption(HMatVec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
-    ierr=TaoSetHessianRoutine(tao,HMatVec,HMatVec,reg::EvaluateHessian,static_cast<void*>(&registration)); CHKERRQ(ierr);
-
-    KSP taoksp;
-    PC taokktpc;
-
-    // get the ksp of the optimizer and set options
-    ierr=TaoGetKSP(tao,&taoksp); CHKERRQ(ierr);
-
-    // ksp is only nonzero if we use a newton type method
-    if (taoksp != NULL){
-
-        if(opt->GetVerbosity() >= 2){
-            ierr=KSPMonitorSet(taoksp,reg::KrylovMonitor,registration,NULL); CHKERRQ(ierr);
-        }
-
-        // set the preconditioner
-        ierr=KSPGetPC(taoksp,&taokktpc); CHKERRQ(ierr);
-
-        if(opt->GetPrecondMeth() == reg::NOPC){
-            if (strcmp(method.c_str(),"nls") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","none"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
-            }
-            else if (strcmp(method.c_str(),"ntr") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","none"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
-            }
-            ierr=PCSetType(taokktpc,PCNONE); CHKERRQ(ierr);
-        }
-        else if (  (opt->GetPrecondMeth() == reg::INVREG)
-                || (opt->GetPrecondMeth() == reg::TWOLEVEL) ) {
-            if (strcmp(method.c_str(),"nls") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
-            }
-            else if (strcmp(method.c_str(),"ntr") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
-            }
-            ierr=PCSetType(taokktpc,PCSHELL); CHKERRQ(ierr);
-            ierr=PCShellSetApply(taokktpc,reg::PrecondMatVec); CHKERRQ(ierr);
-            ierr=PCShellSetContext(taokktpc,registration); CHKERRQ(ierr);
-            //ierr=PCShellSetName(taokktpc,"kktpc"); CHKERRQ(ierr);
-            ierr=PCShellSetSetUp(taokktpc,reg::PrecondSetup); CHKERRQ(ierr);
-        }
-        else{
-            ierr=reg::ThrowError("preconditioner not defined"); CHKERRQ(ierr);
-        }
-
-        // set tolerances for krylov subspace method
-        ScalarType reltol,abstol,divtol;
-        IntType maxit;
-        reltol = opt->GetKKTSolverTol(0); // 1E-12;
-        abstol = opt->GetKKTSolverTol(1); // 1E-12;
-        divtol = opt->GetKKTSolverTol(2); // 1E+06;
-        maxit  = opt->GetKKTMaxit(); // 1000;
-        ierr=KSPSetTolerances(taoksp,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
-        //ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_FALSE); CHKERRQ(ierr);
-        ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_TRUE); CHKERRQ(ierr);
-
-        //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
-        //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
-        //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
-        ierr=KSPSetNormType(taoksp,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
-    }
 
     // reset all the clocks we have used so far
     ierr=opt->ResetTimers(); CHKERRQ(ierr);
@@ -320,22 +202,11 @@ int main(int argc,char **argv)
     // set the fft setup time
     opt->SetFFTSetupTime(setuptime);
 
-    // do the inversion
-    ierr=opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-    ierr=reg::Msg("starting optimization"); CHKERRQ(ierr);
-    ierr=TaoSolve(tao); CHKERRQ(ierr);
-    ierr=reg::Msg("optimization done"); CHKERRQ(ierr);
-    ierr=opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    ierr=optimizer->SetProblem(registration); CHKERRQ(ierr);
 
-    // get the solution vector
-    Vec vstar;
-    ierr=TaoGetSolutionVector(tao,&vstar); CHKERRQ(ierr);
-
-    // finalize the registration (write out all data)
-    ierr=registration->Finalize(vstar); CHKERRQ(ierr);
-
-    // display info to user, once we're done
-    ierr=TaoView(tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+    ierr=reg::Msg("running registration"); CHKERRQ(ierr);
+    ierr=optimizer->Run(); CHKERRQ(ierr);
+    ierr=optimizer->Finalize(); CHKERRQ(ierr);
 
     ierr=opt->DisplayTimeToSolution(); CHKERRQ(ierr);
 
@@ -344,11 +215,10 @@ int main(int argc,char **argv)
     if (opt != NULL){ delete opt; opt = NULL; }
     if (miscopt != NULL){ delete miscopt; miscopt = NULL; }
     if (synprob != NULL){ delete synprob; synprob = NULL; }
-    if (tao!=NULL){ ierr=TaoDestroy(&tao); CHKERRQ(ierr); tao=NULL; }
 
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
-
+    if (optimizer != NULL){ delete optimizer; optimizer = NULL; }
     if (registration != NULL){ delete registration; registration = NULL; }
 
     accfft_destroy_plan(plan);

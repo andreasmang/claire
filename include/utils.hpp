@@ -2,13 +2,10 @@
 #ifndef _UTILS_
 #define _UTILS_
 
-//#define BRAIN
-#define ALIGNMENT 32
-#define OMP_NUM_THREADS 16
 #include <petsc.h>
 #include <accfft.h>
 #include <accfft_operators.h>
-enum SolveType{Euler_Explicit,RK2_Explicit,RK2_Implicit};
+
 class N_MISC{
   public:
 	int N[3];

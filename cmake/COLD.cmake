@@ -101,21 +101,20 @@ ${COLD_SOURCE_DIR}/src/interp3.cpp
 ${COLD_SOURCE_DIR}/src/Interp3_Plan.cpp
 ${COLD_SOURCE_DIR}/src/RegOpt.cpp
 ${COLD_SOURCE_DIR}/src/RegUtils.cpp
-${COLD_SOURCE_DIR}/src/DataReadWriteRegistration.cpp
+${COLD_SOURCE_DIR}/src/Optimizer.cpp
+${COLD_SOURCE_DIR}/src/TaoInterfaceRegistration.cpp
+${COLD_SOURCE_DIR}/src/OptimizationProblemRegistration.cpp
 ${COLD_SOURCE_DIR}/src/LargeDeformationRegistration.cpp
 ${COLD_SOURCE_DIR}/src/OptimalControlRegistration.cpp
 ${COLD_SOURCE_DIR}/src/OptimalControlRegistrationIC.cpp
-${COLD_SOURCE_DIR}/src/OptimizationProblemRegistration.cpp
+${COLD_SOURCE_DIR}/src/DataReadWriteRegistration.cpp
 ${COLD_SOURCE_DIR}/src/PreProcessingRegistration.cpp
 ${COLD_SOURCE_DIR}/src/RegularizationRegistration.cpp
 ${COLD_SOURCE_DIR}/src/SemiLagrangian.cpp
 ${COLD_SOURCE_DIR}/src/SynProbRegistration.cpp
-${COLD_SOURCE_DIR}/src/TaoInterfaceRegistration.cpp
 ${COLD_SOURCE_DIR}/src/VecField.cpp
 )
 #${COLD_SOURCE_DIR}/src/gpu_interp3.cpp
-#${COLD_SOURCE_DIR}/src/read_binary.cpp
-#${COLD_SOURCE_DIR}/src/DataOut.cpp
 #${COLD_SOURCE_DIR}/src/SemiLagrangianGPU.cpp
 
 LINK_DIRECTORIES( ${COLD_BINARY_DIR}/lib )

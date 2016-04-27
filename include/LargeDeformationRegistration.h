@@ -34,7 +34,6 @@
 //#include "SemiLagrangianGPU.h"
 
 
-
 namespace reg
 {
 
