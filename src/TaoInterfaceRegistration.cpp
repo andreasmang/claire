@@ -322,7 +322,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     IntType iter;
     int iterdisp;
     char msg[256];
-    IntType nl,ng;
     ScalarType J=0.0,gnorm=0.0,cnorm=0.0,step=0.0,gnorm0=0.0,D=0.0;
     OptimizationProblemRegistration* optprob = NULL;
     TaoConvergedReason taoconvreason;
@@ -338,10 +337,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
 
     optprob = static_cast<OptimizationProblemRegistration*>(ptr);
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    // get sizes
-    nl = optprob->GetOptions()->GetNLocal();
-    ng = optprob->GetOptions()->GetNGlobal();
 
     // do we use a newton krylov method
     newtonkrylov =  (optprob->GetOptions()->GetOptMeth() == GAUSSNEWTON)

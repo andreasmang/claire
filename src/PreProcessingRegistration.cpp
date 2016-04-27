@@ -465,7 +465,7 @@ PetscErrorCode PreProcessingRegistration::DecompositionData(Vec x, unsigned int 
     unsigned int nsub[3];
     int is[3],ie[3],nxj[3];
     unsigned int nxblock[3], nzeropad;
-    IntType nlj,k;
+    IntType nlj;
 
     PetscFunctionBegin;
 

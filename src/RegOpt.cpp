@@ -91,11 +91,9 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KKTSolverPara.tol[2] = 1E+06; // divergence tolerance
     this->m_KKTSolverPara.maxit  = 1E+03; // maximal iterations
 
-    this->m_OptPara.tol[0] = 1E-16; // obj abs tol
-    this->m_OptPara.tol[1] = 1E-16; // obj rel tol
-    this->m_OptPara.tol[2] = 1E-9;  // grad abs tol
-    this->m_OptPara.tol[3] = 1E-16; // grad rel tol
-    this->m_OptPara.tol[4] = 1E-6;  // grad rel tol
+    this->m_OptPara.tol[0] = 1E-9;  // grad abs tol
+    this->m_OptPara.tol[1] = 1E-16; // grad rel tol
+    this->m_OptPara.tol[2] = 1E-6;  // grad rel tol
     this->m_OptPara.maxit  = 1E3;
 
     this->m_DD.n = 2;
@@ -207,20 +205,14 @@ PetscErrorCode RegOpt::DisplayOptions()
 
         // display optimization tolerances
         std::cout << std::left << std::setw(indent) <<" convergence tolerances"
-                  << std::setw(align)<<"J(v) - J(v*) <= tol"
+                  << std::setw(align) <<"||g(v)|| <= tol"
                   << this->m_OptPara.tol[0] << std::endl;
         std::cout << std::left << std::setw(indent) <<" "
-                  << std::setw(align) <<"|J(v) - J(v*)|/J(v) <= tol"
+                  << std::setw(align) <<"||g(v)||/|J(v)| <= tol"
                   << this->m_OptPara.tol[1] << std::endl;
         std::cout << std::left << std::setw(indent) <<" "
-                  << std::setw(align) <<"||g(v)|| <= tol"
-                  << this->m_OptPara.tol[2] << std::endl;
-        std::cout << std::left << std::setw(indent) <<" "
-                  << std::setw(align) <<"||g(v)||/|J(v)| <= tol"
-                  << this->m_OptPara.tol[3] << std::endl;
-        std::cout << std::left << std::setw(indent) <<" "
                   << std::setw(align) <<"||g(v)||/||g(v0)|| <= tol"
-                  << this->m_OptPara.tol[4] << std::endl;
+                  << this->m_OptPara.tol[2] << std::endl;
 
         // display parameters for newton type optimization methods
         if ( newtontype ){

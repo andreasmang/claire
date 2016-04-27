@@ -882,7 +882,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
 {
     PetscErrorCode ierr;
     const ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
-    int nx[3],isize[3],istart[3],nl;
+    int nx[3],nl;
     int c_dims[2];
     double timers[4] = {0,0,0,0};
 
@@ -890,8 +890,6 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
 
     for (int i = 0; i < 3; ++i){
         nx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->N[i]);
-        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
-        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);

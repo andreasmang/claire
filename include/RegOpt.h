@@ -291,7 +291,7 @@ private:
 
     // parameters for optimization
     struct Optimization{
-        ScalarType tol[5];
+        ScalarType tol[3];
         int maxit;
     };
 

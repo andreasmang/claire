@@ -1114,7 +1114,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
 #define __FUNCT__ "ComputeDeformationMapRK2"
 PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapRK2()
 {
-    PetscErrorCode ierr;
+    //PetscErrorCode ierr;
     PetscFunctionBegin;
 
 

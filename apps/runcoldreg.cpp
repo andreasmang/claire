@@ -120,13 +120,13 @@ int main(int argc,char **argv)
     //cudaMallocHost((void**)&dummy_d, sizeof(ScalarType));
     //cudaFreeHost(dummy_d);
 
-//    ierr=PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"optimal control registration","");
-//    ierr=PetscOptionsGetBool(NULL,"-help",&flag,NULL); CHKERRQ(ierr);
-//    if (flag==PETSC_FALSE){ ierr=PetscOptionsGetBool(NULL,"-help",&flag,NULL); CHKERRQ(ierr); }
-//    if (flag==PETSC_FALSE){ ierr==PetscOptionsGetBool(NULL,"-HELP",&flag,NULL); CHKERRQ(ierr); }
-//    if (flag==PETSC_FALSE){ ierr=PetscOptionsGetBool(NULL,"-h",&flag,NULL); CHKERRQ(ierr); }
-//    if (flag==PETSC_TRUE){ ierr=PetscFinalize(); CHKERRQ(ierr); return 0; }
-//    ierr=PetscOptionsEnd(); CHKERRQ(ierr);
+    ierr=PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"optimal control registration","");
+    ierr=PetscOptionsGetBool(NULL,NULL,"-help",&flag,NULL); CHKERRQ(ierr);
+    if (flag==PETSC_FALSE){ ierr=PetscOptionsGetBool(NULL,NULL,"-help",&flag,NULL); CHKERRQ(ierr); }
+    if (flag==PETSC_FALSE){ ierr==PetscOptionsGetBool(NULL,NULL,"-HELP",&flag,NULL); CHKERRQ(ierr); }
+    if (flag==PETSC_FALSE){ ierr=PetscOptionsGetBool(NULL,NULL,"-h",&flag,NULL); CHKERRQ(ierr); }
+    if (flag==PETSC_TRUE){ ierr=PetscFinalize(); CHKERRQ(ierr); return 0; }
+    ierr=PetscOptionsEnd(); CHKERRQ(ierr);
 
     // set the user parameters
     ParseArguments(&opt,&miscopt,&plan,setuptime,c_comm);
@@ -231,13 +231,10 @@ int main(int argc,char **argv)
     ierr=TaoLineSearchSetType(ls,"armijo"); CHKERRQ(ierr);
 
     // set tolearances for optimizer
-    ScalarType jatol,jrtol,gatol,grtol,gttol;
-    jatol = opt->GetOptTol(0);
-    jrtol = opt->GetOptTol(1);
-    gatol = opt->GetOptTol(2);
-    grtol = opt->GetOptTol(3);
-    gttol = opt->GetOptTol(4);
-    //ierr=TaoSetTolerances(tao,jatol,jrtol,gatol,grtol,gttol); CHKERRQ(ierr);
+    ScalarType gatol,grtol,gttol;
+    gatol = opt->GetOptTol(0);
+    grtol = opt->GetOptTol(1);
+    gttol = opt->GetOptTol(2);
     ierr=TaoSetTolerances(tao,gatol,grtol,gttol); CHKERRQ(ierr);
 
     ierr=TaoSetMaximumIterations(tao,opt->GetOptMaxit() - 1); CHKERRQ(ierr);
@@ -266,13 +263,13 @@ int main(int argc,char **argv)
 
         if(opt->GetPrecondMeth() == reg::NOPC){
             if (strcmp(method.c_str(),"nls") == 0){
-//                ierr=PetscOptionsSetValue("-tao_nls_pc_type","none"); CHKERRQ(ierr);
-//                ierr=PetscOptionsSetValue("-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","none"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
                 ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
             }
             else if (strcmp(method.c_str(),"ntr") == 0){
-//                ierr=PetscOptionsSetValue("-tao_ntr_pc_type","none"); CHKERRQ(ierr);
-//                ierr=PetscOptionsSetValue("-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","none"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
                 ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
             }
             ierr=PCSetType(taokktpc,PCNONE); CHKERRQ(ierr);
@@ -280,13 +277,13 @@ int main(int argc,char **argv)
         else if (  (opt->GetPrecondMeth() == reg::INVREG)
                 || (opt->GetPrecondMeth() == reg::TWOLEVEL) ) {
             if (strcmp(method.c_str(),"nls") == 0){
-//                ierr=PetscOptionsSetValue("-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
-//                ierr=PetscOptionsSetValue("-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
                 ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
             }
             else if (strcmp(method.c_str(),"ntr") == 0){
-//                ierr=PetscOptionsSetValue("-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
-//                ierr=PetscOptionsSetValue("-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
+                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
                 ierr=TaoSetFromOptions(tao); CHKERRQ(ierr);
             }
             ierr=PCSetType(taokktpc,PCSHELL); CHKERRQ(ierr);
@@ -396,113 +393,107 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
 
     // number of grid points
     ivalue=32;
-//    ierr=PetscOptionsGetInt(NULL,"-nx",&ivalue,NULL); CHKERRQ(ierr);
-//    ierr=PetscOptionsGetInt(NULL,"-nx1",&ivalue,NULL); CHKERRQ(ierr); nx[0] = ivalue;
-//    ierr=PetscOptionsGetInt(NULL,"-nx2",&ivalue,NULL); CHKERRQ(ierr); nx[1] = ivalue;
-//    ierr=PetscOptionsGetInt(NULL,"-nx3",&ivalue,NULL); CHKERRQ(ierr); nx[2] = ivalue;
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nx",&ivalue,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nx1",&ivalue,NULL); CHKERRQ(ierr); nx[0] = ivalue;
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nx2",&ivalue,NULL); CHKERRQ(ierr); nx[1] = ivalue;
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nx3",&ivalue,NULL); CHKERRQ(ierr); nx[2] = ivalue;
 
     // number of threads
     nthreads=1;
-//    ierr=PetscOptionsGetInt(NULL,"-nthreads",&nthreads,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nthreads",&nthreads,&flag); CHKERRQ(ierr);
 
     // cartesian grid for mpi
     ivalue=1;
-//    ierr=PetscOptionsGetInt(NULL,"-nprocx1",&ivalue,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nprocx1",&ivalue,&flag); CHKERRQ(ierr);
     c_dims[0] = ivalue;
 
     ivalue=1;
-//    ierr=PetscOptionsGetInt(NULL,"-nprocx2",&ivalue,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nprocx2",&ivalue,&flag); CHKERRQ(ierr);
     c_dims[1] = ivalue;
 
-    ivalue=32;
-//    ierr=PetscOptionsGetInt(NULL,"-nt",&ivalue,NULL); CHKERRQ(ierr);
+    ivalue=4;
+    ierr=PetscOptionsGetInt(NULL,NULL,"-nt",&ivalue,&flag); CHKERRQ(ierr);
     nt = ivalue;
 
     beta=1E-2;
-//    ierr=PetscOptionsGetReal(NULL,"-beta",&beta,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetReal(NULL,NULL,"-beta",&beta,&flag); CHKERRQ(ierr);
 
     strcpy(istring,"");
-//    ierr=PetscOptionsGetString(NULL,"-mr",istring,sizeof(istring),&flag); CHKERRQ(ierr);
-//    if (flag == PETSC_TRUE){
+    ierr=PetscOptionsGetString(NULL,NULL,"-mr",istring,sizeof(istring),&flag); CHKERRQ(ierr);
+    if (flag == PETSC_TRUE){
         mRFN = std::string(istring);
         readmR = true;
-//    }
+    }
 
     strcpy(istring,"");
-//    ierr=PetscOptionsGetString(NULL,"-mt",istring,sizeof(istring),&flag); CHKERRQ(ierr);
-//    if (flag == PETSC_TRUE){
+    ierr=PetscOptionsGetString(NULL,NULL,"-mt",istring,sizeof(istring),&flag); CHKERRQ(ierr);
+    if (flag == PETSC_TRUE){
         mTFN = std::string(istring);
         readmT = true;
-//    }
+    }
 
     strcpy(istring,"./results/");
-//    ierr=PetscOptionsGetString(NULL,"-x",istring,sizeof(istring),&flag); CHKERRQ(ierr);
+    ierr=PetscOptionsGetString(NULL,NULL,"-x",istring,sizeof(istring),&flag); CHKERRQ(ierr);
     xfolder = std::string(istring);
 
     strcpy(istring,"rk2");
-//    ierr=PetscOptionsGetString(NULL,"-pdesolver",istring,sizeof(istring),&flag); CHKERRQ(ierr);
-//    if      (strcmp(istring,"rk2")==0){ pdesoltype=reg::RK2; }
-//    else if (strcmp(istring,"sl")==0){ pdesoltype=reg::SL; }
-//    else{ ierr=reg::ThrowError("pde solver not defined"); CHKERRQ(ierr); }
+    ierr=PetscOptionsGetString(NULL,NULL,"-pdesolver",istring,sizeof(istring),&flag); CHKERRQ(ierr);
+    if      (strcmp(istring,"rk2")==0){ pdesoltype=reg::RK2; }
+    else if (strcmp(istring,"sl")==0){ pdesoltype=reg::SL; }
+    else{ ierr=reg::ThrowError("pde solver not defined"); CHKERRQ(ierr); }
 
     strcpy(istring,"h2s");
-//    ierr=PetscOptionsGetString(NULL,"-regnorm",istring,sizeof(istring),&flag); CHKERRQ(ierr);
-//    if      (strcmp(istring,"l2")==0){ regnorm=reg::L2; }
-//    else if (strcmp(istring,"h1")==0){ regnorm=reg::H1; }
-//    else if (strcmp(istring,"h2")==0){ regnorm=reg::H2; }
+    ierr=PetscOptionsGetString(NULL,NULL,"-regnorm",istring,sizeof(istring),&flag); CHKERRQ(ierr);
+    if      (strcmp(istring,"l2")==0){ regnorm=reg::L2; }
+    else if (strcmp(istring,"h1")==0){ regnorm=reg::H1; }
+    else if (strcmp(istring,"h2")==0){ regnorm=reg::H2; }
     //else if (strcmp(istring,"h3")==0){ regnorm=reg::H3; }
-//    else if (strcmp(istring,"h1s")==0){ regnorm=reg::H1SN; }
-//    else if (strcmp(istring,"h2s")==0){ regnorm=reg::H2SN; }
+    else if (strcmp(istring,"h1s")==0){ regnorm=reg::H1SN; }
+    else if (strcmp(istring,"h2s")==0){ regnorm=reg::H2SN; }
     //else if (strcmp(istring,"h3s")==0){ regnorm=reg::H3SN; }
-    //else{ ierr=reg::ThrowError("regularization norm not defined"); CHKERRQ(ierr); }
+    else{ ierr=reg::ThrowError("regularization norm not defined"); CHKERRQ(ierr); }
 
     strcpy(istring,"gn");
-//    ierr=PetscOptionsGetString(NULL,"-optmeth",istring,sizeof(istring),&flag); CHKERRQ(ierr);
-//    if      (strcmp(istring,"gn")==0){ optmeth=reg::GAUSSNEWTON; }
-//    else if (strcmp(istring,"fn")==0){ optmeth=reg::FULLNEWTON; }
-//    else{ ierr=reg::ThrowError("optimization method not defined"); CHKERRQ(ierr); }
+    ierr=PetscOptionsGetString(NULL,NULL,"-optmeth",istring,sizeof(istring),&flag); CHKERRQ(ierr);
+    if      (strcmp(istring,"gn")==0){ optmeth=reg::GAUSSNEWTON; }
+    else if (strcmp(istring,"fn")==0){ optmeth=reg::FULLNEWTON; }
+    else{ ierr=reg::ThrowError("optimization method not defined"); CHKERRQ(ierr); }
 
     ivalue=1E3;
-//    ierr=PetscOptionsGetInt(NULL,"-maxit",&ivalue,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-maxit",&ivalue,&flag); CHKERRQ(ierr);
     maxit=ivalue;
 
     ivalue=1E3;
-//    ierr=PetscOptionsGetInt(NULL,"-kktmaxit",&ivalue,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-kktmaxit",&ivalue,&flag); CHKERRQ(ierr);
     kktmaxit=ivalue;
 
-    opttol[0]=1E-16;
-//    ierr=PetscOptionsGetReal(NULL,"-jabstol",&opttol[0],NULL); CHKERRQ(ierr);
+    opttol[0]=1E-6;
+    ierr=PetscOptionsGetReal(NULL,NULL,"-gabstol",&opttol[0],&flag); CHKERRQ(ierr);
 
     opttol[1]=1E-16;
-//    ierr=PetscOptionsGetReal(NULL,"-jreltol",&opttol[1],NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetReal(NULL,NULL,"-greltol",&opttol[1],&flag); CHKERRQ(ierr);
 
-    opttol[2]=1E-6;
- //   ierr=PetscOptionsGetReal(NULL,"-gabstol",&opttol[2],NULL); CHKERRQ(ierr);
-
-    opttol[3]=1E-16;
-  //  ierr=PetscOptionsGetReal(NULL,"-greltol",&opttol[3],NULL); CHKERRQ(ierr);
-
-    opttol[4]=1E-3;
-   // ierr=PetscOptionsGetReal(NULL,"-gttol",&opttol[4],NULL); CHKERRQ(ierr);
+    opttol[2]=1E-3;
+    ierr=PetscOptionsGetReal(NULL,NULL,"-gttol",&opttol[2],&flag); CHKERRQ(ierr);
 
     flag = PETSC_FALSE;
-    //ierr=PetscOptionsGetBool(NULL,"-xtimehist",&flag,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetBool(NULL,NULL,"-xtimehist",&flag,NULL); CHKERRQ(ierr);
     if (flag == PETSC_TRUE) storetimeseries = true;
     else storetimeseries = false;
 
     flag = PETSC_FALSE;
-    //ierr=PetscOptionsGetBool(NULL,"-ic",&flag,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetBool(NULL,NULL,"-ic",&flag,NULL); CHKERRQ(ierr);
     if (flag == PETSC_TRUE) isincompressible = true;
     else isincompressible = false;
 
     flag = PETSC_FALSE;
-    //ierr=PetscOptionsGetBool(NULL,"-ximages",&flag,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetBool(NULL,NULL,"-ximages",&flag,NULL); CHKERRQ(ierr);
     if (flag == PETSC_TRUE) storeimages = true;
     else storeimages = false;
 
 
     ivalue=1;
-    //ierr=PetscOptionsGetInt(NULL,"-verbosity",&ivalue,NULL); CHKERRQ(ierr);
+    ierr=PetscOptionsGetInt(NULL,NULL,"-verbosity",&ivalue,&flag); CHKERRQ(ierr);
     verbosity=ivalue;
 
 
@@ -576,7 +567,7 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     (*regopt)->SetPDESolver(pdesoltype);
     (*regopt)->SetOptMaxit(maxit);
     (*regopt)->SetKKTMaxit(kktmaxit);
-    for(int i=0; i<5; ++i) (*regopt)->SetOptTol(i,opttol[i]);
+    for(int i=0; i<3; ++i) (*regopt)->SetOptTol(i,opttol[i]);
 
     (*regopt)->WriteImages2File(storeimages);
     (*regopt)->StoreTimeSeries(storetimeseries);
