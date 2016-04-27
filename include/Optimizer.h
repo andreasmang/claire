@@ -43,6 +43,7 @@ public:
 
 
     PetscErrorCode Run();
+    PetscErrorCode RunBetaCont();
     PetscErrorCode GetSolution(Vec&);
     PetscErrorCode Finalize();
 

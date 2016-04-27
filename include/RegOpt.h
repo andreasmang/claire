@@ -191,6 +191,7 @@ public:
     inline bool ReadImagesFromFile(){return this->m_ReadImagesFromFile;};
     inline void ReadImagesFromFile(bool flag){this->m_ReadImagesFromFile=flag;};
 
+
     inline bool StoreTimeSeries(){return this->m_StoreTimeSeries;};
     inline void StoreTimeSeries(bool flag){this->m_StoreTimeSeries = flag;};
     inline bool MonitorCFLCondition(){return this->m_MonitorCFLCondition;};
@@ -204,6 +205,21 @@ public:
     inline FSeqType GetFSeqType(void){return this->m_FSeqType;};
     inline void SetVerbosity(int vbs){this->m_Verbosity = vbs;};
     inline int GetVerbosity(){return this->m_Verbosity;};
+
+    inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
+    inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
+    inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
+
+    inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
+    inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
+    inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
+
+
+    inline bool DoParameterContinuation(){return this->m_ParameterCont.enabled;};
+    inline void DoParameterContinuation(bool flag){this->m_ParameterCont.enabled = flag;};
+    inline ScalarType GetJacBound(){return this->m_ParameterCont.jacbound;};
+    inline void SetJacBound(ScalarType value){this->m_ParameterCont.jacbound=value;};
+
 
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
     inline void IncrementCounter(CounterType id){this->m_Counter[id]++;};
@@ -306,9 +322,31 @@ private:
         unsigned int n;
     };
 
+    // parameters for parameter continuation
+    struct ParameterContinuation{
+        ScalarType betamin; ///< minimal regularization parameter
+        ScalarType jacbound; ///< lower bound for jacobian
+        bool enabled; ///< flag if parameter continuation is switched on
+    };
+
+    // parameters for parameter continuation
+    struct RegMonitor{
+        ScalarType jacmin; ///< min value of jacobian
+        ScalarType jacmax; ///< max value of jacobian
+        ScalarType jacmean; ///< mean value of jacobian
+    };
+
+
+    // parameters for KKT solver
+    struct MultiScale{
+        unsigned int n;
+    };
 
     Optimization m_OptPara;
     KKTSolver m_KKTSolverPara;
+    ParameterContinuation m_ParameterCont;
+    DomainDecomposition m_DD;
+    RegMonitor m_RegMonitor;
 
     RegNorm m_RegNorm; ///< flag for regularization norm
     OptMeth m_OptMeth; ///< flag for optimization method
@@ -344,7 +382,6 @@ private:
     ScalarType m_Beta[2]; ///< regularization weight
     ScalarType m_Sigma;
 
-    DomainDecomposition m_DD;
 
     int m_Verbosity;
 

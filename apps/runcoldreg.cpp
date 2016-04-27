@@ -53,7 +53,9 @@ static char help[] =
   -nprocx2 <int>         number of procs in x2 direction (default: 1)\n\
   -nthreads <int>        number of threads\n\
  ----------------------------------------------------------------------------------------------------\n\
-  -beta <double>         regularization paramameter (default: 1E-2)\n\
+  -beta <dbl>            regularization paramameter (default: 1E-2)\n\
+  -betacontoff           switch off parameter continuation in / estimation of beta (default: on)\n\
+  -jacbound              lower bound for det(grad(y)) (default: 2E-1; used in parameter cont)\n\
  ----------------------------------------------------------------------------------------------------\n\
   -pdesolver <type>      switch between PDE solvers\n\
                          where type is one of the following\n\
@@ -72,9 +74,7 @@ static char help[] =
  ----------------------------------------------------------------------------------------------------\n\
   -verbosity <int>       control verbosity level (default: 0)\n\
  ====================================================================================================\n\
-\n\
-\n\
-\n\
+\n\\n\\n\
 ";
 
 
@@ -135,17 +135,21 @@ int main(int argc,char **argv)
     }
 
     // allocate class for registration
-    if (opt->InCompressible()){
-        try{ registration = new reg::OptimalControlRegistrationIC(opt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    else{
+    if (opt->InCompressible()==false){
+
         try{ registration = new reg::OptimalControlRegistration(opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+
+    }
+    else{
+
+        try{ registration = new reg::OptimalControlRegistrationIC(opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
     }
 
     ierr=registration->SetIO(io); CHKERRQ(ierr);
@@ -202,10 +206,15 @@ int main(int argc,char **argv)
     // set the fft setup time
     opt->SetFFTSetupTime(setuptime);
 
+    // init solver
     ierr=optimizer->SetProblem(registration); CHKERRQ(ierr);
 
-    ierr=reg::Msg("running registration"); CHKERRQ(ierr);
-    ierr=optimizer->Run(); CHKERRQ(ierr);
+    // run the solver
+    if (opt->DoParameterContinuation()){
+        ierr=optimizer->RunBetaCont(); CHKERRQ(ierr);
+    }
+    else{ ierr=optimizer->Run(); CHKERRQ(ierr); }
+
     ierr=optimizer->Finalize(); CHKERRQ(ierr);
 
     ierr=opt->DisplayTimeToSolution(); CHKERRQ(ierr);
@@ -231,6 +240,7 @@ int main(int argc,char **argv)
 
 
 
+
 /********************************************************************
  * Name: ParseArguments
  * Description: parse arguments
@@ -243,9 +253,10 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     IntType nthreads,ivalue,maxit,nt,kktmaxit;
     IntType alloc_max;
     int nprocs,rank,verbosity;
-    ScalarType beta,opttol[5];
+    ScalarType beta,opttol[3],jacbound;
     PetscBool flag;
-    bool storetimeseries=false,storeimages=false,readmT=false,readmR=false,isincompressible=false;
+    bool storetimeseries=false,storeimages=false,dobetacont=true,
+        readmT=false,readmR=false,isincompressible=false;
     reg::PDESolver pdesoltype;
     reg::RegNorm regnorm;
     reg::OptMeth optmeth;
@@ -306,7 +317,7 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     ierr=PetscOptionsGetString(NULL,NULL,"-x",istring,sizeof(istring),&flag); CHKERRQ(ierr);
     xfolder = std::string(istring);
 
-    strcpy(istring,"rk2");
+    strcpy(istring,"sl");
     ierr=PetscOptionsGetString(NULL,NULL,"-pdesolver",istring,sizeof(istring),&flag); CHKERRQ(ierr);
     if      (strcmp(istring,"rk2")==0){ pdesoltype=reg::RK2; }
     else if (strcmp(istring,"sl")==0){ pdesoltype=reg::SL; }
@@ -329,11 +340,11 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     else if (strcmp(istring,"fn")==0){ optmeth=reg::FULLNEWTON; }
     else{ ierr=reg::ThrowError("optimization method not defined"); CHKERRQ(ierr); }
 
-    ivalue=1E3;
+    ivalue=20;
     ierr=PetscOptionsGetInt(NULL,NULL,"-maxit",&ivalue,&flag); CHKERRQ(ierr);
     maxit=ivalue;
 
-    ivalue=1E3;
+    ivalue=50;
     ierr=PetscOptionsGetInt(NULL,NULL,"-kktmaxit",&ivalue,&flag); CHKERRQ(ierr);
     kktmaxit=ivalue;
 
@@ -346,6 +357,10 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     opttol[2]=1E-3;
     ierr=PetscOptionsGetReal(NULL,NULL,"-gttol",&opttol[2],&flag); CHKERRQ(ierr);
 
+    jacbound=2E-1;
+    ierr=PetscOptionsGetReal(NULL,NULL,"-jacbound",&jacbound,&flag); CHKERRQ(ierr);
+
+
     flag = PETSC_FALSE;
     ierr=PetscOptionsGetBool(NULL,NULL,"-xtimehist",&flag,NULL); CHKERRQ(ierr);
     if (flag == PETSC_TRUE) storetimeseries = true;
@@ -355,6 +370,11 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     ierr=PetscOptionsGetBool(NULL,NULL,"-ic",&flag,NULL); CHKERRQ(ierr);
     if (flag == PETSC_TRUE) isincompressible = true;
     else isincompressible = false;
+
+    flag = PETSC_TRUE;
+    ierr=PetscOptionsGetBool(NULL,NULL,"-betacontoff",&flag,NULL); CHKERRQ(ierr);
+    if (flag == PETSC_TRUE) dobetacont = true;
+    else dobetacont = false;
 
     flag = PETSC_FALSE;
     ierr=PetscOptionsGetBool(NULL,NULL,"-ximages",&flag,NULL); CHKERRQ(ierr);
@@ -382,7 +402,6 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     omp_set_dynamic(0);
     omp_set_num_threads(nthreads);
 
-
     // check if number of threads is consistent with user options
     int ompthreads=omp_get_max_threads();
 
@@ -402,8 +421,8 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    if (rank == 0) std::cout<<(*miscopt)->N_local<<std::endl;
-    if (rank == 0) std::cout<<(*miscopt)->N_global<<std::endl;
+    ierr=reg::Assert((*miscopt)->N_local > 0,"bug in setup"); CHKERRQ(ierr);
+    ierr=reg::Assert((*miscopt)->N_global > 0,"bug in setup"); CHKERRQ(ierr);
 
     // allocate class for registration options
     try{ *regopt = new reg::RegOpt(*miscopt); }
@@ -430,7 +449,6 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     (*regopt)->SetNumTimePoints(nt);
     (*regopt)->SetXFolder(xfolder);
     (*regopt)->SetRegNorm(regnorm);
-    (*regopt)->SetRegularizationWeight(beta);
     (*regopt)->SetOptMeth(optmeth);
     (*regopt)->SetNetworkDims(c_dims);
     (*regopt)->SetNumThreads(nthreads);
@@ -438,6 +456,11 @@ int ParseArguments(reg::RegOpt** regopt, N_MISC** miscopt,
     (*regopt)->SetOptMaxit(maxit);
     (*regopt)->SetKKTMaxit(kktmaxit);
     for(int i=0; i<3; ++i) (*regopt)->SetOptTol(i,opttol[i]);
+
+    (*regopt)->SetRegularizationWeight(beta);
+    (*regopt)->SetJacBound(jacbound);
+    (*regopt)->DoParameterContinuation(dobetacont);
+
 
     (*regopt)->WriteImages2File(storeimages);
     (*regopt)->StoreTimeSeries(storetimeseries);

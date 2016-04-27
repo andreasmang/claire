@@ -48,7 +48,7 @@ PetscErrorCode Msg(std::string msg)
     PetscFunctionBegin;
 
     ss << std::left << msg;
-    msg = " REG    "  + ss.str() + "\n";
+    msg = " REG "  + ss.str() + "\n";
 
     // display message
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);

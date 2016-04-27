@@ -94,13 +94,22 @@ PetscErrorCode RegOpt::Initialize()
     this->m_OptPara.tol[0] = 1E-9;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
     this->m_OptPara.tol[2] = 1E-6;  // grad rel tol
-    this->m_OptPara.maxit  = 1E3;
+    this->m_OptPara.maxit = 1E3; // max number of iterations
 
     this->m_DD.n = 2;
 
     this->m_MonitorCFLCondition = false;
     this->m_ReadImagesFromFile = false;
     this->m_InCompressible = true;
+
+    this->m_ParameterCont.enabled = false;
+    this->m_ParameterCont.betamin = 1E-6;
+    this->m_ParameterCont.jacbound = 8E-1;
+
+    this->m_RegMonitor.jacmin = 0.0;
+    this->m_RegMonitor.jacmax = 0.0;
+    this->m_RegMonitor.jacmean = 0.0;
+
 
     ierr=this->ResetTimers(); CHKERRQ(ierr);
     ierr=this->ResetCounters(); CHKERRQ(ierr);
@@ -161,16 +170,34 @@ PetscErrorCode RegOpt::DisplayOptions()
 
         // display regularization model
         std::cout<< std::left << std::setw(indent) <<" regularization model";
-        switch(this->m_RegNorm){
-            case L2: std::cout<<"L2-norm (beta="<<this->m_Beta[0]<<")"<<std::endl; break;
-            case H1: std::cout<<"H1-norm (beta="<<this->m_Beta[0]<< ", "<<this->m_Beta[1]<<")"<<std::endl; break;
-            case H2: std::cout<<"H2-norm (beta="<<this->m_Beta[0]<< ", "<<this->m_Beta[1]<<")"<<std::endl; break;
-            case H1SN: std::cout<<"H1-seminorm (beta="<<this->m_Beta[0]<<")"<<std::endl; break;
-            case H2SN: std::cout<<"H2-seminorm (beta="<<this->m_Beta[0]<<")"<<std::endl; break;
-            default:
-            {
-                ierr=ThrowError("regularization model not implemented"); CHKERRQ(ierr);
-                break;
+
+        if(this->m_ParameterCont.enabled){
+            switch(this->m_RegNorm){
+                case L2: std::cout<<"L2-norm (beta estimated)"<<std::endl; break;
+                case H1: std::cout<<"H1-norm (beta estimated)"<<std::endl; break;
+                case H2: std::cout<<"H2-norm (beta estimated)"<<std::endl; break;
+                case H1SN: std::cout<<"H1-seminorm (beta estimated)"<<std::endl; break;
+                case H2SN: std::cout<<"H2-seminorm (beta estimated)"<<std::endl; break;
+                default:{ ierr=ThrowError("regularization model not implemented"); CHKERRQ(ierr); break; }
+            }
+
+            // display parameters and tolerances
+            std::cout<< std::left << std::setw(indent) <<" parameter continuation"
+                      << std::setw(align) <<"bound det(grad(y))"
+                      << this->m_ParameterCont.jacbound << std::endl;
+
+            std::cout << std::left << std::setw(indent) <<" "
+                      << std::setw(align) <<"bound beta"
+                      << this->m_ParameterCont.betamin << std::endl;
+        }
+        else{
+            switch(this->m_RegNorm){
+                case L2: std::cout<<"L2-norm (beta="<<this->m_Beta[0]<<")"<<std::endl; break;
+                case H1: std::cout<<"H1-norm (beta="<<this->m_Beta[0]<< ", "<<this->m_Beta[1]<<")"<<std::endl; break;
+                case H2: std::cout<<"H2-norm (beta="<<this->m_Beta[0]<< ", "<<this->m_Beta[1]<<")"<<std::endl; break;
+                case H1SN: std::cout<<"H1-seminorm (beta="<<this->m_Beta[0]<<")"<<std::endl; break;
+                case H2SN: std::cout<<"H2-seminorm (beta="<<this->m_Beta[0]<<")"<<std::endl; break;
+                default:{ ierr=ThrowError("regularization model not implemented"); CHKERRQ(ierr); break; }
             }
         }
 

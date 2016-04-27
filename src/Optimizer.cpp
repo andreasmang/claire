@@ -96,6 +96,7 @@ PetscErrorCode Optimizer::ClearMemory(void)
 
 
 
+
 /********************************************************************
  * Name: SetProblem
  * Description: set the optimization problem
@@ -112,6 +113,7 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob)
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -267,7 +269,9 @@ PetscErrorCode Optimizer::Run()
     ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
 
     // do the setup
-    ierr=this->DoSetup(); CHKERRQ(ierr);
+    if (this->m_Tao == NULL){
+        ierr=this->DoSetup(); CHKERRQ(ierr);
+    }
     ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
 
     // do the inversion
@@ -285,6 +289,79 @@ PetscErrorCode Optimizer::Run()
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * Name: Run
+ * Description: run the optimizer
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "RunBetaCont"
+PetscErrorCode Optimizer::RunBetaCont()
+{
+    PetscErrorCode ierr;
+    std::string levelmsg;
+    std::stringstream levelss;
+    ScalarType beta;
+    Vec x;
+    unsigned int maxsteps = 10;
+    bool stop;
+    PetscFunctionBegin;
+
+    // check of optimization problem has been set
+    ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
+
+    // do the setup
+    if (this->m_Tao == NULL){
+        ierr=this->DoSetup(); CHKERRQ(ierr);
+    }
+    ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
+
+    // do the inversion
+    ierr=this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);
+
+    levelmsg = "level ";
+    ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
+
+    beta = 1.0;
+
+    for(unsigned int i = 0; i < maxsteps; ++i){
+
+        this->m_Opt->SetRegularizationWeight(beta);
+
+        levelss << std::setw(3) << i <<" (beta="<<beta<<")";
+        ierr=Msg(levelmsg + levelss.str()); CHKERRQ(ierr);
+        levelss.str("");
+
+        // solve optimization probelm for current regularization parameter
+        ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
+
+        ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+        stop=false; // not yet we've not
+        ierr=this->m_OptimizationProblem->CheckBounds(x,stop); CHKERRQ(ierr);
+
+        if (stop) break; // if bound reached go home
+
+        beta /= 10.0;
+
+    }
+    ierr=Msg("optimization done"); CHKERRQ(ierr);
+
+    ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
+
+    // display info to user, once we're done
+    ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
 
 
 /********************************************************************
@@ -305,6 +382,8 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 /********************************************************************

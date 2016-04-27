@@ -103,6 +103,9 @@ public:
     /*! finalize the registration */
     virtual PetscErrorCode Finalize(Vec) = 0;
 
+    /*! function that checks bounds in parameter continuation */
+    virtual PetscErrorCode CheckBounds(Vec,bool&);
+
     /* ! apply 2 level preconditioner */
     virtual PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec) = 0;
 

@@ -91,6 +91,9 @@ PetscErrorCode OptimalControlRegistration::Initialize(void)
     this->m_SL = NULL;
     this->m_PCKSP = NULL;
 
+    // we have not done anything
+    this->m_InFirstIteration = true;
+
     this->m_PCMatVec = NULL;
     this->m_Regularization = NULL;
 

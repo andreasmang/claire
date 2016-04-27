@@ -50,8 +50,11 @@ public:
 
     inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
     inline void SetInitialGradNorm(ScalarType value){this->m_InitGradNorm = value;};
+
     inline void SetKSPTolerance(ScalarType value){this->m_KSPTol = value;};
     inline void SetNumOuterIter(IntType value){this->m_NumOuterIter = value;};
+    inline bool InFirstIteration(){return this->m_InFirstIteration;};
+    inline void InFirstIteration(bool flag){this->m_InFirstIteration=flag;};
 
     /*! evaluate l2-distance between observed and predicted state */
     virtual PetscErrorCode EvaluateL2Distance(ScalarType*) = 0;
@@ -80,6 +83,9 @@ public:
     /*! apply two level preconditioner */
     virtual PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec) = 0;
 
+    /*! apply two level preconditioner */
+    virtual PetscErrorCode CheckBounds(Vec,bool&) = 0;
+
     /*! set registration options */
     PetscErrorCode SetOptions(RegOpt* opt);
 
@@ -100,6 +106,8 @@ protected:
     inline ScalarType GetKSPTolerance(){return this->m_KSPTol;};
 
     RegOpt* m_Opt;
+
+    bool m_InFirstIteration;
 
     ScalarType m_InitGradNorm;
     ScalarType m_KSPTol;

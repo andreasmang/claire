@@ -376,7 +376,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     }
 
     // parse initial gradient and display header
-    if (iter == 0){
+    if (optprob->InFirstIteration() == true){
         PetscPrintf(MPI_COMM_WORLD," %3s  %-15s  %-15s  %-15s  %-15s  %-15s\n","i","J","D","||g||_2,rel","||g||_2","step");
         optprob->SetInitialGradNorm(gnorm);
     }
@@ -395,6 +395,8 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     iterdisp = iter;
     sprintf(msg," %03d  %-9.9E  %-9.9E  %-9.9E  %-9.9E  %.6f",iterdisp,J,D,gnorm/gnorm0,gnorm,step);
     PetscPrintf(MPI_COMM_WORLD,"%-80s\n",msg);
+
+    optprob->InFirstIteration(false);
 
     if (x!= NULL){ierr=VecDestroy(&x); CHKERRQ(ierr);}
 

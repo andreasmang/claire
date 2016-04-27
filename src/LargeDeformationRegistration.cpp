@@ -616,6 +616,8 @@ PetscErrorCode LargeDeformationRegistration::CopyToAllTimePoints(Vec u, Vec uj)
 
 
 
+
+
 /********************************************************************
  * Name: ComputeCFLCondition
  * Description: copies some input data field to all time points
@@ -685,6 +687,49 @@ PetscErrorCode LargeDeformationRegistration::ComputeCFLCondition()
 }
 
 
+/********************************************************************
+ * Name: CheckBounds
+ * Description: compute determinant of deformation gradient
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "CheckBounds"
+PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreached)
+{
+    PetscErrorCode ierr;
+    ScalarType jmin,jbound;
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    if (this->m_VelocityField == NULL){
+       try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    boundreached = false;
+
+    // parse input velocity field
+    ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+
+    // compute determinant of deformation gradient
+    ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
+
+    jmin   = this->m_Opt->GetJacMin();
+    jbound = this->m_Opt->GetJacBound();
+
+    boundreached = jmin <= jbound;
+
+    if(boundreached){
+        ss << std::scientific << std::fixed
+        << "bound reached ( min(det(grad(y))) = "<< jmin << " <= " << jbound <<" )";
+        ierr=WrngMsg(ss.str()); CHKERRQ(ierr);
+    }
+
+
+    PetscFunctionReturn(0);
+}
+
 
 
 /********************************************************************
@@ -735,8 +780,11 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
     ierr=VecMin(this->m_WorkScaField1,NULL,&minddg); CHKERRQ(ierr);
     ierr=VecMax(this->m_WorkScaField1,NULL,&maxddg); CHKERRQ(ierr);
     ierr=VecSum(this->m_WorkScaField1,&meanddg); CHKERRQ(ierr);
-
     meanddg /= static_cast<ScalarType>(this->m_Opt->GetNGlobal());
+
+    this->m_Opt->SetJacMin(minddg); CHKERRQ(ierr);
+    this->m_Opt->SetJacMax(maxddg); CHKERRQ(ierr);
+    this->m_Opt->SetJacMean(meanddg); CHKERRQ(ierr);
 
     ss  << std::scientific << "det(grad(y)) : (min,mean,max)="
         << "(" << minddg << "," << meanddg << "," << maxddg<<")";
