@@ -47,11 +47,11 @@ ELSE( )
 ENDIF( )
 
 
-include(FindMPI)
+#include(FindMPI)
 
 # set cmake compiler to mpi compiler wrapper found by FindMPI (usually mpicxx) 
-set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+#set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
 
 
 ADD_DEFINITIONS(

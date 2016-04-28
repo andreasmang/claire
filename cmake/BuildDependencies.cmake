@@ -5,6 +5,8 @@ INCLUDE(ExternalProject)
 SET(COLD_EXTERNAL_LIBDIR "${CMAKE_CURRENT_BINARY_DIR}/external")
 
 
+
+
 ##################################
 # FFTW
 ##################################
@@ -69,6 +71,8 @@ LIST(APPEND COLD_EXTERNAL_INCS ${COLD_FFTW_DIR}/build/include)
 INCLUDE_DIRECTORIES(${COLD_FFTW_DIR}/build/include)
 
 
+
+
 ##################################
 # PNETCDF
 ##################################
@@ -101,6 +105,7 @@ LIST(APPEND COLD_EXTERNAL_LIBS ${COLD_PNETCDF_LIB})
 LIST(APPEND COLD_EXTERNAL_INCS ${COLD_PNETCDF_DIR}/build/include)
 
 INCLUDE_DIRECTORIES(${COLD_PNETCDF_DIR}/build/include)
+
 
 
 
@@ -149,12 +154,12 @@ LIST(APPEND COLD_EXTERNAL_LIBS ${COLD_ACCFFT_LIB})
 LIST(APPEND COLD_EXTERNAL_LIBS ${COLD_ACCFFTUTILS_LIB})
 LIST(APPEND COLD_EXTERNAL_INCS ${COLD_ACCFFT_INC})
 INCLUDE_DIRECTORIES(${COLD_ACCFFT_INC})
-#LIST(APPEND COLD_EXTERNAL_INCS ${COLD_ACCFFT_DIR}/build/include)
-#INCLUDE_DIRECTORIES(${COLD_ACCFFT_DIR}/build/include)
+
+
 
 
 ##################################
-### PETSC
+# PETSC
 ##################################
 SET(COLD_PETSC_DIR "${COLD_EXTERNAL_LIBDIR}/petsc")
 SET(COLD_PETSC_ARCH "cxxopt")
@@ -198,3 +203,42 @@ LIST(APPEND COLD_EXTERNAL_INCS ${COLD_PETSC_DIR}/${COLD_PETSC_ARCH}/include)
 INCLUDE_DIRECTORIES(${COLD_PETSC_DIR}/include)
 INCLUDE_DIRECTORIES(${COLD_PETSC_DIR}/${COLD_PETSC_ARCH}/include)
 
+
+
+##################################
+# NIFTICLIB
+##################################
+SET(COLD_NIFTICLIB_DIR "${COLD_EXTERNAL_LIBDIR}/nifticlib")
+SET(ENV{NIFTICLIB_DIR} "${COLD_NIFTICLIB_DIR}")
+
+MESSAGE( STATUS "COLD_NIFTICLIB_DIR: " ${COLD_NIFTICLIB_DIR} )
+
+IF(NOT COLD_NIFTI_LIBPRJ)
+
+    EXTERNALPROJECT_ADD(COLD_NIFTICLIB_LIBPRJ
+      URL ${COLD_SOURCE_DIR}/external/nifticlib-2.0.0.tar.gz
+      #URL http://downloads.sourceforge.net/project/niftilib/nifticlib/nifticlib_2_0_0/nifticlib-2.0.0.tar.gz
+      SOURCE_DIR ${COLD_NIFTICLIB_DIR}/src
+      BINARY_DIR ${COLD_NIFTICLIB_DIR}/src
+      TMP_DIR ${COLD_EXTERNAL_LIBDIR}/tmp/nifticlib
+      STAMP_DIR ${COLD_EXTERNAL_LIBDIR}/tmp/nifticlib
+      DOWNLOAD_DIR ${COLD_EXTERNAL_LIBDIR}/tmp/nifticlib
+      INSTALL_DIR ${COLD_NIFTICLIB_DIR}/build
+      CMAKE_ARGS -Wno-dev # suppress missing cmake_minimum_required() warning
+      CMAKE_CACHE_ARGS "-DBUILD_SHARED_LIBS:BOOL=OFF"
+                       "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
+                       "-DCMAKE_INSTALL_PREFIX:PATH=${COLD_NIFTICLIB_DIR}/build"
+      CMAKE_COMMAND cmake
+      BUILD_COMMAND make
+      INSTALL_COMMAND make install
+)
+
+ENDIF(NOT COLD_NIFTI_LIBPRJ)
+
+# get the library
+#FIND_LIBRARY(COLD_NIFTI_LIB NAMES libniftiio PATHS ${COLD_NIFTICLIB_DIR}/build/lib DOC "NIFTICLIB libs")
+
+LIST(APPEND COLD_EXTERNAL_LIBS ${COLD_NIFTI_LIB})
+LIST(APPEND COLD_EXTERNAL_INCS ${COLD_NIFTICLIB_DIR}/build/include)
+
+INCLUDE_DIRECTORIES(${COLD_NIFTICLIB_DIR}/build/include)
