@@ -156,6 +156,7 @@ public:
 
     RegOpt();
     RegOpt(N_MISC*);
+    RegOpt(int,char**);
     ~RegOpt();
 
 
@@ -202,7 +203,7 @@ public:
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
     inline PrecondMeth GetPrecondMeth(void){return this->m_PrecondMeth;};
     inline PCSolverType GetPCSolverType(){return this->m_PCSolverType;};
-    inline FSeqType GetFSeqType(void){return this->m_FSeqType;};
+    inline FSeqType GetFSeqType(void){return this->m_KKTSolverPara.fseqtype;};
     inline void SetVerbosity(int vbs){this->m_Verbosity = vbs;};
     inline int GetVerbosity(){return this->m_Verbosity;};
 
@@ -248,12 +249,11 @@ public:
 
     inline void SetNumThreads(int n){this->m_NumThreads=n;};
     inline void SetNumTimePoints(IntType nt){ this->m_NT=nt; };
-    inline int GetNetworkDims(int i){return this->m_NetworkDims[i];};
+    inline int GetNetworkDims(int i){return this->m_CartGridDims[i];};
     inline void SetNetworkDims(int dims[2]){
-        this->m_NetworkDims[0]=dims[0];
-        this->m_NetworkDims[1]=dims[1];
+        this->m_CartGridDims[0]=dims[0];
+        this->m_CartGridDims[1]=dims[1];
     };
-    inline void SetFFTSetupTime(double wtime){this->m_Timer[FFTSETUP][LOG]=wtime;};
     inline void IncreaseFFTTimers(double timers[5]){
         for(int i=0; i < 5; ++i) this->m_FFTTimers[i][LOG]+=timers[i];
     };
@@ -274,8 +274,8 @@ public:
     inline unsigned int GetDDNumDomains(){return this->m_DD.n;};
     inline unsigned int SetDDNumDomains(unsigned int n){return this->m_DD.n = n;};
 
-    inline bool WriteImages2File(){return this->m_WriteImages2File;};
-    inline void WriteImages2File(bool flag){this->m_WriteImages2File = flag;};
+    inline bool WriteImages2File(){return this->m_WriteImages;};
+    inline void WriteImages2File(bool flag){this->m_WriteImages = flag;};
 
     ScalarType ComputeFFTScale();
 
@@ -299,9 +299,14 @@ public:
 private:
 
     PetscErrorCode Initialize(void);
+    PetscErrorCode ClearMemory(void);
+    PetscErrorCode ParseArguments(int,char**);
+    PetscErrorCode DoSetup(void);
+    PetscErrorCode Usage(void);
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 
+    IntType m_nx[3];
     IntType m_NT; ///< number of time points
     ScalarType m_TimeHorizon[2];
 
@@ -315,6 +320,7 @@ private:
     struct KKTSolver{
         ScalarType tol[3];
         int maxit;
+        FSeqType fseqtype; ///<forcing sequence type
     };
 
     // parameters for KKT solver
@@ -342,10 +348,16 @@ private:
         unsigned int n;
     };
 
+    accfft_plan* m_FFTPlan;
+    MPI_Comm m_Comm;
+    int m_CartGridDims[2];
+
     Optimization m_OptPara;
     KKTSolver m_KKTSolverPara;
     ParameterContinuation m_ParameterCont;
+
     DomainDecomposition m_DD;
+
     RegMonitor m_RegMonitor;
 
     RegNorm m_RegNorm; ///< flag for regularization norm
@@ -353,7 +365,6 @@ private:
     PrecondMeth m_PrecondMeth; ///< flag for preconditioner
     PDESolver m_PDESolver; ///< flag for PDE solver
     PCSolverType m_PCSolverType; ///< flag for KSP solver for precond
-    FSeqType m_FSeqType; ///<forcing sequence type
 
     std::string m_XFolder; ///< identifier for folder to write results to
     std::string m_IFolder; ///< identifier for folder to read data from
@@ -367,7 +378,6 @@ private:
     double m_FFTTimers[5][NVALTYPES];
     double m_InterpTimers[4][NVALTYPES];
 
-    unsigned int m_NetworkDims[2];
     unsigned int m_NumThreads;
 
     unsigned int m_LineLength;
@@ -377,11 +387,11 @@ private:
     bool m_InCompressible;
 
     bool m_ReadImagesFromFile;
-    bool m_WriteImages2File;
+    bool m_WriteImages;
+    bool m_WriteLogFiles;
 
     ScalarType m_Beta[2]; ///< regularization weight
     ScalarType m_Sigma;
-
 
     int m_Verbosity;
 

@@ -52,7 +52,6 @@ public:
 
     PetscErrorCode SetIO(ReadWriteType*);
 
-
 private:
 
     PetscErrorCode ClearMemory();

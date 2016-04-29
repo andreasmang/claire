@@ -37,8 +37,6 @@ namespace reg
 {
 
 
-
-
 class OptimalControlRegistration : public LargeDeformationRegistration
 {
 public:

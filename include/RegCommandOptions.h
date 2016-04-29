@@ -76,8 +76,8 @@ private:
     PDESolver m_PDESolverType;
     RegNorm m_RegularizationNorm;
     OptMeth m_OptimizationMethod;
-    std::string m_mRFN;
-    std::string m_mTFN;
+    std::string m_mRFileName;
+    std::string m_mTFileName;
 
 
 };

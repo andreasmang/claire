@@ -2,13 +2,19 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
 
 # if user specifies -DCMAKE_BUILD_TYPE in command line, take their definition
 # and dump it in the cache along with proper documentation, otherwise set 
-# CMAKE_BUILD_TYPE to Debug prior to calling PROJECT()
-
+# CMAKE_BUILD_TYPE to Release prior to calling PROJECT()
 IF(CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "build type")
 ELSE()
-	SET(CMAKE_BUILD_TYPE Debug CACHE STRING "build type")
+	SET(CMAKE_BUILD_TYPE Release CACHE STRING "build type")
+    SET( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-O3 -fpic" )
 ENDIF()
+
+
+#SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+#SET(BUILD_SHARED_LIBRARIES OFF)
+#SET(CMAKE_EXE_LINKER_FLAGS "-static")
+
 
 PROJECT(COLD)
 SET(COLD_VERSION_MAJOR 0)
@@ -22,7 +28,7 @@ ENABLE_LANGUAGE(CXX)
 MESSAGE(STATUS "compiling COLD v${COLD_VERSION_MAJOR}.${COLD_VERSION_MINOR}.${COLD_VERSION_PATCH}")
 MESSAGE(STATUS "source directory: ${COLD_SOURCE_DIR}")
 
-# run main cmake file
+# ru main cmake file
 INCLUDE(${COLD_SOURCE_DIR}/cmake/COLD.cmake)
 
 ADD_SUBDIRECTORY(apps)

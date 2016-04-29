@@ -1,12 +1,8 @@
-SET(FILELIST
-#coldreg.h
-runcoldreg.cpp
-)
-
 MESSAGE( STATUS "COLD_LIBS coldreg ${COLD_EXTERNAL_LIBS}")
 #SET( COLD_LIBS )
 #LIST(APPEND COLD_LIBS coldreg)
 #LIST(APPEND COLD_LIBS ${COLD_EXTERNAL_LIBS} )
-ADD_EXECUTABLE ( runcoldreg ${FILELIST} )
+
+ADD_EXECUTABLE ( runcoldreg runcoldreg.cpp )
 TARGET_LINK_LIBRARIES( runcoldreg coldreg ${COLD_EXTERNAL_LIBS} )
 INSTALL(TARGETS runcoldreg DESTINATION apps)
