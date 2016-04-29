@@ -41,7 +41,7 @@ case $i in
     --bnifti)
     buildnifticlib=1
     ;;
-    --bnifti)
+    --bpetsc)
     buildpetsc=1
     ;;
     --clean)
