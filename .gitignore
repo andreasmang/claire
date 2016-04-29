@@ -1,2 +1,4 @@
 *.swp
 *.tar.gz
+bin/
+obj/
