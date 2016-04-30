@@ -1034,7 +1034,6 @@ PetscErrorCode RegOpt::WriteLogFile()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
 
-    ierr=this->ProcessTimers(); CHKERRQ(ierr);
 
     line = std::string(this->m_LineLength,'-');
 

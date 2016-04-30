@@ -3196,6 +3196,9 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
     }
 
+    // process timers
+    ierr=this->m_Opt->ProcessTimers(); CHKERRQ(ierr);
+
     // write log file
     if (this->m_Opt->LoggingEnabled()){
         ierr=this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
