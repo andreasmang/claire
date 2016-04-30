@@ -30,17 +30,12 @@ If your mpi compilers are NOT
 
 you will have to pass the mpi compiler manually via
 
-    ./build_libs.sh --mpicxx YOURMPICXXCOMPILER --mpic YOURMPICCOMPILER
+    ./build_libs.sh --cxx YOURMPICXXCOMPILER --c YOURMPICCOMPILER
 
 The script will figure out the path from the binary you set. An example for "mpicxx" and "mpicc" is
 
-    ./build_libs.sh --mpicxx mpicxx --mpic mpicc
+    ./build_libs.sh --cxx mpicxx --c mpicc
 
-To figure out if mpicxx is available on your system do
-
-    which mpicxx
-
-If this does not work, contact me: andreas@ices.utexas.edu
 
 Please check the cmake, make  and configure outputs for errors. A simple check if everything worked is to inspect the "build" subfolders for the individual liberaries in "lib". See if folders in "build" were created and the libfiles exist.
 

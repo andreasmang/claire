@@ -246,7 +246,6 @@ public:
     inline void SetRegNorm(RegNorm regnorm){this->m_RegNorm=regnorm;};
     inline void SetOptMeth(OptMeth meth){this->m_OptMeth=meth;};
 
-
     inline void SetNumThreads(int n){this->m_NumThreads=n;};
     inline void SetNumTimePoints(IntType nt){ this->m_NT=nt; };
     inline int GetNetworkDims(int i){return this->m_CartGridDims[i];};
@@ -274,8 +273,9 @@ public:
     inline unsigned int GetDDNumDomains(){return this->m_DD.n;};
     inline unsigned int SetDDNumDomains(unsigned int n){return this->m_DD.n = n;};
 
-    inline bool WriteImages2File(){return this->m_WriteImages;};
-    inline void WriteImages2File(bool flag){this->m_WriteImages = flag;};
+    inline bool WriteImages(){return this->m_WriteImages;};
+    inline void WriteImages(bool flag){this->m_WriteImages = flag;};
+    inline bool LoggingEnabled(){return this->m_WriteLogFiles;};
 
     ScalarType ComputeFFTScale();
 

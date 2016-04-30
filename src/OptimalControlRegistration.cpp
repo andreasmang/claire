@@ -3171,11 +3171,13 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 
     PetscFunctionBegin;
 
-   // get rank
-   MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-   MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
+    // get rank
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
 
-    ierr=DbgMsg("finalizing registration"); CHKERRQ(ierr);
+    if (this->m_Opt->GetVerbosity() >= 2){
+        ierr=DbgMsg("finalizing registration"); CHKERRQ(ierr);
+    }
 
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL){
@@ -3194,8 +3196,10 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
     }
 
-    // write out log file
-    ierr=this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
+    // write log file
+    if (this->m_Opt->LoggingEnabled()){
+        ierr=this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
+    }
 
     // set components of velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
@@ -3204,7 +3208,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
     ierr=VecNorm(this->m_WorkScaField1,NORM_2,&mRmT_2); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField1,NORM_INFINITY,&mRmT_infty); CHKERRQ(ierr);
 
-    if( this->m_Opt->WriteImages2File() == true ){
+    if( this->m_Opt->WriteImages() == true ){
 
         ierr=Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -3241,7 +3245,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
     ierr=VecNorm(this->m_WorkScaField2,NORM_2,&mRm1_2); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField2,NORM_INFINITY,&mRm1_infty); CHKERRQ(ierr);
 
-    if( this->m_Opt->WriteImages2File() == true ){
+    if( this->m_Opt->WriteImages() == true ){
 
         ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
@@ -3278,52 +3282,55 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
     drrel_infty=mRm1_infty/mRmT_infty;
     drrel_2=mRm1_2/mRmT_2;
 
-    if (rank == 0){
+    if (this->m_Opt->LoggingEnabled()){
 
-        nnum = 20; nstr = 20;
-        filename = this->m_Opt->GetXFolder() + "registration-performance-residuals";
-        fn = filename + ".log";
+        if (rank == 0){
 
-        // create output file
-        logwriter.open(fn.c_str());
-        ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
+            nnum = 20; nstr = 20;
+            filename = this->m_Opt->GetXFolder() + "registration-performance-residuals";
+            fn = filename + ".log";
 
-        ss  << std::scientific << std::left
-            << std::setw(nstr) << "||mR-mT||_2" << std::right
-            << std::setw(nnum) << mRmT_2;
-        logwriter << ss.str() << std::endl;
-        ss.clear(); ss.str(std::string());
+            // create output file
+            logwriter.open(fn.c_str());
+            ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
 
-        ss  << std::scientific << std::left
-            << std::setw(nstr) << "||mR-mT||_infty" << std::right
-            << std::setw(nnum) << mRmT_infty;
-        logwriter << ss.str() << std::endl;
-        ss.clear(); ss.str(std::string());
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << "||mR-mT||_2" << std::right
+                << std::setw(nnum) << mRmT_2;
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
 
-        ss  << std::scientific << std::left
-            << std::setw(nstr) << "||mR-m1||_2" << std::right
-            << std::setw(nnum) << mRm1_2;
-        logwriter << ss.str() << std::endl;
-        ss.clear(); ss.str(std::string());
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << "||mR-mT||_infty" << std::right
+                << std::setw(nnum) << mRmT_infty;
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
 
-        ss  << std::scientific << std::left
-            << std::setw(nstr) << "||mR-m1||_infty" << std::right
-            << std::setw(nnum) << mRm1_infty;
-        logwriter << ss.str() << std::endl;
-        ss.clear(); ss.str(std::string());
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << "||mR-m1||_2" << std::right
+                << std::setw(nnum) << mRm1_2;
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
 
-        ss  << std::scientific << std::left
-            << std::setw(nstr) << "||mR-m1||_2,rel" << std::right
-            << std::setw(nnum) << drrel_2;
-        logwriter << ss.str() << std::endl;
-        ss.clear(); ss.str(std::string());
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << "||mR-m1||_infty" << std::right
+                << std::setw(nnum) << mRm1_infty;
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
 
-        ss  << std::scientific << std::left
-            << std::setw(nstr) << "||mR-m1||_infty,rel" << std::right
-            << std::setw(nnum) << drrel_infty;
-        logwriter << ss.str() << std::endl;
-        ss.clear(); ss.str(std::string());
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << "||mR-m1||_2,rel" << std::right
+                << std::setw(nnum) << drrel_2;
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
 
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << "||mR-m1||_infty,rel" << std::right
+                << std::setw(nnum) << drrel_infty;
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
+
+        }
     }
 
     PetscFunctionReturn(0);

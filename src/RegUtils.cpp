@@ -177,10 +177,6 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout)
 
     PetscFunctionBegin;
 
-    // log for user
-    ss << "rescaling image to [" << xminout <<","<<xmaxout<<"]";
-    ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
-
     // get max and min values
     ierr=VecMin(x,NULL,&xmin); CHKERRQ(ierr);
     ierr=VecMax(x,NULL,&xmax); CHKERRQ(ierr);

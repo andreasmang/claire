@@ -283,10 +283,6 @@ PetscErrorCode Optimizer::Run()
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
-    // display info to user, once we're done
-    ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-
-
     PetscFunctionReturn(0);
 }
 

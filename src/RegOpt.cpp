@@ -359,6 +359,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_LineLength = 100;
     this->m_Sigma = 1;
     this->m_WriteImages = false;
+    this->m_WriteLogFiles = false;
 
     this->m_KKTSolverPara.tol[0] = 1E-12; // relative tolerance
     this->m_KKTSolverPara.tol[1] = 1E-12; // absolute tolerance
@@ -368,7 +369,7 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
-    this->m_OptPara.tol[2] = 1E-3;  // grad rel tol
+    this->m_OptPara.tol[2] = 1E-2;  // grad rel tol
     this->m_OptPara.maxit = 1E3; // max number of iterations
 
     this->m_DD.n = 2;
@@ -384,6 +385,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegMonitor.jacmin = 0.0;
     this->m_RegMonitor.jacmax = 0.0;
     this->m_RegMonitor.jacmean = 0.0;
+
 
     this->m_NumThreads=1;
     this->m_CartGridDims[0]=1;
@@ -442,7 +444,7 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< "                    where <types> are"<<std::endl;
         std::cout<< "                      gn           Gauss-Newton (default)"<<std::endl;
         std::cout<< "                      fn           full Newton"<<std::endl;
-        std::cout<< " -grel <dbl>        tolerance for optimization (default: 1E-3)"<<std::endl;
+        std::cout<< " -grel <dbl>        tolerance for optimization (default: 1E-2)"<<std::endl;
         std::cout<<"                       relative change of gradient"<<std::endl;
         std::cout<<"                       optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
         std::cout<< " -gabs <dbl>        tolerance for optimization (default: 1E-6)"<<std::endl;
