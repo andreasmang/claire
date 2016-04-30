@@ -1,5 +1,5 @@
 CXX=mpicxx
-CXXFLAGS= -O3 -ansi -openmp -xhost -DINVERT_RHO -std=c++11 -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
+CXXFLAGS= -O3 -ansi -openmp -xhost -DINVERT_RHO -std=c++11 #-Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
 RM = rm -f
 MKDIRS = mkdir -p
 
