@@ -405,6 +405,8 @@ PetscErrorCode Optimizer::Finalize()
     // display info to user, once we're done
     ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
+    ierr=this->m_Opt->DisplayTimeToSolution(); CHKERRQ(ierr);
+
     PetscFunctionReturn(0);
 }
 

@@ -263,6 +263,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 */
 
     ierr=this->DoSetup(); CHKERRQ(ierr);
+    ierr=this->DisplayOptions(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

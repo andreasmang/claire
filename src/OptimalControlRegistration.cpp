@@ -556,6 +556,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
 #pragma omp parallel
 {
 #pragma omp for
+
             // for all grid points at tj
             for (IntType i = 0; i < nl; ++i){
 
@@ -568,6 +569,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
                 p_b3[i] = p_b3[i] + scale*p_gradm3[i]*l;
 
             }
+
 } // parallel
 
             // trapezoidal rule (revert scaling)
