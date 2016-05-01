@@ -14,7 +14,7 @@ COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/inclu
 COLD_INC+= -I$(ACCFFT_DIR)/include
 COLD_INC+= -I$(PNETCDF_DIR)/include
 COLD_INC+= -I$(FFTW_DIR)/include
-COLD_INC+= -I$(NIFTI_DIR)/include
+COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
