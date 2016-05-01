@@ -11,12 +11,17 @@ APPDIR = ./apps
 
 COLD_INC = -I$(INCDIR)
 COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
-COLD_INC+= -I$(ACCFFT_DIR)/include -I$(PNETCDF_DIR)/include -I$(FFTW_DIR)/include
+COLD_INC+= -I$(ACCFFT_DIR)/include
+COLD_INC+= -I$(PNETCDF_DIR)/include
+COLD_INC+= -I$(FFTW_DIR)/include
+COLD_INC+= -I$(NIFTI_DIR)/include
 
-LDFLAGS = -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads -L$(ACCFFT_DIR)/lib
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
-LDFLAGS+= -lfftw3 -lfftw3_threads -L$(PNETCDF_DIR)/lib -lpnetcdf -limf -lm
+LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+LDFLAGS+= -L$(PNETCDF_DIR)/lib -lpnetcdf
+LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
+LDFLAGS+= -limf -lm
 
 BIN = $(BINDIR)/runcoldreg
 
