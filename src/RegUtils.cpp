@@ -32,6 +32,33 @@ PetscErrorCode Assert(bool condition,std::string msg)
 
 
 
+/********************************************************************
+ * Name: GetFileName
+ * Description: get the filename of an image
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetFileName"
+PetscErrorCode GetFileName(std::string& filename, std::string file)
+{
+    PetscErrorCode ierr;
+    std::string path;
+    size_t sep;
+
+    PetscFunctionBegin;
+
+    sep = file.find_last_of("\\/");
+
+    if (sep != std::string::npos){
+        path=file.substr(0,sep);
+        filename=file.substr(sep + 1);
+    }
+
+    if (filename == ""){ filename = file; }
+
+    PetscFunctionReturn(0);
+}
+
+
 
 /********************************************************************
  * Name: Msg

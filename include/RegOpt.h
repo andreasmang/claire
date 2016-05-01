@@ -302,6 +302,7 @@ private:
     PetscErrorCode ParseArguments(int,char**);
     PetscErrorCode DoSetup(void);
     PetscErrorCode Usage(void);
+    PetscErrorCode CheckArguments(void);
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 

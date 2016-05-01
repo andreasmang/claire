@@ -245,22 +245,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         argc--; argv++;
     }
 
-/*
-    if (readmT && readmR){
-        (*regopt)->ReadImagesFromFile(true);
-        (*regopt)->SetReferenceFN(mRFN);
-        (*regopt)->SetTemplateFN(mTFN);
-    }
-    else if( (readmT == false) && readmR ) {
-        ierr=reg::ThrowError("you need to assign two images"); CHKERRQ(ierr);
-    }
-    else if( readmT && (readmR == false) ) {
-        ierr=reg::ThrowError("you need to assign two images"); CHKERRQ(ierr);
-    }
-    else if( (readmT == false) && (readmR == false) ){
-        (*regopt)->ReadImagesFromFile(false);
-    }
-*/
+    ierr=this->CheckArguments(); CHKERRQ(ierr);
 
     ierr=this->DoSetup(); CHKERRQ(ierr);
     ierr=this->DisplayOptions(); CHKERRQ(ierr);
@@ -342,7 +327,7 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_Beta[0] = 1E-2;
     this->m_Beta[1] = 1E-2;
-    this->m_RegNorm = H1SN;
+    this->m_RegNorm = H2SN;
     this->m_Verbosity = 1;
     this->m_TimeHorizon[0] = 0.0;
     this->m_TimeHorizon[1] = 1.0;
@@ -353,8 +338,6 @@ PetscErrorCode RegOpt::Initialize()
     //this->m_PCSolverType = PCPCG;
     this->m_XFolder = "./results/";
     this->m_IFolder = "./results/";
-    this->m_ReferenceFN = "./";
-    this->m_TemplateFN = "./";
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
     this->m_LineLength = 100;
@@ -502,6 +485,50 @@ PetscErrorCode RegOpt::Usage()
 
 }
 
+
+
+
+/********************************************************************
+ * Name: CheckArguments
+ * Description: check the arguments set by user
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "CheckArguments"
+PetscErrorCode RegOpt::CheckArguments()
+{
+    PetscErrorCode ierr;
+    bool readmR,readmT;
+    std::string msg;
+    PetscFunctionBegin;
+
+    readmR=false;
+    if(!this->m_ReferenceFN.empty()){
+        readmR=true;
+    }
+    readmT=false;
+    if(!this->m_TemplateFN.empty()){
+        readmT=true;
+    }
+
+    if (readmT && readmR){
+        this->ReadImagesFromFile(true);
+    }
+    else if( (readmT == false) && readmR ) {
+        msg="\x1b[31m you need to also assign a template image\x1b[0m\n";
+        ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
+    }
+    else if( readmT && (readmR == false) ) {
+        msg="\x1b[31m you need to also assign a reference image\x1b[0m\n";
+        ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
+    }
+    else if( (readmT == false) && (readmR == false) ){
+        this->ReadImagesFromFile(false);
+    }
+
+    PetscFunctionReturn(0);
+}
 
 
 

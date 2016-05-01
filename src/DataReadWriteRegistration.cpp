@@ -65,6 +65,7 @@ PetscErrorCode DataReadWriteRegistration::Initialize()
 {
 
     this->m_Opt = NULL;
+    this->m_NIIImage = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -102,6 +103,12 @@ PetscErrorCode DataReadWriteRegistration::Read(Vec x, std::string filename)
 
     if (filename.find(".nc") != std::string::npos){
         ierr=this->ReadNetCDF(x,filename); CHKERRQ(ierr);
+    }
+    else if (filename.find(".nii") != std::string::npos){
+        ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
+    }
+    else if (filename.find(".nii.gz") != std::string::npos){
+        ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
     }
     else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
@@ -518,7 +525,7 @@ PetscErrorCode DataReadWriteRegistration::WriteTimeSeriesNetCDF(Vec x, std::stri
 
 /********************************************************************
  * Name: ReadTimeSeriesNetCDF
- * Description: write data to file
+ * Description: read netcdf time series
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadTimeSeriesNetCDF"
@@ -580,6 +587,274 @@ PetscErrorCode DataReadWriteRegistration::ReadTimeSeriesNetCDF(Vec x, std::strin
 }
 
 
+/********************************************************************
+ * Name: GetComponentType
+ * Description: get component type of NII images
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetComponentTypeNII"
+PetscErrorCode DataReadWriteRegistration::GetComponentTypeNII(nifti_image* niiimage)
+{
+    PetscErrorCode ierr;
+
+    PetscFunctionBegin;
+
+    switch (niiimage->datatype){
+        case NIFTI_TYPE_UINT8:
+        {
+            this->m_ComponentType=UCHAR;
+            break;
+        }
+        case NIFTI_TYPE_INT8:
+        {
+            this->m_ComponentType=CHAR;
+            break;
+        }
+        case NIFTI_TYPE_UINT16:
+        {
+            this->m_ComponentType=USHORT;
+            break;
+        }
+        case NIFTI_TYPE_INT16:
+        {
+            this->m_ComponentType=SHORT;
+            break;
+        }
+        case NIFTI_TYPE_UINT32:
+        {
+            this->m_ComponentType=UINT;
+            break;
+        }
+        case NIFTI_TYPE_INT32:
+        {
+            this->m_ComponentType=INT;
+            break;
+        }
+        case NIFTI_TYPE_FLOAT32:
+        {
+            this->m_ComponentType=FLOAT;
+            break;
+        }
+        case NIFTI_TYPE_FLOAT64:
+        {
+            this->m_ComponentType=DOUBLE;
+            break;
+        }
+        default:
+        {
+            ierr=ThrowError("image data not supported"); CHKERRQ(ierr);
+            break;
+        }
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * Name: ReadNII
+ * Description: read nifty image
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ReadNII"
+PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x, std::string filename)
+{
+    PetscErrorCode ierr;
+    std::string msg, file;
+
+    PetscFunctionBegin;
+
+    ierr=GetFileName(file,filename); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() >= 1){
+        msg = "reading " + file;
+        ierr=DbgMsg(msg); CHKERRQ(ierr);
+    }
+
+    // deallocate nii image
+    if(this->m_NIIImage != NULL){
+        nifti_image_free(this->m_NIIImage);
+    }
+
+//    msg = "file " + file + "does not exist";
+//    ierr=Assert(FileExists(this->m_FileName),msg); CHKERRQ(ierr);
+
+    // read header file
+    this->m_NIIImage = nifti_image_read(filename.c_str(),false);
+
+    msg="could not read nifti image " + file;
+    ierr=Assert(this->m_NIIImage != NULL,msg); CHKERRQ(ierr);
+
+    ierr=this->ReadNII(x,this->m_NIIImage,filename); CHKERRQ(ierr);
+
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+
+/********************************************************************
+ * Name: ReadNII
+ * Description: read nifty image with right component type
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ReadNII"
+PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x,nifti_image* niiimage,std::string filename)
+{
+    PetscErrorCode ierr;
+    std::string msg;
+    PetscFunctionBegin;
+
+    switch (niiimage->datatype){
+        case NIFTI_TYPE_UINT8:
+        {
+            this->m_ComponentType=UCHAR;
+            ierr=this->ReadNII<unsigned char>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_INT8:
+        {
+            this->m_ComponentType=CHAR;
+            ierr=this->ReadNII<char>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_UINT16:
+        {
+            this->m_ComponentType=USHORT;
+            ierr=this->ReadNII<unsigned short>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_INT16:
+        {
+            this->m_ComponentType=SHORT;
+            ierr=this->ReadNII<short>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_UINT32:
+        {
+            this->m_ComponentType=UINT;
+            ierr=this->ReadNII<unsigned int>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_INT32:
+        {
+            this->m_ComponentType=INT;
+            ierr=this->ReadNII<int>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_FLOAT32:
+        {
+            this->m_ComponentType=FLOAT;
+            ierr=this->ReadNII<float>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        case NIFTI_TYPE_FLOAT64:
+        {
+            this->m_ComponentType=DOUBLE;
+            ierr=this->ReadNII<double>(x,niiimage,filename); CHKERRQ(ierr);
+            break;
+        }
+        default:
+        {
+            ierr=ThrowError("image data not supported"); CHKERRQ(ierr);
+            break;
+        }
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * Name: GetComponentType
+ * Description: get component type of NII images
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ReadImageBuffer"
+template <typename T>
+PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x,nifti_image* niiimage,std::string filename)
+{
+    PetscErrorCode ierr;
+    T* p_niibuffer;
+    ScalarType *p_x;
+    unsigned int nx[3],isize[3],istart[3];
+    int nprocs, rank;
+    std::string msg;
+    std::stringstream ss;
+
+    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    nx[0] = static_cast<unsigned int>(niiimage->nx);
+    nx[1] = static_cast<unsigned int>(niiimage->ny);
+    nx[2] = static_cast<unsigned int>(niiimage->nz);
+
+    istart[0] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->istart[0]);
+    istart[1] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->istart[1]);
+    istart[2] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->istart[2]);
+
+    isize[0] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->isize[0]);
+    isize[1] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->isize[1]);
+    isize[2] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->isize[2]);
+
+    // TODO
+    //if (!this->m_opt->memorydistset){
+    //    ierr=SetupMemoryDistribution(this->m_opt); CHKERRQ(ierr);
+    //}
+
+//    if( *x != NULL ){ ierr=VecDestroy(x); CHKERRQ(ierr); }
+
+//    ierr=VecCreate(PETSC_COMM_WORLD,x); CHKERRQ(ierr);
+//    ierr=VecSetSizes(*x,this->m_Opt->GetNLocal(),this->m_Opt->GetNGlobal()); CHKERRQ(ierr);
+//    ierr=VecSetFromOptions(*x); CHKERRQ(ierr);
+
+    if (nifti_image_load(niiimage) == -1){
+        msg="could not read image " + filename;
+        ierr=ThrowError(msg); CHKERRQ(ierr);
+    }
+
+    p_niibuffer = static_cast<T*>(niiimage->data);
+
+    if (p_niibuffer == NULL){
+        msg="image buffer is null pointer";
+        ierr=ThrowError(msg); CHKERRQ(ierr);
+    }
+
+    ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
+
+    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){ // x1
+        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+
+                unsigned int j1 = i1 + istart[0];
+                unsigned int j2 = i2 + istart[1];
+                unsigned int j3 = i3 + istart[2];
+
+                IntType j = GetLinearIndex(j1,j2,j3,nx);
+                IntType k = GetLinearIndex(i1,i2,i3,isize);
+
+                p_x[k] = static_cast<ScalarType>(p_niibuffer[j]);
+
+            }
+        }
+    }
+
+    ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
+
+//    ierr=VecMin(*x,NULL,&this->m_MinIValue); CHKERRQ(ierr);
+//    ierr=VecMax(*x,NULL,&this->m_MaxIValue); CHKERRQ(ierr);
+
+    // rescale image intensities to [0,1]
+    ierr=Rescale(*x,0.0,1.0); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+
+}
 
 
 
