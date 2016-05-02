@@ -27,7 +27,7 @@
 
 
 // local includes
-#include "RegUtils.h"
+#include "RegUtils.hpp"
 #include "utils.hpp"
 
 

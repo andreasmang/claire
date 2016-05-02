@@ -1,8 +1,8 @@
 #ifndef _OPTIMIZER_CPP_
 #define _OPTIMIZER_CPP_
 
-#include "Optimizer.h"
-#include "TaoInterfaceRegistration.h"
+#include "Optimizer.hpp"
+#include "TaoInterfaceRegistration.hpp"
 
 
 namespace reg

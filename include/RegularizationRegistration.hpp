@@ -22,9 +22,9 @@
 #ifndef _REGULARIZATIONREGISTRATION_H_
 #define _REGULARIZATIONREGISTRATION_H_
 
-#include "RegOpt.h"
-#include "RegUtils.h"
-#include "VecField.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "VecField.hpp"
 
 namespace reg
 {

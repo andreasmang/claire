@@ -2,7 +2,7 @@
 #define _OPTIMALCONTROLREGISTRATIONIC_CPP_
 
 #include <math.h>
-#include "OptimalControlRegistrationIC.h"
+#include "OptimalControlRegistrationIC.hpp"
 
 
 

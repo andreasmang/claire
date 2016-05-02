@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-#include "RegOpt.h"
+#include "RegOpt.hpp"
 
 namespace reg
 {

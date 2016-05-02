@@ -21,8 +21,8 @@
 #ifndef _TAOINTERFACEREGISTRATION_H_
 #define _TAOINTERFACEREGISTRATION_H_
 
-#include "RegOpt.h"
-#include "RegUtils.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
 
 namespace reg
 {

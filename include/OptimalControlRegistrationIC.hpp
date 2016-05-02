@@ -22,7 +22,7 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONIC_H_
 #define _OPTIMALCONTROLREGISTRATIONIC_H_
 
-#include "OptimalControlRegistration.h"
+#include "OptimalControlRegistration.hpp"
 
 namespace reg
 {

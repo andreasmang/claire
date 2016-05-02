@@ -1,7 +1,7 @@
 #ifndef _OPTIMIZATIONPROBLEM_CPP_
 #define _OPTIMIZATIONPROBLEM_CPP_
 
-#include "OptimizationProblemRegistration.h"
+#include "OptimizationProblemRegistration.hpp"
 
 
 

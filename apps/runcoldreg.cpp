@@ -19,16 +19,16 @@
 */
 
 
-#include "RegOpt.h"
-#include "RegUtils.h"
-#include "Optimizer.h"
-#include "PreProcessingRegistration.h"
-#include "SynProbRegistration.h"
-#include "ReadWriteReg.h"
-#include "LargeDeformationRegistration.h"
-#include "OptimalControlRegistration.h"
-#include "OptimalControlRegistrationIC.h"
-#include "TaoInterfaceRegistration.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "Optimizer.hpp"
+#include "PreProcessingRegistration.hpp"
+#include "SynProbRegistration.hpp"
+#include "ReadWriteReg.hpp"
+#include "LargeDeformationRegistration.hpp"
+#include "OptimalControlRegistration.hpp"
+#include "OptimalControlRegistrationIC.hpp"
+#include "TaoInterfaceRegistration.hpp"
 
 
 

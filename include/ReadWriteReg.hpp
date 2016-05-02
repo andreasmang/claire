@@ -26,8 +26,8 @@
 // library includes
 #include "nifti1_io.h"
 
-#include "RegOpt.h"
-#include "VecField.h"
+#include "RegOpt.hpp"
+#include "VecField.hpp"
 
 
 namespace reg

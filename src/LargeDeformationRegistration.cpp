@@ -1,7 +1,7 @@
 #ifndef _LARGEDEFORMATIONREGISTRATION_CPP_
 #define _LARGEDEFORMATIONREGISTRATION_CPP_
 
-#include "LargeDeformationRegistration.h"
+#include "LargeDeformationRegistration.hpp"
 
 
 

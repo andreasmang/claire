@@ -4,7 +4,7 @@
 #include <fstream>
 
 // local includes
-#include "OptimalControlRegistration.h"
+#include "OptimalControlRegistration.hpp"
 
 
 

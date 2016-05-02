@@ -22,8 +22,8 @@
 #ifndef _VECFIELD_H_
 #define _VECFIELD_H_
 
-#include "RegUtils.h"
-#include "RegOpt.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
 
 namespace reg
 {

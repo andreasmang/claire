@@ -22,16 +22,15 @@
 #ifndef _LARGEDEFORMATIONREGISTRATION_H_
 #define _LARGEDEFORMATIONREGISTRATION_H_
 
-#include "RegOpt.h"
-#include "RegUtils.h"
-#include "VecField.h"
-#include "ReadWriteReg.h"
-#include "OptimizationProblemRegistration.h"
-#include "RegularizationRegistration.h"
-#include "PreProcessingRegistration.h"
-
-#include "SemiLagrangian.h"
-//#include "SemiLagrangianGPU.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "VecField.hpp"
+#include "ReadWriteReg.hpp"
+#include "SemiLagrangian.hpp"
+#include "RegularizationRegistration.hpp"
+#include "PreProcessingRegistration.hpp"
+#include "OptimizationProblemRegistration.hpp"
+//#include "SemiLagrangianGPU.hpp"
 
 
 namespace reg

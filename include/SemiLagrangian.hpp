@@ -23,9 +23,9 @@
 #ifndef _SEMILAGRANGIAN_H_
 #define _SEMILAGRANGIAN_H_
 
-#include "RegOpt.h"
-#include "RegUtils.h"
-#include "VecField.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "VecField.hpp"
 
 
 size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);

@@ -1,7 +1,7 @@
 #ifndef _SEMILAGRANGIAN_CPP_
 #define _SEMILAGRANGIAN_CPP_
 
-#include "SemiLagrangian.h"
+#include "SemiLagrangian.hpp"
 
 
 namespace reg
@@ -23,6 +23,7 @@ SemiLagrangian::SemiLagrangian()
 
 
 
+
 /********************************************************************
  * Name: SemiLagrangian
  * Description: default constructor
@@ -34,6 +35,7 @@ SemiLagrangian::SemiLagrangian(RegOpt* opt)
     this->Initialize();
     this->m_Opt = opt;
 }
+
 
 
 
@@ -262,6 +264,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
 
 
 
+
 /********************************************************************
  * Name: ComputeDeformationMap
  * Description: compute the deformation map (we integrate the
@@ -392,10 +395,6 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
 
 
 
-
-
-
-
 /********************************************************************
  * Name: Interpolate
  * Description: interpolate scalar field
@@ -421,6 +420,7 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w,Vec v,std::string flag)
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -491,6 +491,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -790,16 +791,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     PetscFunctionReturn(0);
 
 }
-
-
-
-
-
-
-
-
-
-
 
 
 

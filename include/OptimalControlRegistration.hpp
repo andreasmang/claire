@@ -23,9 +23,9 @@
 #ifndef _OPTIMALCONTROLREGISTRATION_H_
 #define _OPTIMALCONTROLREGISTRATION_H_
 
-#include "RegOpt.h"
-#include "RegularizationRegistration.h"
-#include "LargeDeformationRegistration.h"
+#include "RegOpt.hpp"
+#include "RegularizationRegistration.hpp"
+#include "LargeDeformationRegistration.hpp"
 
 
 namespace reg

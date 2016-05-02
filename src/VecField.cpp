@@ -1,7 +1,7 @@
 #ifndef _VECFIELD_CPP_
 #define _VECFIELD_CPP_
 
-#include "VecField.h"
+#include "VecField.hpp"
 
 
 namespace reg

@@ -1,7 +1,7 @@
 #ifndef _REGULARIZATIONREGISTRATION_CPP_
 #define _REGULARIZATIONREGISTRATION_CPP_
 
-#include "RegularizationRegistration.h"
+#include "RegularizationRegistration.hpp"
 
 
 

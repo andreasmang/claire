@@ -23,10 +23,10 @@
 #ifndef _OPTIMIZER_H_
 #define _OPTIMIZER_H_
 
-#include "RegOpt.h"
-#include "RegUtils.h"
-#include "VecField.h"
-#include "OptimizationProblemRegistration.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "VecField.hpp"
+#include "OptimizationProblemRegistration.hpp"
 
 namespace reg
 {

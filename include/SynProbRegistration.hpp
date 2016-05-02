@@ -22,7 +22,7 @@
 #ifndef _SYNPROBREGISTRATION_H_
 #define _SYNPROBREGISTRATION_H_
 
-#include "RegOpt.h"
+#include "RegOpt.hpp"
 
 namespace reg
 {

@@ -1,7 +1,7 @@
 #ifndef _SEMILAGRANGIANGPU_CPP_
 #define _SEMILAGRANGIANGPU_CPP_
 
-#include "SemiLagrangianGPU.h"
+#include "SemiLagrangianGPU.hpp"
 
 
 namespace reg

@@ -22,9 +22,9 @@
 #ifndef _PREPROCESSINGREGISTRATION_H_
 #define _PREPROCESSINGREGISTRATION_H_
 
-#include "RegOpt.h"
-#include "RegUtils.h"
-#include "ReadWriteReg.h"
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "ReadWriteReg.hpp"
 
 namespace reg
 {

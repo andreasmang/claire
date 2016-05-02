@@ -2,7 +2,7 @@
 #define _PREPROCESSINGREGISTRATION_CPP_
 
 
-#include "PreProcessingRegistration.h"
+#include "PreProcessingRegistration.hpp"
 
 
 namespace reg

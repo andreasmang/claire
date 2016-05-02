@@ -1,7 +1,7 @@
 #ifndef _SYNPROBREGISTRATION_CPP_
 #define _SYNPROBREGISTRATION_CPP_
 
-#include "SynProbRegistration.h"
+#include "SynProbRegistration.hpp"
 
 
 namespace reg

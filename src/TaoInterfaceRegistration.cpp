@@ -2,8 +2,8 @@
 #define _TAOINTERFACEREGISTRATION_CPP_
 
 
-#include "TaoInterfaceRegistration.h"
-#include "OptimizationProblemRegistration.h"
+#include "TaoInterfaceRegistration.hpp"
+#include "OptimizationProblemRegistration.hpp"
 
 namespace reg
 {
