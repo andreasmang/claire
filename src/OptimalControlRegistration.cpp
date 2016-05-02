@@ -1125,9 +1125,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
     ierr=Assert(hd > 0,"spatial step size <= 0"); CHKERRQ(ierr);
     scale = ht*hd;
 
-    ierr=VecSet(this->m_WorkVecField2->m_X1,0.0); CHKERRQ(ierr);
-    ierr=VecSet(this->m_WorkVecField2->m_X2,0.0); CHKERRQ(ierr);
-    ierr=VecSet(this->m_WorkVecField2->m_X3,0.0); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_WorkVecField2->m_X1,&p_bt1); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkVecField2->m_X2,&p_bt2); CHKERRQ(ierr);
@@ -3124,6 +3122,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void)
     //IntType nt=0;
     PetscFunctionBegin;
 
+/*
     if (this->m_SL == NULL){
         try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -3131,7 +3130,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void)
         }
         ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
-
+*/
     ierr=ThrowError("not implemented"); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -3240,11 +3239,11 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
         ierr=Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
 
         //  write reference and template image
-        this->m_IO->Write(this->m_ReferenceImage,"mR.nc"); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_TemplateImage,"mT.nc"); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_ReferenceImage,"mR" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_TemplateImage,"mT" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
         //ierr=VecAbs(this->m_WorkScaField1); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkScaField1,"residual-mR-mT.nc"); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkScaField1,"residual-mR-mT" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
     }
 
@@ -3276,11 +3275,13 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 
         ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
-        ierr=this->m_IO->Write(this->m_WorkScaField1,"m1.nii"); CHKERRQ(ierr);
-        ierr=this->m_IO->Write(this->m_WorkScaField2,"residual-mR-m1.nii"); CHKERRQ(ierr);
+        ierr=this->m_IO->Write(this->m_WorkScaField1,"m1" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        ierr=this->m_IO->Write(this->m_WorkScaField2,"residual-mR-m1" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
        // velocity field out
-        this->m_IO->Write(this->m_VelocityField,"vx1.nc","vx2.nc","vx3.nc"); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_VelocityField,"vx1" + this->m_Opt->GetXExtension(),
+                                                "vx2" + this->m_Opt->GetXExtension(),
+                                                "vx3" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
         ierr=VecPointwiseMult(this->m_WorkScaField1,this->m_VelocityField->m_X1,this->m_VelocityField->m_X1); CHKERRQ(ierr);
         ierr=VecPointwiseMult(this->m_WorkScaField2,this->m_VelocityField->m_X2,this->m_VelocityField->m_X2); CHKERRQ(ierr);
@@ -3289,14 +3290,16 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
         ierr=VecAXPY(this->m_WorkScaField1,1.0,this->m_WorkScaField2); CHKERRQ(ierr);
         ierr=VecAXPY(this->m_WorkScaField1,1.0,this->m_WorkScaField3); CHKERRQ(ierr);
         ierr=VecSqrtAbs(this->m_WorkScaField1); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkScaField1,"velocity-2norm.nc"); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkScaField1,"velocity-2norm" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
         // determinant of deformation gradient out
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkScaField1,"detdefgrad.nc"); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkScaField1,"detdefgrad" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
         ierr=this->ComputeDeformationMap(); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkVecField1,"yx1.nc","yx2.nc","yx3.nc"); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkVecField1,"yx1" + this->m_Opt->GetXExtension(),
+                                                "yx2" + this->m_Opt->GetXExtension(),
+                                                "yx3" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
 
     }
 

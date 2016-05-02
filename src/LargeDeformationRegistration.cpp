@@ -257,7 +257,15 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
         }
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
-
+/*
+    if (this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+    }
+*/
     PetscFunctionReturn(0);
 
 }
@@ -307,18 +315,25 @@ PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
     }
     else{  ierr=VecCopy(mT,this->m_TemplateImage); CHKERRQ(ierr); }
 
-    ierr=Rescale(this->m_TemplateImage,0,1); CHKERRQ(ierr);
+    ierr=Rescale(this->m_TemplateImage,0.0,1.0); CHKERRQ(ierr);
 
     // allocate vector fields
     if(this->m_VelocityField == NULL){
-
         try{this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-
     }
+/*
+    if (this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+    }
+*/
 
     PetscFunctionReturn(0);
 
@@ -730,6 +745,14 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
     std::stringstream ss, ssnum;
     PetscFunctionBegin;
 
+    if (this->m_VelocityField == NULL){
+       try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    }
+
 
     if (this->m_WorkScaField1 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
@@ -1114,13 +1137,13 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    if (this->m_VelocityField == NULL){
-       try{this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-    }
+//    if (this->m_VelocityField == NULL){
+//       try{this->m_VelocityField = new VecField(this->m_Opt);}
+//        catch (std::bad_alloc&){
+//            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+//        }
+//        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+//    }
 
     // call the solver
     switch (this->m_Opt->GetPDESolver()){
@@ -1185,13 +1208,13 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
     }
 
     // allocate vector fields
-    if(this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
-    }
+//    if(this->m_SL == NULL){
+//        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+//        catch (std::bad_alloc&){
+//            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+//        }
+//        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+//    }
 
     // compute J(X,t^j)
     ierr=this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);

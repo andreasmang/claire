@@ -110,6 +110,9 @@ PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
     else if (filename.find(".nii.gz") != std::string::npos){
         ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
     }
+    else if (filename.find(".hdr") != std::string::npos){
+        ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
+    }
     else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
@@ -288,9 +291,9 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
 #undef __FUNCT__
 #define __FUNCT__ "Write"
 PetscErrorCode ReadWriteReg::Write(VecField* v,
-                                                std::string fnx1,
-                                                std::string fnx2,
-                                                std::string fnx3)
+                                   std::string fnx1,
+                                   std::string fnx2,
+                                   std::string fnx3)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;

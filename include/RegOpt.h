@@ -185,8 +185,11 @@ public:
 
     inline ScalarType GetSigma(void){return this->m_Sigma;};
     inline ScalarType GetTimeHorizon(int i){return this->m_TimeHorizon[i];};
+
     inline std::string GetXFolder(void){return this->m_XFolder;};
+    inline std::string GetXExtension(void){return this->m_XExtension;};
     inline std::string GetIFolder(void){return this->m_IFolder;};
+
     inline int GetISize(int i){return this->m_MiscOpt->isize[i];};
     inline int GetIStart(int i){return this->m_MiscOpt->istart[i];};
     inline bool ReadImagesFromFile(){return this->m_ReadImagesFromFile;};
@@ -297,11 +300,11 @@ public:
 
 private:
 
+    PetscErrorCode Usage(void);
+    PetscErrorCode DoSetup(void);
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode ParseArguments(int,char**);
-    PetscErrorCode DoSetup(void);
-    PetscErrorCode Usage(void);
     PetscErrorCode CheckArguments(void);
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
@@ -367,6 +370,7 @@ private:
     PCSolverType m_PCSolverType; ///< flag for KSP solver for precond
 
     std::string m_XFolder; ///< identifier for folder to write results to
+    std::string m_XExtension; ///< identifier for extension of files to be written to file
     std::string m_IFolder; ///< identifier for folder to read data from
     std::string m_TemplateFN; ///< template image file name
     std::string m_ReferenceFN; ///< reference image file name
@@ -386,9 +390,10 @@ private:
     bool m_MonitorCFLCondition;
     bool m_InCompressible;
 
-    bool m_ReadImagesFromFile;
     bool m_WriteImages;
     bool m_WriteLogFiles;
+    bool m_UseNCFormat;
+    bool m_ReadImagesFromFile;
 
     ScalarType m_Beta[2]; ///< regularization weight
     ScalarType m_Sigma;

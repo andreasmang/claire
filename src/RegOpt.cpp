@@ -120,6 +120,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_XFolder = argv[1];
         }
+        else if(strcmp(argv[1],"-usenc") == 0){
+            this->m_UseNCFormat = true;
+        }
         else if(strcmp(argv[1],"-ic") == 0){
             argc--; argv++;
             this->m_InCompressible = true;
@@ -336,14 +339,13 @@ PetscErrorCode RegOpt::Initialize()
     this->m_PrecondMeth = INVREG;
     //this->m_PrecondMeth = TWOLEVEL;
     //this->m_PCSolverType = PCPCG;
-    this->m_XFolder = "./results/";
-    this->m_IFolder = "./results/";
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
     this->m_LineLength = 100;
     this->m_Sigma = 1;
     this->m_WriteImages = false;
     this->m_WriteLogFiles = false;
+    this->m_UseNCFormat = false;
 
     this->m_KKTSolverPara.tol[0] = 1E-12; // relative tolerance
     this->m_KKTSolverPara.tol[1] = 1E-12; // absolute tolerance
@@ -412,6 +414,7 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< " -mt <file>         template image (*.nii, *.nc)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -x <folder>        output folder (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout<< " -usenc             use *.nc as output format (default: *.nii.gz)"<<std::endl;
         std::cout<< " -ximages           flag: write images to file (default: not written; requires -x option)"<<std::endl;
         std::cout<< " -xlog              flag: write log files (default: not written; requires -x option)"<<std::endl;
         std::cout<< line << std::endl;
@@ -511,14 +514,15 @@ PetscErrorCode RegOpt::CheckArguments()
     }
 
     if (readmT && readmR){
-        this->ReadImagesFromFile(true);
 
+        // check if files exist
         msg = "file " + this->m_TemplateFN + "does not exist";
         ierr=Assert(FileExists(this->m_TemplateFN),msg); CHKERRQ(ierr);
 
         msg = "file " + this->m_ReferenceFN + "does not exist";
         ierr=Assert(FileExists(this->m_ReferenceFN),msg); CHKERRQ(ierr);
 
+        this->ReadImagesFromFile(true);
     }
     else if( (readmT == false) && readmR ) {
         msg="\x1b[31m you need to also assign a template image\x1b[0m\n";
@@ -531,9 +535,14 @@ PetscErrorCode RegOpt::CheckArguments()
         ierr=this->Usage(); CHKERRQ(ierr);
     }
     else if( (readmT == false) && (readmR == false) ){
-
         this->ReadImagesFromFile(false);
     }
+
+
+    if (this->m_UseNCFormat){
+        this->m_XExtension = ".nc";
+    }
+    else{ this->m_XExtension = ".nii.gz"; }
 
     PetscFunctionReturn(0);
 }
@@ -813,9 +822,9 @@ PetscErrorCode RegOpt::ResetTimers()
             for (int j = 0; j < NVALTYPES; ++j){
                 this->m_Timer[i][j] = 0.0;
             }
-            this->m_TimerIsRunning[i] = false;
-            this->m_TempTimer[i] = 0.0;
         }
+        this->m_TimerIsRunning[i] = false;
+        this->m_TempTimer[i] = 0.0;
     }
 
     for(int i = 0; i < 5; ++i){
