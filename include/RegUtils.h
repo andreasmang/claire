@@ -25,6 +25,9 @@
 // global includes
 #include <iomanip>
 #include <sstream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <omp.h>
 
 // local includes
 #include "petsc.h"
@@ -47,30 +50,23 @@ namespace reg
 /*! assert (PETSc interface) */
 PetscErrorCode Assert(bool, std::string);
 
-
-
 /*! throw error (PETSc interface) */
 PetscErrorCode ThrowError(std::string);
 
-
+/*! check if file exists */
+bool FileExists(const std::string&);
 
 /*! display message (PETSc interface) */
 PetscErrorCode Msg(std::string);
 
-
-
 /*! display warning message (PETSc interface) */
 PetscErrorCode WrngMsg(std::string);
-
-
 
 /*! display dgb message (PETSc interface) */
 PetscErrorCode DbgMsg(std::string);
 
-
 /*! display scalar field */
 PetscErrorCode VecView(Vec);
-
 
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType);
 PetscErrorCode GetFileName(std::string&,std::string);

@@ -3254,8 +3254,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 
         ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
-        ierr=this->m_IO->Write(this->m_WorkScaField1,"m1.nc"); CHKERRQ(ierr);
-        ierr=this->m_IO->Write(this->m_WorkScaField2,"residual-mR-m1.nc"); CHKERRQ(ierr);
+        ierr=this->m_IO->Write(this->m_WorkScaField1,"m1.nii"); CHKERRQ(ierr);
+        ierr=this->m_IO->Write(this->m_WorkScaField2,"residual-mR-m1.nii"); CHKERRQ(ierr);
 
        // velocity field out
         this->m_IO->Write(this->m_VelocityField,"vx1.nc","vx2.nc","vx3.nc"); CHKERRQ(ierr);

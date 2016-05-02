@@ -75,7 +75,13 @@ private:
     PetscErrorCode ReadNII(VecField*,std::string,std::string,std::string);
     PetscErrorCode ReadNII(Vec*,nifti_image*,std::string);
     template <typename T> PetscErrorCode ReadNII(Vec*,nifti_image*,std::string);
+
+    PetscErrorCode WriteNII(Vec,std::string);
+    PetscErrorCode WriteNII(nifti_image**,Vec,std::string);
+    template <typename T> PetscErrorCode WriteNII(nifti_image**,Vec,std::string);
+
     PetscErrorCode GetComponentTypeNII(nifti_image*);;
+    PetscErrorCode AllocateNII(nifti_image**,Vec);
 
     enum VoxelType{CHAR,UCHAR,SHORT,USHORT,INT,UINT,FLOAT,DOUBLE,UNDEF};
     VoxelType m_ComponentType;

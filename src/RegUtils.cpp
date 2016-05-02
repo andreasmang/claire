@@ -61,9 +61,22 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
 
 
 /********************************************************************
+ * Name: FileExists
+ * Description: check if file exists
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "FileExists"
+bool FileExists(const std::string& filename)
+{
+    struct stat buffer;
+    return (stat(filename.c_str(), &buffer) == 0);
+}
+
+
+
+/********************************************************************
  * Name: Msg
  * Description: print msg (interfaces petsc)
- * Author: Andreas Mang
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Msg"

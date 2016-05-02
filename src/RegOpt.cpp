@@ -512,6 +512,13 @@ PetscErrorCode RegOpt::CheckArguments()
 
     if (readmT && readmR){
         this->ReadImagesFromFile(true);
+
+        msg = "file " + this->m_TemplateFN + "does not exist";
+        ierr=Assert(FileExists(this->m_TemplateFN),msg); CHKERRQ(ierr);
+
+        msg = "file " + this->m_ReferenceFN + "does not exist";
+        ierr=Assert(FileExists(this->m_ReferenceFN),msg); CHKERRQ(ierr);
+
     }
     else if( (readmT == false) && readmR ) {
         msg="\x1b[31m you need to also assign a template image\x1b[0m\n";
@@ -524,6 +531,7 @@ PetscErrorCode RegOpt::CheckArguments()
         ierr=this->Usage(); CHKERRQ(ierr);
     }
     else if( (readmT == false) && (readmR == false) ){
+
         this->ReadImagesFromFile(false);
     }
 
