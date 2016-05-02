@@ -20,8 +20,8 @@
 
 
 
-#ifndef _DATAREADWRITEREGISTRATION_H_
-#define _DATAREADWRITEREGISTRATION_H_
+#ifndef _READWRITEREG_H_
+#define _READWRITEREG_H_
 
 // library includes
 #include "nifti1_io.h"
@@ -36,16 +36,16 @@ namespace reg
 
 
 
-class DataReadWriteRegistration
+class ReadWriteReg
 {
 
 public:
 
-    typedef DataReadWriteRegistration Self;
+    typedef ReadWriteReg Self;
 
-    DataReadWriteRegistration(void);
-    DataReadWriteRegistration(RegOpt*);
-    ~DataReadWriteRegistration(void);
+    ReadWriteReg(void);
+    ReadWriteReg(RegOpt*);
+    ~ReadWriteReg(void);
 
     PetscErrorCode Read(Vec,std::string);
     PetscErrorCode Read(VecField*,std::string,std::string,std::string);
@@ -95,4 +95,4 @@ private:
 
 } // end of name space
 
-#endif // _DATAREADWRITEREGISTRATION_H_
+#endif // _READWRITEREG_H_

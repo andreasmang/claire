@@ -1,7 +1,7 @@
-#ifndef _DATAREADWRITEREGISTRATION_CPP_
-#define _DATAREADWRITEREGISTRATION_CPP_
+#ifndef _READWRITEREG_CPP_
+#define _READWRITEREG_CPP_
 
-#include "DataReadWriteRegistration.h"
+#include "ReadWriteReg.h"
 
 
 
@@ -13,12 +13,12 @@ namespace reg
 
 
 /********************************************************************
- * Name: DataReadWriteRegistration
+ * Name: ReadWriteReg
  * Description: default constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "DataReadWriteRegistration"
-DataReadWriteRegistration::DataReadWriteRegistration()
+#define __FUNCT__ "ReadWriteReg"
+ReadWriteReg::ReadWriteReg()
 {
     this->Initialize();
 }
@@ -27,12 +27,12 @@ DataReadWriteRegistration::DataReadWriteRegistration()
 
 
 /********************************************************************
- * Name: DataReadWriteRegistration
+ * Name: ReadWriteReg
  * Description: constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "DataReadWriteRegistration"
-DataReadWriteRegistration::DataReadWriteRegistration(RegOpt* opt)
+#define __FUNCT__ "ReadWriteReg"
+ReadWriteReg::ReadWriteReg(RegOpt* opt)
 {
     this->Initialize();
     this->m_Opt = opt;
@@ -42,12 +42,12 @@ DataReadWriteRegistration::DataReadWriteRegistration(RegOpt* opt)
 
 
 /********************************************************************
- * Name: DataReadWriteRegistration
+ * Name: ReadWriteReg
  * Description: default destructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "~DataReadWriteRegistration"
-DataReadWriteRegistration::~DataReadWriteRegistration()
+#define __FUNCT__ "~ReadWriteReg"
+ReadWriteReg::~ReadWriteReg()
 {
     this->ClearMemory();
 }
@@ -61,7 +61,7 @@ DataReadWriteRegistration::~DataReadWriteRegistration()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode DataReadWriteRegistration::Initialize()
+PetscErrorCode ReadWriteReg::Initialize()
 {
 
     this->m_Opt = NULL;
@@ -79,7 +79,7 @@ PetscErrorCode DataReadWriteRegistration::Initialize()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode DataReadWriteRegistration::ClearMemory()
+PetscErrorCode ReadWriteReg::ClearMemory()
 {
     PetscFunctionReturn(0);
 }
@@ -93,7 +93,7 @@ PetscErrorCode DataReadWriteRegistration::ClearMemory()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Read"
-PetscErrorCode DataReadWriteRegistration::Read(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -124,7 +124,7 @@ PetscErrorCode DataReadWriteRegistration::Read(Vec x, std::string filename)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Read"
-PetscErrorCode DataReadWriteRegistration::Read(VecField* v,
+PetscErrorCode ReadWriteReg::Read(VecField* v,
                                                std::string fnx1,
                                                std::string fnx2,
                                                std::string fnx3)
@@ -150,7 +150,7 @@ PetscErrorCode DataReadWriteRegistration::Read(VecField* v,
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteTimeSeries"
-PetscErrorCode DataReadWriteRegistration::WriteTimeSeries(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -176,7 +176,7 @@ PetscErrorCode DataReadWriteRegistration::WriteTimeSeries(Vec x, std::string fil
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadTimeSeries"
-PetscErrorCode DataReadWriteRegistration::ReadTimeSeries(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -201,7 +201,7 @@ PetscErrorCode DataReadWriteRegistration::ReadTimeSeries(Vec x, std::string file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadBlock"
-PetscErrorCode DataReadWriteRegistration::ReadBlock(Vec x, int isize[3], std::string filename)
+PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -226,7 +226,7 @@ PetscErrorCode DataReadWriteRegistration::ReadBlock(Vec x, int isize[3], std::st
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteBlock"
-PetscErrorCode DataReadWriteRegistration::WriteBlock(Vec x, int isize[3], std::string filename)
+PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filename)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -252,7 +252,7 @@ PetscErrorCode DataReadWriteRegistration::WriteBlock(Vec x, int isize[3], std::s
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Write"
-PetscErrorCode DataReadWriteRegistration::Write(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -287,7 +287,7 @@ PetscErrorCode DataReadWriteRegistration::Write(Vec x, std::string filename)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Write"
-PetscErrorCode DataReadWriteRegistration::Write(VecField* v,
+PetscErrorCode ReadWriteReg::Write(VecField* v,
                                                 std::string fnx1,
                                                 std::string fnx2,
                                                 std::string fnx3)
@@ -313,7 +313,7 @@ PetscErrorCode DataReadWriteRegistration::Write(VecField* v,
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadNetCDF"
-PetscErrorCode DataReadWriteRegistration::ReadNetCDF(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::ReadNetCDF(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL;
@@ -355,7 +355,7 @@ PetscErrorCode DataReadWriteRegistration::ReadNetCDF(Vec x, std::string filename
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadBlockNetCDF"
-PetscErrorCode DataReadWriteRegistration::ReadBlockNetCDF(Vec x, int bsize[3], std::string filename)
+PetscErrorCode ReadWriteReg::ReadBlockNetCDF(Vec x, int bsize[3], std::string filename)
 {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL;
@@ -392,7 +392,7 @@ PetscErrorCode DataReadWriteRegistration::ReadBlockNetCDF(Vec x, int bsize[3], s
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteBlockNetCDF"
-PetscErrorCode DataReadWriteRegistration::WriteBlockNetCDF(Vec x, int bsize[3], std::string filename)
+PetscErrorCode ReadWriteReg::WriteBlockNetCDF(Vec x, int bsize[3], std::string filename)
 {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL;
@@ -429,7 +429,7 @@ PetscErrorCode DataReadWriteRegistration::WriteBlockNetCDF(Vec x, int bsize[3], 
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNetCDF"
-PetscErrorCode DataReadWriteRegistration::WriteNetCDF(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::WriteNetCDF(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL;
@@ -472,7 +472,7 @@ PetscErrorCode DataReadWriteRegistration::WriteNetCDF(Vec x, std::string filenam
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteTimeSeriesNetCDF"
-PetscErrorCode DataReadWriteRegistration::WriteTimeSeriesNetCDF(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::WriteTimeSeriesNetCDF(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL, *p_xj=NULL;
@@ -538,7 +538,7 @@ PetscErrorCode DataReadWriteRegistration::WriteTimeSeriesNetCDF(Vec x, std::stri
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadTimeSeriesNetCDF"
-PetscErrorCode DataReadWriteRegistration::ReadTimeSeriesNetCDF(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::ReadTimeSeriesNetCDF(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL, *p_xj=NULL;
@@ -602,7 +602,7 @@ PetscErrorCode DataReadWriteRegistration::ReadTimeSeriesNetCDF(Vec x, std::strin
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetComponentTypeNII"
-PetscErrorCode DataReadWriteRegistration::GetComponentTypeNII(nifti_image* niiimage)
+PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage)
 {
     PetscErrorCode ierr;
 
@@ -667,7 +667,7 @@ PetscErrorCode DataReadWriteRegistration::GetComponentTypeNII(nifti_image* niiim
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x, std::string filename)
+PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 {
     PetscErrorCode ierr;
     std::string msg, file;
@@ -712,7 +712,7 @@ PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x, std::string filename)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x,nifti_image* niiimage,std::string filename)
+PetscErrorCode ReadWriteReg::ReadNII(Vec* x,nifti_image* niiimage,std::string filename)
 {
     PetscErrorCode ierr;
     std::string msg;
@@ -786,7 +786,7 @@ PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x,nifti_image* niiimage,s
 #undef __FUNCT__
 #define __FUNCT__ "ReadImageBuffer"
 template <typename T>
-PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x,nifti_image* niiimage,std::string filename)
+PetscErrorCode ReadWriteReg::ReadNII(Vec* x,nifti_image* niiimage,std::string filename)
 {
     PetscErrorCode ierr;
     T* p_niibuffer;
@@ -874,7 +874,7 @@ PetscErrorCode DataReadWriteRegistration::ReadNII(Vec* x,nifti_image* niiimage,s
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
-PetscErrorCode DataReadWriteRegistration::WriteNII(Vec x,std::string filename)
+PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
 {
     PetscErrorCode ierr;
     int rank;
@@ -910,7 +910,7 @@ PetscErrorCode DataReadWriteRegistration::WriteNII(Vec x,std::string filename)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
-PetscErrorCode DataReadWriteRegistration::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
+PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
 {
     PetscErrorCode ierr;
     std::string msg;
@@ -984,7 +984,7 @@ PetscErrorCode DataReadWriteRegistration::WriteNII(nifti_image** niiimage,Vec x,
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
 template <typename T>
-PetscErrorCode DataReadWriteRegistration::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
+PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
 {
     PetscErrorCode ierr;
     IntType nglobal;
@@ -1179,7 +1179,7 @@ PetscErrorCode DataReadWriteRegistration::WriteNII(nifti_image** niiimage,Vec x,
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "AllocateNII"
-PetscErrorCode DataReadWriteRegistration::AllocateNII(nifti_image** niiimage, Vec x)
+PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
 {
     PetscErrorCode ierr;
     PetscInt n;
@@ -1275,8 +1275,4 @@ PetscErrorCode DataReadWriteRegistration::AllocateNII(nifti_image** niiimage, Ve
 
 
 
-
-
-
-
-#endif // _DATAREADWRITEREGISTRATION_CPP_
+#endif //  _READWRITEREG_CPP_

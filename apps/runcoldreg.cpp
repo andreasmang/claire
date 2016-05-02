@@ -24,7 +24,7 @@
 #include "Optimizer.h"
 #include "PreProcessingRegistration.h"
 #include "SynProbRegistration.h"
-#include "DataReadWriteRegistration.h"
+#include "ReadWriteReg.h"
 #include "LargeDeformationRegistration.h"
 #include "OptimalControlRegistration.h"
 #include "OptimalControlRegistrationIC.h"
@@ -45,7 +45,7 @@ int main(int argc,char **argv)
 
     reg::RegOpt* regopt = NULL;
     reg::SynProbRegistration* synprob = NULL;
-    reg::DataReadWriteRegistration* readwrite = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
     reg::Optimizer* optimizer = NULL;
     reg::LargeDeformationRegistration* registration = NULL;
 
@@ -64,7 +64,7 @@ int main(int argc,char **argv)
     }
 
     // allocate class for io
-    try{ readwrite = new reg::DataReadWriteRegistration(regopt); }
+    try{ readwrite = new reg::ReadWriteReg(regopt); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }

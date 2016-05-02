@@ -25,9 +25,9 @@
 #include "RegOpt.h"
 #include "RegUtils.h"
 #include "VecField.h"
+#include "ReadWriteReg.h"
 #include "OptimizationProblemRegistration.h"
 #include "RegularizationRegistration.h"
-#include "DataReadWriteRegistration.h"
 #include "PreProcessingRegistration.h"
 
 #include "SemiLagrangian.h"
@@ -42,10 +42,10 @@ class LargeDeformationRegistration : public OptimizationProblemRegistration
 
 public:
 
+    typedef ReadWriteReg ReadWriteType;
     typedef LargeDeformationRegistration Self;
     typedef OptimizationProblemRegistration SuperClass;
     typedef PreProcessingRegistration PreProcType;
-    typedef DataReadWriteRegistration ReadWriteType;
     typedef RegularizationRegistration RegularizationType;
     typedef SemiLagrangian SemiLagrangianType;
     //typedef SemiLagrangianFastPlanerGPU SemiLagrangianType;

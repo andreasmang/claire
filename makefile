@@ -25,13 +25,16 @@ LDFLAGS+= -limf -lm
 
 BIN = $(BINDIR)/runcoldreg
 
-SRCFILES=$(SRCDIR)/RegOpt.cpp \
+
+#INCFILES:=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h LargeDeformationRegistration.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptimizationProblemRegistration.h PreProcessingRegistration.h
+
+CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
 		$(SRCDIR)/VecField.cpp \
-		$(SRCDIR)/DataReadWriteRegistration.cpp \
+		$(SRCDIR)/ReadWriteReg.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
@@ -45,15 +48,15 @@ SRCFILES=$(SRCDIR)/RegOpt.cpp \
 
 
 
-OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCFILES))
+OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
 
 .SECONDARY: $(OBJS)
 
 all: $(BIN)
 
-$(BINDIR)/%: $(OBJDIR)/%.o $(OBJS)
+$(BINDIR)/%: $(OBJDIR)/%.o $(OBJS) 
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
-	$(CXX) $(CXXFLAGS) $(COLD_INC) $^ $(LDFLAGS) ${COLD_LIB} -o $@
+	$(CXX) $(CXXFLAGS) $(COLD_INC) $^ $(LDFLAGS) $(COLD_LIB) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)

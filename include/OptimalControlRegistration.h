@@ -28,7 +28,6 @@
 #include "LargeDeformationRegistration.h"
 
 
-
 namespace reg
 {
 

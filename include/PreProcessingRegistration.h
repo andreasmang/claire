@@ -24,7 +24,7 @@
 
 #include "RegOpt.h"
 #include "RegUtils.h"
-#include "DataReadWriteRegistration.h"
+#include "ReadWriteReg.h"
 
 namespace reg
 {
@@ -36,7 +36,7 @@ public:
 
     typedef PreProcessingRegistration Self;
     typedef ScalarType FFTScaType[2];
-    typedef DataReadWriteRegistration ReadWriteType;
+    typedef ReadWriteReg ReadWriteType;
 
     PreProcessingRegistration();
     PreProcessingRegistration(RegOpt*);
