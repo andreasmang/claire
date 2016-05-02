@@ -233,7 +233,7 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
     // copy buffer
 
 
-    // TODO: add presmoothing step
+    // presmoothing
     if (this->m_Opt->ReadImagesFromFile()){
 
         if(this->m_Prepoc==NULL){
@@ -247,7 +247,7 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
     }
     else{ ierr=VecCopy(mR,this->m_ReferenceImage); CHKERRQ(ierr); }
 
-    ierr=Rescale(this->m_ReferenceImage,0,1); CHKERRQ(ierr);
+    ierr=Rescale(this->m_ReferenceImage,0.0,1.0); CHKERRQ(ierr);
 
     // allocate vector fields
     if(this->m_VelocityField == NULL){
@@ -256,14 +256,6 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-    }
-    // allocate vector fields
-    if(this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(0);
@@ -302,7 +294,7 @@ PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
     ierr=VecDuplicate(mT,&this->m_TemplateImage); CHKERRQ(ierr);
 
 
-    // TODO: add presmoothing step
+    // presmoothing step
     if (this->m_Opt->ReadImagesFromFile()){
 
         if(this->m_Prepoc==NULL){
@@ -326,13 +318,6 @@ PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
         }
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
-    }
-    if(this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(0);
@@ -1129,6 +1114,14 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    if (this->m_VelocityField == NULL){
+       try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    }
+
     // call the solver
     switch (this->m_Opt->GetPDESolver()){
         case RK2:
@@ -1189,6 +1182,15 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+    }
+
+    // allocate vector fields
+    if(this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
 
     // compute J(X,t^j)

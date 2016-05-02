@@ -323,6 +323,8 @@ PetscErrorCode Optimizer::RunBetaCont()
 
     beta = 1.0;
 
+    // reduce regularization parameter by one order of magnitude until
+    // we hit the tolerance
     for(unsigned int i = 0; i < maxsteps; ++i){
 
         this->m_Opt->SetRegularizationWeight(beta);

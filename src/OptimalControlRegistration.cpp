@@ -2365,6 +2365,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    if (this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+    }
 
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_IncStateVariable,&p_mtilde); CHKERRQ(ierr);
@@ -3003,6 +3010,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     if (this->m_WorkScaField4 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
     }
+    if (this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"adjoint"); CHKERRQ(ierr);
+    }
 
     nt = this->m_Opt->GetNumTimePoints();
     nl = this->m_Opt->GetNLocal();
@@ -3109,6 +3123,14 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void)
     //IntType nl=0;
     //IntType nt=0;
     PetscFunctionBegin;
+
+    if (this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+    }
 
     ierr=ThrowError("not implemented"); CHKERRQ(ierr);
 
