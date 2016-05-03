@@ -73,8 +73,8 @@ private:
 
     PetscErrorCode ReadNII(Vec*,std::string);
     PetscErrorCode ReadNII(VecField*,std::string,std::string,std::string);
-    PetscErrorCode ReadNII(Vec*,nifti_image*,std::string);
-    template <typename T> PetscErrorCode ReadNII(Vec*,nifti_image*,std::string);
+    PetscErrorCode ReadNII(nifti_image*,std::string);
+    template <typename T> PetscErrorCode ReadNII(nifti_image*,std::string);
 
     PetscErrorCode WriteNII(Vec,std::string);
     PetscErrorCode WriteNII(nifti_image**,Vec,std::string);
@@ -89,6 +89,7 @@ private:
     RegOpt* m_Opt;
     nifti_image* m_NIIImage;
 
+    ScalarType* m_BCastDataBuffer;
 
 };
 
