@@ -116,8 +116,7 @@ ACCFFT_OPTIONS="
 -DFFTW_USE_STATIC_LIBS=true
 -DBUILD_GPU=false
 -DBUILD_SHARED=false"
-#-DBUILD_STEPS=true
-#-DCXX_FLAGS='-O3'
+
 
 NIFTICLIB_OPTIONS="
 -DBUILD_SHARED_LIBS:BOOL=OFF
@@ -152,8 +151,6 @@ echo " detected MPI directory: ${MPI_DIR}"
 if [ -e ${BUILD_DIR}/environment_vars.sh ]; then
 	rm ${BUILD_DIR}/environment_vars.sh
 fi
-
-
 
 
 ################################
@@ -399,4 +396,6 @@ fi
 
 echo "export NIFTI_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
-
+if [ ${cleanup} -eq 1 ]; then
+	rm -f ${BUILD_DIR}/environment_vars.sh
+fi
