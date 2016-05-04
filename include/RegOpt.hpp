@@ -301,6 +301,7 @@ public:
 private:
 
     PetscErrorCode Usage(void);
+    PetscErrorCode UsageAdvanced(void);
     PetscErrorCode DoSetup(void);
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);

@@ -28,7 +28,7 @@ ENABLE_LANGUAGE(CXX)
 MESSAGE(STATUS "compiling COLD v${COLD_VERSION_MAJOR}.${COLD_VERSION_MINOR}.${COLD_VERSION_PATCH}")
 MESSAGE(STATUS "source directory: ${COLD_SOURCE_DIR}")
 
-# ru main cmake file
+# run main cmake file
 INCLUDE(${COLD_SOURCE_DIR}/cmake/COLD.cmake)
 
 ADD_SUBDIRECTORY(apps)

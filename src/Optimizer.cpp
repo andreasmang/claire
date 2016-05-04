@@ -337,12 +337,13 @@ PetscErrorCode Optimizer::RunBetaCont()
         ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
 
         ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
-        stop=false; // not yet we've not
+
+        stop=false; // not yet we're not
         ierr=this->m_OptimizationProblem->CheckBounds(x,stop); CHKERRQ(ierr);
 
         if (stop) break; // if bound reached go home
 
-        beta /= 10.0;
+        beta /= 10.0; // reduce beta
 
     }
     ierr=Msg("optimization done"); CHKERRQ(ierr);
