@@ -14,7 +14,6 @@ enableavx=0		# enable AVX	# (Advanced Vector Extensions (AVX)
 
 buildfftw=0
 buildaccfft=0
-buildpnetcdf=0
 buildnifticlib=0
 buildpetsc=0
 cleanup=0
@@ -38,9 +37,6 @@ case $i in
     --baccfft)
     buildaccfft=1
     ;;
-    --bpnetcdf)
-    buildpnetcdf=1
-    ;;
     --bnifti)
     buildnifticlib=1
     ;;
@@ -57,7 +53,7 @@ case $i in
     --help)
     echo "script to build dependencies (libraries)" 
     echo "----------------------------------------------------------------------------------"
-    echo " the libraries are: FFTW; ACCFFT; PNETCDF; NIFTICLIB; PETSc;"
+    echo " the libraries are: FFTW; ACCFFT; NIFTICLIB; PETSc;"
     echo "----------------------------------------------------------------------------------"
     echo " options for this script are"
     echo "----------------------------------------------------------------------------------"
@@ -67,7 +63,6 @@ case $i in
     echo "     --cxx          MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
     echo "     --c            MPI C compiler (typically mpicc; mpicc is used if not set)"
     echo "----------------------------------------------------------------------------------"
-    echo "     --bpnetcdf     build PNETCDF library"
     echo "     --bfftw        build FFTW library"
     echo "     --baccfft      build ACCFFT library (depends on FFTW & PNETCDF)"
     echo "     --bnifti       build NIFTI library"
@@ -98,19 +93,15 @@ CXXOPTFLAGS='-O3'
 --with-fc=0
 --with-64-bit-indices"
 
+#CFALGS='-mt_mpi'
 
 FFTW_OPTIONS="
- --enable-mpi
+--enable-mpi
 --enable-threads
 --enable-sse2
 --enable-openmp
-CFLAGS=-O3
 MAKEINFO=missing"
-
-
-PNETCDF_OPTIONS="
---disable-fortran"
-
+#CFLAGS='-O3'
 
 ACCFFT_OPTIONS="
 -DFFTW_USE_STATIC_LIBS=true
@@ -131,7 +122,7 @@ NIFTICLIB_OPTIONS="
 LIB_DIR=${PWD}
 
 # go up one level
-BUILD_DIR=${LIB_DIR}/libs
+BUILD_DIR=${LIB_DIR}/libs_mvapich2_intel14
 if [ ! -d ${BUILD_DIR} ]; then
 	mkdir ${BUILD_DIR}
 fi
@@ -182,9 +173,9 @@ if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then
 	echo "----------------------------------------------------------------------------------"
 	cd ${SRC_DIR}
 	if [ ${enableavx} -eq 1 ]; then
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-avx
+		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-avx CFLAGS='-O3'
 	else
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS}
+		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} CFLAGS='-O3'
 	fi
 
 	echo ""
@@ -199,9 +190,9 @@ if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then
 	echo "configuring FFTW (float precision)" 
 	echo "----------------------------------------------------------------------------------"
 	if [ ${enableavx} -eq 1 ]; then
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-avx --enable-float
+		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-avx --enable-float CFLAGS='-O3'
 	else 
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float
+		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float CFLAGS='-O3'
 	fi
 
 	echo ""
@@ -215,53 +206,6 @@ fi
 
 echo "export FFTW_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
-
-
-
-
-################################
-# PNETCDF
-################################
-PNETCDF_LIB_DIR=${BUILD_DIR}/pnetcdf
-SRC_DIR=${PNETCDF_LIB_DIR}/src
-BLD_DIR=${PNETCDF_LIB_DIR}/build
-if [ ! -d ${PNETCDF_LIB_DIR} -a ! ${cleanup} -eq 1 ]; then
-	mkdir ${PNETCDF_LIB_DIR}
-	mkdir ${BLD_DIR}
-	mkdir ${SRC_DIR}
-
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo extracting PNETCDF lib...
-	echo "----------------------------------------------------------------------------------"
-#	tar -xzf ${LIB_DIR}/parallel-netcdf-1.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
-	tar -xzf ${LIB_DIR}/parallel-netcdf-1.6.1.tar.gz -C ${SRC_DIR} --strip-components=1
-else
-	if [ ${cleanup} -eq 1 -a ! ${PNETCDF_LIB_DIR} == ${HOME} ]; then
-		rm -rf ${PNETCDF_LIB_DIR}
-	fi
-fi
-
-
-if [ ${builddep} -eq 1 -o ${buildpnetcdf} -eq 1 ]; then 
-
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo "configuring PNETCDF" 
-	echo "----------------------------------------------------------------------------------"
-	cd ${SRC_DIR}
-	./configure --prefix=${BLD_DIR} ${PNETCDF_OPTIONS}
-
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo "building PNETCDF" 
-	echo "----------------------------------------------------------------------------------"
-	make -j
-	make install
-fi
-
-
-echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 
 
@@ -297,7 +241,7 @@ if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then
 	echo "configuring ACCFFT" 
 	echo "----------------------------------------------------------------------------------"
 	cd ${CMK_DIR}
-	cmake ${SRC_DIR} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DPNETCDF_DIR=${PNETCDF_LIB_DIR}/build ${ACCFFT_OPTIONS}
+	cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "building ACCFFT"

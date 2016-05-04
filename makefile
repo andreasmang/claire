@@ -1,5 +1,5 @@
 CXX=mpicxx
-CXXFLAGS= -O3 -ansi -openmp -xhost -DINVERT_RHO -std=c++11 #-Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
+CXXFLAGS= -openmp -O3 -ansi -xhost -DINVERT_RHO -std=c++11 #-fPIC -mt_mpi # -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
 RM = rm -f
 MKDIRS = mkdir -p
 
@@ -19,9 +19,8 @@ COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-LDFLAGS+= -L$(PNETCDF_DIR)/lib -lpnetcdf
 LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
-LDFLAGS+= -limf -lm
+LDFLAGS+= -limf -lm # -lmpi_mt #-lmpi # -lmpi_mt
 
 BIN = $(BINDIR)/runcoldreg
 

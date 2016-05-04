@@ -67,6 +67,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
     PetscErrorCode ierr;
     std::string msg;
     std::vector<unsigned int> nx;
+    std::vector<unsigned int> np;
     PetscFunctionBegin;
 
     while(argc > 1){
@@ -112,13 +113,29 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_NumThreads = atoi(argv[1]);
         }
-        else if(strcmp(argv[1],"-npx1") == 0){
+        else if(strcmp(argv[1],"-np") == 0){
+
             argc--; argv++;
-            this->m_CartGridDims[0] = atoi(argv[1]);
-        }
-        else if(strcmp(argv[1],"-npx2") == 0){
-            argc--; argv++;
-            this->m_CartGridDims[0] = atoi(argv[1]);
+            const std::string npinput = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            np = String2Vec( npinput );
+
+            if (np.size() == 1){
+                for(unsigned int i=0; i < 2; ++i){
+                    this->m_CartGridDims[i] = static_cast<unsigned int>(np[0]);
+                }
+            }
+            else if (np.size() == 2){
+                for(unsigned int i=0; i < 2; ++i){
+                    this->m_CartGridDims[i] = static_cast<unsigned int>(np[i]);
+                }
+            }
+            else{
+                msg="\n\x1b[31m error in number of procs: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
+            }
         }
         else if(strcmp(argv[1],"-mr") == 0){
             argc--; argv++;
@@ -158,7 +175,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-maxit") == 0){
@@ -195,7 +212,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-x") == 0){

@@ -104,10 +104,11 @@ PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
     // has to be allocated elsewhere (TODO: needs to be fixed)
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    if (filename.find(".nc") != std::string::npos){
-        ierr=this->ReadNetCDF(x,filename); CHKERRQ(ierr);
-    }
-    else if (filename.find(".nii") != std::string::npos){
+//    if (filename.find(".nc") != std::string::npos){
+//        ierr=this->ReadNetCDF(x,filename); CHKERRQ(ierr);
+//    }
+//    else if (filename.find(".nii") != std::string::npos){
+    if (filename.find(".nii") != std::string::npos){
         ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
     }
     else if (filename.find(".nii.gz") != std::string::npos){
@@ -164,10 +165,10 @@ PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename)
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
     filename = this->m_Opt->GetXFolder() + filename;
-    if (filename.find(".nc") != std::string::npos){
-        ierr=this->WriteTimeSeriesNetCDF(x,filename); CHKERRQ(ierr);
-    }
-    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
+//    if (filename.find(".nc") != std::string::npos){
+//        ierr=this->WriteTimeSeriesNetCDF(x,filename); CHKERRQ(ierr);
+//    }
+//    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
 
     PetscFunctionReturn(0);
@@ -189,10 +190,10 @@ PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename)
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    if (filename.find(".nc") != std::string::npos){
-        ierr=this->ReadTimeSeriesNetCDF(x,filename); CHKERRQ(ierr);
-    }
-    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
+//    if (filename.find(".nc") != std::string::npos){
+//        ierr=this->ReadTimeSeriesNetCDF(x,filename); CHKERRQ(ierr);
+//    }
+//    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
 
     PetscFunctionReturn(0);
@@ -214,10 +215,10 @@ PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    if (filename.find(".nc") != std::string::npos){
-        ierr=this->ReadBlockNetCDF(x,isize,filename); CHKERRQ(ierr);
-    }
-    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
+//    if (filename.find(".nc") != std::string::npos){
+//        ierr=this->ReadBlockNetCDF(x,isize,filename); CHKERRQ(ierr);
+//    }
+//    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
 
     PetscFunctionReturn(0);
@@ -240,10 +241,10 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
     filename = this->m_Opt->GetXFolder() + filename;
-    if (filename.find(".nc") != std::string::npos){
-        ierr=this->WriteBlockNetCDF(x,isize,filename); CHKERRQ(ierr);
-    }
-    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
+    //if (filename.find(".nc") != std::string::npos){
+    //    ierr=this->WriteBlockNetCDF(x,isize,filename); CHKERRQ(ierr);
+    //}
+    //else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
 
     PetscFunctionReturn(0);
@@ -266,10 +267,11 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
     filename = this->m_Opt->GetXFolder() + filename;
-    if (filename.find(".nc") != std::string::npos){
-        ierr=this->WriteNetCDF(x,filename); CHKERRQ(ierr);
-    }
-    else if (filename.find(".nii") != std::string::npos){
+//    if (filename.find(".nc") != std::string::npos){
+//        ierr=this->WriteNetCDF(x,filename); CHKERRQ(ierr);
+//    }
+//    else if (filename.find(".nii") != std::string::npos){
+    if (filename.find(".nii") != std::string::npos){
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
     }
     else if (filename.find(".nii.gz") != std::string::npos){
@@ -317,6 +319,7 @@ PetscErrorCode ReadWriteReg::Write(VecField* v,
  * Name: ReadNetCDF
  * Description: read data from file
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "ReadNetCDF"
 PetscErrorCode ReadWriteReg::ReadNetCDF(Vec x, std::string filename)
@@ -352,13 +355,14 @@ PetscErrorCode ReadWriteReg::ReadNetCDF(Vec x, std::string filename)
     PetscFunctionReturn(0);
 }
 
-
+*/
 
 
 /********************************************************************
  * Name: ReadBlockNetCDF
  * Description: read data to file
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "ReadBlockNetCDF"
 PetscErrorCode ReadWriteReg::ReadBlockNetCDF(Vec x, int bsize[3], std::string filename)
@@ -388,7 +392,7 @@ PetscErrorCode ReadWriteReg::ReadBlockNetCDF(Vec x, int bsize[3], std::string fi
 
     PetscFunctionReturn(0);
 }
-
+*/
 
 
 
@@ -396,6 +400,7 @@ PetscErrorCode ReadWriteReg::ReadBlockNetCDF(Vec x, int bsize[3], std::string fi
  * Name: WriteBlockNetCDF
  * Description: write data to file
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "WriteBlockNetCDF"
 PetscErrorCode ReadWriteReg::WriteBlockNetCDF(Vec x, int bsize[3], std::string filename)
@@ -425,6 +430,7 @@ PetscErrorCode ReadWriteReg::WriteBlockNetCDF(Vec x, int bsize[3], std::string f
 
     PetscFunctionReturn(0);
 }
+*/
 
 
 
@@ -433,6 +439,7 @@ PetscErrorCode ReadWriteReg::WriteBlockNetCDF(Vec x, int bsize[3], std::string f
  * Name: WriteNetCDF
  * Description: write data to file
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "WriteNetCDF"
 PetscErrorCode ReadWriteReg::WriteNetCDF(Vec x, std::string filename)
@@ -467,7 +474,7 @@ PetscErrorCode ReadWriteReg::WriteNetCDF(Vec x, std::string filename)
 
     PetscFunctionReturn(0);
 }
-
+*/
 
 
 
@@ -476,6 +483,7 @@ PetscErrorCode ReadWriteReg::WriteNetCDF(Vec x, std::string filename)
  * Name: WriteTimeSeriesNetCDF
  * Description: write data to file
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "WriteTimeSeriesNetCDF"
 PetscErrorCode ReadWriteReg::WriteTimeSeriesNetCDF(Vec x, std::string filename)
@@ -534,7 +542,7 @@ PetscErrorCode ReadWriteReg::WriteTimeSeriesNetCDF(Vec x, std::string filename)
 
     PetscFunctionReturn(0);
 }
-
+*/
 
 
 
@@ -542,6 +550,7 @@ PetscErrorCode ReadWriteReg::WriteTimeSeriesNetCDF(Vec x, std::string filename)
  * Name: ReadTimeSeriesNetCDF
  * Description: read netcdf time series
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "ReadTimeSeriesNetCDF"
 PetscErrorCode ReadWriteReg::ReadTimeSeriesNetCDF(Vec x, std::string filename)
@@ -600,6 +609,7 @@ PetscErrorCode ReadWriteReg::ReadTimeSeriesNetCDF(Vec x, std::string filename)
 
     PetscFunctionReturn(0);
 }
+*/
 
 
 /********************************************************************

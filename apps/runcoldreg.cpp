@@ -97,6 +97,7 @@ int main(int argc,char **argv)
     // get sizes
     nl = regopt->GetNLocal();
     ng = regopt->GetNGlobal();
+
     if(regopt->ReadImagesFromFile()){
 
         ierr=VecCreate(PETSC_COMM_WORLD,&mR); CHKERRQ(ierr);
