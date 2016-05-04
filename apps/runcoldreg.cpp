@@ -150,6 +150,7 @@ int main(int argc,char **argv)
     }
     else{ ierr=optimizer->Run(); CHKERRQ(ierr); }
 
+    // run the optimizer
     ierr=optimizer->Finalize(); CHKERRQ(ierr);
 
 

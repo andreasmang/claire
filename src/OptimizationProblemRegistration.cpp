@@ -38,6 +38,7 @@ PetscErrorCode TwoLevelPCMatVec(Mat P, Vec x, Vec Px)
 
 
 
+
 /****************************************************************************
  * Function: PrecondMonitor
  * Description: monitor evolution of krylov subspace method
@@ -65,6 +66,8 @@ PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 }
 
 
+
+
 /********************************************************************
  * Name: OptimizationProblemRegistration
  * Description: default constructor
@@ -75,6 +78,8 @@ OptimizationProblemRegistration::OptimizationProblemRegistration()
 {
     this->Initialize();
 }
+
+
 
 
 /********************************************************************

@@ -1,4 +1,3 @@
-
 #ifndef _REGOPT_CPP_
 #define _REGOPT_CPP_
 
@@ -6,8 +5,11 @@
 
 #include "RegOpt.hpp"
 
+
+
 namespace reg
 {
+
 
 
 /********************************************************************
@@ -23,6 +25,7 @@ RegOpt::RegOpt()
 
 
 
+
 /********************************************************************
  * Name: RegOpt
  * Description: constructor
@@ -34,6 +37,7 @@ RegOpt::RegOpt(N_MISC* opt)
     this->Initialize();
     this->m_MiscOpt = opt;
 }
+
 
 
 
@@ -52,7 +56,6 @@ RegOpt::RegOpt(int argc, char** argv)
 
 
 
-
 /********************************************************************
  * Name: ParseArguments
  * Description: parse user arguments
@@ -63,7 +66,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 {
     PetscErrorCode ierr;
     std::string msg;
-
+    std::vector<unsigned int> nx;
     PetscFunctionBegin;
 
     while(argc > 1){
@@ -73,24 +76,33 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             ||(strcmp(argv[1],"-HELP") == 0) ){
             ierr=this->Usage(); CHKERRQ(ierr);
         }
+        if ( strcmp(argv[1],"-advanced") == 0 ){
+            ierr=this->UsageAdvanced(); CHKERRQ(ierr);
+        }
         else if(strcmp(argv[1],"-nx") == 0){
             argc--; argv++;
-            int nx = atoi(argv[1]);
-            for(int i=0; i < 3; ++i){
-                this->m_nx[i] = static_cast<IntType>(nx);
+
+            const std::string nxinput = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            nx = String2Vec( nxinput );
+
+            if (nx.size() == 1){
+                for(unsigned int i=0; i < 3; ++i){
+                    this->m_nx[i] = static_cast<IntType>(nx[0]);
+                }
             }
-        }
-        else if(strcmp(argv[1],"-nx1") == 0){
-            argc--; argv++;
-            this->m_nx[0] = static_cast<IntType>(atoi(argv[1]));
-        }
-        else if(strcmp(argv[1],"-nx2") == 0){
-            argc--; argv++;
-            this->m_nx[1] = static_cast<IntType>(atoi(argv[1]));
-        }
-        else if(strcmp(argv[1],"-nx3") == 0){
-            argc--; argv++;
-            this->m_nx[2] = static_cast<IntType>(atoi(argv[1]));
+            else if(nx.size() == 3){
+                for(unsigned int i=0; i < 3; ++i){
+                    this->m_nx[i] = static_cast<IntType>(nx[i]);
+                }
+            }
+            else{
+                msg="\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
+            }
+
         }
         else if(strcmp(argv[1],"-nt") == 0){
             argc--; argv++;
@@ -144,9 +156,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 this->m_OptMeth = GAUSSNEWTON;
             }
             else {
-                msg="\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(); CHKERRQ(ierr);
+                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-maxit") == 0){
@@ -165,11 +177,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_ParameterCont.jacbound = atof(argv[1]);
         }
-        else if(strcmp(argv[1],"-kktmaxit") == 0){
+        else if(strcmp(argv[1],"-krylovmaxit") == 0){
             argc--; argv++;
             this->m_KKTSolverPara.maxit = atoi(argv[1]);
         }
-        else if(strcmp(argv[1],"-kktfseq") == 0){
+        else if(strcmp(argv[1],"-krylovfseq") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"none") == 0){
                 this->m_KKTSolverPara.fseqtype = NOFS;
@@ -181,9 +193,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 this->m_KKTSolverPara.fseqtype = SLFS;
             }
             else {
-                msg="\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(); CHKERRQ(ierr);
+                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-x") == 0){
@@ -199,9 +211,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 this->m_PDESolver = SL;
             }
             else {
-                msg="\x1b[31m pde solver not implemented: %s\x1b[0m\n";
+                msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(); CHKERRQ(ierr);
+                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
             }
         }
         else if (strcmp(argv[1],"-regnorm") == 0){
@@ -222,9 +234,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 this->m_RegNorm = L2;
             }
             else {
-                msg="\x1b[31m regularization norm not available: %s\x1b[0m\n";
+                msg="\n\x1b[31m regularization norm not available: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(); CHKERRQ(ierr);
+                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-beta") == 0){
@@ -241,7 +253,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             this->m_Verbosity = atoi(argv[1]);
         }
         else {
-            msg="\x1b[31m argument not valid: %s\x1b[0m\n";
+            msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
             ierr=this->Usage(); CHKERRQ(ierr);
         }
@@ -255,7 +267,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -282,8 +293,6 @@ RegOpt::~RegOpt()
 #define __FUNCT__ "ClearMemory"
 PetscErrorCode RegOpt::ClearMemory()
 {
-    //PetscErrorCode ierr;
-
     PetscFunctionBegin;
 
     if(this->m_MiscOpt!= NULL){
@@ -366,7 +375,7 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_ParameterCont.enabled = false;
     this->m_ParameterCont.betamin = 1E-6;
-    this->m_ParameterCont.jacbound = 8E-1;
+    this->m_ParameterCont.jacbound = 2E-1;
 
     this->m_RegMonitor.jacmin = 0.0;
     this->m_RegMonitor.jacmax = 0.0;
@@ -382,6 +391,7 @@ PetscErrorCode RegOpt::Initialize()
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -410,73 +420,127 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< " where [options] is one or more of the following"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -mr <file>         reference image (*.nii, *.nc)"<<std::endl;
-        std::cout<< " -mt <file>         template image (*.nii, *.nc)"<<std::endl;
+        std::cout<< " -mr <file>              reference image (*.nii, *.nc)"<<std::endl;
+        std::cout<< " -mt <file>              template image (*.nii, *.nc)"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -x <folder>        output folder (what's written out is controlled by the flags below)"<<std::endl;
-        std::cout<< " -usenc             use *.nc as output format (default: *.nii.gz)"<<std::endl;
-        std::cout<< " -ximages           flag: write images to file (default: not written; requires -x option)"<<std::endl;
-        std::cout<< " -xlog              flag: write log files (default: not written; requires -x option)"<<std::endl;
+        std::cout<< " -x <folder>             output folder (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout<< " -xresults               flag: write results to file (default: not written; requires -x option)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " # problem specific parameters"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -nx <int>          grid size (in all directions uniform; default 32)"<<std::endl;
-        std::cout<< " -nx1 <int>         grid size (x1 direction; default 32)"<<std::endl;
-        std::cout<< " -nx2 <int>         grid size (x2 direction; default 32)"<<std::endl;
-        std::cout<< " -nx3 <int>         grid size (x3 direction; default 32)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " # optimization specific parameters"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -optmeth <type>    optimization method (default: gn)"<<std::endl;
-        std::cout<< "                    where <types> are"<<std::endl;
-        std::cout<< "                      gn           Gauss-Newton (default)"<<std::endl;
-        std::cout<< "                      fn           full Newton"<<std::endl;
-        std::cout<< " -grel <dbl>        tolerance for optimization (default: 1E-2)"<<std::endl;
-        std::cout<<"                       relative change of gradient"<<std::endl;
-        std::cout<<"                       optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
-        std::cout<< " -gabs <dbl>        tolerance for optimization (default: 1E-6)"<<std::endl;
-        std::cout<<"                       lower bound for gradient"<<std::endl;
-        std::cout<<"                       optimization stops if ||g_k|| <= tol"<<std::endl;
-        std::cout<<"                       tol <= ||g||/||g_init||"<<std::endl;
-        std::cout<< " -maxit <int>       maximum number of (outer) iterations (default: 50)"<<std::endl;
-        std::cout<< " -kktmaxit <int>    maximum number of (inner) iterations (KKT solver; default: 50)"<<std::endl;
-        std::cout<< " -kktfseq <type>    forcing sequence for KKT solve (inner iterations; default: quad)"<<std::endl;
-        std::cout<< "                    where <types> are"<<std::endl;
-        std::cout<< "                      none          exact solve (expensive)"<<std::endl;
-        std::cout<< "                      quadratic     quadratic (default)"<<std::endl;
-        std::cout<< "                      suplinear     super-linear"<<std::endl;
-        std::cout<< " -jbound <dbl>      lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " # regularization parameters"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -regnorm <type>    regularization norm (default: h2s)"<<std::endl;
-        std::cout<< "                    where <types> are"<<std::endl;
-        std::cout<< "                      h1s          H1-seminorm"<<std::endl;
-        std::cout<< "                      h2s          H2-seminorm (default)"<<std::endl;
-        std::cout<< "                      h1           H1-norm"<<std::endl;
-        std::cout<< "                      h2           H2-norm"<<std::endl;
-        std::cout<< "                      l2           l2-norm (discouraged)"<<std::endl;
-        std::cout<< " -beta <dbl>        regularization weight/parameter (default: 1E-2)"<<std::endl;
-        std::cout<< " -estbeta           estimate regularization parameter (default: not enabled)"<<std::endl;
-        std::cout<< " -ic                flag: enable incompressibility constraint (default: not enabled)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " # solver specific parameters (numerics)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -pdesolver <type>  numerical time integrator for transport equations (default: sl)"<<std::endl;
-        std::cout<< "                    where <types> are"<<std::endl;
-        std::cout<< "                      sl      semi-Lagrangian method"<<std::endl;
-        std::cout<< "                      rk2     rk2 time integrator"<<std::endl;
-        std::cout<< " -nt <int>          number of time points (for time integration; default: 4)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " # memory distribution and parallelism"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -nthreads <int>    number of threads (default: 1)"<<std::endl;
-        std::cout<< " -npx1 <int>        MPI parameter; number of procs in x1 direction (default: 1)"<<std::endl;
-        std::cout<< " -npx2 <int>        MPI parameter; number of procs in x2 direction (default: 1)"<<std::endl;
+        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); grid is assumed to be uniform if only a"<<std::endl;
+        std::cout<< "                         single integer is provided (i.e., for '-nx 32')"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " # other parameters"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -verbosity <int>   verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        std::cout<< " -help                   display this message"<<std::endl;
+        std::cout<< " -advanced               display advanced options"<<std::endl;
+        std::cout<< line << std::endl;
+    }
+
+    ierr=PetscFinalize(); CHKERRQ(ierr);
+    exit(0);
+
+    PetscFunctionReturn(0);
+
+
+}
+
+
+
+/********************************************************************
+ * Name: UsageAdvanced
+ * Description: display usage message for binary
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "UsageAdvanced"
+PetscErrorCode RegOpt::UsageAdvanced()
+{
+
+    PetscErrorCode ierr;
+    int rank;
+    std::string line;
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    line = std::string(this->m_LineLength,'-');
+
+    if (rank == 0){
+        std::cout<<std::endl;
+        std::cout<< " usage: run [options] " <<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " where [options] is one or more of the following"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -mr <file>              reference image (*.nii, *.nc)"<<std::endl;
+        std::cout<< " -mt <file>              template image (*.nii, *.nc)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -x <folder>             output folder (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout<< " -xlog                   flag: write log files (default: not written; requires -x option)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " # problem specific parameters"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); grid is assumed to be uniform if only a"<<std::endl;
+        std::cout<< "                         single integer is provided (i.e., for '-nx 32')"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " # optimization specific parameters"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -optmeth <type>         optimization method (default: gn)"<<std::endl;
+        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                           gn           Gauss-Newton (default)"<<std::endl;
+        std::cout<< "                           fn           full Newton"<<std::endl;
+        std::cout<< " -grel <dbl>             tolerance for optimization (default: 1E-2)"<<std::endl;
+        std::cout<<"                            relative change of gradient"<<std::endl;
+        std::cout<<"                            optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
+        std::cout<< " -gabs <dbl>             tolerance for optimization (default: 1E-6)"<<std::endl;
+        std::cout<<"                            lower bound for gradient"<<std::endl;
+        std::cout<<"                            optimization stops if ||g_k|| <= tol"<<std::endl;
+        std::cout<<"                            tol <= ||g||/||g_init||"<<std::endl;
+        std::cout<< " -maxit <int>            maximum number of (outer) iterations (Newton iterations; default: 50)"<<std::endl;
+        std::cout<< " -krylovmaxit <int>      maximum number of (inner) iterations (Krylov solver; default: 50)"<<std::endl;
+        std::cout<< " -krylovfseq <type>      forcing sequence for Kryolov solver (tolerance for inner iterations; default: quad)"<<std::endl;
+        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                           quadratic     quadratic (default)"<<std::endl;
+        std::cout<< "                           suplinear     super-linear"<<std::endl;
+        std::cout<< "                           none          exact solve (expensive)"<<std::endl;
+        std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " # regularization parameters"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -regnorm <type>         regularization norm (default: h2s)"<<std::endl;
+        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                           h1s          H1-seminorm"<<std::endl;
+        std::cout<< "                           h2s          H2-seminorm (default)"<<std::endl;
+        std::cout<< "                           h1           H1-norm"<<std::endl;
+        std::cout<< "                           h2           H2-norm"<<std::endl;
+        std::cout<< "                           l2           l2-norm (discouraged)"<<std::endl;
+        std::cout<< " -beta <dbl>             regularization weight/parameter (default: 1E-2)"<<std::endl;
+        std::cout<< " -estbeta                estimate regularization parameter (default: not enabled)"<<std::endl;
+        std::cout<< " -ic                     flag: enable incompressibility constraint (default: not enabled)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " # solver specific parameters (numerics)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -pdesolver <type>       numerical time integrator for transport equations (default: sl)"<<std::endl;
+        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                           sl      semi-Lagrangian method"<<std::endl;
+        std::cout<< "                           rk2     rk2 time integrator"<<std::endl;
+        std::cout<< " -nt <int>               number of time points (for time integration; default: 4)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " # memory distribution and parallelism"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -nthreads <int>         number of threads (default: 1)"<<std::endl;
+        std::cout<< " -npx1 <int>             MPI parameter; number of procs in x1 direction (default: 1)"<<std::endl;
+        std::cout<< " -npx2 <int>             MPI parameter; number of procs in x2 direction (default: 1)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " # other parameters"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -usenc                  use *.nc as output format (default: *.nii.gz)"<<std::endl;
+        std::cout<< " -verbosity <int>        verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " -help                   display a brief version of the user message"<<std::endl;
+        std::cout<< " -advanced               display this message"<<std::endl;
+        std::cout<< line << std::endl;
         std::cout<< line << std::endl;
     }
 
