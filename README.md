@@ -6,6 +6,7 @@
 
 ### Dependencies
 The code depends on the following libraries:
+
 * FFTW
 * ACCFFT
 * PETSc
