@@ -1,5 +1,15 @@
-## build libaries and code
+# XXX
 
+
+
+## Installation
+
+### Dependencies
+The code depends on the following libraries:
+
+
+
+### Build 
 ```bash
 cd external
 ./build_libs.sh --build
@@ -8,7 +18,7 @@ cd ..
 make -j
 ```
 
-## run registration
+### Run 
 
 ```bash
 ./bin/runcoldreg
