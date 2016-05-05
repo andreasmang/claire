@@ -90,7 +90,7 @@ PetscErrorCode Msg(std::string msg)
     PetscFunctionBegin;
 
     ss << std::left << msg;
-    msg = " REG "  + ss.str() + "\n";
+    msg = " "  + ss.str() + "\n";
 
     // display message
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
@@ -115,8 +115,8 @@ PetscErrorCode DbgMsg(std::string msg)
 
     PetscFunctionBegin;
 
-    ss << std::left << msg;
-    msg = "\x001b[90m REG "  + ss.str() + "\x1b[0m\n";
+    ss << std::left << std::setw(117)<< msg;
+    msg = "\x001b[90m[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);

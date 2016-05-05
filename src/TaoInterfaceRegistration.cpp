@@ -377,7 +377,9 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
 
     // parse initial gradient and display header
     if (optprob->InFirstIteration() == true){
-        PetscPrintf(MPI_COMM_WORLD," %3s  %-15s  %-15s  %-15s  %-15s  %-15s\n","i","J","D","||g||_2,rel","||g||_2","step");
+        optprob->PrintLine();
+        PetscPrintf(MPI_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n","iter","objective","mismatch","||gradient||_2,rel","||gradient||_2","step");
+        optprob->PrintLine();
         optprob->SetInitialGradNorm(gnorm);
     }
 
@@ -386,19 +388,17 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
 
     // get the solution vector and compute jacobian
-//    ierr=TaoGetSolutionVector(tao,&x); CHKERRQ(ierr);
-//    ierr=optprob->FinalizeIteration(x); CHKERRQ(ierr);
+    ierr=TaoGetSolutionVector(tao,&x); CHKERRQ(ierr);
+    ierr=optprob->FinalizeIteration(x); CHKERRQ(ierr);
 
     // compute l2 distance at current iteration
     ierr=optprob->EvaluateL2Distance(&D); CHKERRQ(ierr);
 
     iterdisp = iter;
-    sprintf(msg," %03d  %-9.9E  %-9.9E  %-9.9E  %-9.9E  %.6f",iterdisp,J,D,gnorm/gnorm0,gnorm,step);
+    sprintf(msg,"  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",iterdisp,J,D,gnorm/gnorm0,gnorm,step);
     PetscPrintf(MPI_COMM_WORLD,"%-80s\n",msg);
 
     optprob->InFirstIteration(false);
-
-    if (x!= NULL){ierr=VecDestroy(&x); CHKERRQ(ierr);}
 
     // go home
     PetscFunctionReturn(0);
@@ -449,25 +449,25 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
     switch(flag){
         case KSP_CONVERGED_RTOL_NORMAL:
         {
-            msg="KSP: convergence ||r||_2 < rtol ||b||_2";
+            msg="KSP convergence ||r||_2 < rtol ||b||_2";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_ATOL_NORMAL:
         {
-            msg="KSP: convergence ||r||_2 < atol";
+            msg="KSP convergence ||r||_2 < atol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_RTOL:
         {
-            msg="KSP: convergence ||r||_2 < rtol ||b||_2";
+            msg="KSP convergence ||r||_2 < rtol ||b||_2";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_ATOL:
         {
-            msg="KSP: convergence ||r||_2 < atol";
+            msg="KSP convergence ||r||_2 < atol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -475,49 +475,49 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         {
             //used by the KSPPREONLY solver after the single iteration of
             //the preconditioner is applied
-            msg="KSP: convergence k > maxit (KSPPREONLY)";
+            msg="KSP convergence k > maxit (KSPPREONLY)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_CG_NEG_CURVE:
         {
-            msg="KSP: negative curvature detected";
+            msg="KSP negative curvature detected";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_CG_CONSTRAINED:
         {
-            msg="KSP: convergence is reached along a constrained (full step goes beyond trust region)";
+            msg="KSP convergence is reached along a constrained (full step goes beyond trust region)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_STEP_LENGTH:
         {
-            msg="KSP: converged step length";
+            msg="KSP converged step length";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_HAPPY_BREAKDOWN:
         {
-            msg="KSP: converged happy break down";
+            msg="KSP converged happy break down";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_NULL:
         {
-            msg="KSP: divergence detected";
+            msg="KSP divergence detected";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_ITS:
         {
-            msg="KSP: divergence detected (max number of iterations reached)";
+            msg="KSP divergence detected (max number of iterations reached)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_DTOL:
         {
-            msg="KSP: divergence detected (||r||_2 increased by a factor of divtol)";
+            msg="KSP divergence detected (||r||_2 increased by a factor of divtol)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -526,19 +526,19 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
             //breakdown in Krylov method was detected
             //method could not continue to enlarge Krylov subspace;
             //could be due to a singlular matrix or preconditioner
-            msg="KSP: divergence detected (generic breakdown; potential singular operator)";
+            msg="KSP divergence detected (generic breakdown; potential singular operator)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_BREAKDOWN_BICG:
         {
-            msg="ksp: initial ||r||_2 is orthogonal to preconditioned residual";
+            msg="KSP initial ||r||_2 is orthogonal to preconditioned residual";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_NONSYMMETRIC:
         {
-            msg="ksp: divergence detected (operator (A or P) not symmetric)";
+            msg="KSP divergence detected (operator (A or P) not symmetric)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -556,7 +556,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         }
         case KSP_DIVERGED_INDEFINITE_MAT:
         {
-            msg="KSP: A is indefinite";
+            msg="KSP A is indefinite";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -567,7 +567,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         }
         default:
         {
-            msg="KSP: convergence reason not defined";
+            msg="KSP convergence reason not defined";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -645,8 +645,8 @@ PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag)
         }
         case TAOLINESEARCH_CONTINUE_ITERATING:
         {
-            msg="LS: continue iterating";
-            ierr=DbgMsg(msg); CHKERRQ(ierr);
+//            msg="LS: continue iterating";
+//            ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_SUCCESS:

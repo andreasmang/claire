@@ -794,8 +794,8 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
     this->m_Opt->SetJacMax(maxddg); CHKERRQ(ierr);
     this->m_Opt->SetJacMean(meanddg); CHKERRQ(ierr);
 
-    ss  << std::scientific << "det(grad(y)) : (min,mean,max)="
-        << "(" << minddg << "," << meanddg << "," << maxddg<<")";
+    ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
+        << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
     ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
 
 

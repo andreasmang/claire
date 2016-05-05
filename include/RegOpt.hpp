@@ -37,7 +37,7 @@ namespace reg
 
 
 
-// flags for registration norms
+// flags for hyperbolic PDE solvers
 enum PDESolver
 {
     RK2,  ///< flag for RK2 solver
@@ -48,7 +48,7 @@ enum PDESolver
 
 
 
-// flags for registration norms
+// flags for regularization norms
 enum RegNorm
 {
     L2,   ///< flag for L2-norm
@@ -96,7 +96,7 @@ enum FSeqType
 
 
 
-// flags for optimization methods
+// flags for preconditioners
 enum PCSolverType
 {
     PCPCG,    ///< pcg as preconditioner
@@ -108,11 +108,18 @@ enum PCSolverType
 
 
 
+// high level flags for solver
+enum SolveType
+{
+    FAST_AGG, // H1-regularization; few iterations; low accuracy
+    FAST_SMOOTH, // H2-regularization; few iterations; low accuracy
+    ACC_AGG, // H1-regularization; accurate solution;
+    ACC_SMOOTH, // H2-regularization; accurate solution;
+    NOTSET, // no predefined solver
+};
 
-/********************************************************************
- * Name: TimerTypes
- * Description: flags for timers
- *******************************************************************/
+
+// flags for timers
 enum TimerType
 {
     T2SEXEC = 0, ///< time to solution (execution time)
@@ -178,10 +185,6 @@ public:
                *this->m_MiscOpt->h[2];
     }
 
-    inline void SetRegularizationWeight(ScalarType beta){
-        this->m_Beta[0]=beta; this->m_Beta[1]=beta;
-    };
-    inline ScalarType GetRegularizationWeight(void){return this->m_Beta[0];};
 
     inline ScalarType GetSigma(void){return this->m_Sigma;};
     inline ScalarType GetTimeHorizon(int i){return this->m_TimeHorizon[i];};
@@ -195,17 +198,23 @@ public:
     inline bool ReadImagesFromFile(){return this->m_ReadImagesFromFile;};
     inline void ReadImagesFromFile(bool flag){this->m_ReadImagesFromFile=flag;};
 
-
     inline bool StoreTimeSeries(){return this->m_StoreTimeSeries;};
     inline void StoreTimeSeries(bool flag){this->m_StoreTimeSeries = flag;};
-    inline bool MonitorCFLCondition(){return this->m_MonitorCFLCondition;};
-    inline void MonitorCFLCondition(bool flag){this->m_MonitorCFLCondition=flag;};
 
-    inline RegNorm GetRegNorm(void){return this->m_RegNorm;};
-    inline OptMeth GetOptMeth(void){return this->m_OptMeth;};
+    // regularization
+    inline RegNorm GetRegNorm(void){return this->m_Regularization.norm;};
+    inline void SetRegNorm(RegNorm regnorm){this->m_Regularization.norm=regnorm;};
+    inline void SetRegularizationWeight(ScalarType beta){
+        this->m_Regularization.beta[0]=beta;
+        this->m_Regularization.beta[1]=beta;
+    };
+    inline ScalarType GetRegularizationWeight(void){return this->m_Regularization.beta[0];};
+    inline ScalarType GetRegularizationWeight(int i){return this->m_Regularization.beta[i];};
+
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
     inline PrecondMeth GetPrecondMeth(void){return this->m_PrecondMeth;};
     inline PCSolverType GetPCSolverType(){return this->m_PCSolverType;};
+
     inline FSeqType GetFSeqType(void){return this->m_KKTSolverPara.fseqtype;};
     inline void SetVerbosity(int vbs){this->m_Verbosity = vbs;};
     inline int GetVerbosity(){return this->m_Verbosity;};
@@ -213,6 +222,9 @@ public:
     inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
     inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
     inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
+    inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
+    inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
+    inline bool MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
 
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
@@ -233,9 +245,9 @@ public:
     inline void InCompressible(bool flag){this->m_InCompressible=flag;};
 
     inline void GetTimer(TimerType id,double* wtime){
-            wtime[0] = this->m_Timer[id][MIN];
-            wtime[1] = this->m_Timer[id][MAX];
-            wtime[2] = this->m_Timer[id][AVG];
+        wtime[0] = this->m_Timer[id][MIN];
+        wtime[1] = this->m_Timer[id][MAX];
+        wtime[2] = this->m_Timer[id][AVG];
     };
 
     inline void SetTemplateFN(std::string s){this->m_TemplateFN = s;};
@@ -246,8 +258,6 @@ public:
     inline void SetXFolder(std::string s){this->m_XFolder = s;};
     inline void SetIFolder(std::string s){this->m_IFolder = s;};
     inline void SetPDESolver(PDESolver id){this->m_PDESolver=id;};
-    inline void SetRegNorm(RegNorm regnorm){this->m_RegNorm=regnorm;};
-    inline void SetOptMeth(OptMeth meth){this->m_OptMeth=meth;};
 
     inline void SetNumThreads(int n){this->m_NumThreads=n;};
     inline void SetNumTimePoints(IntType nt){ this->m_NT=nt; };
@@ -267,6 +277,8 @@ public:
     inline void SetOptTol(int i, ScalarType tol){this->m_OptPara.tol[i] = tol;};
     inline int GetOptMaxit(){return this->m_OptPara.maxit;};
     inline void SetOptMaxit(int i){this->m_OptPara.maxit = i;};
+    inline void SetOptMeth(OptMeth meth){this->m_OptPara.method=meth;};
+    inline OptMeth GetOptMeth(void){return this->m_OptPara.method;};
 
     inline ScalarType GetKKTSolverTol(int i){return this->m_KKTSolverPara.tol[i];};
     inline void SetKKTSolverTol(int i,ScalarType tol){this->m_KKTSolverPara.tol[i]=tol;};
@@ -279,6 +291,8 @@ public:
     inline bool WriteImages(){return this->m_WriteImages;};
     inline void WriteImages(bool flag){this->m_WriteImages = flag;};
     inline bool LoggingEnabled(){return this->m_WriteLogFiles;};
+
+    int GetLineLength(){return this->m_LineLength;};
 
     ScalarType ComputeFFTScale();
 
@@ -307,6 +321,7 @@ private:
     PetscErrorCode ClearMemory(void);
     PetscErrorCode ParseArguments(int,char**);
     PetscErrorCode CheckArguments(void);
+    PetscErrorCode SetPresetParameters();
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 
@@ -317,6 +332,7 @@ private:
     // parameters for optimization
     struct Optimization{
         ScalarType tol[3];
+        OptMeth method;
         int maxit;
     };
 
@@ -341,11 +357,17 @@ private:
 
     // parameters for parameter continuation
     struct RegMonitor{
+        bool monitorJAC;
+        bool monitorCFL;
         ScalarType jacmin; ///< min value of jacobian
         ScalarType jacmax; ///< max value of jacobian
         ScalarType jacmean; ///< mean value of jacobian
     };
 
+    struct Regularization{
+        ScalarType beta[2]; ///< regularization parameter
+        RegNorm norm; ///< flag for regularization norm
+    };
 
     // parameters for KKT solver
     struct MultiScale{
@@ -356,19 +378,15 @@ private:
     MPI_Comm m_Comm;
     int m_CartGridDims[2];
 
-    Optimization m_OptPara;
-    KKTSolver m_KKTSolverPara;
-    ParameterContinuation m_ParameterCont;
-
-    DomainDecomposition m_DD;
-
-    RegMonitor m_RegMonitor;
-
-    RegNorm m_RegNorm; ///< flag for regularization norm
-    OptMeth m_OptMeth; ///< flag for optimization method
-    PrecondMeth m_PrecondMeth; ///< flag for preconditioner
+    Optimization m_OptPara; ///< optimization parameters
     PDESolver m_PDESolver; ///< flag for PDE solver
+    KKTSolver m_KKTSolverPara; ///< parameters for KKT solver
+    RegMonitor m_RegMonitor;  ///< monitor for registration
+    PrecondMeth m_PrecondMeth; ///< flag for preconditioner
     PCSolverType m_PCSolverType; ///< flag for KSP solver for precond
+    Regularization m_Regularization; ///< parameters for regularization model
+    ParameterContinuation m_ParameterCont; ///< flags for parameter continuation
+    DomainDecomposition m_DD; ///< domain decomposition
 
     std::string m_XFolder; ///< identifier for folder to write results to
     std::string m_XExtension; ///< identifier for extension of files to be written to file
@@ -384,20 +402,17 @@ private:
     double m_InterpTimers[4][NVALTYPES];
 
     unsigned int m_NumThreads;
-
     unsigned int m_LineLength;
-
     bool m_StoreTimeSeries;
-    bool m_MonitorCFLCondition;
     bool m_InCompressible;
 
     bool m_WriteImages;
     bool m_WriteLogFiles;
-    bool m_UseNCFormat;
+    //bool m_UseNCFormat;
     bool m_ReadImagesFromFile;
 
-    ScalarType m_Beta[2]; ///< regularization weight
     ScalarType m_Sigma;
+    SolveType m_SolveType;
 
     int m_Verbosity;
 

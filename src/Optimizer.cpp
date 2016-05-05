@@ -279,7 +279,9 @@ PetscErrorCode Optimizer::Run()
 
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
     ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
+    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
     ierr=Msg("optimization done"); CHKERRQ(ierr);
+    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
@@ -346,13 +348,11 @@ PetscErrorCode Optimizer::RunBetaCont()
         beta /= 10.0; // reduce beta
 
     }
+    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
     ierr=Msg("optimization done"); CHKERRQ(ierr);
+    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
-
-    // display info to user, once we're done
-    ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-
 
     PetscFunctionReturn(0);
 }

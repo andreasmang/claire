@@ -97,6 +97,10 @@ public:
     /*! get verbositys */
     inline int GetVerbosity(){ return this->m_Opt->GetVerbosity(); };
 
+    /*! get verbositys */
+    inline void PrintLine(){ std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl; };
+
+
 protected:
 
     PetscErrorCode Initialize(void);

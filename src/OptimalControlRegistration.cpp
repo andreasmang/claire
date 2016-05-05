@@ -752,9 +752,9 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     ierr=VecSet(this->m_AdjointVariable,0.0); CHKERRQ(ierr);
 
     ierr=this->m_IO->Write(this->m_VelocityField,
-                            "initial-condition-x1.nc",
-                            "initial-condition-x2.nc",
-                            "initial-condition-x3.nc"); CHKERRQ(ierr);
+                            "initial-condition-x1.nii.gz",
+                            "initial-condition-x2.nii.gz",
+                            "initial-condition-x3.nii.gz"); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
@@ -3162,8 +3162,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // determinant of deformation gradient out
-    ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
-
+    if ( this->m_Opt->MonitorJacobian() ){
+        ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(0);
 }
