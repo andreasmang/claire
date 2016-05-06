@@ -5,6 +5,10 @@
 
 // local includes
 #include "OptimalControlRegistration.hpp"
+#include "RegularizationRegistrationH1.hpp"
+#include "RegularizationRegistrationH2.hpp"
+#include "RegularizationRegistrationH1SN.hpp"
+#include "RegularizationRegistrationH2SN.hpp"
 
 
 
@@ -195,6 +199,58 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
 
 
 /********************************************************************
+ * Name: AllocateRegularization
+ * Description: allocate regularization model
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EvaluateL2Distance"
+PetscErrorCode OptimalControlRegistration::AllocateRegularization()
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    switch(this->m_Opt->GetRegNorm()){
+        case H1:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH1(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        case H2:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH2(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        case H1SN:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH1SN(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        case H2SN:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH2SN(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        default: { ierr=reg::ThrowError("regularization model not defined"); CHKERRQ(ierr); }
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
  * Name: SolveForwardProblem
  * Description: solve the forward problem (we assume the user has
  * set the template image and the velocity field using the assocated
@@ -289,6 +345,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
 
 
 
+
+
+
 /********************************************************************
  * Name: EvaluateObjective
  * Description: evaluates the objective value
@@ -301,7 +360,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     ScalarType D=0.0,R=0.0;
     PetscFunctionBegin;
 
-    D = 0.0;
     // allocate velocity field
     if (this->m_VelocityField == NULL){
         try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -312,10 +370,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
 
     // allocate regularization model
     if (this->m_Regularization == NULL){
-        try{this->m_Regularization = new RegularizationRegistration(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->GetVerbosity() > 2){
@@ -378,10 +433,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
 
     // allocate regularization model
     if (this->m_Regularization == NULL){
-        try{this->m_Regularization = new RegularizationRegistration(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->GetVerbosity() > 2){
@@ -633,10 +685,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     // allocate regularization model
     if (this->m_Regularization == NULL){
-        try{this->m_Regularization = new RegularizationRegistration(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->GetVerbosity() > 2){
@@ -710,10 +759,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     // allocate regularization model
     if (this->m_Regularization == NULL){
-        try{this->m_Regularization = new RegularizationRegistration(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
     // allocate state and adjoint variables
@@ -784,10 +830,7 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v)
 
     // allocate regularization model
     if (this->m_Regularization == NULL){
-        try{this->m_Regularization = new RegularizationRegistration(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->GetVerbosity() > 2){

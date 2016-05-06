@@ -32,6 +32,7 @@ namespace reg
 class RegularizationRegistration
 {
 public:
+
     typedef RegularizationRegistration Self;
     typedef ScalarType FFTScaType[2];
 
@@ -39,58 +40,20 @@ public:
     RegularizationRegistration(RegOpt*);
     ~RegularizationRegistration(void);
 
-    PetscErrorCode EvaluateFunctional(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradient(VecField*,VecField*);
-    PetscErrorCode HessianMatVec(VecField*,VecField*);
-    PetscErrorCode ApplyInverseOperator(VecField*,VecField*);
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*,VecField*) = 0;
+    virtual PetscErrorCode EvaluateGradient(VecField*,VecField*) = 0;
+    virtual PetscErrorCode HessianMatVec(VecField*,VecField*) = 0;
+    virtual PetscErrorCode ApplyInverseOperator(VecField*,VecField*) = 0;
 
 protected:
 
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-
-    RegOpt* m_Opt;
-    VecField* m_WorkVecField;
-
-private:
-
     PetscErrorCode Allocate();
     PetscErrorCode Deallocate();
 
-    // functions for L2-norm
-    PetscErrorCode EvaluateL2(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradL2(VecField*,VecField*);
-    PetscErrorCode HessianMatVecL2(VecField*,VecField*);
-    PetscErrorCode ApplyInvOpL2(VecField*,VecField*);
-
-
-    // functions for H1-seminorm
-    PetscErrorCode EvaluateH1S(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradH1S(VecField*,VecField*);
-    PetscErrorCode HessianMatVecH1S(VecField*,VecField*);
-    PetscErrorCode ApplyInvOpH1S(VecField*,VecField*);
-
-
-    // functions for H2-seminorm
-    PetscErrorCode EvaluateH2S(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradH2S(VecField*,VecField*);
-    PetscErrorCode HessianMatVecH2S(VecField*,VecField*);
-    PetscErrorCode ApplyInvOpH2S(VecField*,VecField*);
-
-
-    // functions for H1-norm
-    PetscErrorCode EvaluateH1(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradH1(VecField*,VecField*);
-    PetscErrorCode HessianMatVecH1(VecField*,VecField*);
-    PetscErrorCode ApplyInvOpH1(VecField*,VecField*);
-
-
-    // functions for H2-norm
-    PetscErrorCode EvaluateH2(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradH2(VecField*,VecField*);
-    PetscErrorCode HessianMatVecH2(VecField*,VecField*);
-    PetscErrorCode ApplyInvOpH2(VecField*,VecField*);
-
+    RegOpt* m_Opt;
+    VecField* m_WorkVecField;
 
     FFTScaType *m_v1hat;
     FFTScaType *m_v2hat;
@@ -99,6 +62,7 @@ private:
     FFTScaType *m_Lv1hat;
     FFTScaType *m_Lv2hat;
     FFTScaType *m_Lv3hat;
+
 
 };
 

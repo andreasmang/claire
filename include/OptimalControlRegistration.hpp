@@ -137,6 +137,9 @@ protected:
     /*! apply two level preconditioner */
     PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec);
 
+    /*! setup two level preconditioner */
+    PetscErrorCode AllocateRegularization();
+
     Vec m_StateVariable; ///< time dependent state variable m(x,t)
     Vec m_AdjointVariable; ///< time dependent adjoint variable \lambda(x,t)
     Vec m_IncStateVariable; ///< time dependent incremental state variable \tilde{m}(x,t)
@@ -146,6 +149,8 @@ private:
 
     /*! setup two level preconditioner */
     PetscErrorCode Setup2LevelPrecond();
+
+
 
     /*! estimate eigenvalues for hessian */
     PetscErrorCode EstimateHessianEigVals();
