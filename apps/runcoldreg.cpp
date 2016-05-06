@@ -28,6 +28,7 @@
 #include "LargeDeformationRegistration.hpp"
 #include "OptimalControlRegistration.hpp"
 #include "OptimalControlRegistrationIC.hpp"
+#include "OptimalControlRegistrationRIC.hpp"
 #include "TaoInterfaceRegistration.hpp"
 
 
@@ -76,22 +77,32 @@ int main(int argc,char **argv)
     }
 
     // allocate class for registration
-    if (regopt->InCompressible()==false){
-
+    if (regopt->GetRegModel() == reg::COMPRESSIBLE){
         try{ registration = new reg::OptimalControlRegistration(regopt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-
     }
-    else{
-
+    else if (regopt->GetRegModel() == reg::STOKES){
         try{ registration = new reg::OptimalControlRegistrationIC(regopt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-
     }
+    else if (regopt->GetRegModel() == reg::RELAXEDSTOKES){
+        try{ registration = new reg::OptimalControlRegistrationRIC(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    else{
+        try{ registration = new reg::OptimalControlRegistrationRIC(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // set the io
     ierr=registration->SetIO(readwrite); CHKERRQ(ierr);
 
     // get sizes
@@ -154,20 +165,19 @@ int main(int argc,char **argv)
     // run the optimizer
     ierr=optimizer->Finalize(); CHKERRQ(ierr);
 
-
     // clean up
     if (regopt != NULL){ delete regopt; regopt = NULL; }
     if (synprob != NULL){ delete synprob; synprob = NULL; }
     if (readwrite != NULL){ delete readwrite; readwrite = NULL; }
     if (optimizer != NULL){ delete optimizer; optimizer = NULL; }
     if (registration != NULL){ delete registration; registration = NULL; }
-
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
 
+    // clean up petsc
     ierr=PetscFinalize(); CHKERRQ(ierr);
 
-   return 0;
+    return 0;
 }
 
 

@@ -1,5 +1,5 @@
 CXX=mpicxx
-CXXFLAGS= -openmp -O3 -ansi -xhost -DINVERT_RHO -std=c++11 #-fPIC -mt_mpi # -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
+CXXFLAGS= -openmp -O3 -ansi -xhost -DINVERT_RHO #-std=c++14 #-fPIC -mt_mpi # -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
 RM = rm -f
 MKDIRS = mkdir -p
 
@@ -39,9 +39,14 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/TaoInterfaceRegistration.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \
+		$(SRCDIR)/RegularizationRegistrationH1.cpp \
+		$(SRCDIR)/RegularizationRegistrationH2.cpp \
+		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
+		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
 		$(SRCDIR)/LargeDeformationRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
+		$(SRCDIR)/OptimalControlRegistrationRIC.cpp \
 		$(SRCDIR)/OptimizationProblemRegistration.cpp \
 		$(SRCDIR)/PreProcessingRegistration.cpp
 

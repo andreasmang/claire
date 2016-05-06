@@ -474,7 +474,7 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    if(this->m_Opt->InCompressible()){
+    if(this->m_Opt->GetRegModel() == STOKES){
         problem=4;
     }
 

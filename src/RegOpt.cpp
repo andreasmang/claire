@@ -4,6 +4,8 @@
 #include <fstream>
 #include "RegOpt.hpp"
 
+
+
 namespace reg
 {
 
@@ -171,7 +173,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 //            this->m_UseNCFormat = true;
 //        }
         else if(strcmp(argv[1],"-ic") == 0){
-            this->m_InCompressible = true;
+            this->m_RegModel = STOKES;
+        }
+        else if(strcmp(argv[1],"-ric") == 0){
+            this->m_RegModel = RELAXEDSTOKES;
         }
         else if(strcmp(argv[1],"-xresults") == 0){
             this->m_WriteImages = true;
@@ -389,6 +394,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_TimeHorizon[1] = 1.0;
     this->m_PDESolver = SL;
     this->m_PrecondMeth = INVREG;
+    this->m_RegModel = COMPRESSIBLE;
+
     //this->m_PrecondMeth = TWOLEVEL;
     //this->m_PCSolverType = PCPCG;
     this->m_LineLength = 120;
@@ -412,7 +419,6 @@ PetscErrorCode RegOpt::Initialize()
     this->m_DD.n = 2;
 
     this->m_ReadImagesFromFile = false;
-    this->m_InCompressible = true;
 
     this->m_ParameterCont.enabled = false;
     this->m_ParameterCont.betamin = 1E-6;

@@ -46,8 +46,6 @@ enum PDESolver
 };
 
 
-
-
 // flags for regularization norms
 enum RegNorm
 {
@@ -61,8 +59,6 @@ enum RegNorm
 };
 
 
-
-
 // flags for optimization methods
 enum OptMeth
 {
@@ -70,8 +66,6 @@ enum OptMeth
     FULLNEWTON,  ///< full Newton
     GRADDESCENT, ///< gradient descent (gradient in sobolev space)
 };
-
-
 
 
 // flags for preconditioner methods
@@ -83,8 +77,6 @@ enum PrecondMeth
 };
 
 
-
-
 // flags for optimization
 enum FSeqType
 {
@@ -92,8 +84,6 @@ enum FSeqType
     SLFS, ///< superliner forcing sequence
     NOFS, ///< no forcing sequence
 };
-
-
 
 
 // flags for preconditioners
@@ -105,7 +95,6 @@ enum PCSolverType
     PCGMRES,  ///< gmres solver as preconditioner
     PCFGMRES, ///< flexible gmres as preconditioner
 };
-
 
 
 // high level flags for solver
@@ -134,12 +123,7 @@ enum TimerType
 };
 
 
-
-
-/********************************************************************
- * Name: CounterType
- * Description: flags for timers
- *******************************************************************/
+// counters (number of operations)
 enum CounterType
 {
     PDESOLVE = 0, ///< PDE solves
@@ -151,6 +135,14 @@ enum CounterType
     IP,           ///< interpolation execution time
     FFT,          ///< fft evaluations
     NCOUNTERS,    ///< to allocate the counters
+};
+
+
+enum RegModel
+{
+    COMPRESSIBLE,
+    STOKES,
+    RELAXEDSTOKES
 };
 
 
@@ -201,6 +193,10 @@ public:
     inline bool StoreTimeSeries(){return this->m_StoreTimeSeries;};
     inline void StoreTimeSeries(bool flag){this->m_StoreTimeSeries = flag;};
 
+    // registration model
+    inline RegModel GetRegModel(void){return this->m_RegModel;};
+    inline void SetRegModel(RegModel flag){this->m_RegModel=flag;};
+
     // regularization
     inline RegNorm GetRegNorm(void){return this->m_Regularization.norm;};
     inline void SetRegNorm(RegNorm regnorm){this->m_Regularization.norm=regnorm;};
@@ -216,9 +212,8 @@ public:
     inline PCSolverType GetPCSolverType(){return this->m_PCSolverType;};
 
     inline FSeqType GetFSeqType(void){return this->m_KKTSolverPara.fseqtype;};
-    inline void SetVerbosity(int vbs){this->m_Verbosity = vbs;};
-    inline int GetVerbosity(){return this->m_Verbosity;};
 
+    // jacobians
     inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
     inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
     inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
@@ -230,7 +225,7 @@ public:
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
     inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
 
-
+    // parameter continuation
     inline bool DoParameterContinuation(){return this->m_ParameterCont.enabled;};
     inline void DoParameterContinuation(bool flag){this->m_ParameterCont.enabled = flag;};
     inline ScalarType GetJacBound(){return this->m_ParameterCont.jacbound;};
@@ -240,9 +235,6 @@ public:
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
     inline void IncrementCounter(CounterType id){this->m_Counter[id]++;};
     inline void IncrementCounter(CounterType id, unsigned int i){this->m_Counter[id]+= i;};
-
-    inline bool InCompressible(){return this->m_InCompressible;};
-    inline void InCompressible(bool flag){this->m_InCompressible=flag;};
 
     inline void GetTimer(TimerType id,double* wtime){
         wtime[0] = this->m_Timer[id][MIN];
@@ -291,6 +283,9 @@ public:
     inline bool WriteImages(){return this->m_WriteImages;};
     inline void WriteImages(bool flag){this->m_WriteImages = flag;};
     inline bool LoggingEnabled(){return this->m_WriteLogFiles;};
+
+    inline void SetVerbosity(int vbs){this->m_Verbosity = vbs;};
+    inline int GetVerbosity(){return this->m_Verbosity;};
 
     int GetLineLength(){return this->m_LineLength;};
 
@@ -387,6 +382,7 @@ private:
     Regularization m_Regularization; ///< parameters for regularization model
     ParameterContinuation m_ParameterCont; ///< flags for parameter continuation
     DomainDecomposition m_DD; ///< domain decomposition
+    RegModel m_RegModel;
 
     std::string m_XFolder; ///< identifier for folder to write results to
     std::string m_XExtension; ///< identifier for extension of files to be written to file
@@ -404,7 +400,6 @@ private:
     unsigned int m_NumThreads;
     unsigned int m_LineLength;
     bool m_StoreTimeSeries;
-    bool m_InCompressible;
 
     bool m_WriteImages;
     bool m_WriteLogFiles;
