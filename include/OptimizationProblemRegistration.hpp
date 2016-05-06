@@ -98,7 +98,7 @@ public:
     inline int GetVerbosity(){ return this->m_Opt->GetVerbosity(); };
 
     /*! get verbositys */
-    inline void PrintLine(){ std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl; };
+    inline void PrintLine(){ PetscPrintf(MPI_COMM_WORLD,"%s\n",std::string(this->m_Opt->GetLineLength(),'-').c_str()); };
 
 
 protected:

@@ -3150,7 +3150,14 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 {
 
     PetscErrorCode ierr;
+    int rank;
+    std::string filename;
+    std::stringstream ss;
+    std::ofstream logwriter;
+
     PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL){
@@ -3163,7 +3170,21 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     // determinant of deformation gradient out
     if ( this->m_Opt->MonitorJacobian() ){
+
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
+
+        if (rank == 0){
+            filename = this->m_Opt->GetXFolder()
+                        + "registration-performance-jacobians.log";
+            // create output file or append to output file
+            logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
+            ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
+            ss  << std::scientific << std::left
+                << std::setw(20) << this->m_Opt->GetJacMin() << " "
+                << std::setw(20) << this->m_Opt->GetJacMean() <<" "
+                << std::setw(20) << this->m_Opt->GetJacMax();
+            logwriter << ss.str() << std::endl;
+        }
     }
 
     PetscFunctionReturn(0);

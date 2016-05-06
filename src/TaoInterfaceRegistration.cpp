@@ -378,7 +378,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     // parse initial gradient and display header
     if (optprob->InFirstIteration() == true){
         optprob->PrintLine();
-        PetscPrintf(MPI_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n","iter","objective","mismatch","||gradient||_2,rel","||gradient||_2","step");
+        PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n","iter","objective","mismatch","||gradient||_2,rel","||gradient||_2","step");
         optprob->PrintLine();
         optprob->SetInitialGradNorm(gnorm);
     }
@@ -544,7 +544,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         }
         case KSP_DIVERGED_INDEFINITE_PC:
         {
-            msg="KSP: preconditioner is indefinite";
+            msg="KSP preconditioner is indefinite";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }

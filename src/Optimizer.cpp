@@ -263,7 +263,10 @@ PetscErrorCode Optimizer::DoSetup()
 PetscErrorCode Optimizer::Run()
 {
     PetscErrorCode ierr;
+    int rank;
     PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // check of optimization problem has been set
     ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
@@ -279,9 +282,9 @@ PetscErrorCode Optimizer::Run()
 
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
     ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
-    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
+    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
     ierr=Msg("optimization done"); CHKERRQ(ierr);
-    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
+    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
@@ -348,9 +351,9 @@ PetscErrorCode Optimizer::RunBetaCont()
         beta /= 10.0; // reduce beta
 
     }
-    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
+    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
     ierr=Msg("optimization done"); CHKERRQ(ierr);
-    std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
+    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
