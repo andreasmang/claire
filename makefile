@@ -1,7 +1,14 @@
 CXX=mpicxx
-CXXFLAGS= -openmp -O3 -ansi -xhost -DINVERT_RHO #-std=c++14 #-fPIC -mt_mpi # -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
+USEINTEL=0
 RM = rm -f
 MKDIRS = mkdir -p
+
+
+ifeq ($(USEINTEL),1)
+	CXXFLAGS = -openmp -O3 -ansi -std=c++11 -DINVERT_RHO -xhost #-fPIC -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
+else
+	CXXFLAGS= -fopenmp -O3 -ansi
+endif
 
 BINDIR = ./bin
 SRCDIR = ./src
