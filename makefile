@@ -3,11 +3,11 @@ USEINTEL=0
 RM = rm -f
 MKDIRS = mkdir -p
 
-
+CXXFLAGS = -O3 -ansi
 ifeq ($(USEINTEL),1)
-	CXXFLAGS = -openmp -O3 -ansi -std=c++11 -DINVERT_RHO -xhost #-fPIC -Wfatal-errors -Wall -Wextra -Wconversion -Wshadow
+	CXXFLAGS+= -openmp -std=c++11 -DINVERT_RHO -xhost
 else
-	CXXFLAGS= -fopenmp -O3 -ansi
+	CXXFLAGS+= -fopenmp
 endif
 
 BINDIR = ./bin
@@ -27,7 +27,10 @@ LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
-LDFLAGS+= -limf -lm # -lmpi_mt #-lmpi # -lmpi_mt
+LDFLAGS+= -lm
+ifeq ($(USEINTEL),1)
+	LDFLAGS+= -limf
+endif
 
 BIN = $(BINDIR)/runcoldreg
 

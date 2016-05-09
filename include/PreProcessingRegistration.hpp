@@ -89,7 +89,7 @@ private:
 
     DomainDec m_DDPara;
     ReadWriteType* m_IO;
-    unsigned int m_nx[3];
+    IntType m_nx[3];
 
 };
 

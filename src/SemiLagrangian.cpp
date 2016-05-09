@@ -805,7 +805,7 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
 {
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
-    unsigned int isize[3],istart[3];
+    IntType isize[3],istart[3];
     ScalarType hx[3];
     PetscFunctionBegin;
 
@@ -816,10 +816,10 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
         }
     }
 
-    for (unsigned int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<ScalarType>(this->m_Opt->GetSpatialStepSize(i));
-        isize[i]  = static_cast<IntType>(this->m_Opt->GetISize(i));
-        istart[i] = static_cast<IntType>(this->m_Opt->GetIStart(i));
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
 
     ierr=VecGetArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
@@ -831,9 +831,9 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     IntType li;
     ScalarType x1,x2,x3;
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
@@ -880,7 +880,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        nx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->N[i]);
+        nx[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->N[i]);
     }
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);

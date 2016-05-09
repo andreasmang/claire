@@ -8,18 +8,18 @@
 
 class N_MISC{
   public:
-	int N[3];
-	int isize[3];
-	int istart[3];
-  double h[3];
-	double dt;
-	int Nt;
-	double T;
-  int Np; // number of initial condition parametrization
-  long long int N_global;
-  long long int N_local;
-  accfft_plan* plan;
-  MPI_Comm c_comm;
+    int N[3];
+    int isize[3];
+    int istart[3];
+    double h[3];
+    double dt;
+    int Nt;
+    double T;
+    int Np; // number of initial condition parametrization
+    long long int N_global;
+    long long int N_local;
+    accfft_plan* plan;
+    MPI_Comm c_comm;
   // Constructor
   N_MISC(int* iN,int* iisize, int* iistart,accfft_plan* iplan,MPI_Comm ic_comm){
     memcpy(this->N,iN,3*sizeof(int));
@@ -28,10 +28,10 @@ class N_MISC{
 //    this->Np=Np;
     this->plan=iplan;
     this->c_comm=ic_comm;
-    Nt=NULL;
-    dt=NULL;
-    T=NULL;
-    Np=NULL;
+    Nt=0;
+    dt=0.0;
+    T=0.0;
+    Np=0;
     N_global=static_cast<long long int>(N[0])*static_cast<long long int>(N[1])*static_cast<long long int>(N[2]);
     N_local=static_cast<long long int>(isize[0]*isize[1]*isize[2]);
     h[0]=M_PI*2/N[0];
@@ -40,27 +40,27 @@ class N_MISC{
 
   };
   N_MISC(){
-    this->N[0]=NULL;
-    this->N[1]=NULL;
-    this->N[2]=NULL;
-    this->isize[0]=NULL;
-    this->isize[1]=NULL;
-    this->isize[2]=NULL;
-    this->istart[0]=NULL;
-    this->istart[1]=NULL;
-    this->istart[2]=NULL;
-    this->Np=NULL;
+    this->N[0]=0;
+    this->N[1]=0;
+    this->N[2]=0;
+    this->isize[0]=0;
+    this->isize[1]=0;
+    this->isize[2]=0;
+    this->istart[0]=0;
+    this->istart[1]=0;
+    this->istart[2]=0;
+    this->Np=0;
     this->plan=NULL;
     this->c_comm=NULL;
-    this->Nt=NULL;
-    this->dt=NULL;
-    this->T=NULL;
-    this->Np=NULL;
-    this->N_global=NULL;
-    this->N_local=NULL;
-    h[0]=NULL;
-    h[1]=NULL;
-    h[2]=NULL;
+    this->Nt=0;
+    this->dt=0.0;
+    this->T=0.0;
+    this->Np=0;
+    this->N_global=0;
+    this->N_local=0;
+    h[0]=0.0;
+    h[1]=0.0;
+    h[2]=0.0;
     return ;
 
   };

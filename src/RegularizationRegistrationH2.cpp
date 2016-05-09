@@ -67,7 +67,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
     ScalarType sqrtbeta[2],ipxi,scale,hd;
     int isize[3],osize[3],istart[3],ostart[3];
-    unsigned int n[3],iosize[3];
+    unsigned int n[3];
+    IntType iosize[3];
     double ffttimers[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
@@ -98,7 +99,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
                                                 isize,istart,osize,ostart,
                                                 this->m_Opt->m_MiscOpt->c_comm);
 
-        for (unsigned int i=0; i < 3; ++i){
+        for (int i=0; i < 3; ++i){
             n[i] = this->m_Opt->m_MiscOpt->N[i];
             iosize[i] = osize[i];
         }
@@ -128,9 +129,9 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         IntType i;
 
         #pragma omp for
-        for (unsigned int i1 = 0; i1 < iosize[0]; ++i1){
-            for (unsigned int i2 = 0; i2 < iosize[1]; i2++){
-                for (unsigned int i3 = 0; i3 < iosize[2]; ++i3){
+        for (IntType i1 = 0; i1 < iosize[0]; ++i1){
+            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+                for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
                     w[1] = static_cast<long int>(i2 + ostart[1]);
@@ -204,7 +205,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3];
-    unsigned int n[3],iosize[3];
+    unsigned int n[3];
+    IntType iosize[3];
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
     ScalarType beta[2],hd,scale;
@@ -236,9 +238,9 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
                                                 isize,istart,osize,ostart,
                                                 this->m_Opt->m_MiscOpt->c_comm);
 
-        for (unsigned int i=0; i < 3; ++i){
-            n[i] = this->m_Opt->m_MiscOpt->N[i];
-            iosize[i] = osize[i];
+        for (int i=0; i < 3; ++i){
+            iosize[i] = static_cast<IntType>(osize[i]);
+            n[i]      = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->N[i]);
         }
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -263,9 +265,9 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
         IntType i;
 
 #pragma omp for
-        for (unsigned int i1 = 0; i1 < iosize[0]; ++i1){
-            for (unsigned int i2 = 0; i2 < iosize[1]; i2++){
-                for (unsigned int i3 = 0; i3 < iosize[2]; ++i3){
+        for (IntType i1 = 0; i1 < iosize[0]; ++i1){
+            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+                for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
                     w[1] = static_cast<long int>(i2 + ostart[1]);
@@ -369,7 +371,8 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3];
-    unsigned int n[3],iosize[3];
+    unsigned int n[3];
+    IntType iosize[3];
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
     ScalarType beta[2],scale;
@@ -396,9 +399,9 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
                                                 isize,istart,osize,ostart,
                                                 this->m_Opt->m_MiscOpt->c_comm);
 
-        for (unsigned int i=0; i < 3; ++i){
-            n[i] = this->m_Opt->m_MiscOpt->N[i];
-            iosize[i] = osize[i];
+        for (int i=0; i < 3; ++i){
+            n[i] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->N[i]);
+            iosize[i] = static_cast<IntType>(osize[i]);
         }
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -424,9 +427,9 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
         IntType i;
 
 #pragma omp for
-        for (unsigned int i1 = 0; i1 < iosize[0]; ++i1){
-            for (unsigned int i2 = 0; i2 < iosize[1]; i2++){
-                for (unsigned int i3 = 0; i3 < iosize[2]; ++i3){
+        for (IntType i1 = 0; i1 < iosize[0]; ++i1){
+            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+                for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
                     w[1] = static_cast<long int>(i2 + ostart[1]);

@@ -444,7 +444,7 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
 {
     PetscErrorCode ierr;
     IntType nl,ng;
-    unsigned int isize[3],istart[3];
+    IntType isize[3],istart[3];
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,hx[3];
     int problem=3;
     PetscFunctionBegin;
@@ -452,18 +452,11 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
     nl = this->m_Opt->GetNLocal();
     ng = this->m_Opt->GetNGlobal();
 
-    isize[0] = this->m_Opt->m_MiscOpt->isize[0];
-    isize[1] = this->m_Opt->m_MiscOpt->isize[1];
-    isize[2] = this->m_Opt->m_MiscOpt->isize[2];
-
-    istart[0] = this->m_Opt->m_MiscOpt->istart[0];
-    istart[1] = this->m_Opt->m_MiscOpt->istart[1];
-    istart[2] = this->m_Opt->m_MiscOpt->istart[2];
-
-    hx[0] = this->m_Opt->m_MiscOpt->h[0];
-    hx[1] = this->m_Opt->m_MiscOpt->h[1];
-    hx[2] = this->m_Opt->m_MiscOpt->h[2];
-
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
+    }
 
     // allocate vector fields
     if(this->m_VelocityField == NULL){
@@ -820,7 +813,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradRK2()
                 *p_jac=NULL, *p_rhs0=NULL;
     ScalarType ht,hthalf;
     IntType nl,nt;
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
@@ -943,7 +936,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradSL()
                 *p_jac=NULL,*p_jacX=NULL,*p_rhs0=NULL;
     ScalarType ht,hthalf;
     IntType nl,nt;
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
     PetscFunctionBegin;
 

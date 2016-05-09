@@ -206,8 +206,8 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3];
-    unsigned int iosize[3];
-    long long int alloc_max;
+    IntType iosize[3];
+    size_t alloc_max;
     ScalarType hx[3],nx[3],c[3],scale;
     ScalarType *p_x=NULL, *p_y=NULL;
     double ffttimers[5]={0,0,0,0,0};
@@ -246,9 +246,9 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 #pragma omp parallel
 {
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < iosize[0]; ++i1){ // x1
-        for (unsigned int i2 = 0; i2 < iosize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < iosize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < iosize[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < iosize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < iosize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 ScalarType k1 = static_cast<ScalarType>(i1 + ostart[0]);
@@ -329,7 +329,7 @@ PetscErrorCode PreProcessingRegistration::SetupDomainComposition(unsigned int n)
 
     PetscErrorCode ierr;
     ScalarType nx[3],nd;
-    unsigned int isize[3],nsub[3],np;
+    IntType isize[3],nsub[3],np;
     PetscFunctionBegin;
 
     this->m_DDPara.nglobal = this->m_Opt->GetNGlobal();
@@ -337,23 +337,23 @@ PetscErrorCode PreProcessingRegistration::SetupDomainComposition(unsigned int n)
     this->m_DDPara.nshared = 4;
     this->m_DDPara.nzeropad = 4;
 
-    np = static_cast<unsigned int>(pow(n,3));
+    np = static_cast<IntType>(pow(n,3));
     nd = static_cast<ScalarType>(n);
 
     ierr=this->ResetDDData(np); CHKERRQ(ierr);
 
     // compute identifiers for domain decomposition
-    for (unsigned int i = 0; i < 3; ++i){
+    for (int i = 0; i < 3; ++i){
         nx[i]    = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->N[i]);
-        isize[i] = static_cast<unsigned int>(ceil(nx[i]/nd));
+        isize[i] = static_cast<IntType>(ceil(nx[i]/nd));
         nsub[i]  = n;
     }
 
-    for (unsigned int p1 = 0; p1 < nsub[0]; ++p1){
-        for (unsigned int p2 = 0; p2 < nsub[1]; ++p2){
-            for (unsigned int p3 = 0; p3 < nsub[2]; ++p3){
+    for (IntType p1 = 0; p1 < nsub[0]; ++p1){
+        for (IntType p2 = 0; p2 < nsub[1]; ++p2){
+            for (IntType p3 = 0; p3 < nsub[2]; ++p3){
 
-                unsigned int j = GetLinearIndex(p1,p2,p3,nsub);
+                IntType j = GetLinearIndex(p1,p2,p3,nsub);
 
                 this->m_DDPara.isize[j*3+0] = isize[0];
                 this->m_DDPara.isize[j*3+1] = isize[1];
@@ -393,7 +393,7 @@ PetscErrorCode PreProcessingRegistration::SetupDomainDecomposition(unsigned int 
 
     PetscErrorCode ierr;
     ScalarType nx[3],nd;
-    unsigned int isize[3],nsub[3],np;
+    IntType isize[3],nsub[3],np;
     PetscFunctionBegin;
 
     this->m_DDPara.nglobal = this->m_Opt->GetNGlobal();
@@ -401,7 +401,7 @@ PetscErrorCode PreProcessingRegistration::SetupDomainDecomposition(unsigned int 
     this->m_DDPara.nshared = 4;
     this->m_DDPara.nzeropad = 4;
 
-    np = static_cast<unsigned int>(pow(n,3));
+    np = static_cast<IntType>(pow(n,3));
     nd = static_cast<ScalarType>(n);
 
     ierr=this->ResetDDData(np); CHKERRQ(ierr);
@@ -409,17 +409,17 @@ PetscErrorCode PreProcessingRegistration::SetupDomainDecomposition(unsigned int 
     // compute identifiers for domain decomposition
     for (unsigned int i = 0; i < 3; ++i){
         nx[i]    = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->N[i]);
-        isize[i] = static_cast<unsigned int>(ceil(nx[i]/nd));
+        isize[i] = static_cast<IntType>(ceil(nx[i]/nd));
         nsub[i]  = n;
     }
 
     unsigned int nshared = this->m_DDPara.nshared;
 
-    for (unsigned int p1 = 0; p1 < nsub[0]; ++p1){
-        for (unsigned int p2 = 0; p2 < nsub[1]; ++p2){
-            for (unsigned int p3 = 0; p3 < nsub[2]; ++p3){
+    for (IntType p1 = 0; p1 < nsub[0]; ++p1){
+        for (IntType p2 = 0; p2 < nsub[1]; ++p2){
+            for (IntType p3 = 0; p3 < nsub[2]; ++p3){
 
-                unsigned int j = GetLinearIndex(p1,p2,p3,nsub);
+                IntType j = GetLinearIndex(p1,p2,p3,nsub);
 
                 this->m_DDPara.isize[j*3+0] = isize[0] + 2*nshared;
                 this->m_DDPara.isize[j*3+1] = isize[1] + 2*nshared;
@@ -462,9 +462,8 @@ PetscErrorCode PreProcessingRegistration::DecompositionData(Vec x, unsigned int 
     std::string::size_type pos;
     std::ostringstream ss;;
     std::string fn;
-    unsigned int nsub[3];
+    IntType nsub[3],nxblock[3],nzeropad;
     int is[3],ie[3],nxj[3];
-    unsigned int nxblock[3], nzeropad;
     IntType nlj;
 
     PetscFunctionBegin;
@@ -488,21 +487,22 @@ PetscErrorCode PreProcessingRegistration::DecompositionData(Vec x, unsigned int 
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
 
     // for all domains
-    for (unsigned int p1 = 0; p1 < nsub[0]; ++p1){
-        for (unsigned int p2 = 0; p2 < nsub[1]; ++p2){
-            for (unsigned int p3 = 0; p3 < nsub[2]; ++p3){
+    for (IntType p1 = 0; p1 < nsub[0]; ++p1){
+        for (IntType p2 = 0; p2 < nsub[1]; ++p2){
+            for (IntType p3 = 0; p3 < nsub[2]; ++p3){
 
-                unsigned int j = GetLinearIndex(p1,p2,p3,nsub);
+                IntType j = GetLinearIndex(p1,p2,p3,nsub);
 
                 nlj = 1;
 
-               for(unsigned int i=0; i < 3; ++i){
+               for(int i=0; i < 3; ++i){
 
                     ie[i] = this->m_DDPara.iend[j*3+i];
                     is[i] = this->m_DDPara.istart[j*3+i];
 
                     nxj[i]     = this->m_DDPara.isize[j*3+i] + 2*nzeropad;
                     nxblock[i] = this->m_DDPara.isize[j*3+i] + 2*nzeropad;
+
                     nlj *= nxblock[i];
                 }
 
@@ -564,10 +564,8 @@ PetscErrorCode PreProcessingRegistration::CompositionData(Vec x, unsigned int n,
     std::string::size_type pos;
     std::ostringstream ss;;
     std::string fn;
-    unsigned int nsub[3];
     int is[3],ie[3],nxj[3];
-    unsigned int nxblock[3];
-    IntType nlj;
+    IntType nlj,nsub[3],nxblock[3];
 
     PetscFunctionBegin;
 
@@ -590,14 +588,14 @@ PetscErrorCode PreProcessingRegistration::CompositionData(Vec x, unsigned int n,
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
 
     // for all domains
-    for (unsigned int p1 = 0; p1 < nsub[0]; ++p1){
-        for (unsigned int p2 = 0; p2 < nsub[1]; ++p2){
-            for (unsigned int p3 = 0; p3 < nsub[2]; ++p3){
+    for (IntType p1 = 0; p1 < nsub[0]; ++p1){
+        for (IntType p2 = 0; p2 < nsub[1]; ++p2){
+            for (IntType p3 = 0; p3 < nsub[2]; ++p3){
 
-                unsigned int j = GetLinearIndex(p1,p2,p3,nsub);
+                IntType j = GetLinearIndex(p1,p2,p3,nsub);
 
                 nlj = 1;
-                for(unsigned int i=0; i < 3; ++i){
+                for(int i=0; i < 3; ++i){
                     ie[i] = this->m_DDPara.iend[j*3+i];
                     is[i] = this->m_DDPara.istart[j*3+i];
                     nxj[i] = this->m_DDPara.isize[j*3+i] + 2*nshared;
@@ -617,14 +615,14 @@ PetscErrorCode PreProcessingRegistration::CompositionData(Vec x, unsigned int n,
 
                 ierr=VecGetArray(yj,&p_yj); CHKERRQ(ierr);
 
-                unsigned int j1 = nshared;
-                for (int i1=is[0]; i1 < ie[0]; ++i1){
+                IntType j1 = nshared;
+                for (IntType i1=is[0]; i1 < ie[0]; ++i1){
 
-                    unsigned int j2 = nshared;
-                    for (int i2=is[1]; i2 < ie[1]; ++i2){
+                    IntType j2 = nshared;
+                    for (IntType i2=is[1]; i2 < ie[1]; ++i2){
 
-                        unsigned int j3 = nshared;
-                        for (int i3=is[2]; i3 < ie[2]; ++i3){
+                        IntType j3 = nshared;
+                        for (IntType i3=is[2]; i3 < ie[2]; ++i3){
 
                             IntType lk = GetLinearIndex(j1,j2,j3,nxblock);
                             IntType li = this->GetIndex(i1,i2,i3);

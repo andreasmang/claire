@@ -89,7 +89,7 @@ PetscErrorCode SynProbRegistration::ClearMemory()
 PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigned int id)
 {
     PetscErrorCode ierr;
-    unsigned int isize[3],istart[3];
+    IntType isize[3],istart[3];
     ScalarType *p_m=NULL;
     ScalarType value,hx[3];
     const ScalarType twopi = 2.0*PETSC_PI;
@@ -99,10 +99,10 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigne
 
     ierr=Assert(m!= NULL,"null pointer"); CHKERRQ(ierr);
 
-    for (unsigned int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
-        isize[i]  = this->m_Opt->m_MiscOpt->isize[i];
-        istart[i] = this->m_Opt->m_MiscOpt->istart[i];
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -110,9 +110,9 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigne
 #pragma omp parallel
 {
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
@@ -208,15 +208,15 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigne
 PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
 {
     PetscErrorCode ierr;
-    unsigned int isize[3],istart[3];
+    IntType isize[3],istart[3];
     ScalarType *p_m=NULL,hx[3];
 
     PetscFunctionBegin;
 
-    for (unsigned int i = 0; i < 3; ++i){
-        hx[i] = this->m_Opt->m_MiscOpt->h[i];
-        isize[i] = this->m_Opt->m_MiscOpt->isize[i];
-        istart[i] = this->m_Opt->m_MiscOpt->istart[i];
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -224,9 +224,9 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
 #pragma omp parallel
 {
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
@@ -264,16 +264,16 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
 PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m)
 {
     PetscErrorCode ierr;
-    unsigned int isize[3],istart[3];
+    IntType isize[3],istart[3];
     const ScalarType twopi = 2.0*PETSC_PI;
     ScalarType *p_m=NULL,hx[3],sigma[3];
 
     PetscFunctionBegin;
 
-    for (unsigned int i = 0; i < 3; ++i){
-        hx[i] = this->m_Opt->m_MiscOpt->h[i];
-        isize[i] = this->m_Opt->m_MiscOpt->isize[i];
-        istart[i] = this->m_Opt->m_MiscOpt->istart[i];
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -285,9 +285,9 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m)
 #pragma omp parallel
 {
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
@@ -333,15 +333,15 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m)
 PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m,const unsigned int id)
 {
     PetscErrorCode ierr;
-    unsigned int isize[3],istart[3];
+    IntType isize[3],istart[3];
     ScalarType *p_m=NULL,hx[3];
 
     PetscFunctionBegin;
 
-    for (unsigned int i = 0; i < 3; ++i){
-        hx[i] = this->m_Opt->m_MiscOpt->h[i];
-        isize[i] = this->m_Opt->m_MiscOpt->isize[i];
-        istart[i] = this->m_Opt->m_MiscOpt->istart[i];
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -350,9 +350,9 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m,const unsigned int id)
 #pragma omp parallel
 {
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);

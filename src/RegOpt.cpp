@@ -407,13 +407,13 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KKTSolverPara.tol[0] = 1E-12; // relative tolerance
     this->m_KKTSolverPara.tol[1] = 1E-12; // absolute tolerance
     this->m_KKTSolverPara.tol[2] = 1E+06; // divergence tolerance
-    this->m_KKTSolverPara.maxit  = 1E+03; // maximal iterations
+    this->m_KKTSolverPara.maxit  = 1000; // maximal iterations
     this->m_KKTSolverPara.fseqtype = QDFS;
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
     this->m_OptPara.tol[2] = 1E-2;  // grad rel tol
-    this->m_OptPara.maxit = 1E3; // max number of iterations
+    this->m_OptPara.maxit = 1000; // max number of iterations
     this->m_OptPara.method = GAUSSNEWTON;
     this->m_SolveType = NOTSET;
     this->m_DD.n = 2;

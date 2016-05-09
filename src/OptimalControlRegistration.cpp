@@ -491,7 +491,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
 {
     PetscErrorCode ierr;
     IntType nt,nl;
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType *p_mj=NULL,*p_m=NULL,*p_l=NULL,*p_l0=NULL,
                *p_gradm1=NULL,*p_gradm2=NULL,*p_gradm3=NULL,
                *p_b1=NULL, *p_b2=NULL, *p_b3=NULL;
@@ -1129,7 +1129,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
                 *p_gradm1=NULL,*p_gradm2=NULL,*p_gradm3=NULL,
                 *p_gradmt1=NULL,*p_gradmt2=NULL,*p_gradmt3=NULL;
 
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType ht=0.0,scale=0.0,hd=0.0;
     double ffttimers[5]={0,0,0,0,0};
 
@@ -1448,7 +1448,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL;
     ScalarType ht=0.0,hthalf=0.0;
     double ffttimers[5]={0,0,0,0,0};
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
 
     PetscFunctionBegin;
 
@@ -2133,7 +2133,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
                 *p_vtx1=NULL,*p_vtx2=NULL,*p_vtx3=NULL,*p_rhs0=NULL;
     ScalarType ht=0.0,hthalf=0.0;
     double ffttimers[5]={0,0,0,0,0};
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     PetscFunctionBegin;
 
 
@@ -2360,7 +2360,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
     PetscErrorCode ierr=0;
     IntType nl=0;
     IntType nt=0;
-    std::bitset<3> XYZ=NULL; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType ht,hthalf;
     double ffttimers[5]={0,0,0,0,0};
     ScalarType *p_gmjx1=NULL,*p_gmjx2=NULL,*p_gmjx3=NULL,

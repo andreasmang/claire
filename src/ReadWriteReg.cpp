@@ -688,7 +688,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     PetscErrorCode ierr;
     std::string msg, file;
     int nprocs,rank,rval;
-    unsigned int nx[3],isize[3],istart[3];
+    IntType nx[3],isize[3],istart[3];
     IntType ng;
     ScalarType *p_x=NULL;
     nifti_image *niiimage=NULL;
@@ -743,21 +743,21 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     rval=MPI_Bcast(&this->m_BCastDataBuffer[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
     ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
-    for (unsigned int i = 0; i < 3; ++i){
-        nx[i]     = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->N[i]);
-        isize[i]  = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->isize[i]);
-        istart[i] = static_cast<unsigned int>(this->m_Opt->m_MiscOpt->istart[i]);
+    for (int i = 0; i < 3; ++i){
+        nx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->N[i]);
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
 
     ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
 
-    for (unsigned int i1 = 0; i1 < isize[0]; ++i1){ // x1
-        for (unsigned int i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (unsigned int i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
 
-                unsigned int j1 = i1 + istart[0];
-                unsigned int j2 = i2 + istart[1];
-                unsigned int j3 = i3 + istart[2];
+                IntType j1 = i1 + istart[0];
+                IntType j2 = i2 + istart[1];
+                IntType j3 = i3 + istart[2];
 
                 IntType j = GetLinearIndex(j1,j2,j3,nx);
                 IntType k = GetLinearIndex(i1,i2,i3,isize);
@@ -1057,7 +1057,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
     T* p_niibuffer;
     ScalarType *p_xl=NULL,*p_xg=NULL;
     int nprocs,rank,rval,*istart,*isize;
-    unsigned int nx[3];
+    IntType nx[3];
     Vec xg=NULL,xl=NULL;
     VecScatter vecscat;
     std::string msg;

@@ -85,11 +85,13 @@ std::vector<unsigned int> String2Vec( const std::string & );
 //PetscErrorCode Write2File(VecField*,std::string);
 
 
+
+
 /********************************************************************
  * Name: GetLinearIndex
  * Description: map 3d index to linear index (accfft style)
  *******************************************************************/
-inline IntType GetLinearIndex(unsigned int i[3], unsigned int isize[3])
+inline IntType GetLinearIndex(IntType i[3], IntType isize[3])
 {
     // row major order (ACCFFT)$
     return i[0]*isize[1]*isize[2]+i[1]*isize[2]+i[2];
@@ -97,18 +99,21 @@ inline IntType GetLinearIndex(unsigned int i[3], unsigned int isize[3])
 
 
 
-
 /********************************************************************
  * Name: GetLinearIndex
  * Description: map 3d index to linear index (accfft style)
  *******************************************************************/
-inline IntType GetLinearIndex(unsigned int i, unsigned int j, unsigned int k, unsigned int isize[3])
+inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
 {
     // row major order (ACCFFT)$
     return i*isize[1]*isize[2]+j*isize[2]+k;
 };
 
 
+/********************************************************************
+ * Name: GetLinearIndex
+ * Description: map 3d index to linear index (accfft style)
+ *******************************************************************/
 
 
 /********************************************************************
