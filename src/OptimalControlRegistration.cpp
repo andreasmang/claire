@@ -203,7 +203,7 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
  * Description: allocate regularization model
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "EvaluateL2Distance"
+#define __FUNCT__ "AllocateRegularization"
 PetscErrorCode OptimalControlRegistration::AllocateRegularization()
 {
     PetscErrorCode ierr;
@@ -322,6 +322,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
     nt = this->m_Opt->GetNumTimePoints();
     nl = this->m_Opt->GetNLocal();
 
+    // compute solution of state equation
+    ierr=this->SolveStateEquation(); CHKERRQ(ierr);
+
     // copy memory for m_1
     ierr=VecGetArray(this->m_WorkScaField2,&p_m1); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
@@ -382,9 +385,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // set components of velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    // compute solution of state equation
-    ierr=this->SolveStateEquation(); CHKERRQ(ierr);
-
     // evaluate the regularization model
     ierr=this->EvaluateL2Distance(&D); CHKERRQ(ierr);
 
@@ -426,6 +426,13 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
     // allocate container for reduced gradient
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    // allocate container for reduced gradient
+    if (this->m_WorkVecField2 == NULL){
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }

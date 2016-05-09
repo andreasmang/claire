@@ -219,7 +219,7 @@ public:
     inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
     inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
     inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
-    inline bool MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
+    inline void MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
 
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};

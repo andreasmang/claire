@@ -50,6 +50,9 @@ protected:
     PetscErrorCode ClearMemory(void);
 
     /*! compute body force */
+    PetscErrorCode EvaluateObjective(ScalarType*,Vec);
+
+    /*! compute body force */
     PetscErrorCode ComputeBodyForce(void);
 
     /*! compute incremental body force */
@@ -60,6 +63,8 @@ protected:
     PetscErrorCode ApplyProjection(VecField*);
 
 private:
+
+    PetscErrorCode EvaluteRegFunctionalW(ScalarType*);
 
     FFTScaType *m_x1hat;
     FFTScaType *m_x2hat;

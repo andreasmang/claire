@@ -6,7 +6,6 @@
 
 
 
-
 namespace reg
 {
 
@@ -122,6 +121,145 @@ PetscErrorCode OptimalControlRegistrationRIC::ClearMemory(void)
 
 
 /********************************************************************
+ * Name: EvaluateObjective
+ * Description: evaluates the objective value
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EvaluateObjective"
+PetscErrorCode OptimalControlRegistrationRIC::EvaluateObjective(ScalarType* J, Vec v)
+{
+    PetscErrorCode ierr;
+    ScalarType D=0.0,Rv=0.0,Rw=0.0;
+    PetscFunctionBegin;
+
+    // allocate velocity field
+    if (this->m_VelocityField == NULL){
+        try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // allocate regularization model
+    if (this->m_Regularization == NULL){
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("evaluating objective functional"); CHKERRQ(ierr);
+    }
+
+    ierr=this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
+
+    // set components of velocity field
+    ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+
+    // evaluate the L2 distance
+    ierr=this->EvaluateL2Distance(&D); CHKERRQ(ierr);
+
+    // evaluate the regularization model for v
+    ierr=this->m_Regularization->EvaluateFunctional(&Rv,this->m_VelocityField); CHKERRQ(ierr);
+
+    // evaluate the regularization model for w = div(v)
+    ierr=this->EvaluteRegFunctionalW(&Rw); CHKERRQ(ierr); CHKERRQ(ierr);
+
+    // add up the contributions
+    *J = D + Rv + Rw;
+
+    ierr=this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
+
+    this->m_Opt->IncrementCounter(OBJEVAL);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * Name: ComputeBodyForce
+ * Description: compute the body force
+ * b = K[\int_0^1 \igrad m \lambda d t],
+ * where K is an operator that projects v onto the manifold of
+ * divergence free velocity fields
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeBodyForce"
+PetscErrorCode OptimalControlRegistrationRIC::EvaluteRegFunctionalW(ScalarType* Rw)
+{
+
+    PetscErrorCode ierr;
+    ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
+                *p_gdv1=NULL,*p_gdv2=NULL,*p_gdv3=NULL,
+                *p_divv=NULL;
+    ScalarType value,betaw,hd;
+    double ffttimers[5]={0,0,0,0,0};
+    std::bitset<3>XYZ={111};
+
+    PetscFunctionBegin;
+
+    if (this->m_WorkVecField1 == NULL){
+        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if(this->m_WorkScaField1 == NULL){
+        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+    }
+
+    // get regularization weight
+    betaw = 1E-4; //this->m_Opt->GetRegularizationWeight(2);
+
+    // compute hd
+    hd = this->m_Opt->GetLebesqueMeasure();
+    ierr=VecGetArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
+
+    ierr=VecGetArray(this->m_VelocityField->m_X1,&p_v1); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_VelocityField->m_X2,&p_v2); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_VelocityField->m_X3,&p_v3); CHKERRQ(ierr);
+
+    // compute \idiv(\vect{v})
+    accfft_divergence(p_divv,p_v1,p_v2,p_v3,this->m_Opt->m_MiscOpt->plan,ffttimers);
+    this->m_Opt->IncrementCounter(FFT,4);
+
+    ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_v1); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_VelocityField->m_X2,&p_v2); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_VelocityField->m_X3,&p_v3); CHKERRQ(ierr);
+
+    ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_gdv1); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkVecField1->m_X2,&p_gdv2); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_gdv3); CHKERRQ(ierr);
+
+    // compute gradient
+    accfft_grad(p_gdv3,p_gdv2,p_gdv1,p_divv,this->m_Opt->m_MiscOpt->plan,&XYZ,ffttimers);
+    this->m_Opt->IncrementCounter(FFT,4);
+
+    ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_gdv1); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkVecField1->m_X2,&p_gdv2); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_gdv3); CHKERRQ(ierr);
+
+    ierr=VecRestoreArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
+
+    // compute inner products ||\igrad w||_L2 + ||w||_L2
+    *Rw=0.0;
+    ierr=VecTDot(this->m_WorkVecField1->m_X1,this->m_WorkVecField1->m_X1,&value); *Rw +=value;
+    ierr=VecTDot(this->m_WorkVecField1->m_X2,this->m_WorkVecField1->m_X2,&value); *Rw +=value;
+    ierr=VecTDot(this->m_WorkVecField1->m_X3,this->m_WorkVecField1->m_X3,&value); *Rw +=value;
+    ierr=VecTDot(this->m_WorkScaField1,this->m_WorkScaField1,&value); *Rw +=value;
+
+    // add up contributions
+    *Rw *= 0.5*hd*betaw;
+
+    this->m_Opt->IncreaseFFTTimers(ffttimers);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
  * Name: ComputeBodyForce
  * Description: compute the body force
  * b = K[\int_0^1 \igrad m \lambda d t],
@@ -205,7 +343,8 @@ PetscErrorCode OptimalControlRegistrationRIC::ComputeIncBodyForce()
 PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
 {
     PetscErrorCode ierr;
-    ScalarType *p_x1=NULL, *p_x2=NULL, *p_x3=NULL, nx[3], scale;
+    ScalarType *p_x1=NULL, *p_x2=NULL, *p_x3=NULL;
+    ScalarType nx[3],beta[3],scale;
     int isize[3],osize[3],istart[3],ostart[3];
     IntType alloc_max;
     double ffttimers[5]={0,0,0,0,0};
@@ -255,10 +394,14 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
     accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->m_MiscOpt->plan,p_x3,this->m_x3hat,ffttimers);
     this->m_Opt->IncrementCounter(FFT,3);
 
+
+    beta[0] = this->m_Opt->GetRegularizationWeight(0);
+    beta[2] = 1E-4; //this->m_Opt->GetRegularizationWeight(2);
+
 #pragma omp parallel
 {
     long int x1,x2,x3,wx1,wx2,wx3;
-    ScalarType lapinvik,gradik1,gradik2,gradik3;
+    ScalarType lapik,lapinvik,gradik1,gradik2,gradik3,opik;
     long int i;
 #pragma omp for
     for (unsigned int i1 = 0; i1 < osize[0]; ++i1){
@@ -279,9 +422,10 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
                 if(x3 > n[2]/2) wx3-=n[2];
 
                 // compute inverse laplacian operator
-                lapinvik = static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
+                lapik = static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
+
                 //lapinvik = round(lapinvik) == 0.0 ? -1.0 : 1.0/lapinvik;
-                lapinvik = lapinvik == 0.0 ? -1.0 : -1.0/lapinvik;
+                lapinvik = lapik == 0.0 ? -1.0 : -1.0/lapik;
 
                 if(x1 == n[0]/2) wx1 = 0;
                 if(x2 == n[1]/2) wx2 = 0;
@@ -303,9 +447,13 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
                                              + gradik2*this->m_x2hat[i][1]
                                              + gradik3*this->m_x3hat[i][1]);
 
+                // compute M^{-1] = (\beta_v (\beta_w(-\ilap + 1))^{-1} + 1)^{-1}
+                opik =  1.0/(beta[2]*(lapik + 1.0));
+                opik = -1.0/(beta[0]*opik + 1.0);
+
                 // compute lap^{-1} div(b)
-                this->m_Kx1hat[i][0] *= lapinvik;
-                this->m_Kx1hat[i][1] *= lapinvik;
+                this->m_Kx1hat[i][0] *= opik*lapinvik;
+                this->m_Kx1hat[i][1] *= opik*lapinvik;
 
                 // compute x2 gradient of lab^{-1} div(b)
                 this->m_Kx2hat[i][0] = -gradik2*this->m_Kx1hat[i][0];
