@@ -307,7 +307,7 @@ PetscErrorCode Optimizer::RunBetaCont()
     std::stringstream levelss;
     ScalarType beta;
     Vec x;
-    unsigned int maxsteps = 10;
+    int maxsteps = 10;
     bool stop;
     PetscFunctionBegin;
 
@@ -330,7 +330,7 @@ PetscErrorCode Optimizer::RunBetaCont()
 
     // reduce regularization parameter by one order of magnitude until
     // we hit the tolerance
-    for(unsigned int i = 0; i < maxsteps; ++i){
+    for(int i = 0; i < maxsteps; ++i){
 
         this->m_Opt->SetRegularizationWeight(beta);
 

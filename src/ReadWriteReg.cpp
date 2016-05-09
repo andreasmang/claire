@@ -1201,16 +1201,16 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
             p_niibuffer = static_cast<T*>( (*niiimage)->data);
             ierr=VecGetArray(xg,&p_xg); CHKERRQ(ierr);
 
-            unsigned int k = 0;
-            for(unsigned int pid = 0; pid < nprocs; ++pid){
+            int k = 0;
+            for(int pid = 0; pid < nprocs; ++pid){
 
-                for (unsigned int i1 = 0; i1 < isize[3*pid]; ++i1){ // x1
-                    for (unsigned int i2 = 0; i2 < isize[3*pid+1]; ++i2){ // x2
-                        for (unsigned int i3 = 0; i3 < isize[3*pid+2]; ++i3){ // x3
+                for (IntType i1 = 0; i1 < isize[3*pid]; ++i1){ // x1
+                    for (IntType i2 = 0; i2 < isize[3*pid+1]; ++i2){ // x2
+                        for (IntType i3 = 0; i3 < isize[3*pid+2]; ++i3){ // x3
 
-                            unsigned int j1 = i1 + istart[3*pid  ];
-                            unsigned int j2 = i2 + istart[3*pid+1];
-                            unsigned int j3 = i3 + istart[3*pid+2];
+                            IntType j1 = i1 + istart[3*pid  ];
+                            IntType j2 = i2 + istart[3*pid+1];
+                            IntType j3 = i3 + istart[3*pid+2];
 
                             IntType j = GetLinearIndex(j1,j2,j3,nx);
                             p_niibuffer[j] = static_cast<T>(p_xg[k++]);

@@ -100,7 +100,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigne
     ierr=Assert(m!= NULL,"null pointer"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
         istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
@@ -214,7 +214,7 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
         istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
@@ -271,7 +271,7 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
         istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
@@ -339,7 +339,7 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m,const unsigned int id)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
         istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }

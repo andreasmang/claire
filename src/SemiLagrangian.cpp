@@ -611,7 +611,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
     // do the communication for the ghost points
-    for (unsigned int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++){
         accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,
                                  &this->m_iVecField[i*nl],
                                  &this->m_VecFieldGhost[i*nlghost]);
@@ -683,8 +683,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     int nx[3],isize_g[3],istart_g[3],c_dims[2];
     double timers[4] = {0,0,0,0};
     accfft_plan* plan=NULL;
-    IntType g_alloc_max;
-    IntType nl,nlghost;
+    IntType nl,nlghost,g_alloc_max;
     PetscFunctionBegin;
 
     ierr=Assert(vx1!=NULL,"input is null pointer"); CHKERRQ(ierr);
@@ -767,7 +766,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
     // do the communication for the ghost points
-    for (unsigned int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++){
         accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,
                                  &this->m_iVecField[i*nl],
                                  &this->m_VecFieldGhost[i*nlghost]);
@@ -817,7 +816,7 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     }
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->h[i]);
+        hx[i]     = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->h[i]);
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
         istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }

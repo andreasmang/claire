@@ -442,7 +442,7 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInverseOperator(VecField* Ai
                     biharik *= biharik;
 
                     // compute regularization operator
-                    regop = (fabs(biharik) == 0.0) ? scale : scale/(beta*biharik);
+                    regop = (abs(biharik) == 0) ? scale : scale/(beta*biharik);
 
                     i=GetLinearIndex(i1,i2,i3,iosize);
 

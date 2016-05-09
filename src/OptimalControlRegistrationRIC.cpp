@@ -194,7 +194,7 @@ PetscErrorCode OptimalControlRegistrationRIC::EvaluteRegFunctionalW(ScalarType* 
                 *p_divv=NULL;
     ScalarType value,betaw,hd;
     double ffttimers[5]={0,0,0,0,0};
-    std::bitset<3>XYZ={111};
+    std::bitset<3>XYZ=0; XYZ[0]=1,XYZ[1]=1,XYZ[2]=1;
 
     PetscFunctionBegin;
 
@@ -355,7 +355,7 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
     n = this->m_Opt->m_MiscOpt->N;
 
     scale = 1.0;
-    for (unsigned int i=0; i < 3; ++i){
+    for (int i=0; i < 3; ++i){
         nx[i] = static_cast<ScalarType>(n[i]);
         scale *= nx[i];
     }
@@ -404,9 +404,9 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
     ScalarType lapik,lapinvik,gradik1,gradik2,gradik3,opik;
     long int i;
 #pragma omp for
-    for (unsigned int i1 = 0; i1 < osize[0]; ++i1){
-        for (unsigned int i2 = 0; i2 < osize[1]; i2++){
-            for (unsigned int i3 = 0; i3 < osize[2]; ++i3){
+    for (IntType i1 = 0; i1 < osize[0]; ++i1){
+        for (IntType i2 = 0; i2 < osize[1]; i2++){
+            for (IntType i3 = 0; i3 < osize[2]; ++i3){
 
                 x1 = static_cast<long int>(i1 + ostart[0]);
                 x2 = static_cast<long int>(i2 + ostart[1]);

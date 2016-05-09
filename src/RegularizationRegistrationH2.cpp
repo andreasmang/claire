@@ -489,4 +489,4 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
 
 } // end of name space
 
-#endif //_REGULARIZATIONREGISTRATION_CPP_
+#endif //_REGULARIZATIONREGISTRATIONH2_CPP_
