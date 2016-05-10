@@ -33,7 +33,7 @@ I recommend to add the path to the FFTW library and the PETSc library to your `L
 
 #### Build Dependencies
 
-A detailed instruction for building the dependencies can be found in `external/INSTALL-README.md` [readme](external/INSTALL-README.md). If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
+More detailed instructions for building the dependencies can be found in [external/INSTALL-README.md](external/INSTALL-README.md). If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
 
 ```bash
 cd external
