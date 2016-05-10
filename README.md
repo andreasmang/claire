@@ -12,7 +12,7 @@
 * PETSc (version 3.7; needs BLAS and LAPACK)
 * NIFTICLIB (version 2.0.0; needs zlib)
 
-You can find these in the **external** folder.
+In general you should have received tarball files for these libraries. The compressed files should either be in or be added to the [external](external/) folder.
 
 
 ### Build Code and Dependencies
@@ -20,7 +20,7 @@ You can find these in the **external** folder.
 
 #### General (Paths)
 
-Make sure `mpicc` and `mpicxx` are available by calling loading the right modules and/or setting up the appropriate `PATH' and `LD_LIBRARY_PATH` definitions. Add the following to your `~/.bashrc`:
+Make sure `mpicc` and `mpicxx` are available on your system (either by loading the right modules and/or setting up the appropriate `PATH' and `LD_LIBRARY_PATH` definitions). Add the following to your `~/.bashrc`:
 
 ```bash
 export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
