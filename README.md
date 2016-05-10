@@ -1,17 +1,17 @@
-# XXX
+# COLDREG
 
 
 
 ## Installation
 
 ### Dependencies
-The code depends on the following libraries:
 
-* FFTW
-* ACCFFT (depends on FFTW)
-* PETSc (needs BLAS and LAPACK)
-* NIFTICLIB (needs zlib)
+* FFTW (version 3.3.4)
+* ACCFFT (needs FFTW)
+* PETSc (version 3.7; needs BLAS and LAPACK)
+* NIFTICLIB (version 2.0.0; needs zlib)
 
+You can find these in the **external** folder.
 
 ### Build Code and Dependencies
 
