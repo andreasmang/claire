@@ -4,6 +4,7 @@
 
 ## Installation
 
+
 ### Dependencies
 
 * FFTW (version 3.3.4)
@@ -13,13 +14,13 @@
 
 You can find these in the **external** folder.
 
-### Build Code and Dependencies
 
+### Build Code and Dependencies
 
 
 #### General (Paths)
 
-Make sure `mpicc` and `mpicxx` are in your path. Add the following to your `~/.bashrc`:
+Make sure `mpicc` and `mpicxx` are available by calling loading the right modules and/or setting up the appropriate `PATH' and `LD_LIBRARY_PATH` definitions. Add the following to your `~/.bashrc`:
 
 ```bash
 export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
@@ -32,15 +33,23 @@ I recommend to add the path to the FFTW library and the PETSc library to your `L
 
 #### Build Dependencies
 
-If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
+A detailed instruction for building the dependencies can be found in `external/INSTALL-README.md` [readme](external/INSTALL-README.md). If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
 
 ```bash
 cd external
 ./build_libs.sh --build
+```
+
+#### Build the Code
+
+
+```bash
 source libs/environment_vars.sh
-cd ..
 make -j
 ```
+
+If you want to avoid `source libs/environment_vars.sh` every time you compile or run the code (in a new bash shell), add the lines in `libs/environment_vars.sh` to your `~/.bashrc`.
+
 
 ### Run 
 
