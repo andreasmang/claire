@@ -1,6 +1,6 @@
-# Installation of COLDREG
+# Installing and Running COLDREG
 
-Make sure the standard MPI wrappers for `mpicc` and `mpicxx` are available on your system (either by loading the right modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). Add the following to your `~/.bashrc`:
+Make sure that the standard **MPI wrappers** for `mpicc` and `mpicxx` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). Add the following to your `~/.bashrc`:
 
 ```bash
 export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
@@ -9,33 +9,47 @@ export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
 
 ### Build COLDREG
 
-To build the code via `make` do:
+Before you can build COLDREG you need to 
+
+* make sure that you have installed the **external dependencies** (visit [doc/README-EXTLIBS.md](README-EXTLIBS.md) to learn more)
+
+* check the [makefile](makefile) before building the code:
+	* if you use an **intel compiler** (`icc`) set the `USEINTEL` flag to `1`
+	* if you use a **GNU compiler** (`gcc`) set the `USEINTEL` flag to `0`
+	* you can avoid `source libs/environment_vars.sh` by adding the content of `libs/environment_vars.sh` to your `~/.bashrc`
+
+To build the code using the `make` system do:
 
 ```bash
 source libs/environment_vars.sh
 make -j
 ```
 
-Check the [makefile](makefile) before doing so:
 
-* Set the `USEINTEL` flag to `1` if you use an **intel compiler** (`icc`). If you use a **GNU** compiler (`gcc`) set the `USEINTEL` flag to `0`.
-
-* You can avoid `source libs/environment_vars.sh` by adding the entries in `libs/environment_vars.sh` to your `~/.bashrc`.
 
 
 ## Run COLDREG
 
-To run the code using a test example do:
+If everything compiled correctly, you can run a test example by doing:
+
 ```bash
 ./bin/runcoldreg
 ```
 
-For general options do:
+If you get an error message that indicates that the PETSc library could not be found, you probably forgot to
+
+```bash
+source libs/environment_vars.sh
+```
+
+To get a general idea on how to run the binary do: 
+
 ```bash
 ./bin/runcoldreg -help
 ```
 
 For more advanced options do:
+
 ```bash
 ./bin/runcoldreg -advanced
 ```

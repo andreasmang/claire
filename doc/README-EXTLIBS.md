@@ -1,12 +1,39 @@
+# Installing Dependencies
 
-In general you should have received tarball files for these. The **compressed** files should be in or be added to the [external](external) folder.
+COLDREG depends on the following libraries:
+
+* [FFTW](http://www.fftw.org) (version 3.3.4)
+* [ACCFFT](http://accfft.org) (requires FFTW)
+* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires zlib)
+
+These need to be installed and made available on your system before compiling the code (instruction for compiling COLDREG can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)).
+
+## Before Compiling
+
+Make sure the standard MPI wrappers for `mpicc` and `mpicxx` are available on your system (either by loading the right modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). For instance, add the following definitions to your `~/.bashrc`:
+
+```bash
+export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
+export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
+```
+
+## External Libraries/Dependencies
+
+In general you should have received tarball files for the individual libraries. The **compressed** tarball files (`LIBNAME.tar.gz`) should already be in or be added to the [external](../external) folder.
+
+
+
+## Building Dependencies
+
+### General Info
 
 I recommend to add the path to the **FFTW library** and the **PETSc library** to your `LD_LIBRARY_PATH` (lib folders for FFTW and PETSc) as well. If you decide to use PETSc with your local MKL implementation, also add the corresponding path to the `LD_LIBRARY_PATH`.
 
 
-#### Build Dependencies
+### Quick Shot
 
-More details on building the dependencies can be found in [external/INSTALL-README.md](external/INSTALL-README.md). If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
+If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
 
 ```bash
 cd external
@@ -14,131 +41,71 @@ cd external
 ```
 
 
-ADD external dependencies (tarballs) to this folder.
+### More Detailed Instructions
 
-To compile the code you have to do the following:
-    1) compile external libraries
-    2) init or add environment variables
-    3) compile registration binary
-
-
-
-########################################################
-# 1) compile external libraries 
-########################################################
-The libraries can be compiled by running the
-
-    build_libs.sh
-
-script. For a more detailed descriptions do
+The libraries can be compiled by running the [build_libs.sh](../external/build_libs.sh) script in the [external](../external) subdirectory. For options do
 
     ./build_libs.sh --help
 
-This provides information on what parameters to parse. In general it should be suifficient to do
+This will provide information on what parameters to parse. Ideally it should be sufficient to do
 
     ./build_libs.sh --build
 
-This will install all libraries in a local folder called "lib".
+This will install all libraries in a local folder called "lib" ([external/lib](../external/lib/)). You can also build the individual libraries one after another. For more information do `./build_libs.sh --help`. 
 
-If your mpi compilers are NOT
-
-   mpicc     and     mpicxx
-
-you will have to pass the mpi compiler manually via
+If the wrapper for your MPI implementation does **not** include `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
 
     ./build_libs.sh --cxx YOURMPICXXCOMPILER --c YOURMPICCOMPILER
 
-The script will figure out the path from the binary you set. An example for "mpicxx" and "mpicc" is
+The script will figure out the path from the binary you set. An example for `mpicxx` and `mpicc` is
 
     ./build_libs.sh --cxx mpicxx --c mpicc
 
-
-Please check the cmake, make  and configure outputs for errors. A simple check if everything worked is to inspect the "build" subfolders for the individual liberaries in "lib". See if folders in "build" were created and the libfiles exist.
-
+Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also inspect the "build" subfolders of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
 
 
-########################################################
-# 2) init and add external variables
-########################################################
+### Adding Libraries to System
 
-After step 1) there also should be a file called
-
-    environment_vars.sh
-
-in the "lib" folder. To run and compile the code (via make) either do
+Before you are able to compile and run COLDREG you will have to add some **environment variables** to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in [external/libs](../external/libs). To add the corresponding environment variables temporarily (for the current session) to your system, do
 
    source environment_vars.sh
 
-or copy its entries to your ~/.bashrc.
+or copy its content of `environment_vars.sh` to your `~/.bashrc`.
+
+
+## Compiling the Code
+
+See [doc/README-INSTALLATION.md](README-INSTALLATION.md)
 
 
 
-########################################################
-# 2) compile registration binary
-########################################################
-
-Go to the top level directory of the code and run
-
-    make
-
-This should compile the code and create the desired binary in the "bin" folder. To get help about the binary, just do
-
-   ./runcoldreg -help
-
-If you get a message about a missing "petsc" library when running the code, you probably forgot to source the
-
-    environment_vars.sh
-
-file. A quick fix to not have to redo this is to add its content to your ~/.bashrc.
+## Additional Info
 
 
+### NIFTICLIB
 
-########################################################
-# libraries
-########################################################
-
-The dependencies are
-
-----------------------------
-# NIFTICLIB:
-----------------------------
-file: nifticlib-2.0.0.tar.gz
-url: https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0/
-description: lib to read and write nifti images
+* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0/)
+* description: library to read and write NIFTI images
+* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (requires zlib)
 
 
-----------------------------
-# FFTW
-----------------------------
-file: fftw-3.3.4.tar.gz
-url: ftp://ftp.fftw.org/pub/fftw/fftw-3.3.4.tar.gz
-description: lib for computing FFTs 
+### FFTW
+
+* file: [fftw-3.3.4.tar.gz](ftp://ftp.fftw.org/pub/fftw/fftw-3.3.4.tar.gz)
+* description: library for computing FFTs
+* see [FFTW](http://www.fftw.org) (version 3.3.4)
 
 
-----------------------------
-# PNETCDF
-----------------------------
-file: parallel-netcdf-1.7.0.tar.gz
-url: http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.7.0.tar.gz
-description: lib for reading and writing *.nc files (for paraview)
-needs the latest intel compiler ( >= intel15)
+### ACCFFT
+
+* file: [accfft.tar.gz](https://github.com/amirgholami/accfft)
+* git: `git clone git@github.com:amirgholami/accfft.git`
+* description: library to compute FFT in parallel (requires FFTW)
 
 
+### PETSc
 
-----------------------------
-# ACCFFT
-----------------------------
-file: accfft.tar.gz
-git: git@github.com:amirgholami/accfft.git
-note: requires PNETCDF and FFTW
-description: lib to compute FFT in parallel
-
-
-----------------------------
-# PETSc
-----------------------------
-file: petsc-lite-3.7.0.tar.gz
-git: https://bitbucket.org/petsc/petsc
-url: http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz
-description: lib for numerics and optimization
+* file: [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
+* [bitbucket](https://bitbucket.org/petsc/petsc)
+* description: library for numerics and optimization
 
