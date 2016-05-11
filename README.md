@@ -18,10 +18,10 @@ export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
 
 COLDREG depends on the following libraries:
 
-* FFTW (version 3.3.4)
-* ACCFFT (needs FFTW)
-* PETSc (version 3.7; needs BLAS and LAPACK)
-* NIFTICLIB (version 2.0.0; needs zlib)
+* [FFTW](http://www.fftw.org) (version 3.3.4)
+* [ACCFFT](http://accfft.org) (requires FFTW)
+* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires zlib)
 
 More information on how to add, install, and link these libraries, can be found in [external/README-LIBS.md](external/README-LIBS.md)
 
