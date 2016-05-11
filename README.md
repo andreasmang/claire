@@ -1,17 +1,13 @@
 # COLDREG
 
+**COLDREG** implements a parallel algorithm for **Constrained Large Deformation Diffeomorphic Image Registration**. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
+
 
 ## Installation
 
+### COLDREG
 
-### General Setup
-
-Make sure the standard MPI wrappers for `mpicc` and `mpicxx` are available on your system (either by loading the right modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). Add the following to your `~/.bashrc`:
-
-```bash
-export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
-export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
-```
+Instructions on how to install COLDREG can be found in [doc/README-INSTALLATION.md](doc/README-INSTALLATION.md).
 
 
 ### Dependencies
@@ -23,38 +19,15 @@ COLDREG depends on the following libraries:
 * [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
 * [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires zlib)
 
-More information on how to add, install, and link these libraries, can be found in [external/README-LIBS.md](external/README-LIBS.md)
-
-
-### Build COLDREG
-
-To build the code via `make` do:
-
-```bash
-source libs/environment_vars.sh
-make -j
-```
-
-Check the [makefile](makefile) before doing so:
-
-* Set the `USEINTEL` flag to `1` if you use an **intel compiler** (`icc`). If you use a **GNU** compiler (`gcc`) set the `USEINTEL` flag to `0`.
-
-* You can avoid `source libs/environment_vars.sh` by adding the entries in `libs/environment_vars.sh` to your `~/.bashrc`.
+More information on how to add, install, and link these libraries, can be found in [doc/README-EXTLIBS.md](doc/README-EXTLIBS.md)
 
 
 ## Run COLDREG
 
-To run the code using a test example do:
+Instructions on how to use COLDREG can be found in [doc/README-RUN.md](doc/README-RUN.md). To check if your installation works you can do:
+
 ```bash
 ./bin/runcoldreg
 ```
 
-For general options do:
-```bash
-./bin/runcoldreg -help
-```
-
-For more advanced options do:
-```bash
-./bin/runcoldreg -advanced
-```
+This will run a test problem.
