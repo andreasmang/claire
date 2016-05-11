@@ -5,9 +5,9 @@ COLDREG depends on the following libraries:
 * [FFTW](http://www.fftw.org) (version 3.3.4)
 * [ACCFFT](http://accfft.org) (requires FFTW)
 * [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires zlib)
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `zlib` and `libstdc++6`)
 
-These need to be installed and made available on your system before compiling the code (instruction for compiling COLDREG can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)).
+These need to be installed and made available on your system before compiling the code (instruction for compiling COLDREG can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)). Additional details for each individual library can be found below.
 
 ## Before Compiling
 
@@ -86,7 +86,12 @@ See [doc/README-INSTALLATION.md](README-INSTALLATION.md)
 
 * file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0/)
 * description: library to read and write NIFTI images
-* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (requires zlib)
+* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) 
+* typical problems
+	* `zlib` and `libstdc++6`:
+		* if there are errors when compiling `NIFTICLIB` make sure that these libraries can be found on your system
+		* they are typically located in your `gcc` library path (simply add the `lib(64)` folder to the `LD_LIBRARY_PATH`)
+		* you might be able to locate these libraries via `locate zlib` and `locate libstdc`
 
 
 ### FFTW
@@ -101,6 +106,7 @@ See [doc/README-INSTALLATION.md](README-INSTALLATION.md)
 * file: [accfft.tar.gz](https://github.com/amirgholami/accfft)
 * git: `git clone git@github.com:amirgholami/accfft.git`
 * description: library to compute FFT in parallel (requires FFTW)
+* see [ACCFFT](http://www.accfft.org)
 
 
 ### PETSc

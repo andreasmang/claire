@@ -1,5 +1,8 @@
 # Installing and Running COLDREG
 
+
+## Before Compiling
+
 Make sure that the standard **MPI wrappers** for `mpicc` and `mpicxx` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). Add the following to your `~/.bashrc`:
 
 ```bash
@@ -7,7 +10,8 @@ export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
 export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
 ```
 
-### Build COLDREG
+
+## Build COLDREG
 
 Before you can build COLDREG you need to 
 
@@ -24,8 +28,6 @@ To build the code using the `make` system do:
 source libs/environment_vars.sh
 make -j
 ```
-
-
 
 
 ## Run COLDREG
