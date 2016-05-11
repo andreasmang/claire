@@ -35,10 +35,10 @@ source libs/environment_vars.sh
 make -j
 ```
 
-Check the [makefile](makefile) before doing so. Set the `USEINTEL` flag to 1 if you use an **intel compiler** (`icc'). IF you use a `gcc` compiler, set the `USEINTEL` flag to 0.  You can avoid `source libs/environment_vars.sh` by adding the entries in `libs/environment_vars.sh` to your `~/.bashrc`.
+Check the [makefile](makefile) before doing so. Set the `USEINTEL` flag to 1 if you use an **intel compiler** (`icc`). IF you use a `gcc` compiler, set the `USEINTEL` flag to 0.  You can avoid `source libs/environment_vars.sh` by adding the entries in `libs/environment_vars.sh` to your `~/.bashrc`.
 
 
-## Run
+## Run COLDREG
 
 To run the code using a test example do:
 ```bash
