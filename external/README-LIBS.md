@@ -1,3 +1,19 @@
+
+In general you should have received tarball files for these. The **compressed** files should be in or be added to the [external](external) folder.
+
+I recommend to add the path to the **FFTW library** and the **PETSc library** to your `LD_LIBRARY_PATH` (lib folders for FFTW and PETSc) as well. If you decide to use PETSc with your local MKL implementation, also add the corresponding path to the `LD_LIBRARY_PATH`.
+
+
+#### Build Dependencies
+
+More details on building the dependencies can be found in [external/INSTALL-README.md](external/INSTALL-README.md). If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
+
+```bash
+cd external
+./build_libs.sh --build
+```
+
+
 ADD external dependencies (tarballs) to this folder.
 
 To compile the code you have to do the following:
@@ -105,6 +121,8 @@ description: lib for computing FFTs
 file: parallel-netcdf-1.7.0.tar.gz
 url: http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.7.0.tar.gz
 description: lib for reading and writing *.nc files (for paraview)
+needs the latest intel compiler ( >= intel15)
+
 
 
 ----------------------------

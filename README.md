@@ -23,7 +23,7 @@ COLDREG depends on the following libraries:
 * PETSc (version 3.7; needs BLAS and LAPACK)
 * NIFTICLIB (version 2.0.0; needs zlib)
 
-More information on how to add, install, and link these libraries, can be found in the [external/INSTALL-README.md](external/INSTALL-README.md)
+More information on how to add, install, and link these libraries, can be found in [external/README-LIBS.md](external/README-LIBS.md)
 
 
 ### Build COLDREG
