@@ -84,4 +84,5 @@ $(OBJDIR)/%.o: $(APPDIR)/%.cpp
 
 clean:
 	$(RM) -r $(BINDIR)/* $(OBJDIR)/*
+	$(RM) -r $(BINDIR) $(OBJDIR) results
 	$(RM) *~ */*~

@@ -69,7 +69,7 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
                 *p_gv21=NULL,*p_gv22=NULL,*p_gv23=NULL,
                 *p_gv31=NULL,*p_gv32=NULL,*p_gv33=NULL;
     ScalarType value,beta[2],H1v,L2v,hd;
-    std::bitset<3>XYZ={111};
+    std::bitset<3>XYZ=0;XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double ffttimers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;

@@ -16,32 +16,44 @@ buildfftw=0
 buildaccfft=0
 buildnifticlib=0
 buildpetsc=0
+uselocalmkl=0
 cleanup=0
 
 for i in "$@"
 do
 case $i in
+    --bldir=*)
+    BL_DIR="${i#*=}"
+    uselocalmkl=1
+    shift # past argument=value
+    ;;
     --cxx=*)
     MPI_CXX="${i#*=}"
     shift # past argument=value
     ;;
     --c=*)
     MPI_C="${i#*=}"
+    shift # past argument=value
     ;;
     --build)
     builddep=1
+    shift # past argument=value
     ;;
     --bfftw)
     buildfftw=1
+    shift # past argument=value
     ;;
     --baccfft)
     buildaccfft=1
+    shift # past argument=value
     ;;
     --bnifti)
     buildnifticlib=1
+    shift # past argument=value
     ;;
     --bpetsc)
     buildpetsc=1
+    shift # past argument=value
     ;;
     --clean)
     cleanup=1
@@ -60,8 +72,9 @@ case $i in
     echo "     --help         print this message"
     echo "     --build        build all libraries"
     echo "----------------------------------------------------------------------------------"
-    echo "     --cxx          MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
-    echo "     --c            MPI C compiler (typically mpicc; mpicc is used if not set)"
+    echo "     --cxx=<CXX>    MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
+    echo "     --c=<CC>       MPI C compiler (typically mpicc; mpicc is used if not set)"
+    echo "     --bldir=<DIR>  path to your local lapack and blas installation (PETSc)"
     echo "----------------------------------------------------------------------------------"
     echo "     --bfftw        build FFTW library"
     echo "     --baccfft      build ACCFFT library (depends on FFTW & PNETCDF)"
@@ -71,6 +84,8 @@ case $i in
     echo "     --clean        remove all libraries (deletes all subfolders)"
     echo "----------------------------------------------------------------------------------"
     echo ""
+    exit;
+    shift # past argument=value
     ;;
     *)
     # unknown option
@@ -80,6 +95,21 @@ shift
 done
 
 
+if [ ${uselocalmkl} -eq 1 ]; then
+echo " using lapack and blas dir: ${BL_DIR}"
+PETSC_OPTIONS="
+--with-cc=${MPI_C}
+COPTFLAGS='-O3'
+--with-cxx=${MPI_CXX}
+CXXOPTFLAGS='-O3'
+--with-blas-lapack-dir=${BL_DIR}
+--with-debugging=0
+--with-x=0
+--with-c++-support=1
+--with-clanguage=C++
+--with-fc=0
+--with-64-bit-indices"
+else
 PETSC_OPTIONS="
 --with-cc=${MPI_C}
 COPTFLAGS='-O3'
@@ -92,6 +122,7 @@ CXXOPTFLAGS='-O3'
 --with-clanguage=C++
 --with-fc=0
 --with-64-bit-indices"
+fi
 
 #CFALGS='-mt_mpi'
 
@@ -122,7 +153,8 @@ NIFTICLIB_OPTIONS="
 LIB_DIR=${PWD}
 
 # go up one level
-BUILD_DIR=${LIB_DIR}/libs_mvapich2_intel14
+BUILD_DIR=${LIB_DIR}/libs
+
 if [ ! -d ${BUILD_DIR} ]; then
 	mkdir ${BUILD_DIR}
 fi

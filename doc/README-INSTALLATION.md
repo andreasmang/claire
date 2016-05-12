@@ -20,12 +20,11 @@ Before you can build COLDREG you need to
 * check the [makefile](makefile) before building the code:
 	* if you use an **intel compiler** (`icc`) set the `USEINTEL` flag to `1`
 	* if you use a **GNU compiler** (`gcc`) set the `USEINTEL` flag to `0`
-	* you can avoid `source libs/environment_vars.sh` by adding the content of `libs/environment_vars.sh` to your `~/.bashrc`
+* make sure all paths needed in the makefile are available on your system (to check, you can do `env` in your bash); to add the pathes necessary to find and link against the library you can `source libs/environment_vars.sh` or add the content of `libs/environment_vars.sh` to your `~/.bashrc`
 
 To build the code using the `make` system do:
 
 ```bash
-source libs/environment_vars.sh
 make -j
 ```
 
