@@ -276,10 +276,14 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 ierr=this->UsageAdvanced(); CHKERRQ(ierr);
             }
         }
-        else if(strcmp(argv[1],"-beta") == 0){
+        else if(strcmp(argv[1],"-betav") == 0){
             argc--; argv++;
             this->m_Regularization.beta[0] = atof(argv[1]);
             this->m_Regularization.beta[1] = atof(argv[1]);
+        }
+        else if(strcmp(argv[1],"-betaw") == 0){
+            argc--; argv++;
+            this->m_Regularization.beta[2] = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-train") == 0){
             this->m_ParameterCont.enabled=true;
@@ -388,7 +392,10 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_Regularization.beta[0] = 1E-2;
     this->m_Regularization.beta[1] = 1E-2;
+    this->m_Regularization.beta[2] = 1E-4;
+
     this->m_Regularization.norm = H2SN;
+
     this->m_Verbosity = 1;
     this->m_TimeHorizon[0] = 0.0;
     this->m_TimeHorizon[1] = 1.0;
@@ -493,7 +500,8 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< "                                                    small residual; potentially irregular map"<<std::endl;
         std::cout<< "                             accurate-smooth        slow; high(er) accuracy inversion;"<<std::endl;
         std::cout<< "                                                    small residual; well-behaved map"<<std::endl;
-        std::cout<< " -beta <dbl>             regularization weight/parameter (default: 1E-2)"<<std::endl;
+        std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
+        std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-2)"<<std::endl;
         std::cout<< " -train                  learn regularization parameter (default: off)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " other parameters"<<std::endl;
@@ -579,7 +587,8 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                             h1           H1-norm"<<std::endl;
         std::cout<< "                             h2           H2-norm"<<std::endl;
         std::cout<< "                             l2           l2-norm (discouraged)"<<std::endl;
-        std::cout<< " -beta <dbl>             regularization weight/parameter (default: 1E-2)"<<std::endl;
+        std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
+        std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-2)"<<std::endl;
         std::cout<< " -estbeta                estimate regularization parameter (default: not enabled)"<<std::endl;
         std::cout<< " -ic                     flag: enable incompressibility constraint (default: not enabled)"<<std::endl;
         std::cout<< line << std::endl;

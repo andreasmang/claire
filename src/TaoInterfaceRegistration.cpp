@@ -511,7 +511,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         }
         case KSP_DIVERGED_ITS:
         {
-            msg="KSP divergence detected (max number of iterations reached)";
+            msg="KSP max number of iterations reached";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -526,7 +526,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
             //breakdown in Krylov method was detected
             //method could not continue to enlarge Krylov subspace;
             //could be due to a singlular matrix or preconditioner
-            msg="KSP divergence detected (generic breakdown; potential singular operator)";
+            msg="KSP generic breakdown; potential singular operator";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -538,7 +538,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         }
         case KSP_DIVERGED_NONSYMMETRIC:
         {
-            msg="KSP divergence detected (operator (A or P) not symmetric)";
+            msg="KSP operators (A or P) are not symmetric";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }

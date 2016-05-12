@@ -96,6 +96,7 @@ OptimizationProblemRegistration::OptimizationProblemRegistration(RegOpt* opt)
 
 
 
+
 /********************************************************************
  * Name: OptimizationProblemRegistration
  * Description: default destructor
@@ -154,7 +155,6 @@ PetscErrorCode OptimizationProblemRegistration::SetOptions(RegOpt* opt)
 
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -252,6 +252,8 @@ PetscErrorCode OptimizationProblemRegistration::DerivativeCheck()
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 /********************************************************************

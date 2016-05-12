@@ -209,7 +209,7 @@ PetscErrorCode OptimalControlRegistrationRIC::EvaluteRegFunctionalW(ScalarType* 
     }
 
     // get regularization weight
-    betaw = 1E-4; //this->m_Opt->GetRegularizationWeight(2);
+    betaw = this->m_Opt->GetRegularizationWeight(2);
 
     // compute hd
     hd = this->m_Opt->GetLebesqueMeasure();
@@ -396,7 +396,7 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
 
 
     beta[0] = this->m_Opt->GetRegularizationWeight(0);
-    beta[2] = 1E-4; //this->m_Opt->GetRegularizationWeight(2);
+    beta[2] = this->m_Opt->GetRegularizationWeight(2);
 
 #pragma omp parallel
 {

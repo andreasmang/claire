@@ -360,7 +360,7 @@ private:
     };
 
     struct Regularization{
-        ScalarType beta[2]; ///< regularization parameter
+        ScalarType beta[3]; ///< regularization parameter
         RegNorm norm; ///< flag for regularization norm
     };
 
