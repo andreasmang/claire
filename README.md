@@ -24,10 +24,10 @@ More information on how to add, install, and link these libraries, can be found 
 
 ## Run COLDREG
 
-Instructions on how to use COLDREG can be found in [doc/README-RUN.md](doc/README-RUN.md). To check if your installation works you can do:
+Instructions on how to use COLDREG can be found in [doc/README-INSTALLATION.md](doc/README-INSTALLATION.md). To check if your installation works you can do:
 
 ```bash
 ./bin/runcoldreg
 ```
 
-This will run a test problem.
+This will run a 32x32x32 registration test problem with default parameters.

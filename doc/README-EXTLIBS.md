@@ -45,21 +45,23 @@ cd external
 
 The libraries can be compiled by running the [build_libs.sh](../external/build_libs.sh) script in the [external](../external) subdirectory. For options do
 
-    ./build_libs.sh --help
+```bash
+./build_libs.sh --help
+```
 
-This will provide information on what parameters to parse. Ideally it should be sufficient to do
-
-    ./build_libs.sh --build
-
-This will install all libraries in a local folder called "lib" ([external/lib](../external/lib/)). You can also build the individual libraries one after another. For more information do `./build_libs.sh --help`. 
+This will provide information on what parameters to parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" ([external/lib](../external/lib/)). You can also build the individual libraries one after another. For more information do `./build_libs.sh --help`. 
 
 If the wrapper for your MPI implementation does **not** include `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
 
-    ./build_libs.sh --cxx YOURMPICXXCOMPILER --c YOURMPICCOMPILER
+```bash
+./build_libs.sh --cxx YOURMPICXXCOMPILER --c YOURMPICCOMPILER
+```
 
 The script will figure out the path from the binary you set. An example for `mpicxx` and `mpicc` is
 
-    ./build_libs.sh --cxx mpicxx --c mpicc
+```bash
+./build_libs.sh --cxx mpicxx --c mpicc
+```
 
 Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also inspect the "build" subfolders of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
 
@@ -68,7 +70,9 @@ Please check the `cmake`, `make` and `automake` outputs for errors. To check if 
 
 Before you are able to compile and run COLDREG you will have to add some **environment variables** to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in [external/libs](../external/libs). To add the corresponding environment variables temporarily (for the current session) to your system, do
 
-   source environment_vars.sh
+```bash
+source environment_vars.sh
+```
 
 or copy its content of `environment_vars.sh` to your `~/.bashrc`.
 
