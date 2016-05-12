@@ -86,18 +86,6 @@ See [doc/README-INSTALLATION.md](README-INSTALLATION.md)
 ## Additional Info
 
 
-### NIFTICLIB
-
-* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0/)
-* description: library to read and write NIFTI images
-* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) 
-* typical problems
-	* `zlib` and `libstdc++6`:
-		* if there are errors when compiling `NIFTICLIB` make sure that these libraries can be found on your system
-		* they are typically located in your `gcc` library path (simply add the `lib(64)` folder to the `LD_LIBRARY_PATH`)
-		* you might be able to locate these libraries via `locate zlib` and `locate libstdc`
-
-
 ### FFTW
 
 * file: [fftw-3.3.4.tar.gz](ftp://ftp.fftw.org/pub/fftw/fftw-3.3.4.tar.gz)
@@ -111,6 +99,12 @@ See [doc/README-INSTALLATION.md](README-INSTALLATION.md)
 * git: `git clone git@github.com:amirgholami/accfft.git`
 * description: library to compute FFT in parallel (requires FFTW)
 * see [ACCFFT](http://www.accfft.org)
+* typical problems
+	* `libstdc++6`:
+		* if there are errors when compiling `ACCFFT` make sure that this library can be found on your system
+		* they are typically located in your `gcc` library path (simply add the `lib(64)` folder to the `LD_LIBRARY_PATH`)
+		* you might be able to locate these libraries via `locate libstdc`
+	* `FFTW`: accfft depends on FFTW; info on FFTW can be found above
 
 
 ### PETSc
@@ -119,3 +113,13 @@ See [doc/README-INSTALLATION.md](README-INSTALLATION.md)
 * [bitbucket](https://bitbucket.org/petsc/petsc)
 * description: library for numerics and optimization
 
+### NIFTICLIB
+
+* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0/)
+* description: library to read and write NIFTI images
+* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) 
+* typical problems
+	* `zlib` and `libstdc++6`:
+		* if there are errors when compiling `NIFTICLIB` make sure that these libraries can be found on your system
+		* they are typically located in your `gcc` library path (simply add the `lib(64)` folder to the `LD_LIBRARY_PATH`)
+		* you might be able to locate these libraries via `locate zlib` and `locate libstdc`
