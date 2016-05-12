@@ -74,7 +74,7 @@ Before you are able to compile and run COLDREG you will have to add some **envir
 source environment_vars.sh
 ```
 
-or copy its content of `environment_vars.sh` to your `~/.bashrc`.
+or copy the content of `environment_vars.sh` to your `~/.bashrc`.
 
 
 ## Compiling the Code
