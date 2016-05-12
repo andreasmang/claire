@@ -115,7 +115,7 @@ PetscErrorCode DbgMsg(std::string msg)
 
     PetscFunctionBegin;
 
-    ss << std::left << std::setw(117)<< msg;
+    ss << std::left << std::setw(97)<< msg;
     msg = "\x001b[90m[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
