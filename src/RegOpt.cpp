@@ -398,7 +398,7 @@ PetscErrorCode RegOpt::Initialize()
 
     //this->m_PrecondMeth = TWOLEVEL;
     //this->m_PCSolverType = PCPCG;
-    this->m_LineLength = 120;
+    this->m_LineLength = 100;
     this->m_Sigma = 1;
     this->m_WriteImages = false;
     this->m_WriteLogFiles = false;
@@ -485,10 +485,14 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< line << std::endl;
         std::cout<< " -preset <type>          use a predefined solver setting (default: not set)"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
-        std::cout<< "                             fast-aggressive        fast; low accuracy; small residual; irregular map"<<std::endl;
-        std::cout<< "                             fast-smooth            fast; low accuracy; larger residual; potentially irregular map"<<std::endl;
-        std::cout<< "                             accurate-aggressive    slow; high(er) accuracy; small residual; potentially irregular map"<<std::endl;
-        std::cout<< "                             accurate-smooth        slow; high(er) accuracy; small residual; well-behaved map"<<std::endl;
+        std::cout<< "                             fast-aggressive        fast; low accuracy inversion;"<<std::endl;
+        std::cout<< "                                                    small residual; irregular map"<<std::endl;
+        std::cout<< "                             fast-smooth            fast; low accuracy inversion;"<<std::endl;
+        std::cout<< "                                                    larger residual; potentially irregular map;"<<std::endl;
+        std::cout<< "                             accurate-aggressive    slow; high(er) accuracy inversion;"<<std::endl;
+        std::cout<< "                                                    small residual; potentially irregular map"<<std::endl;
+        std::cout<< "                             accurate-smooth        slow; high(er) accuracy inversion;"<<std::endl;
+        std::cout<< "                                                    small residual; well-behaved map"<<std::endl;
         std::cout<< " -beta <dbl>             regularization weight/parameter (default: 1E-2)"<<std::endl;
         std::cout<< " -train                  learn regularization parameter (default: off)"<<std::endl;
         std::cout<< line << std::endl;
