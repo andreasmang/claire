@@ -9,6 +9,7 @@ COLDREG depends on the following libraries:
 
 These need to be installed and made available on your system before compiling the code (instruction for compiling COLDREG can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)). Additional details for each individual library can be found below.
 
+
 ## Before Compiling
 
 Make sure the standard MPI wrappers for `mpicc` and `mpicxx` are available on your system (either by loading the right modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). For instance, add the following definitions to your `~/.bashrc`:
@@ -18,17 +19,37 @@ export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
 export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
 ```
 
+
 ## External Libraries/Dependencies
 
-In general you should have received tarball files for the individual libraries. The **compressed** tarball files (`LIBNAME.tar.gz`) should already be in or be added to the [external](../external) folder.
+In general you should have received tarball files for the individual libraries. The **compressed** tarball files (`LIBRARYNAME.tar.gz`) should be located in or be added to the [external](../external) folder. If you use your local installations make sure you set the following variables in your `~/.bashrc`:
 
+```bash
+export FFTW_DIR=/path/to/fftw
+export ACCFFT_DIR=/path/to/accfft
+export PETSC_DIR=/path/to/petsc
+export PETSC_ARCH=your_petsc_arch
+export NIFTI_DIR=/path/to/nifticlib
+```
 
 
 ## Building Dependencies
 
 ### General Info
 
-I recommend to add the path to the **FFTW library** and the **PETSc library** to your `LD_LIBRARY_PATH` (lib folders for FFTW and PETSc) as well. If you decide to use PETSc with your local MKL implementation, also add the corresponding path to the `LD_LIBRARY_PATH`.
+I recommend that you add the path to the **FFTW** and the **PETSc** library to your `LD_LIBRARY_PATH`:
+
+```bash
+export LD_LIBRARY_PATH=/path/to/petsc/lib/${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=/path/to/fftw/lib/${LD_LIBRARY_PATH}
+```
+
+If you are compiling the code with the shipped `build_libs.sh` (see below) this is eqivalent to
+
+```bash
+export LD_LIBRARY_PATH=/path/to/cold/external/libs/fftw/build/lib/${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=/path/to/cold/external/libs/petsc/build/lib/${LD_LIBRARY_PATH}
+```
 
 
 ### Quick Shot
@@ -43,24 +64,31 @@ cd external
 
 ### More Detailed Instructions
 
-The libraries can be compiled by running the [build_libs.sh](../external/build_libs.sh) script in the [external](../external) subdirectory. For options do
+The libraries can be compiled by running the [build_libs.sh](../external/build_libs.sh) script in the [external](../external) subdirectory. To see all the options do
 
 ```bash
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters to parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" ([external/lib](../external/lib/)). You can also build the individual libraries one after another. For more information do `./build_libs.sh --help`. 
+This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" in [external](../external/)). You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`.
 
-If the wrapper for your MPI implementation does **not** include `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
+If the wrapper for your MPI implementation does **not** provide `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
 
 ```bash
 ./build_libs.sh --cxx YOURMPICXXCOMPILER --c YOURMPICCOMPILER
 ```
 
-The script will figure out the path from the binary you set. An example for `mpicxx` and `mpicc` is
+An example for `mpicxx` and `mpicc` is
 
 ```bash
 ./build_libs.sh --cxx mpicxx --c mpicc
+```
+
+
+If you want to use your own BLAS and LAPACK installations, you can pass the path with the `--bldir` option: 
+
+```bash
+./build_libs.sh --bldir /path/to/libraries/
 ```
 
 Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also inspect the "build" subfolders of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
