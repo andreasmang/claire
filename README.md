@@ -5,9 +5,15 @@
 
 ## Installation
 
+The installation consists of three steps:
+
+* compile and install the libraries/dependencies (see below and [doc/README-EXTLIBS.md](doc/README-EXTLIBS.md))
+* set the environment variables to be able to link to the libraries (see [doc/README-EXTLIBS.md](doc/README-EXTLIBS.md))
+* compile the code (see below and [doc/README-INSTALLATION.md](doc/README-INSTALLATION.md))
+
 ### COLDREG
 
-Instructions on how to install COLDREG can be found in [doc/README-INSTALLATION.md](doc/README-INSTALLATION.md).
+Instructions on how to install COLDREG can be found in [doc/README-INSTALLATION.md](doc/README-INSTALLATION.md). Instruction for running and installing the software on the TACC systems are provided in [doc/README-TACC.md](doc/README-TACC.md).
 
 
 ### Dependencies
