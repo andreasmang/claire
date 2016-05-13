@@ -282,9 +282,9 @@ PetscErrorCode Optimizer::Run()
 
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
     ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
-    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
+    if (rank == 0) std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
     ierr=Msg("optimization done"); CHKERRQ(ierr);
-    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
+    if (rank == 0) std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
