@@ -32,14 +32,17 @@ class SynProbRegistration
 {
 
 public:
+
     typedef SynProbRegistration Self;
     SynProbRegistration();
-    ~SynProbRegistration();
     SynProbRegistration(RegOpt*);
+    ~SynProbRegistration();
 
     PetscErrorCode ComputeSquare(Vec);
-    PetscErrorCode ComputeDiamond(Vec,const unsigned  int);
     PetscErrorCode ComputeExpSin(Vec);
+    PetscErrorCode ComputeSphere(Vec);
+    PetscErrorCode ComputeHollowSphere(Vec);
+    PetscErrorCode ComputeDiamond(Vec,const unsigned  int);
     PetscErrorCode ComputeSmoothScalarField(Vec,const unsigned int);
 
 

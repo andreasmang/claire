@@ -3252,7 +3252,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 {
     PetscErrorCode ierr;
-    std::string filename,fn;
+    std::string filename,fn,ext;
     IntType nt;
     int rank,nproc,nstr,nnum;
     IntType nl;
@@ -3302,6 +3302,9 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
     // set components of velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
+    // parse extension
+    ext = this->m_Opt->GetXExtension();
+
     ierr=VecWAXPY(this->m_WorkScaField1,-1.0,this->m_TemplateImage,this->m_ReferenceImage); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField1,NORM_2,&mRmT_2); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField1,NORM_INFINITY,&mRmT_infty); CHKERRQ(ierr);
@@ -3311,11 +3314,11 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
         ierr=Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
 
         //  write reference and template image
-        this->m_IO->Write(this->m_ReferenceImage,"mR" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_TemplateImage,"mT" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_ReferenceImage,"mR"+ext); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_TemplateImage,"mT"+ext); CHKERRQ(ierr);
 
         //ierr=VecAbs(this->m_WorkScaField1); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkScaField1,"residual-mR-mT" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkScaField1,"residual-mR-mT"+ext); CHKERRQ(ierr);
 
     }
 
@@ -3347,13 +3350,11 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 
         ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
-        ierr=this->m_IO->Write(this->m_WorkScaField1,"m1" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
-        ierr=this->m_IO->Write(this->m_WorkScaField2,"residual-mR-m1" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        ierr=this->m_IO->Write(this->m_WorkScaField1,"m1"+ext); CHKERRQ(ierr);
+        ierr=this->m_IO->Write(this->m_WorkScaField2,"residual-mR-m1"+ext); CHKERRQ(ierr);
 
-       // velocity field out
-        this->m_IO->Write(this->m_VelocityField,"vx1" + this->m_Opt->GetXExtension(),
-                                                "vx2" + this->m_Opt->GetXExtension(),
-                                                "vx3" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        // velocity field out
+        ierr=this->m_IO->Write(this->m_VelocityField,"vx1"+ext,"vx2"+ext,"vx3"+ext); CHKERRQ(ierr);
 
         ierr=VecPointwiseMult(this->m_WorkScaField1,this->m_VelocityField->m_X1,this->m_VelocityField->m_X1); CHKERRQ(ierr);
         ierr=VecPointwiseMult(this->m_WorkScaField2,this->m_VelocityField->m_X2,this->m_VelocityField->m_X2); CHKERRQ(ierr);
@@ -3362,16 +3363,14 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
         ierr=VecAXPY(this->m_WorkScaField1,1.0,this->m_WorkScaField2); CHKERRQ(ierr);
         ierr=VecAXPY(this->m_WorkScaField1,1.0,this->m_WorkScaField3); CHKERRQ(ierr);
         ierr=VecSqrtAbs(this->m_WorkScaField1); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkScaField1,"velocity-2norm" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkScaField1,"velocity-2norm"+ext); CHKERRQ(ierr);
 
         // determinant of deformation gradient out
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkScaField1,"detdefgrad" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkScaField1,"detdefgrad"+ext); CHKERRQ(ierr);
 
         ierr=this->ComputeDeformationMap(); CHKERRQ(ierr);
-        this->m_IO->Write(this->m_WorkVecField1,"yx1" + this->m_Opt->GetXExtension(),
-                                                "yx2" + this->m_Opt->GetXExtension(),
-                                                "yx3" + this->m_Opt->GetXExtension()); CHKERRQ(ierr);
+        this->m_IO->Write(this->m_WorkVecField1,"yx1"+ext,"yx2"+ext,"yx3"+ext); CHKERRQ(ierr);
 
     }
 

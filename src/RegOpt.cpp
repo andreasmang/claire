@@ -509,6 +509,7 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< " -help                   display this message"<<std::endl;
         std::cout<< " -advanced               display advanced options"<<std::endl;
         std::cout<< line << std::endl;
+        std::cout<< line << std::endl;
     }
 
     ierr=PetscFinalize(); CHKERRQ(ierr);
@@ -540,11 +541,10 @@ PetscErrorCode RegOpt::UsageAdvanced()
     line = std::string(this->m_LineLength,'-');
 
     if (rank == 0){
-        std::cout<<std::endl;
+        std::cout<< line << std::endl;
         std::cout<< " usage: runcoldreg [options] " <<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " where [options] is one or more of the following"<<std::endl;
-        std::cout<< line << std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -mr <file>              reference/fixed image (*.nii, *.nc)"<<std::endl;
         std::cout<< " -mt <file>              template/deformable image (*.nii, *.nc)"<<std::endl;
@@ -588,9 +588,10 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                             h2           H2-norm"<<std::endl;
         std::cout<< "                             l2           l2-norm (discouraged)"<<std::endl;
         std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
-        std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-2)"<<std::endl;
+        std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-4)"<<std::endl;
         std::cout<< " -estbeta                estimate regularization parameter (default: not enabled)"<<std::endl;
-        std::cout<< " -ic                     flag: enable incompressibility constraint (default: not enabled)"<<std::endl;
+        std::cout<< " -ic                     enable incompressibility constraint (det(grad(y))=1)"<<std::endl;
+        std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " solver specific parameters (numerics)"<<std::endl;
         std::cout<< line << std::endl;

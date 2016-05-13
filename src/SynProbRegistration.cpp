@@ -22,6 +22,8 @@ SynProbRegistration::SynProbRegistration()
 }
 
 
+
+
 /********************************************************************
  * Name: SynProbRegistration
  * Description: default constructor
@@ -47,6 +49,8 @@ SynProbRegistration::~SynProbRegistration()
 {
     this->ClearMemory();
 }
+
+
 
 
 /********************************************************************
@@ -77,6 +81,7 @@ PetscErrorCode SynProbRegistration::ClearMemory()
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -251,6 +256,142 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * Name: ComputeSphere
+ * Description: compute diamond
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeSphere"
+PetscErrorCode SynProbRegistration::ComputeSphere(Vec m)
+{
+    PetscErrorCode ierr;
+    IntType isize[3],istart[3];
+    ScalarType *p_m=NULL,hx[3];
+
+    PetscFunctionBegin;
+
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
+    }
+
+    ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+    ScalarType x,x1,x2,x3,value;
+    IntType i;
+#pragma omp for
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
+
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                i = GetLinearIndex(i1,i2,i3,isize);
+
+                x1 -= PETSC_PI;
+                x2 -= PETSC_PI;
+                x3 -= PETSC_PI;
+
+                x = sqrt(x1*x1 + x2*x2 + x3*x3);
+
+                value = x < PETSC_PI/2.0 ? 1.0 : 0.0;
+
+                p_m[i] = value;
+
+            } // i1
+        } // i2
+    } // i3
+
+} // pragma omp parallel
+
+    ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * Name: ComputeHollowSphere
+ * Description: compute 3D c-like shape/hollow sphere
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeHollowSphere"
+PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m)
+{
+    PetscErrorCode ierr;
+    IntType isize[3],istart[3];
+    ScalarType *p_m=NULL,hx[3];
+
+    PetscFunctionBegin;
+
+    for (int i = 0; i < 3; ++i){
+        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
+        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
+        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
+    }
+
+    ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+    ScalarType x,x1,x2,x3,value;
+    IntType i;
+#pragma omp for
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
+
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                i = GetLinearIndex(i1,i2,i3,isize);
+
+                x1 -= PETSC_PI;
+                x2 -= PETSC_PI;
+                x3 -= PETSC_PI;
+
+                x = sqrt(x1*x1 + x2*x2 + x3*x3);
+
+                // draw outter sphere
+                value = x < 1.2*PETSC_PI/2.0 ? 1.0 : 0.0;
+
+                // opening
+                x = sqrt((x1-1.8*PETSC_PI)*(x1-1.8*PETSC_PI) + x2*x2 + x3*x3);
+                value = x < 3.0*PETSC_PI/2.0 ? 0.0 : value;
+
+                // set inner circle to zero
+                x = sqrt(x1*x1 + x2*x2 + x3*x3);
+                value = x < 0.8*PETSC_PI/2.0 ? 0.0 : value;
+
+                p_m[i] = value;
+
+            } // i1
+        } // i2
+    } // i3
+
+} // pragma omp parallel
+
+    ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
 
 
 

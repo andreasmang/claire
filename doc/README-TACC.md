@@ -7,8 +7,11 @@ Information about the Texas Advanced Computing Center ([TACC](https://www.tacc.u
 
 Info about Maverick can be found here: [https://www.tacc.utexas.edu/systems/maverick](https://www.tacc.utexas.edu/systems/maverick).
 
-The software has been tested with the following module settings:
+COLDREG has been tested with the following module settings:
 
-
-
-
+```bash
+module load intel/15.0.3
+module load impi/5.0.3
+module load git/2.7.0
+module load cmake/2.8.12.2
+```
