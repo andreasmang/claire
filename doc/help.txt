@@ -1,0 +1,39 @@
+
+----------------------------------------------------------------------------------------------------
+ usage: runcoldreg [options] 
+----------------------------------------------------------------------------------------------------
+ where [options] is one or more of the following
+----------------------------------------------------------------------------------------------------
+ input
+----------------------------------------------------------------------------------------------------
+ -mr <file>              reference image (*.nii, *.nii.gz, *.hdr)
+ -mt <file>              template image (*.nii, *.nii.gz, *.hdr)
+ -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); grid is assumed to be uniform if only a
+                         single integer is provided (i.e., for '-nx 32')
+----------------------------------------------------------------------------------------------------
+ output
+----------------------------------------------------------------------------------------------------
+ -x <folder>             output folder (what's written out is controlled by the flags below)
+ -xresults               flag: write results to file (default: not written; requires -x option)
+----------------------------------------------------------------------------------------------------
+ solver
+----------------------------------------------------------------------------------------------------
+ -preset <type>          use a predefined solver setting (default: not set)
+                         where <types> are
+                             fast-aggressive        fast; low accuracy inversion;
+                                                    small residual; irregular map
+                             fast-smooth            fast; low accuracy inversion;
+                                                    larger residual; potentially irregular map;
+                             accurate-aggressive    slow; high(er) accuracy inversion;
+                                                    small residual; potentially irregular map
+                             accurate-smooth        slow; high(er) accuracy inversion;
+                                                    small residual; well-behaved map
+ -betav <dbl>            regularization parameter (velocity field; default: 1E-2)
+ -betaw <dbl>            regularization parameter (mass source map; default: 1E-2)
+ -train                  learn regularization parameter (default: off)
+----------------------------------------------------------------------------------------------------
+ other parameters
+----------------------------------------------------------------------------------------------------
+ -help                   display this message
+ -advanced               display advanced options
+----------------------------------------------------------------------------------------------------
