@@ -1,8 +1,9 @@
-MESSAGE( STATUS "COLD_LIBS coldreg ${COLD_EXTERNAL_LIBS}")
-#SET( COLD_LIBS )
-#LIST(APPEND COLD_LIBS coldreg)
-#LIST(APPEND COLD_LIBS ${COLD_EXTERNAL_LIBS} )
+# add binary tree directory to search path for include files
+INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} )
 
+# add executable and link libraries
 ADD_EXECUTABLE ( runcoldreg runcoldreg.cpp )
-TARGET_LINK_LIBRARIES( runcoldreg coldreg ${COLD_EXTERNAL_LIBS} )
-INSTALL(TARGETS runcoldreg DESTINATION apps)
+
+MESSAGE(STATUS "libraries in binary ${COLD_EXTERNAL_LIBS}")
+TARGET_LINK_LIBRARIES( runcoldreg registration ${COLD_EXTERNAL_LIBS} )
+INSTALL(TARGETS runcoldreg DESTINATION bin)
