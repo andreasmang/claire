@@ -1,8 +1,7 @@
-
+----------------------------------------------------------------------------------------------------
  usage: runcoldreg [options] 
 ----------------------------------------------------------------------------------------------------
  where [options] is one or more of the following
-----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
  -mr <file>              reference/fixed image (*.nii, *.nc)
  -mt <file>              template/deformable image (*.nii, *.nc)
@@ -46,9 +45,10 @@
                              h2           H2-norm
                              l2           l2-norm (discouraged)
  -betav <dbl>            regularization parameter (velocity field; default: 1E-2)
- -betaw <dbl>            regularization parameter (mass source map; default: 1E-2)
+ -betaw <dbl>            regularization parameter (mass source map; default: 1E-4)
  -estbeta                estimate regularization parameter (default: not enabled)
- -ic                     flag: enable incompressibility constraint (default: not enabled)
+ -ic                     enable incompressibility constraint (det(grad(y))=1)
+ -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)
 ----------------------------------------------------------------------------------------------------
  solver specific parameters (numerics)
 ----------------------------------------------------------------------------------------------------

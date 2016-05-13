@@ -37,13 +37,15 @@ To run COLDREG with a 32x32x32 test example do
 ./bin/runcoldreg
 ```
 
-To run a simple test problem using the provided test images do:
+To **run** a simple test problem using the provided test images do:
 
 ```bash
 ./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
 ```
 
-Here, `-mr ./external/mR.nii.gz` defines the *reference image*, `-mt ./external/mT.nii.gz` the *template image*, `-nx 256x256x256` the *size* of the images, `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the write out of output images. To learn about the registration options you can do 
+Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images, `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
+
+To learn about the **options** you can do
 
 ```bash
 ./bin/runcoldreg -help
@@ -55,4 +57,4 @@ For more advanced options do
 ./bin/runcoldreg -advanced
 ```
 
-You can also find the options in [doc/help.txt](doc/help.txt) and [doc/advanced.txt](doc/advanced.txt). More instructions on how to run COLDREG can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
+You can also find the options in [doc/help.txt](doc/help.txt) and [doc/advanced-help.txt](doc/advanced-help.txt). More instructions on how to run COLDREG can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
