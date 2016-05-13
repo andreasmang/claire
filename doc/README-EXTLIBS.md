@@ -3,11 +3,11 @@
 COLDREG depends on the following libraries:
 
 * [FFTW](http://www.fftw.org) (version 3.3.4)
-* [ACCFFT](http://accfft.org) (requires FFTW)
+* [ACCFFT](http://accfft.org) (requires `FFTW` and `libstdc++`)
 * [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `zlib` and `libstdc++6`)
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `zlib` and `libstdc++`)
 
-These need to be installed and made available on your system before compiling the code (instruction for compiling COLDREG can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)). Additional details for each individual library can be found below.
+These libraries to be installed and made available on your system before compiling the code (see below; instruction for compiling COLDREG (**after you installed the libraries**) can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)).
 
 
 ## Before Compiling
@@ -18,6 +18,8 @@ Make sure the standard MPI wrappers for `mpicc` and `mpicxx` are available on yo
 export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
 export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
 ```
+
+To compile ACCFFT and NIFTICLIB you need to make sure that `libstdc++` and `zlib` are available on your system. To check you can try to run `locate libstdc++` and `locate zlib` in your bash.
 
 
 ## External Libraries/Dependencies

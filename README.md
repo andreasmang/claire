@@ -15,11 +15,11 @@ Instructions on how to install COLDREG can be found in [doc/README-INSTALLATION.
 COLDREG depends on the following libraries:
 
 * [FFTW](http://www.fftw.org) (version 3.3.4)
-* [ACCFFT](http://accfft.org) (requires FFTW)
+* [ACCFFT](http://accfft.org) (requires `FFTW` and `libstdc++`)
 * [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires zlib)
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `zlib` and `libstdc++`)
 
-More information on how to add, install, and link these libraries, can be found in [doc/README-EXTLIBS.md](doc/README-EXTLIBS.md)
+More information on how to **add**, **install**, and **link** these libraries, can be found in [doc/README-EXTLIBS.md](doc/README-EXTLIBS.md)
 
 
 ## Run COLDREG
