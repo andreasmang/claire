@@ -32,7 +32,6 @@ ifeq ($(USEINTEL),yes)
 endif
 LDFLAGS+= -lm
 
-BIN+= $(BINDIR)/regtools
 BIN+= $(BINDIR)/runcoldreg
 
 
