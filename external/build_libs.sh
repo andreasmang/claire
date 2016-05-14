@@ -18,6 +18,7 @@ buildnifticlib=0
 buildpetsc=0
 uselocalmkl=0
 cleanup=0
+useimpi=0
 
 for i in "$@"
 do
@@ -55,6 +56,10 @@ case $i in
     buildpetsc=1
     shift # past argument=value
     ;;
+    --useimpi)
+    useimpi=1
+    shift # past argument=value
+    ;;
     --clean)
     cleanup=1
     echo ""
@@ -75,6 +80,7 @@ case $i in
     echo "     --cxx=<CXX>    MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
     echo "     --c=<CC>       MPI C compiler (typically mpicc; mpicc is used if not set)"
     echo "     --bldir=<DIR>  path to your local lapack and blas installation (PETSc)"
+    echo "     --useimpi      flag: use intel MPI (instead ov MVAPICH and OpenMPI)"
     echo "----------------------------------------------------------------------------------"
     echo "     --bfftw        build FFTW library"
     echo "     --baccfft      build ACCFFT library (depends on FFTW & PNETCDF)"
@@ -95,6 +101,14 @@ shift
 done
 
 
+if [ ${useimpi} -eq 1 ]; then
+CFLAGS+=-mt_mpi
+fi
+
+if [ ${useimpi} -eq 1 ]; then
+CXXFLAGS+=-mt_mpi
+fi
+
 if [ ${uselocalmkl} -eq 1 ]; then
 echo " using lapack and blas dir: ${BL_DIR}"
 PETSC_OPTIONS="
@@ -112,22 +126,27 @@ CXXOPTFLAGS='-O3'
 else
 PETSC_OPTIONS="
 --with-cc=${MPI_C}
+--CFLAGS=${CFLAGS}
 COPTFLAGS='-O3'
 --with-cxx=${MPI_CXX}
-CXXOPTFLAGS='-O3'
+--CXXFLAGS=${CXXFLAGS}
 --download-f2cblaslapack
+CXXOPTFLAGS='-O3'
 --with-debugging=0
 --with-x=0
---with-c++-support=1
---with-clanguage=C++
 --with-fc=0
 --with-64-bit-indices"
 fi
 
+#--CFLAGS='-mt_mpi -mkl'
+#--with-c++-support=1
+#--with-clanguage=C++
+
+echo ${PETSC_OPTIONS}
+
 #CFALGS='-mt_mpi'
 
 FFTW_OPTIONS="
---enable-mpi
 --enable-threads
 --enable-sse2
 --enable-openmp

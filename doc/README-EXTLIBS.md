@@ -16,7 +16,7 @@ Make sure the standard MPI wrappers for `mpicc` and `mpicxx` are available on yo
 
 ```bash
 export PATH=/path/to/mpicxx:/path/to/mpicc:${PATH}
-export LD_LIBRARY_PATH=/path/to/mpi/lib/${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=/path/to/mpi/lib/:${LD_LIBRARY_PATH}
 ```
 
 To compile ACCFFT and NIFTICLIB you need to make sure that `libstdc++` and `zlib` are available on your system. To check you can try to run `locate libstdc++` and `locate zlib` in your bash.
@@ -37,22 +37,6 @@ export NIFTI_DIR=/path/to/nifticlib
 
 ## Building Dependencies
 
-### General Info
-
-I recommend that you add the path to the **FFTW** and the **PETSc** library to your `LD_LIBRARY_PATH`:
-
-```bash
-export LD_LIBRARY_PATH=/path/to/petsc/lib/${LD_LIBRARY_PATH}
-export LD_LIBRARY_PATH=/path/to/fftw/lib/${LD_LIBRARY_PATH}
-```
-
-If you are compiling the code with the shipped `build_libs.sh` (see below) this is eqivalent to
-
-```bash
-export LD_LIBRARY_PATH=/path/to/cold/external/libs/fftw/build/lib/${LD_LIBRARY_PATH}
-export LD_LIBRARY_PATH=/path/to/cold/external/libs/petsc/build/lib/${LD_LIBRARY_PATH}
-```
-
 
 ### Quick Shot
 
@@ -72,7 +56,7 @@ The libraries can be compiled by running the [build_libs.sh](../external/build_l
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" in [external](../external/)). You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`.
+This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" in [external](../external/)). You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`. If you use **IntelMPI** add the `--useimpi` option.
 
 If the wrapper for your MPI implementation does **not** provide `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
 
