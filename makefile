@@ -1,11 +1,12 @@
 CXX=mpicxx
 USEINTEL=yes
+USEINTELMPI=no
 RM = rm -f
 MKDIRS = mkdir -p
 
 CXXFLAGS = -O3 -ansi
 ifeq ($(USEINTEL),yes)
-	CXXFLAGS+= -openmp -std=c++11 -DINVERT_RHO -xhost
+	CXXFLAGS+= -openmp -std=c++11 -DINVERT_RHO -xhost -parallel
 else
 	CXXFLAGS+= -fopenmp
 endif
@@ -29,6 +30,10 @@ LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
 ifeq ($(USEINTEL),yes)
 	LDFLAGS+= -limf
+endif
+
+ifeq ($(USEINTELMPI),yes)
+	LDFLAGS+= -lmpi_mt
 endif
 LDFLAGS+= -lm
 
