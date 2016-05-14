@@ -207,16 +207,16 @@ SET(ENV{PETSC_ARCH} "${COLD_PETSC_ARCH}")
                                     --with-clanguage=C++
                                     --with-debugging=0 CXXOPTFLAGS=${CMAKE_CXX_FLAGS} COPTFLAGS=${CMAKE_C_FLAGS}
                                     --with-shared=0
-                                    --with-blas-lapack-dir=$ENV{TACC_MKL_LIB}
+                                    --download-f2cblaslapack
                                     --with-x=0 --with-64-bit-indices
                                     --with-c++-support=1 --with-pthread=1
                                     --with-cc=${MPI_C_COMPILER} --with-cxx=${MPI_CXX_COMPILER} --with-fc=0
       BUILD_COMMAND make PETSC_DIR=${COLD_PETSC_DIR} PETSC_ARCH=${COLD_PETSC_ARCH} all
-      INSTALL_COMMAND make install)
+      INSTALL_COMMAND make PETSC_DIR=${COLD_PETSC_DIR} PETSC_ARCH=${COLD_PETSC_ARCH} install)
 #ENDIF(NOT COLD_PETSC_LIBPRJ)
 
-#--download-f2cblaslapack 
 #--with-mpi-dir=/opt/apps/intel14/mvapich2/2.0b
+#--with-blas-lapack-dir=$ENV{TACC_MKL_LIB}
 ## find library
 #FIND_LIBRARY(COLD_PETSC_LIB NAMES petsc PATHS ${COLD_PETSC_DIR}/${COLD_PETSC_ARCH}/lib DOC "PETSC libs")
 #SET(COLD_PETSC_LIB ${COLD_PETSC_DIR}/${COLD_PETSC_ARCH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}petsc${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -247,11 +247,11 @@ LIST(APPEND COLD_EXTERNAL_INCS ${COLD_PETSC_DIR}/${COLD_PETSC_ARCH}/include)
 
 # add include path
 INCLUDE_DIRECTORIES(SYSTEM ${COLD_PETSC_DIR}/build/include/)
-INCLUDE_DIRECTORIES(SYSTEM $ENV{TACC_MKL_DIR}/include)
+#INCLUDE_DIRECTORIES(SYSTEM $ENV{TACC_MKL_DIR}/include)
 
 # add library path
 LINK_DIRECTORIES(${COLD_PETSC_DIR}/build/lib)
-LINK_DIRECTORIES(SYSTEM $ENV{TACC_MKL_DIR}/lib/intel64)
+#LINK_DIRECTORIES(SYSTEM $ENV{TACC_MKL_DIR}/lib/intel64)
 
 
 
