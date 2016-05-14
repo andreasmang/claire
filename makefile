@@ -35,7 +35,7 @@ LDFLAGS+= -lm
 BIN+= $(BINDIR)/runcoldreg
 
 
-INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h LargeDeformationRegistration.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptimizationProblemRegistration.h PreProcessingRegistration.h
+INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h LargeDeformationRegistration.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptProbRegistration.h PreProcessingRegistration.h
 DEPS = $(patsubst %,$(INCDIR)/%.hpp,$(INCFILES))
 
 
@@ -59,7 +59,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
 		$(SRCDIR)/OptimalControlRegistrationRIC.cpp \
-		$(SRCDIR)/OptimizationProblemRegistration.cpp \
+		$(SRCDIR)/OptProbRegistration.cpp \
 		$(SRCDIR)/PreProcessingRegistration.cpp
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))

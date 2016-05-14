@@ -26,7 +26,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
-#include "OptimizationProblemRegistration.hpp"
+#include "OptProbRegistration.hpp"
 
 namespace reg
 {
@@ -36,7 +36,7 @@ class Optimizer
 {
 
 public:
-    typedef OptimizationProblemRegistration OptProbType;
+    typedef OptProbRegistration OptProbType;
 
     Optimizer();
     ~Optimizer();

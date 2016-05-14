@@ -33,17 +33,17 @@ PetscErrorCode TwoLevelPCMatVec(Mat,Vec,Vec);
 PetscErrorCode PrecondMonitor(KSP,IntType,ScalarType,void*);
 
 
-class OptimizationProblemRegistration
+class OptProbRegistration
 {
 
 public:
 
-    typedef OptimizationProblemRegistration Self;
+    typedef OptProbRegistration Self;
 
-    OptimizationProblemRegistration(void);
-    OptimizationProblemRegistration(RegOpt*);
-    //virtual ~OptimizationProblemRegistration(void) = 0;
-    ~OptimizationProblemRegistration(void);
+    OptProbRegistration(void);
+    OptProbRegistration(RegOpt*);
+    //virtual ~OptProbRegistration(void) = 0;
+    ~OptProbRegistration(void);
 
     inline RegOpt* GetOptions(void){return this->m_Opt;};
 

@@ -29,21 +29,21 @@
 #include "SemiLagrangian.hpp"
 #include "RegularizationRegistration.hpp"
 #include "PreProcessingRegistration.hpp"
-#include "OptimizationProblemRegistration.hpp"
+#include "OptProbRegistration.hpp"
 //#include "SemiLagrangianGPU.hpp"
 
 
 namespace reg
 {
 
-class LargeDeformationRegistration : public OptimizationProblemRegistration
+class LargeDeformationRegistration : public OptProbRegistration
 {
 
 public:
 
     typedef ReadWriteReg ReadWriteType;
     typedef LargeDeformationRegistration Self;
-    typedef OptimizationProblemRegistration SuperClass;
+    typedef OptProbRegistration SuperClass;
     typedef PreProcessingRegistration PreProcType;
     typedef RegularizationRegistration RegularizationType;
     typedef SemiLagrangian SemiLagrangianType;
