@@ -1,14 +1,23 @@
 CXX=mpicxx
-USEINTEL=yes
-USEINTELMPI=yes
+
+USEINTEL=no
+USEINTELMPI=no
+USEOPENMP=yes
+
+
 RM = rm -f
 MKDIRS = mkdir -p
 
 CXXFLAGS = -O3 -ansi
 ifeq ($(USEINTEL),yes)
-	CXXFLAGS+= -openmp -std=c++11 -DINVERT_RHO -xhost -parallel
+	CXXFLAGS+= -std=c++11 -DINVERT_RHO -xhost -parallel
+	ifeq ($(USEOPENMP),yes)
+		CXXFLAGS+= -openmp
+	endif
 else
-	CXXFLAGS+= -fopenmp
+	ifeq ($(USEOPENMP),yes)
+		CXXFLAGS+= -fopenmp
+	endif
 endif
 
 BINDIR = ./bin
@@ -27,10 +36,11 @@ COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
+LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -lz
 ifeq ($(USEINTEL),yes)
 	LDFLAGS+= -limf
 endif
+
 
 ifeq ($(USEINTELMPI),yes)
 	LDFLAGS+= -lmpi_mt
