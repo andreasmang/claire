@@ -1,6 +1,6 @@
 CXX=mpicxx
 USEINTEL=yes
-USEINTELMPI=no
+USEINTELMPI=yes
 RM = rm -f
 MKDIRS = mkdir -p
 
