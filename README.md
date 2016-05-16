@@ -18,8 +18,8 @@ COLDREG depends on the following libraries:
 
 * [FFTW](http://www.fftw.org) (version 3.3.4)
 * [ACCFFT](http://accfft.org) (requires `FFTW`, `libstdc++` and [cmake](https://cmake.org))
-* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires `python 2.7` ([https://www.python.org](https://www.python.org)), [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `cmake`, `zlib` and `libstdc++`)
+* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires `python 2.7` ([https://www.python.org](https://www.python.org)), [BLAS](http://www.netlib.org/blas/), and [LAPACK](http://www.netlib.org/lapack/))
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `cmake`, `zlib`, and `libstdc++`)
 
 More information on how to **add**, **install**, and **link** these libraries, can be found in [doc/README-EXTLIBS.md](doc/README-EXTLIBS.md)
 

@@ -5,7 +5,7 @@ COLDREG depends on the following libraries:
 * [FFTW](http://www.fftw.org) (version 3.3.4)
 * [ACCFFT](http://accfft.org) (requires `FFTW`, `libstdc++` and [cmake](https://cmake.org))
 * [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires `python 2.7` ([https://www.python.org](https://www.python.org)), [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `cmake`, `zlib` and `libstdc++`)
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires [cmake](https://cmake.org), `zlib` and `libstdc++`)
 
 These libraries to be installed and made available on your system before compiling the code (see below; instruction for compiling COLDREG (**after you installed the libraries**) can be found in [doc/README-INSTALLATION.md](README-INSTALLATION.md)).
 
@@ -40,12 +40,14 @@ export NIFTI_DIR=/path/to/nifticlib
 
 ### Quick Shot
 
-If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
+If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows (more info below):
 
 ```bash
 cd external
 ./build_libs.sh --build
 ```
+
+
 
 
 ### More Detailed Instructions
@@ -56,7 +58,7 @@ The libraries can be compiled by running the [build_libs.sh](../external/build_l
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" in [external](../external/)). You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`. If you use **IntelMPI** add the `--useimpi` option.
+This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" in [external](../external/)) (see above). You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`. If you use **IntelMPI** add the `--useimpi` option.
 
 If the wrapper for your MPI implementation does **not** provide `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
 
