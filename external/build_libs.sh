@@ -101,10 +101,12 @@ shift
 done
 
 
+CFLAGS+=''
 if [ ${useimpi} -eq 1 ]; then
 CFLAGS+=-mt_mpi
 fi
 
+CXXFLAGS+=''
 if [ ${useimpi} -eq 1 ]; then
 CXXFLAGS+=-mt_mpi
 fi
@@ -113,14 +115,14 @@ if [ ${uselocalmkl} -eq 1 ]; then
 echo " using lapack and blas dir: ${BL_DIR}"
 PETSC_OPTIONS="
 --with-cc=${MPI_C}
+--CFLAGS=${CFLAGS}
 COPTFLAGS='-O3'
 --with-cxx=${MPI_CXX}
+--CXXFLAGS=${CXXFLAGS}
 CXXOPTFLAGS='-O3'
 --with-blas-lapack-dir=${BL_DIR}
 --with-debugging=0
 --with-x=0
---with-c++-support=1
---with-clanguage=C++
 --with-fc=0
 --with-64-bit-indices"
 else
@@ -137,21 +139,16 @@ CXXOPTFLAGS='-O3'
 --with-fc=0
 --with-64-bit-indices"
 fi
-
 #--CFLAGS='-mt_mpi -mkl'
 #--with-c++-support=1
 #--with-clanguage=C++
 
-echo ${PETSC_OPTIONS}
-
-#CFALGS='-mt_mpi'
-
 FFTW_OPTIONS="
 --enable-threads
 --enable-sse2
---enable-openmp
 MAKEINFO=missing"
 #CFLAGS='-O3'
+#--enable-openmp
 
 ACCFFT_OPTIONS="
 -DFFTW_USE_STATIC_LIBS=true
