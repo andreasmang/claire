@@ -2,24 +2,30 @@
 
 **COLDREG** implements a parallel solver for **Constrained Large Deformation Diffeomorphic Image Registration**. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
 
+* [Installation](#install)
+* [Run](#run)
+* [Advanced Instructions](#advanced-install)
+* [License](#license)
 
-## Installation
+
+If there are any issues or you have any questions do not hesitate to send an email to <andreas@ices.utexas.edu>.
+
+##<a name="install"></a> Installation
 
 The installation consists of three steps:
 
 * **Step 1**: compilation and installation of the libraries/dependencies
 * **Step 2**: setting the environment variables to be able to link to the libraries
 * **Step 3**: compilation of the code
-* **Step 4**: running the code
 
 Instructions for these four steps can be found below.
 
 
 ### Before you Begin
 
-* make sure `cmake` is available
-* make sure `python` is available
-* make sure wrappers for `mpicc` and `mpicxx` are available
+* make sure **cmake** is available
+* make sure **python** is available
+* make sure wrappers for **mpicc** and **mpicxx** are available
 
 
 ### STEP 1: Installation of Dependencies
@@ -27,11 +33,11 @@ Instructions for these four steps can be found below.
 COLDREG depends on the following libraries:
 
 * [FFTW](http://www.fftw.org) (version 3.3.4)
-* [ACCFFT](http://accfft.org) (requires `FFTW` and [cmake](https://cmake.org))
-* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires `python 2.7`)
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires `cmake`)
+* [ACCFFT](http://accfft.org) (requires FFTW, OpenMP, and [cmake](https://cmake.org))
+* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires python 2.7)
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires [cmake](https://cmake.org))
 
-The *tarball files* for these libraries are in the `external` subfolder. To build all dependencies **at once** run the *bash script* in the `external` subfolder:
+The *tarball files* for these libraries are in the *external* subfolder. Assuming you are in the *top level directory* of the code: To **build** all **dependencies at once** run the *build_libs.sh* in the *external* subfolder:
 
 ```bash
 cd external
@@ -41,7 +47,7 @@ cd external
 
 ### STEP 2: Set Environment Variables
 
-If you are still in the `external` subfolder do:
+If you are still in the *external* subfolder do:
 
 ```bash
 source libs/environment_vars.sh
@@ -50,17 +56,17 @@ source libs/environment_vars.sh
 
 ### STEP 3: Compile COLDREG
 
-If your still in the `external` subfolder, change back to the top level directory of the code (i.e., `cd ..`). Then do
+If your still in the *external* subfolder, change back to the top level directory of the code (i.e., `cd ..`). Then do
 
 ```bash
 make -j
 ```
 
-If you are using an intel compiler set `USEINTEL` in the makefile to `yes`. If you are using `IntelMPI` set `USEINTELMPI` in the makefile to `yes`.
+If you are using an *intel compiler* set `USEINTEL` in the makefile to `yes`; if not, set it to `no`. If you are using *IntelMPI* set `USEINTELMPI` in the makefile to `yes`; if not, set it to `no`.
 
 
 
-## STEP 4: Run COLDREG
+##<a name="run"></a> Run COLDREG
 
 To run COLDREG with a 32x32x32 test example do
 
@@ -88,4 +94,11 @@ For more advanced options do
 ./bin/runcoldreg -advanced
 ```
 
+
+##<a name="advanced-install"></a>  Advanced Instructions
+
 More information on how to **add**, **install**, and **link** these libraries, can be found in [doc/README-INSTALL.md](doc/README-INSTALL.md). You can find a list of the available options for the binary in [doc/help.txt](doc/help.txt) and [doc/advanced-help.txt](doc/advanced-help.txt). More instructions on how to run COLDREG can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
+
+##<a name="license"></a>  License
+
+Read the [License](LICENSE) for more details.
