@@ -10,7 +10,7 @@
 
 If there are any issues or you have any questions do not hesitate to send an email to <andreas@ices.utexas.edu>.
 
-##<a name="install"></a> Installation
+<h1 id="install">Installation</h1>
 
 The installation consists of three steps:
 
