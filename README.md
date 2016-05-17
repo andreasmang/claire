@@ -10,7 +10,9 @@ If there are any issues or you have any questions send an email to <andreas@ices
 
 * **cmake** (at least version 2.8; [https://cmake.org](https://cmake.org))
 * **python** (version 2.7)
-* **mpicc** and **mpicxx** should be in the path
+* **mpicc** and **mpicxx**, and the MPI libraries, should be in the path
+
+If there are issues with compiling the code, take a look at [doc/README-INSTALL.md](doc/README-INSTALL.md).
 
 
 ### Installation Instructions
@@ -29,7 +31,7 @@ cd ..
 * Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
 * Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
 
-To build the binary, in the *top level directory* of the code, do
+In the *top level directory* of the code, do
 
 ```bash
 make -j
