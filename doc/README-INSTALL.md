@@ -65,7 +65,7 @@ The libraries can be compiled by running the [build_libs.sh](../external/build_l
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`. You can also build the individual libraries one after another, via the `--bLIBNAME` option, where `LIBNAME` is the name of the libarary. For precise instructions, do `./build_libs.sh --help`. If you want to clean up the libraries folder, you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries.
+This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`. You can also build the individual libraries one after another, via the `--bLIBNAME` option, where `LIBNAME` is the name of the library. For precise instructions, do `./build_libs.sh --help`. If you want to clean up the libraries folder, you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries.
 
 Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also take a look at the "build" subdirectories of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
 
@@ -136,16 +136,22 @@ You can also find a list of the available options for the binary in [doc/help.tx
 	* you might be able to locate this library via `locate libstdc`
 	* **fix**: if `gcc` is on your system, you need to add it to the `LD_LIBRARY_PATH`; add `export LD_LIBRARY_PATH=/path/to/gcc/lib(64):$LD_LIBRARY_PATH` to your `bashrc`
 2. PETSc requires at least *python 2.7(.11)* for compilation; *python 3* is not supported in PETSc 3.7
-3. ERROR:root:code for hash md5 was not found...`
+3. when compiling PETSc: ERROR:root:code for hash md5 was not found...
 	* this is a problem with your python 2.7 installation
 	* **fix** upgrade to python 2.7.11
-4. g++: error: unrecognized command line option ‘-parallel’
+4. g++: error: unrecognized command line option -parallel
 	* you probably set `USEINTEL` in the [makefile](../makefile) to `yes`, but are not using an intel compiler
 	* **fix**: `USEINTEL=no`
 5. ./include/RegUtils.hpp:33:19: fatal error: petsc.h: No such file or directory
 	* you probably forgot to set the environment variables
 	* **fix**: `source external/libs/environment_vars.sh`
-6. other dependencies (should in general be available on your system)
+7. definition in ...libmpi_mt.so section .tbss mismatches non-TLS definition in ...libmpi.so.4 section .bss
+	* you have used inconsistent MPI libraries during the build (thread safe vs. non-thread safe)
+	* **fix**:
+		* set `USEINTELMPI` in the [makefile](../makefile) to `yes` 
+		* when building the libraries add `--useimpi`: `./build_libs.sh --build --useimpi`
+8. libmpi.so.4: could not read symbols: Bad value (see 7.)
+9. other dependencies (should in general be available on your system)
 	* cmake (https://cmake.org; required by ACCFFT and niftilib; version 2.8 or greater)
 	* openMP (required by ACCFFT)
 	* `crypt` library (required by PETSc)
