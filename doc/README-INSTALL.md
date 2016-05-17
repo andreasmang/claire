@@ -18,15 +18,15 @@ To compile ACCFFT and NIFTICLIB you need to make sure that `libstdc++` and `zlib
 COLDREG depends on the following libraries:
 
 * [FFTW](http://www.fftw.org) (version 3.3.4)
-* [ACCFFT](http://accfft.org) (requires `FFTW`, `libstdc++` and [cmake](https://cmake.org))
-* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires `python 2.7` ([https://www.python.org](https://www.python.org)), [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
+* [ACCFFT](http://accfft.org) (requires *FFTW*, `libstdc++`, *OpenMP* and [cmake](https://cmake.org))
+* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires *python 2.7* ([https://www.python.org](https://www.python.org)), [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
 * [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires [cmake](https://cmake.org), `zlib` and `libstdc++`)
 
-These libraries to be installed and made available on your system before compiling the code.
+These libraries to be installed and made available on your system before compiling the code. We build all libraries as **static** by default.
 
 ### External Libraries/Dependencies
 
-In general you should have received tarball files for the individual libraries. The *compressed* tarball files (i.e, *LIBRARYNAME.tar.gz*) should be located in or be added to the [external](../external) folder. If you decide to use your local installations (not recommended) make sure you set the following variables in your `~/.bashrc`:
+In general, you should have received tarball files for the individual libraries. The *compressed* tarball files (i.e, *LIBRARYNAME.tar.gz*) should be located in or be added to the [external](../external) folder. If you decide to use your local installations (*not recommended*) make sure you set the following variables in your `~/.bashrc`:
 
 ```bash
 export FFTW_DIR=/path/to/fftw
@@ -42,12 +42,14 @@ export NIFTI_DIR=/path/to/nifticlib
 
 #### Quick Shot
 
-If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows (more info below):
+If `mpicc` and `mpicxx` are available, you can install all external dependencies at once as follows:
 
 ```bash
 cd external
 ./build_libs.sh --build
 ```
+This is not recommended, if you install the libraries for the first time. If you use **IntelMPI** add the `--useimpi` option.
+
 
 #### More Detailed Instructions
 
@@ -57,9 +59,9 @@ The libraries can be compiled by running the [build_libs.sh](../external/build_l
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  This will install all libraries in a local folder called "lib" in [external](../external/)) (see above). You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`. If you use **IntelMPI** add the `--useimpi` option.
+This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`.  You can also build the individual libraries one after another. For instructions do `./build_libs.sh --help`. If you want to reconfigure and recompile the libraries you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries. 
 
-If the wrapper for your MPI implementation does **not** provide `mpicc` and `mpicxx` you will have to pass the MPI compiler manually (**not tested**)
+If your MPI implementation does **not** provide wrappers for `mpicc` and `mpicxx`, you will have to pass the MPI compiler manually (**not tested** and probably fails)
 
 ```bash
 ./build_libs.sh --cxx YOURMPICXXCOMPILER --c YOURMPICCOMPILER
@@ -71,7 +73,7 @@ An example for `mpicxx` and `mpicc` is
 ./build_libs.sh --cxx mpicxx --c mpicc
 ```
 
-Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also inspect the "build" subfolders of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
+Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also take a look at the "build" subfolders of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
 
 
 #### Adding Libraries to System
@@ -82,7 +84,7 @@ Before you are able to compile and run COLDREG you will have to add some **envir
 source environment_vars.sh
 ```
 
-or copy the content of `environment_vars.sh` to your `~/.bashrc`.
+or copy the content of `environment_vars.sh` to your `~/.bashrc`. Note that the script will set **absolute paths**. 
 
 
 #### Additional Info
