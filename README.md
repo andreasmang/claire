@@ -2,7 +2,7 @@
 
 **COLDREG** implements a parallel solver for **Constrained Large Deformation Diffeomorphic Image Registration**. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
 
-* [Installation](#install)
+* [Installation](#installation)
 * [Run](#run)
 * [Advanced Instructions](#advanced-install)
 * [License](#license)
@@ -10,7 +10,7 @@
 
 If there are any issues or you have any questions do not hesitate to send an email to <andreas@ices.utexas.edu>.
 
-<h1 id="install">Installation</h1>
+## Installation
 
 The installation consists of three steps:
 
