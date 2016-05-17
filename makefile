@@ -35,10 +35,10 @@ COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
-LDFLAGS+= -L$(ZLIB_DIR)/lib -lz
 LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
 LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
-LDFLAGS+= -lcrypt -lssl
+LDFLAGS+= -L$(ZLIB_DIR)/lib -lz
+LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS+= -limf
 endif
