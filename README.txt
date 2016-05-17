@@ -53,7 +53,7 @@ Here, `-mr ./external/mR.nii.gz` defines the reference image (fixed image), `-mt
 ./bin/runcoldreg -advanced
 
 
-You can also find a list of the available options for the binary in doc/help.txt and advanced-help.txt.
+You can also find a list of the available options for the binary in doc/help.txt and doc/advanced-help.txt.
 
 
 3) Advanced Instructions
