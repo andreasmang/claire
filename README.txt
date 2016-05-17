@@ -12,7 +12,7 @@ If there are any issues or you have any questions send an email to andreas@ices.
 [] python (version 2.7)
 [] mpicc and mpicxx should be in the path
 
-If there are issues with compiling the code, take a look at doc/README-INSTALL.md.
+If there are issues with compiling the code, take a look at doc/README-INSTALL.md. If there are issues with compiling the code, take a look at [doc/README-INSTALL.md](doc/README-INSTALL.md). We also provide an FAQ in doc/README-INSTALL.md that lists common problems with compiling the code.
 
 1.2) Installation Instructions
 
