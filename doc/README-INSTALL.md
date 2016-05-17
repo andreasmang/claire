@@ -18,9 +18,10 @@ To compile ACCFFT and NIFTICLIB you need to make sure that `libstdc++` and `zlib
 COLDREG depends on the following libraries:
 
 * [FFTW](http://www.fftw.org) (version 3.3.4)
-* [ACCFFT](http://accfft.org) (requires *FFTW*, `libstdc++`, *OpenMP* and [cmake](https://cmake.org))
-* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires *python 2.7* ([https://www.python.org](https://www.python.org)), [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
-* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires [cmake](https://cmake.org), `zlib` and `libstdc++`)
+* [ACCFFT](http://accfft.org) (requires *FFTW*, `libstdc++`, and [cmake](https://cmake.org))
+* [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires *python 2.7* ([https://www.python.org](https://www.python.org)), the `crypt` library, [BLAS](http://www.netlib.org/blas/) and [LAPACK](http://www.netlib.org/lapack/))
+* [ZLIB](http://zlib.net) (version 1.2.8)
+* [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires [cmake](https://cmake.org), *zlib* and `libstdc++`)
 
 These libraries to be installed and made available on your system before compiling the code. We build all libraries as **static** by default.
 

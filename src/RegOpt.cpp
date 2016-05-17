@@ -541,6 +541,7 @@ PetscErrorCode RegOpt::UsageAdvanced()
     line = std::string(this->m_LineLength,'-');
 
     if (rank == 0){
+        std::cout<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " usage: runcoldreg [options] " <<std::endl;
         std::cout<< line << std::endl;
