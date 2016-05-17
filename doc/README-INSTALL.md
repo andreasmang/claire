@@ -130,7 +130,7 @@ You can also find a list of the available options for the binary in [doc/help.tx
 
 ## FAQ
 
-1. `libstdc++` or `GLIBCXX_ ...` not found
+1. `libstdc++` or `GLIBCXX...` not found
 	* required by *ACCFFT* and *niftilib*
 	* `libstdc++` is the *GNU Standard C++ library*
 	* you might be able to locate this library via `locate libstdc`
