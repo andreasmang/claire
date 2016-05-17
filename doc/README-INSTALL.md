@@ -130,19 +130,19 @@ You can also find a list of the available options for the binary in [doc/help.tx
 
 ## FAQ
 
-1) `libstdc++` or `GLIBCXX_ ...` not found
+1. `libstdc++` or `GLIBCXX_ ...` not found
 	* required by *ACCFFT* and *niftilib*
 	* `libstdc++` is the *GNU Standard C++ library*
 	* you might be able to locate this library via `locate libstdc`
 	* **fix**: if `gcc` is on your system, you need to add it to the `LD_LIBRARY_PATH`; add `export LD_LIBRARY_PATH=/path/to/gcc/lib(64):$LD_LIBRARY_PATH` to your `bashrc`
-2) PETSc requires at least *python 2.7* for compilation; *python 3* is not supported in PETSc 3.7
-3) other dependencies (should in general be available on your system)
+2. PETSc requires at least *python 2.7* for compilation; *python 3* is not supported in PETSc 3.7
+3. other dependencies (should in general be available on your system)
 	* cmake ([https://cmake.org](https://cmake.org); required by ACCFFT and niftilib; version 2.8 or greater)
 	* openMP (required by ACCFFT)
 	* `crypt` library (required by PETSc)
 	* `ssl` library (required by PETSc)
 	* BLAS (required by PETSc; we install it along with PETSc; [http://www.netlib.org/blas/](http://www.netlib.org/blas/))
-	* LAPACK; (required by PETSc; we install it along with PETSc; [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/))
+	* LAPACK (required by PETSc; we install it along with PETSc; [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/))
 
 
 
