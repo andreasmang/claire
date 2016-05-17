@@ -7,18 +7,20 @@ MPI_C=mpicc
 #MPI_F99=mpif90
 
 builddep=0		# set to 1 if you wanna build all libraries
-enableavx=0		# enable AVX	# (Advanced Vector Extensions (AVX)
+enableAVX=0		# enable AVX	# (Advanced Vector Extensions (AVX)
 								# are extensions to the x86 instruction
 								# set architecture for microprocessors
 								# from Intel and AMD)
+enableOMP=1 # needed by ACCFFT
+useIMPI=0
 
 buildfftw=0
 buildaccfft=0
 buildnifticlib=0
 buildpetsc=0
-uselocalmkl=0
+buildzlib=0
 cleanup=0
-useimpi=0
+
 
 for i in "$@"
 do
@@ -52,12 +54,24 @@ case $i in
     buildnifticlib=1
     shift # past argument=value
     ;;
+    --bzlib)
+    buildzlib=1
+    shift # past argument=value
+    ;;
     --bpetsc)
     buildpetsc=1
     shift # past argument=value
     ;;
-    --useimpi)
-    useimpi=1
+    --useIMPI)
+    useIMPI=1
+    shift # past argument=value
+    ;;
+    --enableOMP)
+    enableOMP=1
+    shift # past argument=value
+    ;;
+    --enableAVX)
+    enableAVX=1
     shift # past argument=value
     ;;
     --clean)
@@ -74,18 +88,24 @@ case $i in
     echo "----------------------------------------------------------------------------------"
     echo " options for this script are"
     echo "----------------------------------------------------------------------------------"
-    echo "     --help         print this message"
-    echo "     --build        build all libraries"
+    echo "     --help          print this message"
+    echo "     --build         build all libraries"
     echo "----------------------------------------------------------------------------------"
-    echo "     --cxx=<CXX>    MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
-    echo "     --c=<CC>       MPI C compiler (typically mpicc; mpicc is used if not set)"
-    echo "     --bldir=<DIR>  path to your local lapack and blas installation (PETSc)"
-    echo "     --useimpi      flag: use intel MPI (instead ov MVAPICH and OpenMPI)"
+    echo "     --cxx=<CXX>     MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
+    echo "     --c=<CC>        MPI C compiler (typically mpicc; mpicc is used if not set)"
+    echo "     --bldir=<DIR>   path to your local lapack and blas installation (PETSc)"
+    echo "     --useIMPI       flag: use intel MPI (instead ov MVAPICH and OpenMPI)"
+    #echo "     --enableOMP     flag: use OpenMP"
+    echo "     --enableAVX     flag: use AVX"
     echo "----------------------------------------------------------------------------------"
-    echo "     --bfftw        build FFTW library"
-    echo "     --baccfft      build ACCFFT library (depends on FFTW & PNETCDF)"
-    echo "     --bnifti       build NIFTI library"
-    echo "     --bpetsc       build PETSc library"
+    echo " build libraries"
+    echo "----------------------------------------------------------------------------------"
+    echo "     --bfftw         build FFTW library"
+    echo "     --baccfft       build ACCFFT library (depends on FFTW & PNETCDF)"
+    echo "     --bnifti        build NIFTI library"
+    echo "     --bpetsc        build PETSc library"
+    echo "----------------------------------------------------------------------------------"
+    echo " clean libraries"
     echo "----------------------------------------------------------------------------------"
     echo "     --clean        remove all libraries (deletes all subfolders)"
     echo "----------------------------------------------------------------------------------"
@@ -102,30 +122,17 @@ done
 
 
 CFLAGS+=''
-if [ ${useimpi} -eq 1 ]; then
+if [ ${useIMPI} -eq 1 ]; then
 CFLAGS+=-mt_mpi
 fi
 
 CXXFLAGS+=''
-if [ ${useimpi} -eq 1 ]; then
+if [ ${useIMPI} -eq 1 ]; then
 CXXFLAGS+=-mt_mpi
 fi
 
-if [ ${uselocalmkl} -eq 1 ]; then
-echo " using lapack and blas dir: ${BL_DIR}"
-PETSC_OPTIONS="
---with-cc=${MPI_C}
---CFLAGS=${CFLAGS}
-COPTFLAGS='-O3'
---with-cxx=${MPI_CXX}
---CXXFLAGS=${CXXFLAGS}
-CXXOPTFLAGS='-O3'
---with-blas-lapack-dir=${BL_DIR}
---with-debugging=0
---with-x=0
---with-fc=0
---with-64-bit-indices"
-else
+
+### PETSC OPTIONS
 PETSC_OPTIONS="
 --with-cc=${MPI_C}
 --CFLAGS=${CFLAGS}
@@ -135,28 +142,33 @@ COPTFLAGS='-O3'
 --download-f2cblaslapack
 CXXOPTFLAGS='-O3'
 --with-debugging=0
+--with-shared=0
 --with-x=0
---with-fc=0
---with-64-bit-indices"
+--with-fc=0"
+
+
+#### FFTW OPTIONS
+FFTW_OPTIONS="--enable-sse2 MAKEINFO=missing"
+if [ ${enableOMP} -eq 1 ]; then
+	FFTW_OPTIONS="${FFTW_OPTIONS} --enable-threads --enable-openmp"
 fi
-#--CFLAGS='-mt_mpi -mkl'
-#--with-c++-support=1
-#--with-clanguage=C++
+if [ ${enableAVX} -eq 1 ]; then
+	FFTW_OPTIONS="${FFTW_OPTIONS} --enable-avx"
+fi
 
-FFTW_OPTIONS="
---enable-threads
---enable-sse2
-MAKEINFO=missing"
-#CFLAGS='-O3'
-#--enable-openmp
-
+### ACCFFT OPTIONS
 ACCFFT_OPTIONS="
+-DCMAKE_CXX_COMPILER=${MPI_CXX}
+-DCMAKE_C_COMPILER=${MPI_C}
 -DFFTW_USE_STATIC_LIBS=true
 -DBUILD_GPU=false
 -DBUILD_SHARED=false"
 
 
+### NIFTI OPTIONS
 NIFTICLIB_OPTIONS="
+-DCMAKE_CXX_COMPILER=${MPI_CXX}
+-DCMAKE_C_COMPILER=${MPI_C}
 -DBUILD_SHARED_LIBS:BOOL=OFF
 -Wno-dev"
 
@@ -199,15 +211,15 @@ FFTW_LIB_DIR=${BUILD_DIR}/fftw
 SRC_DIR=${FFTW_LIB_DIR}/src
 BLD_DIR=${FFTW_LIB_DIR}/build
 
-if [ ! -d ${FFTW_LIB_DIR} -a ! ${cleanup} -eq 1 ]; then
-	mkdir ${FFTW_LIB_DIR}
-	mkdir ${FFTW_LIB_DIR}/src
-	mkdir ${FFTW_LIB_DIR}/build
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo extracting FFTW lib...
-	echo "----------------------------------------------------------------------------------"
-	tar -xzf ${LIB_DIR}/fftw-3.3.4.tar.gz -C ${SRC_DIR} --strip-components=1
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${FFTW_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting FFTW lib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/fftw-3.3.4.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${FFTW_LIB_DIR} == ${HOME} ]; then
 		rm -rf ${FFTW_LIB_DIR}
@@ -219,12 +231,13 @@ if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then
 	echo "----------------------------------------------------------------------------------"
 	echo "configuring FFTW (double precision)" 
 	echo "----------------------------------------------------------------------------------"
-	cd ${SRC_DIR}
-	if [ ${enableavx} -eq 1 ]; then
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-avx CFLAGS='-O3'
-	else
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} CFLAGS='-O3'
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}
 	fi
+	mkdir ${BLD_DIR}
+	cd ${SRC_DIR}
+	echo ./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} CFLAGS='-O3'
+	./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} CFLAGS='-O3'
 
 	echo ""
 	echo "----------------------------------------------------------------------------------"
@@ -235,13 +248,10 @@ if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then
 
 	echo ""
 	echo "----------------------------------------------------------------------------------"
-	echo "configuring FFTW (float precision)" 
+	echo "configuring FFTW (float precision)"
 	echo "----------------------------------------------------------------------------------"
-	if [ ${enableavx} -eq 1 ]; then
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-avx --enable-float CFLAGS='-O3'
-	else 
-		./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float CFLAGS='-O3'
-	fi
+	echo ./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float CFLAGS='-O3'
+	./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float CFLAGS='-O3'
 
 	echo ""
 	echo "----------------------------------------------------------------------------------"
@@ -264,20 +274,18 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}
 ACCFFT_LIB_DIR=${BUILD_DIR}/accfft
 SRC_DIR=${ACCFFT_LIB_DIR}/src
 BLD_DIR=${ACCFFT_LIB_DIR}/build
-CMK_DIR=${ACCFFT_LIB_DIR}/build/config
-if [ ! -d ${ACCFFT_LIB_DIR} -a ! ${cleanup} -eq 1 ]; then
-	mkdir ${ACCFFT_LIB_DIR}
-	mkdir ${BLD_DIR}
-	mkdir ${SRC_DIR}
-	mkdir ${CMK_DIR}
 
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo extracting ACCFFT lib...
-	echo "----------------------------------------------------------------------------------"
-	tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${ACCFFT_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${ACCFFT_LIB_DIR}/src
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting ACCFFT lib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
 else
-	if [  ${cleanup} -eq 1  -a  ! ${ACCFFT_LIB_DIR} == ${HOME}  ]; then
+	if [ ${cleanup} -eq 1 -a  ! ${ACCFFT_LIB_DIR} == ${HOME} ]; then
 		rm -rf ${ACCFFT_LIB_DIR}
 	fi
 fi
@@ -288,7 +296,13 @@ if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then
 	echo "----------------------------------------------------------------------------------"
 	echo "configuring ACCFFT" 
 	echo "----------------------------------------------------------------------------------"
-	cd ${CMK_DIR}
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}
+	fi
+	mkdir ${BLD_DIR}
+	mkdir ${BLD_DIR}/config
+	cd ${BLD_DIR}/config
+	echo cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	echo ""
 	echo "----------------------------------------------------------------------------------"
@@ -309,26 +323,38 @@ echo "export ACCFFT_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 PETSC_LIB_DIR=${BUILD_DIR}/petsc
 SRC_DIR=${PETSC_LIB_DIR}/src
 BLD_DIR=${PETSC_LIB_DIR}/build
-if [ ! -d ${PETSC_LIB_DIR} -a ! ${cleanup} -eq 1 ]; then
-	mkdir ${PETSC_LIB_DIR}
-	mkdir ${BLD_DIR}
-	mkdir ${SRC_DIR}
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo extracting PETSC lib...
-	echo "----------------------------------------------------------------------------------"
-	tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+PETSC_ARCH=cxx_opt
+
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${PETSC_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting PETSC lib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
 fi
 
-PETSC_ARCH=cxx_opt
 if [ ${builddep} -eq 1 -o ${buildpetsc} -eq 1 ]; then 
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "configuring PETSC" 
 	echo "----------------------------------------------------------------------------------"
+	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${SRC_DIR}/${PETSC_ARCH}
+	fi
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}/build
+	fi
+	mkdir ${BLD_DIR}
 	cd ${SRC_DIR}
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_OPTIONS}
 	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_OPTIONS}
-
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "building PETSC" 
@@ -348,25 +374,79 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}
 
 
 
+################################
+# zlib
+################################
+Z_LIB_DIR=${BUILD_DIR}/zlib
+SRC_DIR=${Z_LIB_DIR}/src
+BLD_DIR=${Z_LIB_DIR}/build
+
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${Z_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting zlib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/zlib-1.2.8.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [  ${cleanup} -eq 1 -a ! ${Z_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${Z_LIB_DIR}
+	fi
+fi
+
+if [ ${builddep} -eq 1 -o ${buildzlib} -eq 1 ]; then 
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "configuring zlib" 
+	echo "----------------------------------------------------------------------------------"
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}
+	fi
+	mkdir ${BLD_DIR}
+	cd ${SRC_DIR}
+	echo ./configure --prefix=${BLD_DIR} --static
+	./configure --prefix=${BLD_DIR} --static
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "building zlib" 
+	echo "----------------------------------------------------------------------------------"
+	make 
+	make install
+else
+	if [  ${cleanup} -eq 1 -a ! ${Z_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${Z_LIB_DIR}
+	fi
+fi
+
+echo "export ZLIB_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
+
+
+
+
+
+
 
 
 ################################
 # NIFTICLIB
 ################################
 NIFTI_LIB_DIR=${BUILD_DIR}/nifticlib
-SRC_DIR=${NIFTI_LIB_DIR}/srcs
+SRC_DIR=${NIFTI_LIB_DIR}/src
 BLD_DIR=${NIFTI_LIB_DIR}/build
-if [ ! -d ${NIFTI_LIB_DIR} -a ! ${cleanup} -eq 1 ]; then
-	mkdir ${NIFTI_LIB_DIR}
-	mkdir ${BLD_DIR}
-	mkdir ${SRC_DIR}
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo extracting NIFTI lib...
-	echo "----------------------------------------------------------------------------------"
-	tar -xzf ${LIB_DIR}/nifticlib-2.0.0.tar.gz -C ${SRC_DIR} --strip-components=1
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${NIFTI_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting NIFTI lib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/nifticlib-2.0.0.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
 else
-	if [ ${cleanup} -eq 1 -a ! ${NIFTI_LIB_DIR} == "~/" ]; then
+	if [ ${cleanup} -eq 1 -a ! ${NIFTI_LIB_DIR} == ${HOME} ]; then
 		rm -rf ${NIFTI_LIB_DIR}
 	fi
 fi
@@ -376,8 +456,17 @@ if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
 	echo "----------------------------------------------------------------------------------"
 	echo "configuring NIFTICLIB"
 	echo "----------------------------------------------------------------------------------"
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}
+	fi
+	mkdir ${BLD_DIR}
+	mkdir ${BLD_DIR}/config
 	cd ${SRC_DIR}
-	cmake ${SRC_DIR} -DCMAKE_INSTALL_PREFIX:PATH=${BLD_DIR} ${NIFTICLIB_OPTIONS}
+
+	echo cmake ${SRC_DIR} -DCMAKE_INSTALL_PREFIX:PATH=${BLD_DIR} ${NIFTICLIB_OPTIONS} -DZLIB_ROOT=${Z_LIB_DIR}/build
+
+	cmake ${SRC_DIR} -DCMAKE_INSTALL_PREFIX:PATH=${BLD_DIR} ${NIFTICLIB_OPTIONS} -DZLIB_ROOT=${Z_LIB_DIR}/build
+
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "building NIFTICLIB"
