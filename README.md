@@ -10,7 +10,7 @@
 * License
 
 
-If there are any issues or you have any questions do not hesitate to send an email to <andreas@ices.utexas.edu>.
+If there are any issues or you have any questions send me an email: <andreas@ices.utexas.edu>.
 
 ## Installation
 
@@ -20,14 +20,14 @@ The installation consists of three steps:
 * **Step 2**: setting the environment variables to be able to link to the libraries
 * **Step 3**: compilation of the code
 
-Instructions for these four steps can be found below.
+Instructions for these steps can be found below.
 
 
 ### Before you Begin
 
 * make sure **cmake** is available
 * make sure **python** is available
-* make sure wrappers for **mpicc** and **mpicxx** are available (the code has been tested with Open MPI, MVAPICH, and Intel MPI)
+* make sure wrappers for **mpicc** and **mpicxx** are available (the code has been tested with *Open MPI*, *MVAPICH*, and *Intel MPI* on Linux systems)
 * make sure **OpenMP** is available on your system
 
 
@@ -40,13 +40,13 @@ COLDREG depends on the following libraries:
 * [PETSc](https://www.mcs.anl.gov/petsc/) (version 3.7; requires python 2.7)
 * [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/) (version 2.0.0; requires [cmake](https://cmake.org))
 
-The *tarball files* for these libraries are in the *external* subfolder. I am assuming you are in the *top level directory* of the code. If you install for the first time, it is recommended that you build the libraries one after the other. First change to the *external folder*:
+The *tarball files* for these libraries are in the *external* subfolder. I am assuming you are in the *top level directory* of the code. If you install for the first time, it is recommended that you build the libraries one by one. First change to the *external folder*:
 
 ```bash
 cd external
 ```
 
-Then build *FFTW*, *ACCFFT*, *PETSc*, and *NIFTICLIB* do the following line by line:
+Then build *FFTW*, *ACCFFT*, *PETSc*, and *NIFTICLIB* do doing the following **line by line**:
 
 ```bash
 ./build_libs.sh --bfftw
@@ -55,7 +55,7 @@ Then build *FFTW*, *ACCFFT*, *PETSc*, and *NIFTICLIB* do the following line by l
 ./build_libs.sh --bnifti
 ```
 
-Please check the *cmake*, *make* and *automake* outputs for errors. To check if everything worked you can also inspect the "build" subfolders of the individual libraries in the "lib" folder (subdirectories of [external](external)). See if folders in "build" were created and the library and include files exist. If there are problems, consult [doc/README-INSTALL.md](doc/README-INSTALL.md). 
+Please check the *cmake*, *make* and *automake* outputs for errors. To check if everything worked, you can also take a look at the "build" subfolders of the individual libraries in the "libs" subdirectory (subdirectories of [external](external)). See if folders in "build" were created and the libraries and include files exist. If there are problems, consult [doc/README-INSTALL.md](doc/README-INSTALL.md). 
 
 To **build** all **dependencies at once** run the *build_libs.sh* in the *external* subfolder:
 
@@ -67,23 +67,27 @@ cd external
 
 ### STEP 2: Set Environment Variables
 
-If you are still in the *external* subfolder do:
+If you are still in the *external* subfolder, do:
 
 ```bash
 source libs/environment_vars.sh
 ```
 
+If you are in the top level directory of your code, do:
+
+```bash
+source external/libs/environment_vars.sh
+```
 
 ### STEP 3: Compile COLDREG
 
-If your still in the *external* subfolder, change back to the *top level directory* of the code (i.e., `cd ..`). Then do
+If you are using an *intel compiler* set `USEINTEL` in the [makefile](makefile) to `yes`; if not, set it to `no`. If you are using *IntelMPI* set `USEINTELMPI` in the makefile to `yes`; if not, set it to `no`.
+
+In the *top level directory* of the code, do
 
 ```bash
 make -j
 ```
-
-If you are using an *intel compiler* set `USEINTEL` in the [makefile](makefile) to `yes`; if not, set it to `no`. If you are using *IntelMPI* set `USEINTELMPI` in the makefile to `yes`; if not, set it to `no`.
-
 
 
 ## Runing COLDREG
@@ -94,7 +98,7 @@ To run COLDREG with a 32x32x32 test example do
 ./bin/runcoldreg
 ```
 
-To **run** a simple test problem using the provided test images do:
+To **run** a simple test problem using some test images do:
 
 ```bash
 ./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
@@ -124,4 +128,4 @@ More information on how to **add**, **install**, and **link** these libraries, c
 
 ## License
 
-Read the [License](LICENSE) for more details.
+Read the [license](LICENSE) file for more details.
