@@ -1,25 +1,21 @@
 # COLDREG
 
-**COLDREG** implements a parallel solver for **Constrained Large Deformation Diffeomorphic Image Registration**. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
-
-## Content
-
-* Installation
-* Running COLDREG
-* Advanced Instructions
-* License
-
-If there are any issues or you have any questions send me an email: <andreas@ices.utexas.edu>.
+**COLDREG** implements a parallel solver for *Constrained Large Deformation Diffeomorphic Image Registration*. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
 
 ## Installation
 
+If there are any issues or you have any questions send an email to <andreas@ices.utexas.edu>.
+
 ### Requirements
 
-* **cmake** [cmake](https://cmake.org)
-* **python** version 2.7
-* **mpicc**, **mpicxx** should be in the path and should support openMP
+* **cmake** (at least version 2.8; [https://cmake.org](https://cmake.org))
+* **python** (version 2.7)
+* **mpicc** and **mpicxx** should be in the path
 
-### INSTALL
+
+### Installation Instructions
+
+#### Build Dependencies
 
 ```bash
 cd external
@@ -28,24 +24,27 @@ source libs/environment_vars.sh
 cd ..
 ```
 
-If you are using an *intel compiler* set `USEINTEL` in the [makefile](makefile) to `yes`; if not, set it to `no`. If you are using *IntelMPI* set `USEINTELMPI` in the makefile to `yes`; if not, set it to `no`.
+#### Build COLDREG
 
-In the *top level directory* of the code, do
+* Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
+* Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
+
+To build the binary, in the *top level directory* of the code, do
 
 ```bash
 make -j
 ```
 
 
-## Runing COLDREG
+## Run COLDREG
 
-To run COLDREG with a 32x32x32 image registration test example do
+* Run image registration test example:
 
 ```bash
 ./bin/runcoldreg
 ```
 
-To **run** a simple test problem using some test images do:
+* Run image registration problem with input images:
 
 ```bash
 ./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
@@ -53,13 +52,13 @@ To **run** a simple test problem using some test images do:
 
 Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images, `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
 
-To learn about the **options** you can do
+* General options:
 
 ```bash
 ./bin/runcoldreg -help
 ```
 
-For more advanced options do
+* Advanced options
 
 ```bash
 ./bin/runcoldreg -advanced
@@ -75,4 +74,4 @@ More information on how to **add**, **install**, and **link** these libraries, c
 
 ## License
 
-Read the [license](LICENSE) file for more details.
+Read the [LICENSE](LICENSE) file for more details.
