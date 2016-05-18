@@ -157,10 +157,7 @@ int main(int argc,char **argv)
     ierr=optimizer->SetProblem(registration); CHKERRQ(ierr);
 
     // run the solver
-    if ( regopt->DoParameterContinuation() ){
-        ierr=optimizer->RunBetaCont(); CHKERRQ(ierr);
-    }
-    else{ ierr=optimizer->Run(); CHKERRQ(ierr); }
+    ierr=optimizer->Run(); CHKERRQ(ierr);
 
     // run the optimizer
     ierr=optimizer->Finalize(); CHKERRQ(ierr);

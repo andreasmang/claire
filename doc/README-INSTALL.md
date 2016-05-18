@@ -150,7 +150,10 @@ You can also find a list of the available options for the binary in [doc/help.tx
 	* **fix**:
 		* set `USEINTELMPI` in the [makefile](../makefile) to `yes` 
 		* when building the libraries add `--useimpi`: `./build_libs.sh --build --useimpi`
-7. libmpi.so.4: could not read symbols: Bad value (see 6.)
+7. libmpi.so: could not read symbols: Bad value (see 6.)
+8. libimf.so: warning: warning: feupdateenv is not implemented and will always fail
+	* you probably use an intel compiler but did not set `USEINTEL` to `yes`
+	* **fix**: set `USEINTEL` in the [makefile](../makefile) to `yes` 
 8. other dependencies (should in general be available on your system)
 	* cmake (https://cmake.org; required by ACCFFT and niftilib; version 2.8 or greater)
 	* openMP (required by ACCFFT)

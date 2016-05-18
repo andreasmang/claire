@@ -326,15 +326,15 @@ private:
 
     // parameters for optimization
     struct Optimization{
+        int maxit;
         ScalarType tol[3];
         OptMeth method;
-        int maxit;
     };
 
     // parameters for KKT solver
     struct KKTSolver{
-        ScalarType tol[3];
         int maxit;
+        ScalarType tol[3];
         FSeqType fseqtype; ///<forcing sequence type
     };
 
@@ -347,6 +347,7 @@ private:
     struct ParameterContinuation{
         ScalarType betamin; ///< minimal regularization parameter
         ScalarType jacbound; ///< lower bound for jacobian
+        int maxsteps;
         bool enabled; ///< flag if parameter continuation is switched on
     };
 

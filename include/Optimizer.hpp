@@ -44,12 +44,10 @@ public:
 
     PetscErrorCode SetProblem(OptProbType*);
 
-
     PetscErrorCode Run();
-    PetscErrorCode RunBetaCont();
     PetscErrorCode GetSolution(Vec&);
+    PetscErrorCode SetInitialGuess(Vec);
     PetscErrorCode Finalize();
-
 
 private:
 
@@ -57,14 +55,20 @@ private:
     PetscErrorCode ClearMemory(void);
     PetscErrorCode DoSetup(void);
 
+    PetscErrorCode RunGridContinuation();
+    PetscErrorCode RunScaleContinuation();
+    PetscErrorCode RunParameterContinuation();
+
     RegOpt* m_Opt;
     OptProbType* m_OptimizationProblem;
 
     Tao m_Tao;
     TaoLineSearch m_LineSearch; ///< line search type
-    KSP m_KSP; ///< KSP
-    PC m_KKTPC; ///< KSP preconditioner
+    KSP m_KSP; ///< KSP object
+    PC m_KKTPC; ///< KSP preconditioner object
 
+    Vec m_Solution; ///< solution vector
+    Vec m_InitialGuess; ///< initial guess
 
 
 };

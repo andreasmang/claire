@@ -65,6 +65,8 @@ PetscErrorCode Optimizer::Initialize(void)
     PetscFunctionBegin;
 
     this->m_Tao = NULL;
+    this->m_Solution = NULL;
+    this->m_InitialGuess = NULL;
     this->m_OptimizationProblem = NULL;
 
     PetscFunctionReturn(0);
@@ -90,6 +92,47 @@ PetscErrorCode Optimizer::ClearMemory(void)
         this->m_Tao=NULL;
     }
 
+    if (this->m_InitialGuess != NULL){
+        ierr=VecDestroy(&this->m_InitialGuess); CHKERRQ(ierr);
+        this->m_InitialGuess = NULL;
+    }
+
+    if (this->m_Solution != NULL){
+        ierr=VecDestroy(&this->m_Solution); CHKERRQ(ierr);
+        this->m_Solution = NULL;
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * Name: SetInitialGuess
+ * Description: set the initial guess (warm start)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetInitialGuess"
+PetscErrorCode Optimizer::SetInitialGuess(Vec x0)
+{
+    PetscErrorCode ierr;
+    IntType nlukwn,ngukwn;
+
+    PetscFunctionBegin;
+
+    ierr=Assert(x0!=NULL,"opt prob is null"); CHKERRQ(ierr);
+
+    nlukwn = 3*this->m_Opt->GetNLocal();
+    ngukwn = 3*this->m_Opt->GetNGlobal();
+
+    // create all zero initial guess, if it has not been set already
+    if (this->m_InitialGuess == NULL){
+        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_InitialGuess); CHKERRQ(ierr);
+        ierr=VecSetSizes(this->m_InitialGuess,nlukwn,ngukwn); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(this->m_InitialGuess); CHKERRQ(ierr);
+    }
+
+    ierr=VecCopy(x0,this->m_InitialGuess); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -129,7 +172,6 @@ PetscErrorCode Optimizer::DoSetup()
     IntType nlukwn,ngukwn;
     ScalarType gatol,grtol,gttol,reltol,abstol,divtol;
     IntType maxit;
-    Vec v0;
     Mat HMatVec;
     KSP taoksp;
     PC taokktpc;
@@ -140,11 +182,23 @@ PetscErrorCode Optimizer::DoSetup()
     nlukwn = 3*this->m_Opt->GetNLocal();
     ngukwn = 3*this->m_Opt->GetNGlobal();
 
-    // allocate vector fields
-    ierr=VecCreate(PETSC_COMM_WORLD,&v0); CHKERRQ(ierr);
-    ierr=VecSetSizes(v0,nlukwn,ngukwn); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(v0); CHKERRQ(ierr);
-    ierr=VecSet(v0,0.0); CHKERRQ(ierr);
+    // create all zero initial guess, if it has not been set already
+    if (this->m_InitialGuess == NULL){
+        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_InitialGuess); CHKERRQ(ierr);
+        ierr=VecSetSizes(this->m_InitialGuess,nlukwn,ngukwn); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(this->m_InitialGuess); CHKERRQ(ierr);
+        ierr=VecSet(this->m_InitialGuess,0.0); CHKERRQ(ierr);
+    }
+    if (this->m_Solution != NULL){
+        ierr=VecDestroy(&this->m_Solution); CHKERRQ(ierr);
+        this->m_Solution = NULL;
+    }
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_Solution,nlukwn,ngukwn); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
+
+    // store the best we have so far in solution vector
+    ierr=VecCopy(this->m_InitialGuess,this->m_Solution); CHKERRQ(ierr);
 
     if(this->m_Tao != NULL){
         ierr=TaoDestroy(&this->m_Tao); CHKERRQ(ierr);
@@ -154,7 +208,7 @@ PetscErrorCode Optimizer::DoSetup()
     std::string method = "nls";
     ierr=TaoCreate(PETSC_COMM_WORLD,&this->m_Tao); CHKERRQ(ierr);
     ierr=TaoSetType(this->m_Tao,"nls"); CHKERRQ(ierr);
-    ierr=TaoSetInitialVector(this->m_Tao,v0); CHKERRQ(ierr);
+    ierr=TaoSetInitialVector(this->m_Tao,this->m_InitialGuess); CHKERRQ(ierr);
 
     // set the routine to evaluate the objective and compute the gradient
     ierr=TaoSetObjectiveRoutine(this->m_Tao,EvaluateObjective,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
@@ -238,8 +292,8 @@ PetscErrorCode Optimizer::DoSetup()
         divtol = this->m_Opt->GetKKTSolverTol(2); // 1E+06;
         maxit  = this->m_Opt->GetKKTMaxit(); // 1000;
         ierr=KSPSetTolerances(taoksp,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
-        //ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_FALSE); CHKERRQ(ierr);
-        ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_TRUE); CHKERRQ(ierr);
+        ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_FALSE); CHKERRQ(ierr);
+        //ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_TRUE); CHKERRQ(ierr);
 
         //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
         //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
@@ -264,6 +318,7 @@ PetscErrorCode Optimizer::Run()
 {
     PetscErrorCode ierr;
     int rank;
+    Vec x;
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -281,10 +336,27 @@ PetscErrorCode Optimizer::Run()
     ierr=this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);
 
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
-    ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
-    if (rank == 0) std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
+
+    if( this->m_Opt->DoParameterContinuation() ){
+        // start the parameter continuation
+        ierr=this->RunParameterContinuation(); CHKERRQ(ierr);
+    }
+    else{
+
+        // solve
+        ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
+
+        // get solution
+        ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+
+        // copy solution into place holder
+        ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+
+    }
+
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
     ierr=Msg("optimization done"); CHKERRQ(ierr);
-    if (rank == 0) std::cout<<std::string(this->m_Opt->GetLineLength(),'-')<<std::endl;
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
 
     ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
@@ -299,17 +371,20 @@ PetscErrorCode Optimizer::Run()
  * Description: run the optimizer
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "RunBetaCont"
-PetscErrorCode Optimizer::RunBetaCont()
+#define __FUNCT__ "RunParameterContinuation"
+PetscErrorCode Optimizer::RunParameterContinuation()
 {
     PetscErrorCode ierr;
     std::string levelmsg;
     std::stringstream levelss;
     ScalarType beta;
-    Vec x;
-    int maxsteps = 10;
+    Vec x,xsol;
+    int maxsteps = 10, rank;
     bool stop;
+
     PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // check of optimization problem has been set
     ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
@@ -320,12 +395,12 @@ PetscErrorCode Optimizer::RunBetaCont()
     }
     ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
 
-    // do the inversion
-    ierr=this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);
 
     levelmsg = "level ";
     ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
 
+    ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+    ierr=VecDuplicate(x,&xsol); CHKERRQ(ierr);
     beta = 1.0;
 
     // reduce regularization parameter by one order of magnitude until
@@ -335,7 +410,9 @@ PetscErrorCode Optimizer::RunBetaCont()
         this->m_Opt->SetRegularizationWeight(beta);
 
         levelss << std::setw(3) << i <<" (beta="<<beta<<")";
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
         ierr=Msg(levelmsg + levelss.str()); CHKERRQ(ierr);
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
         levelss.str("");
 
         // solve optimization probelm for current regularization parameter
@@ -348,14 +425,12 @@ PetscErrorCode Optimizer::RunBetaCont()
 
         if (stop) break; // if bound reached go home
 
+        // if we got here, the solution is valid
+        ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+
         beta /= 10.0; // reduce beta
 
     }
-    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
-    ierr=Msg("optimization done"); CHKERRQ(ierr);
-    ierr=Msg(std::string(this->m_Opt->GetLineLength(),'-'));
-
-    ierr=this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -377,10 +452,12 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(this->m_Tao !=NULL, "optimization has not been performed"); CHKERRQ(ierr);
+    ierr=Assert(x !=NULL, "input pointer is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Tao !=NULL, "optimization object has not been initialized"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Solution !=NULL, "solution vector is null pointer"); CHKERRQ(ierr);
 
-    ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
-
+    //ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+    ierr=VecCopy(this->m_Solution,x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -397,16 +474,15 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
 PetscErrorCode Optimizer::Finalize()
 {
     PetscErrorCode ierr;
-    Vec x;
     PetscFunctionBegin;
 
     ierr=Assert(this->m_Tao !=NULL, "optimization has not been performed"); CHKERRQ(ierr);
     ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
 
-    ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+    //ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
 
     // finalize the registration (write out all data)
-    ierr=this->m_OptimizationProblem->Finalize(x); CHKERRQ(ierr);
+    ierr=this->m_OptimizationProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
     // display info to user, once we're done
     ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
