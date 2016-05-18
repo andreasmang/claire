@@ -145,13 +145,13 @@ You can also find a list of the available options for the binary in [doc/help.tx
 5. ./include/RegUtils.hpp:33:19: fatal error: petsc.h: No such file or directory
 	* you probably forgot to set the environment variables
 	* **fix**: `source external/libs/environment_vars.sh`
-7. definition in ...libmpi_mt.so section .tbss mismatches non-TLS definition in ...libmpi.so.4 section .bss
+6. definition in ...libmpi_mt.so section .tbss mismatches non-TLS definition in ...libmpi.so.4 section .bss
 	* you have used inconsistent MPI libraries during the build (thread safe vs. non-thread safe)
 	* **fix**:
 		* set `USEINTELMPI` in the [makefile](../makefile) to `yes` 
 		* when building the libraries add `--useimpi`: `./build_libs.sh --build --useimpi`
-8. libmpi.so.4: could not read symbols: Bad value (see 7.)
-9. other dependencies (should in general be available on your system)
+7. libmpi.so.4: could not read symbols: Bad value (see 6.)
+8. other dependencies (should in general be available on your system)
 	* cmake (https://cmake.org; required by ACCFFT and niftilib; version 2.8 or greater)
 	* openMP (required by ACCFFT)
 	* `crypt` library (required by PETSc)
