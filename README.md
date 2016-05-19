@@ -51,7 +51,7 @@ To run an image registration test example do:
 
 ### Using Input Images
 
-To run an image registration problem with input images do:
+To run an image registration problem with input images do (`-nx` option is **mandatory**):
 
 ```bash
 ./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
