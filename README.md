@@ -40,25 +40,29 @@ make -j
 
 ## Run COLDREG
 
-* Run image registration test example:
+
+### Test Problem
+
+To run an image registration test example do:
 
 ```bash
 ./bin/runcoldreg
 ```
 
-* Run image registration problem with input images:
+### Using Input Images
+
+To run an image registration problem with input images do:
 
 ```bash
 ./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
 ```
 
-Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images, `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
+Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images (currently **mandatory**), `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
 
 **Important**: We assume that
 
 * the images have been **affinely pre-registered** (same voxel dimensions and grid size)
 * the `-nx` option is **mandatory**
- 
 * General options:
 
 ```bash
