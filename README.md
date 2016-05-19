@@ -63,13 +63,17 @@ Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-
 
 * the images have been **affinely pre-registered** (same voxel dimensions and grid size)
 * the `-nx` option is **mandatory**
-* General options:
+
+
+### Options
+
+To see the basic options do:
 
 ```bash
 ./bin/runcoldreg -help
 ```
 
-* Advanced options
+For more advanced options do:
 
 ```bash
 ./bin/runcoldreg -advanced
