@@ -99,10 +99,21 @@ PetscErrorCode ReadWriteReg::ClearMemory()
 PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
+    std::string file, msg;
     PetscFunctionBegin;
 
     // has to be allocated elsewhere (TODO: needs to be fixed)
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // get file name without path
+    ierr=GetFileName(file,filename); CHKERRQ(ierr);
+
+    // display what we are doing
+    if (this->m_Opt->GetVerbosity() > 1){
+        msg = "reading " + file;
+        ierr=DbgMsg(msg); CHKERRQ(ierr);
+    }
+
 
 //    if (filename.find(".nc") != std::string::npos){
 //        ierr=this->ReadNetCDF(x,filename); CHKERRQ(ierr);
@@ -262,9 +273,20 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
 PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
 {
     PetscErrorCode ierr;
+    std::string file,msg;
     PetscFunctionBegin;
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+
+
+    // get file name without path
+    ierr=GetFileName(file,filename); CHKERRQ(ierr);
+
+    // display what we are doing
+    if (this->m_Opt->GetVerbosity() > 2){
+        msg = "writing " + file;
+        ierr=DbgMsg(msg); CHKERRQ(ierr);
+    }
 
     filename = this->m_Opt->GetXFolder() + filename;
 //    if (filename.find(".nc") != std::string::npos){
@@ -704,12 +726,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     // get file name without path
     ierr=GetFileName(file,filename); CHKERRQ(ierr);
 
-    // display what we are doing
-    if (this->m_Opt->GetVerbosity() >= 1){
-        msg = "reading " + file;
-        ierr=DbgMsg(msg); CHKERRQ(ierr);
-    }
-
     // check if file exists
     msg = "file " + file + "does not exist";
     ierr=Assert(FileExists(filename),msg); CHKERRQ(ierr);
@@ -953,6 +969,7 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
     //rescale = this->m_RescaleImage;
     //this->m_RescaleImage = true;
 
+
     // write x buffer to nifti image
     //ierr=this->WriteNII(&this->m_Image,x,filename); CHKERRQ(ierr);
     ierr=this->WriteNII(&image,x,filename); CHKERRQ(ierr);
@@ -1088,8 +1105,8 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
         // will also create a standard header file; not tested (might need
         // to parse the dimensions of the data)
         if( (*niiimage) == NULL){
-            if (this->m_Opt->GetVerbosity() >= 3){
-                msg="initializing empty nifty image";
+            if (this->m_Opt->GetVerbosity() >= 4){
+                msg="allocating buffer for nifti image";
                 ierr=DbgMsg(msg); CHKERRQ(ierr);
             }
             ierr=this->AllocateNII(niiimage,x); CHKERRQ(ierr);

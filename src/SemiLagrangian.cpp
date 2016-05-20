@@ -286,9 +286,13 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
 
     PetscFunctionBegin;
 
+    ierr=Assert(y != NULL, "input map is null"); CHKERRQ(ierr);
+    ierr=Assert(v != NULL, "input velocity field is null"); CHKERRQ(ierr);
+
     if (this->m_InitialTrajectory == NULL){
         ierr=this->ComputeInitialCondition(); CHKERRQ(ierr);
     }
+
 
     if (this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -315,7 +319,6 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
     hthalf = 0.5*ht;
 
     ierr=y->Copy(this->m_InitialTrajectory); CHKERRQ(ierr);
-
 
     ierr=VecGetArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
     ierr=VecGetArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
@@ -367,7 +370,6 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
 
         }
    }
-
     ierr=VecRestoreArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X3,&p_vx3); CHKERRQ(ierr);
@@ -815,6 +817,10 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
         }
     }
 
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("slm: computing initial condition"); CHKERRQ(ierr);
+    }
+
     for (int i = 0; i < 3; ++i){
         hx[i]     = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->h[i]);
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
@@ -841,7 +847,6 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
 
                 // compute linear / flat index
                 li = GetLinearIndex(i1,i2,i3,isize);
-
                 // assign values
                 p_x1[li] = x1;
                 p_x2[li] = x2;

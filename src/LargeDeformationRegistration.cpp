@@ -447,8 +447,12 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
     IntType isize[3],istart[3];
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,hx[3];
     int problem=3;
+
     PetscFunctionBegin;
 
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("setting up synthetic test problem"); CHKERRQ(ierr);
+    }
     nl = this->m_Opt->GetNLocal();
     ng = this->m_Opt->GetNGlobal();
 
@@ -736,7 +740,12 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
     PetscErrorCode ierr;
     ScalarType minddg,maxddg,meanddg;
     std::stringstream ss, ssnum;
+
     PetscFunctionBegin;
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
+    }
 
     if (this->m_VelocityField == NULL){
        try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -1130,13 +1139,17 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-//    if (this->m_VelocityField == NULL){
-//       try{this->m_VelocityField = new VecField(this->m_Opt);}
-//        catch (std::bad_alloc&){
-//            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-//        }
-//        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-//    }
+    if (this->m_VelocityField == NULL){
+       try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    }
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("computing deformation map"); CHKERRQ(ierr);
+    }
 
     // call the solver
     switch (this->m_Opt->GetPDESolver()){
@@ -1164,7 +1177,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
 
 
 /********************************************************************
- * Name: ComputeDeformationMapSL
+ * Name: ComputeDeformationMapRK2
  * Description: compute deformation map
  *******************************************************************/
 #undef __FUNCT__
@@ -1193,6 +1206,9 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    ierr=Assert(this->m_VelocityField != NULL, "velocity field is null pointer"); CHKERRQ(ierr);
+
+    // allocate vector fields
     if (this->m_WorkVecField1 == NULL){
        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -1200,19 +1216,17 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
         }
     }
 
-    // allocate vector fields
-//    if(this->m_SL == NULL){
-//        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
-//        catch (std::bad_alloc&){
-//            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-//        }
-//        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
-//    }
+    // allocate semi-lagrangian solver
+    if(this->m_SL == NULL){
+        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
 
-    // compute J(X,t^j)
+    // compute deformation map y using an SL time integrator
     ierr=this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);
-    ierr=this->m_SL->ComputeDeformationMap(this->m_WorkVecField1,
-                                           this->m_VelocityField); CHKERRQ(ierr);
+    ierr=this->m_SL->ComputeDeformationMap(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

@@ -34,6 +34,7 @@ PetscErrorCode Assert(bool condition,std::string msg)
 
 
 
+
 /********************************************************************
  * Name: GetFileName
  * Description: get the filename of an image
@@ -62,6 +63,7 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
 
 
 
+
 /********************************************************************
  * Name: FileExists
  * Description: check if file exists
@@ -73,6 +75,7 @@ bool FileExists(const std::string& filename)
     struct stat buffer;
     return (stat(filename.c_str(), &buffer) == 0);
 }
+
 
 
 
@@ -147,6 +150,8 @@ PetscErrorCode WrngMsg(std::string msg)
 }
 
 
+
+
 /********************************************************************
  * Name: ThrowError
  * Description: throw error
@@ -165,6 +170,7 @@ PetscErrorCode ThrowError(std::string msg)
 
     PetscFunctionReturn(0);
 }
+
 
 
 
