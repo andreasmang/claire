@@ -49,17 +49,17 @@ You can also add a **prefix** by doing `-x /path/to/results/prefix_`. This will 
 The outputs are:
 
 file                            | explanation
----                             |---
-reference-image.nii.gz          | reference image (fixed image)
-template-image.nii.gz           | template image (image to be registered)
-velocity-field-x1.nii.gz        | x1 component of computed velocity field
-velocity-field-x2.nii.gz        | x2 component of computed velocity field
-velocity-field-x3.nii.gz        | x3 component of computed velocity field
-deformed-template-image.nii.gz  | deformed template image
-deformation-map-x1.nii.gz       | x1 component of computed deformation map
-deformation-map-x2.nii.gz       | x2 component of computed deformation map
-deformation-map-x3.nii.gz       | x3 component of computed deformation map
-det-deformation-grad.nii.gz     | determinant of deformation gradient (jacobian)
+--------------------------------|--------------------------------------------
+reference-image.nii.gz          | reference image (fixed image) *mR*
+template-image.nii.gz           | template image (image to be registered) *mT*
+velocity-field-x1.nii.gz        | x1 component of computed velocity field *v*
+velocity-field-x2.nii.gz        | x2 component of computed velocity field *v*
+velocity-field-x3.nii.gz        | x3 component of computed velocity field *v*
+deformed-template-image.nii.gz  | deformed template image (template image after registration)
+deformation-map-x1.nii.gz       | x1 component of computed deformation map *y*
+deformation-map-x2.nii.gz       | x2 component of computed deformation map *y*
+deformation-map-x3.nii.gz       | x3 component of computed deformation map *y*
+det-deformation-grad.nii.gz     | determinant of deformation gradient (jacobian; det(grad(y)))
 residual-after.nii.gz           | residual / mismatch after registration
 residual-before.nii.gz          | residual / mismatch before registration
 velocity-field-2norm.nii.gz     | l2 norm of velocity field
