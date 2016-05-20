@@ -128,7 +128,7 @@ PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
     else if (filename.find(".hdr") != std::string::npos){
         ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
     }
-    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
+    else{ ierr=ThrowError("could not read: data type not supported"); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 }
@@ -302,7 +302,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
     else if (filename.find(".hdr") != std::string::npos){
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
     }
-    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
+    else{ ierr=ThrowError("could not write: data type not supported"); CHKERRQ(ierr); }
 
 
     PetscFunctionReturn(0);

@@ -480,8 +480,8 @@ PetscErrorCode RegOpt::Usage()
         std::cout<< line << std::endl;
         std::cout<< " -mr <file>              reference image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
         std::cout<< " -mt <file>              template image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); grid is assumed to be uniform if only a"<<std::endl;
-        std::cout<< "                         single integer is provided (i.e., for '-nx 32')"<<std::endl;
+        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); mandatory option; grid is assumed"<<std::endl;
+        std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " output"<<std::endl;
         std::cout<< line << std::endl;
@@ -547,12 +547,13 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< line << std::endl;
         std::cout<< " where [options] is one or more of the following"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -mr <file>              reference/fixed image (*.nii, *.nc)"<<std::endl;
-        std::cout<< " -mt <file>              template/deformable image (*.nii, *.nc)"<<std::endl;
-        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); grid is assumed to be uniform if only a"<<std::endl;
-        std::cout<< "                         single integer is provided (i.e., for '-nx 32')"<<std::endl;
+        std::cout<< " -mr <file>              reference image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
+        std::cout<< " -mt <file>              template image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
+        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); mandatory option; grid is assumed"<<std::endl;
+        std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -x <folder>             output folder (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout<< " -x <path>               output path (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout<< "                         a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
         std::cout<< " -xresults               flag: write results to file (default: not written; requires -x option)"<<std::endl;
         std::cout<< " -xlog                   flag: write log files (default: not written; requires -x option)"<<std::endl;
         std::cout<< line << std::endl;
@@ -581,7 +582,7 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< line << std::endl;
         std::cout<< " regularization parameters"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -regnorm <type>         regularization norm (default: h2s)"<<std::endl;
+        std::cout<< " -regnorm <type>         regularization norm for velocity field (default: h2s)"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
         std::cout<< "                             h1s          H1-seminorm"<<std::endl;
         std::cout<< "                             h2s          H2-seminorm (default)"<<std::endl;
@@ -590,7 +591,7 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                             l2           l2-norm (discouraged)"<<std::endl;
         std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
         std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-4)"<<std::endl;
-        std::cout<< " -estbeta                estimate regularization parameter (default: not enabled)"<<std::endl;
+        std::cout<< " -train                  estimate regularization parameter (default: not enabled)"<<std::endl;
         std::cout<< " -ic                     enable incompressibility constraint (det(grad(y))=1)"<<std::endl;
         std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
         std::cout<< line << std::endl;
@@ -598,8 +599,8 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< line << std::endl;
         std::cout<< " -pdesolver <type>       numerical time integrator for transport equations (default: sl)"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
-        std::cout<< "                             sl           semi-Lagrangian method"<<std::endl;
-        std::cout<< "                             rk2          rk2 time integrator"<<std::endl;
+        std::cout<< "                             sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
+        std::cout<< "                             rk2          rk2 time integrator (conditionally stable)"<<std::endl;
         std::cout<< " -nt <int>               number of time points (for time integration; default: 4)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " memory distribution and parallelism"<<std::endl;
