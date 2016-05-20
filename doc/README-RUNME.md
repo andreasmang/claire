@@ -49,7 +49,7 @@ You can also add a **prefix** by doing `-x /path/to/results/prefix_`. This will 
 The outputs are:
 
 file                            | explanation
----------------------------------------------------------------------------------
+--------------------------------|------------------------------------------------
 reference-image.nii.gz          | reference image (fixed image)
 template-image.nii.gz           | template image (image to be registered)
 velocity-field-x1.nii.gz        | x1 component of computed velocity field
