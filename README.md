@@ -52,7 +52,9 @@ make -j
 ./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
 ```
 
-Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images, `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
+Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images, `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images (makes `-x` option mandatory), the computed velocity field, the deformation map, and derived measures.
+
+More details about these options and the output can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
 
 * General options:
 
@@ -71,8 +73,7 @@ You can also find a list of the available options for the binary in [doc/help.tx
 
 ## Advanced Instructions
 
-More information on how to **add**, **install**, and **link** these libraries, can be found in [doc/README-INSTALL.md](doc/README-INSTALL.md).
-
+More information on how to **add**, **install**, and **link** these libraries, can be found in [doc/README-INSTALL.md](doc/README-INSTALL.md). More details about how to run the software can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
 
 ## License
 

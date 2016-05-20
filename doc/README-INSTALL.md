@@ -105,25 +105,7 @@ make -j
 
 ## Running COLDREG
 
-If everything compiled correctly, you can run a test example by doing:
-
-```bash
-./bin/runcoldreg
-```
-
-To get a general idea on how to run the binary do:
-
-```bash
-./bin/runcoldreg -help
-```
-
-For more advanced options do:
-
-```bash
-./bin/runcoldreg -advanced
-```
-
-You can also find a list of the available options for the binary in [doc/help.txt](help.txt) and [doc/advanced-help.txt](advanced-help.txt).
+Details on how to run coldreg are summarized in [doc/README-RUNME.md](README-RUNME.md). A list of the available options for the binary can be found in [doc/help.txt](help.txt) and [doc/advanced-help.txt](advanced-help.txt).
 
 
 
