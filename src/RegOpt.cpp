@@ -430,6 +430,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_ParameterCont.enabled = false;
     this->m_ParameterCont.betamin = 1E-6;
     this->m_ParameterCont.jacbound = 2E-1;
+    this->m_ParameterCont.maxsteps = 10;
 
     this->m_RegMonitor.monitorJAC = false;
     this->m_RegMonitor.monitorCFL = false;
@@ -871,33 +872,33 @@ PetscErrorCode RegOpt::DisplayOptions()
         std::cout<< line << std::endl;
 
         // display regularization model
-        std::cout<< std::left << std::setw(indent) <<" regularization model";
+        std::cout<< std::left << std::setw(indent) <<" regularization model v";
 
         if(this->m_ParameterCont.enabled){
             switch(this->m_Regularization.norm){
                 case L2:
                 {
-                    std::cout<<"L2-norm (beta estimated)"<<std::endl;
+                    std::cout<<"L2-norm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout<<"H1-norm (beta estimated)"<<std::endl;
+                    std::cout<<"H1-norm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H2:
                 {
-                    std::cout<<"H2-norm (beta estimated)"<<std::endl;
+                    std::cout<<"H2-norm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H1SN:
                 {
-                    std::cout<<"H1-seminorm (beta estimated)"<<std::endl;
+                    std::cout<<"H1-seminorm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout<<"H2-seminorm (beta estimated)"<<std::endl;
+                    std::cout<<"H2-seminorm (betav estimated)"<<std::endl;
                     break;
                 }
                 default:
@@ -920,14 +921,14 @@ PetscErrorCode RegOpt::DisplayOptions()
             switch(this->m_Regularization.norm){
                 case L2:
                 {
-                    std::cout   << "L2-norm (beta="
+                    std::cout   << "L2-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout   << "H1-norm (beta="
+                    std::cout   << "H1-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ", "<< this->m_Regularization.beta[1]
                                 << ") "<<std::endl;
@@ -935,7 +936,7 @@ PetscErrorCode RegOpt::DisplayOptions()
                 }
                 case H2:
                 {
-                    std::cout   << "H2-norm (beta="
+                    std::cout   << "H2-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ", "<< this->m_Regularization.beta[1]
                                 << ")" <<std::endl;
@@ -943,20 +944,26 @@ PetscErrorCode RegOpt::DisplayOptions()
                 }
                 case H1SN:
                 {
-                    std::cout   <<  "H1-seminorm (beta="
+                    std::cout   <<  "H1-seminorm (betav="
                                 <<  this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout   << "H2-seminorm (beta="
+                    std::cout   << "H2-seminorm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 default:{ ierr=ThrowError("regularization model not implemented"); CHKERRQ(ierr); break; }
             }
+        }
+        if (this->m_RegModel == reg::RELAXEDSTOKES){
+            // display regularization model
+            std::cout<< std::left << std::setw(indent) <<" regularization model w";
+            std::cout   <<  "H1-seminorm (betaw="
+                        <<  this->m_Regularization.beta[2]<< ")" <<std::endl;
         }
 
         // display regularization model

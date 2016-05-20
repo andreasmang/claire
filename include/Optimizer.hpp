@@ -57,6 +57,7 @@ private:
 
     PetscErrorCode RunGridContinuation();
     PetscErrorCode RunScaleContinuation();
+    PetscErrorCode ReduceRegularization();
     PetscErrorCode RunParameterContinuation();
 
     RegOpt* m_Opt;

@@ -230,6 +230,7 @@ public:
     inline void DoParameterContinuation(bool flag){this->m_ParameterCont.enabled = flag;};
     inline ScalarType GetJacBound(){return this->m_ParameterCont.jacbound;};
     inline void SetJacBound(ScalarType value){this->m_ParameterCont.jacbound=value;};
+    inline int GetMaxParaContSteps(){return this->m_ParameterCont.maxsteps;};
 
 
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};

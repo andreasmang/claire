@@ -338,8 +338,10 @@ PetscErrorCode Optimizer::Run()
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
 
     if( this->m_Opt->DoParameterContinuation() ){
+
         // start the parameter continuation
-        ierr=this->RunParameterContinuation(); CHKERRQ(ierr);
+        ierr=this->ReduceRegularization(); CHKERRQ(ierr);
+
     }
     else{
 
@@ -379,7 +381,7 @@ PetscErrorCode Optimizer::RunParameterContinuation()
     std::stringstream levelss;
     ScalarType beta;
     Vec x,xsol;
-    int maxsteps = 10, rank;
+    int maxsteps, rank;
     bool stop;
 
     PetscFunctionBegin;
@@ -395,6 +397,8 @@ PetscErrorCode Optimizer::RunParameterContinuation()
     }
     ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
 
+    // get max number of steps
+    maxsteps = this->m_Opt->GetMaxParaContSteps();
 
     levelmsg = "level ";
     ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
@@ -437,6 +441,79 @@ PetscErrorCode Optimizer::RunParameterContinuation()
 
 
 
+
+/********************************************************************
+ * Name: ReduceRegularization
+ * Description: solves the optimization problem by simply reducing
+ * the regularization parameter until the mapping becomes
+ * non-diffeomorphic/breaches the user defined bound
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ReduceRegularization"
+PetscErrorCode Optimizer::ReduceRegularization()
+{
+    PetscErrorCode ierr;
+    std::string levelmsg;
+    std::stringstream levelss;
+    ScalarType beta;
+    Vec x,xsol;
+    int maxsteps, rank;
+    bool stop;
+
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    // check of optimization problem has been set
+    ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
+
+    // do the setup
+    if (this->m_Tao == NULL){
+        ierr=this->DoSetup(); CHKERRQ(ierr);
+    }
+    ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
+
+    // get max number of steps
+    maxsteps = this->m_Opt->GetMaxParaContSteps();
+
+    levelmsg = "level ";
+    ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
+
+    ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+    ierr=VecDuplicate(x,&xsol); CHKERRQ(ierr);
+    beta = 1.0;
+
+    // reduce regularization parameter by one order of magnitude until
+    // we hit the tolerance
+    for(int i = 0; i < maxsteps; ++i){
+
+        this->m_Opt->SetRegularizationWeight(beta);
+
+        levelss << std::setw(3) << i <<" (beta="<<beta<<")";
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ierr=Msg(levelmsg + levelss.str()); CHKERRQ(ierr);
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        levelss.str("");
+
+        // solve optimization probelm for current regularization parameter
+        ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
+
+        ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+
+        stop=false; // not yet we're not
+        ierr=this->m_OptimizationProblem->CheckBounds(x,stop); CHKERRQ(ierr);
+
+        if (stop) break; // if bound reached go home
+
+        // if we got here, the solution is valid
+        ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+
+        beta /= 10.0; // reduce beta
+
+    }
+
+    PetscFunctionReturn(0);
+}
 
 
 
