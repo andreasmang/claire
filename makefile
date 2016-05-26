@@ -1,7 +1,7 @@
 CXX=mpicxx
 
-USEINTEL=no
-USEINTELMPI=no
+USEINTEL=yes
+USEINTELMPI=yes
 USEOPENMP=yes
 
 
