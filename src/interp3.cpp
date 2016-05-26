@@ -331,7 +331,7 @@ void par_interp3_ghost_xyz_p( Real* ghost_reg_grid_vals, int data_dof,
     std::vector<Real>().swap(query_outside[proc]);
   }
   return;
-}
+} // end of par_interp3_ghost_xyz_p
 
 
 
@@ -373,7 +373,7 @@ void rescale_xyz(const int g_size,  int* N_reg, int* N_reg_g, int* istart, const
     query_points[2+COORD_DIM*i]=(query_points[2+COORD_DIM*i]-istart[2]*h[2])*factor[2]+g_size*hp[2];
   }
   return;
-}
+} // end of rescale_xyz
 
 /*
  * Rescales the query points to [0,1) range for the parallel case. Note that the input query_points are initially
@@ -413,7 +413,7 @@ void rescale(const int g_size,  int* N_reg, int* N_reg_g, int* istart, const int
     //query_points[2+COORD_DIM*i]=(query_points[2+COORD_DIM*i]-istart[2]*h[2])*factor[2]+g_size*hp[2];
   }
   return;
-}
+}// end of rescale
 
 /*
  * Performs a 3D cubic interpolation for a row major periodic input (x \in [0,1) )
@@ -450,12 +450,7 @@ void interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
   // new array
     query_points=(Real*) malloc(N_pts*COORD_DIM*sizeof(Real));
     memcpy(query_points,query_points_in,N_pts*COORD_DIM*sizeof(Real));
-    //std::cout<<query_points[0]<<" "<<query_points[1]<<" "<<query_points[2]<<std::endl;
     rescale_xyz(g_size,N_reg,N_reg_g,istart,N_pts,query_points);
-    //std::cout<<"----------"<<query_points[0]<<" "<<query_points[1]<<" "<<query_points[2]<<std::endl;
-
-    //std::cout<<"N_reg[0]="<<N_reg[0]<<" N_reg[1]="<<N_reg[1]<<" N_reg[2]="<<N_reg[2]<<std::endl;
-    //std::cout<<"N_reg_g[0]="<<N_reg_g[0]<<" N_reg_g[1]="<<N_reg_g[1]<<" N_reg_g[2]="<<N_reg_g[2]<<std::endl;
   }
   else{
     query_points=query_points_in;
@@ -469,8 +464,6 @@ void interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
   }
 
   int N_reg3=isize_g[0]*isize_g[1]*isize_g[2];
-  //int N_pts=query_points.size()/COORD_DIM;
-  //query_values.resize(N_pts*data_dof);
 
   for(int i=0;i<N_pts;i++){
 #ifdef VERBOSE2
@@ -480,15 +473,14 @@ void interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
 #endif
     Real point[COORD_DIM];
     int grid_indx[COORD_DIM];
-    //grid_indx[0]=15;
-    //grid_indx[1]=15;
-    //grid_indx[2]=14;
+
     for(int j=0;j<COORD_DIM;j++){
       point[j]=query_points[COORD_DIM*i+j]*N_reg_g[j];
       grid_indx[j]=(floor(point[j]))-1;
       point[j]-=grid_indx[j];
       while(grid_indx[j]<0) grid_indx[j]+=N_reg_g[j];
     }
+
 #ifdef VERBOSE2
     std::cout<<"***** grid_index="<<grid_indx[0]<<" "<<grid_indx[1]<<" "<<grid_indx[2]<<std::endl;
     std::cout<<"***** point="<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
@@ -513,8 +505,6 @@ void interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
       for(int j2=0;j2<4;j2++){
         for(int j1=0;j1<4;j1++){
           for(int j0=0;j0<4;j0++){
-            //int indx = ((grid_indx[2]+j2)%N_reg) + N_reg*((grid_indx[1]+j1)%N_reg) + N_reg*N_reg*((grid_indx[0]+j0)%N_reg);
-            //int indx = ((grid_indx[2]+j2)%N_reg_g[2]) + N_reg_g[2]*((grid_indx[1]+j1)%N_reg_g[1]) + N_reg_g[2]*N_reg_g[1]*((grid_indx[0]+j0)%N_reg_g[0]);
             int indx = ((grid_indx[2]+j2)%isize_g[2]) + isize_g[2]*((grid_indx[1]+j1)%isize_g[1]) + isize_g[2]*isize_g[1]*((grid_indx[0]+j0)%isize_g[0]);
             val += M[0][j0]*M[1][j1]*M[2][j2] * reg_grid_vals[indx+k*N_reg3];
           }
@@ -523,10 +513,13 @@ void interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
       query_values[i+k*N_pts]=val;
     }
   }
+
   if(query_values_already_scaled==false){
     free(query_points);
   }
-}
+  return;
+
+}// end of interp3_ghost_xyz_p
 
 
 /*
@@ -630,7 +623,7 @@ void interp3_ghost_p( Real* reg_grid_vals, int data_dof,
     }
   }
   free(query_points);
-}
+}//end of interp3_ghost_p
 
 
 
@@ -709,7 +702,7 @@ void interp3_p( Real* reg_grid_vals, int data_dof,
       query_values[i+k*N_pts]=val;
     }
   }
-}
+} // end of interp3_p
 
 
 
@@ -788,7 +781,7 @@ void interp3_p( Real* reg_grid_vals, int data_dof,
       query_values[i+k*N_pts]=val;
     }
   }
-}
+} // end of interp3_p
 
 
 /*
@@ -860,5 +853,5 @@ void interp3_p_col( Real* reg_grid_vals, int data_dof,
       query_values[i+k*N_pts]=val;
     }
   }
-}
+} // end of interp3_p_col
 
