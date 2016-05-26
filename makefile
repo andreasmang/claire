@@ -50,7 +50,7 @@ endif
 LDFLAGS+= -lm
 
 BIN+= $(BINDIR)/runcoldreg
-#BIN+= $(BINDIR)/par_interp3_driver
+BIN+= $(BINDIR)/par_interp3_driver
 
 
 INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h LargeDeformationRegistration.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptProbRegistration.h PreProcessingRegistration.h
