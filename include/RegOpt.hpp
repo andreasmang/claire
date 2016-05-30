@@ -150,7 +150,9 @@ enum RegModel
 
 class RegOpt
 {
+
 public:
+
     typedef RegOpt Self;
 
     RegOpt();
@@ -191,7 +193,7 @@ public:
     inline void ReadImagesFromFile(bool flag){this->m_ReadImagesFromFile=flag;};
 
     inline bool StoreTimeSeries(){return this->m_StoreTimeSeries;};
-    inline void StoreTimeSeries(bool flag){this->m_StoreTimeSeries = flag;};
+    inline bool StoreIterates(){return this->m_StoreIterates;};
 
     // registration model
     inline RegModel GetRegModel(void){return this->m_RegModel;};
@@ -402,6 +404,7 @@ private:
     unsigned int m_NumThreads;
     unsigned int m_LineLength;
     bool m_StoreTimeSeries;
+    bool m_StoreIterates;
 
     bool m_WriteImages;
     bool m_WriteLogFiles;

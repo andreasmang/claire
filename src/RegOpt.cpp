@@ -295,6 +295,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-jmonitor") == 0){
             this->m_RegMonitor.monitorJAC = true;
         }
+        else if(strcmp(argv[1],"-storeiter") == 0){
+            this->m_StoreIterates = true;
+        }
         else {
             msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
@@ -426,6 +429,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_DD.n = 2;
 
     this->m_ReadImagesFromFile = false;
+    this->m_StoreIterates = false;
+    this->m_StoreTimeSeries = false;
 
     this->m_ParameterCont.enabled = false;
     this->m_ParameterCont.betamin = 1E-6;
@@ -614,6 +619,7 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< line << std::endl;
 //        std::cout<< " -usenc                  use *.nc as output format (default: *.nii.gz)"<<std::endl;
         std::cout<< " -verbosity <int>        verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        std::cout<< " -storeiter              store iterates"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -help                   display a brief version of the user message"<<std::endl;
         std::cout<< " -advanced               display this message"<<std::endl;

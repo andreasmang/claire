@@ -3201,13 +3201,23 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     PetscErrorCode ierr;
     int rank;
-    std::string filename;
+    IntType nl,nt;
+    std::string filename,fnx1,fnx2,fnx3;
     std::stringstream ss;
     std::ofstream logwriter;
+    ScalarType *p_m1=NULL,*p_m=NULL;
 
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    if (this->m_WorkScaField1 == NULL){
+        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+    }
+
+    // compute hd
+    nt = this->m_Opt->GetNumTimePoints();
+    nl = this->m_Opt->GetNLocal();
 
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL){
@@ -3218,23 +3228,71 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     }
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    // determinant of deformation gradient out
+    // store iterates
+    if ( this->m_Opt->StoreIterates() ){
+
+        // copy memory for m_1
+        ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
+        ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+        try{ std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
+        ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+
+        ss  << "deformed-template-image-i="
+            << std::setw(3) << std::setfill('0')
+            << this->m_NumOuterIter  << ".nii.gz";
+        ierr=this->m_IO->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
+        ss.str("");
+
+        // construct file names for velocity field components
+        ss  << "velocity-field-i="
+            << std::setw(3) << std::setfill('0')
+            << this->m_NumOuterIter  << "-x1.nii.gz";
+        fnx1 = ss.str();
+        ss.str("");
+
+        ss  << "velocity-field-i="
+            << std::setw(3) << std::setfill('0')
+            << this->m_NumOuterIter  << "-x2.nii.gz";
+        fnx2 = ss.str();
+        ss.str("");
+
+        ss  << "velocity-field-i="
+            << std::setw(3) << std::setfill('0')
+            << this->m_NumOuterIter  << "-x3.nii.gz";
+        fnx3 = ss.str();
+        ss.str("");
+
+        // velocity field out
+        ierr=this->m_IO->Write(this->m_VelocityField,fnx1,fnx2,fnx3); CHKERRQ(ierr);
+
+    } // store iterates
+
+    // compute determinant of deformation gradient and write it to file
     if ( this->m_Opt->MonitorJacobian() ){
 
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
         if (rank == 0){
+
             filename = this->m_Opt->GetXFolder()
                         + "registration-performance-jacobians.log";
             // create output file or append to output file
             logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
             ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
-            ss  << std::scientific << std::left
+            ss  << std::scientific
+                <<  "iter " << std::setw(3)
+                << std::right << this->m_NumOuterIter << "    " << std::left
                 << std::setw(20) << this->m_Opt->GetJacMin() << " "
                 << std::setw(20) << this->m_Opt->GetJacMean() <<" "
                 << std::setw(20) << this->m_Opt->GetJacMax();
             logwriter << ss.str() << std::endl;
+
         }
+
     }
 
     PetscFunctionReturn(0);
@@ -3258,7 +3316,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
     IntType nl;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
-
     ScalarType mRmT_2,mRmT_infty,mRm1_2,
                 mRm1_infty,mR_2,mR_infty,
                 drrel_infty,drrel_2;
