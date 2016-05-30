@@ -48,7 +48,11 @@ public:
     inline RegOpt* GetOptions(void){return this->m_Opt;};
 
     inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
-    inline void SetInitialGradNorm(ScalarType value){this->m_InitGradNorm = value;};
+    inline void SetInitialGradNorm(ScalarType value){this->m_InitGradNorm=value;};
+    inline ScalarType GetInitialMismatchVal(){return this->m_InitMismatchVal;};
+    inline void SetInitialMismatchVal(ScalarType value){this->m_InitMismatchVal=value;};
+    inline ScalarType GetInitialObjVal(){return this->m_InitObjectiveVal;};
+    inline void SetInitialObjVal(ScalarType value){this->m_InitObjectiveVal=value;};
 
     inline void SetKSPTolerance(ScalarType value){this->m_KSPTol = value;};
     inline void SetNumOuterIter(IntType value){this->m_NumOuterIter = value;};
@@ -112,10 +116,13 @@ protected:
 
     bool m_InFirstIteration;
 
-    ScalarType m_InitGradNorm;
     ScalarType m_KSPTol;
-    IntType m_NumOuterIter;
+    ScalarType m_InitGradNorm;
+    ScalarType m_InitMismatchVal;
+    ScalarType m_InitObjectiveVal;
     Mat m_PCMatVec;
+
+    IntType m_NumOuterIter;
 
 private:
 

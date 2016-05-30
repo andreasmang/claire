@@ -309,17 +309,14 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
     // check the arguments/parameters set by the user
     ierr=this->CheckArguments(); CHKERRQ(ierr);
 
-    // do the setup before running the code (this essentially
-    // concerns the memory distribution/the setup of accfft
-    ierr=this->DoSetup(); CHKERRQ(ierr);
-
     if (this->m_SolveType != NOTSET){
         ierr=this->SetPresetParameters(); CHKERRQ(ierr);
     }
+//    ierr=this->DoSetup(); CHKERRQ(ierr);
 
     // display the most important parameters of the setup
     // to the user
-    ierr=this->DisplayOptions(); CHKERRQ(ierr);
+//    ierr=this->DisplayOptions(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -383,6 +380,8 @@ PetscErrorCode RegOpt::Initialize()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+
+    this->m_SetupDone = false;
 
     this->m_MiscOpt = NULL;
     this->m_FFTPlan = NULL;
@@ -647,18 +646,12 @@ PetscErrorCode RegOpt::UsageAdvanced()
 PetscErrorCode RegOpt::CheckArguments()
 {
     PetscErrorCode ierr;
-    bool readmR,readmT;
+    bool readmR=false,readmT=false;
     std::string msg;
     PetscFunctionBegin;
 
-    readmR=false;
-    if(!this->m_ReferenceFN.empty()){
-        readmR=true;
-    }
-    readmT=false;
-    if(!this->m_TemplateFN.empty()){
-        readmT=true;
-    }
+    if(!this->m_TemplateFN.empty()){ readmT=true; }
+    if(!this->m_ReferenceFN.empty()){ readmR=true; }
 
     if (readmT && readmR){
 
@@ -711,6 +704,7 @@ PetscErrorCode RegOpt::DoSetup()
     ScalarType *u, fftsetuptime;
     Complex *uk;
     std::stringstream ss;
+
     PetscFunctionBegin;
 
     nx[0] = static_cast<int>(this->m_nx[0]);
@@ -751,14 +745,19 @@ PetscErrorCode RegOpt::DoSetup()
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    this->m_SetupDone=true;
+
+    // check if sizes are ok
     ierr=reg::Assert(this->m_MiscOpt->N_local > 0,"bug in setup"); CHKERRQ(ierr);
     ierr=reg::Assert(this->m_MiscOpt->N_global > 0,"bug in setup"); CHKERRQ(ierr);
 
+    // clean up
     accfft_free(u);
     accfft_free(uk);
 
     PetscFunctionReturn(0);
 }
+
 
 
 

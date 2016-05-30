@@ -69,6 +69,9 @@ PetscErrorCode ReadWriteReg::Initialize()
     this->m_Opt = NULL;
     this->m_NIIImage = NULL;
     this->m_BCastDataBuffer = NULL;
+    this->m_nx[0] = -1;
+    this->m_nx[1] = -1;
+    this->m_nx[2] = -1;
 
     PetscFunctionReturn(0);
 }
@@ -96,14 +99,14 @@ PetscErrorCode ReadWriteReg::ClearMemory()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Read"
-PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
+PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
 {
     PetscErrorCode ierr;
     std::string file, msg;
     PetscFunctionBegin;
 
     // has to be allocated elsewhere (TODO: needs to be fixed)
-    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+//    if (*x != NULL){ ierr=VecDestroy(x); CHKERRQ(ierr); }
 
     // get file name without path
     ierr=GetFileName(file,filename); CHKERRQ(ierr);
@@ -114,19 +117,14 @@ PetscErrorCode ReadWriteReg::Read(Vec x, std::string filename)
         ierr=DbgMsg(msg); CHKERRQ(ierr);
     }
 
-
-//    if (filename.find(".nc") != std::string::npos){
-//        ierr=this->ReadNetCDF(x,filename); CHKERRQ(ierr);
-//    }
-//    else if (filename.find(".nii") != std::string::npos){
     if (filename.find(".nii") != std::string::npos){
-        ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
+        ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
     }
     else if (filename.find(".nii.gz") != std::string::npos){
-        ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
+        ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
     }
     else if (filename.find(".hdr") != std::string::npos){
-        ierr=this->ReadNII(&x,filename); CHKERRQ(ierr);
+        ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
     }
     else{ ierr=ThrowError("could not read: data type not supported"); CHKERRQ(ierr); }
 
@@ -152,9 +150,9 @@ PetscErrorCode ReadWriteReg::Read(VecField* v,
 
     ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
 
-    ierr=this->Read(v->m_X1,fnx1); CHKERRQ(ierr);
-    ierr=this->Read(v->m_X1,fnx2); CHKERRQ(ierr);
-    ierr=this->Read(v->m_X1,fnx3); CHKERRQ(ierr);
+    ierr=this->Read(&v->m_X1,fnx1); CHKERRQ(ierr);
+    ierr=this->Read(&v->m_X1,fnx2); CHKERRQ(ierr);
+    ierr=this->Read(&v->m_X1,fnx3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -710,8 +708,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     PetscErrorCode ierr;
     std::string msg, file;
     int nprocs,rank,rval;
-    IntType nx[3],isize[3],istart[3];
-    IntType ng;
+    IntType nx[3],isize[3],istart[3],ng,nl;
     ScalarType *p_x=NULL;
     nifti_image *niiimage=NULL;
 
@@ -720,9 +717,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    // get global number of grid points
-    ng = this->m_Opt->GetNGlobal();
-
     // get file name without path
     ierr=GetFileName(file,filename); CHKERRQ(ierr);
 
@@ -730,6 +724,58 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     msg = "file " + file + "does not exist";
     ierr=Assert(FileExists(filename),msg); CHKERRQ(ierr);
 
+    // read header file
+    niiimage = nifti_image_read(filename.c_str(),false);
+    msg="could not read nifti image " + file;
+    ierr=Assert(niiimage != NULL,msg); CHKERRQ(ierr);
+
+    // get number of grid points
+    nx[0] = static_cast<IntType>(niiimage->nx);
+    nx[1] = static_cast<IntType>(niiimage->ny);
+    nx[2] = static_cast<IntType>(niiimage->nz);
+
+    // if we read images, we want to make sure that they have the same size
+    if (   (this->m_nx[0] == -1)
+        && (this->m_nx[1] == -1)
+        && (this->m_nx[2] == -1) ){
+
+        for (int i = 0; i < 3; ++i){ this->m_nx[i] = nx[i]; }
+
+    }
+    else{
+
+        msg="grid size of images varies: perform affine registration first";
+        for (int i = 0; i < 3; ++i){
+            ierr=Assert(this->m_nx[i] == nx[i],msg); CHKERRQ(ierr);
+        }
+
+    }
+
+    // pass number of grid points to options
+    for (int i = 0; i < 3; ++i){ this->m_Opt->SetNumGridPoints(i,nx[i]); }
+
+    // do the setup before running the code (this essentially
+    // concerns the memory distribution/the setup of accfft
+    if ( !this->m_Opt->SetupDone() ){
+        ierr=this->m_Opt->DoSetup(); CHKERRQ(ierr);
+    }
+
+    // compute global size
+    ng=1;
+    for(int i = 0; i < 3; ++i){ ng*=nx[i]; }
+    msg="global size mismatch (-nx option probably wrong)";
+    ierr=Assert(ng==this->m_Opt->GetNGlobal(),"global size mismatch"); CHKERRQ(ierr);
+
+    // get local size
+    nl = this->m_Opt->GetNLocal();
+
+    // allocate vector
+    if ( *x != NULL ){ ierr=VecDestroy(x); CHKERRQ(ierr); }
+    ierr=VecCreate(PETSC_COMM_WORLD,x); CHKERRQ(ierr);
+    ierr=VecSetSizes(*x,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(*x); CHKERRQ(ierr);
+
+    // allocate data buffer
     if (this->m_BCastDataBuffer != NULL){
         delete this->m_BCastDataBuffer;
         this->m_BCastDataBuffer=NULL;
@@ -741,26 +787,14 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
         ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-
     // read data only on master rank
-    if( rank == 0 ){
+    if(rank==0){ ierr=this->ReadNII(niiimage,filename); CHKERRQ(ierr); }
 
-        // read header file
-        niiimage = nifti_image_read(filename.c_str(),false);
-
-        msg="could not read nifti image " + file;
-        ierr=Assert(niiimage != NULL,msg); CHKERRQ(ierr);
-
-        ierr=this->ReadNII(niiimage,filename); CHKERRQ(ierr);
-
-    }
-
-    // TODO: switch between float an double
+    // TODO: switch between float and double
     rval=MPI_Bcast(&this->m_BCastDataBuffer[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
     ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        nx[i]     = static_cast<IntType>(this->m_Opt->m_MiscOpt->N[i]);
         isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
         istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
     }
@@ -785,18 +819,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     }
 
     ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
-
-    // TODO
-    //if (!this->m_opt->memorydistset){
-    //    ierr=SetupMemoryDistribution(this->m_opt); CHKERRQ(ierr);
-    //}
-
-    // TODO
-//    if( *x != NULL ){ ierr=VecDestroy(x); CHKERRQ(ierr); }
-
-//    ierr=VecCreate(PETSC_COMM_WORLD,x); CHKERRQ(ierr);
-//    ierr=VecSetSizes(*x,this->m_Opt->GetNLocal(),this->m_Opt->GetNGlobal()); CHKERRQ(ierr);
-//    ierr=VecSetFromOptions(*x); CHKERRQ(ierr);
 
     // rescale image intensities to [0,1]
     ierr=Rescale(*x,0.0,1.0); CHKERRQ(ierr);
@@ -906,7 +928,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
     PetscErrorCode ierr;
     T *data=NULL;
     std::string msg;
-    IntType ng;
+    IntType ng,nx[3];
     int rank;
     std::stringstream ss;
 
@@ -915,12 +937,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
     ierr=Assert(this->m_BCastDataBuffer != NULL,"image buffer is null pointer"); CHKERRQ(ierr);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
-
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     msg = "should only be called on master/root rank";
     ierr=Assert(rank==0,msg); CHKERRQ(ierr);
-
 
     if (nifti_image_load(niiimage) == -1){
         msg="could not read image " + filename;
@@ -931,13 +949,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
     data = static_cast<T*>(niiimage->data);
     ierr=Assert(data != NULL,"image buffer is null pointer"); CHKERRQ(ierr);
 
-    // TODO: number of grid points
-    //nx[0] = static_cast<unsigned int>(niiimage->nx);
-    //nx[1] = static_cast<unsigned int>(niiimage->ny);
-    //nx[2] = static_cast<unsigned int>(niiimage->nz);
-
     // get global number of points
-    ng = this->m_Opt->GetNGlobal();
+    ng = static_cast<IntType>(this->m_Opt->GetNGlobal());
 
     // copy buffer
     for (IntType i = 0; i < ng; ++i){

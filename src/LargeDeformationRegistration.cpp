@@ -440,12 +440,12 @@ PetscErrorCode LargeDeformationRegistration::IsVelocityZero()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupSyntheticProb"
-PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
+PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb()
 {
     PetscErrorCode ierr;
     IntType nl,ng;
     IntType isize[3],istart[3];
-    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,hx[3];
+    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_mt=NULL,hx[3];
     int problem=3;
 
     PetscFunctionBegin;
@@ -498,6 +498,8 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
     ierr=VecGetArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
 
+    ierr=VecGetArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
+
 #pragma omp parallel
 {
 #pragma omp for
@@ -512,6 +514,7 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
 
                 // compute linear / flat index
                 IntType i = GetLinearIndex(i1,i2,i3,isize);
+                p_mt[i] = (sin(x1)*sin(x1) + sin(x2)*sin(x2) + sin(x3)*sin(x3))/3.0;
 
                 if (problem == 0){
                     ScalarType v0 = 0.5;
@@ -545,14 +548,9 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
     ierr=VecRestoreArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
 
-    ierr=VecCopy(mT,this->m_TemplateImage); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
     ierr=Rescale(this->m_TemplateImage,0.0,1.0); CHKERRQ(ierr);
 
-/*
-    if( this->m_Opt->WriteImages2File() == true ){
-        ierr=this->m_IO->Write(mT,"template-image.nc"); CHKERRQ(ierr);
-    }
-*/
     // solve the forward problem using the computed
     // template image and the computed velocity field as input
     ierr=this->SolveForwardProblem(this->m_ReferenceImage); CHKERRQ(ierr);
@@ -562,11 +560,6 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb(Vec mT)
     ierr=VecSet(this->m_VelocityField->m_X2,0.0); CHKERRQ(ierr);
     ierr=VecSet(this->m_VelocityField->m_X3,0.0); CHKERRQ(ierr);
 
-/*
-    if( this->m_Opt->WriteImages2File() == true ){
-        ierr=this->m_IO->Write(this->m_ReferenceImage,"reference-image.nc"); CHKERRQ(ierr);
-    }
-*/
     PetscFunctionReturn(0);
 }
 

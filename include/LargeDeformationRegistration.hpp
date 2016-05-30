@@ -76,7 +76,7 @@ public:
     PetscErrorCode ComputeDeformationMap();
 
     /*! compute synthetic test problem */
-    PetscErrorCode SetupSyntheticProb(Vec);
+    PetscErrorCode SetupSyntheticProb();
 
     /*! evaluate l2-distance between observed and predicted state */
     virtual PetscErrorCode EvaluateL2Distance(ScalarType*) = 0;

@@ -160,7 +160,6 @@ public:
     RegOpt(int,char**);
     ~RegOpt();
 
-
     // get functions
     inline IntType GetNLocal(void){return this->m_MiscOpt->N_local;};
     inline IntType GetNGlobal(void){return this->m_MiscOpt->N_global;};
@@ -179,9 +178,9 @@ public:
                *this->m_MiscOpt->h[2];
     }
 
-
     inline ScalarType GetSigma(void){return this->m_Sigma;};
     inline ScalarType GetTimeHorizon(int i){return this->m_TimeHorizon[i];};
+    inline void SetNumGridPoints(int i,IntType nx){this->m_nx[i] = nx;};
 
     inline std::string GetXFolder(void){return this->m_XFolder;};
     inline std::string GetXExtension(void){return this->m_XExtension;};
@@ -227,13 +226,14 @@ public:
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
     inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
 
+    inline bool SetupDone(){return this->m_SetupDone;};
+
     // parameter continuation
     inline bool DoParameterContinuation(){return this->m_ParameterCont.enabled;};
     inline void DoParameterContinuation(bool flag){this->m_ParameterCont.enabled = flag;};
     inline ScalarType GetJacBound(){return this->m_ParameterCont.jacbound;};
     inline void SetJacBound(ScalarType value){this->m_ParameterCont.jacbound=value;};
     inline int GetMaxParaContSteps(){return this->m_ParameterCont.maxsteps;};
-
 
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
     inline void IncrementCounter(CounterType id){this->m_Counter[id]++;};
@@ -300,11 +300,12 @@ public:
     PetscErrorCode ResetTimer(TimerType);
     PetscErrorCode ResetCounters(void);
     PetscErrorCode ResetCounter(CounterType);
-    PetscErrorCode ProcessTimers();
+    PetscErrorCode ProcessTimers(void);
 
-    PetscErrorCode DisplayOptions();
-    PetscErrorCode DisplayTimeToSolution();
-    PetscErrorCode WriteLogFile();
+    PetscErrorCode DisplayOptions(void);
+    PetscErrorCode DisplayTimeToSolution(void);
+    PetscErrorCode WriteLogFile(void);
+    PetscErrorCode DoSetup(void);
 
     // interface to the global glistr options; are set in constructor
     N_MISC* m_MiscOpt;
@@ -314,7 +315,6 @@ private:
 
     PetscErrorCode Usage(void);
     PetscErrorCode UsageAdvanced(void);
-    PetscErrorCode DoSetup(void);
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode ParseArguments(int,char**);
@@ -405,6 +405,7 @@ private:
     unsigned int m_LineLength;
     bool m_StoreTimeSeries;
     bool m_StoreIterates;
+    bool m_SetupDone;
 
     bool m_WriteImages;
     bool m_WriteLogFiles;

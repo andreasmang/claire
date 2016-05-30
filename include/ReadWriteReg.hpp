@@ -47,7 +47,7 @@ public:
     ReadWriteReg(RegOpt*);
     ~ReadWriteReg(void);
 
-    PetscErrorCode Read(Vec,std::string);
+    PetscErrorCode Read(Vec*,std::string);
     PetscErrorCode Read(VecField*,std::string,std::string,std::string);
     PetscErrorCode ReadBlock(Vec,int*,std::string);
     PetscErrorCode ReadTimeSeries(Vec,std::string);
@@ -90,6 +90,7 @@ private:
     nifti_image* m_NIIImage;
 
     ScalarType* m_BCastDataBuffer;
+    IntType m_nx[3];
 
 };
 

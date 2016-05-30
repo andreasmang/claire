@@ -322,7 +322,8 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     IntType iter;
     int iterdisp;
     char msg[256];
-    ScalarType J=0.0,gnorm=0.0,cnorm=0.0,step=0.0,gnorm0=0.0,D=0.0;
+    ScalarType J=0.0,gnorm=0.0,cnorm=0.0,step=0.0,D=0.0,
+                J0=0.0,D0=0.0,gnorm0=0.0;
     OptProbRegistration* optprob = NULL;
     TaoConvergedReason taoconvreason;
     TaoLineSearch ls=NULL;
@@ -375,27 +376,36 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
         ierr=DispTaoConvReason(taoconvreason); CHKERRQ(ierr);
     }
 
+    // compute l2 distance at current iteration
+    ierr=optprob->EvaluateL2Distance(&D); CHKERRQ(ierr);
+
     // parse initial gradient and display header
     if (optprob->InFirstIteration() == true){
         optprob->PrintLine();
-        PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n","iter","objective","mismatch","||gradient||_2,rel","||gradient||_2","step");
+        PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n","iter","objective (rel)","mismatch (rel)","||gradient||_2,rel","||gradient||_2","step");
         optprob->PrintLine();
         optprob->SetInitialGradNorm(gnorm);
+        optprob->SetInitialMismatchVal(D);
+        optprob->SetInitialObjVal(J);
     }
 
     // get initial gradient
     gnorm0 = optprob->GetInitialGradNorm();
     gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
 
+    D0 = optprob->GetInitialMismatchVal();
+    D0 = (D0 > 0.0) ? D0 : 1.0;
+
+    J0 = optprob->GetInitialObjVal();
+    J0 = (J0 > 0.0) ? J0 : 1.0;
+
     // get the solution vector and compute jacobian
     ierr=TaoGetSolutionVector(tao,&x); CHKERRQ(ierr);
     ierr=optprob->FinalizeIteration(x); CHKERRQ(ierr);
 
-    // compute l2 distance at current iteration
-    ierr=optprob->EvaluateL2Distance(&D); CHKERRQ(ierr);
 
     iterdisp = iter;
-    sprintf(msg,"  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",iterdisp,J,D,gnorm/gnorm0,gnorm,step);
+    sprintf(msg,"  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",iterdisp,J/J0,D/D0,gnorm/gnorm0,gnorm,step);
     PetscPrintf(MPI_COMM_WORLD,"%-80s\n",msg);
 
     optprob->InFirstIteration(false);

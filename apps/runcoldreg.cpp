@@ -22,14 +22,11 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "Optimizer.hpp"
-#include "PreProcessingRegistration.hpp"
-#include "SynProbRegistration.hpp"
 #include "ReadWriteReg.hpp"
 #include "LargeDeformationRegistration.hpp"
 #include "OptimalControlRegistration.hpp"
 #include "OptimalControlRegistrationIC.hpp"
 #include "OptimalControlRegistrationRIC.hpp"
-#include "TaoInterfaceRegistration.hpp"
 
 
 
@@ -45,7 +42,6 @@ int main(int argc,char **argv)
     Vec mT = NULL, mR=NULL;
 
     reg::RegOpt* regopt = NULL;
-    reg::SynProbRegistration* synprob = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     reg::Optimizer* optimizer = NULL;
     reg::LargeDeformationRegistration* registration = NULL;
@@ -69,6 +65,18 @@ int main(int argc,char **argv)
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
+
+    if(regopt->ReadImagesFromFile()){
+
+        ierr=readwrite->Read(&mR,regopt->GetReferenceFN()); CHKERRQ(ierr);
+        ierr=reg::Assert(mR!=NULL, "input reference image is null pointer"); CHKERRQ(ierr);
+
+        ierr=readwrite->Read(&mT,regopt->GetTemplateFN()); CHKERRQ(ierr);
+        ierr=reg::Assert(mT!=NULL, "input template image is null pointer"); CHKERRQ(ierr);
+
+    }
+    else{ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
+
 
     // allocate class for io
     try{ optimizer = new reg::Optimizer(regopt); }
@@ -105,53 +113,23 @@ int main(int argc,char **argv)
     // set the io
     ierr=registration->SetIO(readwrite); CHKERRQ(ierr);
 
-    // get sizes
-    nl = regopt->GetNLocal();
-    ng = regopt->GetNGlobal();
-
     if(regopt->ReadImagesFromFile()){
-
-        ierr=VecCreate(PETSC_COMM_WORLD,&mR); CHKERRQ(ierr);
-        ierr=VecSetSizes(mR,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mR); CHKERRQ(ierr);
-        ierr=readwrite->Read(mR,regopt->GetReferenceFN()); CHKERRQ(ierr);
-        ierr=reg::Assert(mR!=NULL, "input reference image is null pointer"); CHKERRQ(ierr);
-
-        ierr=VecCreate(PETSC_COMM_WORLD,&mT); CHKERRQ(ierr);
-        ierr=VecSetSizes(mT,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mT); CHKERRQ(ierr);
-        ierr=readwrite->Read(mT,regopt->GetTemplateFN()); CHKERRQ(ierr);
-        ierr=reg::Assert(mT!=NULL, "input template image is null pointer"); CHKERRQ(ierr);
-
         // pass to registration
         ierr=registration->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr=registration->SetTemplateImage(mT); CHKERRQ(ierr);
-
     }
     else{
-
-        ierr=VecCreate(PETSC_COMM_WORLD,&mT); CHKERRQ(ierr);
-        ierr=VecSetSizes(mT,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mT); CHKERRQ(ierr);
-        ierr=VecSet(mT,0.0); CHKERRQ(ierr);
-
-        // allocate class for registration
-        try{ synprob = new reg::SynProbRegistration(regopt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        // set up a synthetic test problem/compute template image
-        ierr=synprob->ComputeSmoothScalarField(mT,0); CHKERRQ(ierr);
-
-        // advect template image to obtain reference image;
-        // the variables for the images are set internally; so no need
-        // to get the output here
-        ierr=registration->SetupSyntheticProb(mT); CHKERRQ(ierr);
+        // set up synthetic test problem
+        ierr=registration->SetupSyntheticProb(); CHKERRQ(ierr);
     }
+
 
     // reset all the clocks we have used so far
     ierr=regopt->ResetTimers(); CHKERRQ(ierr);
     ierr=regopt->ResetCounters(); CHKERRQ(ierr);
+
+    // display the options to the user
+    ierr=regopt->DisplayOptions(); CHKERRQ(ierr);
 
     // init solver
     ierr=optimizer->SetProblem(registration); CHKERRQ(ierr);
@@ -164,7 +142,6 @@ int main(int argc,char **argv)
 
     // clean up
     if (regopt != NULL){ delete regopt; regopt = NULL; }
-    if (synprob != NULL){ delete synprob; synprob = NULL; }
     if (readwrite != NULL){ delete readwrite; readwrite = NULL; }
     if (optimizer != NULL){ delete optimizer; optimizer = NULL; }
     if (registration != NULL){ delete registration; registration = NULL; }

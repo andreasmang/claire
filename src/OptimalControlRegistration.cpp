@@ -3245,26 +3245,26 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
             << std::setw(3) << std::setfill('0')
             << this->m_NumOuterIter  << ".nii.gz";
         ierr=this->m_IO->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
-        ss.str("");
+        ss.str( std::string() ); ss.clear();
 
         // construct file names for velocity field components
         ss  << "velocity-field-i="
             << std::setw(3) << std::setfill('0')
             << this->m_NumOuterIter  << "-x1.nii.gz";
         fnx1 = ss.str();
-        ss.str("");
+        ss.str( std::string() ); ss.clear();
 
         ss  << "velocity-field-i="
             << std::setw(3) << std::setfill('0')
             << this->m_NumOuterIter  << "-x2.nii.gz";
         fnx2 = ss.str();
-        ss.str("");
+        ss.str( std::string() ); ss.clear();
 
         ss  << "velocity-field-i="
             << std::setw(3) << std::setfill('0')
             << this->m_NumOuterIter  << "-x3.nii.gz";
         fnx3 = ss.str();
-        ss.str("");
+        ss.str( std::string() ); ss.clear();
 
         // velocity field out
         ierr=this->m_IO->Write(this->m_VelocityField,fnx1,fnx2,fnx3); CHKERRQ(ierr);
@@ -3278,8 +3278,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
         if (rank == 0){
 
-            filename = this->m_Opt->GetXFolder()
-                        + "registration-performance-jacobians.log";
+            filename  = this->m_Opt->GetXFolder();
+            filename += "registration-performance-jacobians.log";
+
             // create output file or append to output file
             logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
             ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
@@ -3290,6 +3291,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
                 << std::setw(20) << this->m_Opt->GetJacMean() <<" "
                 << std::setw(20) << this->m_Opt->GetJacMax();
             logwriter << ss.str() << std::endl;
+            ss.str( std::string() ); ss.clear();
 
         }
 
