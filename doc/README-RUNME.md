@@ -72,10 +72,14 @@ velocity-field-2norm.nii.gz     | l2 norm of velocity field
 
 ## Parallel Execution
 
-To run the code with 2 MPI tasks do (assuming you use `mpirun`):
+To run the code with 2 MPI tasks do (assuming you use `mpiexec`):
 
 ```bash
-mpirun -np 2 ./bin/runcoldreg
+mpiexec -n 2 ./bin/runcoldreg
 ```
 
 ACCFFT ([http://accfft.org](http://accfft.org)) will automatically decide on the data distribution. ACCFFT uses a pencil decomposition, i.e., assuming we have p = p1 p2 MPI tasks and n = n1 n2 n3 grid points. Then, the data is going to be distributed so that each MPI task gets (n1 / p1)(n2 / p2) n3 data points. To control the layout you can use the `-np` option. For instance, for 20 MPI tasks, you could use `-np 4x5`, which yields (n1 / 4)(n2 / 5) n3 data points for each MPI task.
+
+```bash
+mpiexec -n 20 ./bin/runcoldreg -np 4x5
+```
