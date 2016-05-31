@@ -28,7 +28,7 @@ To run the problem with different grid size use the `-nx` option; i.e., for a pr
 
 ## Registering Images
 
-To register two NIfTI images `mR.nii.gz` (reference image) and `mT.nii.gz` of size 256x256x256 do 
+To register two NIfTI images `mR.nii.gz` (reference image) and `mT.nii.gz` do 
 
 ```bash
 ./bin/runcoldreg -mr /path/to/image/mR.nii.gz -mt ./path/to/image/mT.nii.gz
@@ -44,7 +44,7 @@ To register two NIfTI images `mR.nii.gz` (reference image) and `mT.nii.gz` of si
 To output registration results add the `-xresults` option. This also requires you to add the output path `-x /path/to/results/` (**mandatory**):
 
 ```bash
-./bin/runcoldreg -mr /path/to/image/mR.nii.gz -mt ./path/to/image/mT.nii.gz -nx 256x256x256 -xresults -x /path/to/results/
+./bin/runcoldreg -mr /path/to/image/mR.nii.gz -mt ./path/to/image/mT.nii.gz -xresults -x /path/to/results/
 ```
 
 You can also add a **prefix** by doing `-x /path/to/results/prefix_`. This will add the specified `prefix_` infront of every file written to disc.
@@ -78,4 +78,4 @@ To run the code with 2 MPI tasks do (assuming you use `mpirun`):
 mpirun -np 2 ./bin/runcoldreg
 ```
 
-ACCFFT ([http://accfft.org](http://accfft.org)) will automatically decide on the data distribution. ACCFFT uses a pencil decomposition, i.e., assuming we have p = p1 p2 MPI tasks and n = n1 n2 n3 grid points. Then, the data is going to be distributed so that each MPI task gets (n1 / p1)(n2 / p2) n3 data points. To control the layout you can use the `-np` option. For instance, for 20 MPI tasks, you could use `-np 4x5`, which yields (n1/4)(n2/5)n3 data points for each MPI task.
+ACCFFT ([http://accfft.org](http://accfft.org)) will automatically decide on the data distribution. ACCFFT uses a pencil decomposition, i.e., assuming we have p = p1 p2 MPI tasks and n = n1 n2 n3 grid points. Then, the data is going to be distributed so that each MPI task gets (n1 / p1)(n2 / p2) n3 data points. To control the layout you can use the `-np` option. For instance, for 20 MPI tasks, you could use `-np 4x5`, which yields (n1 / 4)(n2 / 5) n3 data points for each MPI task.
