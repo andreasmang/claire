@@ -107,7 +107,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-nt") == 0){
             argc--; argv++;
-            this->m_NT = static_cast<IntType>(atoi(argv[1]));
+            this->m_nt = static_cast<IntType>(atoi(argv[1]));
         }
         else if(strcmp(argv[1],"-nthreads") == 0){
             argc--; argv++;
@@ -387,7 +387,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_FFTPlan = NULL;
     this->m_Comm = NULL;
 
-    this->m_NT = 4;
+    this->m_nt = 4;
     this->m_nx[0] = 32;
     this->m_nx[1] = 32;
     this->m_nx[2] = 32;
@@ -862,7 +862,7 @@ PetscErrorCode RegOpt::DisplayOptions()
                     << "(" << this->m_MiscOpt->N[0] <<","
                     <<  this->m_MiscOpt->N[1] <<","
                     <<  this->m_MiscOpt->N[2] <<","
-                    <<  this->m_NT <<")" <<std::endl;
+                    <<  this->m_nt <<")" <<std::endl;
         std::cout<< std::left << std::setw(indent) <<" network dimensions"
                     << this->m_CartGridDims[0] <<"x"
                     << this->m_CartGridDims[1]<<std::endl;
@@ -1413,7 +1413,7 @@ PetscErrorCode RegOpt::WriteLogFile()
 
         logwriter << std::left
                   << std::setw(nstr) << " nt" << std::right
-                  << std::setw(nnum) << this->m_NT << std::endl;
+                  << std::setw(nnum) << this->m_nt << std::endl;
 
         logwriter << std::left
                   << std::setw(nstr) << " n" << std::right
