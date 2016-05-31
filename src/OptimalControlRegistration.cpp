@@ -1610,7 +1610,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
     ierr=this->m_SL->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
 
-
     // copy memory (m_0 to m_j)
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);

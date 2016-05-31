@@ -6,6 +6,7 @@
 
 
 
+
 namespace reg
 {
 
@@ -286,7 +287,14 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             this->m_Regularization.beta[2] = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-train") == 0){
-            this->m_ParameterCont.enabled=true;
+            this->m_ParameterCont.binarysearch=true;
+        }
+        else if(strcmp(argv[1],"-reducebeta") == 0){
+            this->m_ParameterCont.reducebeta=true;
+        }
+        else if(strcmp(argv[1],"-betavmin") == 0){
+            argc--; argv++;
+            this->m_ParameterCont.betamin=atof(argv[1]);
         }
         else if(strcmp(argv[1],"-verbosity") == 0){
             argc--; argv++;
@@ -431,7 +439,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_StoreIterates = false;
     this->m_StoreTimeSeries = false;
 
-    this->m_ParameterCont.enabled = false;
+    this->m_ParameterCont.binarysearch = false;
+    this->m_ParameterCont.reducebeta = false;
     this->m_ParameterCont.betamin = 1E-6;
     this->m_ParameterCont.jacbound = 2E-1;
     this->m_ParameterCont.maxsteps = 10;
@@ -554,8 +563,6 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< line << std::endl;
         std::cout<< " -mr <file>              reference image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
         std::cout<< " -mt <file>              template image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); mandatory option; grid is assumed"<<std::endl;
-        std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -x <path>               output path (what's written out is controlled by the flags below)"<<std::endl;
         std::cout<< "                         a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
@@ -582,8 +589,6 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                             quadratic     quadratic (default)"<<std::endl;
         std::cout<< "                             suplinear     super-linear"<<std::endl;
         std::cout<< "                             none          exact solve (expensive)"<<std::endl;
-        std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
-        std::cout<< " -jmonitor               enable monitor for det(grad(y)) (default: off)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " regularization parameters"<<std::endl;
         std::cout<< line << std::endl;
@@ -596,9 +601,15 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                             l2           l2-norm (discouraged)"<<std::endl;
         std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
         std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-4)"<<std::endl;
-        std::cout<< " -train                  estimate regularization parameter (default: not enabled)"<<std::endl;
+        std::cout<< "                         enable relaxed incompressibility to use this parameter ('-ric'; see below)"<<std::endl;
         std::cout<< " -ic                     enable incompressibility constraint (det(grad(y))=1)"<<std::endl;
         std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
+        std::cout<< " -train                  estimate regularization parameter (default: not enabled; binary search)"<<std::endl;
+        std::cout<< " -reducebeta             estimate regularization parameter (default: not enabled; start with 1 and"<<std::endl;
+        std::cout<< "                         reduce by one order of magnitude until lower bound on jacobian is reached)"<<std::endl;
+        std::cout<< " -betavmin               lower bound on regularization parameter for velocity for estimation (default: 1E-6)"<<std::endl;
+        std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
+        std::cout<< " -jmonitor               enable monitor for det(grad(y)) (default: off)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " solver specific parameters (numerics)"<<std::endl;
         std::cout<< line << std::endl;
@@ -619,6 +630,8 @@ PetscErrorCode RegOpt::UsageAdvanced()
 //        std::cout<< " -usenc                  use *.nc as output format (default: *.nii.gz)"<<std::endl;
         std::cout<< " -verbosity <int>        verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         std::cout<< " -storeiter              store iterates"<<std::endl;
+        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); control grid size for synthetic problems"<<std::endl;
+        std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -help                   display a brief version of the user message"<<std::endl;
         std::cout<< " -advanced               display this message"<<std::endl;
@@ -678,11 +691,13 @@ PetscErrorCode RegOpt::CheckArguments()
         this->ReadImagesFromFile(false);
     }
 
-//    if (this->m_UseNCFormat){
-//        this->m_XExtension = ".nc";
-//    }
-//    else{ this->m_XExtension = ".nii.gz"; }
     this->m_XExtension = ".nii.gz";
+
+    if( this->m_ParameterCont.reducebeta && this->m_ParameterCont.binarysearch ) {
+        msg="\x1b[31m only one estimation method for betav can be selected \x1b[0m\n";
+        ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(0);
 }
@@ -879,7 +894,7 @@ PetscErrorCode RegOpt::DisplayOptions()
         // display regularization model
         std::cout<< std::left << std::setw(indent) <<" regularization model v";
 
-        if(this->m_ParameterCont.enabled){
+        if(this->m_ParameterCont.binarysearch || this->m_ParameterCont.reducebeta){
             switch(this->m_Regularization.norm){
                 case L2:
                 {

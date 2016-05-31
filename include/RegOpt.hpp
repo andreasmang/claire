@@ -235,11 +235,12 @@ public:
     inline bool SetupDone(){return this->m_SetupDone;};
 
     // parameter continuation
-    inline bool DoParameterContinuation(){return this->m_ParameterCont.enabled;};
-    inline void DoParameterContinuation(bool flag){this->m_ParameterCont.enabled = flag;};
+    inline bool DoBinarySearch(){return this->m_ParameterCont.binarysearch;};
+    inline bool DoParameterReduction(){return this->m_ParameterCont.reducebeta;};
     inline ScalarType GetJacBound(){return this->m_ParameterCont.jacbound;};
     inline void SetJacBound(ScalarType value){this->m_ParameterCont.jacbound=value;};
     inline int GetMaxParaContSteps(){return this->m_ParameterCont.maxsteps;};
+    inline ScalarType GetBetaBound(){return this->m_ParameterCont.betamin;};
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -333,8 +334,9 @@ private:
     struct ParameterContinuation{
         ScalarType betamin; ///< minimal regularization parameter
         ScalarType jacbound; ///< lower bound for jacobian
-        int maxsteps;
-        bool enabled; ///< flag if parameter continuation is switched on
+        int maxsteps; ///< max number of steps
+        bool binarysearch; ///< flag if parameter continuation is switched on (binary search)
+        bool reducebeta; ///< flag if parameter continuation is switched on (simple reduction)
     };
 
     // parameters for parameter continuation

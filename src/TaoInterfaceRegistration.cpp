@@ -171,12 +171,13 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
     std::string msg;
     Vec dJ;
     KSP ksp;
-    ScalarType gnorm,gnorm0,reltol,abstol,divtol,lowergradbound;
+    ScalarType gnorm,gnorm0,reltol,abstol,divtol,uppergradbound,lowergradbound;
     IntType maxit;
 
     PetscFunctionBegin;
 
-    lowergradbound=0.5;
+    uppergradbound=0.5;
+    lowergradbound=1E-12;
 
     // get solver context
     ierr=MatShellGetContext(H,(void**)&ptr); CHKERRQ(ierr);
@@ -190,7 +191,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
     ierr=KSPGetTolerances(ksp,&reltol,&abstol,&divtol,&maxit); CHKERRQ(ierr);
 
     // user forcing sequence to estimate adequate tolerance
-    // for solution of KKT system
+    // for solution of KKT system (Eisenstat-Walker)
     if(optprob->GetOptions()->GetFSeqType() != NOFS){
 
         // get initial value for gradient
@@ -204,12 +205,14 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
         gnorm /= gnorm0;
 
         if(optprob->GetOptions()->GetFSeqType() == QDFS){
-            // assuming quadratic convergence
-            reltol=std::min(lowergradbound,gnorm);
+            // assuming quadratic convergence (we do not solver more
+            // accurately than 12 digits)
+            reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,gnorm));
         }
         else{
-            // assuming superlinear convergence
-            reltol=std::min(lowergradbound,std::sqrt(gnorm));
+            // assuming superlinear convergence (we do not solver
+            // more accurately than 12 digitis)
+            reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,std::sqrt(gnorm)));
         }
 
         // overwrite tolerances with estimate
@@ -380,34 +383,42 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     ierr=optprob->EvaluateL2Distance(&D); CHKERRQ(ierr);
 
     // parse initial gradient and display header
-    if (optprob->InFirstIteration() == true){
+    if ( optprob->InFirstIteration() == true ){
         optprob->PrintLine();
-        PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n","iter","objective (rel)","mismatch (rel)","||gradient||_2,rel","||gradient||_2","step");
+        PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n",
+                                    "iter","objective (rel)","mismatch (rel)",
+                                    "||gradient||_2,rel","||gradient||_2","step");
         optprob->PrintLine();
-        optprob->SetInitialGradNorm(gnorm);
-        optprob->SetInitialMismatchVal(D);
-        optprob->SetInitialObjVal(J);
+
+        optprob->SetInitialGradNorm(gnorm); // set the initial gradient norm
+        optprob->SetInitialMismatchVal(D); // set the initial l2 distance
+        optprob->SetInitialObjVal(J); // set the initial objective value
+
     }
 
     // get initial gradient
     gnorm0 = optprob->GetInitialGradNorm();
     gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
 
+    // get initial l2 distance
     D0 = optprob->GetInitialMismatchVal();
     D0 = (D0 > 0.0) ? D0 : 1.0;
 
+    // get initial objective value
     J0 = optprob->GetInitialObjVal();
     J0 = (J0 > 0.0) ? J0 : 1.0;
 
-    // get the solution vector and compute jacobian
+    // get the solution vector and finalize the iteration
     ierr=TaoGetSolutionVector(tao,&x); CHKERRQ(ierr);
     ierr=optprob->FinalizeIteration(x); CHKERRQ(ierr);
 
-
-    iterdisp = iter;
+    // display progress to user
+    iterdisp = static_cast<int>(iter);
     sprintf(msg,"  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",iterdisp,J/J0,D/D0,gnorm/gnorm0,gnorm,step);
     PetscPrintf(MPI_COMM_WORLD,"%-80s\n",msg);
 
+    // make sure that everybody knows that we have performed the
+    // first iteration already
     optprob->InFirstIteration(false);
 
     // go home

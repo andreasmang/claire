@@ -337,7 +337,16 @@ PetscErrorCode Optimizer::Run()
 
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
 
-    if( this->m_Opt->DoParameterContinuation() ){
+    if( this->m_Opt->DoParameterReduction() ){
+
+        // start the parameter continuation (we start with
+        // a large regularization paramameter until we
+        // hit bound on jacobian or have reached desired
+        // regularization weight)
+        ierr=this->ReduceRegularization(); CHKERRQ(ierr);
+
+    }
+    else if( this->m_Opt->DoBinarySearch() ){
 
         // start the parameter continuation
         ierr=this->ReduceRegularization(); CHKERRQ(ierr);
@@ -446,7 +455,10 @@ PetscErrorCode Optimizer::RunParameterContinuation()
  * Name: ReduceRegularization
  * Description: solves the optimization problem by simply reducing
  * the regularization parameter until the mapping becomes
- * non-diffeomorphic/breaches the user defined bound
+ * non-diffeomorphic/breaches the user defined bound; stored
+ * velocity field (solution) is last iterate that resulted in
+ * diffeomorphic deformation map (as judged by the determinant
+ * of the deformation gradient)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReduceRegularization"
@@ -455,7 +467,7 @@ PetscErrorCode Optimizer::ReduceRegularization()
     PetscErrorCode ierr;
     std::string levelmsg;
     std::stringstream levelss;
-    ScalarType beta;
+    ScalarType beta,betamin;
     Vec x,xsol;
     int maxsteps, rank;
     bool stop;
@@ -465,16 +477,17 @@ PetscErrorCode Optimizer::ReduceRegularization()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // check of optimization problem has been set
-    ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OptimizationProblem!=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
 
     // do the setup
     if (this->m_Tao == NULL){
         ierr=this->DoSetup(); CHKERRQ(ierr);
     }
-    ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Tao!=NULL,"optimizer: problem in tao setup"); CHKERRQ(ierr);
 
     // get max number of steps
     maxsteps = this->m_Opt->GetMaxParaContSteps();
+    betamin = this->m_Opt->GetBetaBound();
 
     levelmsg = "level ";
     ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
@@ -484,7 +497,7 @@ PetscErrorCode Optimizer::ReduceRegularization()
     beta = 1.0;
 
     // reduce regularization parameter by one order of magnitude until
-    // we hit the tolerance
+    // we hit user defined tolerance
     for(int i = 0; i < maxsteps; ++i){
 
         this->m_Opt->SetRegularizationWeight(beta);
@@ -529,11 +542,11 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(x !=NULL, "input pointer is null"); CHKERRQ(ierr);
-    ierr=Assert(this->m_Tao !=NULL, "optimization object has not been initialized"); CHKERRQ(ierr);
-    ierr=Assert(this->m_Solution !=NULL, "solution vector is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(x!=NULL, "input pointer is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Tao!=NULL, "optimization object has not been initialized"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Solution!=NULL, "solution vector is null pointer"); CHKERRQ(ierr);
 
-    //ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+    // copy the solution to input
     ierr=VecCopy(this->m_Solution,x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -555,8 +568,6 @@ PetscErrorCode Optimizer::Finalize()
 
     ierr=Assert(this->m_Tao !=NULL, "optimization has not been performed"); CHKERRQ(ierr);
     ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
-
-    //ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
 
     // finalize the registration (write out all data)
     ierr=this->m_OptimizationProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
