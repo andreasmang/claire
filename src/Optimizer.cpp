@@ -344,13 +344,13 @@ PetscErrorCode Optimizer::Run()
         // a large regularization paramameter until we
         // hit bound on jacobian or have reached desired
         // regularization weight)
-        ierr=this->ReduceRegularization(); CHKERRQ(ierr);
+        ierr=this->RunRegParaReduction(); CHKERRQ(ierr);
 
     }
     else if( this->m_Opt->DoBinarySearch() ){
 
         // start the parameter continuation
-        ierr=this->ReduceRegularization(); CHKERRQ(ierr);
+        ierr=this->RunBinarySearchRegPara(); CHKERRQ(ierr);
 
     }
     else{
@@ -379,12 +379,13 @@ PetscErrorCode Optimizer::Run()
 
 
 /********************************************************************
- * Name: Run
- * Description: run the optimizer
+ * Name: RunBinarySearchRegPara
+ * Description: run the optimizer; we search for an optimal
+ * regularization weight using a binary search
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "RunParameterContinuation"
-PetscErrorCode Optimizer::RunParameterContinuation()
+#define __FUNCT__ "RunBinarySearchRegPara"
+PetscErrorCode Optimizer::RunBinarySearchRegPara()
 {
     PetscErrorCode ierr;
     std::string levelmsg;
@@ -453,7 +454,7 @@ PetscErrorCode Optimizer::RunParameterContinuation()
 
 
 /********************************************************************
- * Name: ReduceRegularization
+ * Name: RunRegParaReduction
  * Description: solves the optimization problem by simply reducing
  * the regularization parameter until the mapping becomes
  * non-diffeomorphic/breaches the user defined bound; stored
@@ -462,13 +463,13 @@ PetscErrorCode Optimizer::RunParameterContinuation()
  * of the deformation gradient)
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ReduceRegularization"
-PetscErrorCode Optimizer::ReduceRegularization()
+#define __FUNCT__ "RunRegParaReduction"
+PetscErrorCode Optimizer::RunRegParaReduction()
 {
     PetscErrorCode ierr;
     std::string levelmsg;
     std::stringstream levelss;
-    ScalarType beta,betamin,grtol,gnorm;
+    ScalarType beta,betamin;
     Vec x,xsol;
     int maxsteps, rank;
     bool stop;
@@ -488,6 +489,8 @@ PetscErrorCode Optimizer::ReduceRegularization()
 
     // get max number of steps
     maxsteps = this->m_Opt->GetMaxParaContSteps();
+
+    // get lower bound for regularization parameter
     betamin = this->m_Opt->GetBetaBound();
 
     levelmsg = "level ";
@@ -495,9 +498,6 @@ PetscErrorCode Optimizer::ReduceRegularization()
 
     ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
     ierr=VecDuplicate(x,&xsol); CHKERRQ(ierr);
-
-    // set tolearances for optimizer
-    grtol = this->m_Opt->GetOptTol(1); // relative tolerance for gradient
 
     // set initial regularization weight
     beta = 1.0;
@@ -512,7 +512,7 @@ PetscErrorCode Optimizer::ReduceRegularization()
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
         ierr=Msg(levelmsg + levelss.str()); CHKERRQ(ierr);
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        levelss.str("");
+        levelss.str( std::string() ); levelss.clear();
 
         // solve optimization probelm for current regularization parameter
         ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
@@ -524,12 +524,23 @@ PetscErrorCode Optimizer::ReduceRegularization()
 
         if (stop) break; // if bound reached go home
 
-        ierr=TaoGetSolutionStatus(this->m_Tao,NULL,NULL,&gnorm,NULL,NULL,NULL); CHKERRQ(ierr);
-
         // if we got here, the solution is valid
         ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
 
         beta /= 10.0; // reduce beta
+
+        // if the regularization parameter is smaller than
+        // the lower bound, we're done
+        if (beta < betamin){
+
+            if (this->m_Opt->GetVerbosity() > 0){
+                levelss <<"regularization parameter below bound (betav="
+                        <<beta<<" < " << betamin <<"=betavmin)";
+                ierr=DbgMsg(levelss.str()); CHKERRQ(ierr);
+                levelss.str( std::string() ); levelss.clear();
+            }
+            break;
+        }
 
     }
 

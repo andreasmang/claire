@@ -413,8 +413,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
             gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
             alpha = PetscMax(1.0,gnorm0/gnorm);
             ierr=TaoSetTolerances(tao,gatol,grtol,alpha*gttol); CHKERRQ(ierr);
-
-            PetscPrintf(MPI_COMM_WORLD,"%.6f\n",alpha);
         }
     }
 
