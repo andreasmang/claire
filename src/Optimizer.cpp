@@ -225,9 +225,9 @@ PetscErrorCode Optimizer::DoSetup()
 
 
     // set tolearances for optimizer
-    gatol = this->m_Opt->GetOptTol(0);
-    grtol = this->m_Opt->GetOptTol(1);
-    gttol = this->m_Opt->GetOptTol(2);
+    gatol = this->m_Opt->GetOptTol(0);  // ||g(x)||              <= gatol
+    grtol = this->m_Opt->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
+    gttol = this->m_Opt->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
     ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
 
     ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptMaxit() - 1); CHKERRQ(ierr);
@@ -299,6 +299,7 @@ PetscErrorCode Optimizer::DoSetup()
         //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
         //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
         ierr=KSPSetNormType(taoksp,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+        //ierr=KSPSetNormType(taoksp,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
     }
 
 
@@ -467,7 +468,7 @@ PetscErrorCode Optimizer::ReduceRegularization()
     PetscErrorCode ierr;
     std::string levelmsg;
     std::stringstream levelss;
-    ScalarType beta,betamin;
+    ScalarType beta,betamin,grtol,gnorm;
     Vec x,xsol;
     int maxsteps, rank;
     bool stop;
@@ -494,6 +495,11 @@ PetscErrorCode Optimizer::ReduceRegularization()
 
     ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
     ierr=VecDuplicate(x,&xsol); CHKERRQ(ierr);
+
+    // set tolearances for optimizer
+    grtol = this->m_Opt->GetOptTol(1); // relative tolerance for gradient
+
+    // set initial regularization weight
     beta = 1.0;
 
     // reduce regularization parameter by one order of magnitude until
@@ -517,6 +523,8 @@ PetscErrorCode Optimizer::ReduceRegularization()
         ierr=this->m_OptimizationProblem->CheckBounds(x,stop); CHKERRQ(ierr);
 
         if (stop) break; // if bound reached go home
+
+        ierr=TaoGetSolutionStatus(this->m_Tao,NULL,NULL,&gnorm,NULL,NULL,NULL); CHKERRQ(ierr);
 
         // if we got here, the solution is valid
         ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);

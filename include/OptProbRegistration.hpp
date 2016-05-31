@@ -98,13 +98,6 @@ public:
     /*! check if hessian is symmetric */
     PetscErrorCode HessianSymmetryCheck(void);
 
-    /*! get verbositys */
-    inline int GetVerbosity(){ return this->m_Opt->GetVerbosity(); };
-
-    /*! get verbositys */
-    inline void PrintLine(){ PetscPrintf(MPI_COMM_WORLD,"%s\n",std::string(this->m_Opt->GetLineLength(),'-').c_str()); };
-
-
 protected:
 
     PetscErrorCode Initialize(void);

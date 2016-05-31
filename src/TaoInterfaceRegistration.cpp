@@ -222,7 +222,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
     // pass tolerance to optimization problem (for preconditioner)
     optprob->SetKSPTolerance(reltol);
 
-    if(optprob->GetVerbosity() >= 2){
+    if(optprob->GetOptions()->GetVerbosity() >= 2){
         std::stringstream ss;
         ss << std::fixed <<std::scientific << reltol;
         msg = "computing solution of KKT system (tol=" + ss.str() + ")";
@@ -326,7 +326,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     int iterdisp;
     char msg[256];
     ScalarType J=0.0,gnorm=0.0,cnorm=0.0,step=0.0,D=0.0,
-                J0=0.0,D0=0.0,gnorm0=0.0;
+                J0=0.0,D0=0.0,gnorm0=0.0,alpha,grtol,gatol,gttol;
     OptProbRegistration* optprob = NULL;
     TaoConvergedReason taoconvreason;
     TaoLineSearch ls=NULL;
@@ -348,7 +348,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
 
     if (newtonkrylov){
 
-        if(optprob->GetVerbosity() >= 2){
+        if(optprob->GetOptions()->GetVerbosity() >= 2){
 
             std::string convmsg;
             ierr=TaoGetKSP(tao,&ksp); CHKERRQ(ierr);
@@ -362,7 +362,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     ierr=TaoGetLineSearch(tao,&ls); CHKERRQ(ierr);
     ierr=TaoLineSearchGetSolution(ls,NULL,&J,NULL,&step,&taolsconvreason); CHKERRQ(ierr);
 
-    if(optprob->GetVerbosity() >= 2){
+    if(optprob->GetOptions()->GetVerbosity() >= 2){
         ierr=DispLSConvReason(taolsconvreason); CHKERRQ(ierr);
     }
 
@@ -375,7 +375,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     optprob->SetNumOuterIter(iter);
 
     // tao: display convergence reason
-    if(optprob->GetVerbosity() >= 2){
+    if(optprob->GetOptions()->GetVerbosity() >= 2){
         ierr=DispTaoConvReason(taoconvreason); CHKERRQ(ierr);
     }
 
@@ -384,16 +384,38 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
 
     // parse initial gradient and display header
     if ( optprob->InFirstIteration() == true ){
-        optprob->PrintLine();
+
+        ierr=PetscPrintf(MPI_COMM_WORLD,"%s\n",std::string(optprob->GetOptions()->GetLineLength(),'-').c_str());
         PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n",
                                     "iter","objective (rel)","mismatch (rel)",
                                     "||gradient||_2,rel","||gradient||_2","step");
-        optprob->PrintLine();
+        ierr=PetscPrintf(MPI_COMM_WORLD,"%s\n",std::string(optprob->GetOptions()->GetLineLength(),'-').c_str());
 
         optprob->SetInitialGradNorm(gnorm); // set the initial gradient norm
         optprob->SetInitialMismatchVal(D); // set the initial l2 distance
         optprob->SetInitialObjVal(J); // set the initial objective value
 
+    }
+    else{
+        // handle multilevel/multiresolution problems
+        if (iter == 0){
+
+            // the tolerance of the solver has to be modified
+            // so that the relative reduction is with respect
+            // to the initial gradient
+
+            gatol = optprob->GetOptions()->GetOptTol(0);  // ||g(x)||              <= gatol
+            grtol = optprob->GetOptions()->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
+            gttol = optprob->GetOptions()->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
+
+            // get initial gradient
+            gnorm0 = optprob->GetInitialGradNorm();
+            gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
+            alpha = PetscMax(1.0,gnorm0/gnorm);
+            ierr=TaoSetTolerances(tao,gatol,grtol,alpha*gttol); CHKERRQ(ierr);
+
+            PetscPrintf(MPI_COMM_WORLD,"%.6f\n",alpha);
+        }
     }
 
     // get initial gradient
