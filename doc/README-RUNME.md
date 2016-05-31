@@ -21,7 +21,7 @@ To run a simple **synthetic registration problem** using some default set of par
 ./bin/runcoldreg
 ```
 
-To run the problem with different grid size use the `-nx` option; i.e., for a problem of size `128x64x256` do `-nx 128x64x256`.
+To run the problem with different grid size use the `-nx` option; i.e., for a problem of size 128x64x256 do `-nx 128x64x256`.
 
 
 
