@@ -49,22 +49,19 @@ To run an image registration test example do:
 ./bin/runcoldreg
 ```
 
+To run the code with different grid sizes use the `-nx` option (i.e., for a 128x128x128 problem, use `-nx 128x128x128`).
+
 ### Using Input Images
 
-To run an image registration problem with input images do (`-nx` option is **mandatory**):
+To run an image registration problem with input images do:
 
 ```bash
-./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -nx 256x256x256 -betav 1E-2 -regnorm h2s -xresults -x ./results
+./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -betav 1E-2 -regnorm h2s -xresults -x ./results
 ```
 
-Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-nx 256x256x256` the *size* of the images (currently **mandatory**), `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
+Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
 
-**Important**: We assume that
-
-* the images have been **affinely pre-registered** (same voxel dimensions and grid size)
-* the `-nx` option is **mandatory**
-
-More details about these options and the output can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
+**Important**: We assume that the images have been **affinely pre-registered** (same voxel dimensions and grid size). More details about these options and the output can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
 
 ### Options
 

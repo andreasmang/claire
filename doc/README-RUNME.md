@@ -6,9 +6,8 @@
 ## Content
 
 * Running a Test Problem
-* Registering Images 
-	* Mandatory Input Arguments 
-	* Output Arguments
+* Registering Images
+* Controlling the Output
 * Parallel Execution
 
 
@@ -22,6 +21,9 @@ To run a simple **synthetic registration problem** using some default set of par
 ./bin/runcoldreg
 ```
 
+To run the problem with different grid size use the `-nx` option; i.e., for a problem of size `128x64x256` do `-nx 128x64x256`.
+
+
 
 
 ## Registering Images
@@ -29,14 +31,15 @@ To run a simple **synthetic registration problem** using some default set of par
 To register two NIfTI images `mR.nii.gz` (reference image) and `mT.nii.gz` of size 256x256x256 do 
 
 ```bash
-./bin/runcoldreg -mr /path/to/image/mR.nii.gz -mt ./path/to/image/mT.nii.gz -nx 256x256x256
+./bin/runcoldreg -mr /path/to/image/mR.nii.gz -mt ./path/to/image/mT.nii.gz
 ```
 
-The size argument `-nx 256x256x256` is **mandatory**.
+**Important:** The images have to be affinely preregistered (i.e., have the same grid size).
 
 
 
-### Controlling the Output
+
+## Controlling the Output
 
 To output registration results add the `-xresults` option. This also requires you to add the output path `-x /path/to/results/` (**mandatory**):
 
@@ -64,3 +67,15 @@ residual-after.nii.gz           | residual / mismatch after registration
 residual-before.nii.gz          | residual / mismatch before registration
 velocity-field-2norm.nii.gz     | l2 norm of velocity field
 
+
+
+
+## Parallel Execution
+
+To run the code with 2 MPI tasks do (assuming you use `mpirun`):
+
+```bash
+mpirun -np 2 ./bin/runcoldreg
+```
+
+ACCFFT ([http://accfft.org](http://accfft.org)) will automatically decide on the data distribution. ACCFFT uses a pencil decomposition, i.e., assuming we have $n_p = n^1_p n^2_p$ tasks

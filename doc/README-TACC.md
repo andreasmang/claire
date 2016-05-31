@@ -15,3 +15,12 @@ module load impi/5.0.3
 module load git/2.7.0
 module load cmake/2.8.12.2
 ```
+
+
+
+## Stampede
+
+```bash
+module load intel/14.0.1.106
+module load impi/5.0.3 
+```
