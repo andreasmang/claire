@@ -297,8 +297,7 @@ public:
 
 private:
 
-    PetscErrorCode Usage(void);
-    PetscErrorCode UsageAdvanced(void);
+    PetscErrorCode Usage(bool advanced=false);
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode ParseArguments(int,char**);

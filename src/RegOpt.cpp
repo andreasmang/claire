@@ -78,7 +78,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             ierr=this->Usage(); CHKERRQ(ierr);
         }
         if ( strcmp(argv[1],"-advanced") == 0 ){
-            ierr=this->UsageAdvanced(); CHKERRQ(ierr);
+            ierr=this->Usage(true); CHKERRQ(ierr);
         }
         else if(strcmp(argv[1],"-nx") == 0){
 
@@ -251,7 +251,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             else {
                 msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if (strcmp(argv[1],"-regnorm") == 0){
@@ -274,7 +274,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             else {
                 msg="\n\x1b[31m regularization norm not available: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageAdvanced(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-betav") == 0){
@@ -289,7 +289,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-train") == 0){
             this->m_ParameterCont.binarysearch=true;
         }
-        else if(strcmp(argv[1],"-reducebeta") == 0){
+        else if(strcmp(argv[1],"-reducebetav") == 0){
             this->m_ParameterCont.reducebeta=true;
         }
         else if(strcmp(argv[1],"-betavmin") == 0){
@@ -320,11 +320,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
     if (this->m_SolveType != NOTSET){
         ierr=this->SetPresetParameters(); CHKERRQ(ierr);
     }
-//    ierr=this->DoSetup(); CHKERRQ(ierr);
-
-    // display the most important parameters of the setup
-    // to the user
-//    ierr=this->DisplayOptions(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -471,78 +466,7 @@ PetscErrorCode RegOpt::Initialize()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Usage"
-PetscErrorCode RegOpt::Usage()
-{
-
-    PetscErrorCode ierr;
-    int rank;
-    std::string line,dots;
-    PetscFunctionBegin;
-
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-
-    line = std::string(this->m_LineLength,'-');
-
-    if (rank == 0){
-        std::cout<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " usage: runcoldreg [options] " <<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " where [options] is one or more of the following"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " input"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -mr <file>              reference image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout<< " -mt <file>              template image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); mandatory option; grid is assumed"<<std::endl;
-        std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " output"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -x <folder>             output folder (what's written out is controlled by the flags below)"<<std::endl;
-        std::cout<< " -xresults               flag: write results to file (default: not written; requires -x option)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " solver"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -preset <type>          use a predefined solver setting (default: not set)"<<std::endl;
-        std::cout<< "                         where <types> are"<<std::endl;
-        std::cout<< "                             fast-aggressive        fast; low accuracy inversion;"<<std::endl;
-        std::cout<< "                                                    small residual; irregular map"<<std::endl;
-        std::cout<< "                             fast-smooth            fast; low accuracy inversion;"<<std::endl;
-        std::cout<< "                                                    larger residual; potentially irregular map;"<<std::endl;
-        std::cout<< "                             accurate-aggressive    slow; high(er) accuracy inversion;"<<std::endl;
-        std::cout<< "                                                    small residual; potentially irregular map"<<std::endl;
-        std::cout<< "                             accurate-smooth        slow; high(er) accuracy inversion;"<<std::endl;
-        std::cout<< "                                                    small residual; well-behaved map"<<std::endl;
-        std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
-        std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-2)"<<std::endl;
-        std::cout<< " -train                  learn regularization parameter (default: off)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " other parameters"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -help                   display this message"<<std::endl;
-        std::cout<< " -advanced               display advanced options"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< line << std::endl;
-    }
-
-    ierr=PetscFinalize(); CHKERRQ(ierr);
-    exit(0);
-
-    PetscFunctionReturn(0);
-
-
-}
-
-
-
-/********************************************************************
- * Name: UsageAdvanced
- * Description: display usage message for binary
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "UsageAdvanced"
-PetscErrorCode RegOpt::UsageAdvanced()
+PetscErrorCode RegOpt::Usage(bool advanced)
 {
 
     PetscErrorCode ierr;
@@ -555,7 +479,7 @@ PetscErrorCode RegOpt::UsageAdvanced()
     line = std::string(this->m_LineLength,'-');
 
     if (rank == 0){
-        std::cout<<std::endl;
+        std::cout<< std::endl;
         std::cout<< line << std::endl;
         std::cout<< " usage: runcoldreg [options] " <<std::endl;
         std::cout<< line << std::endl;
@@ -567,6 +491,9 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< " -x <path>               output path (what's written out is controlled by the flags below)"<<std::endl;
         std::cout<< "                         a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
         std::cout<< " -xresults               flag: write results to file (default: not written; requires -x option)"<<std::endl;
+
+        if (advanced)
+        {
         std::cout<< " -xlog                   flag: write log files (default: not written; requires -x option)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " optimization specific parameters"<<std::endl;
@@ -590,7 +517,7 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                             suplinear     super-linear"<<std::endl;
         std::cout<< "                             none          exact solve (expensive)"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " regularization parameters"<<std::endl;
+        std::cout<< " regularization/constraints"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -regnorm <type>         regularization norm for velocity field (default: h2s)"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
@@ -604,10 +531,15 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< "                         enable relaxed incompressibility to use this parameter ('-ric'; see below)"<<std::endl;
         std::cout<< " -ic                     enable incompressibility constraint (det(grad(y))=1)"<<std::endl;
         std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
+        }
+
         std::cout<< " -train                  estimate regularization parameter (default: not enabled; binary search)"<<std::endl;
-        std::cout<< " -reducebeta             estimate regularization parameter (default: not enabled; start with 1 and"<<std::endl;
+
+        if (advanced)
+        {
+        std::cout<< " -reducebetav            estimate regularization parameter (default: not enabled; start with 1 and"<<std::endl;
         std::cout<< "                         reduce by one order of magnitude until lower bound on jacobian is reached)"<<std::endl;
-        std::cout<< " -betavmin               lower bound on regularization parameter for velocity for estimation (default: 1E-6)"<<std::endl;
+        std::cout<< " -betavmin               lower bound on regularization parameter for estimation (default: 1E-6)"<<std::endl;
         std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
         std::cout<< " -jmonitor               enable monitor for det(grad(y)) (default: off)"<<std::endl;
         std::cout<< line << std::endl;
@@ -627,11 +559,12 @@ PetscErrorCode RegOpt::UsageAdvanced()
         std::cout<< line << std::endl;
         std::cout<< " other parameters"<<std::endl;
         std::cout<< line << std::endl;
-//        std::cout<< " -usenc                  use *.nc as output format (default: *.nii.gz)"<<std::endl;
         std::cout<< " -verbosity <int>        verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         std::cout<< " -storeiter              store iterates"<<std::endl;
         std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); control grid size for synthetic problems"<<std::endl;
         std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
+        }
+
         std::cout<< line << std::endl;
         std::cout<< " -help                   display a brief version of the user message"<<std::endl;
         std::cout<< " -advanced               display this message"<<std::endl;
@@ -766,9 +699,13 @@ PetscErrorCode RegOpt::DoSetup()
     ierr=reg::Assert(this->m_MiscOpt->N_local > 0,"bug in setup"); CHKERRQ(ierr);
     ierr=reg::Assert(this->m_MiscOpt->N_global > 0,"bug in setup"); CHKERRQ(ierr);
 
+    // display the options to the user
+    ierr=this->DisplayOptions(); CHKERRQ(ierr);
+
     // clean up
     accfft_free(u);
     accfft_free(uk);
+
 
     PetscFunctionReturn(0);
 }

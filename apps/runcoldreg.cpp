@@ -128,9 +128,6 @@ int main(int argc,char **argv)
     ierr=regopt->ResetTimers(); CHKERRQ(ierr);
     ierr=regopt->ResetCounters(); CHKERRQ(ierr);
 
-    // display the options to the user
-    ierr=regopt->DisplayOptions(); CHKERRQ(ierr);
-
     // init solver
     ierr=optimizer->SetProblem(registration); CHKERRQ(ierr);
 
