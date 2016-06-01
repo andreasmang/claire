@@ -213,7 +213,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-jbound") == 0){
             argc--; argv++;
-            this->m_ParameterCont.jacbound = atof(argv[1]);
+            this->m_RegMonitor.jacbound = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-krylovmaxit") == 0){
             argc--; argv++;
@@ -291,10 +291,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-reducebetav") == 0){
             this->m_ParameterCont.reducebeta=true;
-        }
-        else if(strcmp(argv[1],"-betavmin") == 0){
-            argc--; argv++;
-            this->m_ParameterCont.betamin=atof(argv[1]);
         }
         else if(strcmp(argv[1],"-verbosity") == 0){
             argc--; argv++;
@@ -410,7 +406,6 @@ PetscErrorCode RegOpt::Initialize()
 
     //this->m_PrecondMeth = TWOLEVEL;
     //this->m_PCSolverType = PCPCG;
-    this->m_LineLength = 100;
     this->m_Sigma = 1;
     this->m_WriteImages = false;
     this->m_WriteLogFiles = false;
@@ -434,17 +429,17 @@ PetscErrorCode RegOpt::Initialize()
     this->m_StoreIterates = false;
     this->m_StoreTimeSeries = false;
 
+    // parameter continuation
     this->m_ParameterCont.binarysearch = false;
     this->m_ParameterCont.reducebeta = false;
-    this->m_ParameterCont.betamin = 1E-6;
-    this->m_ParameterCont.jacbound = 2E-1;
-    this->m_ParameterCont.maxsteps = 10;
 
+    // monitor for registration
     this->m_RegMonitor.monitorJAC = false;
     this->m_RegMonitor.monitorCFL = false;
     this->m_RegMonitor.jacmin = 0.0;
     this->m_RegMonitor.jacmax = 0.0;
     this->m_RegMonitor.jacmean = 0.0;
+    this->m_RegMonitor.jacbound = 2E-1;
 
 
     this->m_NumThreads=1;
@@ -490,15 +485,15 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< line << std::endl;
         std::cout<< " -x <path>               output path (what's written out is controlled by the flags below)"<<std::endl;
         std::cout<< "                         a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout<< " -xresults               flag: write results to file (default: not written; requires -x option)"<<std::endl;
+        std::cout<< " -xresults               flag: write results to file (requires -x option)"<<std::endl;
 
         if (advanced)
         {
-        std::cout<< " -xlog                   flag: write log files (default: not written; requires -x option)"<<std::endl;
+        std::cout<< " -xlog                   flag: write log files (requires -x option)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " optimization specific parameters"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -optmeth <type>         optimization method (default: gn)"<<std::endl;
+        std::cout<< " -optmeth <type>         optimization method"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
         std::cout<< "                             gn           Gauss-Newton (default)"<<std::endl;
         std::cout<< "                             fn           full Newton"<<std::endl;
@@ -511,7 +506,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<<"                              tol <= ||g||/||g_init||"<<std::endl;
         std::cout<< " -maxit <int>            maximum number of (outer) Newton iterations (default: 50)"<<std::endl;
         std::cout<< " -krylovmaxit <int>      maximum number of (inner) Krylov iterations (default: 50)"<<std::endl;
-        std::cout<< " -krylovfseq <type>      forcing sequence for Kryolov solver (tolerance for inner iterations; default: quad)"<<std::endl;
+        std::cout<< " -krylovfseq <type>      forcing sequence for Krylov solver (tolerance for inner iterations)"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
         std::cout<< "                             quadratic     quadratic (default)"<<std::endl;
         std::cout<< "                             suplinear     super-linear"<<std::endl;
@@ -519,7 +514,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< line << std::endl;
         std::cout<< " regularization/constraints"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -regnorm <type>         regularization norm for velocity field (default: h2s)"<<std::endl;
+        std::cout<< " -regnorm <type>         regularization norm for velocity field"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
         std::cout<< "                             h1s          H1-seminorm"<<std::endl;
         std::cout<< "                             h2s          H2-seminorm (default)"<<std::endl;
@@ -533,19 +528,19 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
         }
 
-        std::cout<< " -train                  estimate regularization parameter (default: not enabled; binary search)"<<std::endl;
+        std::cout<< " -train                  estimate regularization parameter (binary search)"<<std::endl;
 
         if (advanced)
         {
-        std::cout<< " -reducebetav            estimate regularization parameter (default: not enabled; start with 1 and"<<std::endl;
-        std::cout<< "                         reduce by one order of magnitude until lower bound on jacobian is reached)"<<std::endl;
-        std::cout<< " -betavmin               lower bound on regularization parameter for estimation (default: 1E-6)"<<std::endl;
+        std::cout<< " -reducebetav            estimate regularization parameter (start with betav=1 and"<<std::endl;
+        std::cout<< "                         successively reduce betav by one order of magnitude until"<<std::endl;
+        std::cout<< "                         lower bound on jacobian is reached)"<<std::endl;
         std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
-        std::cout<< " -jmonitor               enable monitor for det(grad(y)) (default: off)"<<std::endl;
+        std::cout<< " -jmonitor               enable monitor for det(grad(y))"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " solver specific parameters (numerics)"<<std::endl;
         std::cout<< line << std::endl;
-        std::cout<< " -pdesolver <type>       numerical time integrator for transport equations (default: sl)"<<std::endl;
+        std::cout<< " -pdesolver <type>       numerical time integrator for transport equations"<<std::endl;
         std::cout<< "                         where <types> are"<<std::endl;
         std::cout<< "                             sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
         std::cout<< "                             rk2          rk2 time integrator (conditionally stable)"<<std::endl;
@@ -868,11 +863,8 @@ PetscErrorCode RegOpt::DisplayOptions()
             // display parameters and tolerances
             std::cout<< std::left << std::setw(indent) <<" parameter continuation"
                       << std::setw(align) <<"bound det(grad(y))"
-                      << this->m_ParameterCont.jacbound << std::endl;
+                      << this->m_RegMonitor.jacbound << std::endl;
 
-            std::cout << std::left << std::setw(indent) <<" "
-                      << std::setw(align) <<"bound beta"
-                      << this->m_ParameterCont.betamin << std::endl;
         }
         else{
             switch(this->m_Regularization.norm){

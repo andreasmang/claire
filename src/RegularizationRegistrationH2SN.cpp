@@ -336,7 +336,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
 PetscErrorCode RegularizationRegistrationH2SN::HessianMatVec(VecField* dvvR, VecField* vtilde)
 {
     PetscErrorCode ierr;
-    ScalarType beta,hd;
+    ScalarType beta;
     PetscFunctionBegin;
 
     ierr=Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);

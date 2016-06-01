@@ -928,7 +928,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
     PetscErrorCode ierr;
     T *data=NULL;
     std::string msg;
-    IntType ng,nx[3];
+    IntType ng;
     int rank;
     std::stringstream ss;
 
@@ -1280,7 +1280,6 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
     PetscErrorCode ierr;
     PetscInt n;
     int rank;
-    ScalarType hx[3];
 
     PetscFunctionBegin;
 

@@ -38,8 +38,7 @@ int main(int argc,char **argv)
 {
     PetscErrorCode ierr;
     int procid,nprocs;
-    IntType nl,ng;
-    Vec mT = NULL, mR=NULL;
+    Vec mT=NULL,mR=NULL;
 
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;

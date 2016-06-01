@@ -2,8 +2,8 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-USEOPENMP=yes
-
+BUILDTOOLS=yes
+PEDANTIC=no
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -11,14 +11,21 @@ MKDIRS = mkdir -p
 CXXFLAGS = -O3 -ansi
 ifeq ($(USEINTEL),yes)
 	CXXFLAGS+= -std=c++11 -DINVERT_RHO -xhost -parallel
-	ifeq ($(USEOPENMP),yes)
-		CXXFLAGS+= -openmp
-	endif
+	CXXFLAGS+= -openmp
 else
-	ifeq ($(USEOPENMP),yes)
-		CXXFLAGS+= -fopenmp
-	endif
+	CXXFLAGS+= -fopenmp
 endif
+
+ifeq ($(PEDANTIC),yes)
+	CXXFLAGS+= -Warray-bounds -Wchar-subscripts -Wcomment
+	CXXFLAGS+= -Wenum-compare -Wformat -Wuninitialized
+	CXXFLAGS+= -Wmaybe-uninitialized -Wmain -Wnarrowing
+	CXXFLAGS+= -Wnonnull -Wparentheses -Wpointer-sign
+	CXXFLAGS+= -Wreorder -Wreturn-type -Wsign-compare
+	CXXFLAGS+= -Wsequence-point -Wtrigraphs -Wunused-function
+	CXXFLAGS+= -Wunused-but-set-variable -Wunused-variable -Wwrite-strings
+endif
+
 
 BINDIR = ./bin
 SRCDIR = ./src
@@ -50,7 +57,9 @@ endif
 LDFLAGS+= -lm
 
 BIN+= $(BINDIR)/runcoldreg
-BIN+= $(BINDIR)/par_interp3_driver
+ifeq ($(BUILDTOOLS),yes)
+	BIN+= $(BINDIR)/par_interp3_driver
+endif
 
 
 INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h LargeDeformationRegistration.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptProbRegistration.h PreProcessingRegistration.h

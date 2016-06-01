@@ -349,7 +349,9 @@ PetscErrorCode Optimizer::Run()
     }
     else if( this->m_Opt->DoBinarySearch() ){
 
-        // start the parameter continuation
+        // start the parameter continuation (we first reduce
+        // the regularization parameter by one order of magnitude
+        // and from there start a binary search)
         ierr=this->RunBinarySearchRegPara(); CHKERRQ(ierr);
 
     }
@@ -389,11 +391,12 @@ PetscErrorCode Optimizer::RunBinarySearchRegPara()
 {
     PetscErrorCode ierr;
     std::string levelmsg;
-    std::stringstream levelss;
-    ScalarType beta;
-    Vec x,xsol;
-    int maxsteps, rank;
-    bool stop;
+    std::stringstream ss;
+    ScalarType beta,betamin,betascale,dbetascale,
+                betastar,betahat,dbeta,dbetamin;
+    Vec x;
+    int maxsteps,level,rank;
+    bool stop,boundreached;
 
     PetscFunctionBegin;
 
@@ -408,44 +411,142 @@ PetscErrorCode Optimizer::RunBinarySearchRegPara()
     }
     ierr=Assert(this->m_Tao !=NULL, "optimizer: problem in tao setup"); CHKERRQ(ierr);
 
-    // get max number of steps
-    maxsteps = this->m_Opt->GetMaxParaContSteps();
+    // get parameters
+    maxsteps  = this->m_Opt->GetMaxStepsParaCont();
+    betamin   = this->m_Opt->GetBetaMinParaCont();
+    betascale = this->m_Opt->GetBetaScaleParaCont();
+
+    ierr=Assert(betascale < 1.0,"scale for beta > 1"); CHKERRQ(ierr);
+    ierr=Assert(betamin > 0.0,"lower bound for beta < 0"); CHKERRQ(ierr);
+    ierr=Assert(betamin < 1.0,"lower bound for beta > 1"); CHKERRQ(ierr);
+
+    // store initial guess
+    ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+    ierr=VecDuplicate(x,&this->m_Solution); CHKERRQ(ierr);
+
+    // initialize parameters
+    beta = 1.0;
+    betastar = beta;
 
     levelmsg = "level ";
     ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
 
-    ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
-    ierr=VecDuplicate(x,&xsol); CHKERRQ(ierr);
-    beta = 1.0;
-
     // reduce regularization parameter by one order of magnitude until
     // we hit the tolerance
-    for(int i = 0; i < maxsteps; ++i){
+    stop=false;
+    level = 0;
+    while(level < maxsteps){
 
         this->m_Opt->SetRegularizationWeight(beta);
 
-        levelss << std::setw(3) << i <<" (beta="<<beta<<")";
+        ss << std::setw(3) << level <<" ( betav="<<beta<<"; betav*="<<betastar<<" )";
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ierr=Msg(levelmsg + levelss.str()); CHKERRQ(ierr);
+        ierr=Msg(levelmsg + ss.str()); CHKERRQ(ierr);
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        levelss.str("");
+        ss.str( std::string() ); ss.clear();
 
         // solve optimization probelm for current regularization parameter
         ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
 
+        // get the solution vector
         ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
 
-        stop=false; // not yet we're not
+        // check bounds on jacobian
         ierr=this->m_OptimizationProblem->CheckBounds(x,stop); CHKERRQ(ierr);
 
         if (stop) break; // if bound reached go home
 
+        // remember regularization parameter
+        betastar = beta;
+
         // if we got here, the solution is valid
         ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
 
-        beta /= 10.0; // reduce beta
+        // reduce beta
+        beta *= betascale;
 
+        // if regularization parameter is smaller than
+        // lower bound, let's stop this
+        if (beta < betamin){
+
+            if (this->m_Opt->GetVerbosity() > 0){
+                ss <<"regularization parameter smaller than lower bound (betav="
+                   <<beta<<" < " << betamin <<"=betavmin)";
+                ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.str( std::string() ); ss.clear();
+            }
+            break;
+        }
+
+        ++level;
+
+    } // until we hit the tolerance
+
+    // now start binary search
+    stop=false;
+
+    // get scale for delta beta; this parameter determines how
+    // accurate we solve (how many digits) with respect to the
+    // order of magnitude of magnitude of the regularization
+    // parameter)
+    dbetascale = this->m_Opt->GetDeltaBetaScaleParaCont();
+    ierr=Assert(dbetascale < 1.0,"scale for delta betav > 1"); CHKERRQ(ierr);
+    ierr=Assert(dbetascale > 0.0,"scale for delta betav < 0"); CHKERRQ(ierr);
+
+    //update beta
+    dbetamin = dbetascale*betastar;
+    betahat = betascale*betastar;
+    dbeta = (betastar-betahat)/2.0;
+    beta  = betastar-dbeta;
+    ++level;
+
+    while(!stop){
+
+        // set regularization parameter
+        this->m_Opt->SetRegularizationWeight(beta);
+
+        // display regularization parameter to user
+        ss << std::setw(3) << level <<" ( betav="<<beta<<"; betav*="<<betastar<<" )";
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ierr=Msg(levelmsg + ss.str()); CHKERRQ(ierr);
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ss.str( std::string() ); ss.clear();
+
+        // solve optimization probelm for current regularization parameter
+        ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
+
+        // get the solution vector
+        ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+
+        // check bounds on jacobian
+        boundreached=false;
+        ierr=this->m_OptimizationProblem->CheckBounds(x,boundreached); CHKERRQ(ierr);
+
+        // if bound is reached, the lower bound is now beta
+        // if not, beta is our new best estimate
+        if (boundreached){ betahat = beta; }
+        else{
+
+            betastar = beta; // new best estimate
+
+            // if we got here, the solution is valid
+            ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+        }
+
+        // increase or reduce beta
+        dbeta = (betastar - betahat)/2.0;
+        beta  = betastar - dbeta;
+
+        if (fabs(dbeta) < dbetamin){ stop = true; }
+
+        ++level;
     }
+
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ss <<std::scientific<<"estimated regularization parameter betav="<<betastar;
+    ierr=Msg(ss.str()); CHKERRQ(ierr);
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ss.str( std::string() ); ss.clear();
 
     PetscFunctionReturn(0);
 }
@@ -468,8 +569,8 @@ PetscErrorCode Optimizer::RunRegParaReduction()
 {
     PetscErrorCode ierr;
     std::string levelmsg;
-    std::stringstream levelss;
-    ScalarType beta,betamin;
+    std::stringstream ss;
+    ScalarType beta,betamin,betastar;
     Vec x,xsol;
     int maxsteps, rank;
     bool stop;
@@ -488,10 +589,10 @@ PetscErrorCode Optimizer::RunRegParaReduction()
     ierr=Assert(this->m_Tao!=NULL,"optimizer: problem in tao setup"); CHKERRQ(ierr);
 
     // get max number of steps
-    maxsteps = this->m_Opt->GetMaxParaContSteps();
+    maxsteps = this->m_Opt->GetMaxStepsParaCont();
 
     // get lower bound for regularization parameter
-    betamin = this->m_Opt->GetBetaBound();
+    betamin = this->m_Opt->GetBetaMinParaCont();
 
     levelmsg = "level ";
     ierr=Msg("starting optimization (parameter continuation)"); CHKERRQ(ierr);
@@ -501,28 +602,38 @@ PetscErrorCode Optimizer::RunRegParaReduction()
 
     // set initial regularization weight
     beta = 1.0;
-
+    betastar = beta;
     // reduce regularization parameter by one order of magnitude until
-    // we hit user defined tolerance
+    // we hit user defined tolerances (which either is a lower bound
+    // on the regularization parameter or a lower bound on the
+    // determinant of the deformation gradient)
     for(int i = 0; i < maxsteps; ++i){
 
+        // set regularization weight
         this->m_Opt->SetRegularizationWeight(beta);
 
-        levelss << std::setw(3) << i <<" (beta="<<beta<<")";
+        // display message to user
+        ss << std::setw(3) << i <<" (beta="<<beta<<")";
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ierr=Msg(levelmsg + levelss.str()); CHKERRQ(ierr);
+        ierr=Msg(levelmsg + ss.str()); CHKERRQ(ierr);
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        levelss.str( std::string() ); levelss.clear();
+        ss.str( std::string() ); ss.clear();
 
-        // solve optimization probelm for current regularization parameter
+        // solve optimization problem for current regularization parameter
         ierr=TaoSolve(this->m_Tao); CHKERRQ(ierr);
 
+        // get solution
         ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
 
         stop=false; // not yet we're not
+
+        // check if we hit the bound
         ierr=this->m_OptimizationProblem->CheckBounds(x,stop); CHKERRQ(ierr);
 
         if (stop) break; // if bound reached go home
+
+        // remember best estimate
+        betastar = beta;
 
         // if we got here, the solution is valid
         ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
@@ -534,15 +645,22 @@ PetscErrorCode Optimizer::RunRegParaReduction()
         if (beta < betamin){
 
             if (this->m_Opt->GetVerbosity() > 0){
-                levelss <<"regularization parameter below bound (betav="
-                        <<beta<<" < " << betamin <<"=betavmin)";
-                ierr=DbgMsg(levelss.str()); CHKERRQ(ierr);
-                levelss.str( std::string() ); levelss.clear();
+                ss <<"regularization parameter smaller than lower bound (betav="
+                   <<beta<<" < " << betamin <<"=betavmin)";
+                ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.str( std::string() ); ss.clear();
             }
             break;
         }
 
-    }
+    } // parameter reduction
+
+
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ss <<std::scientific<<"estimated regularization parameter betav="<<betastar;
+    ierr=Msg(ss.str()); CHKERRQ(ierr);
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ss.str( std::string() ); ss.clear();
 
     PetscFunctionReturn(0);
 }
@@ -562,8 +680,8 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
     PetscFunctionBegin;
 
     ierr=Assert(x!=NULL, "input pointer is null"); CHKERRQ(ierr);
-    ierr=Assert(this->m_Tao!=NULL, "optimization object has not been initialized"); CHKERRQ(ierr);
-    ierr=Assert(this->m_Solution!=NULL, "solution vector is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Tao!=NULL, "optimization object not initialized"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Solution!=NULL, "solution vector is null"); CHKERRQ(ierr);
 
     // copy the solution to input
     ierr=VecCopy(this->m_Solution,x); CHKERRQ(ierr);

@@ -407,7 +407,7 @@ PetscErrorCode PreProcessingRegistration::SetupDomainDecomposition(unsigned int 
     ierr=this->ResetDDData(np); CHKERRQ(ierr);
 
     // compute identifiers for domain decomposition
-    for (unsigned int i = 0; i < 3; ++i){
+    for (int i = 0; i < 3; ++i){
         nx[i]    = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->N[i]);
         isize[i] = static_cast<IntType>(ceil(nx[i]/nd));
         nsub[i]  = n;
@@ -477,7 +477,7 @@ PetscErrorCode PreProcessingRegistration::DecompositionData(Vec x, unsigned int 
 
     ierr=this->SetupDomainDecomposition(n); CHKERRQ(ierr);
 
-    for(unsigned int i=0; i < 3; ++i){
+    for(int i=0; i < 3; ++i){
         this->m_nx[i] = this->m_Opt->m_MiscOpt->N[i];
         nsub[i] = n;
     }
@@ -684,7 +684,7 @@ PetscErrorCode PreProcessingRegistration::CompositionTimeDependentData(Vec x, un
 
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
 
-    for (unsigned int j = 0; j <= nt; ++j){
+    for (IntType j = 0; j <= nt; ++j){
 
         // construct file name
         ss << std::setw(3) << std::setfill('0') << j;
@@ -741,7 +741,7 @@ PetscErrorCode PreProcessingRegistration::DecompositionTimeDependentData(Vec x, 
 
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
 
-    for (unsigned int j = 0; j <= nt; ++j){
+    for (IntType j = 0; j <= nt; ++j){
 
         // construct file name
         ss << std::setw(3) << std::setfill('0') << j;

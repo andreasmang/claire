@@ -224,9 +224,12 @@ public:
     inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
     inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
     inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
+    inline ScalarType GetJacBound(){return this->m_RegMonitor.jacbound;};
+
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
     inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
+
     inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
     inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
     inline void MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
@@ -237,10 +240,17 @@ public:
     // parameter continuation
     inline bool DoBinarySearch(){return this->m_ParameterCont.binarysearch;};
     inline bool DoParameterReduction(){return this->m_ParameterCont.reducebeta;};
-    inline ScalarType GetJacBound(){return this->m_ParameterCont.jacbound;};
-    inline void SetJacBound(ScalarType value){this->m_ParameterCont.jacbound=value;};
-    inline int GetMaxParaContSteps(){return this->m_ParameterCont.maxsteps;};
-    inline ScalarType GetBetaBound(){return this->m_ParameterCont.betamin;};
+
+    inline int GetMaxStepsParaCont(){return this->m_ParameterCont.maxsteps;};
+    inline ScalarType GetBetaScaleParaCont(){return this->m_ParameterCont.betascale;};
+    inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParameterCont.dbetascale;};
+    inline ScalarType GetBetaMinParaCont(){
+        if (this->m_Regularization.norm == H1)        return this->m_ParameterCont.betavminh1;
+        else if (this->m_Regularization.norm == H1SN) return this->m_ParameterCont.betavminh1;
+        else if (this->m_Regularization.norm == H2)   return this->m_ParameterCont.betavminh2;
+        else if (this->m_Regularization.norm == H2SN) return this->m_ParameterCont.betavminh2;
+        else return 1E-9;
+    };
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -331,9 +341,11 @@ private:
 
     // parameters for parameter continuation
     struct ParameterContinuation{
-        ScalarType betamin; ///< minimal regularization parameter
-        ScalarType jacbound; ///< lower bound for jacobian
-        int maxsteps; ///< max number of steps
+        static const ScalarType betavminh1=1E-3; ///< minimal regularization parameter for h1 type norm
+        static const ScalarType betavminh2=1E-6; ///< minimal regularization parameter for h2 type norm
+        static const int maxsteps = 10; ///< max number of steps
+        static const ScalarType betascale = 1E-1; ///< default reduction factor (one order of magnitude)
+        static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
         bool binarysearch; ///< flag if parameter continuation is switched on (binary search)
         bool reducebeta; ///< flag if parameter continuation is switched on (simple reduction)
     };
@@ -345,6 +357,7 @@ private:
         ScalarType jacmin; ///< min value of jacobian
         ScalarType jacmax; ///< max value of jacobian
         ScalarType jacmean; ///< mean value of jacobian
+        ScalarType jacbound; ///< lower bound for jacobian
     };
 
     struct Regularization{
@@ -386,14 +399,13 @@ private:
     double m_InterpTimers[4][NVALTYPES];
 
     unsigned int m_NumThreads;
-    unsigned int m_LineLength;
+    const unsigned int m_LineLength = 101;
     bool m_StoreTimeSeries;
     bool m_StoreIterates;
     bool m_SetupDone;
 
     bool m_WriteImages;
     bool m_WriteLogFiles;
-    //bool m_UseNCFormat;
     bool m_ReadImagesFromFile;
 
     ScalarType m_Sigma;

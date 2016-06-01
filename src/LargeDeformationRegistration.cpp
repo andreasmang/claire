@@ -686,7 +686,8 @@ PetscErrorCode LargeDeformationRegistration::ComputeCFLCondition()
 PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreached)
 {
     PetscErrorCode ierr;
-    ScalarType jmin,jbound;
+    ScalarType jmin,jmax,jbound;
+    bool minboundreached,maxboundreached;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -697,7 +698,8 @@ PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreach
         }
     }
 
-    boundreached = false;
+    minboundreached = false;
+    maxboundreached = false;
 
     // parse input velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
@@ -706,16 +708,31 @@ PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreach
     ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
     jmin   = this->m_Opt->GetJacMin();
+    jmax   = this->m_Opt->GetJacMax();
     jbound = this->m_Opt->GetJacBound();
 
-    boundreached = jmin <= jbound;
+    // check if jmin < bound and 1/jmax < bound
+    minboundreached = jmin <= jbound;
+    maxboundreached = 1.0/jmax <= jbound;
 
-    if(boundreached){
-        ss << std::scientific << std::fixed
-        << "bound reached ( min(det(grad(y))) = "<< jmin << " <= " << jbound <<" )";
-        ierr=WrngMsg(ss.str()); CHKERRQ(ierr);
+    boundreached = (minboundreached || maxboundreached) ? true : false;
+    if (boundreached) ierr=WrngMsg("jacobian bound reached"); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 1){
+        if(minboundreached){
+            ss << std::scientific
+            << "min(det(grad(y))) = "<< jmin << " <= " << jbound;
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
+        }
+        if(maxboundreached){
+            ss << std::scientific
+            << "max(det(grad(y))) = "<< jmax << " >= " << 1.0/jbound
+            << " ( = 1/bound )";
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
+        }
     }
-
 
     PetscFunctionReturn(0);
 }
@@ -758,6 +775,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
 
     // check if velocity field is zero
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
+
     if(this->m_VelocityIsZero == false){
 
         // call the solver
@@ -785,14 +803,15 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
     ierr=VecSum(this->m_WorkScaField1,&meanddg); CHKERRQ(ierr);
     meanddg /= static_cast<ScalarType>(this->m_Opt->GetNGlobal());
 
-    this->m_Opt->SetJacMin(minddg); CHKERRQ(ierr);
-    this->m_Opt->SetJacMax(maxddg); CHKERRQ(ierr);
-    this->m_Opt->SetJacMean(meanddg); CHKERRQ(ierr);
+    // remember
+    this->m_Opt->SetJacMin(minddg);
+    this->m_Opt->SetJacMax(maxddg);
+    this->m_Opt->SetJacMean(meanddg);
 
     ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
         << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
     ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
-
+    ss.str( std::string() ); ss.clear();
 
 
     PetscFunctionReturn(0);

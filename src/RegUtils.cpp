@@ -43,7 +43,6 @@ PetscErrorCode Assert(bool condition,std::string msg)
 #define __FUNCT__ "GetFileName"
 PetscErrorCode GetFileName(std::string& filename, std::string file)
 {
-    PetscErrorCode ierr;
     std::string path;
     size_t sep;
 
@@ -118,7 +117,7 @@ PetscErrorCode DbgMsg(std::string msg)
 
     PetscFunctionBegin;
 
-    ss << std::left << std::setw(97)<< msg;
+    ss << std::left << std::setw(98)<< msg;
     msg = "\x001b[90m[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
@@ -139,9 +138,12 @@ PetscErrorCode DbgMsg(std::string msg)
 PetscErrorCode WrngMsg(std::string msg)
 {
     PetscErrorCode ierr;
+    std::stringstream ss;
+
     PetscFunctionBegin;
 
-    msg = "\x1b[33m " + msg + "\x1b[0m\n";
+    ss << std::left << std::setw(98)<< msg;
+    msg = "\x1b[33m[ " + ss.str() + "]\x1b[0m\n";
 
     // display error
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
@@ -166,9 +168,8 @@ PetscErrorCode ThrowError(std::string msg)
 
     std::string errmsg = "\x1b[31mERROR: " + msg + "\x1b[0m";
     ierr=PetscError(PETSC_COMM_WORLD,__LINE__,PETSC_FUNCTION_NAME,__FILE__,1,PETSC_ERROR_INITIAL,errmsg.c_str());
-    PetscFunctionReturn(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
