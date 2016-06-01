@@ -167,7 +167,7 @@ public:
     inline int GetIStart(int i){return this->m_MiscOpt->istart[i];};
 
     // spatial grid
-    inline void SetNumGridPoints(int i,IntType nx){this->m_nx[i] = nx;};
+    inline void SetNumGridPoints(int i,IntType nx){this->m_Domain.nx[i] = nx;};
     inline ScalarType GetSpatialStepSize(int i){return this->m_MiscOpt->h[i];};
     inline ScalarType GetLebesqueMeasure(void)
     {
@@ -309,9 +309,22 @@ private:
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 
-    IntType m_nx[3];
     IntType m_nt; ///< number of time points
     ScalarType m_TimeHorizon[2];
+
+
+    // parameters for optimization
+    struct Domain{
+        IntType isize[3];
+        IntType istart[3];
+        IntType osize[3];
+        IntType ostart[3];
+        IntType nlocal;
+        IntType nglobal;
+        ScalarType hx[3];
+        IntType nx[3];
+    };
+
 
     // parameters for optimization
     struct Optimization{
@@ -377,6 +390,7 @@ private:
     Regularization m_Regularization; ///< parameters for regularization model
     ParameterContinuation m_ParameterCont; ///< flags for parameter continuation
     DomainDecomposition m_DD; ///< domain decomposition
+    Domain m_Domain; ///< domain decomposition
     RegModel m_RegModel;
 
     std::string m_XFolder; ///< identifier for folder to write results to

@@ -91,12 +91,12 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 
             if (nx.size() == 1){
                 for(unsigned int i=0; i < 3; ++i){
-                    this->m_nx[i] = static_cast<IntType>(nx[0]);
+                    this->m_Domain.nx[i] = static_cast<IntType>(nx[0]);
                 }
             }
             else if(nx.size() == 3){
                 for(unsigned int i=0; i < 3; ++i){
-                    this->m_nx[i] = static_cast<IntType>(nx[i]);
+                    this->m_Domain.nx[i] = static_cast<IntType>(nx[i]);
                 }
             }
             else{
@@ -399,9 +399,9 @@ PetscErrorCode RegOpt::Initialize()
     this->m_Comm = NULL;
 
     this->m_nt = 4;
-    this->m_nx[0] = 32;
-    this->m_nx[1] = 32;
-    this->m_nx[2] = 32;
+    this->m_Domain.nx[0] = 32;
+    this->m_Domain.nx[1] = 32;
+    this->m_Domain.nx[2] = 32;
 
     this->m_Regularization.beta[0] = 1E-2;
     this->m_Regularization.beta[1] = 1E-2;
@@ -660,9 +660,9 @@ PetscErrorCode RegOpt::DoSetup()
     PetscFunctionBegin;
 
     // TODO: this is a problem (should not be ints)
-    nx[0] = static_cast<int>(this->m_nx[0]);
-    nx[1] = static_cast<int>(this->m_nx[1]);
-    nx[2] = static_cast<int>(this->m_nx[2]);
+    nx[0] = static_cast<int>(this->m_Domain.nx[0]);
+    nx[1] = static_cast<int>(this->m_Domain.nx[1]);
+    nx[2] = static_cast<int>(this->m_Domain.nx[2]);
 
     ierr=reg::Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
     omp_set_dynamic(0);
