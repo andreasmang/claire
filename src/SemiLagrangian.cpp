@@ -11,8 +11,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: SemiLagrangian
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SemiLagrangian"
@@ -25,8 +24,7 @@ SemiLagrangian::SemiLagrangian()
 
 
 /********************************************************************
- * Name: SemiLagrangian
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SemiLagrangian"
@@ -40,8 +38,7 @@ SemiLagrangian::SemiLagrangian(RegOpt* opt)
 
 
 /********************************************************************
- * Name: SemiLagrangian
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~SemiLagrangian"
@@ -54,8 +51,7 @@ SemiLagrangian::~SemiLagrangian()
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init class variables
+ * @brief init class variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -97,8 +93,7 @@ PetscErrorCode SemiLagrangian::Initialize()
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clears memory
+ * @brief clears memory
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -187,8 +182,7 @@ PetscErrorCode SemiLagrangian::ClearMemory()
 
 
 /********************************************************************
- * Name: ComputeTrajectory
- * Description: compute the trajectory from the velocity field
+ * @brief compute the trajectory from the velocity field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeTrajectory"
@@ -266,8 +260,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
 
 
 /********************************************************************
- * Name: ComputeDeformationMap
- * Description: compute the deformation map (we integrate the
+ * @brief compute the deformation map (we integrate the
  * characteristic backward in time)
  *******************************************************************/
 #undef __FUNCT__
@@ -398,8 +391,7 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
 
 
 /********************************************************************
- * Name: Interpolate
- * Description: interpolate scalar field
+ * @brief interpolate scalar field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
@@ -427,8 +419,7 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w,Vec v,std::string flag)
 
 
 /********************************************************************
- * Name: Interpolate
- * Description: interpolate scalar field
+ * @brief interpolate scalar field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
@@ -498,8 +489,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
 
 
 /********************************************************************
- * Name: Interpolate
- * Description: interpolate vector field
+ * @brief interpolate vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
@@ -540,8 +530,7 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string
 
 
 /********************************************************************
- * Name: Interpolate
- * Description: interpolate vector field
+ * @brief interpolate vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
@@ -666,8 +655,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
 /********************************************************************
- * Name: Interpolate
- * Description: interpolate vector field
+ * @brief interpolate vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
@@ -797,8 +785,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
 /********************************************************************
- * Name: ComputeInitialCondition
- * Description: compute initial condition for trajectory
+ * @brief compute initial condition for trajectory
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeInitialCondition"
@@ -808,8 +795,10 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
     IntType isize[3],istart[3];
     ScalarType hx[3];
+
     PetscFunctionBegin;
 
+    // allocate initial trajectory
     if(this->m_InitialTrajectory==NULL){
         try{this->m_InitialTrajectory = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -868,8 +857,8 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
 
 
 /********************************************************************
- * Name: map coordinates
- * Description: change from lexicographical ordering to xyz
+ * @brief change from lexicographical ordering to xyz
+ * @param flag flag to switch between forward and adjoint solves
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "MapCoordinateVector"

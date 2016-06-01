@@ -212,6 +212,7 @@ PetscErrorCode OptProbRegistration::DerivativeCheck()
     ierr=this->EvaluateObjective(&Jv,v); CHKERRQ(ierr);
     ierr=this->EvaluateGradient(dvJ,v); CHKERRQ(ierr);
 
+    // do the derivative check
     h = 1E-8;
     for (int i = 0; i < 10; ++i){
 
@@ -242,6 +243,7 @@ PetscErrorCode OptProbRegistration::DerivativeCheck()
         ierr=DbgMsg(buffer); CHKERRQ(ierr);
     }
 
+    // clean up
     ierr=PetscRandomDestroy(&rctx); CHKERRQ(ierr);
     ierr=VecDestroy(&v); CHKERRQ(ierr);
     ierr=VecDestroy(&w); CHKERRQ(ierr);
@@ -312,6 +314,7 @@ PetscErrorCode OptProbRegistration::HessianSymmetryCheck()
 
     PetscFunctionReturn(0);
 }
+
 
 
 

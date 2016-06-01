@@ -287,10 +287,22 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             this->m_Regularization.beta[2] = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-train") == 0){
-            this->m_ParameterCont.binarysearch=true;
+            argc--; argv++;
+            if (strcmp(argv[1],"binary") == 0){
+                this->m_ParameterCont.binarysearch=true;
+            }
+            else if (strcmp(argv[1],"reduce") == 0){
+                this->m_ParameterCont.reducebeta=true;
+            }
+            else {
+                msg="\n\x1b[31m training method not implemented: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
+            }
         }
-        else if(strcmp(argv[1],"-reducebetav") == 0){
-            this->m_ParameterCont.reducebeta=true;
+        else if(strcmp(argv[1],"-betavcont") == 0){
+            argc--; argv++;
+            //this->m_ParameterCont.targetbeta = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-verbosity") == 0){
             argc--; argv++;
@@ -404,12 +416,9 @@ PetscErrorCode RegOpt::Initialize()
     this->m_PrecondMeth = INVREG;
     this->m_RegModel = COMPRESSIBLE;
 
-    //this->m_PrecondMeth = TWOLEVEL;
-    //this->m_PCSolverType = PCPCG;
     this->m_Sigma = 1;
     this->m_WriteImages = false;
     this->m_WriteLogFiles = false;
-//    this->m_UseNCFormat = false;
 
     this->m_KKTSolverPara.tol[0] = 1E-12; // relative tolerance
     this->m_KKTSolverPara.tol[1] = 1E-12; // absolute tolerance
@@ -440,7 +449,6 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegMonitor.jacmax = 0.0;
     this->m_RegMonitor.jacmean = 0.0;
     this->m_RegMonitor.jacbound = 2E-1;
-
 
     this->m_NumThreads=1;
     this->m_CartGridDims[0]=1;
@@ -494,7 +502,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< " optimization specific parameters"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -optmeth <type>         optimization method"<<std::endl;
-        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                         <type> is one of the following"<<std::endl;
         std::cout<< "                             gn           Gauss-Newton (default)"<<std::endl;
         std::cout<< "                             fn           full Newton"<<std::endl;
         std::cout<< " -grel <dbl>             tolerance for optimization (default: 1E-2)"<<std::endl;
@@ -515,7 +523,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< " regularization/constraints"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -regnorm <type>         regularization norm for velocity field"<<std::endl;
-        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                         <type> is one of the following"<<std::endl;
         std::cout<< "                             h1s          H1-seminorm"<<std::endl;
         std::cout<< "                             h2s          H2-seminorm (default)"<<std::endl;
         std::cout<< "                             h1           H1-norm"<<std::endl;
@@ -528,20 +536,21 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
         }
 
-        std::cout<< " -train                  estimate regularization parameter (binary search)"<<std::endl;
+        std::cout<< " -train <type>           estimate regularization parameter (use 'jbound' to modify bound"<<std::endl;
+        std::cout<< "                         for det(grad(y)) used during estimation)"<<std::endl;
+        std::cout<< "                         <type> is one of the following"<<std::endl;
+        std::cout<< "                             binary       perform binary search (recommended)"<<std::endl;
+        std::cout<< "                             reduce       reduce parameter by one order until bound is breached"<<std::endl;
+        std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
 
         if (advanced)
         {
-        std::cout<< " -reducebetav            estimate regularization parameter (start with betav=1 and"<<std::endl;
-        std::cout<< "                         successively reduce betav by one order of magnitude until"<<std::endl;
-        std::cout<< "                         lower bound on jacobian is reached)"<<std::endl;
-        std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
         std::cout<< " -jmonitor               enable monitor for det(grad(y))"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " solver specific parameters (numerics)"<<std::endl;
         std::cout<< line << std::endl;
         std::cout<< " -pdesolver <type>       numerical time integrator for transport equations"<<std::endl;
-        std::cout<< "                         where <types> are"<<std::endl;
+        std::cout<< "                         <type> is one of the following"<<std::endl;
         std::cout<< "                             sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
         std::cout<< "                             rk2          rk2 time integrator (conditionally stable)"<<std::endl;
         std::cout<< " -nt <int>               number of time points (for time integration; default: 4)"<<std::endl;
@@ -642,7 +651,7 @@ PetscErrorCode RegOpt::CheckArguments()
 PetscErrorCode RegOpt::DoSetup()
 {
     PetscErrorCode ierr;
-    int nx[3],isize[3],istart[3],osize[3],ostart[3],ompthreads;
+    int nx[3],isize[3],istart[3],osize[3],ostart[3],ompthreads,nprocs,np;
     IntType alloc_max;
     ScalarType *u, fftsetuptime;
     Complex *uk;
@@ -650,6 +659,7 @@ PetscErrorCode RegOpt::DoSetup()
 
     PetscFunctionBegin;
 
+    // TODO: this is a problem (should not be ints)
     nx[0] = static_cast<int>(this->m_nx[0]);
     nx[1] = static_cast<int>(this->m_nx[1]);
     nx[2] = static_cast<int>(this->m_nx[2]);
@@ -661,11 +671,38 @@ PetscErrorCode RegOpt::DoSetup()
     // check if number of threads is consistent with user options
     ompthreads=omp_get_max_threads();
 
-    ss.str( std::string() );
-    ss.clear();
+    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
+
+    np = this->m_CartGridDims[0]*this->m_CartGridDims[1];
+
+    // check number of procs
+    if(np!=nprocs){
+        if (this->m_Verbosity > 2){
+            ss << "cartesian grid setup wrong: px1*px2="
+                << this->m_CartGridDims[0] <<"*"<<this->m_CartGridDims[1]
+                <<"="<< np << " != " << nprocs << "=p";
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
+        }
+
+        // update cartesian grid layout
+        this->m_CartGridDims[0]=0;
+        this->m_CartGridDims[1]=0;
+        MPI_Dims_create(nprocs,2,this->m_CartGridDims);
+
+        if (this->m_Verbosity > 2){
+            ss << "switching to cartesian grid setup: "
+                << this->m_CartGridDims[0] <<"x"<<this->m_CartGridDims[1];
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
+        }
+    }
+
     ss << "max number of openmp threads is not a match (user,set)=("
        << this->m_NumThreads <<"," << ompthreads <<")\n";
     ierr=Assert(ompthreads == this->m_NumThreads,ss.str().c_str()); CHKERRQ(ierr);
+    ss.str( std::string() );
+    ss.clear();
 
     // initialize accft
     accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_Comm);
@@ -765,6 +802,23 @@ PetscErrorCode RegOpt::SetPresetParameters()
     PetscFunctionReturn(0);
 }
 
+
+
+
+/********************************************************************
+ * Name: DisplayOptions
+ * Description: display registration options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetBetaMinParaCont"
+ScalarType RegOpt::GetBetaMinParaCont()
+{
+    if (this->m_Regularization.norm == H1)        return this->m_ParameterCont.betavminh1;
+    else if (this->m_Regularization.norm == H1SN) return this->m_ParameterCont.betavminh1;
+    else if (this->m_Regularization.norm == H2)   return this->m_ParameterCont.betavminh2;
+    else if (this->m_Regularization.norm == H2SN) return this->m_ParameterCont.betavminh2;
+    else return 1E-9;
+}
 
 
 

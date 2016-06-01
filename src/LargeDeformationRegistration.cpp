@@ -607,7 +607,6 @@ PetscErrorCode LargeDeformationRegistration::CopyToAllTimePoints(Vec u, Vec uj)
 
 
 
-
 /********************************************************************
  * Name: ComputeCFLCondition
  * Description: copies some input data field to all time points
@@ -677,6 +676,8 @@ PetscErrorCode LargeDeformationRegistration::ComputeCFLCondition()
 }
 
 
+
+
 /********************************************************************
  * Name: CheckBounds
  * Description: compute determinant of deformation gradient
@@ -718,13 +719,16 @@ PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreach
     boundreached = (minboundreached || maxboundreached) ? true : false;
     if (boundreached) ierr=WrngMsg("jacobian bound reached"); CHKERRQ(ierr);
 
+    // display what's going on
     if (this->m_Opt->GetVerbosity() > 1){
+
         if(minboundreached){
             ss << std::scientific
             << "min(det(grad(y))) = "<< jmin << " <= " << jbound;
             ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
         }
+
         if(maxboundreached){
             ss << std::scientific
             << "max(det(grad(y))) = "<< jmax << " >= " << 1.0/jbound
@@ -732,10 +736,12 @@ PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreach
             ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
         }
+
     }
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -1246,12 +1252,9 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
 
 
 
-
-
 } // end of namespace
 
 
 
 
 #endif // _LARGEDEFORMATIONREGISTRATION_CPP_
-

@@ -240,17 +240,10 @@ public:
     // parameter continuation
     inline bool DoBinarySearch(){return this->m_ParameterCont.binarysearch;};
     inline bool DoParameterReduction(){return this->m_ParameterCont.reducebeta;};
-
     inline int GetMaxStepsParaCont(){return this->m_ParameterCont.maxsteps;};
     inline ScalarType GetBetaScaleParaCont(){return this->m_ParameterCont.betascale;};
     inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParameterCont.dbetascale;};
-    inline ScalarType GetBetaMinParaCont(){
-        if (this->m_Regularization.norm == H1)        return this->m_ParameterCont.betavminh1;
-        else if (this->m_Regularization.norm == H1SN) return this->m_ParameterCont.betavminh1;
-        else if (this->m_Regularization.norm == H2)   return this->m_ParameterCont.betavminh2;
-        else if (this->m_Regularization.norm == H2SN) return this->m_ParameterCont.betavminh2;
-        else return 1E-9;
-    };
+    ScalarType GetBetaMinParaCont();
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -348,6 +341,7 @@ private:
         static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
         bool binarysearch; ///< flag if parameter continuation is switched on (binary search)
         bool reducebeta; ///< flag if parameter continuation is switched on (simple reduction)
+        bool paracont; ///< flag if parameter continuation is switched on (simple reduction)
     };
 
     // parameters for parameter continuation

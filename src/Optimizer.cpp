@@ -1,8 +1,17 @@
+/**
+ * @file Optimizer.cpp
+ *
+ * @author Andreas Mang
+ */
+
+
 #ifndef _OPTIMIZER_CPP_
 #define _OPTIMIZER_CPP_
 
 #include "Optimizer.hpp"
 #include "TaoInterfaceRegistration.hpp"
+
+
 
 
 namespace reg
@@ -12,8 +21,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: Optimizer
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Optimizer"
@@ -26,8 +34,7 @@ Optimizer::Optimizer()
 
 
 /********************************************************************
- * Name: Optimizer
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~Optimizer"
@@ -40,8 +47,8 @@ Optimizer::~Optimizer(void)
 
 
 /********************************************************************
- * Name: Optimizer
- * Description: constructor
+ * @brief constructor
+ * @param opt base class for registration options and arguments
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Optimizer"
@@ -55,8 +62,7 @@ Optimizer::Optimizer(RegOpt* opt)
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init variables
+ * @brief init variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -77,8 +83,7 @@ PetscErrorCode Optimizer::Initialize(void)
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -108,8 +113,7 @@ PetscErrorCode Optimizer::ClearMemory(void)
 
 
 /********************************************************************
- * Name: SetInitialGuess
- * Description: set the initial guess (warm start)
+ * @brief set the initial guess (warm start)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetInitialGuess"
@@ -141,8 +145,10 @@ PetscErrorCode Optimizer::SetInitialGuess(Vec x0)
 
 
 /********************************************************************
- * Name: SetProblem
- * Description: set the optimization problem
+ * @brief set the optimization problem (this is a general purpose
+ * implementation; the user can set different optimization problems
+ * and we can solve them; currently this is only supported for
+ * registration problems)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetProblem"
@@ -161,8 +167,8 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob)
 
 
 /********************************************************************
- * Name: DoSetup
- * Description: set the optimization problem
+ * @brief set up optimization problem (this function sets up
+ * and parses the default parameters to TAO)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DoSetup"
@@ -310,8 +316,9 @@ PetscErrorCode Optimizer::DoSetup()
 
 
 /********************************************************************
- * Name: Run
- * Description: run the optimizer
+ * @brief run the optimizer (main interface; calls specific functions
+ * according to user settings (parameter continuation, grid
+ * continuation, scale continuation, ...))
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Run"
@@ -381,8 +388,7 @@ PetscErrorCode Optimizer::Run()
 
 
 /********************************************************************
- * Name: RunBinarySearchRegPara
- * Description: run the optimizer; we search for an optimal
+ * @brief run the optimizer; we search for an optimal
  * regularization weight using a binary search
  *******************************************************************/
 #undef __FUNCT__
@@ -439,7 +445,10 @@ PetscErrorCode Optimizer::RunBinarySearchRegPara()
 
         this->m_Opt->SetRegularizationWeight(beta);
 
-        ss << std::setw(3) << level <<" ( betav="<<beta<<"; betav*="<<betastar<<" )";
+        ss << std::scientific << std::setw(3)
+            << level <<" ( betav="<<beta
+            <<"; betav*="<<betastar<<" )";
+
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
         ierr=Msg(levelmsg + ss.str()); CHKERRQ(ierr);
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
@@ -470,7 +479,8 @@ PetscErrorCode Optimizer::RunBinarySearchRegPara()
         if (beta < betamin){
 
             if (this->m_Opt->GetVerbosity() > 0){
-                ss <<"regularization parameter smaller than lower bound (betav="
+                ss << std::scientific
+                   <<"regularization parameter smaller than lower bound (betav="
                    <<beta<<" < " << betamin <<"=betavmin)";
                 ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.str( std::string() ); ss.clear();
@@ -555,8 +565,7 @@ PetscErrorCode Optimizer::RunBinarySearchRegPara()
 
 
 /********************************************************************
- * Name: RunRegParaReduction
- * Description: solves the optimization problem by simply reducing
+ * @brief solves the optimization problem by simply reducing
  * the regularization parameter until the mapping becomes
  * non-diffeomorphic/breaches the user defined bound; stored
  * velocity field (solution) is last iterate that resulted in
@@ -613,7 +622,7 @@ PetscErrorCode Optimizer::RunRegParaReduction()
         this->m_Opt->SetRegularizationWeight(beta);
 
         // display message to user
-        ss << std::setw(3) << i <<" (beta="<<beta<<")";
+        ss << std::scientific << std::setw(3) << i <<" (beta="<<beta<<")";
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
         ierr=Msg(levelmsg + ss.str()); CHKERRQ(ierr);
         if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
@@ -669,8 +678,8 @@ PetscErrorCode Optimizer::RunRegParaReduction()
 
 
 /********************************************************************
- * Name: GetSolution
- * Description: get the solution
+ * @param x vector to hold solution
+ * @brief get the solution
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetSolution"
@@ -693,8 +702,7 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
 
 
 /********************************************************************
- * Name: Finalize
- * Description: finalize
+ * @brief finalize optimization (displays information for user)
  * *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"
