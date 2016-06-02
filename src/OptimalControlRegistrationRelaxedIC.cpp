@@ -1,8 +1,8 @@
-#ifndef _OPTIMALCONTROLREGISTRATIONRIC_CPP_
-#define _OPTIMALCONTROLREGISTRATIONRIC_CPP_
+#ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
+#define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
 
 #include <math.h>
-#include "OptimalControlRegistrationRIC.hpp"
+#include "OptimalControlRegistrationRelaxedIC.hpp"
 
 
 
@@ -13,12 +13,12 @@ namespace reg
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationRIC
+ * Name: OptimalControlRegistrationRelaxedIC
  * Description: default constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistrationRIC"
-OptimalControlRegistrationRIC::OptimalControlRegistrationRIC() : SuperClass()
+#define __FUNCT__ "OptimalControlRegistrationRelaxedIC"
+OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : SuperClass()
 {
     this->Initialize();
 }
@@ -27,12 +27,12 @@ OptimalControlRegistrationRIC::OptimalControlRegistrationRIC() : SuperClass()
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationRIC
+ * Name: OptimalControlRegistrationRelaxedIC
  * Description: default destructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "~OptimalControlRegistrationRIC"
-OptimalControlRegistrationRIC::~OptimalControlRegistrationRIC(void)
+#define __FUNCT__ "~OptimalControlRegistrationRelaxedIC"
+OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC(void)
 {
     this->ClearMemory();
 }
@@ -41,12 +41,12 @@ OptimalControlRegistrationRIC::~OptimalControlRegistrationRIC(void)
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationRIC
+ * Name: OptimalControlRegistrationRelaxedIC
  * Description: constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistrationRIC"
-OptimalControlRegistrationRIC::OptimalControlRegistrationRIC(RegOpt* opt) : SuperClass(opt)
+#define __FUNCT__ "OptimalControlRegistrationRelaxedIC"
+OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt* opt) : SuperClass(opt)
 {
     this->Initialize();
 }
@@ -60,7 +60,7 @@ OptimalControlRegistrationRIC::OptimalControlRegistrationRIC(RegOpt* opt) : Supe
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode OptimalControlRegistrationRIC::Initialize(void)
+PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void)
 {
     PetscFunctionBegin;
 
@@ -84,7 +84,7 @@ PetscErrorCode OptimalControlRegistrationRIC::Initialize(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode OptimalControlRegistrationRIC::ClearMemory(void)
+PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void)
 {
 //    PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -126,7 +126,7 @@ PetscErrorCode OptimalControlRegistrationRIC::ClearMemory(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjective"
-PetscErrorCode OptimalControlRegistrationRIC::EvaluateObjective(ScalarType* J, Vec v)
+PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType* J, Vec v)
 {
     PetscErrorCode ierr;
     ScalarType D=0.0,Rv=0.0,Rw=0.0;
@@ -185,7 +185,7 @@ PetscErrorCode OptimalControlRegistrationRIC::EvaluateObjective(ScalarType* J, V
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeBodyForce"
-PetscErrorCode OptimalControlRegistrationRIC::EvaluteRegFunctionalW(ScalarType* Rw)
+PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(ScalarType* Rw)
 {
 
     PetscErrorCode ierr;
@@ -268,7 +268,7 @@ PetscErrorCode OptimalControlRegistrationRIC::EvaluteRegFunctionalW(ScalarType* 
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeBodyForce"
-PetscErrorCode OptimalControlRegistrationRIC::ComputeBodyForce()
+PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -305,7 +305,7 @@ PetscErrorCode OptimalControlRegistrationRIC::ComputeBodyForce()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeIncBodyForce"
-PetscErrorCode OptimalControlRegistrationRIC::ComputeIncBodyForce()
+PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -340,7 +340,7 @@ PetscErrorCode OptimalControlRegistrationRIC::ComputeIncBodyForce()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplyProjection"
-PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
+PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
 {
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL, *p_x2=NULL, *p_x3=NULL;
@@ -493,4 +493,4 @@ PetscErrorCode OptimalControlRegistrationRIC::ApplyProjection(VecField* x)
 } // end of namespace
 
 
-#endif // _OPTIMALCONTROLREGISTRATIONIC_CPP_
+#endif// _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_

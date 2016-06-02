@@ -19,8 +19,8 @@
 */
 
 
-#ifndef _OPTIMALCONTROLREGISTRATIONRIC_H_
-#define _OPTIMALCONTROLREGISTRATIONRIC_H_
+#ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
+#define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
 
 #include "OptimalControlRegistration.hpp"
 
@@ -28,18 +28,18 @@ namespace reg
 {
 
 
-class OptimalControlRegistrationRIC : public OptimalControlRegistration
+class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration
 {
 
 public:
 
-    typedef OptimalControlRegistrationRIC Self;
+    typedef OptimalControlRegistrationRelaxedIC Self;
     typedef OptimalControlRegistration SuperClass;
     typedef ScalarType FFTScaType[2];
 
-    OptimalControlRegistrationRIC();
-    OptimalControlRegistrationRIC(RegOpt*);
-    ~OptimalControlRegistrationRIC();
+    OptimalControlRegistrationRelaxedIC();
+    OptimalControlRegistrationRelaxedIC(RegOpt*);
+    ~OptimalControlRegistrationRelaxedIC();
 
 protected:
 
@@ -80,4 +80,4 @@ private:
 } // end of name space
 
 
-#endif // _OPTIMALCONTROLREGISTRATIONRIC_H_
+#endif //_OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_

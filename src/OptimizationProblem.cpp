@@ -1,7 +1,7 @@
 #ifndef _OPTIMIZATIONPROBLEM_CPP_
 #define _OPTIMIZATIONPROBLEM_CPP_
 
-#include "OptProbRegistration.hpp"
+#include "OptimizationProblem.hpp"
 
 
 namespace reg
@@ -20,12 +20,12 @@ PetscErrorCode TwoLevelPCMatVec(Mat P, Vec x, Vec Px)
 {
     PetscErrorCode ierr;
     void* ptr;
-    OptProbRegistration *optprob = NULL;
+    OptimizationProblem *optprob = NULL;
 
     PetscFunctionBegin;
 
     ierr=MatShellGetContext(P,&ptr); CHKERRQ(ierr);
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian
@@ -47,13 +47,13 @@ PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 {
     PetscErrorCode ierr;
     (void)ksp;
-    OptProbRegistration* optprob=NULL;
+    OptimizationProblem* optprob=NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    optprob = static_cast<OptProbRegistration*>(ptr);
+    optprob = static_cast<OptimizationProblem*>(ptr);
     ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
 
     kspmeth=" >> PC  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
@@ -67,12 +67,12 @@ PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 
 
 /********************************************************************
- * Name: OptProbRegistration
+ * Name: OptimizationProblem
  * Description: default constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "OptProbRegistration"
-OptProbRegistration::OptProbRegistration()
+#define __FUNCT__ "OptimizationProblem"
+OptimizationProblem::OptimizationProblem()
 {
     this->Initialize();
 }
@@ -81,12 +81,12 @@ OptProbRegistration::OptProbRegistration()
 
 
 /********************************************************************
- * Name: OptProbRegistration
+ * Name: OptimizationProblem
  * Description: default constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "OptProbRegistration"
-OptProbRegistration::OptProbRegistration(RegOpt* opt)
+#define __FUNCT__ "OptimizationProblem"
+OptimizationProblem::OptimizationProblem(RegOpt* opt)
 {
     this->Initialize();
     this->m_Opt = opt;
@@ -96,12 +96,12 @@ OptProbRegistration::OptProbRegistration(RegOpt* opt)
 
 
 /********************************************************************
- * Name: OptProbRegistration
+ * Name: OptimizationProblem
  * Description: default destructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "~OptProbRegistration"
-OptProbRegistration::~OptProbRegistration(void)
+#define __FUNCT__ "~OptimizationProblem"
+OptimizationProblem::~OptimizationProblem(void)
 {
 }
 
@@ -114,7 +114,7 @@ OptProbRegistration::~OptProbRegistration(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode OptProbRegistration::Initialize(void)
+PetscErrorCode OptimizationProblem::Initialize(void)
 {
     PetscFunctionBegin;
 
@@ -135,7 +135,7 @@ PetscErrorCode OptProbRegistration::Initialize(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetOptions"
-PetscErrorCode OptProbRegistration::SetOptions(RegOpt* opt)
+PetscErrorCode OptimizationProblem::SetOptions(RegOpt* opt)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -163,7 +163,7 @@ PetscErrorCode OptProbRegistration::SetOptions(RegOpt* opt)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DerivativeCheck"
-PetscErrorCode OptProbRegistration::DerivativeCheck()
+PetscErrorCode OptimizationProblem::DerivativeCheck()
 {
     PetscErrorCode ierr=0;
     Vec v=NULL,vtilde=NULL,w=NULL,dvJ=NULL;
@@ -265,7 +265,7 @@ PetscErrorCode OptProbRegistration::DerivativeCheck()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianSymmetryCheck"
-PetscErrorCode OptProbRegistration::HessianSymmetryCheck()
+PetscErrorCode OptimizationProblem::HessianSymmetryCheck()
 {
     PetscErrorCode ierr=0;
     IntType nl,ng;

@@ -25,17 +25,17 @@
 
 #include "RegOpt.hpp"
 #include "RegularizationRegistration.hpp"
-#include "LargeDeformationRegistration.hpp"
+#include "OptimalControlRegistrationBase.hpp"
 
 
 namespace reg
 {
 
 
-class OptimalControlRegistration : public LargeDeformationRegistration
+class OptimalControlRegistration : public OptimalControlRegistrationBase
 {
 public:
-    typedef LargeDeformationRegistration SuperClass;
+    typedef OptimalControlRegistrationBase SuperClass;
     typedef OptimalControlRegistration Self;
 
     OptimalControlRegistration(void);

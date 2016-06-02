@@ -19,8 +19,8 @@
 */
 
 
-#ifndef _LARGEDEFORMATIONREGISTRATION_H_
-#define _LARGEDEFORMATIONREGISTRATION_H_
+#ifndef _OPTIMALCONTROLREGISTRATIONBASE_H_
+#define _OPTIMALCONTROLREGISTRATIONBASE_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -29,29 +29,29 @@
 #include "SemiLagrangian.hpp"
 #include "RegularizationRegistration.hpp"
 #include "PreProcessingRegistration.hpp"
-#include "OptProbRegistration.hpp"
+#include "OptimizationProblem.hpp"
 //#include "SemiLagrangianGPU.hpp"
 
 
 namespace reg
 {
 
-class LargeDeformationRegistration : public OptProbRegistration
+class OptimalControlRegistrationBase : public OptimizationProblem
 {
 
 public:
 
     typedef ReadWriteReg ReadWriteType;
-    typedef LargeDeformationRegistration Self;
-    typedef OptProbRegistration SuperClass;
+    typedef OptimalControlRegistrationBase Self;
+    typedef OptimizationProblem SuperClass;
     typedef PreProcessingRegistration PreProcType;
     typedef RegularizationRegistration RegularizationType;
     typedef SemiLagrangian SemiLagrangianType;
     //typedef SemiLagrangianFastPlanerGPU SemiLagrangianType;
 
-    LargeDeformationRegistration(void);
-    LargeDeformationRegistration(RegOpt*);
-    ~LargeDeformationRegistration(void);
+    OptimalControlRegistrationBase(void);
+    OptimalControlRegistrationBase(RegOpt*);
+    ~OptimalControlRegistrationBase(void);
 
     /*! set io object */
     PetscErrorCode SetIO(ReadWriteType*);
@@ -156,4 +156,4 @@ private:
 } // end of namespace
 
 
-#endif
+#endif// _OPTIMALCONTROLREGISTRATIONBASE_H_

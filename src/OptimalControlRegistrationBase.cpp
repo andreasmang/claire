@@ -1,7 +1,7 @@
-#ifndef _LARGEDEFORMATIONREGISTRATION_CPP_
-#define _LARGEDEFORMATIONREGISTRATION_CPP_
+#ifndef _OPTIMALCONTROLREGISTRATIONBASE_CPP_
+#define _OPTIMALCONTROLREGISTRATIONBASE_CPP_
 
-#include "LargeDeformationRegistration.hpp"
+#include "OptimalControlRegistrationBase.hpp"
 
 
 
@@ -13,12 +13,12 @@ namespace reg
 
 
 /********************************************************************
- * Name: LargeDeformationRegistration
+ * Name: OptimalControlRegistrationBase
  * Description: default constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "LargeDeformationRegistration"
-LargeDeformationRegistration::LargeDeformationRegistration() : SuperClass()
+#define __FUNCT__ "OptimalControlRegistrationBase"
+OptimalControlRegistrationBase::OptimalControlRegistrationBase() : SuperClass()
 {
     this->Initialize();
 }
@@ -27,12 +27,12 @@ LargeDeformationRegistration::LargeDeformationRegistration() : SuperClass()
 
 
 /********************************************************************
- * Name: LargeDeformationRegistration
+ * Name: OptimalControlRegistrationBase
  * Description: default destructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "~LargeDeformationRegistration"
-LargeDeformationRegistration::~LargeDeformationRegistration(void)
+#define __FUNCT__ "~OptimalControlRegistrationBase"
+OptimalControlRegistrationBase::~OptimalControlRegistrationBase(void)
 {
     this->ClearMemory();
 }
@@ -41,12 +41,12 @@ LargeDeformationRegistration::~LargeDeformationRegistration(void)
 
 
 /********************************************************************
- * Name: LargeDeformationRegistration
+ * Name: OptimalControlRegistrationBase
  * Description: constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "LargeDeformationRegistration"
-LargeDeformationRegistration::LargeDeformationRegistration(RegOpt* opt) : SuperClass(opt)
+#define __FUNCT__ "OptimalControlRegistrationBase"
+OptimalControlRegistrationBase::OptimalControlRegistrationBase(RegOpt* opt) : SuperClass(opt)
 {
     this->Initialize();
 }
@@ -60,7 +60,7 @@ LargeDeformationRegistration::LargeDeformationRegistration(RegOpt* opt) : SuperC
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode LargeDeformationRegistration::Initialize(void)
+PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
 {
     PetscFunctionBegin;
 
@@ -105,7 +105,7 @@ PetscErrorCode LargeDeformationRegistration::Initialize(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode LargeDeformationRegistration::ClearMemory(void)
+PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -191,7 +191,7 @@ PetscErrorCode LargeDeformationRegistration::ClearMemory(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
-PetscErrorCode LargeDeformationRegistration::SetIO(ReadWriteReg* io)
+PetscErrorCode OptimalControlRegistrationBase::SetIO(ReadWriteReg* io)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -212,7 +212,7 @@ PetscErrorCode LargeDeformationRegistration::SetIO(ReadWriteReg* io)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetReferenceImage"
-PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
+PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -257,7 +257,7 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetTemplateImage"
-PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
+PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -301,7 +301,7 @@ PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetVelocityField"
-PetscErrorCode LargeDeformationRegistration::SetVelocityField(Vec v)
+PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
 {
     PetscErrorCode ierr;
     IntType nl;
@@ -340,7 +340,7 @@ PetscErrorCode LargeDeformationRegistration::SetVelocityField(Vec v)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetVelocity2Zero"
-PetscErrorCode LargeDeformationRegistration::SetVelocity2Zero()
+PetscErrorCode OptimalControlRegistrationBase::SetVelocity2Zero()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -366,7 +366,7 @@ PetscErrorCode LargeDeformationRegistration::SetVelocity2Zero()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "IsVelocityZero"
-PetscErrorCode LargeDeformationRegistration::IsVelocityZero()
+PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
 {
     PetscErrorCode ierr;
     ScalarType normv1,normv2,normv3;
@@ -393,7 +393,7 @@ PetscErrorCode LargeDeformationRegistration::IsVelocityZero()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupSyntheticProb"
-PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb()
+PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
 {
     PetscErrorCode ierr;
     IntType nl,ng;
@@ -525,7 +525,7 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CopyToAllTimePoints"
-PetscErrorCode LargeDeformationRegistration::CopyToAllTimePoints(Vec u, Vec uj)
+PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj)
 {
     PetscErrorCode ierr;
     ScalarType *p_u=NULL,*p_uj=NULL;
@@ -566,7 +566,7 @@ PetscErrorCode LargeDeformationRegistration::CopyToAllTimePoints(Vec u, Vec uj)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeCFLCondition"
-PetscErrorCode LargeDeformationRegistration::ComputeCFLCondition()
+PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
 {
     PetscErrorCode ierr;
     ScalarType vmax,vmaxscaled;
@@ -637,7 +637,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeCFLCondition()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CheckBounds"
-PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreached)
+PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundreached)
 {
     PetscErrorCode ierr;
     ScalarType jmin,jmax,jbound;
@@ -704,7 +704,7 @@ PetscErrorCode LargeDeformationRegistration::CheckBounds(Vec v, bool& boundreach
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGrad"
-PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
 {
     PetscErrorCode ierr;
     ScalarType minddg,maxddg,meanddg;
@@ -785,7 +785,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGrad()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGradRK2"
-PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradRK2()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
 {
     PetscErrorCode ierr;
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_jbar=NULL,
@@ -905,7 +905,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradRK2()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGradSL"
-PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradSL()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 {
     PetscErrorCode ierr;
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
@@ -1105,7 +1105,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradSL()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMap"
-PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -1153,7 +1153,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMap()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMapRK2"
-PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapRK2()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2()
 {
     //PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -1172,7 +1172,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapRK2()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMapSL"
-PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -1209,5 +1209,4 @@ PetscErrorCode LargeDeformationRegistration::ComputeDeformationMapSL()
 
 
 
-
-#endif // _LARGEDEFORMATIONREGISTRATION_CPP_
+#endif// _OPTIMALCONTROLREGISTRATIONBASE_CPP_

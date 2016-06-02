@@ -3,7 +3,7 @@
 
 
 #include "TaoInterfaceRegistration.hpp"
-#include "OptProbRegistration.hpp"
+#include "OptimizationProblem.hpp"
 
 namespace reg
 {
@@ -25,12 +25,12 @@ namespace reg
 PetscErrorCode EvaluateObjective(Tao tao,Vec x,ScalarType* Jx,void* ptr)
 {
     PetscErrorCode ierr;
-    OptProbRegistration *optprob = NULL;
+    OptimizationProblem *optprob = NULL;
 
     PetscFunctionBegin;
 
     (void)tao;
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // compute objective value
@@ -58,12 +58,12 @@ PetscErrorCode EvaluateObjective(Tao tao,Vec x,ScalarType* Jx,void* ptr)
 PetscErrorCode EvaluateGradient(Tao tao, Vec x, Vec gx, void* ptr)
 {
     PetscErrorCode ierr;
-    OptProbRegistration* optprob = NULL;
+    OptimizationProblem* optprob = NULL;
 
     PetscFunctionBegin;
 
     (void)tao;
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
 
     // compute gradient
@@ -93,13 +93,13 @@ PetscErrorCode EvaluateGradient(Tao tao, Vec x, Vec gx, void* ptr)
 PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx, void* ptr)
 {
     PetscErrorCode ierr;
-    OptProbRegistration* optprob = NULL;
+    OptimizationProblem* optprob = NULL;
     (void)tao;
 
     PetscFunctionBegin;
 
     // cast pointer
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
 
     // evaluate objective and gradient
@@ -167,7 +167,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
 {
     PetscErrorCode ierr;
     (void)Hpre; (void)x;
-    OptProbRegistration *optprob = NULL;
+    OptimizationProblem *optprob = NULL;
     std::string msg;
     Vec dJ;
     KSP ksp;
@@ -181,7 +181,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
 
     // get solver context
     ierr=MatShellGetContext(H,(void**)&ptr); CHKERRQ(ierr);
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // get krylov subspace object
@@ -247,12 +247,12 @@ PetscErrorCode HessianMatVec(Mat H, Vec x, Vec Hx)
 {
     PetscErrorCode ierr;
     void* ptr;
-    OptProbRegistration *optprob = NULL;
+    OptimizationProblem *optprob = NULL;
 
     PetscFunctionBegin;
 
     ierr=MatShellGetContext(H,(void**)&ptr); CHKERRQ(ierr);
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian
@@ -273,12 +273,12 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex)
 {
     PetscErrorCode ierr;
     void* ptr;
-    OptProbRegistration *optprob = NULL;
+    OptimizationProblem *optprob = NULL;
 
     PetscFunctionBegin;
 
     ierr=PCShellGetContext(Hpre,&ptr); CHKERRQ(ierr);
-    optprob = (OptProbRegistration*)ptr;
+    optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian
@@ -327,7 +327,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     char msg[256];
     ScalarType J=0.0,gnorm=0.0,cnorm=0.0,step=0.0,D=0.0,
                 J0=0.0,D0=0.0,gnorm0=0.0,alpha,grtol,gatol,gttol;
-    OptProbRegistration* optprob = NULL;
+    OptimizationProblem* optprob = NULL;
     TaoConvergedReason taoconvreason;
     TaoLineSearch ls=NULL;
     bool newtonkrylov;
@@ -339,7 +339,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     PetscFunctionBegin;
 
 
-    optprob = static_cast<OptProbRegistration*>(ptr);
+    optprob = static_cast<OptimizationProblem*>(ptr);
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // do we use a newton krylov method
@@ -457,13 +457,13 @@ PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 {
     PetscErrorCode ierr;
     (void)ksp;
-    OptProbRegistration* optprob=NULL;
+    OptimizationProblem* optprob=NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    optprob = static_cast<OptProbRegistration*>(ptr);
+    optprob = static_cast<OptimizationProblem*>(ptr);
     ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
 
     kspmeth="PCG  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;

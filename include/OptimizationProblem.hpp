@@ -18,8 +18,8 @@
  *
 */
 
-#ifndef _OPTIMIZATIONPROBLEMREGISTRATION_H_
-#define _OPTIMIZATIONPROBLEMREGISTRATION_H_
+#ifndef _OPTIMIZATIONPROBLEM_H_
+#define _OPTIMIZATIONPROBLEM_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -33,17 +33,17 @@ PetscErrorCode TwoLevelPCMatVec(Mat,Vec,Vec);
 PetscErrorCode PrecondMonitor(KSP,IntType,ScalarType,void*);
 
 
-class OptProbRegistration
+class OptimizationProblem
 {
 
 public:
 
-    typedef OptProbRegistration Self;
+    typedef OptimizationProblem Self;
 
-    OptProbRegistration(void);
-    OptProbRegistration(RegOpt*);
-    //virtual ~OptProbRegistration(void) = 0;
-    ~OptProbRegistration(void);
+    OptimizationProblem(void);
+    OptimizationProblem(RegOpt*);
+    //virtual ~OptimizationProblem(void) = 0;
+    ~OptimizationProblem(void);
 
     inline RegOpt* GetOptions(void){return this->m_Opt;};
 
@@ -125,5 +125,5 @@ private:
 } // end of namespace
 
 
-#endif // _OPTIMIZATIONPROBLEMREGISTRATION_H_
+#endif // _OPTIMIZATIONPROBLEM_H_
 
