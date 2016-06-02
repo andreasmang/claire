@@ -62,10 +62,6 @@ ifeq ($(BUILDTOOLS),yes)
 endif
 
 
-INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h OptimalControlRegistrationBase.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptimalControlRegistrationRelaxedIC.h  OptimizationProblem.h PreProcessingRegistration.h
-DEPS = $(patsubst %,$(INCDIR)/%.hpp,$(INCFILES))
-
-
 CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
@@ -95,11 +91,11 @@ OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
 
 all: $(BIN)
 
-$(BINDIR)/%: $(OBJDIR)/%.o $(OBJS) 
+$(BINDIR)/%: $(OBJDIR)/%.o $(OBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
 	$(CXX) $(CXXFLAGS) $(COLD_INC) $^ $(LDFLAGS) $(COLD_LIB) -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(INCDIR)/%.hpp
 	-@$(MKDIRS) $(dir $@)
 	$(CXX) $(CXXFLAGS) $(COLD_INC) -c $^ -o $@
 
