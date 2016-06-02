@@ -66,9 +66,9 @@ private:
 
     PetscErrorCode RunGridContinuation();
     PetscErrorCode RunScaleContinuation();
-    PetscErrorCode RunRegParaReduction();
-    PetscErrorCode RunBinarySearchRegPara();
-    PetscErrorCode RunRegParaCont();
+    PetscErrorCode RunRegParaReductionSearch();
+    PetscErrorCode RunRegParaBinarySearch();
+    PetscErrorCode RunRegParaContinuation();
 
     RegOpt* m_Opt;
     OptProbType* m_OptimizationProblem;

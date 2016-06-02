@@ -239,8 +239,10 @@ public:
     inline bool SetupDone(){return this->m_SetupDone;};
 
     // parameter continuation
-    inline bool DoBinarySearch(){return this->m_ParameterCont.binarysearch;};
-    inline bool DoParameterReduction(){return this->m_ParameterCont.reducebeta;};
+    inline bool DoRegParaBinarySearch(){return this->m_ParameterCont.strategy[0];};
+    inline bool DoRegParaReductionSearch(){return this->m_ParameterCont.strategy[1];};
+    inline bool DoRegParaContinuation(){return this->m_ParameterCont.strategy[2];};
+
     inline int GetMaxStepsParaCont(){return this->m_ParameterCont.maxsteps;};
     inline ScalarType GetBetaScaleParaCont(){return this->m_ParameterCont.betascale;};
     inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParameterCont.dbetascale;};
@@ -349,9 +351,8 @@ private:
         static const int maxsteps = 10; ///< max number of steps
         static const ScalarType betascale = 1E-1; ///< default reduction factor (one order of magnitude)
         static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
-        bool binarysearch; ///< flag if parameter continuation is switched on (binary search)
-        bool reducebeta; ///< flag if parameter continuation is switched on (simple reduction)
-        bool paracont; ///< flag if parameter continuation is switched on (simple reduction)
+        bool strategy[3]; ///< flag: parameter continuation using different strategies
+        ScalarType targetbeta;
     };
 
     // parameters for parameter continuation

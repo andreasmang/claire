@@ -155,9 +155,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
-//        else if(strcmp(argv[1],"-usenc") == 0){
-//            this->m_UseNCFormat = true;
-//        }
         else if(strcmp(argv[1],"-ic") == 0){
             this->m_RegModel = STOKES;
         }
@@ -274,10 +271,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-train") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"binary") == 0){
-                this->m_ParameterCont.binarysearch=true;
+                this->m_ParameterCont.strategy[0]=true;
             }
             else if (strcmp(argv[1],"reduce") == 0){
-                this->m_ParameterCont.reducebeta=true;
+                this->m_ParameterCont.strategy[1]=true;
             }
             else {
                 msg="\n\x1b[31m training method not implemented: %s\x1b[0m\n";
@@ -287,7 +284,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-betavcont") == 0){
             argc--; argv++;
-            //this->m_ParameterCont.targetbeta = atof(argv[1]);
+            this->m_ParameterCont.strategy[2]=true;
+            this->m_ParameterCont.targetbeta = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-verbosity") == 0){
             argc--; argv++;
@@ -418,8 +416,10 @@ PetscErrorCode RegOpt::Initialize()
     this->m_StoreTimeSeries = false;
 
     // parameter continuation
-    this->m_ParameterCont.binarysearch = false;
-    this->m_ParameterCont.reducebeta = false;
+    this->m_ParameterCont.strategy[0] = false;
+    this->m_ParameterCont.strategy[1] = false;
+    this->m_ParameterCont.strategy[2] = false;
+    this->m_ParameterCont.targetbeta = 0.0;
 
     // monitor for registration
     this->m_RegMonitor.monitorJAC = false;
@@ -521,6 +521,8 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout<< "                             binary       perform binary search (recommended)"<<std::endl;
         std::cout<< "                             reduce       reduce parameter by one order until bound is breached"<<std::endl;
         std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
+        std::cout<< " -betavcont <dbl>        do parameter continuation in betav until target regularization"<<std::endl;
+        std::cout<< "                         parameter betav=<dbl> is reached (betav must be in (0,1))"<<std::endl;
 
         if (advanced)
         {
@@ -575,7 +577,9 @@ PetscErrorCode RegOpt::Usage(bool advanced)
 PetscErrorCode RegOpt::CheckArguments()
 {
     PetscErrorCode ierr;
-    bool readmR=false,readmT=false;
+    bool readmR=false,readmT=false,strategy[3],setuperror;
+    ScalarType betav;
+
     std::string msg;
     PetscFunctionBegin;
 
@@ -609,10 +613,33 @@ PetscErrorCode RegOpt::CheckArguments()
 
     this->m_XExtension = ".nii.gz";
 
-    if( this->m_ParameterCont.reducebeta && this->m_ParameterCont.binarysearch ) {
+    strategy[0] = this->m_ParameterCont.strategy[0];
+    strategy[1] = this->m_ParameterCont.strategy[1];
+    strategy[2] = this->m_ParameterCont.strategy[2];
+    setuperror = false;
+    if( strategy[0] ) { if (strategy[1] || strategy[2]) setuperror=true; };
+    if( strategy[1] ) { if (strategy[0] || strategy[2]) setuperror=true; };
+    if( strategy[2] ) { if (strategy[0] || strategy[1]) setuperror=true; };
+    if(setuperror){
         msg="\x1b[31m only one estimation method for betav can be selected \x1b[0m\n";
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
         ierr=this->Usage(); CHKERRQ(ierr);
+    }
+
+    if (strategy[2]){
+        betav=this->m_ParameterCont.targetbeta;
+        if(betav <= 0.0){
+            msg="\x1b[31m target betav <= 0.0 \x1b[0m\n";
+            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
+        }
+        if(betav > 1.0){
+            msg="\x1b[31m target betav >= 1.0 \x1b[0m\n";
+            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
+        }
+        this->m_Regularization.beta[0] = betav;
+        this->m_Regularization.beta[1] = betav;
     }
 
     PetscFunctionReturn(0);
@@ -872,7 +899,7 @@ PetscErrorCode RegOpt::DisplayOptions()
         // display regularization model
         std::cout<< std::left << std::setw(indent) <<" regularization model v";
 
-        if(this->m_ParameterCont.binarysearch || this->m_ParameterCont.reducebeta){
+        if(this->m_ParameterCont.strategy[0] || this->m_ParameterCont.strategy[1]){
             switch(this->m_Regularization.norm){
                 case L2:
                 {
