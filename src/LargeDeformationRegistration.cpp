@@ -191,7 +191,7 @@ PetscErrorCode LargeDeformationRegistration::ClearMemory(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
-PetscErrorCode LargeDeformationRegistration::SetIO(LargeDeformationRegistration::ReadWriteType* io)
+PetscErrorCode LargeDeformationRegistration::SetIO(ReadWriteReg* io)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -215,23 +215,17 @@ PetscErrorCode LargeDeformationRegistration::SetIO(LargeDeformationRegistration:
 PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
 {
     PetscErrorCode ierr;
-    IntType nlocal,nglobal;
     PetscFunctionBegin;
 
     ierr=Assert(mR != NULL, "input reference image is null pointer"); CHKERRQ(ierr);
-/*
+
     if (this->m_ReferenceImage != NULL){
         ierr=VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
         this->m_ReferenceImage = NULL;
     }
-*/
-    ierr=VecGetSize(mR,&nglobal); CHKERRQ(ierr);
-    ierr=VecGetLocalSize(mR,&nlocal); CHKERRQ(ierr);
 
     // allocate
     ierr=VecDuplicate(mR,&this->m_ReferenceImage); CHKERRQ(ierr);
-    // copy buffer
-
 
     // presmoothing
     if (this->m_Opt->ReadImagesFromFile()){
@@ -247,25 +241,9 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
     }
     else{ ierr=VecCopy(mR,this->m_ReferenceImage); CHKERRQ(ierr); }
 
+    // rescale images
     ierr=Rescale(this->m_ReferenceImage,0.0,1.0); CHKERRQ(ierr);
 
-    // allocate vector fields
-    if(this->m_VelocityField == NULL){
-        try{this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-    }
-/*
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
-    }
-*/
     PetscFunctionReturn(0);
 
 }
@@ -282,25 +260,17 @@ PetscErrorCode LargeDeformationRegistration::SetReferenceImage(Vec mR)
 PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
 {
     PetscErrorCode ierr;
-    IntType nlocal,nglobal;
     PetscFunctionBegin;
 
     ierr=Assert(mT != NULL, "input template image is null pointer"); CHKERRQ(ierr);
-/*
+
     if (this->m_TemplateImage != NULL){
         ierr=VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
         this->m_TemplateImage = NULL;
     }
-*/
-    ierr=VecGetSize(mT,&nglobal); CHKERRQ(ierr);
-    ierr=VecGetLocalSize(mT,&nlocal); CHKERRQ(ierr);
-
-    ierr=Assert(nglobal == this->m_Opt->GetNGlobal(), "nglobal in != nglobal"); CHKERRQ(ierr);
-    ierr=Assert(nlocal == this->m_Opt->GetNLocal(), "nlocal in != nlocal"); CHKERRQ(ierr);
 
     // allocate
     ierr=VecDuplicate(mT,&this->m_TemplateImage); CHKERRQ(ierr);
-
 
     // presmoothing step
     if (this->m_Opt->ReadImagesFromFile()){
@@ -315,25 +285,8 @@ PetscErrorCode LargeDeformationRegistration::SetTemplateImage(Vec mT)
     }
     else{  ierr=VecCopy(mT,this->m_TemplateImage); CHKERRQ(ierr); }
 
+    // rescale images
     ierr=Rescale(this->m_TemplateImage,0.0,1.0); CHKERRQ(ierr);
-
-    // allocate vector fields
-    if(this->m_VelocityField == NULL){
-        try{this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-    }
-/*
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
-    }
-*/
 
     PetscFunctionReturn(0);
 

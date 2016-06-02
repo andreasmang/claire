@@ -112,6 +112,7 @@ PetscErrorCode Optimizer::ClearMemory(void)
 
 
 
+
 /********************************************************************
  * @brief set the initial guess (warm start)
  *******************************************************************/
@@ -673,6 +674,7 @@ PetscErrorCode Optimizer::RunRegParaReductionSearch()
 
 
 
+
 /********************************************************************
  * @brief solves the optimization problem
  ********************************************************************/
@@ -753,9 +755,6 @@ PetscErrorCode Optimizer::RunRegParaContinuation()
 
 
 
-
-
-
 /********************************************************************
  * @param x vector to hold solution
  * @brief get the solution
@@ -782,7 +781,7 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
 
 /********************************************************************
  * @brief finalize optimization (displays information for user)
- * *******************************************************************/
+ ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"
 PetscErrorCode Optimizer::Finalize()
@@ -790,8 +789,8 @@ PetscErrorCode Optimizer::Finalize()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(this->m_Tao !=NULL, "optimization has not been performed"); CHKERRQ(ierr);
-    ierr=Assert(this->m_OptimizationProblem !=NULL, "optimizer: optimization problem not set"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Tao !=NULL,"tao not set up"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OptimizationProblem !=NULL,"optimizer: optimization problem not set"); CHKERRQ(ierr);
 
     // finalize the registration (write out all data)
     ierr=this->m_OptimizationProblem->Finalize(this->m_Solution); CHKERRQ(ierr);

@@ -20,8 +20,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: OptimalControlRegistration
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistration"
@@ -34,8 +33,7 @@ OptimalControlRegistration::OptimalControlRegistration() : SuperClass()
 
 
 /********************************************************************
- * Name: OptimalControlRegistration
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~OptimalControlRegistration"
@@ -48,8 +46,7 @@ OptimalControlRegistration::~OptimalControlRegistration(void)
 
 
 /********************************************************************
- * Name: OptimalControlRegistration
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistration"
@@ -62,8 +59,7 @@ OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init variables
+ * @brief init variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -108,8 +104,7 @@ PetscErrorCode OptimalControlRegistration::Initialize(void)
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -123,20 +118,25 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
         ierr=VecDestroy(&this->m_StateVariable); CHKERRQ(ierr);
         this->m_StateVariable=NULL;
     }
-
     if (this->m_AdjointVariable != NULL){
         ierr=VecDestroy(&this->m_AdjointVariable); CHKERRQ(ierr);
         this->m_AdjointVariable=NULL;
     }
-
     if (this->m_IncStateVariable != NULL){
         ierr=VecDestroy(&this->m_IncStateVariable); CHKERRQ(ierr);
         this->m_IncStateVariable=NULL;
     }
-
     if (this->m_IncAdjointVariable != NULL){
         ierr=VecDestroy(&this->m_IncAdjointVariable); CHKERRQ(ierr);
         this->m_IncAdjointVariable=NULL;
+    }
+    if (this->m_VelocityField != NULL){
+        delete this->m_VelocityField;
+        this->m_VelocityField = NULL;
+    }
+    if (this->m_IncVelocityField != NULL){
+        delete this->m_IncVelocityField;
+        this->m_IncVelocityField = NULL;
     }
 
     if (this->m_WorkScaField1 != NULL){
@@ -156,31 +156,18 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
         this->m_WorkScaField4=NULL;
     }
 
-    if (this->m_VelocityField != NULL){
-        delete this->m_VelocityField;
-        this->m_VelocityField = NULL;
-    }
-
-    if (this->m_IncVelocityField != NULL){
-        delete this->m_IncVelocityField;
-        this->m_IncVelocityField = NULL;
-    }
-
     if (this->m_WorkVecField1 != NULL){
         delete this->m_WorkVecField1;
         this->m_WorkVecField1 = NULL;
     }
-
     if (this->m_WorkVecField2 != NULL){
         delete this->m_WorkVecField2;
         this->m_WorkVecField2 = NULL;
     }
-
     if (this->m_WorkVecField3 != NULL){
         delete this->m_WorkVecField3;
         this->m_WorkVecField3 = NULL;
     }
-
     if (this->m_WorkVecField4 != NULL){
         delete this->m_WorkVecField4;
         this->m_WorkVecField4 = NULL;
@@ -199,8 +186,7 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
 
 
 /********************************************************************
- * Name: AllocateRegularization
- * Description: allocate regularization model
+ * @brief allocate regularization model
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "AllocateRegularization"
@@ -250,9 +236,9 @@ PetscErrorCode OptimalControlRegistration::AllocateRegularization()
 
 
 
+
 /********************************************************************
- * Name: SolveForwardProblem
- * Description: solve the forward problem (we assume the user has
+ * @brief solve the forward problem (we assume the user has
  * set the template image and the velocity field using the assocated
  * set functions)
  *******************************************************************/
@@ -294,8 +280,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
 
 
 /********************************************************************
- * Name: EvaluateL2Distance
- * Description: evaluate the l2 distance between m_R and m_1
+ * @brief evaluate the l2 distance between m_R and m_1
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateL2Distance"
@@ -352,8 +337,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
 
 
 /********************************************************************
- * Name: EvaluateObjective
- * Description: evaluates the objective value
+ * @brief evaluates the objective value
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjective"
@@ -405,8 +389,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
 
 
 /********************************************************************
- * Name: EvaluateGradient
- * Description: evaluates the reduced gradient of the lagrangian
+ * @brief evaluates the reduced gradient of the lagrangian
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateGradient"
@@ -481,8 +464,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
 
 
 /********************************************************************
- * Name: ComputeBodyForce
- * Description: compute the body force
+ * @brief compute the body force
  * b = \int_0^1 grad(m) \lambda dt
  *******************************************************************/
 #undef __FUNCT__
@@ -661,8 +643,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
 
 
 /********************************************************************
- * Name: HessianMatvec
- * Description: applies the hessian to a vector
+ * @brief applies the hessian to a vector
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianMatVec"
@@ -736,9 +717,12 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
 
 
+
 /********************************************************************
- * Name: ComputeInitialCondition
- * Description: piccard iteration
+ * @brief compute initial condition given some initial guess for
+ * the state variable $m$ and the adjoint variable $\lambda$
+ * @param m state variable
+ * @param lambda adjoint variable
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeInitialCondition"
@@ -817,8 +801,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
 
 /********************************************************************
- * Name: PiccardIteration
- * Description: piccard iteration
+ * @brief piccard iteration
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PiccardIteration"
@@ -867,8 +850,7 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v)
 
 
 /********************************************************************
- * Name: PrecondMatVec
- * Description: applies the preconditioner for the hessian to a vector
+ * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PrecondMatVec"
@@ -933,8 +915,7 @@ PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
 
 
 /********************************************************************
- * Name: Apply2LevelPrecond
- * Description: applies the preconditioner for the hessian to a vector
+ * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Apply2LevelPrecond"
@@ -956,8 +937,7 @@ PetscErrorCode OptimalControlRegistration::Apply2LevelPrecond(Vec Px, Vec x)
 
 
 /********************************************************************
- * Name: EstimateHessianEigVals
- * Description: estimate hessian eigenvalues
+ * @brief estimate hessian eigenvalues
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EstimateHessianEigVals"
@@ -979,8 +959,7 @@ PetscErrorCode OptimalControlRegistration::EstimateHessianEigVals()
 
 
 /********************************************************************
- * Name: Setup2LevelPrecond
- * Description: applies the preconditioner for the hessian to a vector
+ * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Setup2LevelPrecond"
@@ -1090,8 +1069,7 @@ PetscErrorCode OptimalControlRegistration::Setup2LevelPrecond()
 
 
 /********************************************************************
- * Name: TwoLevelPrecondMatVec
- * Description: applies the preconditioner for the hessian to a vector
+ * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "TwoLevelPrecondMatVec"
@@ -1111,8 +1089,7 @@ PetscErrorCode OptimalControlRegistration::TwoLevelPrecondMatVec(Vec Px, Vec x)
 
 
 /********************************************************************
- * Name: ComputeIncBodyForce
- * Description: compute the incremental body force
+ * @brief compute the incremental body force
  * \tilde{\vect{b}} = \int_0^1 \igrad\tilde{m}\lambda
  *                           + \igrad m\tilde{\lambda} dt
  *******************************************************************/
@@ -1334,8 +1311,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
 
 
 /********************************************************************
- * Name: SolveStateEquation
- * Description: solve the forward problem (state equation)
+ * @brief solve the forward problem (state equation)
  * \p_t m + \igrad m\cdot\vect{v} = 0
  * subject to m_0 - m_T = 0
  * solved forward in time
@@ -1431,8 +1407,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
 
 /********************************************************************
- * Name: SolveStateEquationRK2
- * Description: solve the forward problem (state equation)
+ * @brief solve the forward problem (state equation)
  * \p_t m + \igrad m\cdot\vect{v} = 0
  * subject to m_0 - m_T = 0
  * solved forward in time
@@ -1566,8 +1541,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 
 
 /********************************************************************
- * Name: SolveStateEquationSL
- * Description: solve the forward problem (state equation)
+ * @brief solve the forward problem (state equation)
  * \p_t m + \igrad m\cdot\vect{v} = 0
  * subject to m_0 - m_T = 0
  * solved forward in time
@@ -1650,8 +1624,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
 
 
 /********************************************************************
- * Name: SolveAdjointEquation
- * Description: solve the adjoint problem (adjoint equation)
+ * @brief solve the adjoint problem (adjoint equation)
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
@@ -1764,8 +1737,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void)
 
 
 /********************************************************************
- * Name: SolveAdjointEquationRK2
- * Description: solve the adjoint problem (adjoint equation)
+ * @brief solve the adjoint problem (adjoint equation)
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
@@ -1906,8 +1878,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 
 
 /********************************************************************
- * Name: SolveAdjointEquationSL
- * Description: solve the adjoint problem (adjoint equation)
+ * @brief solve the adjoint problem (adjoint equation)
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
@@ -2038,8 +2009,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
 
 
 /********************************************************************
- * Name: SolveIncStateEquation
- * Description: solve the incremental state equation
+ * @brief solve the incremental state equation
  * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
  *                + \igrad \tilde{m} \cdot \vect{v} = 0
  * subject to \tilde{m}_0 = 0
@@ -2111,8 +2081,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
 
 
 /********************************************************************
- * Name: SolveIncStateEquationRK2
- * Description: solve the incremental state equation
+ * @brief solve the incremental state equation
  * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
  *                + \igrad \tilde{m} \cdot \vect{v} = 0
  * subject to \tilde{m}_0 = 0
@@ -2345,8 +2314,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
 
 
 /********************************************************************
- * Name: SolveIncStateEquationSL
- * Description: solve the incremental state equation
+ * @brief solve the incremental state equation
  * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
  *                + \igrad \tilde{m} \cdot \vect{v} = 0
  * subject to \tilde{m}_0 = 0
@@ -2552,8 +2520,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
 
 
 /********************************************************************
- * Name: SolveIncAdjointEquation
- * Description: solve the incremental adjoint problem (incremental
+ * @brief solve the incremental adjoint problem (incremental
  * adjoint equation)
  * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
  *                       - \idiv \lambda\tilde{\vect{v}} = 0
@@ -2690,8 +2657,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
 
 
 /********************************************************************
- * Name: SolveIncAdjointEquationGNRK2
- * Description: solve the incremental adjoint problem (incremental
+ * @brief solve the incremental adjoint problem (incremental
  * adjoint equation)
  * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
  *                       - \idiv \lambda\tilde{\vect{v}} = 0
@@ -2833,8 +2799,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 
 
 /********************************************************************
- * Name: SolveIncAdjointEquationFNRK2
- * Description: solve the incremental adjoint problem (incremental
+ * @brief solve the incremental adjoint problem (incremental
  * adjoint equation)
  * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
  *                       - \idiv \lambda\tilde{\vect{v}} = 0
@@ -3020,8 +2985,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 
 
 /********************************************************************
- * Name: SolveIncAdjointEquationGNSL
- * Description: solve the incremental adjoint problem (incremental
+ * @brief solve the incremental adjoint problem (incremental
  * adjoint equation)
  * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
  *                       - \idiv \lambda\tilde{\vect{v}} = 0
@@ -3154,8 +3118,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
 
 
 /********************************************************************
- * Name: SolveIncAdjointEquationFNSL
- * Description: solve the incremental adjoint problem (incremental
+ * @brief solve the incremental adjoint problem (incremental
  * adjoint equation)
  * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
  *                       - \idiv \lambda\tilde{\vect{v}} = 0
@@ -3190,8 +3153,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void)
 
 
 /********************************************************************
- * Name: FinalizeIteration
- * Description: finalize the current iteration
+ * @brief finalize the current iteration
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "FinalizeIteration"
@@ -3303,8 +3265,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
 
 /********************************************************************
- * Name: Finalize
- * Description: finalize the registration
+ * @brief finalize the registration
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"

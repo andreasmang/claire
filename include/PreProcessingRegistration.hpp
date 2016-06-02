@@ -42,54 +42,19 @@ public:
     PreProcessingRegistration(RegOpt*);
     ~PreProcessingRegistration();
 
-    PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
-    PetscErrorCode ApplyMollifier(Vec,Vec);
-    PetscErrorCode CompositionData(Vec,unsigned int,std::string);
-    PetscErrorCode CompositionTimeDependentData(Vec,unsigned int,std::string);
-    PetscErrorCode DecompositionData(Vec,unsigned int,std::string);
-    PetscErrorCode DecompositionTimeDependentData(Vec,unsigned int,std::string);
-
     PetscErrorCode SetIO(ReadWriteType*);
+    PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
 
 private:
 
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
-    PetscErrorCode ResetDDData(int);
-
-    PetscErrorCode SetupDomainComposition(unsigned int);
-    PetscErrorCode SetupDomainDecomposition(unsigned int);
-
-    inline unsigned long GetIndex(int i1, int i2, int i3){
-
-        // enforce periodic boundary conditions
-        i1 = (i1 + static_cast<int>(this->m_nx[0])) % static_cast<int>(this->m_nx[0]);
-        i2 = (i2 + static_cast<int>(this->m_nx[1])) % static_cast<int>(this->m_nx[1]);
-        i3 = (i3 + static_cast<int>(this->m_nx[2])) % static_cast<int>(this->m_nx[2]);
-
-        return GetLinearIndex(i1,i2,i3,this->m_nx);
-
-    }
 
     RegOpt* m_Opt;
     FFTScaType* m_xhat;
     FFTScaType* m_Kxhat;
 
-    // parameters for domain decomposition
-    struct DomainDec{
-        unsigned int* isize;
-        int* istart;
-        unsigned int* iend;
-        unsigned int nsubdom; // number of sub domains
-        unsigned int nshared; // number of shared grid points
-        unsigned int nzeropad; // number of shared grid points
-        IntType nglobal; // global number of grid points
-        unsigned long* nlocal; // local number of grid ponts (per subdomain)
-    };
-
-    DomainDec m_DDPara;
     ReadWriteType* m_IO;
-    IntType m_nx[3];
 
 };
 

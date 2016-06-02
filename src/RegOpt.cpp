@@ -659,26 +659,33 @@ PetscErrorCode RegOpt::DoSetup()
     PetscErrorCode ierr;
     int nx[3],isize[3],istart[3],osize[3],ostart[3],ompthreads,nprocs,np;
     IntType alloc_max;
-    ScalarType *u, fftsetuptime;
-    Complex *uk;
+    ScalarType *u=NULL, fftsetuptime;
+    Complex *uk=NULL;
     std::stringstream ss;
 
     PetscFunctionBegin;
 
-
+    // set number of threads
     ierr=reg::Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
+
     omp_set_dynamic(0);
     omp_set_num_threads(this->m_NumThreads);
 
     // check if number of threads is consistent with user options
     ompthreads=omp_get_max_threads();
+    ss << "max number of openmp threads is not a match (user,set)=("
+       << this->m_NumThreads <<"," << ompthreads <<")\n";
+    ierr=Assert(ompthreads == this->m_NumThreads,ss.str().c_str()); CHKERRQ(ierr);
+    ss.str( std::string() );
+    ss.clear();
 
+    // set up MPI/cartesian grid
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
-
     np = this->m_CartGridDims[0]*this->m_CartGridDims[1];
 
     // check number of procs
     if(np!=nprocs){
+
         if (this->m_Verbosity > 2){
             ss << "cartesian grid setup wrong: px1*px2="
                 << this->m_CartGridDims[0] <<"*"<<this->m_CartGridDims[1]
@@ -700,11 +707,6 @@ PetscErrorCode RegOpt::DoSetup()
         }
     }
 
-    ss << "max number of openmp threads is not a match (user,set)=("
-       << this->m_NumThreads <<"," << ompthreads <<")\n";
-    ierr=Assert(ompthreads == this->m_NumThreads,ss.str().c_str()); CHKERRQ(ierr);
-    ss.str( std::string() );
-    ss.clear();
 
     // initialize accft
     accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_Comm);
@@ -714,6 +716,12 @@ PetscErrorCode RegOpt::DoSetup()
     for (int i = 0; i < 3; ++i){
         nx[i] = static_cast<int>(this->m_Domain.nx[i]);
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
+    }
+
+    if (this->m_FFTPlan != NULL){
+        accfft_destroy_plan(this->m_FFTPlan);
+        this->m_FFTPlan = NULL;
+        accfft_cleanup();
     }
 
     alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Comm);
@@ -739,6 +747,7 @@ PetscErrorCode RegOpt::DoSetup()
     ierr=reg::Assert(this->m_Domain.nlocal > 0,"bug in setup"); CHKERRQ(ierr);
     ierr=reg::Assert(this->m_Domain.nglobal > 0,"bug in setup"); CHKERRQ(ierr);
 
+
     // set up the fft
     fftsetuptime=-MPI_Wtime();
     this->m_FFTPlan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_Comm,ACCFFT_MEASURE);
@@ -746,7 +755,6 @@ PetscErrorCode RegOpt::DoSetup()
 
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
-
 
     this->m_SetupDone=true;
 
