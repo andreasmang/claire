@@ -457,9 +457,9 @@ PetscErrorCode LargeDeformationRegistration::SetupSyntheticProb()
     ng = this->m_Opt->GetNGlobal();
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->m_MiscOpt->h[i];
-        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
-        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
+        hx[i] = this->m_Opt->GetSpatialStepSize(i);
+        isize[i]  = this->m_Opt->GetISize(i);
+        istart[i] = this->m_Opt->GetIStart(i);
     }
 
     // allocate vector fields
@@ -635,9 +635,9 @@ PetscErrorCode LargeDeformationRegistration::ComputeCFLCondition()
 
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
 
-    hx[0] = this->m_Opt->m_MiscOpt->h[0];
-    hx[1] = this->m_Opt->m_MiscOpt->h[1];
-    hx[2] = this->m_Opt->m_MiscOpt->h[2];
+    for (int i = 0; i < 3; ++i){
+        hx[i] = this->m_Opt->GetSpatialStepSize(i);
+    }
 
     ierr=VecAbs(this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
     ierr=VecAbs(this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
@@ -883,12 +883,12 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradRK2()
     ierr=VecGetArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->m_MiscOpt->plan,timings);
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFTPlan(),timings);
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j){
 
-        accfft_grad(p_gx1,p_gx2,p_gx3,p_jac,this->m_Opt->m_MiscOpt->plan,&XYZ,timings);
+        accfft_grad(p_gx1,p_gx2,p_gx3,p_jac,this->m_Opt->GetFFTPlan(),&XYZ,timings);
 
 #pragma omp parallel
 {
@@ -906,7 +906,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradRK2()
         }
 } // pragma omp
 
-        accfft_grad(p_gx1,p_gx2,p_gx3,p_jbar,this->m_Opt->m_MiscOpt->plan,&XYZ,timings);
+        accfft_grad(p_gx1,p_gx2,p_gx3,p_jbar,this->m_Opt->GetFFTPlan(),&XYZ,timings);
 
 #pragma omp parallel
 {
@@ -1040,7 +1040,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradSL()
         ierr=this->m_SL->Interpolate(p_jacX,p_jac,"state"); CHKERRQ(ierr);
 
         // compute grad(jac) for convective derivative
-        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->m_MiscOpt->plan,&XYZ,timings);
+        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFTPlan(),&XYZ,timings);
 
 #pragma omp parallel
 {
@@ -1063,7 +1063,7 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradSL()
 } // pragma omp
 
         // compute div(jac v)
-        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->m_MiscOpt->plan,timings);
+        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFTPlan(),timings);
 
         // compute J(X,t^j)
         ierr=this->m_SL->Interpolate(p_cgradvjX,p_cgradvj,"state"); CHKERRQ(ierr);
@@ -1093,10 +1093,10 @@ PetscErrorCode LargeDeformationRegistration::ComputeDetDefGradSL()
 } // pragma omp
 
         // compute div(jactilde v)
-        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->m_MiscOpt->plan,timings);
+        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFTPlan(),timings);
 
         // compute grad(jactilde) for convective derivative
-        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->m_MiscOpt->plan,&XYZ,timings);
+        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFTPlan(),&XYZ,timings);
 
 #pragma omp parallel
 {

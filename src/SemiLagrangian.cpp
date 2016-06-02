@@ -426,7 +426,7 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w,Vec v,std::string flag)
 PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::string flag)
 {
     PetscErrorCode ierr;
-    int nx[3],isize_g[3],istart_g[3],c_dims[2];
+    int nx[3],isize_g[3],isize[3],istart_g[3],istart[3],c_dims[2];
     accfft_plan* plan=NULL;
     IntType g_alloc_max,nl;
     double timers[4]={0,0,0,0};
@@ -436,9 +436,11 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
     ierr=Assert(w!=NULL,"output is null pointer"); CHKERRQ(ierr);
     ierr=Assert(v!=NULL,"input is null pointer"); CHKERRQ(ierr);
 
-    nx[0] = this->m_Opt->m_MiscOpt->N[0];
-    nx[1] = this->m_Opt->m_MiscOpt->N[1];
-    nx[2] = this->m_Opt->m_MiscOpt->N[2];
+    for (int i = 0; i < 3; ++i){
+        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i] = static_cast<int>(this->m_Opt->GetISize(i));
+        istart[i] = static_cast<int>(this->m_Opt->GetIStart(i));
+    }
 
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
@@ -446,7 +448,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
     nl = this->m_Opt->GetNLocal();
 
     // deal with ghost points
-    plan = this->m_Opt->m_MiscOpt->plan;
+    plan = this->m_Opt->GetFFTPlan();
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
 
     if(this->m_ScaFieldGhost==NULL){
@@ -459,20 +461,16 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
 
         ierr=Assert(this->m_XS!=NULL,"state X is null pointer"); CHKERRQ(ierr);
 
-        this->m_StatePlan->interpolate(this->m_ScaFieldGhost,1,nx,
-                            this->m_Opt->m_MiscOpt->isize,
-                            this->m_Opt->m_MiscOpt->istart,
+        this->m_StatePlan->interpolate(this->m_ScaFieldGhost,1,nx,isize,istart,
                             nl,this->m_GhostSize,w,c_dims,
-                            this->m_Opt->m_MiscOpt->c_comm,timers);
+                            this->m_Opt->GetComm(),timers);
     }
     else if (strcmp(flag.c_str(),"adjoint")!=0){
 
         ierr=Assert(this->m_XA!=NULL,"adjoint X is null pointer"); CHKERRQ(ierr);
-        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost,1,nx,
-                            this->m_Opt->m_MiscOpt->isize,
-                            this->m_Opt->m_MiscOpt->istart,
+        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost,1,nx,isize,istart,
                             nl,this->m_GhostSize,w,c_dims,
-                            this->m_Opt->m_MiscOpt->c_comm,timers);
+                            this->m_Opt->GetComm(),timers);
 
     }
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
@@ -543,7 +541,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
                                             std::string flag)
 {
     PetscErrorCode ierr;
-    int nx[3],isize_g[3],istart_g[3],c_dims[2];
+    int nx[3],isize_g[3],isize[3],istart_g[3],istart[3],c_dims[2];
     double timers[4] = {0,0,0,0};
     accfft_plan* plan=NULL;
     IntType g_alloc_max;
@@ -558,9 +556,12 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     ierr=Assert(wx3!=NULL,"input is null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetNLocal();
-    nx[0] = this->m_Opt->m_MiscOpt->N[0];
-    nx[1] = this->m_Opt->m_MiscOpt->N[1];
-    nx[2] = this->m_Opt->m_MiscOpt->N[2];
+
+    for (int i = 0; i < 3; ++i){
+        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i] = static_cast<int>(this->m_Opt->GetISize(i));
+        istart[i] = static_cast<int>(this->m_Opt->GetIStart(i));
+    }
 
     // get network dimensions
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
@@ -586,7 +587,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     }
 
     // get ghost sizes
-    plan = this->m_Opt->m_MiscOpt->plan;
+    plan = this->m_Opt->GetFFTPlan();
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
 
     // get nlocal for ghosts
@@ -614,11 +615,9 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
         ierr=Assert(this->m_StatePlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
 
 
-        this->m_StatePlanVec->interpolate(this->m_VecFieldGhost,3,nx,
-                                        this->m_Opt->m_MiscOpt->isize,
-                                        this->m_Opt->m_MiscOpt->istart,
+        this->m_StatePlanVec->interpolate(this->m_VecFieldGhost,3,nx,isize,istart,
                                         nl,this->m_GhostSize,this->m_xVecField,c_dims,
-                                        this->m_Opt->m_MiscOpt->c_comm,timers);
+                                        this->m_Opt->GetComm(),timers);
 
 
     }
@@ -627,11 +626,9 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
         ierr=Assert(this->m_XA!=NULL,"adjoint X null pointer"); CHKERRQ(ierr);
         ierr=Assert(this->m_AdjointPlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
 
-        this->m_AdjointPlanVec->interpolate(this->m_VecFieldGhost,3,nx,
-                                        this->m_Opt->m_MiscOpt->isize,
-                                        this->m_Opt->m_MiscOpt->istart,
+        this->m_AdjointPlanVec->interpolate(this->m_VecFieldGhost,3,nx,isize,istart,
                                         nl,this->m_GhostSize,this->m_xVecField,c_dims,
-                                        this->m_Opt->m_MiscOpt->c_comm,timers);
+                                        this->m_Opt->GetComm(),timers);
 
     }
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
@@ -670,7 +667,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
                                             ScalarType* yx3)
 {
     PetscErrorCode ierr;
-    int nx[3],isize_g[3],istart_g[3],c_dims[2];
+    int nx[3],isize_g[3],isize[3],istart_g[3],istart[3],c_dims[2];
     double timers[4] = {0,0,0,0};
     accfft_plan* plan=NULL;
     IntType nl,nlghost,g_alloc_max;
@@ -690,9 +687,12 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
     nl = this->m_Opt->GetNLocal();
-    nx[0] = this->m_Opt->m_MiscOpt->N[0];
-    nx[1] = this->m_Opt->m_MiscOpt->N[1];
-    nx[2] = this->m_Opt->m_MiscOpt->N[2];
+
+    for (int i = 0; i < 3; ++i){
+        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i] = static_cast<int>(this->m_Opt->GetISize(i));
+        istart[i] = static_cast<int>(this->m_Opt->GetIStart(i));
+    }
 
     // get network dimensions
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
@@ -728,10 +728,9 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     }
 
     // scatter
-    this->m_VecFieldPlan->scatter(3,nx,this->m_Opt->m_MiscOpt->isize,
-                                  this->m_Opt->m_MiscOpt->istart,nl,
+    this->m_VecFieldPlan->scatter(3,nx,isize,istart,nl,
                                   this->m_GhostSize,this->m_iVecField,
-                                  c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
+                                  c_dims,this->m_Opt->GetComm(),timers);
 
     for (IntType i = 0; i < nl; ++i){
         this->m_iVecField[0*nl + i] = vx1[i];
@@ -740,7 +739,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     }
 
     // get ghost sizes
-    plan = this->m_Opt->m_MiscOpt->plan;
+    plan = this->m_Opt->GetFFTPlan();
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
 
     // get nlocal for ghosts
@@ -762,11 +761,9 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
                                  &this->m_VecFieldGhost[i*nlghost]);
     }
 
-    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost,3,nx,
-                                      this->m_Opt->m_MiscOpt->isize,
-                                      this->m_Opt->m_MiscOpt->istart,
+    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost,3,nx,isize,istart,
                                       nl,this->m_GhostSize,this->m_xVecField,c_dims,
-                                      this->m_Opt->m_MiscOpt->c_comm,timers);
+                                      this->m_Opt->GetComm(),timers);
 
     for (IntType i = 0; i < nl; ++i){
         wx1[i] = this->m_xVecField[0*nl + i];
@@ -811,9 +808,9 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     }
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->h[i]);
-        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
-        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
+        hx[i] = this->m_Opt->GetSpatialStepSize(i);
+        isize[i] = static_cast<int>(this->m_Opt->GetISize(i));
+        istart[i] = static_cast<int>(this->m_Opt->GetIStart(i));
     }
 
     ierr=VecGetArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
@@ -866,14 +863,16 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
 {
     PetscErrorCode ierr;
     const ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
-    int nx[3],nl;
+    int nx[3],nl,isize[3],istart[3];
     int c_dims[2];
     double timers[4] = {0,0,0,0};
 
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        nx[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->N[i]);
+        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i] = static_cast<int>(this->m_Opt->GetISize(i));
+        istart[i] = static_cast<int>(this->m_Opt->GetIStart(i));
     }
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
@@ -917,10 +916,9 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
             this->m_StatePlan->allocate(nl,1);
         }
         // scatter
-        this->m_StatePlan->scatter(1,nx,this->m_Opt->m_MiscOpt->isize,
-                                    this->m_Opt->m_MiscOpt->istart,nl,
+        this->m_StatePlan->scatter(1,nx,isize,istart,nl,
                                     this->m_GhostSize,this->m_XS,
-                                    c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
+                                    c_dims,this->m_Opt->GetComm(),timers);
 
 
         // create planer
@@ -932,10 +930,9 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
             this->m_StatePlanVec->allocate(nl,3);
         }
         // scatter
-        this->m_StatePlanVec->scatter(3,nx,this->m_Opt->m_MiscOpt->isize,
-                                        this->m_Opt->m_MiscOpt->istart,nl,
+        this->m_StatePlanVec->scatter(3,nx,isize,istart,nl,
                                         this->m_GhostSize,this->m_XS,
-                                        c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
+                                        c_dims,this->m_Opt->GetComm(),timers);
 
 
 
@@ -978,10 +975,9 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
         }
 
         // scatter
-        this->m_AdjointPlan->scatter(1,nx,this->m_Opt->m_MiscOpt->isize,
-                                    this->m_Opt->m_MiscOpt->istart,nl,
+        this->m_AdjointPlan->scatter(1,nx,isize,istart,nl,
                                     this->m_GhostSize,this->m_XA,
-                                    c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
+                                    c_dims,this->m_Opt->GetComm(),timers);
 
         // create planer
         if (this->m_AdjointPlanVec == NULL){
@@ -993,10 +989,9 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
         }
 
         // scatter
-        this->m_AdjointPlanVec->scatter(3,nx,this->m_Opt->m_MiscOpt->isize,
-                                    this->m_Opt->m_MiscOpt->istart,nl,
+        this->m_AdjointPlanVec->scatter(3,nx,isize,istart,nl,
                                     this->m_GhostSize,this->m_XA,
-                                    c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
+                                    c_dims,this->m_Opt->GetComm(),timers);
 
     }
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }

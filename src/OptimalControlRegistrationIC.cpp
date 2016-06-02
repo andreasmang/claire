@@ -356,13 +356,15 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x)
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL, *p_x2=NULL, *p_x3=NULL, nx[3], scale;
     int isize[3],osize[3],istart[3],ostart[3];
+    int n[3];
     IntType alloc_max;
     double ffttimers[5]={0,0,0,0,0};
-    int *n;
 
     PetscFunctionBegin;
 
-    n = this->m_Opt->m_MiscOpt->N;
+    n[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
+    n[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
+    n[2] = static_cast<long int>(this->m_Opt->GetNumGridPoints(2));
 
     scale = 1.0;
     for (int i=0; i < 3; ++i){
@@ -372,7 +374,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x)
     scale  = 1.0/scale;
 
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,this->m_Opt->m_MiscOpt->c_comm);
+    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,this->m_Opt->GetComm());
 
     if(this->m_x1hat == NULL){
         this->m_x1hat=(FFTScaType*)accfft_alloc(alloc_max);
@@ -399,9 +401,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x)
     ierr=VecGetArray(x->m_X3,&p_x3); CHKERRQ(ierr);
 
     // compute forward fft
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->m_MiscOpt->plan,p_x1,this->m_x1hat,ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->m_MiscOpt->plan,p_x2,this->m_x2hat,ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->m_MiscOpt->plan,p_x3,this->m_x3hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x1,this->m_x1hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x2,this->m_x2hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x3,this->m_x3hat,ffttimers);
     this->m_Opt->IncrementCounter(FFT,3);
 
 #pragma omp parallel
@@ -475,9 +477,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x)
 
 
     // compute inverse fft
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->m_MiscOpt->plan,this->m_Kx1hat,p_x1,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->m_MiscOpt->plan,this->m_Kx2hat,p_x2,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->m_MiscOpt->plan,this->m_Kx3hat,p_x3,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_Kx1hat,p_x1,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_Kx2hat,p_x2,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_Kx3hat,p_x3,ffttimers);
     this->m_Opt->IncrementCounter(FFT,3);
 
     ierr=VecRestoreArray(x->m_X1,&p_x1); CHKERRQ(ierr);

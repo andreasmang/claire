@@ -32,21 +32,6 @@ RegOpt::RegOpt()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegOpt"
-RegOpt::RegOpt(N_MISC* opt)
-{
-    this->Initialize();
-    this->m_MiscOpt = opt;
-}
-
-
-
-
-/********************************************************************
- * Name: RegOpt
- * Description: constructor
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegOpt"
 RegOpt::RegOpt(int argc, char** argv)
 {
     this->Initialize();
@@ -359,11 +344,6 @@ PetscErrorCode RegOpt::ClearMemory()
 {
     PetscFunctionBegin;
 
-    if(this->m_MiscOpt!= NULL){
-        delete this->m_MiscOpt;
-        this->m_MiscOpt = NULL;
-    }
-
     if(this->m_FFTPlan!= NULL){
         accfft_destroy_plan(this->m_FFTPlan);
         accfft_cleanup();
@@ -394,7 +374,6 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_SetupDone = false;
 
-    this->m_MiscOpt = NULL;
     this->m_FFTPlan = NULL;
     this->m_Comm = NULL;
 
@@ -659,10 +638,6 @@ PetscErrorCode RegOpt::DoSetup()
 
     PetscFunctionBegin;
 
-    // TODO: this is a problem (should not be ints)
-    nx[0] = static_cast<int>(this->m_Domain.nx[0]);
-    nx[1] = static_cast<int>(this->m_Domain.nx[1]);
-    nx[2] = static_cast<int>(this->m_Domain.nx[2]);
 
     ierr=reg::Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
     omp_set_dynamic(0);
@@ -708,9 +683,34 @@ PetscErrorCode RegOpt::DoSetup()
     accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_Comm);
     accfft_init(this->m_NumThreads);
 
+    // parse grid size for setup
+    for (int i = 0; i < 3; ++i){
+        nx[i] = static_cast<int>(this->m_Domain.nx[i]);
+        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
+    }
+
     alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Comm);
     u  = (ScalarType*)accfft_alloc(alloc_max);
     uk = (Complex*)accfft_alloc(alloc_max);
+
+    // compute global and local size
+    this->m_Domain.nlocal = 1;
+    this->m_Domain.nglobal = 1;
+    for (int i = 0; i < 3; ++i){
+
+        this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
+        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
+
+        this->m_Domain.osize[i] = static_cast<IntType>(osize[i]);
+        this->m_Domain.ostart[i] = static_cast<IntType>(ostart[i]);
+
+        this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
+        this->m_Domain.nglobal *= this->m_Domain.nx[i];
+    }
+
+    // check if sizes are ok
+    ierr=reg::Assert(this->m_Domain.nlocal > 0,"bug in setup"); CHKERRQ(ierr);
+    ierr=reg::Assert(this->m_Domain.nglobal > 0,"bug in setup"); CHKERRQ(ierr);
 
     // set up the fft
     fftsetuptime=-MPI_Wtime();
@@ -720,16 +720,8 @@ PetscErrorCode RegOpt::DoSetup()
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
 
-    try{ this->m_MiscOpt = new N_MISC(nx,isize,istart,this->m_FFTPlan,this->m_Comm); }
-    catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
 
     this->m_SetupDone=true;
-
-    // check if sizes are ok
-    ierr=reg::Assert(this->m_MiscOpt->N_local > 0,"bug in setup"); CHKERRQ(ierr);
-    ierr=reg::Assert(this->m_MiscOpt->N_global > 0,"bug in setup"); CHKERRQ(ierr);
 
     // display the options to the user
     ierr=this->DisplayOptions(); CHKERRQ(ierr);
@@ -860,9 +852,9 @@ PetscErrorCode RegOpt::DisplayOptions()
         std::cout<< line << std::endl;
 
         std::cout<< std::left << std::setw(indent) <<" problem dimensions"
-                    << "(" << this->m_MiscOpt->N[0] <<","
-                    <<  this->m_MiscOpt->N[1] <<","
-                    <<  this->m_MiscOpt->N[2] <<","
+                    << "(" << this->m_Domain.nx[0] <<","
+                    <<  this->m_Domain.nx[1] <<","
+                    <<  this->m_Domain.nx[2] <<","
                     <<  this->m_nt <<")" <<std::endl;
         std::cout<< std::left << std::setw(indent) <<" network dimensions"
                     << this->m_CartGridDims[0] <<"x"
@@ -870,8 +862,8 @@ PetscErrorCode RegOpt::DisplayOptions()
         std::cout<< std::left << std::setw(indent) <<" threads"
                     << this->m_NumThreads<<std::endl;
         std::cout<< std::left << std::setw(indent) <<" (ng,nl)"
-                    << "(" << this->GetNGlobal() <<","
-                    <<  this->GetNLocal() <<")" <<std::endl;
+                    << "(" << this->m_Domain.nglobal <<","
+                    <<  this->m_Domain.nlocal <<")" <<std::endl;
 
         std::cout<< line << std::endl;
         std::cout<< " parameters"<<std::endl;
@@ -1099,7 +1091,7 @@ ScalarType RegOpt::ComputeFFTScale()
 
     ScalarType scale = 1.0;
     for (unsigned int i=0; i < 3; ++i){
-        scale *= static_cast<ScalarType>(this->m_MiscOpt->N[i]);
+        scale *= static_cast<ScalarType>(this->m_Domain.nx[i]);
     }
     return 1.0/scale;
 
@@ -1400,9 +1392,9 @@ PetscErrorCode RegOpt::WriteLogFile()
         logwriter << line <<std::endl;
         logwriter << "# problem setup" <<std::endl;
         logwriter << line <<std::endl;
-        ss  << this->m_MiscOpt->N[0] << " x "
-            << this->m_MiscOpt->N[1] << " x "
-            << this->m_MiscOpt->N[2];
+        ss  << this->m_Domain.nx[0] << " x "
+            << this->m_Domain.nx[1] << " x "
+            << this->m_Domain.nx[2];
 
         logwriter << std::left
                   << std::setw(nstr) << " nx" << std::right

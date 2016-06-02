@@ -120,7 +120,7 @@ inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
  * Name: CheckWaveNumbersInv
  * Description: check wave numbers
  *******************************************************************/
-inline void CheckWaveNumbersInv(long int w[3],unsigned int n[3])
+inline void CheckWaveNumbersInv(long int w[3],int n[3])
 {
 
     if     (w[0] >  n[0]/2) w[0]-=n[0];
@@ -136,7 +136,7 @@ inline void CheckWaveNumbersInv(long int w[3],unsigned int n[3])
  * Name: CheckWaveNumbers
  * Description: check wave numbers
  *******************************************************************/
-inline void CheckWaveNumbers(long int w[3],unsigned int n[3])
+inline void CheckWaveNumbers(long int w[3],int n[3])
 {
 
     if     (w[0] >  n[0]/2) w[0]-=n[0];

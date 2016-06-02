@@ -205,7 +205,7 @@ PetscErrorCode PreProcessingRegistration::ResetDDData(int np)
 PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 {
     PetscErrorCode ierr;
-    int isize[3],osize[3],istart[3],ostart[3];
+    int isize[3],osize[3],istart[3],ostart[3],n[3];
     IntType iosize[3];
     size_t alloc_max;
     ScalarType hx[3],nx[3],c[3],scale;
@@ -215,18 +215,21 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
     ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
 
+    n[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
+    n[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
+    n[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(this->m_Opt->m_MiscOpt->N,
-                                                    isize,istart,osize,ostart,
-                                                    this->m_Opt->m_MiscOpt->c_comm);
+    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
+                                                        this->m_Opt->GetComm());
     if(this->m_xhat == NULL){
         this->m_xhat=(FFTScaType*)accfft_alloc(alloc_max);
     }
 
-    for (unsigned int i = 0; i < 3; ++i){
+    for (int i = 0; i < 3; ++i){
 
         hx[i] = this->m_Opt->GetSpatialStepSize(i);
-        nx[i] = this->m_Opt->m_MiscOpt->N[i];
+        nx[i] = static_cast<ScalarType>(n[i]);
 
         // sigma is provided by user in # of grid points
         c[i] = this->m_Opt->GetSigma()*hx[i];
@@ -239,7 +242,7 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // compute fft
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->m_MiscOpt->plan,p_x,this->m_xhat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x,this->m_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
 
@@ -282,7 +285,7 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // compute inverse fft
     ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->m_MiscOpt->plan,this->m_xhat,p_y,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_xhat,p_y,ffttimers);
     ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
 
     // increment fft timer
@@ -344,7 +347,7 @@ PetscErrorCode PreProcessingRegistration::SetupDomainComposition(unsigned int n)
 
     // compute identifiers for domain decomposition
     for (int i = 0; i < 3; ++i){
-        nx[i]    = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->N[i]);
+        nx[i] = static_cast<ScalarType>(this->m_Opt->GetNumGridPoints(i));
         isize[i] = static_cast<IntType>(ceil(nx[i]/nd));
         nsub[i]  = n;
     }
@@ -408,7 +411,7 @@ PetscErrorCode PreProcessingRegistration::SetupDomainDecomposition(unsigned int 
 
     // compute identifiers for domain decomposition
     for (int i = 0; i < 3; ++i){
-        nx[i]    = static_cast<ScalarType>(this->m_Opt->m_MiscOpt->N[i]);
+        nx[i] = static_cast<ScalarType>(this->m_Opt->GetNumGridPoints(i));
         isize[i] = static_cast<IntType>(ceil(nx[i]/nd));
         nsub[i]  = n;
     }
@@ -478,7 +481,7 @@ PetscErrorCode PreProcessingRegistration::DecompositionData(Vec x, unsigned int 
     ierr=this->SetupDomainDecomposition(n); CHKERRQ(ierr);
 
     for(int i=0; i < 3; ++i){
-        this->m_nx[i] = this->m_Opt->m_MiscOpt->N[i];
+        this->m_nx[i] = this->m_Opt->GetNumGridPoints(i);
         nsub[i] = n;
     }
 
@@ -575,7 +578,7 @@ PetscErrorCode PreProcessingRegistration::CompositionData(Vec x, unsigned int n,
     ierr=this->SetupDomainComposition(n); CHKERRQ(ierr);
 
     for(unsigned int i=0; i < 3; ++i){
-        this->m_nx[i] = this->m_Opt->m_MiscOpt->N[i];
+        this->m_nx[i] = this->m_Opt->GetNumGridPoints(i);
         nsub[i] = n;
     }
 

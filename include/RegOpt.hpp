@@ -156,24 +156,24 @@ public:
     typedef RegOpt Self;
 
     RegOpt();
-    RegOpt(N_MISC*);
     RegOpt(int,char**);
     ~RegOpt();
 
     // number of points
-    inline IntType GetNLocal(void){return this->m_MiscOpt->N_local;};
-    inline IntType GetNGlobal(void){return this->m_MiscOpt->N_global;};
-    inline int GetISize(int i){return this->m_MiscOpt->isize[i];};
-    inline int GetIStart(int i){return this->m_MiscOpt->istart[i];};
+    inline IntType GetNLocal(void){return this->m_Domain.nlocal;};
+    inline IntType GetNGlobal(void){return this->m_Domain.nglobal;};
+    inline IntType GetISize(int i){return this->m_Domain.isize[i];};
+    inline IntType GetIStart(int i){return this->m_Domain.istart[i];};
 
     // spatial grid
     inline void SetNumGridPoints(int i,IntType nx){this->m_Domain.nx[i] = nx;};
-    inline ScalarType GetSpatialStepSize(int i){return this->m_MiscOpt->h[i];};
+    inline IntType GetNumGridPoints(int i){return this->m_Domain.nx[i];};
+    inline ScalarType GetSpatialStepSize(int i){return this->m_Domain.hx[i];};
     inline ScalarType GetLebesqueMeasure(void)
     {
-        return  this->m_MiscOpt->h[0]
-               *this->m_MiscOpt->h[1]
-               *this->m_MiscOpt->h[2];
+        return  this->m_Domain.hx[0]
+               *this->m_Domain.hx[1]
+               *this->m_Domain.hx[2];
     }
 
 
@@ -185,6 +185,9 @@ public:
         return (this->m_TimeHorizon[1] - this->m_TimeHorizon[0])
                /static_cast<ScalarType>(this->m_nt);
     };
+
+    accfft_plan* GetFFTPlan(){return this->m_FFTPlan;};
+    MPI_Comm GetComm(){return this->m_Comm;};
 
     // control input and output
     inline std::string GetIFolder(void){return this->m_IFolder;};
@@ -293,10 +296,6 @@ public:
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
     PetscErrorCode DoSetup(void);
-
-    // interface to the global glistr options; are set in constructor
-    N_MISC* m_MiscOpt;
-
 
 private:
 

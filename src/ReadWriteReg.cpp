@@ -795,8 +795,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        isize[i]  = static_cast<IntType>(this->m_Opt->m_MiscOpt->isize[i]);
-        istart[i] = static_cast<IntType>(this->m_Opt->m_MiscOpt->istart[i]);
+        isize[i]  = this->m_Opt->GetISize(i);
+        istart[i] = this->m_Opt->GetIStart(i);
     }
 
     ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
@@ -1086,7 +1086,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
     IntType nglobal;
     T* p_niibuffer;
     ScalarType *p_xl=NULL,*p_xg=NULL;
-    int nprocs,rank,rval,*istart,*isize;
+    int nprocs,rank,rval,*istart,*isize,listart[3],lisize[3];
     IntType nx[3];
     Vec xg=NULL,xl=NULL;
     VecScatter vecscat;
@@ -1205,11 +1205,19 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 
         }
 
+        lisize[0] = static_cast<int>(this->m_Opt->GetISize(0));
+        lisize[1] = static_cast<int>(this->m_Opt->GetISize(1));
+        lisize[2] = static_cast<int>(this->m_Opt->GetISize(2));
+
+        listart[0] = static_cast<int>(this->m_Opt->GetIStart(0));
+        listart[1] = static_cast<int>(this->m_Opt->GetIStart(1));
+        listart[2] = static_cast<int>(this->m_Opt->GetIStart(2));
+
         // gather the indices
-        rval=MPI_Gather(this->m_Opt->m_MiscOpt->istart,3,MPI_INT,istart,3,MPI_INT,0,PETSC_COMM_WORLD);
+        rval=MPI_Gather(listart,3,MPI_INT,istart,3,MPI_INT,0,PETSC_COMM_WORLD);
         ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
-        rval=MPI_Gather(this->m_Opt->m_MiscOpt->isize,3,MPI_INT,isize,3,MPI_INT,0,PETSC_COMM_WORLD);
+        rval=MPI_Gather(lisize,3,MPI_INT,isize,3,MPI_INT,0,PETSC_COMM_WORLD);
         ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
         // create scatter object
@@ -1221,9 +1229,9 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
         ierr=VecScatterBegin(vecscat,xl,xg,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
         ierr=VecScatterEnd(vecscat,xl,xg,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
 
-        nx[0] = this->m_Opt->m_MiscOpt->N[0];
-        nx[1] = this->m_Opt->m_MiscOpt->N[1];
-        nx[2] = this->m_Opt->m_MiscOpt->N[2];
+        nx[0] = this->m_Opt->GetNumGridPoints(0);
+        nx[1] = this->m_Opt->GetNumGridPoints(1);
+        nx[2] = this->m_Opt->GetNumGridPoints(2);
 
         // if we are on master rank
         if (rank == 0){
@@ -1293,13 +1301,13 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
     (*niiimage)->dim[0] = (*niiimage)->ndim = 5;
 
     ierr=VecGetLocalSize(x,&n); CHKERRQ(ierr);
-    (*niiimage)->dim[1] = (*niiimage)->nx = this->m_Opt->m_MiscOpt->N[0];
-    (*niiimage)->dim[2] = (*niiimage)->ny = this->m_Opt->m_MiscOpt->N[1];
-    (*niiimage)->dim[3] = (*niiimage)->nz = this->m_Opt->m_MiscOpt->N[2];
+    (*niiimage)->dim[1] = (*niiimage)->nx = this->m_Opt->GetNumGridPoints(0);
+    (*niiimage)->dim[2] = (*niiimage)->ny = this->m_Opt->GetNumGridPoints(1);
+    (*niiimage)->dim[3] = (*niiimage)->nz = this->m_Opt->GetNumGridPoints(2);
 
-    (*niiimage)->pixdim[1] = static_cast<float>(this->m_Opt->m_MiscOpt->h[0]); // x direction
-    (*niiimage)->pixdim[2] = static_cast<float>(this->m_Opt->m_MiscOpt->h[1]); // y direction
-    (*niiimage)->pixdim[3] = static_cast<float>(this->m_Opt->m_MiscOpt->h[2]); // z direction
+    (*niiimage)->pixdim[1] = static_cast<float>(this->m_Opt->GetSpatialStepSize(0)); // x direction
+    (*niiimage)->pixdim[2] = static_cast<float>(this->m_Opt->GetSpatialStepSize(1)); // y direction
+    (*niiimage)->pixdim[3] = static_cast<float>(this->m_Opt->GetSpatialStepSize(2)); // z direction
 
     // TODO: add temporal support
     if (n == this->m_Opt->GetNLocal()){ // scalar field
@@ -1320,8 +1328,8 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
         (*niiimage)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->m_MiscOpt->h[0]);
-        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->m_MiscOpt->h[1]);
+        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetSpatialStepSize(0));
+        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetSpatialStepSize(1));
 
     }
     else if (n == 3*this->m_Opt->GetNLocal()){ // 3D vector field
@@ -1333,9 +1341,9 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
         (*niiimage)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->m_MiscOpt->h[0]);
-        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->m_MiscOpt->h[1]);
-        (*niiimage)->pixdim[7] = (*niiimage)->dw = static_cast<float>(this->m_Opt->m_MiscOpt->h[2]);
+        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetSpatialStepSize(0));
+        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetSpatialStepSize(1));
+        (*niiimage)->pixdim[7] = (*niiimage)->dw = static_cast<float>(this->m_Opt->GetSpatialStepSize(2));
     }
 
     // currently fixed to double precision: TODO flexible...

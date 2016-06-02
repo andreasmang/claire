@@ -116,15 +116,18 @@ PetscErrorCode RegularizationRegistration::ClearMemory(void)
 #define __FUNCT__ "Allocate"
 PetscErrorCode RegularizationRegistration::Allocate(void)
 {
-    int isize[3],osize[3],istart[3],ostart[3];
+    int isize[3],osize[3],istart[3],ostart[3],nx[3];
     size_t alloc_max;
 
     PetscFunctionBegin;
 
+    nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
+    nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
+    nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(this->m_Opt->m_MiscOpt->N,
-                                                      isize,istart,osize,ostart,
-                                                      this->m_Opt->m_MiscOpt->c_comm);
+    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(nx,isize,istart,osize,ostart,
+                                                        this->m_Opt->GetComm());
 
     if(this->m_v1hat == NULL){
         this->m_v1hat=(FFTScaType*)accfft_alloc(alloc_max);
