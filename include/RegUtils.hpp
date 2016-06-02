@@ -32,6 +32,7 @@
 // local includes
 #include "petsc.h"
 #include "accfft.h"
+#include "accfft_operators.h"
 
 #define IntType PetscInt
 //#define ScalarType PetscScalar

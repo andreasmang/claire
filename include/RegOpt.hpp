@@ -25,10 +25,8 @@
 //global includes
 #include <sstream>
 
-
 // local includes
 #include "RegUtils.hpp"
-#include "utils.hpp"
 
 
 namespace reg
