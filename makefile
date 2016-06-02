@@ -2,7 +2,7 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=yes
+BUILDTOOLS=no
 PEDANTIC=no
 
 RM = rm -f
@@ -62,7 +62,7 @@ ifeq ($(BUILDTOOLS),yes)
 endif
 
 
-INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h LargeDeformationRegistration.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptProbRegistration.h PreProcessingRegistration.h
+INCFILES=RegOpt.h RegUtils.h interp3.hpp utils.hpp interp3_common.hpp VecField.h ReadWriteReg.h SynProbRegistration.h SemiLagrangian.h Optimizer.h TaoInterfaceRegistration.h RegularizationRegistration.h OptimalControlRegistrationBase.h OptimalControlRegistration.h OptimalControlRegistrationIC.h OptimalControlRegistrationRelaxedIC.h  OptimizationProblem.h PreProcessingRegistration.h
 DEPS = $(patsubst %,$(INCDIR)/%.hpp,$(INCFILES))
 
 
@@ -82,11 +82,11 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
-		$(SRCDIR)/LargeDeformationRegistration.cpp \
+		$(SRCDIR)/OptimizationProblem.cpp \
+		$(SRCDIR)/OptimalControlRegistrationBase.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
-		$(SRCDIR)/OptimalControlRegistrationRIC.cpp \
-		$(SRCDIR)/OptProbRegistration.cpp \
+		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
 		$(SRCDIR)/PreProcessingRegistration.cpp
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
