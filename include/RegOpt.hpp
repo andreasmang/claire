@@ -221,6 +221,7 @@ public:
 
     // smoothing
     inline ScalarType GetSigma(int i){return this->m_Sigma[i];};
+    inline void SetSigma(int i,ScalarType sigma){this->m_Sigma[i]=sigma;};
 
     // solver flags
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
@@ -253,7 +254,9 @@ public:
 
     // scale continuation
     inline bool DoScaleCont(){return this->m_ScaleCont.enabled;};
-
+    inline ScalarType GetScaleContSigma(int i, int level){
+        return this->m_ScaleCont.sigma[i][level];
+    };
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -359,6 +362,8 @@ private:
 
     struct ScaleCont{
         bool enabled;
+        static const int maxlevel=6;
+        ScalarType sigma[3][maxlevel];
     };
 
     // parameters for parameter continuation

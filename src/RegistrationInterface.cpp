@@ -907,9 +907,101 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 {
     PetscErrorCode ierr;
+    Vec mT=NULL,mR=NULL,x=NULL;
+    std::stringstream ss;
+    int level,maxlevel=6,rank;
+    ScalarType sigma[3];
 
+    PetscFunctionBegin;
 
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
+    // set up preprocessing
+    if(this->m_Prepoc==NULL){
+        try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // do the setup
+    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Optimizer!= NULL,"optimizer is null"); CHKERRQ(ierr);
+
+    // set up synthetic problem if we did not read images
+    if (!this->m_Opt->ReadImagesFromFile()){
+        // TODO: handle synthetic test problem
+        ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
+    }
+
+    ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
+
+    // allocate local images
+    ierr=VecDuplicate(this->m_TemplateImage,&mT); CHKERRQ(ierr);
+    ierr=VecDuplicate(this->m_ReferenceImage,&mR); CHKERRQ(ierr);
+
+    // set images
+    ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+
+    // reset all the clocks we have used so far
+    ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
+    ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
+
+    // set optimization problem
+    ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
+
+    // set initial guess for current level
+    ierr=this->m_Optimizer->SetInitialGuess(this->m_InitialGuess); CHKERRQ(ierr);
+
+    level=0;
+    while (level < maxlevel){
+
+        // this resets the optimizer to assume that we're in first iteration
+        // every time we solve the problem; TODO: add initialization stage
+        // for zero velocity field (compute gradient) to refer warm starts
+        // and every thing else to the initial gradient
+        this->m_RegProblem->InFirstIteration(true);
+
+        for (int i=0; i < 3; ++i){
+            sigma[i] = this->m_Opt->GetScaleContSigma(i,level);
+            this->m_Opt->SetSigma(i,sigma[i]);
+        }
+
+        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+
+        // rescale images
+        ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
+        ierr=Rescale(mT,0.0,1.0); CHKERRQ(ierr);
+
+        // display message to user
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ss << std::scientific << std::setw(3) << level <<" sigma=("
+            <<sigma[0]<<","<<sigma[1]<<","<<sigma[2]<<")";
+        ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
+        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ss.str( std::string() ); ss.clear();
+
+        // run the optimization
+        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+
+        ++level;
+
+    }
+
+    // get the solution
+    ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+    ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+
+    // wrap up
+    ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
+
+    // destroy vector
+    if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
+    if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 }

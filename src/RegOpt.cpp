@@ -474,6 +474,21 @@ PetscErrorCode RegOpt::Initialize()
 
     // scale continuation
     this->m_ScaleCont.enabled=false;
+    for (int i = 0; i < 3; ++i){
+        this->m_ScaleCont.sigma[i][0]=32.0;//static_cast<ScalarType>(PetscPowScalar(2,8));
+        this->m_ScaleCont.sigma[i][1]=16.0;//static_cast<ScalarType>(PetscPowScalar(2,6));
+        this->m_ScaleCont.sigma[i][2]=8.0;//static_cast<ScalarType>(PetscPowScalar(2,4));
+        this->m_ScaleCont.sigma[i][3]=4.0;//static_cast<ScalarType>(PetscPowScalar(2,2));
+        this->m_ScaleCont.sigma[i][4]=2.0;//static_cast<ScalarType>(PetscPowScalar(2,1));
+        this->m_ScaleCont.sigma[i][5]=1.0;
+    }
+
+//    ScalarType scale = PETSC_PI/4.0;
+//    for (int i=0; i < 3; ++i){
+//        for(int l=0; l<this->m_ScaleCont.maxlevel; ++l){
+//            this->m_ScaleCont.sigma[i][l]*=scale;
+//        }
+//    }
 
     // monitor for registration
     this->m_RegMonitor.monitorJAC = false;
@@ -791,7 +806,7 @@ PetscErrorCode RegOpt::DoSetup()
     }
 
     alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Comm);
-    u  = (ScalarType*)accfft_alloc(alloc_max);
+    u = (ScalarType*)accfft_alloc(alloc_max);
     uk = (Complex*)accfft_alloc(alloc_max);
 
     // compute global and local size
