@@ -154,7 +154,7 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
         nx[i] = static_cast<ScalarType>(n[i]);
 
         // sigma is provided by user in # of grid points
-        c[i] = this->m_Opt->GetSigma()*hx[i];
+        c[i] = this->m_Opt->GetSigma(i)*hx[i];
         c[i] *= c[i];
 
         iosize[i] = osize[i];

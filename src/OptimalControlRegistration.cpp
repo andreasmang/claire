@@ -3169,16 +3169,18 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     ScalarType *p_m1=NULL,*p_m=NULL;
 
     PetscFunctionBegin;
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
+    // get number of time points and grid points
+    nt = this->m_Opt->GetNumTimePoints();
+    nl = this->m_Opt->GetNLocal();
+
+    // allocate
     if (this->m_WorkScaField1 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
     }
-
-    // compute hd
-    nt = this->m_Opt->GetNumTimePoints();
-    nl = this->m_Opt->GetNLocal();
 
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL){
@@ -3285,9 +3287,12 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 
     PetscFunctionBegin;
 
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
+
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
+
 
     if (this->m_Opt->GetVerbosity() >= 2){
         ierr=DbgMsg("finalizing registration"); CHKERRQ(ierr);

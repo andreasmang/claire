@@ -53,6 +53,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
     std::string msg;
     std::vector<unsigned int> nx;
     std::vector<unsigned int> np;
+    std::vector<unsigned int> sigma;
     PetscFunctionBegin;
 
     while(argc > 1){
@@ -93,7 +94,33 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-nt") == 0){
             argc--; argv++;
-            this->m_nt = static_cast<IntType>(atoi(argv[1]));
+            this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
+        }
+        else if(strcmp(argv[1],"-sigma") == 0){
+
+            argc--; argv++;
+
+            const std::string sigmainput = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            sigma = String2Vec( sigmainput );
+
+            if (sigma.size() == 1){
+                for(unsigned int i=0; i < 3; ++i){
+                    this->m_Sigma[i] = static_cast<ScalarType>(sigma[0]);
+                }
+            }
+            else if(sigma.size() == 3){
+                for(unsigned int i=0; i < 3; ++i){
+                    this->m_Sigma[i] = static_cast<IntType>(sigma[i]);
+                }
+            }
+            else{
+                msg="\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
+            }
+
         }
         else if(strcmp(argv[1],"-nthreads") == 0){
             argc--; argv++;
@@ -269,23 +296,45 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             this->m_Regularization.beta[2] = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-train") == 0){
+
+            if (this->m_ParaCont.enabled){
+                msg="\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
+            }
+
             argc--; argv++;
             if (strcmp(argv[1],"binary") == 0){
-                this->m_ParameterCont.strategy[0]=true;
+                this->m_ParaCont.strategy = PCONTBINSEARCH;
+                this->m_ParaCont.enabled = true;
             }
             else if (strcmp(argv[1],"reduce") == 0){
-                this->m_ParameterCont.strategy[1]=true;
+                this->m_ParaCont.strategy = PCONTREDUCESEARCH;
+                this->m_ParaCont.enabled = true;
             }
             else {
                 msg="\n\x1b[31m training method not implemented: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
                 ierr=this->Usage(); CHKERRQ(ierr);
             }
+
         }
         else if(strcmp(argv[1],"-betavcont") == 0){
+
+           if (this->m_ParaCont.enabled){
+                msg="\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
+            }
+
+            this->m_ParaCont.strategy = PCONTINUATION;
+            this->m_ParaCont.enabled = true;
+
             argc--; argv++;
-            this->m_ParameterCont.strategy[2]=true;
-            this->m_ParameterCont.targetbeta = atof(argv[1]);
+            this->m_ParaCont.targetbeta = atof(argv[1]);
+        }
+        else if(strcmp(argv[1],"-scalecont") == 0){
+            this->m_ScaleCont.enabled = true;
         }
         else if(strcmp(argv[1],"-verbosity") == 0){
             argc--; argv++;
@@ -375,16 +424,15 @@ PetscErrorCode RegOpt::Initialize()
     this->m_FFTPlan = NULL;
     this->m_Comm = NULL;
 
-    this->m_nt = 4;
+    this->m_Domain.nt = 4;
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
     this->m_Domain.nx[2] = 32;
 
+    this->m_Regularization.norm = H2SN;
     this->m_Regularization.beta[0] = 1E-2;
     this->m_Regularization.beta[1] = 1E-2;
     this->m_Regularization.beta[2] = 1E-4;
-
-    this->m_Regularization.norm = H2SN;
 
     this->m_Verbosity = 1;
     this->m_TimeHorizon[0] = 0.0;
@@ -393,7 +441,11 @@ PetscErrorCode RegOpt::Initialize()
     this->m_PrecondMeth = INVREG;
     this->m_RegModel = COMPRESSIBLE;
 
-    this->m_Sigma = 1;
+    // smoothing
+    this->m_Sigma[0] = 1.0;
+    this->m_Sigma[1] = 1.0;
+    this->m_Sigma[2] = 1.0;
+
     this->m_WriteImages = false;
     this->m_WriteLogFiles = false;
 
@@ -408,18 +460,20 @@ PetscErrorCode RegOpt::Initialize()
     this->m_OptPara.tol[2] = 1E-2;  // grad rel tol
     this->m_OptPara.maxit = 1000; // max number of iterations
     this->m_OptPara.method = GAUSSNEWTON;
+
     this->m_SolveType = NOTSET;
-    this->m_DD.n = 2;
 
     this->m_ReadImagesFromFile = false;
     this->m_StoreIterates = false;
     this->m_StoreTimeSeries = false;
 
     // parameter continuation
-    this->m_ParameterCont.strategy[0] = false;
-    this->m_ParameterCont.strategy[1] = false;
-    this->m_ParameterCont.strategy[2] = false;
-    this->m_ParameterCont.targetbeta = 0.0;
+    this->m_ParaCont.strategy = PCONTOFF;
+    this->m_ParaCont.enabled = false;
+    this->m_ParaCont.targetbeta = 0.0;
+
+    // scale continuation
+    this->m_ScaleCont.enabled=false;
 
     // monitor for registration
     this->m_RegMonitor.monitorJAC = false;
@@ -461,100 +515,119 @@ PetscErrorCode RegOpt::Usage(bool advanced)
     line = std::string(this->m_LineLength,'-');
 
     if (rank == 0){
-        std::cout<< std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " usage: runcoldreg [options] " <<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " where [options] is one or more of the following"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -mr <file>              reference image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout<< " -mt <file>              template image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -x <path>               output path (what's written out is controlled by the flags below)"<<std::endl;
-        std::cout<< "                         a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout<< " -xresults               flag: write results to file (requires -x option)"<<std::endl;
 
+        std::cout << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " usage: runcoldreg [options] " <<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " where [options] is one or more of the following"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -mr <file>                reference image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
+        std::cout << " -mt <file>                template image (*.nii, *.nii.gz, *.hdr)"<<std::endl;
+
+        // ####################### advanced options #######################
         if (advanced)
         {
-        std::cout<< " -xlog                   flag: write log files (requires -x option)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " optimization specific parameters"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -optmeth <type>         optimization method"<<std::endl;
-        std::cout<< "                         <type> is one of the following"<<std::endl;
-        std::cout<< "                             gn           Gauss-Newton (default)"<<std::endl;
-        std::cout<< "                             fn           full Newton"<<std::endl;
-        std::cout<< " -grel <dbl>             tolerance for optimization (default: 1E-2)"<<std::endl;
-        std::cout<<"                              relative change of gradient"<<std::endl;
-        std::cout<<"                              optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
-        std::cout<< " -gabs <dbl>             tolerance for optimization (default: 1E-6)"<<std::endl;
-        std::cout<<"                              lower bound for gradient"<<std::endl;
-        std::cout<<"                              optimization stops if ||g_k|| <= tol"<<std::endl;
-        std::cout<<"                              tol <= ||g||/||g_init||"<<std::endl;
-        std::cout<< " -maxit <int>            maximum number of (outer) Newton iterations (default: 50)"<<std::endl;
-        std::cout<< " -krylovmaxit <int>      maximum number of (inner) Krylov iterations (default: 50)"<<std::endl;
-        std::cout<< " -krylovfseq <type>      forcing sequence for Krylov solver (tolerance for inner iterations)"<<std::endl;
-        std::cout<< "                         where <types> are"<<std::endl;
-        std::cout<< "                             quadratic     quadratic (default)"<<std::endl;
-        std::cout<< "                             suplinear     super-linear"<<std::endl;
-        std::cout<< "                             none          exact solve (expensive)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " regularization/constraints"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -regnorm <type>         regularization norm for velocity field"<<std::endl;
-        std::cout<< "                         <type> is one of the following"<<std::endl;
-        std::cout<< "                             h1s          H1-seminorm"<<std::endl;
-        std::cout<< "                             h2s          H2-seminorm (default)"<<std::endl;
-        std::cout<< "                             h1           H1-norm"<<std::endl;
-        std::cout<< "                             h2           H2-norm"<<std::endl;
-        std::cout<< "                             l2           l2-norm (discouraged)"<<std::endl;
-        std::cout<< " -betav <dbl>            regularization parameter (velocity field; default: 1E-2)"<<std::endl;
-        std::cout<< " -betaw <dbl>            regularization parameter (mass source map; default: 1E-4)"<<std::endl;
-        std::cout<< "                         enable relaxed incompressibility to use this parameter ('-ric'; see below)"<<std::endl;
-        std::cout<< " -ic                     enable incompressibility constraint (det(grad(y))=1)"<<std::endl;
-        std::cout<< " -ric                    enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
+        std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;"<<std::endl;
+        std::cout << "                           units: voxel size; if only one parameter is set"<<std::endl;
+        std::cout << "                           uniform smoothing is assumed)"<<std::endl;
         }
+        // ####################### advanced options #######################
 
-        std::cout<< " -train <type>           estimate regularization parameter (use 'jbound' to modify bound"<<std::endl;
-        std::cout<< "                         for det(grad(y)) used during estimation)"<<std::endl;
-        std::cout<< "                         <type> is one of the following"<<std::endl;
-        std::cout<< "                             binary       perform binary search (recommended)"<<std::endl;
-        std::cout<< "                             reduce       reduce parameter by one order until bound is breached"<<std::endl;
-        std::cout<< " -jbound <dbl>           lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
-        std::cout<< " -betavcont <dbl>        do parameter continuation in betav until target regularization"<<std::endl;
-        std::cout<< "                         parameter betav=<dbl> is reached (betav must be in (0,1))"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -x <path>                 output path (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
+        std::cout << " -xresults                 flag: write results to file (requires -x option)"<<std::endl;
 
+        // ####################### advanced options #######################
         if (advanced)
         {
-        std::cout<< " -jmonitor               enable monitor for det(grad(y))"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " solver specific parameters (numerics)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -pdesolver <type>       numerical time integrator for transport equations"<<std::endl;
-        std::cout<< "                         <type> is one of the following"<<std::endl;
-        std::cout<< "                             sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
-        std::cout<< "                             rk2          rk2 time integrator (conditionally stable)"<<std::endl;
-        std::cout<< " -nt <int>               number of time points (for time integration; default: 4)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " memory distribution and parallelism"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -nthreads <int>         number of threads (default: 1)"<<std::endl;
-        std::cout<< " -np <int>x<int>         distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
-        std::cout<< "                         results in an MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " other parameters"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " -verbosity <int>        verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
-        std::cout<< " -storeiter              store iterates"<<std::endl;
-        std::cout<< " -nx <int>x<int>x<int>   grid size (i.e., 32x64x32); control grid size for synthetic problems"<<std::endl;
-        std::cout<< "                         to be uniform if a single integer is provided (i.e., for '-nx 32')"<<std::endl;
+        std::cout << " -xlog                     flag: write log files (requires -x option)"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " optimization specific parameters"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -optmeth <type>           optimization method"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               gn           Gauss-Newton (default)"<<std::endl;
+        std::cout << "                               fn           full Newton"<<std::endl;
+        std::cout << " -grel <dbl>               tolerance for optimization (default: 1E-2)"<<std::endl;
+        std::cout << "                               relative change of gradient"<<std::endl;
+        std::cout << "                               optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
+        std::cout << " -gabs <dbl>               tolerance for optimization (default: 1E-6)"<<std::endl;
+        std::cout << "                               lower bound for gradient"<<std::endl;
+        std::cout << "                               optimization stops if ||g_k|| <= tol"<<std::endl;
+        std::cout << "                               tol <= ||g||/||g_init||"<<std::endl;
+        std::cout << " -maxit <int>              maximum number of (outer) Newton iterations (default: 50)"<<std::endl;
+        std::cout << " -krylovmaxit <int>        maximum number of (inner) Krylov iterations (default: 50)"<<std::endl;
+        std::cout << " -krylovfseq <type>        forcing sequence for Krylov solver (tolerance for inner iterations)"<<std::endl;
+        std::cout << "                           where <types> are"<<std::endl;
+        std::cout << "                               quadratic     quadratic (default)"<<std::endl;
+        std::cout << "                               suplinear     super-linear"<<std::endl;
+        std::cout << "                               none          exact solve (expensive)"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " regularization/constraints"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -regnorm <type>           regularization norm for velocity field"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               h1s          H1-seminorm"<<std::endl;
+        std::cout << "                               h2s          H2-seminorm (default)"<<std::endl;
+        std::cout << "                               h1           H1-norm"<<std::endl;
+        std::cout << "                               h2           H2-norm"<<std::endl;
+        std::cout << "                               l2           l2-norm (discouraged)"<<std::endl;
+        std::cout << " -betav <dbl>              regularization parameter (velocity field; default: 1E-2)"<<std::endl;
+        std::cout << " -betaw <dbl>              regularization parameter (mass source map; default: 1E-4; enable relaxed"<<std::endl;
+        std::cout << "                           incompressibility to use this parameter via '-ric' option; see below)"<<std::endl;
+        std::cout << " -ic                       enable incompressibility constraint (det(grad(y))=1)"<<std::endl;
+        std::cout << " -ric                      enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)"<<std::endl;
+        std::cout << " -scalecont                enable scale continuation (continuation in smoothness of images;"<<std::endl;
+        std::cout << "                           i.e., use a multi-scale scheme to solve optimization problem)"<<std::endl;
+        std::cout << " -gridcont                 enable grid continuation (continuation in resolution of images;"<<std::endl;
+        std::cout << "                           i.e., use multi-resultion scheme to solve optimization probelm)"<<std::endl;
         }
+        // ####################### advanced options #######################
 
-        std::cout<< line << std::endl;
-        std::cout<< " -help                   display a brief version of the user message"<<std::endl;
-        std::cout<< " -advanced               display this message"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< line << std::endl;
+        std::cout << " -train <type>             estimate regularization parameter (use 'jbound' to set bound"<<std::endl;
+        std::cout << "                           for det(grad(y)) used during estimation)"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               binary       perform binary search (recommended)"<<std::endl;
+        std::cout << "                               reduce       reduce parameter by one order until bound is breached"<<std::endl;
+        std::cout << " -jbound <dbl>             lower bound on determinant of deformation gradient (default: 2E-1)"<<std::endl;
+        std::cout << " -betavcont <dbl>          do parameter continuation in betav until target regularization"<<std::endl;
+        std::cout << "                           parameter betav=<dbl> is reached (betav must be in (0,1))"<<std::endl;
+
+        // ####################### advanced options #######################
+        if (advanced)
+        {
+        std::cout << " -jmonitor                 enable monitor for det(grad(y))"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " solver specific parameters (numerics)"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -pdesolver <type>         numerical time integrator for transport equations"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
+        std::cout << "                               rk2          rk2 time integrator (conditionally stable)"<<std::endl;
+        std::cout << " -nt <int>                 number of time points (for time integration; default: 4)"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " memory distribution and parallelism"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -nthreads <int>           number of threads (default: 1)"<<std::endl;
+        std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
+        std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " other parameters"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        std::cout << " -storeiter                store iterates (deformed template image and velocity field)"<<std::endl;
+        std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic"<<std::endl;
+        std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
+        }
+        // ####################### advanced options #######################
+
+        std::cout << line << std::endl;
+        std::cout << " -help                     display a brief version of the user message"<<std::endl;
+        std::cout << " -advanced                 display this message"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << line << std::endl;
     }
 
     ierr=PetscFinalize(); CHKERRQ(ierr);
@@ -577,7 +650,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
 PetscErrorCode RegOpt::CheckArguments()
 {
     PetscErrorCode ierr;
-    bool readmR=false,readmT=false,strategy[3],setuperror;
+    bool readmR=false,readmT=false;
     ScalarType betav;
 
     std::string msg;
@@ -613,21 +686,8 @@ PetscErrorCode RegOpt::CheckArguments()
 
     this->m_XExtension = ".nii.gz";
 
-    strategy[0] = this->m_ParameterCont.strategy[0];
-    strategy[1] = this->m_ParameterCont.strategy[1];
-    strategy[2] = this->m_ParameterCont.strategy[2];
-    setuperror = false;
-    if( strategy[0] ) { if (strategy[1] || strategy[2]) setuperror=true; };
-    if( strategy[1] ) { if (strategy[0] || strategy[2]) setuperror=true; };
-    if( strategy[2] ) { if (strategy[0] || strategy[1]) setuperror=true; };
-    if(setuperror){
-        msg="\x1b[31m only one estimation method for betav can be selected \x1b[0m\n";
-        ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-        ierr=this->Usage(); CHKERRQ(ierr);
-    }
-
-    if (strategy[2]){
-        betav=this->m_ParameterCont.targetbeta;
+    if (this->m_ParaCont.strategy==PCONTINUATION){
+        betav=this->m_ParaCont.targetbeta;
         if(betav <= 0.0){
             msg="\x1b[31m target betav <= 0.0 \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
@@ -640,6 +700,12 @@ PetscErrorCode RegOpt::CheckArguments()
         }
         this->m_Regularization.beta[0] = betav;
         this->m_Regularization.beta[1] = betav;
+    }
+
+    if (this->m_ScaleCont.enabled && this->m_ParaCont.enabled){
+        msg="\x1b[31m combined parameter and scale continuation not available \x1b[0m\n";
+        ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(0);
@@ -840,10 +906,10 @@ PetscErrorCode RegOpt::SetPresetParameters()
 #define __FUNCT__ "GetBetaMinParaCont"
 ScalarType RegOpt::GetBetaMinParaCont()
 {
-    if (this->m_Regularization.norm == H1)        return this->m_ParameterCont.betavminh1;
-    else if (this->m_Regularization.norm == H1SN) return this->m_ParameterCont.betavminh1;
-    else if (this->m_Regularization.norm == H2)   return this->m_ParameterCont.betavminh2;
-    else if (this->m_Regularization.norm == H2SN) return this->m_ParameterCont.betavminh2;
+    if (this->m_Regularization.norm == H1)        return this->m_ParaCont.betavminh1;
+    else if (this->m_Regularization.norm == H1SN) return this->m_ParaCont.betavminh1;
+    else if (this->m_Regularization.norm == H2)   return this->m_ParaCont.betavminh2;
+    else if (this->m_Regularization.norm == H2SN) return this->m_ParaCont.betavminh2;
     else return 1E-9;
 }
 
@@ -887,10 +953,10 @@ PetscErrorCode RegOpt::DisplayOptions()
         std::cout<< line << std::endl;
 
         std::cout<< std::left << std::setw(indent) <<" problem dimensions"
-                    << "(" << this->m_Domain.nx[0] <<","
+                    << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] <<","
                     <<  this->m_Domain.nx[1] <<","
                     <<  this->m_Domain.nx[2] <<","
-                    <<  this->m_nt <<")" <<std::endl;
+                    <<  this->m_Domain.nt <<")" <<std::endl;
         std::cout<< std::left << std::setw(indent) <<" network dimensions"
                     << this->m_CartGridDims[0] <<"x"
                     << this->m_CartGridDims[1]<<std::endl;
@@ -907,7 +973,8 @@ PetscErrorCode RegOpt::DisplayOptions()
         // display regularization model
         std::cout<< std::left << std::setw(indent) <<" regularization model v";
 
-        if(this->m_ParameterCont.strategy[0] || this->m_ParameterCont.strategy[1]){
+        if( this->m_ParaCont.strategy == PCONTBINSEARCH
+            || this->m_ParaCont.strategy == PCONTREDUCESEARCH){
             switch(this->m_Regularization.norm){
                 case L2:
                 {
@@ -942,23 +1009,29 @@ PetscErrorCode RegOpt::DisplayOptions()
             }
 
             // display parameters and tolerances
-            std::cout<< std::left << std::setw(indent) <<" parameter continuation"
+            std::cout<< std::left << std::setw(indent) <<" parameter continuation";
+            if( this->m_ParaCont.strategy == PCONTBINSEARCH){
+                std::cout << "binary search" << std::endl;
+            }
+            else if( this->m_ParaCont.strategy == PCONTREDUCESEARCH){
+                std::cout << "search by reduction" << std::endl;
+            }
+            std::cout<< std::left << std::setw(indent) <<" "
                       << std::setw(align) <<"bound det(grad(y))"
                       << this->m_RegMonitor.jacbound << std::endl;
-
         }
         else{
             switch(this->m_Regularization.norm){
                 case L2:
                 {
-                    std::cout   << "L2-norm (betav="
+                    std::cout   << std::scientific << "L2-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout   << "H1-norm (betav="
+                    std::cout   << std::scientific << "H1-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ", "<< this->m_Regularization.beta[1]
                                 << ") "<<std::endl;
@@ -966,7 +1039,7 @@ PetscErrorCode RegOpt::DisplayOptions()
                 }
                 case H2:
                 {
-                    std::cout   << "H2-norm (betav="
+                    std::cout   << std::scientific << "H2-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ", "<< this->m_Regularization.beta[1]
                                 << ")" <<std::endl;
@@ -974,20 +1047,30 @@ PetscErrorCode RegOpt::DisplayOptions()
                 }
                 case H1SN:
                 {
-                    std::cout   <<  "H1-seminorm (betav="
+                    std::cout   << std::scientific <<  "H1-seminorm (betav="
                                 <<  this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout   << "H2-seminorm (betav="
+                    std::cout   << std::scientific << "H2-seminorm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 default:{ ierr=ThrowError("regularization model not implemented"); CHKERRQ(ierr); break; }
             }
+
+            // display parameters and tolerances
+            std::cout<< std::left << std::setw(indent) <<" parameter continuation";
+            if( this->m_ParaCont.strategy == PCONTINUATION){
+                std::cout << "enabled" << std::endl;
+            }
+            else if( this->m_ParaCont.strategy == PCONTOFF){
+                std::cout << "disabled" << std::endl;
+            }
+
         }
         if (this->m_RegModel == reg::RELAXEDSTOKES){
             // display regularization model
@@ -1061,7 +1144,7 @@ PetscErrorCode RegOpt::DisplayOptions()
         if ( newtontype ){
 
             std::cout << std::left << std::setw(indent)
-                      <<" KKT sytem"
+                      <<" hessian sytem"
                       << std::setw(align) << "solver"
                       << "PCG" << std::endl;
 
@@ -1438,7 +1521,7 @@ PetscErrorCode RegOpt::WriteLogFile()
 
         logwriter << std::left
                   << std::setw(nstr) << " nt" << std::right
-                  << std::setw(nnum) << this->m_nt << std::endl;
+                  << std::setw(nnum) << this->m_Domain.nt << std::endl;
 
         logwriter << std::left
                   << std::setw(nstr) << " n" << std::right

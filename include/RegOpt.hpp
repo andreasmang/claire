@@ -56,6 +56,13 @@ enum RegNorm
     H3SN, ///< flag for H3-seminorm
 };
 
+enum ParaContType
+{
+    PCONTOFF,
+    PCONTBINSEARCH,
+    PCONTREDUCESEARCH,
+    PCONTINUATION
+};
 
 // flags for optimization methods
 enum OptMeth
@@ -177,11 +184,11 @@ public:
 
     // time horizon, step size, and ....
     inline ScalarType GetTimeHorizon(int i){return this->m_TimeHorizon[i];};
-    inline IntType GetNumTimePoints(void){return this->m_nt;};
-    inline void SetNumTimePoints(IntType nt){ this->m_nt=nt; };
+    inline IntType GetNumTimePoints(void){return this->m_Domain.nt;};
+    inline void SetNumTimePoints(IntType nt){ this->m_Domain.nt=nt; };
     inline ScalarType GetTimeStepSize(void){
         return (this->m_TimeHorizon[1] - this->m_TimeHorizon[0])
-               /static_cast<ScalarType>(this->m_nt);
+               /static_cast<ScalarType>(this->m_Domain.nt);
     };
 
     accfft_plan* GetFFTPlan(){return this->m_FFTPlan;};
@@ -213,7 +220,7 @@ public:
     inline ScalarType GetRegularizationWeight(int i){return this->m_Regularization.beta[i];};
 
     // smoothing
-    inline ScalarType GetSigma(void){return this->m_Sigma;};
+    inline ScalarType GetSigma(int i){return this->m_Sigma[i];};
 
     // solver flags
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
@@ -226,11 +233,9 @@ public:
     inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
     inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
     inline ScalarType GetJacBound(){return this->m_RegMonitor.jacbound;};
-
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
     inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
-
     inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
     inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
     inline void MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
@@ -239,14 +244,16 @@ public:
     inline bool SetupDone(){return this->m_SetupDone;};
 
     // parameter continuation
-    inline bool DoRegParaBinarySearch(){return this->m_ParameterCont.strategy[0];};
-    inline bool DoRegParaReductionSearch(){return this->m_ParameterCont.strategy[1];};
-    inline bool DoRegParaContinuation(){return this->m_ParameterCont.strategy[2];};
-
-    inline int GetMaxStepsParaCont(){return this->m_ParameterCont.maxsteps;};
-    inline ScalarType GetBetaScaleParaCont(){return this->m_ParameterCont.betascale;};
-    inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParameterCont.dbetascale;};
+    inline ParaContType GetRegParaContStrategy(){return this->m_ParaCont.strategy;};
+    inline bool DoRegParaCont(){return this->m_ParaCont.enabled;};
+    inline int GetMaxStepsParaCont(){return this->m_ParaCont.maxsteps;};
+    inline ScalarType GetBetaScaleParaCont(){return this->m_ParaCont.betascale;};
+    inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParaCont.dbetascale;};
     ScalarType GetBetaMinParaCont();
+
+    // scale continuation
+    inline bool DoScaleCont(){return this->m_ScaleCont.enabled;};
+
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -273,7 +280,6 @@ public:
 
     inline ScalarType GetKKTSolverTol(int i){return this->m_KKTSolverPara.tol[i];};
     inline int GetKKTMaxit(){return this->m_KKTSolverPara.maxit;};
-    inline unsigned int GetDDNumDomains(){return this->m_DD.n;};
 
     inline bool WriteImages(){return this->m_WriteImages;};
     inline void WriteImages(bool flag){this->m_WriteImages = flag;};
@@ -308,57 +314,57 @@ private:
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 
-    IntType m_nt; ///< number of time points
     ScalarType m_TimeHorizon[2];
 
 
-    // parameters for optimization
+    /* parameters for domain */
     struct Domain{
-        IntType isize[3];
-        IntType istart[3];
-        IntType osize[3];
-        IntType ostart[3];
-        IntType nlocal;
-        IntType nglobal;
-        ScalarType hx[3];
-        IntType nx[3];
+        IntType isize[3]; ///< size of grid in spatial domain for mpi proc
+        IntType istart[3]; ///< start index in spatial domain for mpi proc
+        IntType osize[3]; ///< size of grid in fourier domain for mpi proc
+        IntType ostart[3]; ///< start index in fourier domain for mpi proc
+        IntType nlocal; ///< number of grid points for each mpi proc
+        IntType nglobal; ///< number of grid points (global)
+        ScalarType hx[3]; ///< spatial grid cell size
+        IntType nx[3]; ///< spatial grid size
+        IntType nt; ///< number of time points
     };
 
 
-    // parameters for optimization
+    /* parameters for optimization */
     struct Optimization{
-        int maxit;
-        ScalarType tol[3];
-        OptMeth method;
+        int maxit; ///< maximal number of (outer) iterations
+        ScalarType tol[3]; ///< tolerances for optimization
+        OptMeth method; ///< optimization method
     };
 
-    // parameters for KKT solver
+    /* parameters for KKT solver */
     struct KKTSolver{
         int maxit;
         ScalarType tol[3];
         FSeqType fseqtype; ///<forcing sequence type
     };
 
-    // parameters for KKT solver
-    struct DomainDecomposition{
-        unsigned int n;
-    };
-
     // parameters for parameter continuation
-    struct ParameterContinuation{
+    struct ParCont{
         static const ScalarType betavminh1=1E-3; ///< minimal regularization parameter for h1 type norm
         static const ScalarType betavminh2=1E-6; ///< minimal regularization parameter for h2 type norm
         static const int maxsteps = 10; ///< max number of steps
         static const ScalarType betascale = 1E-1; ///< default reduction factor (one order of magnitude)
         static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
-        bool strategy[3]; ///< flag: parameter continuation using different strategies
-        ScalarType targetbeta;
+        ParaContType strategy; ///< flag for parameter continuation strategy
+        bool enabled; ///< flag: parameter continuation using different strategies
+        ScalarType targetbeta; ///< target regularization parameter
+    };
+
+    struct ScaleCont{
+        bool enabled;
     };
 
     // parameters for parameter continuation
     struct RegMonitor{
-        bool monitorJAC;
-        bool monitorCFL;
+        bool monitorJAC; ///< flag to monitor jacobian during iterations
+        bool monitorCFL; ///< flag to monitor CFL condition during iterations
         ScalarType jacmin; ///< min value of jacobian
         ScalarType jacmax; ///< max value of jacobian
         ScalarType jacmean; ///< mean value of jacobian
@@ -370,10 +376,6 @@ private:
         RegNorm norm; ///< flag for regularization norm
     };
 
-    // parameters for KKT solver
-    struct MultiScale{
-        unsigned int n;
-    };
 
     accfft_plan* m_FFTPlan;
     MPI_Comm m_Comm;
@@ -386,9 +388,9 @@ private:
     PrecondMeth m_PrecondMeth; ///< flag for preconditioner
     PCSolverType m_PCSolverType; ///< flag for KSP solver for precond
     Regularization m_Regularization; ///< parameters for regularization model
-    ParameterContinuation m_ParameterCont; ///< flags for parameter continuation
-    DomainDecomposition m_DD; ///< domain decomposition
-    Domain m_Domain; ///< domain decomposition
+    ParCont m_ParaCont; ///< flags for parameter continuation
+    ScaleCont m_ScaleCont; ///< flags for scale continuation
+    Domain m_Domain; ///< parameters for spatial domain
     RegModel m_RegModel;
 
     std::string m_XFolder; ///< identifier for folder to write results to
@@ -414,7 +416,7 @@ private:
     bool m_WriteLogFiles;
     bool m_ReadImagesFromFile;
 
-    ScalarType m_Sigma;
+    ScalarType m_Sigma[3];
     SolveType m_SolveType;
 
     int m_Verbosity;

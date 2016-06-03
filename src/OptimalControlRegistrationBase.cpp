@@ -13,8 +13,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationBase
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistrationBase"
@@ -27,8 +26,7 @@ OptimalControlRegistrationBase::OptimalControlRegistrationBase() : SuperClass()
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationBase
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~OptimalControlRegistrationBase"
@@ -41,8 +39,7 @@ OptimalControlRegistrationBase::~OptimalControlRegistrationBase(void)
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationBase
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistrationBase"
@@ -55,8 +52,7 @@ OptimalControlRegistrationBase::OptimalControlRegistrationBase(RegOpt* opt) : Su
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init variables
+ * @brief init variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -74,6 +70,9 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
+    this->m_IO=NULL; ///< read / write object
+    this->m_SL=NULL; ///< semi lagranigan
+
     this->m_WorkScaField1 = NULL;
     this->m_WorkScaField2 = NULL;
     this->m_WorkScaField3 = NULL;
@@ -83,14 +82,10 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_WorkVecField2 = NULL;
     this->m_WorkVecField3 = NULL;
     this->m_WorkVecField4 = NULL;
-    this->m_SL = NULL;
 
-    this->m_Prepoc = NULL;
-    // flag for velocity field
-    this->m_VelocityIsZero = false;
+    this->m_VelocityIsZero = false; // flag for velocity field
 
     this->m_Regularization = NULL; // pointer for regularization class
-    this->m_IO=NULL; // io
 
     PetscFunctionReturn(0);
 
@@ -100,8 +95,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -109,16 +103,6 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
-
-    if (this->m_ReferenceImage != NULL){
-        ierr=VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
-        this->m_ReferenceImage = NULL;
-    }
-
-    if (this->m_TemplateImage != NULL){
-        ierr=VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
-        this->m_TemplateImage = NULL;
-    }
 
     if (this->m_VelocityField != NULL){
         delete this->m_VelocityField;
@@ -174,10 +158,6 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
         delete this->m_WorkVecField4;
         this->m_WorkVecField4 = NULL;
     }
-    if (this->m_Prepoc != NULL){
-        delete this->m_Prepoc;
-        this->m_Prepoc = NULL;
-    }
 
     PetscFunctionReturn(0);
 }
@@ -186,8 +166,7 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
 
 
 /********************************************************************
- * Name: SetIO
- * Description: set read write operator
+ * @brief set read write operator
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
@@ -207,8 +186,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetIO(ReadWriteReg* io)
 
 
 /********************************************************************
- * Name: SetReferenceImage
- * Description: set reference image (i.e., the fixed image)
+ * @brief set reference image (i.e., the fixed image)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetReferenceImage"
@@ -218,31 +196,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR)
     PetscFunctionBegin;
 
     ierr=Assert(mR != NULL, "input reference image is null pointer"); CHKERRQ(ierr);
-
-    if (this->m_ReferenceImage != NULL){
-        ierr=VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
-        this->m_ReferenceImage = NULL;
-    }
-
-    // allocate
-    ierr=VecDuplicate(mR,&this->m_ReferenceImage); CHKERRQ(ierr);
-
-    // presmoothing
-    if (this->m_Opt->ReadImagesFromFile()){
-
-        if(this->m_Prepoc==NULL){
-            try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(this->m_ReferenceImage,mR); CHKERRQ(ierr);
-
-    }
-    else{ ierr=VecCopy(mR,this->m_ReferenceImage); CHKERRQ(ierr); }
-
-    // rescale images
-    ierr=Rescale(this->m_ReferenceImage,0.0,1.0); CHKERRQ(ierr);
+    this->m_ReferenceImage = mR;
 
     PetscFunctionReturn(0);
 
@@ -252,8 +206,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR)
 
 
 /********************************************************************
- * Name: SetTemplateImage
- * Description: set template image (i.e., the image to be registered)
+ * @brief set template image (i.e., the image to be registered)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetTemplateImage"
@@ -263,30 +216,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT)
     PetscFunctionBegin;
 
     ierr=Assert(mT != NULL, "input template image is null pointer"); CHKERRQ(ierr);
-
-    if (this->m_TemplateImage != NULL){
-        ierr=VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
-        this->m_TemplateImage = NULL;
-    }
-
-    // allocate
-    ierr=VecDuplicate(mT,&this->m_TemplateImage); CHKERRQ(ierr);
-
-    // presmoothing step
-    if (this->m_Opt->ReadImagesFromFile()){
-
-        if(this->m_Prepoc==NULL){
-            try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(this->m_TemplateImage,mT); CHKERRQ(ierr);
-    }
-    else{  ierr=VecCopy(mT,this->m_TemplateImage); CHKERRQ(ierr); }
-
-    // rescale images
-    ierr=Rescale(this->m_TemplateImage,0.0,1.0); CHKERRQ(ierr);
+    this->m_TemplateImage = mT;
 
     PetscFunctionReturn(0);
 
@@ -296,8 +226,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT)
 
 
 /********************************************************************
- * Name: SetVelocityField
- * Description: set velocity fieldt
+ * @brief set velocity field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetVelocityField"
@@ -335,8 +264,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
 
 
 /********************************************************************
- * Name: SetVelocity2Zero
- * Description: set the registration options
+ * @brief set the registration options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetVelocity2Zero"
@@ -361,8 +289,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocity2Zero()
 
 
 /********************************************************************
- * Name: IsVelocityZero
- * Description: check if velocity field is zero
+ * @brief check if velocity field is zero
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "IsVelocityZero"
@@ -388,8 +315,7 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
 
 
 /********************************************************************
- * Name: SetupSyntheticProb
- * Description: compute a synthetic test problem
+ * @brief compute a synthetic test problem
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupSyntheticProb"
@@ -520,8 +446,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
 
 
 /********************************************************************
- * Name: CopyToAllTimePoints
- * Description: copies some input data field to all time points
+ * @brief copies some input data field to all time points
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CopyToAllTimePoints"
@@ -561,8 +486,7 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
 
 
 /********************************************************************
- * Name: ComputeCFLCondition
- * Description: copies some input data field to all time points
+ * @brief copies some input data field to all time points
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeCFLCondition"
@@ -632,8 +556,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
 
 
 /********************************************************************
- * Name: CheckBounds
- * Description: compute determinant of deformation gradient
+ * @brief compute determinant of deformation gradient
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CheckBounds"
@@ -699,8 +622,7 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
 
 
 /********************************************************************
- * Name: ComputeDetDefGrad
- * Description: compute determinant of deformation gradient
+ * @brief compute determinant of deformation gradient
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGrad"
@@ -723,7 +645,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
         }
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
-
 
     if (this->m_WorkScaField1 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
@@ -767,10 +688,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
     this->m_Opt->SetJacMax(maxddg);
     this->m_Opt->SetJacMean(meanddg);
 
-    ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
-        << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
-    ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str( std::string() ); ss.clear();
+
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->MonitorJacobian()){
+        ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
+            << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str( std::string() ); ss.clear();
+    }
 
 
     PetscFunctionReturn(0);
@@ -780,8 +704,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
 
 
 /********************************************************************
- * Name: ComputeDetDefGradRK2
- * Description: compute determinant of deformation gradient
+ * @brief compute determinant of deformation gradient
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGradRK2"
@@ -900,8 +823,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
 
 
 /********************************************************************
- * Name: ComputeDetDefGradSL
- * Description: compute determinant of deformation gradient
+ * @brief compute determinant of deformation gradient
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGradSL"
@@ -1100,8 +1022,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 
 
 /********************************************************************
- * Name: ComputeDeformationMap
- * Description: compute deformation map
+ * @brief compute deformation map
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMap"
@@ -1148,8 +1069,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap()
 
 
 /********************************************************************
- * Name: ComputeDeformationMapRK2
- * Description: compute deformation map
+ * @brief compute deformation map
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMapRK2"
@@ -1167,8 +1087,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2()
 
 
 /********************************************************************
- * Name: ComputeDeformationMapSL
- * Description: compute deformation map
+ * @brief compute deformation map
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMapSL"

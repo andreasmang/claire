@@ -35,6 +35,7 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "OptimizationProblem.hpp"
+#include "TaoInterfaceRegistration.hpp"
 
 namespace reg
 {
@@ -62,13 +63,8 @@ private:
 
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-    PetscErrorCode DoSetup(void);
-
-    PetscErrorCode RunGridContinuation();
-    PetscErrorCode RunScaleContinuation();
-    PetscErrorCode RunRegParaReductionSearch();
-    PetscErrorCode RunRegParaBinarySearch();
-    PetscErrorCode RunRegParaContinuation();
+    PetscErrorCode SetupTao(void);
+    PetscErrorCode SetInitialGuess(void);
 
     RegOpt* m_Opt;
     OptProbType* m_OptimizationProblem;

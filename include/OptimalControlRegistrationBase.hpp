@@ -44,7 +44,6 @@ public:
     typedef ReadWriteReg ReadWriteType;
     typedef OptimalControlRegistrationBase Self;
     typedef OptimizationProblem SuperClass;
-    typedef PreProcessingRegistration PreProcType;
     typedef RegularizationRegistration RegularizationType;
     typedef SemiLagrangian SemiLagrangianType;
     //typedef SemiLagrangianFastPlanerGPU SemiLagrangianType;
@@ -139,7 +138,6 @@ protected:
 
     // regularization model
     ReadWriteType* m_IO;
-    PreProcType* m_Prepoc;
     RegularizationType* m_Regularization;
 
     VecField* m_VelocityField; ///< data container for velocity field (control variable)
@@ -150,6 +148,8 @@ protected:
     SemiLagrangianType* m_SL;
 
 private:
+
+
 
 };
 

@@ -385,12 +385,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     // parse initial gradient and display header
     if ( optprob->InFirstIteration() == true ){
 
-        ierr=PetscPrintf(MPI_COMM_WORLD,"%s\n",std::string(optprob->GetOptions()->GetLineLength(),'-').c_str());
-        PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n",
-                                    "iter","objective (rel)","mismatch (rel)",
-                                    "||gradient||_2,rel","||gradient||_2","step");
-        ierr=PetscPrintf(MPI_COMM_WORLD,"%s\n",std::string(optprob->GetOptions()->GetLineLength(),'-').c_str());
-
         optprob->SetInitialGradNorm(gnorm); // set the initial gradient norm
         optprob->SetInitialMismatchVal(D); // set the initial l2 distance
         optprob->SetInitialObjVal(J); // set the initial objective value

@@ -150,8 +150,6 @@ private:
     /*! setup two level preconditioner */
     PetscErrorCode Setup2LevelPrecond();
 
-
-
     /*! estimate eigenvalues for hessian */
     PetscErrorCode EstimateHessianEigVals();
 
