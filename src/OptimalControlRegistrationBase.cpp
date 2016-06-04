@@ -215,8 +215,48 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(mT != NULL, "input template image is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(mT!=NULL,"input template image is null"); CHKERRQ(ierr);
     this->m_TemplateImage = mT;
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+/********************************************************************
+ * @brief get reference image (i.e., the fixed image)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetReferenceImage"
+PetscErrorCode OptimalControlRegistrationBase::GetReferenceImage(Vec& mR)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(this->m_ReferenceImage!=NULL,"template image is null"); CHKERRQ(ierr);
+    mR = this->m_ReferenceImage;
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+/********************************************************************
+ * @brief get template image (i.e., the image to be registered)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetTemplateImage"
+PetscErrorCode OptimalControlRegistrationBase::GetTemplateImage(Vec& mT)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
+    mT = this->m_TemplateImage;
 
     PetscFunctionReturn(0);
 
@@ -962,7 +1002,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
             p_jvx1[i] = jactilde*p_vx1[i];
             p_jvx2[i] = jactilde*p_vx2[i];
             p_jvx3[i] = jactilde*p_vx3[i];
-
 
         }
 } // pragma omp

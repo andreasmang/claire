@@ -21,18 +21,13 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "Optimizer.hpp"
 #include "ReadWriteReg.hpp"
-#include "LargeDeformationRegistration.hpp"
-#include "OptimalControlRegistration.hpp"
-#include "OptimalControlRegistrationIC.hpp"
-#include "OptimalControlRegistrationRIC.hpp"
+#include "RegistrationInterface.hpp"
 
 
 
 /********************************************************************
- * Name: main
- * Description: main function to run registration
+ * @brief main function to run registration
  *******************************************************************/
 int main(int argc,char **argv)
 {
@@ -42,8 +37,8 @@ int main(int argc,char **argv)
 
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::Optimizer* optimizer = NULL;
-    reg::LargeDeformationRegistration* registration = NULL;
+    reg::RegistrationInterface* registration = NULL;
+
 
     // initialize petsc (user is not allowed to set petsc options)
     ierr=PetscInitialize(0,(char***)NULL,(char*)NULL,(char*)NULL); CHKERRQ(ierr);
@@ -65,6 +60,12 @@ int main(int argc,char **argv)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    // allocate class for io
+    try{ registration = new reg::RegistrationInterface(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
     if(regopt->ReadImagesFromFile()){
 
         ierr=readwrite->Read(&mR,regopt->GetReferenceFN()); CHKERRQ(ierr);
@@ -73,73 +74,19 @@ int main(int argc,char **argv)
         ierr=readwrite->Read(&mT,regopt->GetTemplateFN()); CHKERRQ(ierr);
         ierr=reg::Assert(mT!=NULL, "input template image is null pointer"); CHKERRQ(ierr);
 
-    }
-    else{ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
-
-
-    // allocate class for io
-    try{ optimizer = new reg::Optimizer(regopt); }
-    catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // allocate class for registration
-    if (regopt->GetRegModel() == reg::COMPRESSIBLE){
-        try{ registration = new reg::OptimalControlRegistration(regopt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    else if (regopt->GetRegModel() == reg::STOKES){
-        try{ registration = new reg::OptimalControlRegistrationIC(regopt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    else if (regopt->GetRegModel() == reg::RELAXEDSTOKES){
-        try{ registration = new reg::OptimalControlRegistrationRIC(regopt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    else{
-        try{ registration = new reg::OptimalControlRegistrationRIC(regopt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    // set the io
-    ierr=registration->SetIO(readwrite); CHKERRQ(ierr);
-
-    if(regopt->ReadImagesFromFile()){
         // pass to registration
         ierr=registration->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr=registration->SetTemplateImage(mT); CHKERRQ(ierr);
+
     }
-    else{
-        // set up synthetic test problem
-        ierr=registration->SetupSyntheticProb(); CHKERRQ(ierr);
-    }
+    else{ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
 
-
-    // reset all the clocks we have used so far
-    ierr=regopt->ResetTimers(); CHKERRQ(ierr);
-    ierr=regopt->ResetCounters(); CHKERRQ(ierr);
-
-    // init solver
-    ierr=optimizer->SetProblem(registration); CHKERRQ(ierr);
-
-    // run the solver
-    ierr=optimizer->Run(); CHKERRQ(ierr);
-
-    // run the optimizer
-    ierr=optimizer->Finalize(); CHKERRQ(ierr);
+    ierr=registration->SetIO(readwrite); CHKERRQ(ierr);
+    ierr=registration->Run(); CHKERRQ(ierr);
 
     // clean up
     if (regopt != NULL){ delete regopt; regopt = NULL; }
     if (readwrite != NULL){ delete readwrite; readwrite = NULL; }
-    if (optimizer != NULL){ delete optimizer; optimizer = NULL; }
     if (registration != NULL){ delete registration; registration = NULL; }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }

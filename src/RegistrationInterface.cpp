@@ -931,8 +931,13 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 
     // set up synthetic problem if we did not read images
     if (!this->m_Opt->ReadImagesFromFile()){
-        // TODO: handle synthetic test problem
         ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
+
+        ierr=Assert(this->m_TemplateImage==NULL,"template image is not null"); CHKERRQ(ierr);
+        ierr=Assert(this->m_ReferenceImage==NULL,"reference image is not null"); CHKERRQ(ierr);
+
+        ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     }
 
     ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);

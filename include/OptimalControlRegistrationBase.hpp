@@ -61,6 +61,12 @@ public:
     /*! set reference image */
     PetscErrorCode SetReferenceImage(Vec);
 
+    /*! set template image */
+    PetscErrorCode GetTemplateImage(Vec&);
+
+    /*! set reference image */
+    PetscErrorCode GetReferenceImage(Vec&);
+
     /*! set velocity field */
     PetscErrorCode SetVelocityField(Vec);
 
