@@ -497,7 +497,7 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     IntType nl,nt;
     PetscFunctionBegin;
 
-    nt = this->m_Opt->GetNumTimePoints();
+    nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetNLocal();
 
     // get pointers
@@ -575,7 +575,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
     ierr=VecMax(this->m_WorkScaField1,NULL,&vmaxscaled); CHKERRQ(ierr);
 
     // if we have a zero velocity field, we do not have to worry
-    ntcfl = this->m_Opt->GetNumTimePoints();
+    ntcfl = this->m_Opt->GetDomainPara().nt;
     if ( vmaxscaled != 0.0 ){
 
         c  = 1.0;//this->m_opt->cflnum;
@@ -760,7 +760,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     double timings[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
-    nt = this->m_Opt->GetNumTimePoints();
+    nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetNLocal();
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
@@ -916,7 +916,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
     }
 
-    nt = this->m_Opt->GetNumTimePoints();
+    nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetNLocal();
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;

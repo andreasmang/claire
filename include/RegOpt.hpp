@@ -151,6 +151,89 @@ enum RegModel
 };
 
 
+/* parameters for domain */
+struct Domain{
+    IntType isize[3]; ///< size of grid in spatial domain for mpi proc
+    IntType istart[3]; ///< start index in spatial domain for mpi proc
+    IntType nlocal; ///< number of grid points for each mpi proc
+    IntType nglobal; ///< number of grid points (global)
+    ScalarType hx[3]; ///< spatial grid cell size
+    IntType nx[3]; ///< spatial grid size
+    IntType nt; ///< number of time points
+    ScalarType timehorizon[2]; ///< time horizon
+};
+
+
+/* parameters for optimization */
+struct Optimization{
+    int maxit; ///< maximal number of (outer) iterations
+    ScalarType tol[3]; ///< tolerances for optimization
+    OptMeth method; ///< optimization method
+};
+
+
+/* parameters for KKT solver */
+struct KKTSolver{
+    int maxit;
+    ScalarType tol[3];
+    FSeqType fseqtype; ///<forcing sequence type
+};
+
+
+/* parameter for parameter continuation (regularization parameter) */
+struct ParCont{
+    static const ScalarType betavminh1=1E-3; ///< minimal regularization parameter for h1 type norm
+    static const ScalarType betavminh2=1E-6; ///< minimal regularization parameter for h2 type norm
+    static const int maxsteps = 10; ///< max number of steps
+    static const ScalarType betascale = 1E-1; ///< default reduction factor (one order of magnitude)
+    static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
+    ParaContType strategy; ///< flag for parameter continuation strategy
+    bool enabled; ///< flag: parameter continuation using different strategies
+    ScalarType targetbeta; ///< target regularization parameter
+};
+
+
+/* parameter for scale continuation */
+struct ScaleCont{
+    bool enabled;
+    static const int maxlevel=6;
+    ScalarType sigma[3][maxlevel];
+};
+
+
+/* parameter for grid continuation */
+struct GridCont{
+    bool enabled;
+    static const int minlevel=3;
+};
+
+
+/* parameters for parameter continuation */
+struct RegMonitor{
+    bool monitorJAC; ///< flag to monitor jacobian during iterations
+    bool monitorCFL; ///< flag to monitor CFL condition during iterations
+    ScalarType jacmin; ///< min value of jacobian
+    ScalarType jacmax; ///< max value of jacobian
+    ScalarType jacmean; ///< mean value of jacobian
+    ScalarType jacbound; ///< lower bound for jacobian
+};
+
+
+struct Regularization{
+    ScalarType beta[3]; ///< regularization parameter
+    RegNorm norm; ///< flag for regularization norm
+};
+
+
+struct FourierTransform{
+    accfft_plan* plan;
+    MPI_Comm mpicomm;
+    IntType nalloc;
+    IntType osize[3]; ///< size of grid in fourier domain for mpi proc
+    IntType ostart[3]; ///< start index in fourier domain for mpi proc
+};
+
+
 
 
 class RegOpt
@@ -181,18 +264,19 @@ public:
                *this->m_Domain.hx[2];
     }
 
+    inline Domain GetDomainPara(){return this->m_Domain;};
+    inline GridCont GetGridContPara(){return this->m_GridCont;};
+    inline ScaleCont GetScaleContPara(){return this->m_ScaleCont;};
+    inline ParCont GetParaContPara(){return this->m_ParaCont;};
 
     // time horizon, step size, and ....
-    inline ScalarType GetTimeHorizon(int i){return this->m_TimeHorizon[i];};
-    inline IntType GetNumTimePoints(void){return this->m_Domain.nt;};
     inline void SetNumTimePoints(IntType nt){ this->m_Domain.nt=nt; };
     inline ScalarType GetTimeStepSize(void){
-        return (this->m_TimeHorizon[1] - this->m_TimeHorizon[0])
+        return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
     };
 
-    accfft_plan* GetFFTPlan(){return this->m_FFTPlan;};
-    MPI_Comm GetComm(){return this->m_Comm;};
+    FourierTransform GetFFT(){return this->m_FFT;};
 
     // control input and output
     inline std::string GetIFolder(void){return this->m_IFolder;};
@@ -202,6 +286,8 @@ public:
     inline std::string GetReferenceFN(){return this->m_ReferenceFN;};
     inline bool ReadImagesFromFile(){return this->m_ReadImagesFromFile;};
     inline void ReadImagesFromFile(bool flag){this->m_ReadImagesFromFile=flag;};
+    inline accfft_plan* GetFFTPlan(){return this->m_FFT.plan;};
+    inline MPI_Comm GetComm(){return this->m_FFT.mpicomm;};
 
     // flags
     inline bool StoreTimeSeries(){return this->m_StoreTimeSeries;};
@@ -246,17 +332,10 @@ public:
 
     // parameter continuation
     inline ParaContType GetRegParaContStrategy(){return this->m_ParaCont.strategy;};
-    inline bool DoRegParaCont(){return this->m_ParaCont.enabled;};
     inline int GetMaxStepsParaCont(){return this->m_ParaCont.maxsteps;};
     inline ScalarType GetBetaScaleParaCont(){return this->m_ParaCont.betascale;};
     inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParaCont.dbetascale;};
     ScalarType GetBetaMinParaCont();
-
-    // scale continuation
-    inline bool DoScaleCont(){return this->m_ScaleCont.enabled;};
-    inline ScalarType GetScaleContSigma(int i, int level){
-        return this->m_ScaleCont.sigma[i][level];
-    };
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -269,6 +348,7 @@ public:
         wtime[2] = this->m_Timer[id][AVG];
     };
 
+    unsigned int GetNumThreads(){return this->m_NumThreads;};
     inline int GetNetworkDims(int i){return this->m_CartGridDims[i];};
     inline void IncreaseFFTTimers(double timers[5]){
         for(int i=0; i < 5; ++i) this->m_FFTTimers[i][LOG]+=timers[i];
@@ -304,7 +384,7 @@ public:
     PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
-    PetscErrorCode DoSetup(void);
+    PetscErrorCode DoSetup(bool dispteaser=true);
 
 private:
 
@@ -317,75 +397,6 @@ private:
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 
-    ScalarType m_TimeHorizon[2];
-
-
-    /* parameters for domain */
-    struct Domain{
-        IntType isize[3]; ///< size of grid in spatial domain for mpi proc
-        IntType istart[3]; ///< start index in spatial domain for mpi proc
-        IntType osize[3]; ///< size of grid in fourier domain for mpi proc
-        IntType ostart[3]; ///< start index in fourier domain for mpi proc
-        IntType nlocal; ///< number of grid points for each mpi proc
-        IntType nglobal; ///< number of grid points (global)
-        ScalarType hx[3]; ///< spatial grid cell size
-        IntType nx[3]; ///< spatial grid size
-        IntType nt; ///< number of time points
-    };
-
-
-    /* parameters for optimization */
-    struct Optimization{
-        int maxit; ///< maximal number of (outer) iterations
-        ScalarType tol[3]; ///< tolerances for optimization
-        OptMeth method; ///< optimization method
-    };
-
-    /* parameters for KKT solver */
-    struct KKTSolver{
-        int maxit;
-        ScalarType tol[3];
-        FSeqType fseqtype; ///<forcing sequence type
-    };
-
-    // parameters for parameter continuation
-    struct ParCont{
-        static const ScalarType betavminh1=1E-3; ///< minimal regularization parameter for h1 type norm
-        static const ScalarType betavminh2=1E-6; ///< minimal regularization parameter for h2 type norm
-        static const int maxsteps = 10; ///< max number of steps
-        static const ScalarType betascale = 1E-1; ///< default reduction factor (one order of magnitude)
-        static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
-        ParaContType strategy; ///< flag for parameter continuation strategy
-        bool enabled; ///< flag: parameter continuation using different strategies
-        ScalarType targetbeta; ///< target regularization parameter
-    };
-
-    struct ScaleCont{
-        bool enabled;
-        static const int maxlevel=6;
-        ScalarType sigma[3][maxlevel];
-    };
-
-    // parameters for parameter continuation
-    struct RegMonitor{
-        bool monitorJAC; ///< flag to monitor jacobian during iterations
-        bool monitorCFL; ///< flag to monitor CFL condition during iterations
-        ScalarType jacmin; ///< min value of jacobian
-        ScalarType jacmax; ///< max value of jacobian
-        ScalarType jacmean; ///< mean value of jacobian
-        ScalarType jacbound; ///< lower bound for jacobian
-    };
-
-    struct Regularization{
-        ScalarType beta[3]; ///< regularization parameter
-        RegNorm norm; ///< flag for regularization norm
-    };
-
-
-    accfft_plan* m_FFTPlan;
-    MPI_Comm m_Comm;
-    int m_CartGridDims[2];
-
     Optimization m_OptPara; ///< optimization parameters
     PDESolver m_PDESolver; ///< flag for PDE solver
     KKTSolver m_KKTSolverPara; ///< parameters for KKT solver
@@ -394,9 +405,12 @@ private:
     PCSolverType m_PCSolverType; ///< flag for KSP solver for precond
     Regularization m_Regularization; ///< parameters for regularization model
     ParCont m_ParaCont; ///< flags for parameter continuation
+    GridCont m_GridCont; ///< flags for grid continuation
     ScaleCont m_ScaleCont; ///< flags for scale continuation
     Domain m_Domain; ///< parameters for spatial domain
     RegModel m_RegModel;
+    FourierTransform m_FFT;
+
 
     std::string m_XFolder; ///< identifier for folder to write results to
     std::string m_XExtension; ///< identifier for extension of files to be written to file
@@ -411,6 +425,7 @@ private:
     double m_FFTTimers[5][NVALTYPES];
     double m_InterpTimers[4][NVALTYPES];
 
+    int m_CartGridDims[2];
     unsigned int m_NumThreads;
     const unsigned int m_LineLength = 101;
     bool m_StoreTimeSeries;

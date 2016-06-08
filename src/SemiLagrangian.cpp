@@ -306,7 +306,7 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
         }
     }
 
-    nt = this->m_Opt->GetNumTimePoints();
+    nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetNLocal();
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;

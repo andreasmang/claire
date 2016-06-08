@@ -12,8 +12,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: PreProcessingRegistration
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PreProcessingRegistration"
@@ -26,8 +25,7 @@ PreProcessingRegistration::PreProcessingRegistration()
 
 
 /********************************************************************
- * Name: PreProcessingRegistration
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PreProcessingRegistration"
@@ -41,8 +39,7 @@ PreProcessingRegistration::PreProcessingRegistration(RegOpt* opt)
 
 
 /********************************************************************
- * Name: PreProcessingRegistration
- * Description: default deconstructor
+ * @brief default deconstructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~PreProcessingRegistration"
@@ -54,15 +51,14 @@ PreProcessingRegistration::~PreProcessingRegistration()
 
 
 /********************************************************************
- * Name: Initialize
- * Description: initialize
+ * @brief initialize
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
 PetscErrorCode PreProcessingRegistration::Initialize()
 {
     this->m_Opt = NULL;
-    this->m_IO = NULL;
+    this->m_ReadWrite = NULL;
     this->m_xhat = NULL;
     this->m_Kxhat = NULL;
 
@@ -73,8 +69,7 @@ PetscErrorCode PreProcessingRegistration::Initialize()
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clear memory
+ * @brief clear memory
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -98,8 +93,7 @@ PetscErrorCode PreProcessingRegistration::ClearMemory()
 
 
 /********************************************************************
- * Name: SetIO
- * Description: set io interface for data
+ * @brief set io interface for data
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
@@ -109,7 +103,7 @@ PetscErrorCode PreProcessingRegistration::SetIO(PreProcessingRegistration::ReadW
 
     PetscFunctionBegin;
     ierr=Assert(io != NULL,"null pointer"); CHKERRQ(ierr);
-    this->m_IO=io;
+    this->m_ReadWrite=io;
 
     PetscFunctionReturn(0);
 
@@ -119,8 +113,96 @@ PetscErrorCode PreProcessingRegistration::SetIO(PreProcessingRegistration::ReadW
 
 
 /********************************************************************
- * Name: ApplyGaussianSmoothing
- * Description: apply gaussian smoothing operator to input data
+ * @brief prolong data
+ * @param x input vector
+ * @param y output vector y = P[x]
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Prolong"
+PetscErrorCode PreProcessingRegistration::Prolong(Vec y, Vec x)
+{
+    PetscErrorCode ierr;
+    accfft_plan* fftplan=NULL;
+    ScalarType *u=NULL,*p_x=NULL;
+    Complex *uk=NULL;
+    IntType alloc_max;
+    int nx[3],isize[3],istart[3],osize[3],ostart[3],cgrid[2];
+    double ffttimers[5]={0,0,0,0,0};
+    PetscFunctionBegin;
+
+    ierr=Assert(y!=NULL, "null pointer"); CHKERRQ(ierr);
+    ierr=Assert(x!=NULL, "null pointer"); CHKERRQ(ierr);
+
+    if(this->m_xhat == NULL){
+        this->m_xhat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+    }
+
+    cgrid[0] = this->m_Opt->GetNetworkDims(0);
+    cgrid[1] = this->m_Opt->GetNetworkDims(1);
+
+    nx[0] = 32;
+    nx[1] = 32;
+    nx[2] = 32;
+
+    alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
+    u = (ScalarType*)accfft_alloc(alloc_max);
+    uk = (Complex*)accfft_alloc(alloc_max);
+
+    // allocate fft
+    fftplan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
+
+
+    // compute fft
+    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
+    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+
+
+
+    // clean up
+    accfft_free(u);
+    accfft_free(uk);
+
+    if(fftplan!=NULL){
+        accfft_destroy_plan(fftplan);
+        fftplan = NULL;
+    }
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+/********************************************************************
+ * @brief restrict data
+ * @param x input vector
+ * @param y output vector y = R[x]
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Restrict"
+PetscErrorCode PreProcessingRegistration::Restrict(Vec y, Vec x)
+{
+    PetscErrorCode ierr;
+
+    PetscFunctionBegin;
+
+    ierr=Assert(y!=NULL, "null pointer"); CHKERRQ(ierr);
+    ierr=Assert(x!=NULL, "null pointer"); CHKERRQ(ierr);
+
+
+
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+/********************************************************************
+ * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplyGaussianSmoothing"
@@ -143,7 +225,7 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // get local pencil size and allocation size
     alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
-                                                        this->m_Opt->GetComm());
+                                                        this->m_Opt->GetFFT().mpicomm);
     if(this->m_xhat == NULL){
         this->m_xhat=(FFTScaType*)accfft_alloc(alloc_max);
     }
@@ -164,7 +246,7 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // compute fft
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x,this->m_xhat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
 
@@ -207,7 +289,7 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // compute inverse fft
     ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_xhat,p_y,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_y,ffttimers);
     ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
 
     // increment fft timer

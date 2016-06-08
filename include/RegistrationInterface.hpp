@@ -65,7 +65,9 @@ public:
     PetscErrorCode SetInitialGuess(Vec);
     PetscErrorCode SetIO(ReadWriteReg*);
 
+
 private:
+
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode SetupRegProblem(void);
@@ -78,6 +80,7 @@ private:
     PetscErrorCode RunSolverRegParaContReductSearch(void);
     PetscErrorCode RunSolverRegParaContReduction(void);
 
+    PetscErrorCode DispLevelMsg(std::string,int);
 
     RegOpt* m_Opt;
     PreProcType* m_Prepoc;

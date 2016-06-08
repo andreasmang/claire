@@ -44,6 +44,8 @@ public:
 
     PetscErrorCode SetIO(ReadWriteType*);
     PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
+    PetscErrorCode Prolong(Vec,Vec);
+    PetscErrorCode Restrict(Vec,Vec);
 
 private:
 
@@ -54,7 +56,8 @@ private:
     FFTScaType* m_xhat;
     FFTScaType* m_Kxhat;
 
-    ReadWriteType* m_IO;
+    ReadWriteType* m_ReadWrite;
+
 
 };
 

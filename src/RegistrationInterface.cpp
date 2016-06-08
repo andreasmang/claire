@@ -123,6 +123,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
 
 
 
+
 /********************************************************************
  * @brief set initial guess
  *******************************************************************/
@@ -211,6 +212,25 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT)
     ierr=Assert(mT != NULL, "input reference image is null pointer"); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
+
+    PetscFunctionReturn(0);
+
+}
+
+
+/********************************************************************
+ * @brief set read/write object
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "DispLevelMsg"
+PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ierr=Msg(msg); CHKERRQ(ierr);
+    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
 
     PetscFunctionReturn(0);
 
@@ -327,30 +347,31 @@ PetscErrorCode RegistrationInterface::Run()
                                     "||gradient||_2,rel","||gradient||_2","step"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
 
-    // switch between all the options we have
-    // for solving the optimization probelm
-    if( this->m_Opt->DoRegParaCont() ){
+
+    // switch between solvers we have to solve optimization problem
+    if( this->m_Opt->GetParaContPara().enabled ){
 
         // run different flavours of parameter continuation
         ierr=this->RunSolverRegParaCont(); CHKERRQ(ierr);
 
     }
-    else if( this->m_Opt->DoScaleCont() ){
+    else if( this->m_Opt->GetScaleContPara().enabled ){
 
         // run different flavours of parameter continuation
         ierr=this->RunSolverScaleCont(); CHKERRQ(ierr);
 
     }
+    else if( this->m_Opt->GetGridContPara().enabled ){
+
+        // run grid continuation
+        ierr=this->RunSolverGridCont(); CHKERRQ(ierr);
+
+    }
     else{ ierr=this->RunSolver(); CHKERRQ(ierr); }
 
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-    ierr=Msg("optimization done"); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ierr=this->DispLevelMsg("optimization done",rank); CHKERRQ(ierr);
 
-    // finalize
-    ierr=this->m_Optimizer->Finalize(); CHKERRQ(ierr);
-    ierr=this->m_Opt->DisplayTimeToSolution(); CHKERRQ(ierr);
-
+    ierr=this->Finalize(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -573,11 +594,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
         this->m_Opt->SetRegularizationWeight(beta);
 
         ss << std::scientific << std::setw(3)
-            << level <<" ( betav="<<beta
+            << "level "<< level <<" ( betav="<<beta
             <<"; betav*="<<betastar<<" )";
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 
         // set initial guess for current level
@@ -643,10 +662,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
         this->m_Opt->SetRegularizationWeight(beta);
 
         // display regularization parameter to user
-        ss << std::setw(3) << level <<" ( betav="<<beta<<"; betav*="<<betastar<<" )";
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ss<<std::setw(3)<<"level "<<level<<" ( betav="<<beta<<"; betav*="<<betastar<<" )";
+        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 
         // set initial guess for current level
@@ -753,10 +770,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
         this->m_Opt->SetRegularizationWeight(beta);
 
         // display message to user
-        ss << std::scientific << std::setw(3) << level <<" (beta="<<beta<<")";
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ss << std::scientific<<std::setw(3)<<"level "<<level<<" (beta="<<beta<<")";
+        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 
         // set initial guess for current level
@@ -785,7 +800,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
         // if the regularization parameter is smaller than
         // the lower bound, we're done
         if (beta < betamin){
-
             if (this->m_Opt->GetVerbosity() > 0){
                 ss <<"regularization parameter smaller than lower bound (betav="
                    <<beta<<" < " << betamin <<"=betavmin)";
@@ -799,10 +813,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
 
     } // parameter reduction
 
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-    ss <<std::scientific<<"estimated regularization parameter betav="<<betastar;
-    ierr=Msg(ss.str()); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ss<<std::scientific<<"estimated regularization parameter betav="<<betastar;
+    ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
     ss.str( std::string() ); ss.clear();
 
     // wrap up
@@ -854,10 +866,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
         this->m_Opt->SetRegularizationWeight(beta);
 
         // display message to user
-        ss << std::scientific << std::setw(3) << level <<" (beta="<<beta<<"; beta*="<<betastar<<")";
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+        ss << std::scientific << std::setw(3)
+            << "level " << level <<" (beta="<<beta
+            <<"; beta*="<<betastar<<")";
+        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 
         // run the optimization
@@ -874,10 +886,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     this->m_Opt->SetRegularizationWeight(beta);
 
     // display message to user
-    ss << std::scientific << std::setw(3) << level <<" (beta="<<beta<<"; beta*="<<betastar<<")";
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-    ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
+    ss << std::scientific << std::setw(3)
+        <<"level "<< level <<" (beta="
+        <<beta<<"; beta*="<<betastar<<")";
+    ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
     ss.str( std::string() ); ss.clear();
 
     // solve optimization problem for user defined regularization parameter
@@ -910,7 +922,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     Vec mT=NULL,mR=NULL,x=NULL;
     std::stringstream ss;
     int level,maxlevel=6,rank;
-    ScalarType sigma[3];
+    bool solve;
+    ScalarType sigma[3],nxhalf;
 
     PetscFunctionBegin;
 
@@ -926,20 +939,27 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 
     // do the setup
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
-    ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
+
+    // check if everything has been set up correctly
     ierr=Assert(this->m_Optimizer!= NULL,"optimizer is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
 
     // set up synthetic problem if we did not read images
     if (!this->m_Opt->ReadImagesFromFile()){
+
+        // set up synthetic test problem
         ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
 
+        // make sure images have not been set
         ierr=Assert(this->m_TemplateImage==NULL,"template image is not null"); CHKERRQ(ierr);
         ierr=Assert(this->m_ReferenceImage==NULL,"reference image is not null"); CHKERRQ(ierr);
 
+        // pass images
         ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
         ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     }
 
+    // check if images have been set
     ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
 
@@ -964,6 +984,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     level=0;
     while (level < maxlevel){
 
+        solve=true;
+
         // this resets the optimizer to assume that we're in first iteration
         // every time we solve the problem; TODO: add initialization stage
         // for zero velocity field (compute gradient) to refer warm starts
@@ -971,29 +993,49 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
         this->m_RegProblem->InFirstIteration(true);
 
         for (int i=0; i < 3; ++i){
-            sigma[i] = this->m_Opt->GetScaleContSigma(i,level);
+
+            // get and set sigma for current level
+            sigma[i] = this->m_Opt->GetScaleContPara().sigma[i][level];
             this->m_Opt->SetSigma(i,sigma[i]);
+
+            // if sigma is bigger than half of the grid size, don't compute
+            nxhalf = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i])/2.0;
+            if ( nxhalf <= sigma[i] ) solve=false;
+
         }
 
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+        // solve problem
+        if (solve){
 
-        // rescale images
-        ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
-        ierr=Rescale(mT,0.0,1.0); CHKERRQ(ierr);
+            ierr=this->m_Prepoc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr=this->m_Prepoc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
-        // display message to user
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ss << std::scientific << std::setw(3) << level <<" sigma=("
-            <<sigma[0]<<","<<sigma[1]<<","<<sigma[2]<<")";
-        ierr=Msg("level " + ss.str()); CHKERRQ(ierr);
-        if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
-        ss.str( std::string() ); ss.clear();
+            // rescale images
+            ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
+            ierr=Rescale(mT,0.0,1.0); CHKERRQ(ierr);
 
-        // run the optimization
-        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+            // display message to user
+            ss << std::scientific << std::setw(3)
+                <<"level "<<level<<" sigma=("
+                <<sigma[0]<<","<<sigma[1]<<","<<sigma[2]<<")";
+            ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
 
-        ++level;
+            // run the optimization
+            ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+
+        }
+        else{
+
+            ss << std::scientific << std::setw(3)
+                << "skipping level "<< level <<" sigma=("
+                <<sigma[0]<<","<<sigma[1]<<","<<sigma[2]<<")";
+            ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
+
+        }
+
+        ++level; // increment counter
 
     }
 
@@ -1015,6 +1057,145 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 
 
 /********************************************************************
+ * @brief run solver using a grid continuation scheme; that is, we
+ * will successively increase the number of grid points of the
+ * template and reference image
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "RunSolverGridCont"
+PetscErrorCode RegistrationInterface::RunSolverGridCont()
+{
+    PetscErrorCode ierr;
+    Vec mT=NULL,mR=NULL,x=NULL;
+    std::stringstream ss;
+    int level,maxlevel,minlevel,nlevels,rank,j;
+    std::vector<std::vector<IntType>> nx;
+    IntType nxmin,nxi,nl,ng;
+    ScalarType nxii;
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    // set up preprocessing
+    if(this->m_Prepoc==NULL){
+        try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // set up synthetic problem if we did not read images
+    if (!this->m_Opt->ReadImagesFromFile()){
+
+        // do the setup
+        ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+
+        // check if everything has been set up correctly
+        ierr=Assert(this->m_Optimizer!= NULL,"optimizer is null"); CHKERRQ(ierr);
+        ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
+
+        // set up synthetic test problem
+        ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
+
+        // make sure images have not been set
+        ierr=Assert(this->m_TemplateImage==NULL,"template image is not null"); CHKERRQ(ierr);
+        ierr=Assert(this->m_ReferenceImage==NULL,"reference image is not null"); CHKERRQ(ierr);
+
+        // pass images
+        ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    }
+
+    // check if images have been set
+    ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
+
+
+    // compute number of levels
+    nxmin = this->m_Opt->GetDomainPara().nx[0];
+    for (int i = 1; i < 3; ++i){
+        nxi = this->m_Opt->GetDomainPara().nx[i];
+        nxmin = nxmin < nxi ? nxmin : nxi;
+    }
+
+    maxlevel = static_cast<int>(std::ceil(std::log2(static_cast<ScalarType>(nxmin))));
+    minlevel = this->m_Opt->GetGridContPara().minlevel;
+    nlevels  = maxlevel-minlevel;
+
+    nx.resize(nlevels);
+    for (int i = 0; i < nlevels; ++i) nx[i].resize(3);
+
+    level=0;
+    while (level < nlevels){
+
+        j = nlevels - (level+1);
+
+        for (int i = 0; i < 3; ++i){
+            if (level == 0) nx[j][i] = this->m_Opt->GetDomainPara().nx[i];
+            else{
+                nxii = static_cast<ScalarType>(nx[j+1][i]);
+                nx[j][i] = static_cast<IntType>( std::ceil(nxii/2.0) );
+            }
+        }
+
+        ++level;
+
+    }
+
+
+    level=0;
+    while (level < nlevels){
+
+        // set number of grid points
+        this->m_Opt->SetNumGridPoints(0,nx[level][0]);
+        this->m_Opt->SetNumGridPoints(1,nx[level][1]);
+        this->m_Opt->SetNumGridPoints(2,nx[level][2]);
+
+        // reset
+        ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
+
+        nl = this->m_Opt->GetDomainPara().nlocal;
+        ng = this->m_Opt->GetDomainPara().nglobal;
+
+        // display message to user
+        ss << std::scientific << "level " << std::setw(3) << level
+            <<" nx=("<< std::setw(4) << nx[level][0]
+            <<","    << std::setw(4) << nx[level][1]
+            <<","    << std::setw(4) << nx[level][2]
+            << "); (nl,ng)=("<< nl << "," << ng << ")";
+        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
+        ss.str( std::string() ); ss.clear();
+
+
+        // allocate images
+        ierr=VecCreate(PETSC_COMM_WORLD,&mR); CHKERRQ(ierr);
+        ierr=VecSetSizes(mR,nl,ng); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(mR); CHKERRQ(ierr);
+
+        ierr=VecCreate(PETSC_COMM_WORLD,&mT); CHKERRQ(ierr);
+        ierr=VecSetSizes(mT,nl,ng); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(mT); CHKERRQ(ierr);
+
+
+        ierr=this->m_Prepoc->Prolong(mR,mR); CHKERRQ(ierr);
+
+
+
+        ++level; /// increment level
+
+    }
+
+
+
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+/********************************************************************
  * @brief finalize optimization (displays information for user)
  ********************************************************************/
 #undef __FUNCT__
@@ -1024,10 +1205,12 @@ PetscErrorCode RegistrationInterface::Finalize()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    // display time to solution
+    ierr=this->m_Optimizer->Finalize(); CHKERRQ(ierr);
+
     ierr=this->m_Opt->DisplayTimeToSolution(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
+
 }
 
 

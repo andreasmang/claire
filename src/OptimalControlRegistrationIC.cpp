@@ -213,7 +213,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL()
 
     PetscFunctionBegin;
 
-    nt = this->m_Opt->GetNumTimePoints();
+    nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetNLocal();
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -300,7 +300,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void)
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
     }
 
-    nt = this->m_Opt->GetNumTimePoints();
+    nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetNLocal();
 
     // remember time history (i.e. copy final condition

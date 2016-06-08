@@ -13,8 +13,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: RegOpt
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegOpt"
@@ -27,8 +26,7 @@ RegOpt::RegOpt()
 
 
 /********************************************************************
- * Name: RegOpt
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegOpt"
@@ -42,8 +40,7 @@ RegOpt::RegOpt(int argc, char** argv)
 
 
 /********************************************************************
- * Name: ParseArguments
- * Description: parse user arguments
+ * @brief parse user arguments
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ParseArguments"
@@ -336,6 +333,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-scalecont") == 0){
             this->m_ScaleCont.enabled = true;
         }
+        else if(strcmp(argv[1],"-gridcont") == 0){
+            this->m_GridCont.enabled = true;
+        }
         else if(strcmp(argv[1],"-verbosity") == 0){
             argc--; argv++;
             this->m_Verbosity = atoi(argv[1]);
@@ -368,8 +368,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 
 
 /********************************************************************
- * Name: RegOpt
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~RegOpt"
@@ -382,8 +381,7 @@ RegOpt::~RegOpt()
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -391,14 +389,14 @@ PetscErrorCode RegOpt::ClearMemory()
 {
     PetscFunctionBegin;
 
-    if(this->m_FFTPlan!= NULL){
-        accfft_destroy_plan(this->m_FFTPlan);
+    if(this->m_FFT.plan!= NULL){
+        accfft_destroy_plan(this->m_FFT.plan);
         accfft_cleanup();
-        this->m_FFTPlan = NULL;
+        this->m_FFT.plan = NULL;
     }
 
-    if (this->m_Comm != NULL){
-        MPI_Comm_free(&this->m_Comm);
+    if (this->m_FFT.mpicomm != NULL){
+        MPI_Comm_free(&this->m_FFT.mpicomm);
     }
 
     PetscFunctionReturn(0);
@@ -409,8 +407,7 @@ PetscErrorCode RegOpt::ClearMemory()
 
 
 /********************************************************************
- * Name: Initialize
- * Description: initialize class variables
+ * @brief initialize class variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -421,13 +418,15 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_SetupDone = false;
 
-    this->m_FFTPlan = NULL;
-    this->m_Comm = NULL;
+    this->m_FFT.plan = NULL;
+    this->m_FFT.mpicomm = NULL;
 
     this->m_Domain.nt = 4;
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
     this->m_Domain.nx[2] = 32;
+    this->m_Domain.timehorizon[0] = 0.0;
+    this->m_Domain.timehorizon[1] = 1.0;
 
     this->m_Regularization.norm = H2SN;
     this->m_Regularization.beta[0] = 1E-2;
@@ -435,8 +434,6 @@ PetscErrorCode RegOpt::Initialize()
     this->m_Regularization.beta[2] = 1E-4;
 
     this->m_Verbosity = 1;
-    this->m_TimeHorizon[0] = 0.0;
-    this->m_TimeHorizon[1] = 1.0;
     this->m_PDESolver = SL;
     this->m_PrecondMeth = INVREG;
     this->m_RegModel = COMPRESSIBLE;
@@ -472,23 +469,19 @@ PetscErrorCode RegOpt::Initialize()
     this->m_ParaCont.enabled = false;
     this->m_ParaCont.targetbeta = 0.0;
 
+    // grid continuation
+    this->m_GridCont.enabled = false;
+
     // scale continuation
     this->m_ScaleCont.enabled=false;
     for (int i = 0; i < 3; ++i){
-        this->m_ScaleCont.sigma[i][0]=32.0;//static_cast<ScalarType>(PetscPowScalar(2,8));
-        this->m_ScaleCont.sigma[i][1]=16.0;//static_cast<ScalarType>(PetscPowScalar(2,6));
-        this->m_ScaleCont.sigma[i][2]=8.0;//static_cast<ScalarType>(PetscPowScalar(2,4));
-        this->m_ScaleCont.sigma[i][3]=4.0;//static_cast<ScalarType>(PetscPowScalar(2,2));
-        this->m_ScaleCont.sigma[i][4]=2.0;//static_cast<ScalarType>(PetscPowScalar(2,1));
-        this->m_ScaleCont.sigma[i][5]=1.0;
+        this->m_ScaleCont.sigma[i][0]=32.0;
+        this->m_ScaleCont.sigma[i][1]=16.0;
+        this->m_ScaleCont.sigma[i][2]= 8.0;
+        this->m_ScaleCont.sigma[i][3]= 4.0;
+        this->m_ScaleCont.sigma[i][4]= 2.0;
+        this->m_ScaleCont.sigma[i][5]= 1.0;
     }
-
-//    ScalarType scale = PETSC_PI/4.0;
-//    for (int i=0; i < 3; ++i){
-//        for(int l=0; l<this->m_ScaleCont.maxlevel; ++l){
-//            this->m_ScaleCont.sigma[i][l]*=scale;
-//        }
-//    }
 
     // monitor for registration
     this->m_RegMonitor.monitorJAC = false;
@@ -512,8 +505,7 @@ PetscErrorCode RegOpt::Initialize()
 
 
 /********************************************************************
- * Name: Usage
- * Description: display usage message for binary
+ * @brief display usage message for binary
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Usage"
@@ -657,8 +649,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
 
 
 /********************************************************************
- * Name: CheckArguments
- * Description: check the arguments set by user
+ * @brief check the arguments set by user
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CheckArguments"
@@ -730,12 +721,11 @@ PetscErrorCode RegOpt::CheckArguments()
 
 
 /********************************************************************
- * Name: DoSetup
- * Description: setup options and accfft
+ * @brief setup options and accfft
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DoSetup"
-PetscErrorCode RegOpt::DoSetup()
+PetscErrorCode RegOpt::DoSetup(bool dispteaser)
 {
     PetscErrorCode ierr;
     int nx[3],isize[3],istart[3],osize[3],ostart[3],ompthreads,nprocs,np;
@@ -790,7 +780,7 @@ PetscErrorCode RegOpt::DoSetup()
 
 
     // initialize accft
-    accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_Comm);
+    accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_FFT.mpicomm);
     accfft_init(this->m_NumThreads);
 
     // parse grid size for setup
@@ -799,13 +789,13 @@ PetscErrorCode RegOpt::DoSetup()
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
 
-    if (this->m_FFTPlan != NULL){
-        accfft_destroy_plan(this->m_FFTPlan);
-        this->m_FFTPlan = NULL;
+    if (this->m_FFT.plan != NULL){
+        accfft_destroy_plan(this->m_FFT.plan);
+        this->m_FFT.plan = NULL;
         accfft_cleanup();
     }
 
-    alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Comm);
+    alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
     u = (ScalarType*)accfft_alloc(alloc_max);
     uk = (Complex*)accfft_alloc(alloc_max);
 
@@ -817,8 +807,8 @@ PetscErrorCode RegOpt::DoSetup()
         this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
 
-        this->m_Domain.osize[i] = static_cast<IntType>(osize[i]);
-        this->m_Domain.ostart[i] = static_cast<IntType>(ostart[i]);
+        this->m_FFT.osize[i] = static_cast<IntType>(osize[i]);
+        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
 
         this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
         this->m_Domain.nglobal *= this->m_Domain.nx[i];
@@ -828,24 +818,22 @@ PetscErrorCode RegOpt::DoSetup()
     ierr=reg::Assert(this->m_Domain.nlocal > 0,"bug in setup"); CHKERRQ(ierr);
     ierr=reg::Assert(this->m_Domain.nglobal > 0,"bug in setup"); CHKERRQ(ierr);
 
-
     // set up the fft
     fftsetuptime=-MPI_Wtime();
-    this->m_FFTPlan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_Comm,ACCFFT_MEASURE);
+    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_FFT.mpicomm,ACCFFT_MEASURE);
     fftsetuptime+=MPI_Wtime();
 
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
 
-    this->m_SetupDone=true;
-
     // display the options to the user
-    ierr=this->DisplayOptions(); CHKERRQ(ierr);
+    if (dispteaser==true){ ierr=this->DisplayOptions(); CHKERRQ(ierr); }
+
+    this->m_SetupDone=true;
 
     // clean up
     accfft_free(u);
     accfft_free(uk);
-
 
     PetscFunctionReturn(0);
 }
@@ -854,8 +842,7 @@ PetscErrorCode RegOpt::DoSetup()
 
 
 /********************************************************************
- * Name: SetPresetParameters
- * Description: set preset parameters
+ * @brief set preset parameters
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetPresetParameters"
@@ -914,8 +901,7 @@ PetscErrorCode RegOpt::SetPresetParameters()
 
 
 /********************************************************************
- * Name: DisplayOptions
- * Description: display registration options
+ * @brief display registration options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetBetaMinParaCont"
@@ -932,8 +918,7 @@ ScalarType RegOpt::GetBetaMinParaCont()
 
 
 /********************************************************************
- * Name: DisplayOptions
- * Description: display registration options
+ * @brief display registration options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DisplayOptions"
@@ -1216,8 +1201,7 @@ PetscErrorCode RegOpt::DisplayOptions()
 
 
 /********************************************************************
- * Name: ComputeFFTScale
- * Description: compute weight for FFT
+ * @brief compute weight for FFT
  *******************************************************************/
 ScalarType RegOpt::ComputeFFTScale()
 {
@@ -1235,8 +1219,7 @@ ScalarType RegOpt::ComputeFFTScale()
 
 
 /********************************************************************
- * Name: ResetTimers
- * Description: resets all timers
+ * @brief resets all timers
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResetTimers"
@@ -1273,8 +1256,7 @@ PetscErrorCode RegOpt::ResetTimers()
 
 
 /********************************************************************
- * Name: ResetTimer
- * Description: resets timer
+ * @brief resets timer
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResetTimer"
@@ -1295,8 +1277,7 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id)
 
 
 /********************************************************************
- * Name: StartTimer
- * Description: start the timer (checks if running)
+ * @brief start the timer (checks if running)
  * Author: Andreas Mang
  *******************************************************************/
 #undef __FUNCT__
@@ -1323,8 +1304,7 @@ PetscErrorCode RegOpt::StartTimer(TimerType id)
 
 
 /********************************************************************
- * Name: StopTimer
- * Description: stop setup timer (checks if running)
+ * @brief stop setup timer (checks if running)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "StopTimer"
@@ -1352,8 +1332,7 @@ PetscErrorCode RegOpt::StopTimer(TimerType id)
 
 
 /********************************************************************
- * Name: ProcessTimers
- * Description: process the timers
+ * @brief process the timers
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ProcessTimers"
@@ -1449,8 +1428,7 @@ PetscErrorCode RegOpt::ProcessTimers()
 
 
 /********************************************************************
- * Name: ResetCounter
- * Description: resets counters
+ * @brief resets counters
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResetCounters"
@@ -1458,9 +1436,7 @@ PetscErrorCode RegOpt::ResetCounters()
 {
     PetscFunctionBegin;
 
-    for(int i = 0; i < NCOUNTERS; ++i){
-        this->m_Counter[i] = 0;
-    }
+    for(int i = 0; i < NCOUNTERS; ++i) this->m_Counter[i] = 0;
 
     PetscFunctionReturn(0);
 }
@@ -1469,8 +1445,7 @@ PetscErrorCode RegOpt::ResetCounters()
 
 
 /********************************************************************
- * Name: ResetCounter
- * Description: resets counter
+ * @brief resets counter
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResetCounter"
@@ -1487,8 +1462,7 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id)
 
 
 /********************************************************************
- * Name: WriteLogFile
- * Description: write log results to file
+ * @brief write log results to file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteLogFile"
@@ -1824,8 +1798,7 @@ PetscErrorCode RegOpt::WriteLogFile()
 
 
 /********************************************************************
- * Name: DisplayTimeToSolution
- * Description: displays the global exection time
+ * @brief displays the global exection time
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DisplayTimeToSolution"
