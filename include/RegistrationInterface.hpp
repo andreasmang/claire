@@ -32,6 +32,7 @@
 #include "RegUtils.hpp"
 #include "ReadWriteReg.hpp"
 #include "Optimizer.hpp"
+#include "MultiLevelPyramid.hpp"
 #include "OptimalControlRegistrationBase.hpp"
 #include "OptimalControlRegistration.hpp"
 #include "OptimalControlRegistrationIC.hpp"
@@ -62,9 +63,8 @@ public:
 
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetReferenceImage(Vec);
-    PetscErrorCode SetInitialGuess(Vec);
+    PetscErrorCode SetInitialGuess(VecField*);
     PetscErrorCode SetIO(ReadWriteReg*);
-
 
 private:
 
@@ -84,14 +84,16 @@ private:
 
     RegOpt* m_Opt;
     PreProcType* m_Prepoc;
-    ReadWriteType* m_IO;
+    ReadWriteType* m_ReadWrite;
     OptimizerType* m_Optimizer;
     RegProblemType* m_RegProblem;
 
+    MultiLevelPyramid *m_TemplatePyramid;
+    MultiLevelPyramid *m_ReferencePyramid;
+
     Vec m_TemplateImage; ///< original template image (not overwritten)
     Vec m_ReferenceImage; ///< original reference image (not overwritten)
-    Vec m_Solution; ///< computed solution
-    Vec m_InitialGuess; ///< initial guess
+    VecField* m_Solution; ///< initial guess
 };
 
 

@@ -45,14 +45,14 @@ LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
 LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
 LDFLAGS+= -L$(ZLIB_DIR)/lib -lz
-LDFLAGS+= -lcrypto -lssl -ldl
+#LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS+= -limf
 endif
 
 
 ifeq ($(USEINTELMPI),yes)
-	LDFLAGS+= -lmpi_mt
+#	LDFLAGS+= -lmpi_mt
 endif
 LDFLAGS+= -lm
 
@@ -73,6 +73,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/TaoInterfaceRegistration.cpp \
+		$(SRCDIR)/RegistrationInterface.cpp \
+		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
@@ -95,7 +97,7 @@ $(BINDIR)/%: $(OBJDIR)/%.o $(OBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
 	$(CXX) $(CXXFLAGS) $(COLD_INC) $^ $(LDFLAGS) $(COLD_LIB) -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(INCDIR)/%.hpp
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
 	$(CXX) $(CXXFLAGS) $(COLD_INC) -c $^ -o $@
 

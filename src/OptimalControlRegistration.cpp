@@ -261,7 +261,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
     ierr=this->SolveStateEquation(); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // copy memory for m_1
     ierr=VecGetArray(m,&p_m1); CHKERRQ(ierr);
@@ -305,7 +305,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
     // compute hd
     hd = this->m_Opt->GetLebesqueMeasure();
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // compute solution of state equation
     ierr=this->SolveStateEquation(); CHKERRQ(ierr);
@@ -506,8 +506,9 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
     }
 
     // get problem dimensions and weights
-    nl = this->m_Opt->GetNLocal();
     nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hd = this->m_Opt->GetLebesqueMeasure();
 
@@ -736,8 +737,8 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     ierr=Assert(this->m_IO!=NULL,"null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    ng = this->m_Opt->GetNGlobal();
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     hd = this->m_Opt->GetLebesqueMeasure();
 
     // allocate container for incremental velocity field
@@ -978,8 +979,8 @@ PetscErrorCode OptimalControlRegistration::Setup2LevelPrecond()
     reltol = 1E-16;
     maxit  = 1000;
 
-    nl = this->m_Opt->GetNLocal();
-    ng = this->m_Opt->GetNGlobal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     if (this->m_PCKSP == NULL){
         ierr=KSPCreate(PETSC_COMM_WORLD,&this->m_PCKSP); CHKERRQ(ierr);
@@ -1143,7 +1144,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hd = this->m_Opt->GetLebesqueMeasure();
 
@@ -1330,8 +1331,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
     ierr=Assert(this->m_TemplateImage!=NULL,"template image is null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    ng = this->m_Opt->GetNGlobal();
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     ierr=Assert(nt > 0, "number of time points <= 0"); CHKERRQ(ierr);
 
@@ -1428,7 +1429,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1578,7 +1579,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // compute trajectory
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
@@ -1643,8 +1644,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void)
     ierr=Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    ng = this->m_Opt->GetNGlobal();
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ierr=Assert(nt > 0, "number of time points < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2){
@@ -1757,7 +1758,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1899,7 +1900,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -2029,8 +2030,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
     ierr=Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    ng = this->m_Opt->GetNGlobal();
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ierr=Assert(nt > 0, "number of time points < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2){
@@ -2106,7 +2107,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
 
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2340,7 +2341,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2546,8 +2547,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
-    ng = this->m_Opt->GetNGlobal();
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ierr=Assert(nt > 0, "number of time points not set correctly"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2){
@@ -2679,7 +2680,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2824,7 +2825,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -3030,7 +3031,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -3175,7 +3176,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     // get number of time points and grid points
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // allocate
     if (this->m_WorkScaField1 == NULL){
@@ -3271,7 +3272,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"
-PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
+PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 {
     PetscErrorCode ierr;
     std::string filename,fn,ext;
@@ -3324,7 +3325,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
     }
 
     // set components of velocity field
-    ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
     // parse extension
     ext = ".nii.gz";//this->m_Opt->GetXExtension();
@@ -3352,7 +3353,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(Vec v)
 
     // compute hd
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // copy memory for m_1
     ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);

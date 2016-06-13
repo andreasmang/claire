@@ -44,8 +44,11 @@ public:
 
     PetscErrorCode SetIO(ReadWriteType*);
     PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
-    PetscErrorCode Prolong(Vec,Vec);
-    PetscErrorCode Restrict(Vec,Vec);
+
+    PetscErrorCode Prolong(Vec,Vec,IntType*);
+    PetscErrorCode Restrict(Vec,Vec,IntType*);
+    PetscErrorCode Prolong(VecField*,VecField*,IntType*);
+    PetscErrorCode Restrict(VecField*,VecField*,IntType*);
 
 private:
 

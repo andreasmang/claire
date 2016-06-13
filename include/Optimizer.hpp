@@ -56,7 +56,7 @@ public:
 
     PetscErrorCode Run();
     PetscErrorCode GetSolution(Vec&);
-    PetscErrorCode SetInitialGuess(Vec);
+    PetscErrorCode SetInitialGuess(VecField*);
     PetscErrorCode Finalize();
 
 private:
@@ -75,7 +75,6 @@ private:
     PC m_KKTPC; ///< KSP preconditioner object
 
     Vec m_Solution; ///< solution vector
-    Vec m_InitialGuess; ///< initial guess
 
 
 };

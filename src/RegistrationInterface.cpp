@@ -1,5 +1,4 @@
-
-/**
+/*
  * @file RegistrationInterface.cpp
  *
  * @author Andreas Mang
@@ -69,13 +68,14 @@ PetscErrorCode RegistrationInterface::Initialize(void)
     PetscFunctionBegin;
 
     this->m_Opt=NULL;
-    this->m_IO=NULL;
+    this->m_ReadWrite=NULL;
     this->m_Optimizer=NULL;
     this->m_RegProblem=NULL;
-    this->m_Prepoc = NULL;
+    this->m_Prepoc=NULL;
+    this->m_ReferencePyramid=NULL;
+    this->m_TemplatePyramid=NULL;
 
     this->m_Solution=NULL;
-    this->m_InitialGuess=NULL;
     this->m_ReferenceImage=NULL;
     this->m_TemplateImage=NULL;
 
@@ -108,16 +108,18 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
         delete this->m_Prepoc;
         this->m_Prepoc = NULL;
     }
-
-    if (this->m_InitialGuess != NULL){
-        ierr=VecDestroy(&this->m_InitialGuess); CHKERRQ(ierr);
-        this->m_InitialGuess=NULL;
-    }
     if (this->m_Solution != NULL){
-        ierr=VecDestroy(&this->m_Solution); CHKERRQ(ierr);
+        delete this->m_Solution;
         this->m_Solution=NULL;
     }
-
+    if (this->m_ReferencePyramid != NULL){
+        delete this->m_ReferencePyramid;
+        this->m_ReferencePyramid=NULL;
+    }
+    if (this->m_TemplatePyramid != NULL){
+        delete this->m_TemplatePyramid;
+        this->m_TemplatePyramid=NULL;
+    }
     PetscFunctionReturn(0);
 }
 
@@ -129,29 +131,24 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetInitialGuess"
-PetscErrorCode RegistrationInterface::SetInitialGuess(Vec x0)
+PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x)
 {
     PetscErrorCode ierr;
-    IntType nlu,ngu;
 
     PetscFunctionBegin;
 
     // the input better is not zero
-    ierr=Assert(x0!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    // compute number of unknowns
-    nlu = 3*this->m_Opt->GetNLocal();
-    ngu = 3*this->m_Opt->GetNGlobal();
+    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // if we have not setup initial guess, do so
-    if (this->m_InitialGuess == NULL){
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_InitialGuess); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_InitialGuess,nlu,ngu); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_InitialGuess); CHKERRQ(ierr);
+    if (this->m_Solution == NULL){
+        try{this->m_Solution = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
     }
 
-    ierr=VecCopy(x0,this->m_InitialGuess); CHKERRQ(ierr);
-
+    ierr=this->m_Solution->Copy(x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
@@ -171,7 +168,7 @@ PetscErrorCode RegistrationInterface::SetIO(ReadWriteReg* io)
     PetscFunctionBegin;
 
     ierr=Assert(io != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_IO = io;
+    this->m_ReadWrite = io;
 
     PetscFunctionReturn(0);
 
@@ -216,6 +213,8 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT)
     PetscFunctionReturn(0);
 
 }
+
+
 
 
 /********************************************************************
@@ -286,25 +285,23 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
         }
     }
     else{
-        try{ this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt); }
+        try{ this->m_RegProblem = new OptimalControlRegistration(this->m_Opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
 
-    ierr=Assert(this->m_IO!= NULL, "io is null"); CHKERRQ(ierr);
-    ierr=this->m_RegProblem->SetIO(this->m_IO); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReadWrite != NULL, "io is null"); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->SetIO(this->m_ReadWrite); CHKERRQ(ierr);
 
-    nlu = 3*this->m_Opt->GetNLocal();
-    ngu = 3*this->m_Opt->GetNGlobal();
-
-    if (this->m_Solution != NULL){
-        ierr=VecDestroy(&this->m_Solution); CHKERRQ(ierr);
-        this->m_Solution = NULL;
+    // set up initial condition
+    if (this->m_Solution==NULL){
+        try{ this->m_Solution = new VecField(this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
     }
-    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
-    ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -327,18 +324,6 @@ PetscErrorCode RegistrationInterface::Run()
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-
-    // compute number of unknowns
-    nlu = 3*this->m_Opt->GetNLocal();
-    ngu = 3*this->m_Opt->GetNGlobal();
-
-    // create all zero initial guess, if it has not been set already
-    if (this->m_InitialGuess == NULL){
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_InitialGuess); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_InitialGuess,nlu,ngu); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_InitialGuess); CHKERRQ(ierr);
-        ierr=VecSet(this->m_InitialGuess,0.0); CHKERRQ(ierr);
-    }
 
     ierr=Msg("starting optimization"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
@@ -394,6 +379,7 @@ PetscErrorCode RegistrationInterface::RunSolver()
 
     // do the setup
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+
     ierr=Assert(this->m_RegProblem!= NULL, "registration problem is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_Optimizer!= NULL, "optimizer is null"); CHKERRQ(ierr);
 
@@ -432,7 +418,7 @@ PetscErrorCode RegistrationInterface::RunSolver()
     ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
 
     // init solver
-    ierr=this->m_Optimizer->SetInitialGuess(this->m_InitialGuess); CHKERRQ(ierr);
+    ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
     ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
     // run the optimization
@@ -440,7 +426,7 @@ PetscErrorCode RegistrationInterface::RunSolver()
 
     // get the solution
     ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
-    ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+    ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
     // destroy vector
@@ -566,18 +552,15 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // get parameters
-    maxsteps  = this->m_Opt->GetMaxStepsParaCont();
     betamin   = this->m_Opt->GetBetaMinParaCont();
     betascale = this->m_Opt->GetBetaScaleParaCont();
+    maxsteps  = this->m_Opt->GetMaxStepsParaCont();
 
     ierr=Assert(betascale < 1.0 && betascale > 0.0,"scale for beta not in (0,1)"); CHKERRQ(ierr);
     ierr=Assert(betamin > 0.0 && betamin < 1.0,"lower bound for beta in (0,1)"); CHKERRQ(ierr);
 
     // set optimization problem
     ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
-
-    // set initial guess
-    ierr=VecCopy(this->m_InitialGuess,this->m_Solution); CHKERRQ(ierr);
 
     // set initial guess for current level
     ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
@@ -617,7 +600,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
         betastar = beta;
 
         // if we got here, the solution is valid
-        ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+        ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
         // reduce beta
         beta *= betascale;
@@ -687,7 +670,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
             betastar = beta; // new best estimate
 
             // if we got here, the solution is valid
-            ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+            ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
         }
 
@@ -749,9 +732,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
     // set optimization problem
     ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
-    // set initial guess
-    ierr=VecCopy(this->m_InitialGuess,this->m_Solution); CHKERRQ(ierr);
-
     // set initial guess for current level
     ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
@@ -793,7 +773,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
         betastar = beta;
 
         // if we got here, the solution is valid
-        ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+        ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
         beta *= betascale; // reduce beta
 
@@ -852,9 +832,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     // set optimization problem
     ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
-    // set initial guess
-    ierr=VecCopy(this->m_InitialGuess,this->m_Solution); CHKERRQ(ierr);
-
     // set initial guess for current level
     ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
@@ -897,7 +874,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 
     // get the solution
     ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
-    ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+    ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
     // wrap up
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
@@ -979,7 +956,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
     // set initial guess for current level
-    ierr=this->m_Optimizer->SetInitialGuess(this->m_InitialGuess); CHKERRQ(ierr);
+    ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     level=0;
     while (level < maxlevel){
@@ -1041,7 +1018,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 
     // get the solution
     ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
-    ierr=VecCopy(x,this->m_Solution); CHKERRQ(ierr);
+    ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
     // wrap up
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
@@ -1067,11 +1044,13 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 {
     PetscErrorCode ierr;
     Vec mT=NULL,mR=NULL,x=NULL;
+    VecField *v=NULL;
     std::stringstream ss;
     int level,maxlevel,minlevel,nlevels,rank,j;
-    std::vector<std::vector<IntType>> nx;
-    IntType nxmin,nxi,nl,ng;
-    ScalarType nxii;
+    int nx[3],ostart[3],osize[3],isize[3],istart[3],cgrid[2];
+    std::vector<std::vector<IntType>> nxlevel;
+    IntType nxmin,nxj,nl,ng,nxres[3];
+    ScalarType nxi;
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -1084,8 +1063,150 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         }
     }
 
+/*
+    if(this->m_ReferencePyramid==NULL){
+        try{this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+*/
+    //this->m_ReferencePyramid->SetUp();
+
+
     // set up synthetic problem if we did not read images
     if (!this->m_Opt->ReadImagesFromFile()){
+
+        // do the setup
+        ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+
+        // check if everything has been set up correctly
+        ierr=Assert(this->m_Optimizer!=NULL,"optimizer is not setup"); CHKERRQ(ierr);
+        ierr=Assert(this->m_RegProblem!=NULL,"registration problem is not set up"); CHKERRQ(ierr);
+
+        // set up synthetic test problem
+        ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
+
+        // make sure images have not been set
+        ierr=Assert(this->m_TemplateImage==NULL,"template image is null"); CHKERRQ(ierr);
+        ierr=Assert(this->m_ReferenceImage==NULL,"reference image is null"); CHKERRQ(ierr);
+
+        // pass images
+        ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+
+    }
+
+    // check if images have been set
+    ierr=Assert(this->m_TemplateImage!=NULL,"template image not set"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image not set"); CHKERRQ(ierr);
+
+    // compute number of levels
+    nxmin = this->m_Opt->GetDomainPara().nx[0];
+    for (int i = 1; i < 3; ++i){
+        nxj = this->m_Opt->GetDomainPara().nx[i];
+        nxmin = nxmin < nxj ? nxmin : nxj;
+    }
+
+    maxlevel = static_cast<int>(std::ceil(std::log2(static_cast<ScalarType>(nxmin))));
+    minlevel = this->m_Opt->GetGridContPara().minlevel;
+    nlevels  = maxlevel-minlevel;
+
+    nxlevel.resize(nlevels);
+    for (int i = 0; i < nlevels; ++i) nxlevel[i].resize(3);
+
+    level=0;
+    while (level < nlevels){
+
+        j = nlevels - (level+1);
+
+        for (int i = 0; i < 3; ++i){
+            if (level == 0) nxlevel[j][i] = this->m_Opt->GetDomainPara().nx[i];
+            else{
+                nxi = static_cast<ScalarType>(nxlevel[j+1][i]);
+                nxlevel[j][i] = static_cast<IntType>( std::ceil(nxi/2.0) );
+            }
+        }
+
+        ++level;
+
+    }
+
+    // reset all the clocks we have used so far
+    ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
+    ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
+
+
+    level=0;
+    while (level < nlevels){
+
+        nxres[0] = nxlevel[level][0];
+        nxres[1] = nxlevel[level][1];
+        nxres[2] = nxlevel[level][2];
+
+        nx[0] = static_cast<int>(nxres[0]);
+        nx[1] = static_cast<int>(nxres[1]);
+        nx[2] = static_cast<int>(nxres[2]);
+
+        // get the local sizes
+        accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
+
+        // update sizes
+        nl = 1; ng = 1;
+        for (int i=0; i < 3; ++i){
+            nl *= static_cast<IntType>(isize[i]);
+            ng *= static_cast<IntType>(nxres[i]);
+        }
+
+        // display message to user
+        ss << std::scientific << "level " << std::setw(3) << level
+            <<" nx=("<< std::setw(4) << nxres[0]
+            <<","    << std::setw(4) << nxres[1]
+            <<","    << std::setw(4) << nxres[2]
+            << "); (nl,ng)=("<< nl << "," << ng << ")";
+        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
+        ss.str( std::string() ); ss.clear();
+
+        // allocate images
+        ierr=VecCreate(PETSC_COMM_WORLD,&mR); CHKERRQ(ierr);
+        ierr=VecSetSizes(mR,nl,ng); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(mR); CHKERRQ(ierr);
+        ierr=VecSet(mR,0.0); CHKERRQ(ierr);
+
+        ierr=VecCreate(PETSC_COMM_WORLD,&mT); CHKERRQ(ierr);
+        ierr=VecSetSizes(mT,nl,ng); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(mT); CHKERRQ(ierr);
+        ierr=VecSet(mT,0.0); CHKERRQ(ierr);
+
+/*
+        // if not yet allocted, do so
+        if (v == NULL){
+            try{ v = new VecField(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+*/
+        // restrict image data
+        ierr=this->m_Prepoc->Restrict(mR,this->m_ReferenceImage,nxres); CHKERRQ(ierr);
+        ierr=this->m_Prepoc->Restrict(mT,this->m_TemplateImage,nxres); CHKERRQ(ierr);
+        //ierr=this->m_Prepoc->Restrict(v,this->m_Solution,nxres); CHKERRQ(ierr);
+
+        // set number of grid points
+        this->m_Opt->SetNumGridPoints(0,nxres[0]);
+        this->m_Opt->SetNumGridPoints(1,nxres[1]);
+        this->m_Opt->SetNumGridPoints(2,nxres[2]);
+
+        // reset optimizer and registration problem
+        if (this->m_Optimizer!=NULL){
+            delete this->m_Optimizer; this->m_Optimizer=NULL;
+        }
+        if (this->m_RegProblem!=NULL){
+            delete this->m_RegProblem; this->m_RegProblem=NULL;
+        }
+
+        // reinitiate problem
+        ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
         // do the setup
         ierr=this->SetupRegProblem(); CHKERRQ(ierr);
@@ -1094,98 +1215,34 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=Assert(this->m_Optimizer!= NULL,"optimizer is null"); CHKERRQ(ierr);
         ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
 
-        // set up synthetic test problem
-        ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
+        // set optimization problem
+        ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
-        // make sure images have not been set
-        ierr=Assert(this->m_TemplateImage==NULL,"template image is not null"); CHKERRQ(ierr);
-        ierr=Assert(this->m_ReferenceImage==NULL,"reference image is not null"); CHKERRQ(ierr);
+        // set initial guess for current level
+        //ierr=this->m_Optimizer->SetInitialGuess(this->m_InitialGuess); CHKERRQ(ierr);
 
         // pass images
-        ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
-        ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
-    }
+        ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
 
-    // check if images have been set
-    ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
-    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
+        // run the optimization
+        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
+        // reset number of grid points
+        this->m_Opt->SetNumGridPoints(0,nxlevel[nlevels-1][0]);
+        this->m_Opt->SetNumGridPoints(1,nxlevel[nlevels-1][1]);
+        this->m_Opt->SetNumGridPoints(2,nxlevel[nlevels-1][2]);
 
-    // compute number of levels
-    nxmin = this->m_Opt->GetDomainPara().nx[0];
-    for (int i = 1; i < 3; ++i){
-        nxi = this->m_Opt->GetDomainPara().nx[i];
-        nxmin = nxmin < nxi ? nxmin : nxi;
-    }
-
-    maxlevel = static_cast<int>(std::ceil(std::log2(static_cast<ScalarType>(nxmin))));
-    minlevel = this->m_Opt->GetGridContPara().minlevel;
-    nlevels  = maxlevel-minlevel;
-
-    nx.resize(nlevels);
-    for (int i = 0; i < nlevels; ++i) nx[i].resize(3);
-
-    level=0;
-    while (level < nlevels){
-
-        j = nlevels - (level+1);
-
-        for (int i = 0; i < 3; ++i){
-            if (level == 0) nx[j][i] = this->m_Opt->GetDomainPara().nx[i];
-            else{
-                nxii = static_cast<ScalarType>(nx[j+1][i]);
-                nx[j][i] = static_cast<IntType>( std::ceil(nxii/2.0) );
-            }
-        }
-
-        ++level;
-
-    }
-
-
-    level=0;
-    while (level < nlevels){
-
-        // set number of grid points
-        this->m_Opt->SetNumGridPoints(0,nx[level][0]);
-        this->m_Opt->SetNumGridPoints(1,nx[level][1]);
-        this->m_Opt->SetNumGridPoints(2,nx[level][2]);
-
-        // reset
+        // reinitiate problem (move back to original grid size)
         ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
-        nl = this->m_Opt->GetDomainPara().nlocal;
-        ng = this->m_Opt->GetDomainPara().nglobal;
-
-        // display message to user
-        ss << std::scientific << "level " << std::setw(3) << level
-            <<" nx=("<< std::setw(4) << nx[level][0]
-            <<","    << std::setw(4) << nx[level][1]
-            <<","    << std::setw(4) << nx[level][2]
-            << "); (nl,ng)=("<< nl << "," << ng << ")";
-        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
-        ss.str( std::string() ); ss.clear();
-
-
-        // allocate images
-        ierr=VecCreate(PETSC_COMM_WORLD,&mR); CHKERRQ(ierr);
-        ierr=VecSetSizes(mR,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mR); CHKERRQ(ierr);
-
-        ierr=VecCreate(PETSC_COMM_WORLD,&mT); CHKERRQ(ierr);
-        ierr=VecSetSizes(mT,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mT); CHKERRQ(ierr);
-
-
-        ierr=this->m_Prepoc->Prolong(mR,mR); CHKERRQ(ierr);
-
-
+        // destroy image data
+        ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL;
+        ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL;
 
         ++level; /// increment level
 
     }
-
-
 
 
     PetscFunctionReturn(0);

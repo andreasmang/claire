@@ -1,15 +1,20 @@
 #ifndef _VECFIELD_CPP_
 #define _VECFIELD_CPP_
 
+
+
 #include "VecField.hpp"
+
 
 
 namespace reg
 {
 
+
+
+
 /********************************************************************
- * Name: VectoField
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "VecField"
@@ -19,9 +24,10 @@ VecField::VecField()
 }
 
 
+
+
 /********************************************************************
- * Name: ~VecField
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~VecField"
@@ -31,25 +37,39 @@ VecField::~VecField(void)
 }
 
 
+
+
 /********************************************************************
- * Name: VecField
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "VecField"
 VecField::VecField(RegOpt* opt)
 {
     this->Initialize();
-    this->m_Opt = opt;
-
+    this->SetOpt(opt);
     this->Allocate();
 }
 
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init variables
+ * @brief constructor
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "VecField"
+VecField::VecField(IntType nl, IntType ng)
+{
+    this->Initialize();
+    this->Allocate(nl,ng);
+
+}
+
+
+
+
+/********************************************************************
+ * @brief init variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -68,9 +88,10 @@ PetscErrorCode VecField::Initialize(void)
 }
 
 
+
+
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -86,9 +107,30 @@ PetscErrorCode VecField::ClearMemory(void)
     PetscFunctionReturn(0);
 }
 
+
+
+
 /********************************************************************
- * Name: Allocate
- * Description: function to allocate vector field
+ * @brief set the options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetOpt"
+PetscErrorCode VecField::SetOpt(RegOpt* opt)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(opt!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_Opt = opt;
+
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * @brief function to allocate vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Allocate"
@@ -101,8 +143,8 @@ PetscErrorCode VecField::Allocate()
     // make sure, that all pointers are deallocated
     ierr=this->ClearMemory(); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetNLocal();
-    ng = this->m_Opt->GetNGlobal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     // allocate vector field
     ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X1); CHKERRQ(ierr);
@@ -117,9 +159,39 @@ PetscErrorCode VecField::Allocate()
 }
 
 
+
 /********************************************************************
- * Name: Copy
- * Description: Copy
+ * @brief function to allocate vector field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Allocate"
+PetscErrorCode VecField::Allocate(IntType nl, IntType ng)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    // make sure, that all pointers are deallocated
+    ierr=this->ClearMemory(); CHKERRQ(ierr);
+
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X1); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X1,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
+
+    // pass options
+    ierr=VecDuplicate(this->m_X1,&this->m_X2); CHKERRQ(ierr);
+    ierr=VecDuplicate(this->m_X1,&this->m_X3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+
+/********************************************************************
+ * @brief Copy
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Copy"
@@ -139,8 +211,7 @@ PetscErrorCode VecField::Copy(VecField* v)
 
 
 /********************************************************************
- * Name: SetValue
- * Description: set value
+ * @brief set value
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetValue"
@@ -158,9 +229,9 @@ PetscErrorCode VecField::SetValue(ScalarType value)
 
 
 
+
 /********************************************************************
- * Name: SetComponents
- * Description: sets the individual components of a vector field;
+ * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
  *******************************************************************/
 #undef __FUNCT__
@@ -188,18 +259,17 @@ PetscErrorCode VecField::SetComponents(Vec w)
 
     //compute size of each individual component
     nl = n / 3;
+    ierr=Assert(nl==this->m_Opt->GetDomainPara().nlocal,"dimension mismatch"); CHKERRQ(ierr);
 
-    ierr=Assert(nl == this->m_Opt->GetNLocal(),"dimension mismatch"); CHKERRQ(ierr);
-
-//#pragma omp parallel
-//{
-//#pragma omp for
+#pragma omp parallel
+{
+#pragma omp for
     for (IntType i = 0; i < nl; ++i){
         p_x1[i] = p_w[i     ];
         p_x2[i] = p_w[i+  nl];
         p_x3[i] = p_w[i+2*nl];
     }
-//} // pragma omp parallel
+} // pragma omp parallel
 
 
     ierr=VecRestoreArrayRead(w,&p_w); CHKERRQ(ierr);
@@ -212,9 +282,10 @@ PetscErrorCode VecField::SetComponents(Vec w)
 }
 
 
+
+
 /********************************************************************
- * Name: Scale
- * Description: scale vector by scalar value
+ * @brief scale vector by scalar value
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Scale"
@@ -231,16 +302,17 @@ PetscErrorCode VecField::Scale(ScalarType value)
 }
 
 
+
+
 /********************************************************************
- * Name: Scale
- * Description: pointwise scale of vector field
+ * @brief pointwise scale of vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Scale"
 PetscErrorCode VecField::Scale(Vec s)
 {
     PetscErrorCode ierr;
-    IntType nlocal; //,i1,i2,i3;
+    IntType nl;
     ScalarType *p_vx1,*p_vx2,*p_vx3,*p_s;
 
     PetscFunctionBegin;
@@ -252,13 +324,12 @@ PetscErrorCode VecField::Scale(Vec s)
     ierr=VecGetArray(this->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_X3,&p_vx3); CHKERRQ(ierr);
 
-    // get n local
-    nlocal = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i = 0; i < nlocal; ++i){
+    for (IntType i = 0; i < nl; ++i){
         ScalarType scale = p_s[i];
         p_vx1[i] = scale*p_vx1[i];
         p_vx2[i] = scale*p_vx2[i];
@@ -276,16 +347,18 @@ PetscErrorCode VecField::Scale(Vec s)
     PetscFunctionReturn(0);
 }
 
+
+
+
 /********************************************************************
- * Name: Scale
- * Description: pointwise scale of a vector field
+ * @brief pointwise scale of a vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Scale"
 PetscErrorCode VecField::Scale(VecField* v,Vec s)
 {
     PetscErrorCode ierr;
-    IntType nlocal;
+    IntType nl;
     ScalarType *p_vx1,*p_vx2,*p_vx3,*p_s,*p_svx1,*p_svx2,*p_svx3;
 
     PetscFunctionBegin;
@@ -301,13 +374,12 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
     ierr=VecGetArray(v->m_X2,&p_svx2); CHKERRQ(ierr);
     ierr=VecGetArray(v->m_X3,&p_svx3); CHKERRQ(ierr);
 
-    // get n local
-    nlocal = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i = 0; i < nlocal; ++i){
+    for (IntType i = 0; i < nl; ++i){
         ScalarType scale = p_s[i];
         p_svx1[i] = scale*p_vx1[i];
         p_svx2[i] = scale*p_vx2[i];
@@ -330,9 +402,10 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
 }
 
 
+
+
 /********************************************************************
- * Name: GetVectorComponents
- * Description: get components of vector field and store them
+ * @brief get components of vector field and store them
  * in a flat vector
  *******************************************************************/
 #undef __FUNCT__
@@ -340,7 +413,7 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
 PetscErrorCode VecField::GetComponents(Vec w)
 {
     PetscErrorCode ierr;
-    IntType nlocal;
+    IntType nl;
     PetscInt n;
     ScalarType *p_x1,*p_x2,*p_x3,*p_w;
 
@@ -355,18 +428,18 @@ PetscErrorCode VecField::GetComponents(Vec w)
     ierr=VecGetArray(this->m_X3,&p_x3); CHKERRQ(ierr);
 
     //compute size of each individual component
-    nlocal = n / 3;
+    nl = n / 3;
 
-//#pragma omp parallel
-//{
-//#pragma omp for
-    for (IntType i = 0; i < nlocal; ++i){
-        p_w[i]          = p_x1[i];
-        p_w[i+  nlocal] = p_x2[i];
-        p_w[i+2*nlocal] = p_x3[i];
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType i = 0; i < nl; ++i){
+        p_w[i     ] = p_x1[i];
+        p_w[i+  nl] = p_x2[i];
+        p_w[i+2*nl] = p_x3[i];
 
     }
-//} // pragma omp parallel
+} // pragma omp parallel
 
     ierr=VecRestoreArray(w,&p_w); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_X1,&p_x1); CHKERRQ(ierr);

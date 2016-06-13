@@ -81,7 +81,7 @@ public:
     virtual PetscErrorCode FinalizeIteration(Vec) = 0;
 
     /*! finalize registration */
-    virtual PetscErrorCode Finalize(Vec) = 0;
+    virtual PetscErrorCode Finalize(VecField*) = 0;
 
     /*! apply two level preconditioner */
     virtual PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec) = 0;

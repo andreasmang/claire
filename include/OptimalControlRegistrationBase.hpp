@@ -105,7 +105,7 @@ public:
     virtual PetscErrorCode FinalizeIteration(Vec) = 0;
 
     /*! finalize the registration */
-    virtual PetscErrorCode Finalize(Vec) = 0;
+    virtual PetscErrorCode Finalize(VecField*) = 0;
 
     /*! function that checks bounds in parameter continuation */
     virtual PetscErrorCode CheckBounds(Vec,bool&);

@@ -795,9 +795,9 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
         accfft_cleanup();
     }
 
+    // get sizes
     alloc_max = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
-    u = (ScalarType*)accfft_alloc(alloc_max);
-    uk = (Complex*)accfft_alloc(alloc_max);
+    this->m_FFT.nalloc = static_cast<IntType>(alloc_max);
 
     // compute global and local size
     this->m_Domain.nlocal = 1;
@@ -818,7 +818,11 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
     ierr=reg::Assert(this->m_Domain.nlocal > 0,"bug in setup"); CHKERRQ(ierr);
     ierr=reg::Assert(this->m_Domain.nglobal > 0,"bug in setup"); CHKERRQ(ierr);
 
+
     // set up the fft
+    u = (ScalarType*)accfft_alloc(alloc_max);
+    uk = (Complex*)accfft_alloc(alloc_max);
+
     fftsetuptime=-MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_FFT.mpicomm,ACCFFT_MEASURE);
     fftsetuptime+=MPI_Wtime();

@@ -71,7 +71,6 @@ PetscErrorCode Optimizer::Initialize(void)
 
     this->m_Tao = NULL;
     this->m_Solution = NULL;
-    this->m_InitialGuess = NULL;
     this->m_OptimizationProblem = NULL;
 
     PetscFunctionReturn(0);
@@ -112,16 +111,27 @@ PetscErrorCode Optimizer::ClearMemory(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetInitialGuess"
-PetscErrorCode Optimizer::SetInitialGuess(Vec x0)
+PetscErrorCode Optimizer::SetInitialGuess(VecField* x)
 {
     PetscErrorCode ierr;
     IntType nlu,ngu;
 
     PetscFunctionBegin;
 
+    // compute the number of unknowns
+    nlu = 3*this->m_Opt->GetDomainPara().nlocal;
+    ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+
+    if(this->m_Solution==NULL){
+        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
+        ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
+        ierr=VecSet(this->m_Solution,0.0); CHKERRQ(ierr);
+    }
+
     // the input better is not zero
-    ierr=Assert(x0!=NULL,"null pointer"); CHKERRQ(ierr);
-    this->m_InitialGuess = x0;
+    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=x->GetComponents(this->m_Solution); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -141,27 +151,21 @@ PetscErrorCode Optimizer::SetInitialGuess()
 
     PetscFunctionBegin;
 
-    // if we pass the initial vector to tao, tao
-    // should have been set up and the initial vector
-    // should have been set
+    nlu = 3*this->m_Opt->GetDomainPara().nlocal;
+    ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+
+    // check if tao has been set up
     ierr=Assert(this->m_Tao!=NULL,"tao is null"); CHKERRQ(ierr);
-    ierr=Assert(this->m_InitialGuess != NULL,"null pointer"); CHKERRQ(ierr);
 
-    nlu = 3*this->m_Opt->GetNLocal();
-    ngu = 3*this->m_Opt->GetNGlobal();
-
-
-    if (this->m_Solution == NULL){
+    if(this->m_Solution==NULL){
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
+        ierr=VecSet(this->m_Solution,0.0); CHKERRQ(ierr);
     }
 
-    // initial guess is best solution we have found thus far
-    ierr=VecCopy(this->m_InitialGuess,this->m_Solution); CHKERRQ(ierr);
-
     // parse initial guess to tao
-    ierr=TaoSetInitialVector(this->m_Tao,this->m_InitialGuess); CHKERRQ(ierr);
+    ierr=TaoSetInitialVector(this->m_Tao,this->m_Solution); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -211,8 +215,8 @@ PetscErrorCode Optimizer::SetupTao()
     ierr=Assert(this->m_OptimizationProblem !=NULL,"optimization problem not set"); CHKERRQ(ierr);
 
     // compute the number of unknowns
-    nlu = 3*this->m_Opt->GetNLocal();
-    ngu = 3*this->m_Opt->GetNGlobal();
+    nlu = 3*this->m_Opt->GetDomainPara().nlocal;
+    ngu = 3*this->m_Opt->GetDomainPara().nglobal;
 
     // if tao exists, kill it
     if(this->m_Tao != NULL){

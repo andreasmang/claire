@@ -66,7 +66,7 @@ public:
     PetscErrorCode FinalizeIteration(Vec);
 
     /*! finalize registration */
-    PetscErrorCode Finalize(Vec);
+    PetscErrorCode Finalize(VecField*);
 
     /*! piccard iteration */
     PetscErrorCode PiccardIteration(Vec);
