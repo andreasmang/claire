@@ -278,7 +278,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
     PetscFunctionBegin;
 
     // check for null pointer
-    ierr=Assert(v != NULL, "input velocity field is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v!=NULL,"input velocity field is null pointer"); CHKERRQ(ierr);
 
     // check input vector size
     nl = this->m_Opt->GetNLocal();
@@ -300,6 +300,36 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
 
 }
 
+
+
+
+/********************************************************************
+ * @brief set velocity field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetVelocityField"
+PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(VecField* v)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    // check for null pointer
+    ierr=Assert(v!=NULL,"input velocity field is null pointer"); CHKERRQ(ierr);
+
+    // allocate velocity field
+    if(this->m_VelocityField == NULL){
+        try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // copy buffer
+    ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+
+}
 
 
 

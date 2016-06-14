@@ -1323,7 +1323,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 {
     PetscErrorCode ierr=0;
     IntType nl,ng,nt;
-    ScalarType *p_m=NULL,*p_m0=NULL;
+    ScalarType *p_m=NULL,*p_m0=NULL,*p_mj=NULL;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -1397,6 +1397,42 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
     } // velocity field is zero
 
     ierr=this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
+
+
+    // store time series
+    if (this->m_Opt->GetRegFlags().storetimeseries ){
+
+        if (this->m_WorkScaField1 == NULL){
+            ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        }
+        ierr=Assert(this->m_IO!=NULL,"null pointer"); CHKERRQ(ierr);
+
+        // store time history
+        ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+
+        // store individual time points
+        for (IntType j = 0; j < nt; ++j){
+
+            ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+            try{ std::copy(p_m+j*nl,p_m+(j+1)*nl,p_mj); }
+            catch(std::exception&){
+                ierr=ThrowError("copying of data failed"); CHKERRQ(ierr);
+            }
+            ierr=VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+
+            // write out
+            ss.str(std::string()); ss.clear();
+            ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ".nii.gz";
+            ierr=this->m_IO->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
+
+        } // for number of time points
+
+        ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+
+
+    }
+
+
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
@@ -3193,7 +3229,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // store iterates
-    if ( this->m_Opt->StoreIterates() ){
+    if ( this->m_Opt->GetRegFlags().storeiterates ){
 
         // copy memory for m_1
         ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
@@ -3320,7 +3356,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     ierr=this->m_Opt->ProcessTimers(); CHKERRQ(ierr);
 
     // write log file
-    if (this->m_Opt->LoggingEnabled()){
+    if (this->m_Opt->GetRegFlags().loggingenabled){
         ierr=this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
     }
 
@@ -3334,7 +3370,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     ierr=VecNorm(this->m_WorkScaField1,NORM_2,&mRmT_2); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField1,NORM_INFINITY,&mRmT_infty); CHKERRQ(ierr);
 
-    if( this->m_Opt->WriteImages() == true ){
+    if(this->m_Opt->GetRegFlags().storeresults){
 
         ierr=Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -3370,7 +3406,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     ierr=VecNorm(this->m_WorkScaField2,NORM_2,&mRm1_2); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField2,NORM_INFINITY,&mRm1_infty); CHKERRQ(ierr);
 
-    if( this->m_Opt->WriteImages() == true ){
+    if(this->m_Opt->GetRegFlags().storeresults){
 
         ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
@@ -3386,15 +3422,19 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         ierr=VecPointwiseMult(this->m_WorkScaField2,this->m_VelocityField->m_X2,this->m_VelocityField->m_X2); CHKERRQ(ierr);
         ierr=VecPointwiseMult(this->m_WorkScaField3,this->m_VelocityField->m_X3,this->m_VelocityField->m_X3); CHKERRQ(ierr);
 
-        ierr=VecAXPY(this->m_WorkScaField1,1.0,this->m_WorkScaField2); CHKERRQ(ierr);
-        ierr=VecAXPY(this->m_WorkScaField1,1.0,this->m_WorkScaField3); CHKERRQ(ierr);
-        ierr=VecSqrtAbs(this->m_WorkScaField1); CHKERRQ(ierr);
-        ierr=this->m_IO->Write(this->m_WorkScaField1,"velocity-field-2norm"+ext); CHKERRQ(ierr);
+    }
+
+
+    if(this->m_Opt->GetRegFlags().storedefgrad){
 
         // determinant of deformation gradient out
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
         ierr=Assert( this->m_WorkScaField1 != NULL, "null pointer"); CHKERRQ(ierr);
         ierr=this->m_IO->Write(this->m_WorkScaField1,"det-deformation-grad"+ext); CHKERRQ(ierr);
+
+    }
+
+    if(this->m_Opt->GetRegFlags().storedefmap){
 
         ierr=this->ComputeDeformationMap(); CHKERRQ(ierr);
         ierr=Assert( this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -3413,7 +3453,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     drrel_infty=mRm1_infty/mRmT_infty;
     drrel_2=mRm1_2/mRmT_2;
 
-    if (this->m_Opt->LoggingEnabled()){
+    if (this->m_Opt->GetRegFlags().loggingenabled){
 
         if (rank == 0){
 

@@ -234,6 +234,16 @@ struct FourierTransform{
 };
 
 
+struct RegFlags{
+    bool readimages;
+    bool storetimeseries;
+    bool storeiterates;
+    bool storedefgrad;
+    bool storedefmap;
+    bool storeresults;
+    bool loggingenabled;
+};
+
 
 
 class RegOpt
@@ -268,6 +278,7 @@ public:
     inline GridCont GetGridContPara(){return this->m_GridCont;};
     inline ScaleCont GetScaleContPara(){return this->m_ScaleCont;};
     inline ParCont GetParaContPara(){return this->m_ParaCont;};
+    inline RegFlags GetRegFlags(){return this->m_RegFlags;};
 
     // time horizon, step size, and ....
     inline void SetNumTimePoints(IntType nt){ this->m_Domain.nt=nt; };
@@ -279,19 +290,15 @@ public:
     FourierTransform GetFFT(){return this->m_FFT;};
 
     // control input and output
-    inline std::string GetIFolder(void){return this->m_IFolder;};
     inline std::string GetXFolder(void){return this->m_XFolder;};
+    inline std::string GetIFolder(void){return this->m_IFolder;};
     inline std::string GetXExtension(void){return this->m_XExtension;};
-    inline std::string GetTemplateFN(){return this->m_TemplateFN;};
-    inline std::string GetReferenceFN(){return this->m_ReferenceFN;};
-    inline bool ReadImagesFromFile(){return this->m_ReadImagesFromFile;};
-    inline void ReadImagesFromFile(bool flag){this->m_ReadImagesFromFile=flag;};
+
+    inline std::string GetTemplateFN(void){return this->m_TemplateFN;};
+    inline std::string GetReferenceFN(void){return this->m_ReferenceFN;};
+
     inline accfft_plan* GetFFTPlan(){return this->m_FFT.plan;};
     inline MPI_Comm GetComm(){return this->m_FFT.mpicomm;};
-
-    // flags
-    inline bool StoreTimeSeries(){return this->m_StoreTimeSeries;};
-    inline bool StoreIterates(){return this->m_StoreIterates;};
 
     // registration model
     inline RegModel GetRegModel(void){return this->m_RegModel;};
@@ -364,9 +371,6 @@ public:
     inline ScalarType GetKKTSolverTol(int i){return this->m_KKTSolverPara.tol[i];};
     inline int GetKKTMaxit(){return this->m_KKTSolverPara.maxit;};
 
-    inline bool WriteImages(){return this->m_WriteImages;};
-    inline void WriteImages(bool flag){this->m_WriteImages = flag;};
-    inline bool LoggingEnabled(){return this->m_WriteLogFiles;};
     inline int GetVerbosity(){return this->m_Verbosity;};
 
     int GetLineLength(){return this->m_LineLength;};
@@ -408,15 +412,18 @@ private:
     GridCont m_GridCont; ///< flags for grid continuation
     ScaleCont m_ScaleCont; ///< flags for scale continuation
     Domain m_Domain; ///< parameters for spatial domain
-    RegModel m_RegModel;
-    FourierTransform m_FFT;
-
+    RegModel m_RegModel; ///< flag for particular registration model
+    FourierTransform m_FFT; ///< parameters for FFT/accfft
+    RegFlags m_RegFlags; ///< flags for registration
 
     std::string m_XFolder; ///< identifier for folder to write results to
+    std::string m_IFolder; ///< identifier for folder to read in results from
     std::string m_XExtension; ///< identifier for extension of files to be written to file
-    std::string m_IFolder; ///< identifier for folder to read data from
     std::string m_TemplateFN; ///< template image file name
     std::string m_ReferenceFN; ///< reference image file name
+    std::string m_VelocityX1FN; ///< x1-velocity field file name
+    std::string m_VelocityX2FN; ///< x2-velocity field file name
+    std::string m_VelocityX3FN; ///< x3-velocity field file name
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];
@@ -428,13 +435,8 @@ private:
     int m_CartGridDims[2];
     unsigned int m_NumThreads;
     const unsigned int m_LineLength = 101;
-    bool m_StoreTimeSeries;
-    bool m_StoreIterates;
-    bool m_SetupDone;
 
-    bool m_WriteImages;
-    bool m_WriteLogFiles;
-    bool m_ReadImagesFromFile;
+    bool m_SetupDone;
 
     ScalarType m_Sigma[3];
     SolveType m_SolveType;

@@ -155,9 +155,32 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_TemplateFN = argv[1];
         }
+        else if(strcmp(argv[1],"-vx1") == 0){
+            argc--; argv++;
+            this->m_VelocityX1FN = argv[1];
+        }
+        else if(strcmp(argv[1],"-vx2") == 0){
+            argc--; argv++;
+            this->m_VelocityX2FN = argv[1];
+        }
+        else if(strcmp(argv[1],"-vx3") == 0){
+            argc--; argv++;
+            this->m_VelocityX3FN = argv[1];
+        }
         else if(strcmp(argv[1],"-x") == 0){
             argc--; argv++;
             this->m_XFolder = argv[1];
+            this->m_RegFlags.storeresults=true;
+        }
+        else if(strcmp(argv[1],"-xdefgrad") == 0){
+            this->m_RegFlags.storedefgrad = true;
+        }
+        else if(strcmp(argv[1],"-xdefmap") == 0){
+            this->m_RegFlags.storedefmap = true;
+        }
+        else if(strcmp(argv[1],"-i") == 0){
+            argc--; argv++;
+            this->m_IFolder = argv[1];
         }
         else if(strcmp(argv[1],"-preset") == 0){
             argc--; argv++;
@@ -185,11 +208,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-ric") == 0){
             this->m_RegModel = RELAXEDSTOKES;
         }
-        else if(strcmp(argv[1],"-xresults") == 0){
-            this->m_WriteImages = true;
-        }
         else if(strcmp(argv[1],"-xlog") == 0){
-            this->m_WriteLogFiles = true;
+            this->m_RegFlags.loggingenabled = true;
         }
         else if (strcmp(argv[1],"-optmeth") == 0){
             argc--; argv++;
@@ -241,10 +261,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
                 ierr=this->Usage(); CHKERRQ(ierr);
             }
-        }
-        else if(strcmp(argv[1],"-x") == 0){
-            argc--; argv++;
-            this->m_XFolder = argv[1];
         }
         else if (strcmp(argv[1],"-pdesolver") == 0){
             argc--; argv++;
@@ -343,8 +359,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-jmonitor") == 0){
             this->m_RegMonitor.monitorJAC = true;
         }
-        else if(strcmp(argv[1],"-storeiter") == 0){
-            this->m_StoreIterates = true;
+        else if(strcmp(argv[1],"-storeiterates") == 0){
+            this->m_RegFlags.storeiterates = true;
+        }
+        else if(strcmp(argv[1],"-storetimeseries") == 0){
+            this->m_RegFlags.storetimeseries = true;
         }
         else {
             msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
@@ -443,9 +462,6 @@ PetscErrorCode RegOpt::Initialize()
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
-    this->m_WriteImages = false;
-    this->m_WriteLogFiles = false;
-
     this->m_KKTSolverPara.tol[0] = 1E-12; // relative tolerance
     this->m_KKTSolverPara.tol[1] = 1E-12; // absolute tolerance
     this->m_KKTSolverPara.tol[2] = 1E+06; // divergence tolerance
@@ -460,9 +476,13 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_SolveType = NOTSET;
 
-    this->m_ReadImagesFromFile = false;
-    this->m_StoreIterates = false;
-    this->m_StoreTimeSeries = false;
+    this->m_RegFlags.readimages = false;
+    this->m_RegFlags.storetimeseries = false;
+    this->m_RegFlags.storeiterates = false;
+    this->m_RegFlags.storeresults = false;
+    this->m_RegFlags.storedefgrad = false;
+    this->m_RegFlags.storedefmap = false;
+    this->m_RegFlags.loggingenabled = false;
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;
@@ -535,6 +555,9 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         // ####################### advanced options #######################
         if (advanced)
         {
+        std::cout << " -vx1 <file>               x1 component of velocity field (*.nii, *.nii.gz, *.hdr)"<<std::endl;
+        std::cout << " -vx2 <file>               x2 component of velocity field (*.nii, *.nii.gz, *.hdr)"<<std::endl;
+        std::cout << " -vx3 <file>               x3 component of velocity field (*.nii, *.nii.gz, *.hdr)"<<std::endl;
         std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;"<<std::endl;
         std::cout << "                           units: voxel size; if only one parameter is set"<<std::endl;
         std::cout << "                           uniform smoothing is assumed)"<<std::endl;
@@ -542,13 +565,15 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         // ####################### advanced options #######################
 
         std::cout << line << std::endl;
-        std::cout << " -x <path>                 output path (what's written out is controlled by the flags below)"<<std::endl;
+        std::cout << " -x <path>                 output path (by default only deformed template image and velocity"<<std::endl;
+        std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
         std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout << " -xresults                 flag: write results to file (requires -x option)"<<std::endl;
 
         // ####################### advanced options #######################
         if (advanced)
         {
+        std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
+        std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
         std::cout << " -xlog                     flag: write log files (requires -x option)"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters"<<std::endl;
@@ -624,7 +649,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout << " other parameters"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
-        std::cout << " -storeiter                store iterates (deformed template image and velocity field)"<<std::endl;
+        std::cout << " -storeiterates            store iterates (deformed template image and velocity field)"<<std::endl;
         std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
         }
@@ -656,7 +681,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
 PetscErrorCode RegOpt::CheckArguments()
 {
     PetscErrorCode ierr;
-    bool readmR=false,readmT=false;
+    bool readmR=false,readmT=false,flag;
     ScalarType betav;
 
     std::string msg;
@@ -674,7 +699,7 @@ PetscErrorCode RegOpt::CheckArguments()
         msg = "file " + this->m_ReferenceFN + "does not exist";
         ierr=Assert(FileExists(this->m_ReferenceFN),msg); CHKERRQ(ierr);
 
-        this->ReadImagesFromFile(true);
+        this->m_RegFlags.readimages=true;
     }
     else if( (readmT == false) && readmR ) {
         msg="\x1b[31m you need to also assign a template image\x1b[0m\n";
@@ -687,7 +712,7 @@ PetscErrorCode RegOpt::CheckArguments()
         ierr=this->Usage(); CHKERRQ(ierr);
     }
     else if( (readmT == false) && (readmR == false) ){
-        this->ReadImagesFromFile(false);
+        this->m_RegFlags.readimages=false;
     }
 
     this->m_XExtension = ".nii.gz";
@@ -713,6 +738,22 @@ PetscErrorCode RegOpt::CheckArguments()
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
         ierr=this->Usage(); CHKERRQ(ierr);
     }
+
+    // check output arguments
+    if (   this->m_RegFlags.storeresults
+        || this->m_RegFlags.storedefgrad
+        || this->m_RegFlags.storedefmap
+        || this->m_RegFlags.storetimeseries
+        || this->m_RegFlags.loggingenabled ){
+
+        if ( this->m_XFolder.empty() ){
+            msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
+            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
+        }
+
+    }
+
 
     PetscFunctionReturn(0);
 }

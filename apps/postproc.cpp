@@ -21,24 +21,26 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
+#include "VecField.hpp"
 #include "ReadWriteReg.hpp"
 #include "RegistrationInterface.hpp"
 
 
 
 /********************************************************************
- * @brief main function to run registration
+ * @brief post process image registration results
  *******************************************************************/
 int main(int argc,char **argv)
 {
     PetscErrorCode ierr;
     int procid,nprocs;
-    Vec mT=NULL,mR=NULL;
+    std::string ifolder,filename;
+    Vec mT=NULL,mR=NULL,vx1=NULL,vx2=NULL,vx3=NULL;
+    reg::VecField *v=NULL;
 
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     reg::RegistrationInterface* registration = NULL;
-
 
     // initialize petsc (user is not allowed to set petsc options)
     ierr=PetscInitialize(0,(char***)NULL,(char*)NULL,(char*)NULL); CHKERRQ(ierr);
@@ -60,29 +62,58 @@ int main(int argc,char **argv)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    // allocate class for io
+    ifolder=regopt->GetIFolder();
+    ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
+
+    // read template image
+    filename = ifolder + "template-image.nii.gz";
+    ierr=readwrite->Read(&mT,filename); CHKERRQ(ierr);
+    ierr=reg::Assert(mT!=NULL,"null pointer"); CHKERRQ(ierr);
+    if ( !regopt->SetupDone() ){
+        ierr=regopt->DoSetup(); CHKERRQ(ierr);
+    }
+
+    // read reference image
+    filename = ifolder + "reference-image.nii.gz";
+    ierr=readwrite->Read(&mR,filename); CHKERRQ(ierr);
+    ierr=reg::Assert(mR!=NULL,"null pointer"); CHKERRQ(ierr);
+    if ( !regopt->SetupDone() ){
+        ierr=regopt->DoSetup(); CHKERRQ(ierr);
+    }
+
+    // allocate container for velocity field
+    try{ v = new reg::VecField(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read velocity components
+    filename = ifolder + "velocity-field-x1.nii.gz";
+    ierr=readwrite->Read(&vx1,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vx1,v->m_X1); CHKERRQ(ierr);
+
+    filename = ifolder + "velocity-field-x2.nii.gz";
+    ierr=readwrite->Read(&vx2,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vx2,v->m_X2); CHKERRQ(ierr);
+
+    filename = ifolder + "velocity-field-x3.nii.gz";
+    ierr=readwrite->Read(&vx3,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vx3,v->m_X3); CHKERRQ(ierr);
+
+    // allocate class for registration interface
     try{ registration = new reg::RegistrationInterface(regopt); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    if(regopt->GetRegFlags().readimages){
-
-        ierr=readwrite->Read(&mR,regopt->GetReferenceFN()); CHKERRQ(ierr);
-        ierr=reg::Assert(mR!=NULL, "input reference image is null pointer"); CHKERRQ(ierr);
-
-        ierr=readwrite->Read(&mT,regopt->GetTemplateFN()); CHKERRQ(ierr);
-        ierr=reg::Assert(mT!=NULL, "input template image is null pointer"); CHKERRQ(ierr);
-
-        // pass to registration
-        ierr=registration->SetReferenceImage(mR); CHKERRQ(ierr);
-        ierr=registration->SetTemplateImage(mT); CHKERRQ(ierr);
-
-    }
-    else{ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
-
+    // set all we need
     ierr=registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-    ierr=registration->Run(); CHKERRQ(ierr);
+    ierr=registration->SetReferenceImage(mR); CHKERRQ(ierr);
+    ierr=registration->SetTemplateImage(mT); CHKERRQ(ierr);
+    ierr=registration->SetInitialGuess(v); CHKERRQ(ierr);
+
+    // run post processing
+    ierr=registration->RunPostProcessing(); CHKERRQ(ierr);
 
     // clean up
     if (regopt != NULL){ delete regopt; regopt = NULL; }
@@ -90,13 +121,10 @@ int main(int argc,char **argv)
     if (registration != NULL){ delete registration; registration = NULL; }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
+    if (v!=NULL){ delete v; v=NULL; }
 
     // clean up petsc
     ierr=PetscFinalize(); CHKERRQ(ierr);
 
     return 0;
 }
-
-
-
-

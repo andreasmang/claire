@@ -44,15 +44,20 @@ struct DataPyramidNode{
 class MultiLevelPyramid
 {
 
-
 public:
+
     MultiLevelPyramid();
     MultiLevelPyramid(RegOpt*);
     ~MultiLevelPyramid();
 
     typedef struct DataPyramidNode DataType;
-    PetscErrorCode GetLevel(int);
-    PetscErrorCode SetUp();
+    PetscErrorCode GetLevel(Vec*,int);
+    PetscErrorCode GetLevel(Vec,int);
+    PetscErrorCode SetUp(Vec);
+    int GetNumLevels(){return this->m_NumLevels;};
+    IntType GetNumGridPoints(int level,int i){return this->m_nx[level][i];};
+    IntType GetNLocal(int level){return this->m_nlocal[level];};
+    IntType GetNGlobal(int level){return this->m_nglobal[level];};
 
 private:
 
@@ -60,6 +65,7 @@ private:
     PetscErrorCode AllocatePyramid();
     PetscErrorCode Allocate(Vec*,IntType,IntType);
     PetscErrorCode ClearMemory();
+    PetscErrorCode SetData(Vec,int);
     PetscErrorCode ComputeGridSize();
     PetscErrorCode DisplayLevelMsg(int);
 
@@ -86,11 +92,14 @@ private:
     RegOpt* m_Opt;
 
     std::vector<std::vector<IntType>> m_nx;
+    std::vector<std::vector<IntType>> m_isize;
+    std::vector<std::vector<IntType>> m_istart;
+    std::vector<std::vector<IntType>> m_osize;
+    std::vector<std::vector<IntType>> m_ostart;
     std::vector<IntType> m_nlocal;
+    std::vector<IntType> m_nallocfd;
     std::vector<IntType> m_nglobal;
 
-    int m_MaxLevel;
-    int m_MinLevel;
     int m_NumLevels;
 
 };

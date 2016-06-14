@@ -68,10 +68,10 @@ PetscErrorCode RegistrationInterface::Initialize(void)
     PetscFunctionBegin;
 
     this->m_Opt=NULL;
+    this->m_PreProc=NULL;
     this->m_ReadWrite=NULL;
     this->m_Optimizer=NULL;
     this->m_RegProblem=NULL;
-    this->m_Prepoc=NULL;
     this->m_ReferencePyramid=NULL;
     this->m_TemplatePyramid=NULL;
 
@@ -104,9 +104,9 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
         delete this->m_Optimizer;
         this->m_Optimizer = NULL;
     }
-    if (this->m_Prepoc != NULL){
-        delete this->m_Prepoc;
-        this->m_Prepoc = NULL;
+    if (this->m_PreProc != NULL){
+        delete this->m_PreProc;
+        this->m_PreProc = NULL;
     }
     if (this->m_Solution != NULL){
         delete this->m_Solution;
@@ -147,7 +147,6 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
     ierr=this->m_Solution->Copy(x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -162,13 +161,13 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
-PetscErrorCode RegistrationInterface::SetIO(ReadWriteReg* io)
+PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(io != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_ReadWrite = io;
+    ierr=Assert(rw!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = rw;
 
     PetscFunctionReturn(0);
 
@@ -186,9 +185,9 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(mR != NULL, "input reference image is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(mR!=NULL,"reference image is null"); CHKERRQ(ierr);
+    this->m_ReferenceImage=mR;
 
-    this->m_ReferenceImage = mR;
     PetscFunctionReturn(0);
 
 }
@@ -206,9 +205,8 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(mT != NULL, "input reference image is null pointer"); CHKERRQ(ierr);
-
-    this->m_TemplateImage = mT;
+    ierr=Assert(mT!=NULL,"template image is null"); CHKERRQ(ierr);
+    this->m_TemplateImage=mT;
 
     PetscFunctionReturn(0);
 
@@ -239,21 +237,15 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank)
 
 
 /********************************************************************
- * @brief set up the registration problem, which essentially is
- * equivalent to allocating the class
+ * @brief set up the registration problem and optimizer
  ********************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetupRegProblem"
-PetscErrorCode RegistrationInterface::SetupRegProblem()
+#define __FUNCT__ "SetupSolver"
+PetscErrorCode RegistrationInterface::SetupSolver()
 {
     PetscErrorCode ierr;
-    IntType nlu,ngu;
     PetscFunctionBegin;
 
-    // reset registration problem
-    if (this->m_RegProblem != NULL){
-        delete this->m_RegProblem; this->m_RegProblem = NULL;
-    }
     // reset optimization problem
     if (this->m_Optimizer != NULL){
         delete this->m_Optimizer; this->m_Optimizer = NULL;
@@ -263,6 +255,30 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
     try{ this->m_Optimizer = new OptimizerType(this->m_Opt); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief set up the registration problem, which essentially is
+ * equivalent to allocating the class
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetupRegProblem"
+PetscErrorCode RegistrationInterface::SetupRegProblem()
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    // reset registration problem
+    if (this->m_RegProblem != NULL){
+        delete this->m_RegProblem; this->m_RegProblem = NULL;
     }
 
     // allocate class for registration
@@ -291,7 +307,7 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
         }
     }
 
-    ierr=Assert(this->m_ReadWrite != NULL, "io is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReadWrite!=NULL,"read/write is null"); CHKERRQ(ierr);
     ierr=this->m_RegProblem->SetIO(this->m_ReadWrite); CHKERRQ(ierr);
 
     // set up initial condition
@@ -378,13 +394,13 @@ PetscErrorCode RegistrationInterface::RunSolver()
     PetscFunctionBegin;
 
     // do the setup
-    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=this->SetupSolver(); CHKERRQ(ierr);
 
     ierr=Assert(this->m_RegProblem!= NULL, "registration problem is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_Optimizer!= NULL, "optimizer is null"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
-    if (this->m_Opt->ReadImagesFromFile()){
+    if (this->m_Opt->GetRegFlags().readimages){
 
         ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
         ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
@@ -393,15 +409,15 @@ PetscErrorCode RegistrationInterface::RunSolver()
         ierr=VecDuplicate(this->m_TemplateImage,&mT); CHKERRQ(ierr);
         ierr=VecDuplicate(this->m_ReferenceImage,&mR); CHKERRQ(ierr);
 
-        if(this->m_Prepoc==NULL){
-            try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
+        if(this->m_PreProc==NULL){
+            try{this->m_PreProc = new PreProcessingRegistration(this->m_Opt);}
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
 
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
         // rescale images
         ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
@@ -429,7 +445,7 @@ PetscErrorCode RegistrationInterface::RunSolver()
     ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
-    // destroy vector
+    // destroy vectors
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
 
@@ -451,12 +467,12 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
     PetscFunctionBegin;
 
     // do the setup
-    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=this->SetupSolver(); CHKERRQ(ierr);
     ierr=Assert(this->m_RegProblem!= NULL, "registration problem is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_Optimizer!= NULL, "optimizer is null"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
-    if (this->m_Opt->ReadImagesFromFile()){
+    if (this->m_Opt->GetRegFlags().readimages){
 
         ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
         ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
@@ -465,15 +481,15 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
         ierr=VecDuplicate(this->m_TemplateImage,&mT); CHKERRQ(ierr);
         ierr=VecDuplicate(this->m_ReferenceImage,&mR); CHKERRQ(ierr);
 
-        if(this->m_Prepoc==NULL){
-            try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
+        if(this->m_PreProc==NULL){
+            try{this->m_PreProc = new PreProcessingRegistration(this->m_Opt);}
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
 
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr=this->m_Prepoc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
         // rescale images
         ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
@@ -780,6 +796,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
         // if the regularization parameter is smaller than
         // the lower bound, we're done
         if (beta < betamin){
+
             if (this->m_Opt->GetVerbosity() > 0){
                 ss <<"regularization parameter smaller than lower bound (betav="
                    <<beta<<" < " << betamin <<"=betavmin)";
@@ -907,22 +924,22 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // set up preprocessing
-    if(this->m_Prepoc==NULL){
-        try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
+    if(this->m_PreProc==NULL){
+        try{this->m_PreProc = new PreProcessingRegistration(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
 
     // do the setup
-    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=this->SetupSolver(); CHKERRQ(ierr);
 
     // check if everything has been set up correctly
     ierr=Assert(this->m_Optimizer!= NULL,"optimizer is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
 
     // set up synthetic problem if we did not read images
-    if (!this->m_Opt->ReadImagesFromFile()){
+    if (this->m_Opt->GetRegFlags().readimages){
 
         // set up synthetic test problem
         ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
@@ -984,8 +1001,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
         // solve problem
         if (solve){
 
-            ierr=this->m_Prepoc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr=this->m_Prepoc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
             // rescale images
             ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
@@ -1043,42 +1060,20 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 PetscErrorCode RegistrationInterface::RunSolverGridCont()
 {
     PetscErrorCode ierr;
-    Vec mT=NULL,mR=NULL,x=NULL;
+    Vec mT=NULL,mR=NULL;
     VecField *v=NULL;
+    Vec xstar=NULL;
+    int rank,level,numlevels;
+    IntType nx[3],nl,ng;
     std::stringstream ss;
-    int level,maxlevel,minlevel,nlevels,rank,j;
-    int nx[3],ostart[3],osize[3],isize[3],istart[3],cgrid[2];
-    std::vector<std::vector<IntType>> nxlevel;
-    IntType nxmin,nxj,nl,ng,nxres[3];
-    ScalarType nxi;
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
-    // set up preprocessing
-    if(this->m_Prepoc==NULL){
-        try{this->m_Prepoc = new PreProcessingRegistration(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-/*
-    if(this->m_ReferencePyramid==NULL){
-        try{this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-*/
-    //this->m_ReferencePyramid->SetUp();
-
-
-    // set up synthetic problem if we did not read images
-    if (!this->m_Opt->ReadImagesFromFile()){
+    if (this->m_Opt->GetRegFlags().readimages){
 
         // do the setup
-        ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+        ierr=this->SetupSolver(); CHKERRQ(ierr);
 
         // check if everything has been set up correctly
         ierr=Assert(this->m_Optimizer!=NULL,"optimizer is not setup"); CHKERRQ(ierr);
@@ -1097,153 +1092,108 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
     }
 
-    // check if images have been set
-    ierr=Assert(this->m_TemplateImage!=NULL,"template image not set"); CHKERRQ(ierr);
-    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image not set"); CHKERRQ(ierr);
-
-    // compute number of levels
-    nxmin = this->m_Opt->GetDomainPara().nx[0];
-    for (int i = 1; i < 3; ++i){
-        nxj = this->m_Opt->GetDomainPara().nx[i];
-        nxmin = nxmin < nxj ? nxmin : nxj;
-    }
-
-    maxlevel = static_cast<int>(std::ceil(std::log2(static_cast<ScalarType>(nxmin))));
-    minlevel = this->m_Opt->GetGridContPara().minlevel;
-    nlevels  = maxlevel-minlevel;
-
-    nxlevel.resize(nlevels);
-    for (int i = 0; i < nlevels; ++i) nxlevel[i].resize(3);
-
-    level=0;
-    while (level < nlevels){
-
-        j = nlevels - (level+1);
-
-        for (int i = 0; i < 3; ++i){
-            if (level == 0) nxlevel[j][i] = this->m_Opt->GetDomainPara().nx[i];
-            else{
-                nxi = static_cast<ScalarType>(nxlevel[j+1][i]);
-                nxlevel[j][i] = static_cast<IntType>( std::ceil(nxi/2.0) );
-            }
+    // allocate multilevel pyramid for reference image
+    if(this->m_ReferencePyramid==NULL){
+        try{this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-
-        ++level;
-
     }
+    // setup multilevel pyramid for reference image
+    ierr=this->m_ReferencePyramid->SetUp(this->m_ReferenceImage); CHKERRQ(ierr);
+
+
+    // allocate multilevel pyramid for template image
+    if(this->m_TemplatePyramid==NULL){
+        try{this->m_TemplatePyramid = new MultiLevelPyramid(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    // setup multilevel pyramid for template image
+    ierr=this->m_TemplatePyramid->SetUp(this->m_TemplateImage); CHKERRQ(ierr);
 
     // reset all the clocks we have used so far
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
 
+    // get number of levels
+    numlevels = this->m_ReferencePyramid->GetNumLevels();
 
+    // run multi-level solver
     level=0;
-    while (level < nlevels){
+    while (level < numlevels){
 
-        nxres[0] = nxlevel[level][0];
-        nxres[1] = nxlevel[level][1];
-        nxres[2] = nxlevel[level][2];
-
-        nx[0] = static_cast<int>(nxres[0]);
-        nx[1] = static_cast<int>(nxres[1]);
-        nx[2] = static_cast<int>(nxres[2]);
-
-        // get the local sizes
-        accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
-
-        // update sizes
-        nl = 1; ng = 1;
-        for (int i=0; i < 3; ++i){
-            nl *= static_cast<IntType>(isize[i]);
-            ng *= static_cast<IntType>(nxres[i]);
+        // get number of grid points for current level
+        for (int i = 0; i < 3; ++i){
+            nx[i] = this->m_ReferencePyramid->GetNumGridPoints(level,i);
         }
+        nl = this->m_ReferencePyramid->GetNLocal(level);
+        ng = this->m_ReferencePyramid->GetNGlobal(level);
 
-        // display message to user
+        // display user message
         ss << std::scientific << "level " << std::setw(3) << level
-            <<" nx=("<< std::setw(4) << nxres[0]
-            <<","    << std::setw(4) << nxres[1]
-            <<","    << std::setw(4) << nxres[2]
-            << "); (nl,ng)=("<< nl << "," << ng << ")";
-        ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
-        ss.str( std::string() ); ss.clear();
+           <<"    nx=("<< nx[0]<<","<< nx[1]<<","<< nx[2]
+           << "); (nl,ng)=("<< nl << "," << ng << ")";
+         ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
+         ss.str( std::string() ); ss.clear();
 
-        // allocate images
-        ierr=VecCreate(PETSC_COMM_WORLD,&mR); CHKERRQ(ierr);
-        ierr=VecSetSizes(mR,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mR); CHKERRQ(ierr);
-        ierr=VecSet(mR,0.0); CHKERRQ(ierr);
+        // get the individual images from the pyramid
+        ierr=this->m_ReferencePyramid->GetLevel(&mR,level); CHKERRQ(ierr);
+        ierr=this->m_TemplatePyramid->GetLevel(&mT,level); CHKERRQ(ierr);
 
-        ierr=VecCreate(PETSC_COMM_WORLD,&mT); CHKERRQ(ierr);
-        ierr=VecSetSizes(mT,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(mT); CHKERRQ(ierr);
-        ierr=VecSet(mT,0.0); CHKERRQ(ierr);
-
-/*
-        // if not yet allocted, do so
-        if (v == NULL){
-            try{ v = new VecField(this->m_Opt); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+        // initialize
+        for (int i = 0; i < 3; ++i){
+            this->m_Opt->SetNumGridPoints(i,nx[i]);
         }
-*/
-        // restrict image data
-        ierr=this->m_Prepoc->Restrict(mR,this->m_ReferenceImage,nxres); CHKERRQ(ierr);
-        ierr=this->m_Prepoc->Restrict(mT,this->m_TemplateImage,nxres); CHKERRQ(ierr);
-        //ierr=this->m_Prepoc->Restrict(v,this->m_Solution,nxres); CHKERRQ(ierr);
-
-        // set number of grid points
-        this->m_Opt->SetNumGridPoints(0,nxres[0]);
-        this->m_Opt->SetNumGridPoints(1,nxres[1]);
-        this->m_Opt->SetNumGridPoints(2,nxres[2]);
-
-        // reset optimizer and registration problem
-        if (this->m_Optimizer!=NULL){
-            delete this->m_Optimizer; this->m_Optimizer=NULL;
-        }
-        if (this->m_RegProblem!=NULL){
-            delete this->m_RegProblem; this->m_RegProblem=NULL;
-        }
-
-        // reinitiate problem
         ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
+        // clean up
+        if(this->m_Optimizer != NULL){
+            delete this->m_Optimizer; this->m_Optimizer = NULL;
+        }
+        if(this->m_RegProblem != NULL){
+            delete this->m_RegProblem; this->m_RegProblem = NULL;
+        }
+
         // do the setup
-        ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+        ierr=this->SetupSolver(); CHKERRQ(ierr);
 
         // check if everything has been set up correctly
         ierr=Assert(this->m_Optimizer!= NULL,"optimizer is null"); CHKERRQ(ierr);
         ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
 
-        // set optimization problem
-        ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
-
-        // set initial guess for current level
-        //ierr=this->m_Optimizer->SetInitialGuess(this->m_InitialGuess); CHKERRQ(ierr);
-
-        // pass images
-        ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+        // set images
         ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+
+        // set up initial guess
+        if (v==NULL){
+            try{v = new VecField(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            ierr=v->SetValue(0.0); CHKERRQ(ierr);
+        }
+
+        ierr=this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);
+        ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
         // run the optimization
         ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
-        // reset number of grid points
-        this->m_Opt->SetNumGridPoints(0,nxlevel[nlevels-1][0]);
-        this->m_Opt->SetNumGridPoints(1,nxlevel[nlevels-1][1]);
-        this->m_Opt->SetNumGridPoints(2,nxlevel[nlevels-1][2]);
+        // clean up
+        if (v!=NULL){ delete v; v=NULL; }
 
-        // reinitiate problem (move back to original grid size)
-        ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
-
-        // destroy image data
-        ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL;
-        ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL;
-
-        ++level; /// increment level
-
+        ++level; // increment iterator
     }
 
+    // get the solution
+//    ierr=this->m_Optimizer->GetSolution(xstar); CHKERRQ(ierr);
+//    ierr=this->m_Solution->SetComponents(xstar); CHKERRQ(ierr);
+
+    // wrap up
+//    ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
@@ -1262,9 +1212,63 @@ PetscErrorCode RegistrationInterface::Finalize()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    // finalize optimizer (show tao output)
     ierr=this->m_Optimizer->Finalize(); CHKERRQ(ierr);
 
+    // display time to solution
     ierr=this->m_Opt->DisplayTimeToSolution(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+/********************************************************************
+ * @brief run postprocessing of input data
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Finalize"
+PetscErrorCode RegistrationInterface::RunPostProcessing()
+{
+    PetscErrorCode ierr;
+    Vec mR=NULL,mT=NULL;
+    PetscFunctionBegin;
+
+    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=Assert(this->m_RegProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // user needs to set template and reference image and the solution
+    ierr=Assert(this->m_Solution!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_TemplateImage!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReferenceImage!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // allocate image containers
+    ierr=VecDuplicate(this->m_ReferenceImage,&mR); CHKERRQ(ierr);
+    ierr=VecDuplicate(this->m_TemplateImage,&mT); CHKERRQ(ierr);
+
+    // allocate preprocessing class
+    if(this->m_PreProc==NULL){
+        try{this->m_PreProc = new PreProcessingRegistration(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // apply smoothing
+    ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+
+    // set reference and template images
+    ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+
+    // compute stuff
+    ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
+
+    // destroy vectors
+    if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
+    if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 

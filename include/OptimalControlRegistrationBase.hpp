@@ -70,6 +70,9 @@ public:
     /*! set velocity field */
     PetscErrorCode SetVelocityField(Vec);
 
+    /*! set velocity field */
+    PetscErrorCode SetVelocityField(VecField*);
+
     /*! set velocity field to zero */
     PetscErrorCode SetVelocity2Zero();
 

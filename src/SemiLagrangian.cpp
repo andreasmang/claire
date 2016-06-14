@@ -333,14 +333,18 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
     ierr=VecGetArray(this->m_WorkVecField3->m_X2,&p_vytildex2); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkVecField3->m_X3,&p_vytildex3); CHKERRQ(ierr);
 
+    // compute numerical time integration
     for (IntType j = 0; j < nt; ++j){
 
-        // v(y)
+        // evaluate v(y)
         ierr=this->Interpolate( p_vyx1,p_vyx2,p_vyx3,
                                 p_vx1,p_vx2,p_vx3,
                                 p_yx1,p_yx2,p_yx3 ); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK2)
+#pragma omp parallel
+{
+#pragma omp for
         for (IntType i = 0; i < nl; ++i){
 
             p_ytildex1[i] = p_yx1[i] - ht*p_vyx1[i];
@@ -348,21 +352,27 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
             p_ytildex3[i] = p_yx3[i] - ht*p_vyx3[i];
 
         }
+}// end of pragma omp parallel
 
-        // v(ytilde)
+        // evaluate v(ytilde)
         ierr=this->Interpolate( p_vytildex1,p_vytildex2,p_vytildex3,
                                 p_vx1,p_vx2,p_vx3,
                                 p_ytildex1,p_ytildex2,p_ytildex3 ); CHKERRQ(ierr);
 
         // update deformation map (second stage of RK2)
+#pragma omp parallel
+{
+#pragma omp for
         for (IntType i = 0; i < nl; ++i){
-
             p_yx1[i] = p_yx1[i] - hthalf*(p_vytildex1[i] + p_vyx1[i]);
             p_yx2[i] = p_yx2[i] - hthalf*(p_vytildex2[i] + p_vyx2[i]);
             p_yx3[i] = p_yx3[i] - hthalf*(p_vytildex3[i] + p_vyx3[i]);
-
         }
-   }
+}// end of pragma omp parallel
+
+
+    } // for all time points
+
     ierr=VecRestoreArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X3,&p_vx3); CHKERRQ(ierr);

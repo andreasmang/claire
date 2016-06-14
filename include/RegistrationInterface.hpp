@@ -61,15 +61,18 @@ public:
     PetscErrorCode Run();
     PetscErrorCode Finalize();
 
+    PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetReferenceImage(Vec);
     PetscErrorCode SetInitialGuess(VecField*);
-    PetscErrorCode SetIO(ReadWriteReg*);
+
+    PetscErrorCode RunPostProcessing();
 
 private:
 
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
+    PetscErrorCode SetupSolver(void);
     PetscErrorCode SetupRegProblem(void);
 
     PetscErrorCode RunSolver(void);
@@ -83,7 +86,7 @@ private:
     PetscErrorCode DispLevelMsg(std::string,int);
 
     RegOpt* m_Opt;
-    PreProcType* m_Prepoc;
+    PreProcType* m_PreProc;
     ReadWriteType* m_ReadWrite;
     OptimizerType* m_Optimizer;
     RegProblemType* m_RegProblem;
