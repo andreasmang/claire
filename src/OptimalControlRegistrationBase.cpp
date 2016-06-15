@@ -70,7 +70,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_IO=NULL; ///< read / write object
+    this->m_ReadWrite=NULL; ///< read / write object
     this->m_SL=NULL; ///< semi lagranigan
 
     this->m_WorkScaField1 = NULL;
@@ -169,14 +169,14 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
  * @brief set read write operator
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetIO"
-PetscErrorCode OptimalControlRegistrationBase::SetIO(ReadWriteReg* io)
+#define __FUNCT__ "SetReadWrite"
+PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* rw)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(io != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_IO = io;
+    ierr=Assert(rw != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = rw;
 
     PetscFunctionReturn(0);
 
@@ -908,6 +908,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
                 *p_jac=NULL,*p_jacX=NULL,*p_rhs0=NULL;
     ScalarType ht,hthalf;
     IntType nl,nt;
+    std::stringstream ss;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
     PetscFunctionBegin;
@@ -955,6 +956,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
     ierr=this->m_SL->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
 
+    // store time series
+    if (this->m_Opt->GetRegFlags().storetimeseries ){
+        ss.str(std::string()); ss.clear();
+        ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ".nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
+    }
 
     // get pointers
     ierr=VecGetArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
@@ -977,7 +984,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     ierr=VecGetArray(this->m_WorkVecField3->m_X1,&p_rhs0); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkVecField3->m_X2,&p_cgradvjX); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkVecField3->m_X3,&p_divjacvX); CHKERRQ(ierr);
-
 
     for( IntType j = 0; j < nt; ++j ){ // for all time points
 
@@ -1060,7 +1066,17 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
         }
 } // pragma omp
 
-    }
+        // store time series
+        if (this->m_Opt->GetRegFlags().storetimeseries ){
+
+            ierr=VecRestoreArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+            ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ".nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
+            ierr=VecGetArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
+        }
+
+    } // for all time points
 
     ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
@@ -1182,6 +1198,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    ierr=this->m_SL->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
     // compute deformation map y using an SL time integrator
     ierr=this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);

@@ -308,7 +308,7 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
     }
 
     ierr=Assert(this->m_ReadWrite!=NULL,"read/write is null"); CHKERRQ(ierr);
-    ierr=this->m_RegProblem->SetIO(this->m_ReadWrite); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
     // set up initial condition
     if (this->m_Solution==NULL){

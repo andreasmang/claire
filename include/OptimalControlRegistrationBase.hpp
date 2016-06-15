@@ -53,7 +53,7 @@ public:
     ~OptimalControlRegistrationBase(void);
 
     /*! set io object */
-    PetscErrorCode SetIO(ReadWriteType*);
+    PetscErrorCode SetReadWrite(ReadWriteType*);
 
     /*! set template image */
     PetscErrorCode SetTemplateImage(Vec);
@@ -146,7 +146,7 @@ protected:
     VecField* m_WorkVecField4; ///< data container for vector field (temporary variable)
 
     // regularization model
-    ReadWriteType* m_IO;
+    ReadWriteType* m_ReadWrite;
     RegularizationType* m_Regularization;
 
     VecField* m_VelocityField; ///< data container for velocity field (control variable)

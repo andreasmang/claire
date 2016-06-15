@@ -26,6 +26,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
+#include "ReadWriteReg.hpp"
 
 
 size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
@@ -71,6 +72,7 @@ public:
                                        ScalarType*,ScalarType*,ScalarType*);
 
     PetscErrorCode ComputeDeformationMap(VecField*,VecField*);
+    PetscErrorCode SetReadWrite(ReadWriteReg*);
 
 protected:
 
@@ -101,6 +103,8 @@ protected:
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
     static const IntType m_GhostSize = 3;
+
+    ReadWriteReg* m_ReadWrite;
 
     RegOpt* m_Opt;
 

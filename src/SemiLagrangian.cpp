@@ -62,6 +62,7 @@ PetscErrorCode SemiLagrangian::Initialize()
     this->m_TrajectoryA = NULL;
     this->m_TrajectoryS = NULL;
     this->m_InitialTrajectory = NULL;
+    this->m_ReadWrite=NULL;
 
     this->m_WorkVecField1 = NULL;
     this->m_WorkVecField2 = NULL;
@@ -179,6 +180,24 @@ PetscErrorCode SemiLagrangian::ClearMemory()
 }
 
 
+/********************************************************************
+ * @brief set read write operator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetReadWrite"
+PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* rw)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(rw != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = rw;
+
+    PetscFunctionReturn(0);
+
+}
+
+
 
 
 /********************************************************************
@@ -271,6 +290,7 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
     PetscErrorCode ierr;
     IntType nl,nt;
     ScalarType ht,hthalf;
+    std::stringstream ss;
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_vyx1=NULL,*p_vyx2=NULL,*p_vyx3=NULL,
                 *p_vytildex1=NULL,*p_vytildex2=NULL,*p_vytildex3=NULL,
@@ -286,6 +306,25 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
         ierr=this->ComputeInitialCondition(); CHKERRQ(ierr);
     }
 
+    // store time series
+    if (this->m_Opt->GetRegFlags().storetimeseries ){
+
+        ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
+
+        // write out y1
+        ss.str(std::string()); ss.clear();
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1.nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_InitialTrajectory->m_X1,ss.str()); CHKERRQ(ierr);
+
+        ss.str(std::string()); ss.clear();
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2.nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_InitialTrajectory->m_X2,ss.str()); CHKERRQ(ierr);
+
+        ss.str(std::string()); ss.clear();
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3.nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_InitialTrajectory->m_X3,ss.str()); CHKERRQ(ierr);
+
+    }
 
     if (this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -370,6 +409,33 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
         }
 }// end of pragma omp parallel
 
+
+        // store time series
+        if (this->m_Opt->GetRegFlags().storetimeseries ){
+
+            ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
+
+            ierr=VecRestoreArray(this->m_WorkVecField2->m_X1,&p_vyx1); CHKERRQ(ierr);
+            ierr=VecRestoreArray(this->m_WorkVecField2->m_X2,&p_vyx2); CHKERRQ(ierr);
+            ierr=VecRestoreArray(this->m_WorkVecField2->m_X3,&p_vyx3); CHKERRQ(ierr);
+
+            // write out y1
+            ss.str(std::string()); ss.clear();
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1.nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkVecField2->m_X1,ss.str()); CHKERRQ(ierr);
+
+            ss.str(std::string()); ss.clear();
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2.nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkVecField2->m_X2,ss.str()); CHKERRQ(ierr);
+
+            ss.str(std::string()); ss.clear();
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3.nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkVecField2->m_X3,ss.str()); CHKERRQ(ierr);
+
+            ierr=VecGetArray(this->m_WorkVecField2->m_X1,&p_vyx1); CHKERRQ(ierr);
+            ierr=VecGetArray(this->m_WorkVecField2->m_X2,&p_vyx2); CHKERRQ(ierr);
+            ierr=VecGetArray(this->m_WorkVecField2->m_X3,&p_vyx3); CHKERRQ(ierr);
+        }
 
     } // for all time points
 
