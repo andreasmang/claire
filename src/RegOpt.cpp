@@ -170,6 +170,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-x") == 0){
             argc--; argv++;
             this->m_XFolder = argv[1];
+        }
+        else if(strcmp(argv[1],"-xresults") == 0){
             this->m_RegFlags.storeresults=true;
         }
         else if(strcmp(argv[1],"-xdefgrad") == 0){
@@ -177,6 +179,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-xdefmap") == 0){
             this->m_RegFlags.storedefmap = true;
+        }
+        else if(strcmp(argv[1],"-xlog") == 0){
+            this->m_RegFlags.loggingenabled = true;
         }
         else if(strcmp(argv[1],"-i") == 0){
             argc--; argv++;
@@ -207,9 +212,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-ric") == 0){
             this->m_RegModel = RELAXEDSTOKES;
-        }
-        else if(strcmp(argv[1],"-xlog") == 0){
-            this->m_RegFlags.loggingenabled = true;
         }
         else if (strcmp(argv[1],"-optmeth") == 0){
             argc--; argv++;
