@@ -415,26 +415,26 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
 
             ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
 
-            ierr=VecRestoreArray(this->m_WorkVecField2->m_X1,&p_vyx1); CHKERRQ(ierr);
-            ierr=VecRestoreArray(this->m_WorkVecField2->m_X2,&p_vyx2); CHKERRQ(ierr);
-            ierr=VecRestoreArray(this->m_WorkVecField2->m_X3,&p_vyx3); CHKERRQ(ierr);
+            ierr=VecRestoreArray(y->m_X1,&p_yx1); CHKERRQ(ierr);
+            ierr=VecRestoreArray(y->m_X2,&p_yx2); CHKERRQ(ierr);
+            ierr=VecRestoreArray(y->m_X3,&p_yx3); CHKERRQ(ierr);
 
             // write out y1
             ss.str(std::string()); ss.clear();
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1.nii.gz";
-            ierr=this->m_ReadWrite->Write(this->m_WorkVecField2->m_X1,ss.str()); CHKERRQ(ierr);
+            ierr=this->m_ReadWrite->Write(y->m_X1,ss.str()); CHKERRQ(ierr);
 
             ss.str(std::string()); ss.clear();
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2.nii.gz";
-            ierr=this->m_ReadWrite->Write(this->m_WorkVecField2->m_X2,ss.str()); CHKERRQ(ierr);
+            ierr=this->m_ReadWrite->Write(y->m_X2,ss.str()); CHKERRQ(ierr);
 
             ss.str(std::string()); ss.clear();
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3.nii.gz";
-            ierr=this->m_ReadWrite->Write(this->m_WorkVecField2->m_X3,ss.str()); CHKERRQ(ierr);
+            ierr=this->m_ReadWrite->Write(y->m_X3,ss.str()); CHKERRQ(ierr);
 
-            ierr=VecGetArray(this->m_WorkVecField2->m_X1,&p_vyx1); CHKERRQ(ierr);
-            ierr=VecGetArray(this->m_WorkVecField2->m_X2,&p_vyx2); CHKERRQ(ierr);
-            ierr=VecGetArray(this->m_WorkVecField2->m_X3,&p_vyx3); CHKERRQ(ierr);
+            ierr=VecGetArray(y->m_X1,&p_yx1); CHKERRQ(ierr);
+            ierr=VecGetArray(y->m_X2,&p_yx2); CHKERRQ(ierr);
+            ierr=VecGetArray(y->m_X3,&p_yx3); CHKERRQ(ierr);
         }
 
     } // for all time points

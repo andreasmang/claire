@@ -3415,8 +3415,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
         // velocity field out
         ierr=this->m_ReadWrite->Write(this->m_VelocityField,"velocity-field-x1"+ext,
-                                                     "velocity-field-x2"+ext,
-                                                     "velocity-field-x3"+ext); CHKERRQ(ierr);
+                                                            "velocity-field-x2"+ext,
+                                                            "velocity-field-x3"+ext); CHKERRQ(ierr);
 
         ierr=VecPointwiseMult(this->m_WorkScaField1,this->m_VelocityField->m_X1,this->m_VelocityField->m_X1); CHKERRQ(ierr);
         ierr=VecPointwiseMult(this->m_WorkScaField2,this->m_VelocityField->m_X2,this->m_VelocityField->m_X2); CHKERRQ(ierr);
@@ -3439,8 +3439,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         ierr=this->ComputeDeformationMap(); CHKERRQ(ierr);
         ierr=Assert( this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"deformation-map-x1"+ext,
-                                                     "deformation-map-x2"+ext,
-                                                     "deformation-map-x3"+ext); CHKERRQ(ierr);
+                                                            "deformation-map-x2"+ext,
+                                                            "deformation-map-x3"+ext); CHKERRQ(ierr);
 
     }
 

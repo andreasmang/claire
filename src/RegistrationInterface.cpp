@@ -186,6 +186,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR)
     PetscFunctionBegin;
 
     ierr=Assert(mR!=NULL,"reference image is null"); CHKERRQ(ierr);
+    ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
     this->m_ReferenceImage=mR;
 
     PetscFunctionReturn(0);
@@ -206,6 +207,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT)
     PetscFunctionBegin;
 
     ierr=Assert(mT!=NULL,"template image is null"); CHKERRQ(ierr);
+    ierr=Rescale(mT,0.0,1.0); CHKERRQ(ierr);
     this->m_TemplateImage=mT;
 
     PetscFunctionReturn(0);
@@ -1256,8 +1258,11 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
     }
 
     // apply smoothing
-    ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-    ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+//    ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+//    ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+
+    ierr=VecCopy(this->m_ReferenceImage,mR); CHKERRQ(ierr);
+    ierr=VecCopy(this->m_TemplateImage,mT); CHKERRQ(ierr);
 
     // set reference and template images
     ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);

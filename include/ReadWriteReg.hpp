@@ -57,7 +57,6 @@ public:
     PetscErrorCode WriteBlock(Vec,int*,std::string);
     PetscErrorCode WriteTimeSeries(Vec,std::string);
 
-
 private:
 
     PetscErrorCode Initialize();

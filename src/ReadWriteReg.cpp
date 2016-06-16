@@ -821,7 +821,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
 
     // rescale image intensities to [0,1]
-    ierr=Rescale(*x,0.0,1.0); CHKERRQ(ierr);
+//    ierr=Rescale(*x,0.0,1.0); CHKERRQ(ierr);
 
     if (this->m_BCastDataBuffer != NULL){
         delete this->m_BCastDataBuffer;
