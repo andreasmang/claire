@@ -1400,7 +1400,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
 
     // store time series
-    if (this->m_Opt->GetRegFlags().storetimeseries ){
+    if ( this->m_Opt->GetRegFlags().storetimeseries ){
 
         if (this->m_WorkScaField1 == NULL){
             ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
@@ -3199,7 +3199,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     PetscErrorCode ierr;
     int rank;
-    IntType nl,nt;
+    IntType nl=0,nt=0;
     std::string filename,fnx1,fnx2,fnx3;
     std::stringstream ss;
     std::ofstream logwriter;
@@ -3226,6 +3226,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    // set velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // store iterates
@@ -3507,6 +3508,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     PetscFunctionReturn(0);
 
 }
+
 
 
 

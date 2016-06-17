@@ -1,6 +1,9 @@
 *.swp
 *.tar.gz
+*.nii.gz
+*.nii
 bin/
 obj/
+test/
 external/libs/
 results/

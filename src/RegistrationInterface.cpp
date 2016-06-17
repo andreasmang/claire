@@ -650,11 +650,13 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     // parameter)
     dbetascale = this->m_Opt->GetDeltaBetaScaleParaCont();
     ierr=Assert(dbetascale<1.0 && dbetascale>0.0,"scale for delta betav not in (0,1)"); CHKERRQ(ierr);
+
     //update beta
     dbetamin = dbetascale*betastar;
-    betahat = betascale*betastar;
-    dbeta = (betastar-betahat)/2.0;
-    beta  = betastar-dbeta;
+    betahat  = betascale*betastar;
+    dbeta    = (betastar-betahat)/2.0;
+    beta     = betastar-dbeta;
+
     ++level;
 
     while(!stop){
@@ -941,7 +943,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
 
     // set up synthetic problem if we did not read images
-    if (this->m_Opt->GetRegFlags().readimages){
+    if (!this->m_Opt->GetRegFlags().readimages){
 
         // set up synthetic test problem
         ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
@@ -1072,7 +1074,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
-    if (this->m_Opt->GetRegFlags().readimages){
+    if (!this->m_Opt->GetRegFlags().readimages){
 
         // do the setup
         ierr=this->SetupSolver(); CHKERRQ(ierr);
@@ -1094,7 +1096,14 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
     }
 
+    // make sure images have not been set
+    ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
+
     // allocate multilevel pyramid for reference image
+    if (this->m_Opt->GetVerbosity() > 1){
+        ierr=DbgMsg("setting up reference image multilevel pyramid"); CHKERRQ(ierr);
+    }
     if(this->m_ReferencePyramid==NULL){
         try{this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -1106,6 +1115,9 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
 
     // allocate multilevel pyramid for template image
+    if (this->m_Opt->GetVerbosity() > 1){
+        ierr=DbgMsg("setting up template image multilevel pyramid"); CHKERRQ(ierr);
+    }
     if(this->m_TemplatePyramid==NULL){
         try{this->m_TemplatePyramid = new MultiLevelPyramid(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -1145,10 +1157,19 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=this->m_TemplatePyramid->GetLevel(&mT,level); CHKERRQ(ierr);
 
         // initialize
-        for (int i = 0; i < 3; ++i){
+        for (int i=0; i<3; ++i){
             this->m_Opt->SetNumGridPoints(i,nx[i]);
         }
         ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
+
+        ss << "level=" << level;
+        ierr=this->m_ReadWrite->Write(mR,"reference-image-" + ss.str() + ".nii.gz"); CHKERRQ(ierr);
+        ss.str( std::string() ); ss.clear();
+
+        ss << "level=" << level;
+        ierr=this->m_ReadWrite->Write(mT,"template-image-" + ss.str() + ".nii.gz"); CHKERRQ(ierr);
+        ss.str( std::string() ); ss.clear();
+
 
         // clean up
         if(this->m_Optimizer != NULL){

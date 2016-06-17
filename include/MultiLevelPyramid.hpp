@@ -52,12 +52,11 @@ public:
 
     typedef struct DataPyramidNode DataType;
     PetscErrorCode GetLevel(Vec*,int);
-    PetscErrorCode GetLevel(Vec,int);
     PetscErrorCode SetUp(Vec);
     int GetNumLevels(){return this->m_NumLevels;};
-    IntType GetNumGridPoints(int level,int i){return this->m_nx[level][i];};
-    IntType GetNLocal(int level){return this->m_nlocal[level];};
-    IntType GetNGlobal(int level){return this->m_nglobal[level];};
+    IntType GetNumGridPoints(int level,int i){return this->m_Domain.nx[level][i];};
+    IntType GetNLocal(int level){return this->m_Domain.nlocal[level];};
+    IntType GetNGlobal(int level){return this->m_Domain.nglobal[level];};
 
 private:
 
@@ -66,8 +65,20 @@ private:
     PetscErrorCode Allocate(Vec*,IntType,IntType);
     PetscErrorCode ClearMemory();
     PetscErrorCode SetData(Vec,int);
+    PetscErrorCode GetDataPointer(Vec**,int);
     PetscErrorCode ComputeGridSize();
-    PetscErrorCode DisplayLevelMsg(int);
+
+    struct DomainPara
+    {
+        std::vector<std::vector<IntType>> nx;
+        std::vector<std::vector<IntType>> isize;
+        std::vector<std::vector<IntType>> istart;
+        std::vector<std::vector<IntType>> osize;
+        std::vector<std::vector<IntType>> ostart;
+        std::vector<IntType> nlocal;
+        std::vector<IntType> nallocfd;
+        std::vector<IntType> nglobal;
+    };
 
     Vec m_DataL01;
     Vec m_DataL02;
@@ -85,20 +96,9 @@ private:
     Vec m_DataL14;
     Vec m_DataL15;
 
-    DataType* m_CurrentData;
-    DataType* m_FirstData;
-    DataType* m_LastData;
+    DomainPara m_Domain;
 
     RegOpt* m_Opt;
-
-    std::vector<std::vector<IntType>> m_nx;
-    std::vector<std::vector<IntType>> m_isize;
-    std::vector<std::vector<IntType>> m_istart;
-    std::vector<std::vector<IntType>> m_osize;
-    std::vector<std::vector<IntType>> m_ostart;
-    std::vector<IntType> m_nlocal;
-    std::vector<IntType> m_nallocfd;
-    std::vector<IntType> m_nglobal;
 
     int m_NumLevels;
 
