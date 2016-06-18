@@ -19,8 +19,8 @@
 */
 
 
-#ifndef _PREPROCESSINGREGISTRATION_H_
-#define _PREPROCESSINGREGISTRATION_H_
+#ifndef _PREPROCREG_H_
+#define _PREPROCREG_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -29,18 +29,18 @@
 namespace reg
 {
 
-class PreProcessingRegistration
+class PreProcReg
 {
 
 public:
 
-    typedef PreProcessingRegistration Self;
+    typedef PreProcReg Self;
     typedef ScalarType FFTScaType[2];
     typedef ReadWriteReg ReadWriteType;
 
-    PreProcessingRegistration();
-    PreProcessingRegistration(RegOpt*);
-    ~PreProcessingRegistration();
+    PreProcReg();
+    PreProcReg(RegOpt*);
+    ~PreProcReg();
 
     PetscErrorCode SetIO(ReadWriteType*);
     PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
@@ -68,4 +68,4 @@ private:
 } // end of name space
 
 
-#endif // _PREPROCESSINGREGISTRATION_H_
+#endif // _PREPROCREG_H_

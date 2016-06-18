@@ -1,8 +1,8 @@
-#ifndef _PREPROCESSINGREGISTRATION_CPP_
-#define _PREPROCESSINGREGISTRATION_CPP_
+#ifndef _PREPROCREG_CPP_
+#define _PREPROCREG_CPP_
 
 
-#include "PreProcessingRegistration.hpp"
+#include "PreProcReg.hpp"
 
 
 namespace reg
@@ -15,8 +15,8 @@ namespace reg
  * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "PreProcessingRegistration"
-PreProcessingRegistration::PreProcessingRegistration()
+#define __FUNCT__ "PreProcReg"
+PreProcReg::PreProcReg()
 {
     this->Initialize();
 }
@@ -28,8 +28,8 @@ PreProcessingRegistration::PreProcessingRegistration()
  * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "PreProcessingRegistration"
-PreProcessingRegistration::PreProcessingRegistration(RegOpt* opt)
+#define __FUNCT__ "PreProcReg"
+PreProcReg::PreProcReg(RegOpt* opt)
 {
     this->Initialize();
     this->m_Opt = opt;
@@ -42,8 +42,8 @@ PreProcessingRegistration::PreProcessingRegistration(RegOpt* opt)
  * @brief default deconstructor
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "~PreProcessingRegistration"
-PreProcessingRegistration::~PreProcessingRegistration()
+#define __FUNCT__ "~PreProcReg"
+PreProcReg::~PreProcReg()
 {
     this->ClearMemory();
 }
@@ -55,7 +55,7 @@ PreProcessingRegistration::~PreProcessingRegistration()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode PreProcessingRegistration::Initialize()
+PetscErrorCode PreProcReg::Initialize()
 {
     this->m_Opt = NULL;
     this->m_ReadWrite = NULL;
@@ -73,7 +73,7 @@ PetscErrorCode PreProcessingRegistration::Initialize()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode PreProcessingRegistration::ClearMemory()
+PetscErrorCode PreProcReg::ClearMemory()
 {
     //PetscErrorCode ierr;
     if(this->m_xhat!=NULL){
@@ -97,7 +97,7 @@ PetscErrorCode PreProcessingRegistration::ClearMemory()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
-PetscErrorCode PreProcessingRegistration::SetIO(PreProcessingRegistration::ReadWriteType* io)
+PetscErrorCode PreProcReg::SetIO(PreProcReg::ReadWriteType* io)
 {
     PetscErrorCode ierr;
 
@@ -119,7 +119,7 @@ PetscErrorCode PreProcessingRegistration::SetIO(PreProcessingRegistration::ReadW
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Prolong"
-PetscErrorCode PreProcessingRegistration::Prolong(Vec y, Vec x, IntType* nxpro)
+PetscErrorCode PreProcReg::Prolong(Vec y, Vec x, IntType* nxpro)
 {
     PetscErrorCode ierr;
 
@@ -140,7 +140,7 @@ PetscErrorCode PreProcessingRegistration::Prolong(Vec y, Vec x, IntType* nxpro)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
-PetscErrorCode PreProcessingRegistration::Restrict(Vec y, Vec x, IntType* nxres)
+PetscErrorCode PreProcReg::Restrict(Vec y, Vec x, IntType* nxres)
 {
     PetscErrorCode ierr;
     accfft_plan* fftplan=NULL;
@@ -236,7 +236,7 @@ PetscErrorCode PreProcessingRegistration::Restrict(Vec y, Vec x, IntType* nxres)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Prolong"
-PetscErrorCode PreProcessingRegistration::Prolong(VecField* y, VecField* x, IntType* nxpro)
+PetscErrorCode PreProcReg::Prolong(VecField* y, VecField* x, IntType* nxpro)
 {
     PetscErrorCode ierr;
 
@@ -257,7 +257,7 @@ PetscErrorCode PreProcessingRegistration::Prolong(VecField* y, VecField* x, IntT
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Prolong"
-PetscErrorCode PreProcessingRegistration::Restrict(VecField* y, VecField* x, IntType* nxpro)
+PetscErrorCode PreProcReg::Restrict(VecField* y, VecField* x, IntType* nxpro)
 {
     PetscErrorCode ierr;
 
@@ -275,7 +275,7 @@ PetscErrorCode PreProcessingRegistration::Restrict(VecField* y, VecField* x, Int
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplyGaussianSmoothing"
-PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
+PetscErrorCode PreProcReg::ApplyGaussianSmoothing(Vec y, Vec x)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],n[3];
@@ -373,4 +373,4 @@ PetscErrorCode PreProcessingRegistration::ApplyGaussianSmoothing(Vec y, Vec x)
 
 } // end of namespace
 
-#endif // _PREPROCESSINGREGISTRATION_CPP_
+#endif // _PREPROCREG_CPP_

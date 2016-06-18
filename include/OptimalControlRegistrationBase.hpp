@@ -25,10 +25,10 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
+#include "PreProcReg.hpp"
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
 #include "RegularizationRegistration.hpp"
-#include "PreProcessingRegistration.hpp"
 #include "OptimizationProblem.hpp"
 //#include "SemiLagrangianGPU.hpp"
 
