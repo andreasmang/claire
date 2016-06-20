@@ -204,14 +204,23 @@ struct ScaleCont{
 /* parameter for grid continuation */
 struct GridCont{
     bool enabled;
-    static const int minlevel=3;
+    static const int minlevels=3;
+    std::vector<std::vector<IntType>> nx;
+    std::vector<std::vector<IntType>> isize;
+    std::vector<std::vector<IntType>> istart;
+    std::vector<std::vector<IntType>> osize;
+    std::vector<std::vector<IntType>> ostart;
+    std::vector<IntType> nlocal;
+    std::vector<IntType> nglobal;
+    std::vector<IntType> nalloc;
+    int nlevels;
 };
 
 
 /* parameters for parameter continuation */
 struct RegMonitor{
-    bool monitorJAC; ///< flag to monitor jacobian during iterations
-    bool monitorCFL; ///< flag to monitor CFL condition during iterations
+    bool JAC; ///< flag to monitor jacobian during iterations
+    bool CFL; ///< flag to monitor CFL condition during iterations
     ScalarType jacmin; ///< min value of jacobian
     ScalarType jacmax; ///< max value of jacobian
     ScalarType jacmean; ///< mean value of jacobian
@@ -236,12 +245,16 @@ struct FourierTransform{
 
 struct RegFlags{
     bool readimages;
+    bool smoothingenabled;
     bool storetimeseries;
     bool storeiterates;
     bool storedefgrad;
     bool storedefmap;
     bool storeresults;
+    bool storeinterresults;
     bool loggingenabled;
+    bool runpostproc;
+    bool resampledata;
 };
 
 
@@ -254,19 +267,12 @@ public:
     typedef RegOpt Self;
 
     RegOpt();
-    RegOpt(int,char**);
+    RegOpt(int,char**,int id=0);
     ~RegOpt();
-
-    // number of points
-    inline IntType GetNLocal(void){return this->m_Domain.nlocal;};
-    inline IntType GetNGlobal(void){return this->m_Domain.nglobal;};
-    inline IntType GetISize(int i){return this->m_Domain.isize[i];};
-    inline IntType GetIStart(int i){return this->m_Domain.istart[i];};
 
     // spatial grid
     inline void SetNumGridPoints(int i,IntType nx){this->m_Domain.nx[i] = nx;};
     inline IntType GetNumGridPoints(int i){return this->m_Domain.nx[i];};
-    inline ScalarType GetSpatialStepSize(int i){return this->m_Domain.hx[i];};
     inline ScalarType GetLebesqueMeasure(void)
     {
         return  this->m_Domain.hx[0]
@@ -278,7 +284,13 @@ public:
     inline GridCont GetGridContPara(){return this->m_GridCont;};
     inline ScaleCont GetScaleContPara(){return this->m_ScaleCont;};
     inline ParCont GetParaContPara(){return this->m_ParaCont;};
+    inline FourierTransform GetFFT(){return this->m_FFT;};
     inline RegFlags GetRegFlags(){return this->m_RegFlags;};
+    inline RegMonitor GetRegMonitor(){return this->m_RegMonitor;};
+    inline void DisableSmoothing(){ this->m_RegFlags.smoothingenabled=false; };
+    inline void EnableSmoothing(){ this->m_RegFlags.smoothingenabled=true; };
+
+    PetscErrorCode GetSizes(IntType*,IntType&,IntType&);
 
     // time horizon, step size, and ....
     inline void SetNumTimePoints(IntType nt){ this->m_Domain.nt=nt; };
@@ -286,8 +298,6 @@ public:
         return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
     };
-
-    FourierTransform GetFFT(){return this->m_FFT;};
 
     // control input and output
     inline std::string GetXFolder(void){return this->m_XFolder;};
@@ -297,11 +307,13 @@ public:
     inline std::string GetTemplateFN(void){return this->m_TemplateFN;};
     inline std::string GetReferenceFN(void){return this->m_ReferenceFN;};
 
-    inline accfft_plan* GetFFTPlan(){return this->m_FFT.plan;};
-    inline MPI_Comm GetComm(){return this->m_FFT.mpicomm;};
 
     // registration model
     inline RegModel GetRegModel(void){return this->m_RegModel;};
+
+    /* do setup for grid continuation */
+    PetscErrorCode SetupGridCont();
+
 
     // regularization
     inline RegNorm GetRegNorm(void){return this->m_Regularization.norm;};
@@ -323,16 +335,16 @@ public:
     inline FSeqType GetFSeqType(void){return this->m_KKTSolverPara.fseqtype;};
 
     // jacobians
-    inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
-    inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
-    inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
-    inline ScalarType GetJacBound(){return this->m_RegMonitor.jacbound;};
+//    inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
+//    inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
+//    inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
+//    inline ScalarType GetJacBound(){return this->m_RegMonitor.jacbound;};
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
     inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
-    inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
-    inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
-    inline void MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
+//    inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
+//    inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
+//    inline void MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
 
     // flag for setup
     inline bool SetupDone(){return this->m_SetupDone;};
@@ -392,11 +404,14 @@ public:
 
 private:
 
-    PetscErrorCode Usage(bool advanced=false);
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-    PetscErrorCode ParseArguments(int,char**);
-    PetscErrorCode CheckArguments(void);
+    PetscErrorCode ParseArgumentsRegistration(int,char**);
+    PetscErrorCode ParseArgumentsPostProcessing(int,char**);
+    PetscErrorCode UsageRegistration(bool advanced=false);
+    PetscErrorCode UsagePostProcessing(bool advanced=false);
+    PetscErrorCode CheckArgumentsRegistration(void);
+    PetscErrorCode CheckArgumentsPostProcessing(void);
     PetscErrorCode SetPresetParameters();
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};

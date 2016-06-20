@@ -77,8 +77,6 @@ PetscErrorCode MultiLevelPyramid::Initialize()
     this->m_DataL14=NULL;
     this->m_DataL15=NULL;
 
-    this->m_NumLevels=0;
-
 }
 
 
@@ -163,106 +161,6 @@ PetscErrorCode MultiLevelPyramid::ClearMemory()
 
 
 /********************************************************************
- * @brief compute grid size and number of levels
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeGridSize"
-PetscErrorCode MultiLevelPyramid::ComputeGridSize()
-{
-    PetscErrorCode ierr;
-    IntType nxi,nxmin,nl,ng,nalloc;
-    int level,j,nx[3],isize[3],istart[3],ostart[3],osize[3],maxlevel,minlevel;
-    ScalarType n;
-
-    PetscFunctionBegin;
-
-    // compute number of levels
-    nxmin = this->m_Opt->GetDomainPara().nx[0];
-    for (int i = 1; i < 3; ++i){
-        nxi = this->m_Opt->GetDomainPara().nx[i];
-        nxmin = nxmin < nxi ? nxmin : nxi;
-    }
-    maxlevel = static_cast<int>(std::ceil(std::log2(static_cast<ScalarType>(nxmin))));
-    minlevel = static_cast<int>(this->m_Opt->GetGridContPara().minlevel);
-    this->m_NumLevels = maxlevel-minlevel;
-
-    ierr=Assert(this->m_NumLevels > 0,"error in size"); CHKERRQ(ierr);
-
-    // allocate memory
-    this->m_Domain.nx.resize(this->m_NumLevels); // grid size per level
-    this->m_Domain.isize.resize(this->m_NumLevels); // grid size per level (spatial domain)
-    this->m_Domain.istart.resize(this->m_NumLevels); // start index per level (spatial domain)
-    this->m_Domain.osize.resize(this->m_NumLevels); // grid size per level (frequency domain)
-    this->m_Domain.ostart.resize(this->m_NumLevels); // start index per level (frequency domain)
-
-   for (int i = 0; i < this->m_NumLevels; ++i){
-        this->m_Domain.nx[i].resize(3);
-
-        this->m_Domain.istart[i].resize(3);
-        this->m_Domain.isize[i].resize(3);
-
-        this->m_Domain.ostart[i].resize(3);
-        this->m_Domain.osize[i].resize(3);
-    }
-
-    this->m_Domain.nlocal.resize(this->m_NumLevels); // local points (MPI task) per level
-    this->m_Domain.nglobal.resize(this->m_NumLevels); // global points per level
-    this->m_Domain.nallocfd.resize(this->m_NumLevels); // alloc size in fourier domain
-
-    level=0;
-    while (level < this->m_NumLevels){
-
-        j = this->m_NumLevels - (level+1);
-
-        nl = 1; // reset local size
-        ng = 1; // reset global size
-
-        // compute number of grid points for current level
-        for (int i = 0; i < 3; ++i){
-
-            if (level==0){
-                this->m_Domain.nx[j][i] = this->m_Opt->GetDomainPara().nx[i];
-            }
-            else{
-                n = static_cast<ScalarType>(this->m_Domain.nx[j+1][i]);
-                this->m_Domain.nx[j][i] = static_cast<IntType>( std::ceil(n/2.0) );
-            }
-
-            // compute global size
-            ng *= this->m_Domain.nx[j][i];
-            nx[i] = static_cast<int>(this->m_Domain.nx[j][i]);
-
-        }
-        this->m_Domain.nglobal[j] = ng;
-
-        // get the local sizes
-        this->m_Domain.nallocfd[j]=accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
-
-        // compute local sizes
-        for (int i = 0; i < 3; ++i){
-
-            nl *= static_cast<IntType>(isize[i]);
-
-            this->m_Domain.isize[j][i] = static_cast<IntType>(isize[i]);
-            this->m_Domain.istart[j][i] = static_cast<IntType>(istart[i]);
-
-            this->m_Domain.osize[j][i] = static_cast<IntType>(osize[i]);
-            this->m_Domain.ostart[j][i] = static_cast<IntType>(ostart[i]);
-
-        }
-        this->m_Domain.nlocal[j] = nl;
-
-        ++level; // increment
-
-    }
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
  * @brief allocate entire pyramid
  *******************************************************************/
 #undef __FUNCT__
@@ -272,30 +170,34 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid()
     PetscErrorCode ierr;
     IntType nl,ng;
     std::stringstream ss;
-    int level;
+    int level,nlevels;
 
     PetscFunctionBegin;
 
-    ierr=this->ComputeGridSize(); CHKERRQ(ierr);
+    // set up parametes for grid continuation
+    ierr=this->m_Opt->SetupGridCont(); CHKERRQ(ierr);
+
+    // get number of levels
+    nlevels = this->m_Opt->GetGridContPara().nlevels;
 
     level=0;
-    while (level < this->m_NumLevels){
+    while (level < nlevels){
+
+        nl = this->m_Opt->GetGridContPara().nlocal[level];
+        ng = this->m_Opt->GetGridContPara().nglobal[level];
 
         if (this->m_Opt->GetVerbosity() > 2){
             ss << std::scientific << "allocating ML data: level " << std::setw(3) << level + 1
-               <<" of " << this->m_NumLevels
-               <<" nx=("<< this->m_Domain.nx[level][0]
-               <<","    << this->m_Domain.nx[level][1]
-               <<","    << this->m_Domain.nx[level][2]
-               << "); (nl,ng)=("<< this->m_Domain.nlocal[level]
-               << "," << this->m_Domain.nglobal[level] << ")";
+               <<" of " << nlevels
+               <<" nx=("<< this->m_Opt->GetGridContPara().nx[level][0]
+               <<","    << this->m_Opt->GetGridContPara().nx[level][1]
+               <<","    << this->m_Opt->GetGridContPara().nx[level][2]
+               << "); (nl,ng)=("<< nl << "," << ng << ")";
 
             ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
         }
 
-        nl = this->m_Domain.nlocal[level];
-        ng = this->m_Domain.nglobal[level];
 
         if (level == 0){
             ierr=this->Allocate(&this->m_DataL01,nl,ng); CHKERRQ(ierr);
@@ -465,13 +367,13 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 {
     PetscErrorCode ierr;
     accfft_plan *plan=NULL;
-    int level,inxlevel[3];
+    int level,inxl[3],nlevels;
     Vec *xlevel;
     ScalarType *p_x=NULL,*p_xl=NULL,*p_xdummy=NULL,scale;
     typedef ScalarType FFTScalarType[2];
     FFTScalarType *p_xhat=NULL,*p_xlhat=NULL,*p_xhatdummy=NULL;
     double ffttimers[5]={0,0,0,0,0};
-    IntType osizel[3];
+    IntType osizel[3],nalloc,nx[3];
     PetscFunctionBegin;
 
 
@@ -479,7 +381,7 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
     ierr=this->AllocatePyramid(); CHKERRQ(ierr);
 
     // set data on finest grid
-    ierr=this->SetData(x,this->m_NumLevels-1); CHKERRQ(ierr);
+    ierr=this->SetData(x,this->m_Opt->GetGridContPara().nlevels-1); CHKERRQ(ierr);
 
     // allocate data for fourier domain
     p_xhat=(FFTScalarType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
@@ -489,49 +391,54 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
     accfft_execute_r2c_t<ScalarType,FFTScalarType>(this->m_Opt->GetFFT().plan,p_x,p_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
+    nlevels=this->m_Opt->GetGridContPara().nlevels;
+
+    for (int i=0; i<3; ++i){
+        nx[i] = this->m_Opt->GetDomainPara().nx[i];
+    }
+
     // get grid sizes/fft scales
     scale = this->m_Opt->ComputeFFTScale();
 
     level=0;
-    while (level < this->m_NumLevels-1){
+    while (level < nlevels-1){
 
         for (int i=0; i<3; ++i){
-            inxlevel[i] = static_cast<int>(this->m_Domain.nx[level][i]);
-            osizel[i] = static_cast<IntType>(this->m_Domain.osize[level][i]);
+            inxl[i] = static_cast<int>(this->m_Opt->GetGridContPara().nx[level][i]);
+            osizel[i] = static_cast<IntType>(this->m_Opt->GetGridContPara().osize[level][i]);
         }
 
-        // allocate array for restricted data (in spectral domain)
-        p_xlhat=(FFTScalarType*)accfft_alloc(this->m_Domain.nallocfd[level]);
+        nalloc=this->m_Opt->GetGridContPara().nalloc[level];
 
-        p_xdummy=(ScalarType*)accfft_alloc(this->m_Domain.nallocfd[level]);
-        p_xhatdummy=(FFTScalarType*)accfft_alloc(this->m_Domain.nallocfd[level]);
+        // allocate array for restricted data (in spectral domain)
+        p_xlhat=(FFTScalarType*)accfft_alloc(nalloc);
 
 #pragma omp parallel
 {
         IntType il,i,k1l,k2l,k3l,i1,i2,i3;
 #pragma omp for
 
-        for (IntType i1l = 0; i1l < this->m_Domain.osize[level][0]; ++i1l){ // x1
-            for (IntType i2l = 0; i2l < this->m_Domain.osize[level][1]; ++i2l){ // x2
-                for (IntType i3l = 0; i3l < this->m_Domain.osize[level][2]; ++i3l){ // x3
+        for (IntType i1l = 0; i1l < osizel[0]; ++i1l){ // x1
+            for (IntType i2l = 0; i2l < osizel[1]; ++i2l){ // x2
+                for (IntType i3l = 0; i3l < osizel[2]; ++i3l){ // x3
 
                     // compute grid index
-                    k1l = i1l + this->m_Domain.ostart[level][0];
-                    k2l = i2l + this->m_Domain.ostart[level][1];
-                    k3l = i3l + this->m_Domain.ostart[level][2];
+                    k1l = i1l + this->m_Opt->GetGridContPara().ostart[level][0];
+                    k2l = i2l + this->m_Opt->GetGridContPara().ostart[level][1];
+                    k3l = i3l + this->m_Opt->GetGridContPara().ostart[level][2];
 
                     i1 = i1l;
                     i2 = i2l;
                     i3 = i3l;
 
-                    if (k1l > this->m_Domain.nx[level][0]/2){
-                        i1 = (this->m_Opt->GetDomainPara().nx[0]-1) + k1l - this->m_Domain.nx[level][0];
+                    if (k1l > this->m_Opt->GetGridContPara().nx[level][0]/2){
+                        i1 = (nx[0]-1) + k1l - this->m_Opt->GetGridContPara().nx[level][0];
                     }
-                    if (k2l > this->m_Domain.nx[level][1]/2){
-                        i2 = (this->m_Opt->GetDomainPara().nx[1]-1) + k2l - this->m_Domain.nx[level][1];
+                    if (k2l > this->m_Opt->GetGridContPara().nx[level][1]/2){
+                        i2 = (nx[1]-1) + k2l - this->m_Opt->GetGridContPara().nx[level][1];
                     }
-                    if (k3l > this->m_Domain.nx[level][2]/2){
-                        i3 = (this->m_Opt->GetDomainPara().nx[2]-1) + k3l - this->m_Domain.nx[level][2];
+                    if (k3l > this->m_Opt->GetGridContPara().nx[level][2]/2){
+                        i3 = (nx[2]-1) + k3l - this->m_Opt->GetGridContPara().nx[level][2];
                     }
 
                     il = GetLinearIndex(i1l,i2l,i3l,osizel);
@@ -551,11 +458,13 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
         ierr=this->GetDataPointer(&xlevel,level); CHKERRQ(ierr);
         ierr=Assert(*xlevel!=NULL, "pointer is null pointer"); CHKERRQ(ierr);
 
-        // compute inverse fft of restricted data
+        // setup fft plan
+        p_xdummy=(ScalarType*)accfft_alloc(nalloc);
+        p_xhatdummy=(FFTScalarType*)accfft_alloc(nalloc);
+        plan=accfft_plan_dft_3d_r2c(inxl,p_xdummy,(double*)p_xhatdummy,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
 
+        // compute inverse fft of restricted data
         ierr=VecGetArray(*xlevel,&p_xl); CHKERRQ(ierr);
-        //plan=accfft_plan_dft_3d_r2c(inxlevel,p_xl,(double*)p_xlhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
-        plan=accfft_plan_dft_3d_r2c(inxlevel,p_xdummy,(double*)p_xhatdummy,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
         accfft_execute_c2r_t<FFTScalarType,ScalarType>(plan,p_xlhat,p_xl,ffttimers);
         ierr=VecRestoreArray(*xlevel,&p_xl); CHKERRQ(ierr);
 

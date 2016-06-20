@@ -35,7 +35,7 @@ class PreProcReg
 public:
 
     typedef PreProcReg Self;
-    typedef ScalarType FFTScaType[2];
+    typedef ScalarType ScalarTypeFD[2];
     typedef ReadWriteReg ReadWriteType;
 
     PreProcReg();
@@ -56,8 +56,8 @@ private:
     PetscErrorCode Initialize();
 
     RegOpt* m_Opt;
-    FFTScaType* m_xhat;
-    FFTScaType* m_Kxhat;
+    ScalarTypeFD* m_xhat;
+    ScalarTypeFD* m_yhat;
 
     ReadWriteType* m_ReadWrite;
 

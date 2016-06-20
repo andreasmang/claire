@@ -51,7 +51,7 @@ public:
 
     typedef Optimizer OptimizerType;
     typedef ReadWriteReg ReadWriteType;
-    typedef PreProcessingRegistration PreProcType;
+    typedef PreProcReg PreProcType;
     typedef OptimalControlRegistrationBase RegProblemType;
 
     RegistrationInterface();

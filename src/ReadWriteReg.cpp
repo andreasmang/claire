@@ -764,10 +764,10 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ng=1;
     for(int i = 0; i < 3; ++i){ ng*=nx[i]; }
     msg="global size mismatch (-nx option probably wrong)";
-    ierr=Assert(ng==this->m_Opt->GetNGlobal(),"global size mismatch"); CHKERRQ(ierr);
+    ierr=Assert(ng==this->m_Opt->GetDomainPara().nglobal,"global size mismatch"); CHKERRQ(ierr);
 
     // get local size
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // allocate vector
     if ( *x != NULL ){ ierr=VecDestroy(x); CHKERRQ(ierr); }
@@ -795,8 +795,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
@@ -950,7 +950,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
     ierr=Assert(data != NULL,"image buffer is null pointer"); CHKERRQ(ierr);
 
     // get global number of points
-    ng = static_cast<IntType>(this->m_Opt->GetNGlobal());
+    ng = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
 
     // copy buffer
     for (IntType i = 0; i < ng; ++i){
@@ -1109,7 +1109,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 //    }
 
     // get local size
-    nglobal = static_cast<IntType>(this->m_Opt->GetNGlobal());
+    nglobal = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
 
     // allocate the index buffers on master rank
     if (rank == 0){
@@ -1205,13 +1205,13 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 
         }
 
-        lisize[0] = static_cast<int>(this->m_Opt->GetISize(0));
-        lisize[1] = static_cast<int>(this->m_Opt->GetISize(1));
-        lisize[2] = static_cast<int>(this->m_Opt->GetISize(2));
+        lisize[0] = static_cast<int>(this->m_Opt->GetDomainPara().isize[0]);
+        lisize[1] = static_cast<int>(this->m_Opt->GetDomainPara().isize[1]);
+        lisize[2] = static_cast<int>(this->m_Opt->GetDomainPara().isize[2]);
 
-        listart[0] = static_cast<int>(this->m_Opt->GetIStart(0));
-        listart[1] = static_cast<int>(this->m_Opt->GetIStart(1));
-        listart[2] = static_cast<int>(this->m_Opt->GetIStart(2));
+        listart[0] = static_cast<int>(this->m_Opt->GetDomainPara().istart[0]);
+        listart[1] = static_cast<int>(this->m_Opt->GetDomainPara().istart[1]);
+        listart[2] = static_cast<int>(this->m_Opt->GetDomainPara().istart[2]);
 
         // gather the indices
         rval=MPI_Gather(listart,3,MPI_INT,istart,3,MPI_INT,0,PETSC_COMM_WORLD);
@@ -1305,12 +1305,12 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
     (*niiimage)->dim[2] = (*niiimage)->ny = this->m_Opt->GetNumGridPoints(1);
     (*niiimage)->dim[3] = (*niiimage)->nz = this->m_Opt->GetNumGridPoints(2);
 
-    (*niiimage)->pixdim[1] = static_cast<float>(this->m_Opt->GetSpatialStepSize(0)); // x direction
-    (*niiimage)->pixdim[2] = static_cast<float>(this->m_Opt->GetSpatialStepSize(1)); // y direction
-    (*niiimage)->pixdim[3] = static_cast<float>(this->m_Opt->GetSpatialStepSize(2)); // z direction
+    (*niiimage)->pixdim[1] = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]); // x direction
+    (*niiimage)->pixdim[2] = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]); // y direction
+    (*niiimage)->pixdim[3] = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]); // z direction
 
     // TODO: add temporal support
-    if (n == this->m_Opt->GetNLocal()){ // scalar field
+    if (n == this->m_Opt->GetDomainPara().nlocal){ // scalar field
 
         (*niiimage)->dim[4] = (*niiimage)->nt = 1;
         (*niiimage)->dim[5] = (*niiimage)->nu = 1;
@@ -1319,7 +1319,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
         (*niiimage)->pixdim[4] = 1.0;
 
     }
-    else if (n == 2*this->m_Opt->GetNLocal()){ // 2D vector field
+    else if (n == 2*this->m_Opt->GetDomainPara().nlocal){ // 2D vector field
 
         (*niiimage)->dim[4] = (*niiimage)->nt = 1;
         (*niiimage)->dim[5] = (*niiimage)->nu = 2;
@@ -1328,11 +1328,11 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
         (*niiimage)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetSpatialStepSize(0));
-        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetSpatialStepSize(1));
+        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
+        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
 
     }
-    else if (n == 3*this->m_Opt->GetNLocal()){ // 3D vector field
+    else if (n == 3*this->m_Opt->GetDomainPara().nlocal){ // 3D vector field
 
         (*niiimage)->dim[4] = (*niiimage)->nt = 1;
         (*niiimage)->dim[5] = (*niiimage)->nu = 3;
@@ -1341,9 +1341,9 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
         (*niiimage)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetSpatialStepSize(0));
-        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetSpatialStepSize(1));
-        (*niiimage)->pixdim[7] = (*niiimage)->dw = static_cast<float>(this->m_Opt->GetSpatialStepSize(2));
+        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
+        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
+        (*niiimage)->pixdim[7] = (*niiimage)->dw = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);
     }
 
     // currently fixed to double precision: TODO flexible...

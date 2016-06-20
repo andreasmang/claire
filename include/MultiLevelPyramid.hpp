@@ -50,13 +50,8 @@ public:
     MultiLevelPyramid(RegOpt*);
     ~MultiLevelPyramid();
 
-    typedef struct DataPyramidNode DataType;
     PetscErrorCode GetLevel(Vec*,int);
     PetscErrorCode SetUp(Vec);
-    int GetNumLevels(){return this->m_NumLevels;};
-    IntType GetNumGridPoints(int level,int i){return this->m_Domain.nx[level][i];};
-    IntType GetNLocal(int level){return this->m_Domain.nlocal[level];};
-    IntType GetNGlobal(int level){return this->m_Domain.nglobal[level];};
 
 private:
 
@@ -67,18 +62,6 @@ private:
     PetscErrorCode SetData(Vec,int);
     PetscErrorCode GetDataPointer(Vec**,int);
     PetscErrorCode ComputeGridSize();
-
-    struct DomainPara
-    {
-        std::vector<std::vector<IntType>> nx;
-        std::vector<std::vector<IntType>> isize;
-        std::vector<std::vector<IntType>> istart;
-        std::vector<std::vector<IntType>> osize;
-        std::vector<std::vector<IntType>> ostart;
-        std::vector<IntType> nlocal;
-        std::vector<IntType> nallocfd;
-        std::vector<IntType> nglobal;
-    };
 
     Vec m_DataL01;
     Vec m_DataL02;
@@ -96,11 +79,7 @@ private:
     Vec m_DataL14;
     Vec m_DataL15;
 
-    DomainPara m_Domain;
-
     RegOpt* m_Opt;
-
-    int m_NumLevels;
 
 };
 

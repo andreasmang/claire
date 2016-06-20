@@ -281,7 +281,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
     ierr=Assert(v!=NULL,"input velocity field is null pointer"); CHKERRQ(ierr);
 
     // check input vector size
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ierr=VecGetLocalSize(v,&nlv); CHKERRQ(ierr);
     ierr=Assert(3*nl == nlv, "size mismatch"); CHKERRQ(ierr);
 
@@ -402,13 +402,13 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("setting up synthetic test problem"); CHKERRQ(ierr);
     }
-    nl = this->m_Opt->GetNLocal();
-    ng = this->m_Opt->GetNGlobal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     for (int i = 0; i < 3; ++i){
-        hx[i] = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i] = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     // allocate vector fields
@@ -528,7 +528,7 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // get pointers
     ierr=VecGetArray(u,&p_u); CHKERRQ(ierr);  ///< vec for entire time horizon
@@ -583,7 +583,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        hx[i] = this->m_Opt->GetSpatialStepSize(i);
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
     }
 
     ierr=VecAbs(this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
@@ -654,9 +654,9 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     // compute determinant of deformation gradient
     ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
-    jmin   = this->m_Opt->GetJacMin();
-    jmax   = this->m_Opt->GetJacMax();
-    jbound = this->m_Opt->GetJacBound();
+    jmin   = this->m_Opt->GetRegMonitor().jacmin;
+    jmax   = this->m_Opt->GetRegMonitor().jacmax;
+    jbound = this->m_Opt->GetRegMonitor().jacbound;
 
     // check if jmin < bound and 1/jmax < bound
     minboundreached = jmin <= jbound;
@@ -725,7 +725,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
 
     // check if velocity field is zero
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
-
     if(this->m_VelocityIsZero == false){
 
         // call the solver
@@ -751,7 +750,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
     ierr=VecMin(this->m_WorkScaField1,NULL,&minddg); CHKERRQ(ierr);
     ierr=VecMax(this->m_WorkScaField1,NULL,&maxddg); CHKERRQ(ierr);
     ierr=VecSum(this->m_WorkScaField1,&meanddg); CHKERRQ(ierr);
-    meanddg /= static_cast<ScalarType>(this->m_Opt->GetNGlobal());
+    meanddg /= static_cast<ScalarType>(this->m_Opt->GetDomainPara().nglobal);
 
     // remember
     this->m_Opt->SetJacMin(minddg);
@@ -759,7 +758,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
     this->m_Opt->SetJacMean(meanddg);
 
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->MonitorJacobian()){
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().JAC){
         ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
             << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
         ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -791,7 +790,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -829,12 +828,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ierr=VecGetArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFTPlan(),timings);
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,timings);
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j){
 
-        accfft_grad(p_gx1,p_gx2,p_gx3,p_jac,this->m_Opt->GetFFTPlan(),&XYZ,timings);
+        accfft_grad(p_gx1,p_gx2,p_gx3,p_jac,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
 #pragma omp parallel
 {
@@ -852,7 +851,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
         }
 } // pragma omp
 
-        accfft_grad(p_gx1,p_gx2,p_gx3,p_jbar,this->m_Opt->GetFFTPlan(),&XYZ,timings);
+        accfft_grad(p_gx1,p_gx2,p_gx3,p_jbar,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
 #pragma omp parallel
 {
@@ -948,7 +947,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetNLocal();
+    nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -991,7 +990,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
         ierr=this->m_SL->Interpolate(p_jacX,p_jac,"state"); CHKERRQ(ierr);
 
         // compute grad(jac) for convective derivative
-        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFTPlan(),&XYZ,timings);
+        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
 #pragma omp parallel
 {
@@ -1014,7 +1013,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 } // pragma omp
 
         // compute div(jac v)
-        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFTPlan(),timings);
+        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFT().plan,timings);
 
         // compute J(X,t^j)
         ierr=this->m_SL->Interpolate(p_cgradvjX,p_cgradvj,"state"); CHKERRQ(ierr);
@@ -1043,10 +1042,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 } // pragma omp
 
         // compute div(jactilde v)
-        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFTPlan(),timings);
+        accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFT().plan,timings);
 
         // compute grad(jactilde) for convective derivative
-        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFTPlan(),&XYZ,timings);
+        accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
 #pragma omp parallel
 {

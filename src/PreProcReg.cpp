@@ -60,7 +60,7 @@ PetscErrorCode PreProcReg::Initialize()
     this->m_Opt = NULL;
     this->m_ReadWrite = NULL;
     this->m_xhat = NULL;
-    this->m_Kxhat = NULL;
+    this->m_yhat = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -80,9 +80,9 @@ PetscErrorCode PreProcReg::ClearMemory()
         accfft_free(this->m_xhat);
         this->m_xhat = NULL;
     }
-    if(this->m_Kxhat!=NULL){
-        accfft_free(this->m_Kxhat);
-        this->m_Kxhat = NULL;
+    if(this->m_yhat!=NULL){
+        accfft_free(this->m_yhat);
+        this->m_yhat = NULL;
     }
 
     PetscFunctionReturn(0);
@@ -140,62 +140,78 @@ PetscErrorCode PreProcReg::Prolong(Vec y, Vec x, IntType* nxpro)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
-PetscErrorCode PreProcReg::Restrict(Vec y, Vec x, IntType* nxres)
+PetscErrorCode PreProcReg::Restrict(Vec xl, Vec x, IntType* nx_l)
 {
     PetscErrorCode ierr;
-    accfft_plan* fftplan=NULL;
-    ScalarType *u=NULL,*p_x=NULL,*p_y=NULL;
-    FFTScaType* p_yhat=NULL;
-    Complex *uk=NULL;
-    IntType alloc_max;
-    int nx[3],ostart[3],osize[3],isize[3],istart[3],cgrid[2];
+    accfft_plan* plan=NULL;
+    ScalarType *p_xdummy=NULL,*p_x=NULL,*p_xl=NULL,scale;
+    ScalarTypeFD* p_xlhat=NULL;
+    Complex *p_xhatdummy=NULL;
+    IntType nalloc;
+    int _nx_l[3],_ostart_l[3],_osize_l[3],_isize_l[3],_istart_l[3];
+    IntType nx[3],ostart_l[3],osize_l[3];//oend_l[3];
     double ffttimers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
-    ierr=Assert(y!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(xl!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if(this->m_xhat == NULL){
-        this->m_xhat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        this->m_xhat=(ScalarTypeFD*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
     }
 
-    cgrid[0] = this->m_Opt->GetNetworkDims(0);
-    cgrid[1] = this->m_Opt->GetNetworkDims(1);
+    // get grid sizes/fft scales
+    scale = this->m_Opt->ComputeFFTScale();
 
     // parse input sizes
-    nx[0] = nxres[0];
-    nx[1] = nxres[1];
-    nx[2] = nxres[2];
+    _nx_l[0] = static_cast<int>(nx_l[0]);
+    _nx_l[1] = static_cast<int>(nx_l[1]);
+    _nx_l[2] = static_cast<int>(nx_l[2]);
 
     // allocate container for inverse FFT
-    alloc_max=accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
-    p_yhat=(FFTScaType*)accfft_alloc(alloc_max);
+    nalloc=accfft_local_size_dft_r2c(_nx_l,_isize_l,_istart_l,_osize_l,_ostart_l,this->m_Opt->GetFFT().mpicomm);
+    p_xlhat=(ScalarTypeFD*)accfft_alloc(nalloc);
+
+    for(int i = 0; i < 3; ++i){
+        nx[i] = this->m_Opt->GetDomainPara().nx[i];
+        osize_l[i] = static_cast<IntType>(_osize_l[i]);
+        ostart_l[i] = static_cast<IntType>(_ostart_l[i]);
+        //oend_l[i] = ostart_l[i] + osize_l[i];
+    }
 
     // compute fft of input data
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
     IntType li=0,lj=0;
-    ScalarType k1,k2,k3;
+    ScalarType k1,k2,k3,j1,j2,j3;
 #pragma omp for
-    for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){ // x1
-        for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < osize_l[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < osize_l[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < osize_l[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
-                k1 = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                k2 = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                k3 = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                k1 = static_cast<ScalarType>(i1 + ostart_l[0]);
+                k2 = static_cast<ScalarType>(i2 + ostart_l[1]);
+                k3 = static_cast<ScalarType>(i3 + ostart_l[2]);
 
-                // compute linear / flat index
-                li = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                j1 = i1;
+                j2 = i2;
+                j3 = i3;
 
-//                p_yhat[lj][0] = this->m_xhat[li][0];
-//                p_yhat[lj][1] = this->m_xhat[li][1];
+                if (k1 > nx_l[0]/2) j1 = (nx[0]-1) + k1 - nx_l[0];
+                if (k2 > nx_l[1]/2) j2 = (nx[1]-1) + k2 - nx_l[1];
+                if (k3 > nx_l[2]/2) j3 = (nx[2]-1) + k3 - nx_l[2];
+
+                li = GetLinearIndex(i1,i2,i3,osize_l);
+                lj = GetLinearIndex(j1,j2,j3,this->m_Opt->GetFFT().osize);
+
+                p_xlhat[li][0] = scale*this->m_xhat[lj][0];
+                p_xlhat[li][1] = scale*this->m_xhat[lj][1];
 
             } // i1
         } // i2
@@ -203,25 +219,24 @@ PetscErrorCode PreProcReg::Restrict(Vec y, Vec x, IntType* nxres)
 
 } // pragma omp parallel
 
-    // allocate fft
-    u = (ScalarType*)accfft_alloc(alloc_max);
-    uk = (Complex*)accfft_alloc(alloc_max);
-    fftplan=accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
 
-    // compute fft of input data
-    ierr=VecSet(y,0.0); CHKERRQ(ierr);
-    ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(fftplan,p_yhat,p_y,ffttimers);
-    ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
+    // allocate fft
+    p_xdummy = (ScalarType*)accfft_alloc(nalloc);
+    p_xhatdummy = (Complex*)accfft_alloc(nalloc);
+    plan=accfft_plan_dft_3d_r2c(_nx_l,p_xdummy,(double*)p_xhatdummy,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
+
+    ierr=VecGetArray(xl,&p_xl); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(plan,p_xlhat,p_xl,ffttimers);
+    ierr=VecRestoreArray(xl,&p_xl); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(ffttimers);
 
     // clean up
-    if(u != NULL){ accfft_free(u); u=NULL; }
-    if(uk != NULL){ accfft_free(uk); uk=NULL; }
-    if(p_yhat != NULL){ accfft_free(p_yhat); p_yhat=NULL; }
-    if(fftplan != NULL){ accfft_destroy_plan(fftplan); fftplan = NULL; }
+    if(plan != NULL){ accfft_destroy_plan(plan); plan=NULL; }
+    if(p_xlhat != NULL){ accfft_free(p_xlhat); p_xlhat=NULL; }
+    if(p_xdummy != NULL){ accfft_free(p_xdummy); p_xdummy=NULL; }
+    if(p_xhatdummy != NULL){ accfft_free(p_xhatdummy); p_xhatdummy=NULL; }
 
     PetscFunctionReturn(0);
 }
@@ -280,7 +295,7 @@ PetscErrorCode PreProcReg::ApplyGaussianSmoothing(Vec y, Vec x)
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],n[3];
     IntType iosize[3];
-    size_t alloc_max;
+    IntType nalloc;
     ScalarType hx[3],nx[3],c[3],scale;
     ScalarType *p_x=NULL, *p_y=NULL;
     double ffttimers[5]={0,0,0,0,0};
@@ -293,15 +308,15 @@ PetscErrorCode PreProcReg::ApplyGaussianSmoothing(Vec y, Vec x)
     n[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
-                                                        this->m_Opt->GetFFT().mpicomm);
+    nalloc=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
+                                                   this->m_Opt->GetFFT().mpicomm);
     if(this->m_xhat == NULL){
-        this->m_xhat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_xhat=(ScalarTypeFD*)accfft_alloc(nalloc);
     }
 
     for (int i = 0; i < 3; ++i){
 
-        hx[i] = this->m_Opt->GetSpatialStepSize(i);
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
         nx[i] = static_cast<ScalarType>(n[i]);
 
         // sigma is provided by user in # of grid points
@@ -315,7 +330,7 @@ PetscErrorCode PreProcReg::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // compute fft
     ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
 
@@ -358,7 +373,7 @@ PetscErrorCode PreProcReg::ApplyGaussianSmoothing(Vec y, Vec x)
 
     // compute inverse fft
     ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_y,ffttimers);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_y,ffttimers);
     ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
 
     // increment fft timer

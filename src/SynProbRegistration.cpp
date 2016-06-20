@@ -105,9 +105,9 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigne
     ierr=Assert(m!= NULL,"null pointer"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -219,9 +219,9 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -275,9 +275,9 @@ PetscErrorCode SynProbRegistration::ComputeSphere(Vec m)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -338,9 +338,9 @@ PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -412,9 +412,9 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        isize[i] = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -480,9 +480,9 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m,const unsigned int id)
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetSpatialStepSize(i);
-        isize[i]  = this->m_Opt->GetISize(i);
-        istart[i] = this->m_Opt->GetIStart(i);
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        isize[i] = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);

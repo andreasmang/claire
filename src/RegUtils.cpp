@@ -13,7 +13,6 @@ namespace reg
 
 
 /********************************************************************
- * Name: Assert
  * Description: error handling: check if condition is valid, and if
  * not throw an error PETSc style
  *******************************************************************/
@@ -36,7 +35,6 @@ PetscErrorCode Assert(bool condition,std::string msg)
 
 
 /********************************************************************
- * Name: GetFileName
  * Description: get the filename of an image
  ********************************************************************/
 #undef __FUNCT__
@@ -64,7 +62,6 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
 
 
 /********************************************************************
- * Name: FileExists
  * Description: check if file exists
  *******************************************************************/
 #undef __FUNCT__
@@ -79,7 +76,6 @@ bool FileExists(const std::string& filename)
 
 
 /********************************************************************
- * Name: Msg
  * Description: print msg (interfaces petsc)
  *******************************************************************/
 #undef __FUNCT__
@@ -104,7 +100,6 @@ PetscErrorCode Msg(std::string msg)
 
 
 /********************************************************************
- * Name: DbgMsg
  * Description: print msg (interfaces petsc)
  * Author: Andreas Mang
  *******************************************************************/
@@ -130,7 +125,6 @@ PetscErrorCode DbgMsg(std::string msg)
 
 
 /********************************************************************
- * Name: WrngMsg
  * Description: print warning msg (interfaces petsc)
  *******************************************************************/
 #undef __FUNCT__
@@ -155,7 +149,6 @@ PetscErrorCode WrngMsg(std::string msg)
 
 
 /********************************************************************
- * Name: ThrowError
  * Description: throw error
  *******************************************************************/
 #undef __FUNCT__
@@ -176,7 +169,6 @@ PetscErrorCode ThrowError(std::string msg)
 
 
 /********************************************************************
- * Name: VecView
  * Description:
  *******************************************************************/
 #undef __FUNCT__
@@ -212,7 +204,6 @@ PetscErrorCode VecView(Vec x)
 
 
 /********************************************************************
- * Name: Rescale
  * Description: rescale data to [xminout,xmaxout]
  * Author: Andreas Mang
  *******************************************************************/
@@ -243,7 +234,6 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout)
 
 
 /********************************************************************
- * Name: String2Vec
  * Description: parse string of NUMxNUMxNUM into a vector
  *******************************************************************/
 std::vector<unsigned int> String2Vec( const std::string & str )

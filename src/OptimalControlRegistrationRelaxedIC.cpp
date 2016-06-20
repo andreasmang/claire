@@ -220,7 +220,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecGetArray(this->m_VelocityField->m_X3,&p_v3); CHKERRQ(ierr);
 
     // compute \idiv(\vect{v})
-    accfft_divergence(p_divv,p_v1,p_v2,p_v3,this->m_Opt->GetFFTPlan(),ffttimers);
+    accfft_divergence(p_divv,p_v1,p_v2,p_v3,this->m_Opt->GetFFT().plan,ffttimers);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_v1); CHKERRQ(ierr);
@@ -232,7 +232,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_gdv3); CHKERRQ(ierr);
 
     // compute gradient
-    accfft_grad(p_gdv3,p_gdv2,p_gdv1,p_divv,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+    accfft_grad(p_gdv3,p_gdv2,p_gdv1,p_divv,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_gdv1); CHKERRQ(ierr);
@@ -363,7 +363,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     scale  = 1.0/scale;
 
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,this->m_Opt->GetComm());
+    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
 
     if(this->m_x1hat == NULL){
         this->m_x1hat=(FFTScaType*)accfft_alloc(alloc_max);
@@ -390,9 +390,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ierr=VecGetArray(x->m_X3,&p_x3); CHKERRQ(ierr);
 
     // compute forward fft
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x1,this->m_x1hat,ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x2,this->m_x2hat,ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x3,this->m_x3hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x1,this->m_x1hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x2,this->m_x2hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x3,this->m_x3hat,ffttimers);
     this->m_Opt->IncrementCounter(FFT,3);
 
 
@@ -475,9 +475,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
 
 
     // compute inverse fft
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_Kx1hat,p_x1,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_Kx2hat,p_x2,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_Kx3hat,p_x3,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx1hat,p_x1,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx2hat,p_x2,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx3hat,p_x3,ffttimers);
     this->m_Opt->IncrementCounter(FFT,3);
 
     ierr=VecRestoreArray(x->m_X1,&p_x1); CHKERRQ(ierr);

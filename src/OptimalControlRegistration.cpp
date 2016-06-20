@@ -534,7 +534,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
         ierr=VecGetArray(this->m_WorkVecField2->m_X3,&p_gradm3); CHKERRQ(ierr); // for grad(m)_3
 
         // computing gradient of m
-        accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+        accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
         ierr=VecRestoreArray(this->m_WorkVecField2->m_X1,&p_gradm1); CHKERRQ(ierr); // for grad(m)_1
@@ -589,7 +589,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
             }
 
             // grad(m^j)
-            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // trapezoidal rule
@@ -1201,11 +1201,11 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
             }
 
             // computing gradient of m
-            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // computing gradient of \tilde{m}
-            accfft_grad(p_gradmt1,p_gradmt2,p_gradmt3,p_mtj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gradmt1,p_gradmt2,p_gradmt3,p_mtj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // trapezoidal rule (revert scaling)
@@ -1260,7 +1260,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
             }
 
             // compute gradient of m^j
-            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // trapezoidal rule (revert scaling)
@@ -1341,7 +1341,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
         ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->MonitorCFLCondition()){
+    if (this->m_Opt->GetRegMonitor().CFL){
         ierr=this->ComputeCFLCondition(); CHKERRQ(ierr);
     }
 
@@ -1510,7 +1510,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
     for (IntType j = 0; j < nt; ++j){
 
         // compute gradient of m_j
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -1529,7 +1529,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 } // pragma omp parallel
 
         // compute gradient of \bar{m}
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mbar,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mbar,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -1855,7 +1855,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\lambda\vect{v})
-        accfft_divergence(p_rhs0,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+        accfft_divergence(p_rhs0,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFT().plan,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -1875,7 +1875,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\bar{\lambda}\vect{v})
-        accfft_divergence(p_rhs1,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+        accfft_divergence(p_rhs1,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFT().plan,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -1977,7 +1977,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
     ierr=VecGetArray(this->m_WorkScaField3,&p_divv); CHKERRQ(ierr);
 
     // compute \idiv(\tilde{\lambda}\vect{v})
-    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFTPlan(),ffttimers);
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,ffttimers);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_vx1); CHKERRQ(ierr);
@@ -2193,7 +2193,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
 
         // compute gradient of m_1 (m is constant)
         ierr=VecGetArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
         ierr=VecRestoreArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
 
@@ -2254,11 +2254,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
             }
 
             // compute gradient of m_j
-            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // compute gradient of \tilde{m}_j
-            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2282,11 +2282,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
             }
 
             // compute gradient of m_{j+1}
-            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // compute gradient of \tilde{m}_j
-            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtbar,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtbar,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2451,7 +2451,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
 
     // copy gradient for m_0 = m_T
     ierr=VecGetArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
-    accfft_grad(p_gmjx1,p_gmjx2,p_gmjx3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+    accfft_grad(p_gmjx1,p_gmjx2,p_gmjx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
     this->m_Opt->IncrementCounter(FFT,4);
     ierr=VecRestoreArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
 
@@ -2478,7 +2478,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
         }
 
         // compute gradient
-        accfft_grad(p_gmjnextx1,p_gmjnextx2,p_gmjnextx3,p_mj,this->m_Opt->GetFFTPlan(),&XYZ,ffttimers);
+        accfft_grad(p_gmjnextx1,p_gmjnextx2,p_gmjnextx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
         // interpolate gradient
@@ -2774,7 +2774,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\tilde{\lambda}\vect{v})
-        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2794,7 +2794,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\bar{\lambda}\vect{v})
-        accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+        accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2905,7 +2905,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
         ierr=VecRestoreArray(this->m_AdjointVariable,&p_lj); CHKERRQ(ierr);
 
         // compute \idiv(\tilde{\lambda}\vect{v})
-        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
 
         // compute numerical time integration
@@ -2955,7 +2955,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 } // pragma omp parallel
 
             // compute \idiv(\tilde{\lambda}\vect{v})
-            accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+            accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2976,7 +2976,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 } // pragma omp parallel
 
             // compute \idiv(\bar{\lambda}\vect{v})
-            accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFTPlan(),ffttimers);
+            accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -3091,7 +3091,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_vx3); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFTPlan(),ffttimers);
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,ffttimers);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_vx1); CHKERRQ(ierr);
@@ -3273,7 +3273,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     } // store iterates
 
     // compute determinant of deformation gradient and write it to file
-    if ( this->m_Opt->MonitorJacobian() ){
+    if ( this->m_Opt->GetRegMonitor().JAC ){
 
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
@@ -3288,9 +3288,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
             ss  << std::scientific
                 <<  "iter " << std::setw(3)
                 << std::right << this->m_NumOuterIter << "    " << std::left
-                << std::setw(20) << this->m_Opt->GetJacMin() << " "
-                << std::setw(20) << this->m_Opt->GetJacMean() <<" "
-                << std::setw(20) << this->m_Opt->GetJacMax();
+                << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
+                << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
+                << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
             logwriter << ss.str() << std::endl;
             ss.str( std::string() ); ss.clear();
 

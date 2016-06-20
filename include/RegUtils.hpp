@@ -73,24 +73,11 @@ PetscErrorCode Rescale(Vec, ScalarType, ScalarType);
 PetscErrorCode GetFileName(std::string&,std::string);
 std::vector<unsigned int> String2Vec( const std::string & );
 
-/*! display vector field */
-//PetscErrorCode VecView(VecField*);
-
-
-
-/*! write data to file */
-//PetscErrorCode Write2File(Vec,std::string);
-
-
-/*! write vector field to file */
-//PetscErrorCode Write2File(VecField*,std::string);
-
 
 
 
 /********************************************************************
- * Name: GetLinearIndex
- * Description: map 3d index to linear index (accfft style)
+ * @brief map 3d index to linear index (accfft style)
  *******************************************************************/
 inline IntType GetLinearIndex(IntType i[3], IntType isize[3])
 {
@@ -100,9 +87,9 @@ inline IntType GetLinearIndex(IntType i[3], IntType isize[3])
 
 
 
+
 /********************************************************************
- * Name: GetLinearIndex
- * Description: map 3d index to linear index (accfft style)
+ * @brief map 3d index to linear index (accfft style)
  *******************************************************************/
 inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
 {
@@ -111,15 +98,10 @@ inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
 };
 
 
-/********************************************************************
- * Name: GetLinearIndex
- * Description: map 3d index to linear index (accfft style)
- *******************************************************************/
 
 
 /********************************************************************
- * Name: CheckWaveNumbersInv
- * Description: check wave numbers
+ * @brief check wave numbers
  *******************************************************************/
 inline void CheckWaveNumbersInv(long int w[3],int n[3])
 {
@@ -134,8 +116,7 @@ inline void CheckWaveNumbersInv(long int w[3],int n[3])
 
 
 /********************************************************************
- * Name: CheckWaveNumbers
- * Description: check wave numbers
+ * @brief check wave numbers
  *******************************************************************/
 inline void CheckWaveNumbers(long int w[3],int n[3])
 {
@@ -150,9 +131,6 @@ inline void CheckWaveNumbers(long int w[3],int n[3])
     else if(w[2] == n[2]/2) w[2] = 0;
 
 };
-
-
-
 
 
 

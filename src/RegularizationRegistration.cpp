@@ -127,7 +127,7 @@ PetscErrorCode RegularizationRegistration::Allocate(void)
 
     // get local pencil size and allocation size
     alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(nx,isize,istart,osize,ostart,
-                                                        this->m_Opt->GetComm());
+                                                        this->m_Opt->GetFFT().mpicomm);
 
     if(this->m_v1hat == NULL){
         this->m_v1hat=(FFTScaType*)accfft_alloc(alloc_max);
