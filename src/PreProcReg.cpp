@@ -97,7 +97,7 @@ PetscErrorCode PreProcReg::ClearMemory()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
-PetscErrorCode PreProcReg::SetIO(PreProcReg::ReadWriteType* io)
+PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* io)
 {
     PetscErrorCode ierr;
 
@@ -136,7 +136,7 @@ PetscErrorCode PreProcReg::Prolong(Vec y, Vec x, IntType* nxpro)
 /********************************************************************
  * @brief restrict data
  * @param x input vector
- * @param y output vector y = R[x]
+ * @param y output vector xl = R[x]
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
@@ -168,6 +168,10 @@ PetscErrorCode PreProcReg::Restrict(Vec xl, Vec x, IntType* nx_l)
     _nx_l[0] = static_cast<int>(nx_l[0]);
     _nx_l[1] = static_cast<int>(nx_l[1]);
     _nx_l[2] = static_cast<int>(nx_l[2]);
+
+    ierr=Assert(nx_l[0] < this->m_Opt->GetDomainPara().nx[0],"grid sizes in restriction wrong"); CHKERRQ(ierr);
+    ierr=Assert(nx_l[1] < this->m_Opt->GetDomainPara().nx[1],"grid sizes in restriction wrong"); CHKERRQ(ierr);
+    ierr=Assert(nx_l[2] < this->m_Opt->GetDomainPara().nx[2],"grid sizes in restriction wrong"); CHKERRQ(ierr);
 
     // allocate container for inverse FFT
     nalloc=accfft_local_size_dft_r2c(_nx_l,_isize_l,_istart_l,_osize_l,_ostart_l,this->m_Opt->GetFFT().mpicomm);
@@ -237,6 +241,130 @@ PetscErrorCode PreProcReg::Restrict(Vec xl, Vec x, IntType* nx_l)
     if(p_xlhat != NULL){ accfft_free(p_xlhat); p_xlhat=NULL; }
     if(p_xdummy != NULL){ accfft_free(p_xdummy); p_xdummy=NULL; }
     if(p_xhatdummy != NULL){ accfft_free(p_xhatdummy); p_xhatdummy=NULL; }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+/********************************************************************
+ * @brief restrict data
+ * @param x input vector
+ * @param y output vector y = R[x]
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Restrict"
+PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_)
+{
+    PetscErrorCode ierr;
+    int _nx_[3],_ostart_[3],_osize_[3],_isize_[3],_istart_[3];
+    int rank,nprocs,ni,no,orank,c_grid[2],p1,p2;
+    IntType nx[3],ostart_[3],osize_[3],osize[3],ostart[3],oend[3];
+    IntType li,li_,i1_,i2_,i3_;
+    ScalarType k1,k2,k3,k1_,k2_,k3_,nxhalf_[3];
+    bool owned;
+
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
+
+    // allocate if necessary
+    if (this->m_IndicesC.empty()){
+        this->m_IndicesC.resize(nprocs);
+    }
+    if (this->m_IndicesF.empty()){
+        this->m_IndicesF.resize(nprocs);
+    }
+
+    for (int i = 0; i < nprocs; ++i){
+        if (!this->m_IndicesC[i].empty()){
+            this->m_IndicesC[i].clear();
+        }
+        if (!this->m_IndicesF[i].empty()){
+            this->m_IndicesF[i].clear();
+        }
+    }
+
+    // parse input sizes (we have to use int, to parse
+    // the arguments to accfft)
+    _nx_[0] = static_cast<int>(nx_[0]);
+    _nx_[1] = static_cast<int>(nx_[1]);
+    _nx_[2] = static_cast<int>(nx_[2]);
+
+    // allocate container for inverse FFT
+    accfft_local_size_dft_r2c(_nx_,_isize_,_istart_,_osize_,_ostart_,this->m_Opt->GetFFT().mpicomm);
+
+    for(int i = 0; i < 3; ++i){
+
+        nx[i] = this->m_Opt->GetDomainPara().nx[i];
+        osize_[i] = static_cast<IntType>(_osize_[i]);
+        ostart_[i] = static_cast<IntType>(_ostart_[i]);
+
+        nxhalf_[i] = std::ceil(static_cast<ScalarType>(nx_[i])/2.0);
+
+        ostart[i] = this->m_Opt->GetFFT().ostart[i];
+        osize[i] = this->m_Opt->GetFFT().osize[i];
+        oend[i] = ostart[i] + osize[i];
+//        std::cout<<oend[i]<<std::endl;
+    }
+
+    c_grid[0] = this->m_Opt->GetNetworkDims(0);
+    c_grid[1] = this->m_Opt->GetNetworkDims(1);
+
+    ni=0;
+    no=0;
+    for (i1_ = 0; i1_ < osize_[0]; ++i1_){ // x1
+        for (i2_ = 0; i2_ < osize_[1]; ++i2_){ // x2
+            for (i3_ = 0; i3_ < osize_[2]; ++i3_){ // x3
+
+                // compute coordinates (nodal grid)
+                k1_ = static_cast<ScalarType>(i1_ + ostart_[0]);
+                k2_ = static_cast<ScalarType>(i2_ + ostart_[1]);
+                k3_ = static_cast<ScalarType>(i3_ + ostart_[2]);
+
+                // compute index of fine grid according to quadrant
+                k1 = k1_ < nxhalf_[0] ? k1_ : (nx[0]-1) + k1_ - nx_[0];
+                k2 = k2_ < nxhalf_[1] ? k2_ : (nx[1]-1) + k2_ - nx_[1];
+                k3 = k3_ < nxhalf_[2] ? k3_ : (nx[2]-1) + k3_ - nx_[2];
+
+
+                owned=true;
+                if (k1 < ostart[0] || k1 >= oend[0] ) owned = false;
+                if (k2 < ostart[1] || k2 >= oend[1] ) owned = false;
+                if (k3 < ostart[2] || k3 >= 2*oend[2] ) owned = false;
+
+                li_ = GetLinearIndex(k1_,k2_,k3_,nx_);
+                li  = GetLinearIndex(k1,k2,k3,nx);
+
+                if (owned){
+                    this->m_IndicesC[rank].push_back(li_);
+                    this->m_IndicesF[rank].push_back(li);
+                    ++ni;
+                }
+                else{
+
+                    // compute processor id
+                    p1=static_cast<int>(std::ceil(k1/static_cast<ScalarType>(osize[0])));
+                    p2=static_cast<int>(std::ceil(k2/static_cast<ScalarType>(osize[1])));
+
+                    orank = p1*c_grid[0]+p2;
+//                    std::cout<<k1<<" "<<k2<<" "<<k3<<" "<<std::endl;
+//                    ierr=Assert(orank < nprocs,"rank larger than number of procs"); CHKERRQ(ierr);
+//                    this->m_IndicesC[orank].push_back(li_);
+//                    this->m_IndicesF[orank].push_back(li);
+                    ++no;
+
+                }
+
+            } // i1
+        } // i2
+    } // i3
+
+
+    std::cout<< rank << " " << no << " " << ni <<std::endl;
 
     PetscFunctionReturn(0);
 }

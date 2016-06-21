@@ -42,13 +42,15 @@ public:
     PreProcReg(RegOpt*);
     ~PreProcReg();
 
-    PetscErrorCode SetIO(ReadWriteType*);
+    PetscErrorCode SetReadWrite(ReadWriteType*);
     PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
 
     PetscErrorCode Prolong(Vec,Vec,IntType*);
     PetscErrorCode Restrict(Vec,Vec,IntType*);
     PetscErrorCode Prolong(VecField*,VecField*,IntType*);
     PetscErrorCode Restrict(VecField*,VecField*,IntType*);
+
+    PetscErrorCode RestrictionGetPoints(IntType*);
 
 private:
 
@@ -61,6 +63,8 @@ private:
 
     ReadWriteType* m_ReadWrite;
 
+    std::vector<std::vector<IntType>> m_IndicesF;
+    std::vector<std::vector<IntType>> m_IndicesC;
 
 };
 

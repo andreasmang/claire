@@ -127,9 +127,9 @@ int main(int argc,char **argv)
     }
     else if(regopt->GetRegFlags().resampledata){
 
-        regopt->SetNumGridPoints(0,256);
-        regopt->SetNumGridPoints(1,256);
-        regopt->SetNumGridPoints(2,256);
+        //regopt->SetNumGridPoints(0,256);
+        //regopt->SetNumGridPoints(1,256);
+        //regopt->SetNumGridPoints(2,256);
 
         if ( !regopt->SetupDone() ){
             ierr=regopt->DoSetup(); CHKERRQ(ierr);
@@ -168,7 +168,8 @@ int main(int argc,char **argv)
         ierr=VecSetFromOptions(mres); CHKERRQ(ierr);
         ierr=VecSet(mres,0.0); CHKERRQ(ierr);
 
-        ierr=preproc->Restrict(mres,m,nxres); CHKERRQ(ierr);
+        //ierr=preproc->Restrict(mres,m,nxres); CHKERRQ(ierr);
+        ierr=preproc->RestrictionGetPoints(nxres); CHKERRQ(ierr);
 
         // initialize
         for (int i=0; i<3; ++i){

@@ -291,6 +291,7 @@ public:
     inline void EnableSmoothing(){ this->m_RegFlags.smoothingenabled=true; };
 
     PetscErrorCode GetSizes(IntType*,IntType&,IntType&);
+    PetscErrorCode GetSizes(IntType*,IntType*,IntType*);
 
     // time horizon, step size, and ....
     inline void SetNumTimePoints(IntType nt){ this->m_Domain.nt=nt; };
@@ -335,16 +336,9 @@ public:
     inline FSeqType GetFSeqType(void){return this->m_KKTSolverPara.fseqtype;};
 
     // jacobians
-//    inline ScalarType GetJacMin(){return this->m_RegMonitor.jacmin;};
-//    inline ScalarType GetJacMax(){return this->m_RegMonitor.jacmax;};
-//    inline ScalarType GetJacMean(){return this->m_RegMonitor.jacmean;};
-//    inline ScalarType GetJacBound(){return this->m_RegMonitor.jacbound;};
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
     inline void SetJacMax(ScalarType value){this->m_RegMonitor.jacmax=value;};
     inline void SetJacMean(ScalarType value){this->m_RegMonitor.jacmean=value;};
-//    inline bool MonitorJacobian(){return this->m_RegMonitor.monitorJAC;};
-//    inline bool MonitorCFLCondition(){return this->m_RegMonitor.monitorCFL;};
-//    inline void MonitorCFLCondition(bool flag){this->m_RegMonitor.monitorCFL=flag;};
 
     // flag for setup
     inline bool SetupDone(){return this->m_SetupDone;};

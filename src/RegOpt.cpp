@@ -1006,7 +1006,6 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
 
 
 
-
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
@@ -1667,6 +1666,36 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng)
         ng *= static_cast<IntType>(_nx[i]);
     }
 
+
+    PetscFunctionReturn(0);
+};
+
+
+
+
+/********************************************************************
+ * @brief compute sizes
+ *******************************************************************/
+PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize)
+{
+    PetscErrorCode ierr;
+    int _nx[3],_isize[3],_istart[3],_osize[3],_ostart[3];
+    PetscFunctionBegin;
+
+    ierr=Assert(nx[0] > 0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[1] > 0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[2] > 0,"error in size"); CHKERRQ(ierr);
+
+    _nx[0] = static_cast<int>(nx[0]);
+    _nx[1] = static_cast<int>(nx[1]);
+    _nx[2] = static_cast<int>(nx[2]);
+
+    accfft_local_size_dft_r2c(_nx,_isize,_istart,_osize,_ostart,this->m_FFT.mpicomm);
+
+    for (int i = 0; i < 3; ++i){
+        isize[i] = static_cast<IntType>(_isize[i]);
+        istart[i] = static_cast<IntType>(_nx[i]);
+    }
 
     PetscFunctionReturn(0);
 };
