@@ -93,7 +93,7 @@ PetscErrorCode RegistrationInterface::Initialize(void)
 #define __FUNCT__ "ClearMemory"
 PetscErrorCode RegistrationInterface::ClearMemory(void)
 {
-    PetscErrorCode ierr;
+    //PetscErrorCode ierr;
     PetscFunctionBegin;
 
     if (this->m_RegProblem != NULL){
@@ -172,6 +172,7 @@ PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw)
     PetscFunctionReturn(0);
 
 }
+
 
 
 
@@ -337,7 +338,7 @@ PetscErrorCode RegistrationInterface::Run()
 {
     PetscErrorCode ierr;
     int rank;
-    IntType nlu,ngu;
+    //IntType nlu,ngu;
 
     PetscFunctionBegin;
 
@@ -475,7 +476,7 @@ PetscErrorCode RegistrationInterface::RunSolver()
 PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
 {
     PetscErrorCode ierr;
-    Vec mT=NULL,mR=NULL,x=NULL;
+    Vec mT=NULL,mR=NULL;//,x=NULL;
     PetscFunctionBegin;
 
     // do the setup
@@ -1085,7 +1086,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     PetscErrorCode ierr;
     Vec mT=NULL,mR=NULL;
     VecField *v=NULL;
-    Vec xstar=NULL;
+    //Vec xstar=NULL;
+
     int rank,level,nlevels;
     IntType nx[3],nl,ng;
     std::stringstream ss;

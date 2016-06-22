@@ -1359,7 +1359,6 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
     // add components
     (*niiimage)->nvox *= (*niiimage)->nu;
 
-
     // only allocate image buffer on root
     if (rank == 0){
         try { (*niiimage)->data = new ScalarType [(*niiimage)->nvox]; }
