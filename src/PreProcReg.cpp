@@ -299,8 +299,13 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
         osize[i]  = this->m_Opt->GetFFT().osize[i];
     }
 
+    // get cartesian grid (MPI)
     c_grid[0] = this->m_Opt->GetNetworkDims(0);
     c_grid[1] = this->m_Opt->GetNetworkDims(1);
+
+    IntType sizex2 = std::ceil( static_cast<ScalarType>(nx_c[1])/static_cast<ScalarType>(c_grid[0]));
+    IntType sizex3 = std::ceil( (static_cast<ScalarType>(nx_c[2])/2.0 + 1.0)/static_cast<ScalarType>(c_grid[1]));
+
 
     nowned=0; nsend=0; nprocessed=0;
     for (i1 = 0; i1 < osize[0]; ++i1){ // x1
@@ -339,12 +344,9 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
                     if ( (k3_c < ostart_c[2]) || (k3_c >= oend_c[2]) ) owned = false;
 
                     // compute processor id
-                    IntType sizex2 = std::ceil(nx_c[1]*1./c_grid[0]);
-                    IntType sizex3 = std::ceil( (nx_c[2]/2.0 + 1)*1./c_grid[1]);
-//                    p1=static_cast<int>(k2_c/osize_c[1]);
-//                    p2=static_cast<int>(k3_c/osize_c[2]);
                     p1=static_cast<int>(k2_c/sizex2);
                     p2=static_cast<int>(k3_c/sizex3);
+
                     xrank = p1*c_grid[1] + p2;
 
                     if ( owned ){
@@ -392,32 +394,8 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
         } // i2
     } // i3
 
-    //std::cout<<std::endl;
-    //ierr=Assert(owned==osize_c[0]*osize_c[1]*osize_c[2],"dimension mismatch"); CHKERRQ(ierr);
-    //std::cout<< rank << " " << osize_c[0] << " " << osize_c[1] << " " << osize_c[2] <<std::endl;
-    //std::cout<< this->m_IndicesF[rank].size()<<std::endl;
-    //std::cout<< this->m_IndicesC[rank].size()<<std::endl;
-
-//MPI_INT
-//MPI_LONG_LONG
-
-/*
-MPI_Send(
-    void* data,
-    int count,
-    MPI_Datatype datatype,
-    int destination,
-    int tag,
-    MPI_Comm communicator)
-MPI_Recv(
-    void* data,
-    int count,
-    MPI_Datatype datatype,
-    int source,
-    int tag,
-    MPI_Comm communicator,
-    MPI_Status* status)
-*/
+    // TODO: send data that does not belong to current proc to
+    // other procs
 
     PetscFunctionReturn(0);
 }
