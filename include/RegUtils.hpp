@@ -75,6 +75,16 @@ std::vector<unsigned int> String2Vec( const std::string & );
 
 
 
+/********************************************************************
+ * @brief display array content
+ *******************************************************************/
+inline void GetLinearIndex(IntType n[3])
+{
+    // row major order (ACCFFT)$
+    std::cout << n[0] << " " << n[1] << " " << n[2] << std::endl;
+}
+
+
 
 /********************************************************************
  * @brief map 3d index to linear index (accfft style)

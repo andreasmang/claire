@@ -153,11 +153,19 @@ PetscErrorCode PreProcReg::Restrict(Vec xcoarse, Vec x, IntType* nx_c)
 
     PetscFunctionBegin;
 
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("applying restriction operator"); CHKERRQ(ierr);
+    }
+
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(xcoarse!=NULL,"null pointer"); CHKERRQ(ierr);
 
+    // everything we do not set is zero
+    ierr=VecSet(xcoarse,0.0); CHKERRQ(ierr);
+
+    // restriction operator
     ierr=this->RestrictionGetPoints(nx_c); CHKERRQ(ierr);
 
     if(this->m_xhat == NULL){
@@ -181,8 +189,8 @@ PetscErrorCode PreProcReg::Restrict(Vec xcoarse, Vec x, IntType* nx_c)
     accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
-
     n = this->m_IndicesC[rank].size();
+    ierr=Assert(n == this->m_IndicesF[rank].size(),"size error"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -199,7 +207,6 @@ PetscErrorCode PreProcReg::Restrict(Vec xcoarse, Vec x, IntType* nx_c)
     }
 
 } // pragma omp parallel
-
 
     // allocate fft
     p_xdummy = (ScalarType*)accfft_alloc(nalloc);
@@ -237,20 +244,20 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
 {
     PetscErrorCode ierr;
     int _nx_c[3],_ostart_c[3],_osize_c[3],_isize_c[3],_istart_c[3];
-    int rank,nprocs,nowned,nsend,nprocessed,send2rank,c_grid[2],p1,p2;
+    int rank,nprocs,nowned,nsend,nprocessed,xrank,c_grid[2],p1,p2;
     IntType nx[3],ostart_c[3],osize_c[3],oend_c[3],osize[3],ostart[3];
-    IntType li,li_c,i1,i2,i3,i1_c,i2_c,i3_c;
-    ScalarType k1,k2,k3,k1_c,k2_c,k3_c,w1,w2,w3,nxhalf[3],nxhalf_c[3];
-    bool owned,process;
+    IntType li,li_c, i1,i2,i3, i1_c,i2_c,i3_c;
+    ScalarType k1,k2,k3, k1_c,k2_c,k3_c, nxhalf_c[3];
+    bool owned;
 
     PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
     ierr=Assert(nx_c[0] < this->m_Opt->GetDomainPara().nx[0],"grid size in restriction wrong"); CHKERRQ(ierr);
     ierr=Assert(nx_c[1] < this->m_Opt->GetDomainPara().nx[1],"grid size in restriction wrong"); CHKERRQ(ierr);
     ierr=Assert(nx_c[2] < this->m_Opt->GetDomainPara().nx[2],"grid size in restriction wrong"); CHKERRQ(ierr);
-
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-    MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
     // allocate if necessary
     if (this->m_IndicesC.empty()){
@@ -283,21 +290,14 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
         // assign sizes for coarse grid
         osize_c[i]  = static_cast<IntType>(_osize_c[i]);
         ostart_c[i] = static_cast<IntType>(_ostart_c[i]);
-        nxhalf_c[i] = std::ceil(static_cast<ScalarType>(nx_c[i])/2.0);
+        nxhalf_c[i] = std::floor(static_cast<ScalarType>(nx_c[i])/2.0);
         oend_c[i]   = ostart_c[i] + osize_c[i];
 
         // assign sizes for fine grid
         nx[i]     = this->m_Opt->GetDomainPara().nx[i];
-        nxhalf[i] = std::ceil(static_cast<ScalarType>(nx[i])/2.0);
         ostart[i] = this->m_Opt->GetFFT().ostart[i];
         osize[i]  = this->m_Opt->GetFFT().osize[i];
     }
-
-    //std::cout<< nx_c[0] << " " << nx_c[1] << " " << nx_c[2] << " " << std::endl;
-    //std::cout<< nxhalf_c[0] << " " << nxhalf_c[1] << " " << nxhalf_c[2] << " " << std::endl;
-    //std::cout<< osize_c[0] << " " << osize_c[1] << " " << osize_c[2] << " " << std::endl;
-    //std::cout<< osize[0] << " " << osize[1] << " " << osize[2] << " " << std::endl;
-    //std::cout<< ostart_c[0] << " " << ostart_c[1] << " " << ostart_c[2] << " " << std::endl;
 
     c_grid[0] = this->m_Opt->GetNetworkDims(0);
     c_grid[1] = this->m_Opt->GetNetworkDims(1);
@@ -326,24 +326,26 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
                     k2_c = k2 <= nxhalf_c[1] ? k2 : nx_c[1] - nx[1] + k2;
                     k3_c = k3 <= nxhalf_c[2] ? k3 : nx_c[2] - nx[2] + k3;
 
-                    ierr=Assert(k1_c >= 0.0,"index k1 smaller zero"); CHKERRQ(ierr);
-                    ierr=Assert(k2_c >= 0.0,"index k2 smaller zero"); CHKERRQ(ierr);
-                    ierr=Assert(k3_c >= 0.0,"index k3 smaller zero"); CHKERRQ(ierr);
-
-                    ierr=Assert(k1_c < nx_c[0],"index k1 larger nx"); CHKERRQ(ierr);
-                    ierr=Assert(k2_c < nx_c[1],"index k2 larger nx"); CHKERRQ(ierr);
-                    ierr=Assert(k3_c < nx_c[2],"index k3 larger nx"); CHKERRQ(ierr);
+                    if ( (k1_c < 0.0) || (k2_c < 0.0) || (k3_c < 0.0) ){
+                        std::cout<<" index out of bounds (smaller than zero)"<<std::endl;
+                    }
+                    if ( (k1_c > nx_c[0]) || (k2_c > nx_c[1]) || (k3_c > nx_c[2]) ){
+                        std::cout<<" index out of bounds (larger than nx)"<<std::endl;
+                    }
 
                     owned=true;
-                    if (k1_c < ostart_c[0] || k1_c >= oend_c[0] ) owned = false;
-                    if (k2_c < ostart_c[1] || k2_c >= oend_c[1] ) owned = false;
-                    if (k3_c < ostart_c[2] || k3_c >= oend_c[2] ) owned = false;
+                    if ( (k1_c < ostart_c[0]) || (k1_c >= oend_c[0]) ) owned = false;
+                    if ( (k2_c < ostart_c[1]) || (k2_c >= oend_c[1]) ) owned = false;
+                    if ( (k3_c < ostart_c[2]) || (k3_c >= oend_c[2]) ) owned = false;
 
                     // compute processor id
-                    p1=static_cast<int>(k2_c/osize_c[1]);
-                    p2=static_cast<int>(k3_c/osize_c[2]);
-                    send2rank = p1*c_grid[1] + p2;
-                    ierr=Assert(send2rank < nprocs,"rank larger than number of procs"); CHKERRQ(ierr);
+                    IntType sizex2 = std::ceil(nx_c[1]*1./c_grid[0]);
+                    IntType sizex3 = std::ceil( (nx_c[2]/2.0 + 1)*1./c_grid[1]);
+//                    p1=static_cast<int>(k2_c/osize_c[1]);
+//                    p2=static_cast<int>(k3_c/osize_c[2]);
+                    p1=static_cast<int>(k2_c/sizex2);
+                    p2=static_cast<int>(k3_c/sizex3);
+                    xrank = p1*c_grid[1] + p2;
 
                     if ( owned ){
 
@@ -352,11 +354,12 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
                         i2_c = static_cast<IntType>(k2_c) - ostart_c[1];
                         i3_c = static_cast<IntType>(k3_c) - ostart_c[2];
 
-//                        std::cout << "(" << i1_c << "," << i2_c << "," << i3_c << ")   ";
-                        ierr=Assert(i1_c >= 0.0,"index i1 smaller zero"); CHKERRQ(ierr);
-                        ierr=Assert(i2_c >= 0.0,"index i2 smaller zero"); CHKERRQ(ierr);
-                        ierr=Assert(i3_c >= 0.0,"index i3 smaller zero"); CHKERRQ(ierr);
-
+                        if ( (i1_c >= osize_c[0]) || (i2_c >= osize_c[1]) || (i3_c >= osize_c[2]) ){
+                            std::cout<<" index out of bounds (larger than osize)"<<std::endl;
+                        }
+                        if ( (i1_c < 0.0) || (i2_c < 0.0) || (i3_c < 0.0) ){
+                            std::cout<<" index out of bounds (larger than osize)"<<std::endl;
+                        }
                         // compute flat index
                         li_c = GetLinearIndex(i1_c,i2_c,i3_c,osize_c);
                         li   = GetLinearIndex(i1,i2,i3,osize);
@@ -366,18 +369,20 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
                         this->m_IndicesF[rank].push_back(li);
 
                         // check if woned is really owned
-                        ierr=Assert(send2rank==rank,"data not owned by current rank"); CHKERRQ(ierr);
-
+                        if ( rank != xrank ){
+                            std::cout<<" rank not owned: " << rank << " " << xrank <<std::endl;
+                        }
                         ++nowned;
                     }
                     else{
 
+                        if ( rank == xrank ){
+                            std::cout<<" rank owned: " << rank << " " << xrank <<std::endl;
+                        }
 
-                        ierr=Assert(send2rank!=rank,"data owned by current rank"); CHKERRQ(ierr);
+                        this->m_IndicesC[xrank].push_back(0);
+                        this->m_IndicesF[xrank].push_back(0);
 
-
-//                        this->m_IndicesC[request_rank].push_back(li_);
-//                        this->m_IndicesF[request_rank].push_back(li);
                         ++nsend;
 
                     }
@@ -387,14 +392,11 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
         } // i2
     } // i3
 
-    std::cout<<std::endl;
-   //ierr=Assert(nprocessed==osize_c[0]*osize_c[1]*osize_c[2],"dimension mismatch"); CHKERRQ(ierr);
-
-
+    //std::cout<<std::endl;
+    //ierr=Assert(owned==osize_c[0]*osize_c[1]*osize_c[2],"dimension mismatch"); CHKERRQ(ierr);
     //std::cout<< rank << " " << osize_c[0] << " " << osize_c[1] << " " << osize_c[2] <<std::endl;
-    std::cout<< rank << " " << nprocessed << " " << nowned << " " << nsend <<std::endl;
-//    std::cout<< this->m_IndicesF[rank].size()<<std::endl;
-//    std::cout<< this->m_IndicesC[rank].size()<<std::endl;
+    //std::cout<< this->m_IndicesF[rank].size()<<std::endl;
+    //std::cout<< this->m_IndicesC[rank].size()<<std::endl;
 
 //MPI_INT
 //MPI_LONG_LONG
