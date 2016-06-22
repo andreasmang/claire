@@ -189,6 +189,7 @@ PetscErrorCode PreProcReg::Restrict(Vec xcoarse, Vec x, IntType* nx_c)
     accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
+    // get size
     n = this->m_IndicesC[rank].size();
     ierr=Assert(n == this->m_IndicesF[rank].size(),"size error"); CHKERRQ(ierr);
 
@@ -245,7 +246,7 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
     PetscErrorCode ierr;
     int _nx_c[3],_ostart_c[3],_osize_c[3],_isize_c[3],_istart_c[3];
     int rank,nprocs,nowned,nsend,nprocessed,xrank,c_grid[2],p1,p2;
-    IntType nx[3],ostart_c[3],osize_c[3],oend_c[3],osize[3],ostart[3];
+    IntType nx[3],ostart_c[3],osize_c[3],oend_c[3],osize[3],ostart[3],osizex2,osizex3;
     IntType li,li_c, i1,i2,i3, i1_c,i2_c,i3_c;
     ScalarType k1,k2,k3, k1_c,k2_c,k3_c, nxhalf_c[3];
     bool owned;
@@ -303,9 +304,8 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
     c_grid[0] = this->m_Opt->GetNetworkDims(0);
     c_grid[1] = this->m_Opt->GetNetworkDims(1);
 
-    IntType sizex2 = std::ceil( static_cast<ScalarType>(nx_c[1])/static_cast<ScalarType>(c_grid[0]));
-    IntType sizex3 = std::ceil( (static_cast<ScalarType>(nx_c[2])/2.0 + 1.0)/static_cast<ScalarType>(c_grid[1]));
-
+    osizex2 = std::ceil( static_cast<ScalarType>(nx_c[1])/static_cast<ScalarType>(c_grid[0]));
+    osizex3 = std::ceil( (static_cast<ScalarType>(nx_c[2])/2.0 + 1.0)/static_cast<ScalarType>(c_grid[1]));
 
     nowned=0; nsend=0; nprocessed=0;
     for (i1 = 0; i1 < osize[0]; ++i1){ // x1
@@ -344,8 +344,8 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
                     if ( (k3_c < ostart_c[2]) || (k3_c >= oend_c[2]) ) owned = false;
 
                     // compute processor id
-                    p1=static_cast<int>(k2_c/sizex2);
-                    p2=static_cast<int>(k3_c/sizex3);
+                    p1=static_cast<int>(k2_c/osizex2);
+                    p2=static_cast<int>(k3_c/osizex3);
 
                     xrank = p1*c_grid[1] + p2;
 
@@ -449,26 +449,20 @@ PetscErrorCode PreProcReg::Restrict(VecField* y, VecField* x, IntType* nxpro)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplySmoothing"
-PetscErrorCode PreProcReg::ApplySmoothing(Vec y, Vec x)
+PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 {
     PetscErrorCode ierr;
-    int isize[3],osize[3],istart[3],ostart[3],n[3];
-    IntType iosize[3];
-    IntType nalloc;
+    IntType osize[3],ostart[3],nalloc;
     ScalarType hx[3],nx[3],c[3],scale;
-    ScalarType *p_x=NULL, *p_y=NULL;
+    ScalarType *p_x=NULL, *p_xsmooth=NULL;
     double ffttimers[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
     ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
 
-    n[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-    n[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-    n[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
-
     // get local pencil size and allocation size
-    nalloc=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
-                                                   this->m_Opt->GetFFT().mpicomm);
+    nalloc=this->m_Opt->GetFFT().nalloc;
+
     if(this->m_xhat == NULL){
         this->m_xhat=(ScalarTypeFD*)accfft_alloc(nalloc);
     }
@@ -476,13 +470,14 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec y, Vec x)
     for (int i = 0; i < 3; ++i){
 
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        nx[i] = static_cast<ScalarType>(n[i]);
+        nx[i] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i]);
 
         // sigma is provided by user in # of grid points
         c[i] = this->m_Opt->GetSigma(i)*hx[i];
         c[i] *= c[i];
 
-        iosize[i] = osize[i];
+        osize[i] = this->m_Opt->GetFFT().osize[i];
+        ostart[i] = this->m_Opt->GetFFT().ostart[i];
     }
 
     scale = this->m_Opt->ComputeFFTScale();
@@ -496,9 +491,9 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec y, Vec x)
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i1 = 0; i1 < iosize[0]; ++i1){ // x1
-        for (IntType i2 = 0; i2 < iosize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < iosize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < osize[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < osize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < osize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
                 ScalarType k1 = static_cast<ScalarType>(i1 + ostart[0]);
@@ -519,7 +514,7 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec y, Vec x)
                 sik = exp(-sik);
 
                 // compute linear / flat index
-                IntType li = GetLinearIndex(i1,i2,i3,iosize);
+                IntType li = GetLinearIndex(i1,i2,i3,osize);
 
                 this->m_xhat[li][0] *= scale*sik;
                 this->m_xhat[li][1] *= scale*sik;
@@ -531,9 +526,9 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec y, Vec x)
 } // pragma omp parallel
 
     // compute inverse fft
-    ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_y,ffttimers);
-    ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
+    ierr=VecGetArray(xsmooth,&p_xsmooth); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_xsmooth,ffttimers);
+    ierr=VecRestoreArray(xsmooth,&p_xsmooth); CHKERRQ(ierr);
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(ffttimers);

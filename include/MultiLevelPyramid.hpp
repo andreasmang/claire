@@ -57,11 +57,15 @@ public:
 private:
 
     PetscErrorCode Initialize();
+    PetscErrorCode ClearMemory();
+
     PetscErrorCode AllocatePyramid();
     PetscErrorCode Allocate(Vec*,IntType,IntType);
-    PetscErrorCode ClearMemory();
+
     PetscErrorCode SetData(Vec,int);
-    PetscErrorCode GetDataPointer(Vec**,int);
+    PetscErrorCode GetData(Vec**,int);
+    PetscErrorCode SetPreProc(PreProcReg*);
+
     PetscErrorCode ComputeGridSize();
 
     Vec m_DataL01;

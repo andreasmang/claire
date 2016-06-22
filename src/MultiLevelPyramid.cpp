@@ -164,6 +164,27 @@ PetscErrorCode MultiLevelPyramid::ClearMemory()
 
 
 /********************************************************************
+ * @brief set read write operator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetReadWrite"
+PetscErrorCode MultiLevelPyramid::SetPreProc(PreProcReg* ppr)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(ppr != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_PreProc = ppr;
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+
+/********************************************************************
  * @brief allocate entire pyramid
  *******************************************************************/
 #undef __FUNCT__
@@ -383,8 +404,11 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
     // allocate the data pyramid
     ierr=this->AllocatePyramid(); CHKERRQ(ierr);
 
+    // get number of levels
+    nlevels=this->m_Opt->GetGridContPara().nlevels;
+
     // set data on finest grid
-    ierr=this->SetData(x,this->m_Opt->GetGridContPara().nlevels-1); CHKERRQ(ierr);
+    ierr=this->SetData(x,nlevels-1); CHKERRQ(ierr);
 
     // allocate data for fourier domain
     p_xhat=(FFTScalarType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
@@ -394,7 +418,6 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
     accfft_execute_r2c_t<ScalarType,FFTScalarType>(this->m_Opt->GetFFT().plan,p_x,p_xhat,ffttimers);
     ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
-    nlevels=this->m_Opt->GetGridContPara().nlevels;
 
     for (int i=0; i<3; ++i){
         nx[i] = this->m_Opt->GetDomainPara().nx[i];
@@ -458,7 +481,7 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 
         // get pointer to level
         xlevel=NULL;
-        ierr=this->GetDataPointer(&xlevel,level); CHKERRQ(ierr);
+        ierr=this->GetData(&xlevel,level); CHKERRQ(ierr);
         ierr=Assert(*xlevel!=NULL, "pointer is null pointer"); CHKERRQ(ierr);
 
         // setup fft plan
@@ -589,7 +612,7 @@ PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetLevel"
-PetscErrorCode MultiLevelPyramid::GetDataPointer(Vec** x, int level)
+PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
