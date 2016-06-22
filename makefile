@@ -2,8 +2,8 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=no
-PEDANTIC=no
+BUILDTOOLS=yes
+PEDANTIC=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -36,7 +36,6 @@ APPDIR = ./apps
 COLD_INC = -I$(INCDIR)
 COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
 COLD_INC+= -I$(ACCFFT_DIR)/include
-COLD_INC+= -I$(PNETCDF_DIR)/include
 COLD_INC+= -I$(FFTW_DIR)/include
 COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 
@@ -56,9 +55,10 @@ ifeq ($(USEINTELMPI),yes)
 endif
 LDFLAGS+= -lm
 
-BIN+= $(BINDIR)/runcoldreg
+#BIN+= $(BINDIR)/runcoldreg
 ifeq ($(BUILDTOOLS),yes)
-	BIN+= $(BINDIR)/par_interp3_driver
+	BIN+= $(BINDIR)/regtools
+#	BIN+= $(BINDIR)/par_interp3_driver
 endif
 
 
@@ -85,7 +85,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
 		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
-		$(SRCDIR)/PreProcessingRegistration.cpp
+		$(SRCDIR)/PreProcReg.cpp
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
 
