@@ -421,8 +421,8 @@ PetscErrorCode RegistrationInterface::RunSolver()
                 }
             }
 
-            ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplySmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplySmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
         }
         else{
@@ -503,8 +503,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
                 }
             }
 
-            ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplySmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplySmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
         }
         else{
@@ -1025,8 +1025,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
         // solve problem
         if (solve){
 
-            ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplySmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr=this->m_PreProc->ApplySmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
 
             // rescale images
             ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
@@ -1305,8 +1305,8 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
 
     if (this->m_Opt->GetRegFlags().smoothingenabled){
         // apply smoothing
-        ierr=this->m_PreProc->ApplyGaussianSmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr=this->m_PreProc->ApplyGaussianSmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_PreProc->ApplySmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_PreProc->ApplySmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
     }
     else{
         // copy input images

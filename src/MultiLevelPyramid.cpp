@@ -77,6 +77,9 @@ PetscErrorCode MultiLevelPyramid::Initialize()
     this->m_DataL14=NULL;
     this->m_DataL15=NULL;
 
+    this->m_PreProc=NULL;
+
+    PetscFunctionReturn(0);
 }
 
 
@@ -641,6 +644,8 @@ PetscErrorCode MultiLevelPyramid::GetDataPointer(Vec** x, int level)
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 } // end of namespace

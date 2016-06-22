@@ -25,6 +25,7 @@
 #define _MULTILEVELPYRAMID_H_
 
 #include "RegOpt.hpp"
+#include "PreProcReg.hpp"
 
 namespace reg
 {
@@ -80,6 +81,7 @@ private:
     Vec m_DataL15;
 
     RegOpt* m_Opt;
+    PreProcReg* m_PreProc;
 
 };
 

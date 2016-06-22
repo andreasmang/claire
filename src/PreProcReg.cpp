@@ -448,8 +448,8 @@ PetscErrorCode PreProcReg::Restrict(VecField* y, VecField* x, IntType* nxpro)
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ApplyGaussianSmoothing"
-PetscErrorCode PreProcReg::ApplyGaussianSmoothing(Vec y, Vec x)
+#define __FUNCT__ "ApplySmoothing"
+PetscErrorCode PreProcReg::ApplySmoothing(Vec y, Vec x)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],n[3];

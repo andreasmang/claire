@@ -43,7 +43,7 @@ public:
     ~PreProcReg();
 
     PetscErrorCode SetReadWrite(ReadWriteType*);
-    PetscErrorCode ApplyGaussianSmoothing(Vec,Vec);
+    PetscErrorCode ApplySmoothing(Vec,Vec);
 
     PetscErrorCode Prolong(Vec,Vec,IntType*);
     PetscErrorCode Restrict(Vec,Vec,IntType*);
