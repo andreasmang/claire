@@ -75,6 +75,8 @@ private:
     PetscErrorCode SetupSolver(void);
     PetscErrorCode SetupRegProblem(void);
 
+    PetscErrorCode DispLevelMsg(std::string,int);
+
     PetscErrorCode RunSolver(void);
     PetscErrorCode RunSolverGridCont(void);
     PetscErrorCode RunSolverScaleCont(void);
@@ -83,7 +85,7 @@ private:
     PetscErrorCode RunSolverRegParaContReductSearch(void);
     PetscErrorCode RunSolverRegParaContReduction(void);
 
-    PetscErrorCode DispLevelMsg(std::string,int);
+    PetscErrorCode ProlongVelocityField(VecField**,int);
 
     RegOpt* m_Opt;
     PreProcType* m_PreProc;

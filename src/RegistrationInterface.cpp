@@ -1086,7 +1086,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     //Vec *mT=NULL,*mR=NULL;
     Vec mT=NULL,mR=NULL;
     VecField *v=NULL;
-    //Vec xstar=NULL;
+    Vec xstar=NULL;
 
     int rank,level,nlevels;
     IntType nx[3],nl,ng;
@@ -1143,7 +1143,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     ierr=this->m_ReferencePyramid->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
     ierr=this->m_ReferencePyramid->SetUp(this->m_ReferenceImage); CHKERRQ(ierr);
 
-
     // allocate multilevel pyramid for template image
     if (this->m_Opt->GetVerbosity() > 1){
         ierr=DbgMsg("setting up template image multilevel pyramid"); CHKERRQ(ierr);
@@ -1157,6 +1156,20 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     // setup multilevel pyramid for template image
     ierr=this->m_TemplatePyramid->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
     ierr=this->m_TemplatePyramid->SetUp(this->m_TemplateImage); CHKERRQ(ierr);
+
+    // get grid size
+    for (int i = 0; i < 3; ++i){
+        nx[i] = this->m_Opt->GetGridContPara().nx[0][i];
+    }
+    ierr=this->m_Opt->GetSizes(nx,nl,ng); CHKERRQ(ierr);
+
+    // TODO: allow for warm start
+    try{v = new VecField(nl,ng);}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr=v->SetValue(0.0); CHKERRQ(ierr);
+
 
     // reset all the clocks we have used so far
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
@@ -1207,53 +1220,116 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         }
 
         // clean up
-        if(this->m_Optimizer != NULL){
+        if(this->m_Optimizer!=NULL){
             delete this->m_Optimizer; this->m_Optimizer = NULL;
         }
-        if(this->m_RegProblem != NULL){
+        if(this->m_RegProblem!=NULL){
             delete this->m_RegProblem; this->m_RegProblem = NULL;
         }
 
         // do the setup
         ierr=this->SetupSolver(); CHKERRQ(ierr);
 
-        // check if everything has been set up correctly
-        ierr=Assert(this->m_Optimizer!=NULL,"optimizer is null"); CHKERRQ(ierr);
-        ierr=Assert(this->m_RegProblem!=NULL,"registration problem is null"); CHKERRQ(ierr);
-
         // set images
         ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
 
-        // set up initial guess
-        if (v==NULL){
-            try{v = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            ierr=v->SetValue(0.0); CHKERRQ(ierr);
-        }
-
+        // set initial guess and registraiton problem
         ierr=this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);
         ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
-        // run the optimization
+        // run the optimizer
         ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
-        // clean up
-        if (v!=NULL){ delete v; v=NULL; }
-        if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
-        if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
+        // get and parse solution
+        ierr=this->m_Optimizer->GetSolution(xstar); CHKERRQ(ierr);
+        ierr=v->SetComponents(xstar); CHKERRQ(ierr);
 
         ++level; // increment iterator
+
+        if (level < nlevels){
+
+            ierr=this->ProlongVelocityField(&v,level); CHKERRQ(ierr);
+
+            if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
+            if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
+
+        }
+
+
     }
 
     // get the solution
-//    ierr=this->m_Optimizer->GetSolution(xstar); CHKERRQ(ierr);
-//    ierr=this->m_Solution->SetComponents(xstar); CHKERRQ(ierr);
+    ierr=Assert(this->m_Solution!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=this->m_Solution->Copy(v); CHKERRQ(ierr);
 
     // wrap up
-//    ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
+
+    if (v!=NULL){ delete v; v = NULL;};
+    if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
+    if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+/********************************************************************
+ * @brief prolong velocity field
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ProlongVelocityField"
+PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField** v, int level)
+{
+    PetscErrorCode ierr;
+    IntType nx[3],nl,ng;
+    VecField *vpro;
+    PetscFunctionBegin;
+
+    ierr=Assert(*v!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 1){
+        ierr=DbgMsg("prolonging velocity field"); CHKERRQ(ierr);
+    }
+
+    // set up preprocessing
+    if(this->m_PreProc!=NULL){
+        delete this->m_PreProc; this->m_PreProc=NULL;
+    }
+    try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // get number of grid points for current level
+    for (int i = 0; i<3; ++i){
+        nx[i] = this->m_Opt->GetGridContPara().nx[level][i];
+    }
+
+    // get number of points to allocate
+    ierr=this->m_Opt->GetSizes(nx,nl,ng); CHKERRQ(ierr);
+
+    // allocate container for velocity field
+    try{ vpro = new reg::VecField(nl,ng); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // apply prolongation operator
+    ierr=this->m_PreProc->Prolong(vpro,*v,nx); CHKERRQ(ierr);
+
+    // allocate container for velocity field
+    delete *v; *v = NULL;
+    try{ *v = new reg::VecField(nl,ng); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr=(*v)->Copy(vpro); CHKERRQ(ierr);
+
+    delete vpro; vpro=NULL;
 
     PetscFunctionReturn(0);
 
