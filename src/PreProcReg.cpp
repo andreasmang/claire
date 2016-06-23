@@ -427,6 +427,8 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_c)
 }
 
 
+
+
 /********************************************************************
  * @brief prolong vector field
  * @param v input vector field
@@ -679,9 +681,9 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f)
 
                 // only if current fourier entry is represented in
                 // spectral domain of coarse grid
-                if (  ( k1_f >= ostart_f[0] || k1_f < oend_f[0] )
-                   && ( k2_f >= ostart_f[1] || k2_f < oend_f[1] )
-                   && ( k3_f >= ostart_f[2] || k3_f < oend_f[2] ) ){
+                if (  ( k1_f >= ostart_f[0] && k1_f < oend_f[0] )
+                   && ( k2_f >= ostart_f[1] && k2_f < oend_f[1] )
+                   && ( k3_f >= ostart_f[2] && k3_f < oend_f[2] ) ){
 
                     // compute local index
                     i1_f = static_cast<IntType>(k1_f) - ostart_f[0];
@@ -706,13 +708,13 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f)
 
                     // check if woned is really owned
                     if ( rank != xrank ){
-                        std::cout<<"rank not owned: " << rank << " " << xrank <<std::endl;
+                        std::cout<<"rank not owned: " << rank <<" "<< xrank <<std::endl;
                     }
                 }
                 else{
 
                     if ( rank == xrank ){
-                        std::cout<<" rank owned: " << rank << " " << xrank <<std::endl;
+                        std::cout<<" rank owned: "<< rank <<" "<< xrank <<std::endl;
                     }
 
                     this->m_IndicesF[xrank].push_back(0);
@@ -729,6 +731,7 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f)
     // TODO: send data that does not belong to current proc to
     // other procs
     PetscFunctionReturn(0);
+
 }
 
 
