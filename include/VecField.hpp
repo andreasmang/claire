@@ -37,8 +37,8 @@ public:
 
     VecField();
     VecField(RegOpt*);
+    VecField(RegOpt*,int);
     VecField(IntType,IntType);
-    VecField(IntType*,IntType*);
     ~VecField();
 
     PetscErrorCode SetOpt(RegOpt*);
@@ -66,10 +66,13 @@ public:
 
 private:
 
-    PetscErrorCode Allocate(void);
-    PetscErrorCode Allocate(IntType,IntType);
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
+
+    PetscErrorCode Allocate(void);
+    PetscErrorCode Allocate(IntType,IntType);
+    PetscErrorCode Allocate(int);
+
 
     RegOpt* m_Opt;
 

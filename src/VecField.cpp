@@ -53,6 +53,22 @@ VecField::VecField(RegOpt* opt)
 
 
 
+
+/********************************************************************
+ * @brief constructor
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "VecField"
+VecField::VecField(RegOpt* opt,int level)
+{
+    this->Initialize();
+    this->SetOpt(opt);
+    this->Allocate(level);
+}
+
+
+
+
 /********************************************************************
  * @brief constructor
  *******************************************************************/
@@ -129,6 +145,7 @@ PetscErrorCode VecField::SetOpt(RegOpt* opt)
 
 
 
+
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
@@ -157,6 +174,39 @@ PetscErrorCode VecField::Allocate()
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * @brief function to allocate vector field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Allocate"
+PetscErrorCode VecField::Allocate(int level)
+{
+    PetscErrorCode ierr;
+    IntType nl,ng;
+    PetscFunctionBegin;
+
+    // make sure, that all pointers are deallocated
+    ierr=this->ClearMemory(); CHKERRQ(ierr);
+
+    nl = this->m_Opt->GetGridContPara().nlocal[level];
+    ng = this->m_Opt->GetGridContPara().nglobal[level];
+
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X1); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X1,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
+
+    // pass options
+    ierr=VecDuplicate(this->m_X1,&this->m_X2); CHKERRQ(ierr);
+    ierr=VecDuplicate(this->m_X1,&this->m_X3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
 
 
 
@@ -259,7 +309,7 @@ PetscErrorCode VecField::SetComponents(Vec w)
 
     //compute size of each individual component
     nl = n / 3;
-    ierr=Assert(nl==this->m_Opt->GetDomainPara().nlocal,"dimension mismatch"); CHKERRQ(ierr);
+    //ierr=Assert(nl==this->m_Opt->GetDomainPara().nlocal,"dimension mismatch"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -277,6 +327,53 @@ PetscErrorCode VecField::SetComponents(Vec w)
     ierr=VecRestoreArray(this->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_X3,&p_x3); CHKERRQ(ierr);
 
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief get components of vector field and store them
+ * in a flat vector
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetComponents"
+PetscErrorCode VecField::GetComponents(Vec w)
+{
+    PetscErrorCode ierr;
+    IntType nl,n;
+    ScalarType *p_x1,*p_x2,*p_x3,*p_w;
+
+    PetscFunctionBegin;
+
+    // get local size of vector field
+    ierr=VecGetLocalSize(w,&n); CHKERRQ(ierr);
+
+    ierr=VecGetArray(w,&p_w); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_X1,&p_x1); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_X2,&p_x2); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_X3,&p_x3); CHKERRQ(ierr);
+
+    //compute size of each individual component
+    nl = n / 3;
+
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType i = 0; i < nl; ++i){
+        p_w[i     ] = p_x1[i];
+        p_w[i+  nl] = p_x2[i];
+        p_w[i+2*nl] = p_x3[i];
+
+    }
+} // pragma omp parallel
+
+    ierr=VecRestoreArray(w,&p_w); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_X1,&p_x1); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_X2,&p_x2); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_X3,&p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -324,7 +421,9 @@ PetscErrorCode VecField::Scale(Vec s)
     ierr=VecGetArray(this->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_X3,&p_vx3); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    // get local size of vector field
+    ierr=VecGetLocalSize(s,&nl); CHKERRQ(ierr);
+    //nl = this->m_Opt->GetDomainPara().nlocal;
 
 #pragma omp parallel
 {
@@ -359,7 +458,9 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
 {
     PetscErrorCode ierr;
     IntType nl;
-    ScalarType *p_vx1,*p_vx2,*p_vx3,*p_s,*p_svx1,*p_svx2,*p_svx3;
+    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
+                *p_s=NULL,*p_svx1=NULL,*p_svx2=NULL,
+                *p_svx3=NULL;
 
     PetscFunctionBegin;
 
@@ -374,7 +475,9 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
     ierr=VecGetArray(v->m_X2,&p_svx2); CHKERRQ(ierr);
     ierr=VecGetArray(v->m_X3,&p_svx3); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    // get local size of vector field
+    ierr=VecGetLocalSize(s,&nl); CHKERRQ(ierr);
+    //nl = this->m_Opt->GetDomainPara().nlocal;
 
 #pragma omp parallel
 {
@@ -397,54 +500,6 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
     ierr=VecRestoreArray(v->m_X1,&p_svx1); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X2,&p_svx2); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X3,&p_svx3); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief get components of vector field and store them
- * in a flat vector
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetComponents"
-PetscErrorCode VecField::GetComponents(Vec w)
-{
-    PetscErrorCode ierr;
-    IntType nl;
-    PetscInt n;
-    ScalarType *p_x1,*p_x2,*p_x3,*p_w;
-
-    PetscFunctionBegin;
-
-    // get local size of vector field
-    ierr=VecGetLocalSize(w,&n); CHKERRQ(ierr);
-
-    ierr=VecGetArray(w,&p_w); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X3,&p_x3); CHKERRQ(ierr);
-
-    //compute size of each individual component
-    nl = n / 3;
-
-#pragma omp parallel
-{
-#pragma omp for
-    for (IntType i = 0; i < nl; ++i){
-        p_w[i     ] = p_x1[i];
-        p_w[i+  nl] = p_x2[i];
-        p_w[i+2*nl] = p_x3[i];
-
-    }
-} // pragma omp parallel
-
-    ierr=VecRestoreArray(w,&p_w); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X3,&p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

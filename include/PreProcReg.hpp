@@ -45,17 +45,20 @@ public:
     PetscErrorCode SetReadWrite(ReadWriteType*);
     PetscErrorCode ApplySmoothing(Vec,Vec);
 
-    PetscErrorCode Prolong(Vec,Vec,IntType*);
-    PetscErrorCode Restrict(Vec*,Vec,IntType*);
+    PetscErrorCode Prolong(Vec*,Vec,IntType*,bool flag=true);
     PetscErrorCode Prolong(VecField*,VecField*,IntType*);
+
+    PetscErrorCode Restrict(Vec*,Vec,IntType*,bool flag=true);
     PetscErrorCode Restrict(VecField*,VecField*,IntType*);
 
-    PetscErrorCode RestrictionGetPoints(IntType*);
 
 private:
 
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
+
+    PetscErrorCode SetupRestriction(IntType*);
+    PetscErrorCode SetupProlongation(IntType*);
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;

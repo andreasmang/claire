@@ -1289,8 +1289,8 @@ PetscErrorCode RegOpt::SetupGridCont()
     this->m_GridCont.nx.resize(nlevels); // grid size per level
     this->m_GridCont.isize.resize(nlevels); // grid size per level (spatial domain)
     this->m_GridCont.istart.resize(nlevels); // start index per level (spatial domain)
-    this->m_GridCont.osize.resize(nlevels); // grid size per level (frequency domain)
-    this->m_GridCont.ostart.resize(nlevels); // start index per level (frequency domain)
+    this->m_GridCont.osize.resize(nlevels); // grid size per level (spectral domain)
+    this->m_GridCont.ostart.resize(nlevels); // start index per level (spectral domain)
 
    for (int i = 0; i < nlevels; ++i){
         this->m_GridCont.nx[i].resize(3);
@@ -1315,9 +1315,7 @@ PetscErrorCode RegOpt::SetupGridCont()
         // compute number of grid points for current level
         for (int i = 0; i < 3; ++i){
 
-            if (level==0){
-                this->m_GridCont.nx[j][i] = this->m_Domain.nx[i];
-            }
+            if (level==0) this->m_GridCont.nx[j][i] = this->m_Domain.nx[i];
             else{
                 value = static_cast<ScalarType>(this->m_GridCont.nx[j+1][i]);
                 this->m_GridCont.nx[j][i] = static_cast<IntType>( std::ceil(value/2.0) );
@@ -1328,7 +1326,7 @@ PetscErrorCode RegOpt::SetupGridCont()
             nx[i] = static_cast<int>(this->m_GridCont.nx[j][i]);
 
         }
-        this->m_GridCont.nglobal[j] = ng;
+        this->m_GridCont.nglobal[j] = ng; // set
 
         // get the local sizes
         nalloc=accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
@@ -1337,15 +1335,19 @@ PetscErrorCode RegOpt::SetupGridCont()
         // compute local sizes
         for (int i = 0; i < 3; ++i){
 
+            // compute number of local points
             nl *= static_cast<IntType>(isize[i]);
 
+            // sizes in spatial domain
             this->m_GridCont.isize[j][i] = static_cast<IntType>(isize[i]);
             this->m_GridCont.istart[j][i] = static_cast<IntType>(istart[i]);
+
+            // sizes in spectral domain
             this->m_GridCont.osize[j][i] = static_cast<IntType>(osize[i]);
             this->m_GridCont.ostart[j][i] = static_cast<IntType>(ostart[i]);
 
         }
-        this->m_GridCont.nlocal[j] = nl;
+        this->m_GridCont.nlocal[j] = nl; // set
 
         ++level; // increment
 
