@@ -38,11 +38,12 @@
 int main(int argc,char **argv)
 {
     PetscErrorCode ierr;
-    IntType nl,ng,nxres[3];
+    IntType nl,ng,nx[3],nxres[3],nxpro[3];
     int procid,nprocs;
     std::string ifolder,xfolder,filename;
-    Vec mT=NULL,m=NULL,mres=NULL,mR=NULL,vx1=NULL,vx2=NULL,vx3=NULL;
-    reg::VecField *v=NULL;
+    Vec mT=NULL,mR=NULL,m=NULL,mres=NULL,mpro=NULL,
+        vx1=NULL,vx2=NULL,vx3=NULL;
+    reg::VecField *v=NULL,*vres=NULL,*vpro=NULL;
 
     reg::RegOpt* regopt = NULL;
     reg::PreProcReg* preproc = NULL;
@@ -158,7 +159,17 @@ int main(int argc,char **argv)
         //ierr=synprob->ComputeExpSin(m); CHKERRQ(ierr);
         ierr=synprob->ComputeSmoothScalarField(m,0); CHKERRQ(ierr);
 
+        // allocate container for velocity field
+        try{ v = new reg::VecField(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
 
+        ierr=VecCopy(m,v->m_X1); CHKERRQ(ierr);
+        ierr=VecCopy(m,v->m_X2); CHKERRQ(ierr);
+        ierr=VecCopy(m,v->m_X3); CHKERRQ(ierr);
+
+        // if not yet allocted, do so
         // allocate class for io
         try{ readwrite = new reg::ReadWriteReg(regopt); }
         catch (std::bad_alloc&){
@@ -171,9 +182,13 @@ int main(int argc,char **argv)
 
         delete readwrite; readwrite = NULL;
 
-        nxres[0] = regopt->GetDomainPara().nx[0]/2;
-        nxres[1] = regopt->GetDomainPara().nx[1]/2;
-        nxres[2] = regopt->GetDomainPara().nx[2]/2;
+        nx[0] = regopt->GetDomainPara().nx[0];
+        nx[1] = regopt->GetDomainPara().nx[1];
+        nx[2] = regopt->GetDomainPara().nx[2];
+
+        nxres[0] = nx[0]/2;
+        nxres[1] = nx[1]/2;
+        nxres[2] = nx[2]/2;
 
         ierr=regopt->GetSizes(nxres,nl,ng); CHKERRQ(ierr);
 
@@ -182,7 +197,36 @@ int main(int argc,char **argv)
         ierr=VecSetFromOptions(mres); CHKERRQ(ierr);
         ierr=VecSet(mres,0.0); CHKERRQ(ierr);
 
+        // allocate container for velocity field
+        try{ vres = new reg::VecField(nl,ng); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=vres->SetValue(0.0); CHKERRQ(ierr);
+
         ierr=preproc->Restrict(&mres,m,nxres); CHKERRQ(ierr);
+        ierr=preproc->Restrict(vres,v,nxres); CHKERRQ(ierr);
+
+        nxpro[0] = 2*nx[0];
+        nxpro[1] = 2*nx[1];
+        nxpro[2] = 2*nx[2];
+
+        ierr=regopt->GetSizes(nxpro,nl,ng); CHKERRQ(ierr);
+
+        ierr=VecCreate(PETSC_COMM_WORLD,&mpro); CHKERRQ(ierr);
+        ierr=VecSetSizes(mpro,nl,ng); CHKERRQ(ierr);
+        ierr=VecSetFromOptions(mpro); CHKERRQ(ierr);
+        ierr=VecSet(mpro,0.0); CHKERRQ(ierr);
+
+        // allocate container for velocity field
+        try{ vpro = new reg::VecField(nl,ng); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=vpro->SetValue(0.0); CHKERRQ(ierr);
+
+        ierr=preproc->Prolong(&mpro,m,nxpro); CHKERRQ(ierr);
+        ierr=preproc->Prolong(vpro,v,nxpro); CHKERRQ(ierr);
 
         // initialize
         for (int i=0; i<3; ++i){
@@ -198,9 +242,34 @@ int main(int argc,char **argv)
 
         // read reference image
         xfolder = "";
-        filename = xfolder + "resampled-image.nii.gz";
+        filename = xfolder + "restricted-image.nii.gz";
         ierr=readwrite->Write(mres,filename); CHKERRQ(ierr);
-        //ierr=readwrite->Write(m,filename); CHKERRQ(ierr);
+
+        ierr=readwrite->Write(vres, xfolder+"restricted-vx1.nii.gz",
+                                    xfolder+"restricted-vx2.nii.gz",
+                                    xfolder+"restricted-vx3.nii.gz"); CHKERRQ(ierr);
+
+        delete readwrite; readwrite = NULL;
+
+        // initialize
+        for (int i=0; i<3; ++i){
+            regopt->SetNumGridPoints(i,nxpro[i]);
+        }
+        ierr=regopt->DoSetup(false); CHKERRQ(ierr);
+
+        // allocate class for io
+        try{ readwrite = new reg::ReadWriteReg(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        filename = xfolder + "prolonged-image.nii.gz";
+        ierr=readwrite->Write(mpro,filename); CHKERRQ(ierr);
+
+        ierr=readwrite->Write(vpro, xfolder+"prolonged-vx1.nii.gz",
+                                    xfolder+"prolonged-vx2.nii.gz",
+                                    xfolder+"prolonged-vx3.nii.gz"); CHKERRQ(ierr);
+
+        delete readwrite; readwrite = NULL;
 
         delete synprob; synprob=NULL;
 
@@ -214,8 +283,11 @@ int main(int argc,char **argv)
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
     if (m!=NULL){ ierr=VecDestroy(&m); CHKERRQ(ierr); m=NULL; }
+    if (mpro!=NULL){ ierr=VecDestroy(&mpro); CHKERRQ(ierr); mpro=NULL; }
     if (mres!=NULL){ ierr=VecDestroy(&mres); CHKERRQ(ierr); mres=NULL; }
     if (v!=NULL){ delete v; v=NULL; }
+    if (vres!=NULL){ delete vres; vres=NULL; }
+    if (vpro!=NULL){ delete vpro; vpro=NULL; }
 
     // clean up petsc
     ierr=PetscFinalize(); CHKERRQ(ierr);
