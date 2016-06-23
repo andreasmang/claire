@@ -190,8 +190,10 @@ PetscErrorCode PreProcReg::Restrict(Vec* xcoarse, Vec x, IntType* nx_c)
             for (IntType i3 = 0; i3 < osize[2]; ++i3){
 
                 IntType i = GetLinearIndex(i1,i2,i3,osize);
+
                 p_xcoarsehat[i][0] = 0.0;
                 p_xcoarsehat[i][1] = 0.0;
+
             }
         }
     }
@@ -231,8 +233,6 @@ PetscErrorCode PreProcReg::Restrict(Vec* xcoarse, Vec x, IntType* nx_c)
     ierr=VecGetArray(*xcoarse,&p_xcoarse); CHKERRQ(ierr);
     accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(plan,p_xcoarsehat,p_xcoarse,ffttimers);
     ierr=VecRestoreArray(*xcoarse,&p_xcoarse); CHKERRQ(ierr);
-
-    ierr=VecView(*xcoarse); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(ffttimers);
@@ -340,7 +340,6 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
                    && ( k3 <= nxhalf_c[2] || k3 > (nx[2] - nxhalf_c[2]) ) ){
 
                     ++nprocessed;
-                    //std::cout << "(" << i1 << "," << i2 << "," << i3 << ")   ";
 
                     // get wave number index on coarse grid
                     k1_c = k1 <= nxhalf_c[0] ? k1 : nx_c[0] - nx[0] + k1;
@@ -412,7 +411,6 @@ PetscErrorCode PreProcReg::RestrictionGetPoints(IntType* nx_c)
 
     // TODO: send data that does not belong to current proc to
     // other procs
-    std::cout << rank << " " << nowned << " " << nsend << std::endl;
     PetscFunctionReturn(0);
 }
 

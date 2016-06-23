@@ -306,51 +306,21 @@ PetscErrorCode MultiLevelPyramid::SetData(Vec x, int level)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    if (level == 0){
-        ierr=VecCopy(x,this->m_DataL01); CHKERRQ(ierr);
-    }
-    else if (level == 1){
-        ierr=VecCopy(x,this->m_DataL02); CHKERRQ(ierr);
-    }
-    else if (level == 2){
-        ierr=VecCopy(x,this->m_DataL03); CHKERRQ(ierr);
-    }
-    else if (level == 3){
-        ierr=VecCopy(x,this->m_DataL04); CHKERRQ(ierr);
-    }
-    else if (level == 4){
-        ierr=VecCopy(x,this->m_DataL05); CHKERRQ(ierr);
-    }
-    else if (level == 5){
-        ierr=VecCopy(x,this->m_DataL06); CHKERRQ(ierr);
-    }
-    else if (level == 6){
-        ierr=VecCopy(x,this->m_DataL07); CHKERRQ(ierr);
-    }
-    else if (level == 7){
-        ierr=VecCopy(x,this->m_DataL08); CHKERRQ(ierr);
-    }
-    else if (level == 8){
-        ierr=VecCopy(x,this->m_DataL09); CHKERRQ(ierr);
-    }
-    else if (level == 9){
-        ierr=VecCopy(x,this->m_DataL10); CHKERRQ(ierr);
-    }
-    else if (level == 10){
-        ierr=VecCopy(x,this->m_DataL11); CHKERRQ(ierr);
-    }
-    else if (level == 11){
-        ierr=VecCopy(x,this->m_DataL12); CHKERRQ(ierr);
-    }
-    else if (level == 12){
-        ierr=VecCopy(x,this->m_DataL13); CHKERRQ(ierr);
-    }
-    else if (level == 13){
-        ierr=VecCopy(x,this->m_DataL14); CHKERRQ(ierr);
-    }
-    else if (level == 14){
-        ierr=VecCopy(x,this->m_DataL15); CHKERRQ(ierr);
-    }
+    if      (level ==  0){ ierr=VecCopy(x,this->m_DataL01); CHKERRQ(ierr); }
+    else if (level ==  1){ ierr=VecCopy(x,this->m_DataL02); CHKERRQ(ierr); }
+    else if (level ==  2){ ierr=VecCopy(x,this->m_DataL03); CHKERRQ(ierr); }
+    else if (level ==  3){ ierr=VecCopy(x,this->m_DataL04); CHKERRQ(ierr); }
+    else if (level ==  4){ ierr=VecCopy(x,this->m_DataL05); CHKERRQ(ierr); }
+    else if (level ==  5){ ierr=VecCopy(x,this->m_DataL06); CHKERRQ(ierr); }
+    else if (level ==  6){ ierr=VecCopy(x,this->m_DataL07); CHKERRQ(ierr); }
+    else if (level ==  7){ ierr=VecCopy(x,this->m_DataL08); CHKERRQ(ierr); }
+    else if (level ==  8){ ierr=VecCopy(x,this->m_DataL09); CHKERRQ(ierr); }
+    else if (level ==  9){ ierr=VecCopy(x,this->m_DataL10); CHKERRQ(ierr); }
+    else if (level == 10){ ierr=VecCopy(x,this->m_DataL11); CHKERRQ(ierr); }
+    else if (level == 11){ ierr=VecCopy(x,this->m_DataL12); CHKERRQ(ierr); }
+    else if (level == 12){ ierr=VecCopy(x,this->m_DataL13); CHKERRQ(ierr); }
+    else if (level == 13){ ierr=VecCopy(x,this->m_DataL14); CHKERRQ(ierr); }
+    else if (level == 14){ ierr=VecCopy(x,this->m_DataL15); CHKERRQ(ierr); }
     else{ ierr=ThrowError("level not accessible"); CHKERRQ(ierr); }
 
 
@@ -436,6 +406,7 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 #undef __FUNCT__
 #define __FUNCT__ "GetLevel"
 PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level)
+//PetscErrorCode MultiLevelPyramid::GetLevel(Vec x, int level)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -443,82 +414,69 @@ PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level)
     if (level == 0){
         ierr=VecDuplicate(this->m_DataL01,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL01,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL01;
     }
     else if (level == 1){
         ierr=VecDuplicate(this->m_DataL02,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL02,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL02;
     }
     else if (level == 2){
         ierr=VecDuplicate(this->m_DataL03,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL03,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL03;
     }
     else if (level == 3){
         ierr=VecDuplicate(this->m_DataL04,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL04,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL04;
     }
     else if (level == 4){
         ierr=VecDuplicate(this->m_DataL05,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL05,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL05;
     }
     else if (level == 5){
         ierr=VecDuplicate(this->m_DataL06,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL06,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL06;
     }
     else if (level == 6){
         ierr=VecDuplicate(this->m_DataL07,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL07,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL07;
     }
     else if (level == 7){
         ierr=VecDuplicate(this->m_DataL08,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL08,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL08;
     }
     else if (level == 8){
         ierr=VecDuplicate(this->m_DataL09,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL09,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL09;
     }
     else if (level == 9){
         ierr=VecDuplicate(this->m_DataL10,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL10,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL10;
     }
     else if (level == 10){
         ierr=VecDuplicate(this->m_DataL11,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL11,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL11;
     }
     else if (level == 11){
         ierr=VecDuplicate(this->m_DataL12,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL12,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL12;
     }
     else if (level == 12){
         ierr=VecDuplicate(this->m_DataL13,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL13,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL13;
     }
     else if (level == 13){
         ierr=VecDuplicate(this->m_DataL14,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL14,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL14;
     }
     else if (level == 14){
         ierr=VecDuplicate(this->m_DataL15,x); CHKERRQ(ierr);
         ierr=VecCopy(this->m_DataL15,*x); CHKERRQ(ierr);
-//        x = &this->m_DataL15;
     }
     else{ ierr=ThrowError("level not accessible"); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 /********************************************************************
@@ -531,53 +489,22 @@ PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    if (level == 0){
-        *x = &this->m_DataL01;
-    }
-    else if (level == 1){
-        *x = &this->m_DataL02;
-    }
-    else if (level == 2){
-        *x = &this->m_DataL03;
-    }
-    else if (level == 3){
-        *x = &this->m_DataL04;
-    }
-    else if (level == 4){
-        *x = &this->m_DataL05;
-    }
-    else if (level == 5){
-        *x = &this->m_DataL06;
-    }
-    else if (level == 6){
-        *x = &this->m_DataL07;
-    }
-    else if (level == 7){
-        *x = &this->m_DataL08;
-    }
-    else if (level == 8){
-        *x = &this->m_DataL09;
-    }
-    else if (level == 9){
-        *x = &this->m_DataL10;
-    }
-    else if (level == 10){
-        *x = &this->m_DataL11;
-    }
-    else if (level == 11){
-        *x = &this->m_DataL12;
-    }
-    else if (level == 12){
-        *x = &this->m_DataL13;
-    }
-    else if (level == 13){
-        *x = &this->m_DataL14;
-    }
-    else if (level == 14){
-        *x = &this->m_DataL15;
-    }
+    if      (level ==  0) *x = &this->m_DataL01;
+    else if (level ==  1) *x = &this->m_DataL02;
+    else if (level ==  2) *x = &this->m_DataL03;
+    else if (level ==  3) *x = &this->m_DataL04;
+    else if (level ==  4) *x = &this->m_DataL05;
+    else if (level ==  5) *x = &this->m_DataL06;
+    else if (level ==  6) *x = &this->m_DataL07;
+    else if (level ==  7) *x = &this->m_DataL08;
+    else if (level ==  8) *x = &this->m_DataL09;
+    else if (level ==  9) *x = &this->m_DataL10;
+    else if (level == 10) *x = &this->m_DataL11;
+    else if (level == 11) *x = &this->m_DataL12;
+    else if (level == 12) *x = &this->m_DataL13;
+    else if (level == 13) *x = &this->m_DataL14;
+    else if (level == 14) *x = &this->m_DataL15;
     else{ ierr=ThrowError("level not accessible"); CHKERRQ(ierr); }
-
 
     PetscFunctionReturn(0);
 }

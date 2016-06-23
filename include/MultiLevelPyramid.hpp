@@ -52,6 +52,7 @@ public:
     ~MultiLevelPyramid();
 
     PetscErrorCode GetLevel(Vec*,int);
+    //PetscErrorCode GetLevel(Vec,int);
     PetscErrorCode SetUp(Vec);
 
     PetscErrorCode SetPreProc(PreProcReg*);

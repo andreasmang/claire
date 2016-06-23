@@ -1002,14 +1002,13 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     level=0;
     while (level < maxlevel){
 
-        solve=true;
-
         // this resets the optimizer to assume that we're in first iteration
         // every time we solve the problem; TODO: add initialization stage
         // for zero velocity field (compute gradient) to refer warm starts
         // and every thing else to the initial gradient
         this->m_RegProblem->InFirstIteration(true);
 
+        solve=true;
         for (int i=0; i < 3; ++i){
 
             // get and set sigma for current level
@@ -1084,6 +1083,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 PetscErrorCode RegistrationInterface::RunSolverGridCont()
 {
     PetscErrorCode ierr;
+    //Vec *mT=NULL,*mR=NULL;
     Vec mT=NULL,mR=NULL;
     VecField *v=NULL;
     //Vec xstar=NULL;
@@ -1238,10 +1238,12 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
         // run the optimization
-//        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
         // clean up
         if (v!=NULL){ delete v; v=NULL; }
+        if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
+        if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
 
         ++level; // increment iterator
     }
