@@ -54,6 +54,8 @@ public:
     PetscErrorCode GetLevel(Vec*,int);
     PetscErrorCode SetUp(Vec);
 
+    PetscErrorCode SetPreProc(PreProcReg*);
+
 private:
 
     PetscErrorCode Initialize();
@@ -64,7 +66,6 @@ private:
 
     PetscErrorCode SetData(Vec,int);
     PetscErrorCode GetData(Vec**,int);
-    PetscErrorCode SetPreProc(PreProcReg*);
 
     PetscErrorCode ComputeGridSize();
 

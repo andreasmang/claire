@@ -126,11 +126,11 @@ int main(int argc,char **argv)
 
     }
     else if(regopt->GetRegFlags().resampledata){
-
+/*
         regopt->SetNumGridPoints(0,128);
         regopt->SetNumGridPoints(1,128);
         regopt->SetNumGridPoints(2,128);
-
+*/
         if ( !regopt->SetupDone() ){
             ierr=regopt->DoSetup(); CHKERRQ(ierr);
         }
@@ -155,7 +155,8 @@ int main(int argc,char **argv)
         ierr=VecSetSizes(m,nl,ng); CHKERRQ(ierr);
         ierr=VecSetFromOptions(m); CHKERRQ(ierr);
 
-        ierr=synprob->ComputeExpSin(m); CHKERRQ(ierr);
+        //ierr=synprob->ComputeExpSin(m); CHKERRQ(ierr);
+        ierr=synprob->ComputeSmoothScalarField(m,0); CHKERRQ(ierr);
 
 
         // allocate class for io
@@ -181,7 +182,7 @@ int main(int argc,char **argv)
         ierr=VecSetFromOptions(mres); CHKERRQ(ierr);
         ierr=VecSet(mres,0.0); CHKERRQ(ierr);
 
-        ierr=preproc->Restrict(mres,m,nxres); CHKERRQ(ierr);
+        ierr=preproc->Restrict(&mres,m,nxres); CHKERRQ(ierr);
 
         // initialize
         for (int i=0; i<3; ++i){

@@ -53,6 +53,8 @@ MultiLevelPyramid::~MultiLevelPyramid()
 }
 
 
+
+
 /********************************************************************
  * @brief initialize class
  *******************************************************************/
@@ -183,7 +185,6 @@ PetscErrorCode MultiLevelPyramid::SetPreProc(PreProcReg* ppr)
 
 
 
-
 /********************************************************************
  * @brief allocate entire pyramid
  *******************************************************************/
@@ -299,7 +300,7 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid()
  * @brief allocate entire pyramid
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "AllocatePyramid"
+#define __FUNCT__ "SetData"
 PetscErrorCode MultiLevelPyramid::SetData(Vec x, int level)
 {
     PetscErrorCode ierr;
@@ -390,16 +391,13 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng)
 PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 {
     PetscErrorCode ierr;
-    accfft_plan *plan=NULL;
-    int level,inxl[3],nlevels;
+    IntType nxlevel[3];
+    int nlevels;
     Vec *xlevel;
-    ScalarType *p_x=NULL,*p_xl=NULL,*p_xdummy=NULL,scale;
-    typedef ScalarType FFTScalarType[2];
-    FFTScalarType *p_xhat=NULL,*p_xlhat=NULL,*p_xhatdummy=NULL;
-    double ffttimers[5]={0,0,0,0,0};
-    IntType osizel[3],nalloc,nx[3];
     PetscFunctionBegin;
 
+    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // allocate the data pyramid
     ierr=this->AllocatePyramid(); CHKERRQ(ierr);
@@ -410,105 +408,21 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
     // set data on finest grid
     ierr=this->SetData(x,nlevels-1); CHKERRQ(ierr);
 
-    // allocate data for fourier domain
-    p_xhat=(FFTScalarType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+    // for all levels
+    for (int l = 0; l < nlevels-1; ++l){
 
-    // compute fft of input data
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,FFTScalarType>(this->m_Opt->GetFFT().plan,p_x,p_xhat,ffttimers);
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
-
-    for (int i=0; i<3; ++i){
-        nx[i] = this->m_Opt->GetDomainPara().nx[i];
-    }
-
-    // get grid sizes/fft scales
-    scale = this->m_Opt->ComputeFFTScale();
-
-    level=0;
-    while (level < nlevels-1){
-
+        // get grid size
         for (int i=0; i<3; ++i){
-            inxl[i] = static_cast<int>(this->m_Opt->GetGridContPara().nx[level][i]);
-            osizel[i] = static_cast<IntType>(this->m_Opt->GetGridContPara().osize[level][i]);
+            nxlevel[i] = this->m_Opt->GetGridContPara().nx[l][i];
         }
 
-        nalloc=this->m_Opt->GetGridContPara().nalloc[level];
-
-        // allocate array for restricted data (in spectral domain)
-        p_xlhat=(FFTScalarType*)accfft_alloc(nalloc);
-
-#pragma omp parallel
-{
-        IntType il,i,k1l,k2l,k3l,i1,i2,i3;
-#pragma omp for
-
-        for (IntType i1l = 0; i1l < osizel[0]; ++i1l){ // x1
-            for (IntType i2l = 0; i2l < osizel[1]; ++i2l){ // x2
-                for (IntType i3l = 0; i3l < osizel[2]; ++i3l){ // x3
-
-                    // compute grid index
-                    k1l = i1l + this->m_Opt->GetGridContPara().ostart[level][0];
-                    k2l = i2l + this->m_Opt->GetGridContPara().ostart[level][1];
-                    k3l = i3l + this->m_Opt->GetGridContPara().ostart[level][2];
-
-                    i1 = i1l;
-                    i2 = i2l;
-                    i3 = i3l;
-
-                    if (k1l > this->m_Opt->GetGridContPara().nx[level][0]/2){
-                        i1 = (nx[0]-1) + k1l - this->m_Opt->GetGridContPara().nx[level][0];
-                    }
-                    if (k2l > this->m_Opt->GetGridContPara().nx[level][1]/2){
-                        i2 = (nx[1]-1) + k2l - this->m_Opt->GetGridContPara().nx[level][1];
-                    }
-                    if (k3l > this->m_Opt->GetGridContPara().nx[level][2]/2){
-                        i3 = (nx[2]-1) + k3l - this->m_Opt->GetGridContPara().nx[level][2];
-                    }
-
-                    il = GetLinearIndex(i1l,i2l,i3l,osizel);
-                    i  = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
-
-                    p_xlhat[il][0] = scale*p_xhat[i][0];
-                    p_xlhat[il][1] = scale*p_xhat[i][1];
-
-                } // i1l
-            } // i2l
-        } // i3l
-
-} // pragma omp parallel
-
         // get pointer to level
-        xlevel=NULL;
-        ierr=this->GetData(&xlevel,level); CHKERRQ(ierr);
-        ierr=Assert(*xlevel!=NULL, "pointer is null pointer"); CHKERRQ(ierr);
+        ierr=this->GetData(&xlevel,l); CHKERRQ(ierr);
+        ierr=Assert(*xlevel!=NULL,"null pointer"); CHKERRQ(ierr);
 
-        // setup fft plan
-        p_xdummy=(ScalarType*)accfft_alloc(nalloc);
-        p_xhatdummy=(FFTScalarType*)accfft_alloc(nalloc);
-        plan=accfft_plan_dft_3d_r2c(inxl,p_xdummy,(double*)p_xhatdummy,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
-
-        // compute inverse fft of restricted data
-        ierr=VecGetArray(*xlevel,&p_xl); CHKERRQ(ierr);
-        accfft_execute_c2r_t<FFTScalarType,ScalarType>(plan,p_xlhat,p_xl,ffttimers);
-        ierr=VecRestoreArray(*xlevel,&p_xl); CHKERRQ(ierr);
-
-        // delete data
-        if (p_xlhat!=NULL) { accfft_free(p_xlhat); p_xlhat=NULL; }
-        if (p_xdummy!=NULL) { accfft_free(p_xdummy); p_xdummy=NULL; }
-        if (p_xhatdummy!=NULL) { accfft_free(p_xhatdummy); p_xhatdummy=NULL; }
-        if (plan!=NULL){ accfft_destroy_plan(plan); plan=NULL; }
-
-        ++level;
+        // restrict data
+        ierr=this->m_PreProc->Restrict(xlevel,x,nxlevel); CHKERRQ(ierr);
     }
-
-    // set fft timers
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
-
-
-    // clean up
-    if(p_xhat != NULL){ accfft_free(p_xhat); p_xhat=NULL; }
 
     PetscFunctionReturn(0);
 }

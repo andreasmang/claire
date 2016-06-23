@@ -1095,6 +1095,14 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
+    // set up preprocessing
+    if(this->m_PreProc==NULL){
+        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
     if (!this->m_Opt->GetRegFlags().readimages){
 
         // do the setup
@@ -1132,6 +1140,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         }
     }
     // setup multilevel pyramid for reference image
+    ierr=this->m_ReferencePyramid->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
     ierr=this->m_ReferencePyramid->SetUp(this->m_ReferenceImage); CHKERRQ(ierr);
 
 
@@ -1146,6 +1155,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         }
     }
     // setup multilevel pyramid for template image
+    ierr=this->m_TemplatePyramid->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
     ierr=this->m_TemplatePyramid->SetUp(this->m_TemplateImage); CHKERRQ(ierr);
 
     // reset all the clocks we have used so far
@@ -1228,7 +1238,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
         // run the optimization
-        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+//        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
         // clean up
         if (v!=NULL){ delete v; v=NULL; }
