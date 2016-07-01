@@ -428,25 +428,39 @@ PetscErrorCode Optimizer::Finalize()
     linelength = this->m_Opt->GetLineLength();
     line = std::string(linelength,'-');
 
-    stop[0] = (gnorm < gttol*g0norm);
-    stop[1] = (gnorm < gatol);
-    stop[2] = (iter  > maxiter);
+    stop[0] = (gnorm < gttol*g0norm);// relative change of gradient
+    stop[1] = (gnorm < gatol);       // absolute norm of gradient
+    stop[2] = (iter  > maxiter);     // max number of iterations
 
+    // check if we converged
     converged=false;
     for (int i = 0; i < 3; ++i){ if (stop[i]) converged=true; }
 
-    indent = 25;
+    indent    = 25;
     numindent = 5;
     if (rank == 0){
+
         if (converged){
-            std::cout<< " convergence criteria fullfilled:" <<std::endl;
-            ss << "[ " << stop[0] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
+            std::cout<< " convergence criteria" <<std::endl;
+
+            // relative change of gradient
+            ss << "[ " << stop[0] << "    ||g|| = " << std::setw(14) <<
+                std::right << std::scientific << gnorm << " < " <<
+                std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
-            ss << "[ " << stop[1] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gatol << " = " << "tol";
+
+            // absolute norm of gradient
+            ss << "[ " << stop[1] << "    ||g|| = " << std::setw(14) <<
+                std::right << std::scientific << gnorm << " < "  <<
+                std::left << std::setw(14) << gatol << " = " << "tol";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
-            ss << "[ " << stop[2] << "     iter = " << std::setw(14) << std::right << iter  << " > " << std::left << std::setw(14) << maxiter << " = " << "maxiter";
+
+            // number of iterations
+            ss << "[ " << stop[2] << "     iter = " << std::setw(14) <<
+                std::right << iter  << " > " <<
+                std::left << std::setw(14) << maxiter << " = " << "maxiter";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
         }
@@ -494,7 +508,7 @@ PetscErrorCode Optimizer::Finalize()
 
     if (this->m_Opt->GetVerbosity() > 1){
 
-        if (converged) std::cout<< line <<std::endl;
+        if (converged && !rank) std::cout<< line <<std::endl;
         ss << std::left << std::setw(indent)
            << "outer iterations"
            << std::right << std::setw(numindent)
