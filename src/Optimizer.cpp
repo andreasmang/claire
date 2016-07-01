@@ -251,8 +251,10 @@ PetscErrorCode Optimizer::SetupTao()
     gatol = this->m_Opt->GetOptTol(0);  // ||g(x)||              <= gatol
     grtol = this->m_Opt->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
     gttol = this->m_Opt->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
+
     ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
     ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptMaxit() - 1); CHKERRQ(ierr);
+
 
     ierr=MatCreateShell(PETSC_COMM_WORLD,nlu,nlu,ngu,ngu,static_cast<void*>(this->m_OptimizationProblem),&HMatVec); CHKERRQ(ierr);
     ierr=MatShellSetOperation(HMatVec,MATOP_MULT,(void(*)(void))HessianMatVec); CHKERRQ(ierr);
@@ -287,6 +289,7 @@ PetscErrorCode Optimizer::SetupTao()
         }
         else if (  (this->m_Opt->GetPrecondMeth() == INVREG)
                 || (this->m_Opt->GetPrecondMeth() == TWOLEVEL) ) {
+
             if (strcmp(method.c_str(),"nls") == 0){
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
@@ -297,15 +300,15 @@ PetscErrorCode Optimizer::SetupTao()
                 ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
                 ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
             }
+
             ierr=PCSetType(taokktpc,PCSHELL); CHKERRQ(ierr);
             ierr=PCShellSetApply(taokktpc,PrecondMatVec); CHKERRQ(ierr);
             ierr=PCShellSetContext(taokktpc,this->m_OptimizationProblem); CHKERRQ(ierr);
             //ierr=PCShellSetName(taokktpc,"kktpc"); CHKERRQ(ierr);
             ierr=PCShellSetSetUp(taokktpc,PrecondSetup); CHKERRQ(ierr);
+
         }
-        else{
-            ierr=reg::ThrowError("preconditioner not defined"); CHKERRQ(ierr);
-        }
+        else{ ierr=reg::ThrowError("preconditioner not defined"); CHKERRQ(ierr); }
 
         // set tolerances for krylov subspace method
         reltol = this->m_Opt->GetKKTSolverTol(0); // 1E-12;
@@ -446,31 +449,33 @@ PetscErrorCode Optimizer::Finalize()
             std::cout<<std::endl;
 
             // relative change of gradient
-            ss << "[ " << stop[0] << "    ||g|| = " << std::setw(14) <<
-                std::right << std::scientific << gnorm << " < " <<
+            ss << "[  " << stop[0] << "    ||g|| = " << std::setw(14) <<
+                std::right << std::scientific << gnorm << "    <    " <<
                 std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
 
             // absolute norm of gradient
-            ss << "[ " << stop[1] << "    ||g|| = " << std::setw(14) <<
-                std::right << std::scientific << gnorm << " < "  <<
+            ss << "[  " << stop[1] << "    ||g|| = " << std::setw(14) <<
+                std::right << std::scientific << gnorm << "    <    "  <<
                 std::left << std::setw(14) << gatol << " = " << "tol";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
 
             // number of iterations
-            ss << "[ " << stop[2] << "     iter = " << std::setw(14) <<
-                std::right << iter  << " > " <<
+            ss << "[  " << stop[2] << "     iter = " << std::setw(14) <<
+                std::right << iter  << "    >    " <<
                 std::left << std::setw(14) << maxiter << " = " << "maxiter";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
             std::cout<<std::endl;
         }
+
     }
 
     if (!converged){
         switch(reason){
+
             case TAO_CONVERGED_STEPTOL:
             {
                 msg="line search failed";
@@ -505,6 +510,7 @@ PetscErrorCode Optimizer::Finalize()
                 msg="did not converge; reason not defined";
                 break;
             }
+
         }
         ierr=WrngMsg(msg); CHKERRQ(ierr);
     }

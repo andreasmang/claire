@@ -24,13 +24,15 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
+#include "KrylovInterfaceReg.hpp"
+
+
+
 
 namespace reg
 {
 
-// mat vec for two level preconditioner
-PetscErrorCode TwoLevelPCMatVec(Mat,Vec,Vec);
-PetscErrorCode PrecondMonitor(KSP,IntType,ScalarType,void*);
+
 
 
 class OptimizationProblem
@@ -113,7 +115,6 @@ protected:
     IntType m_NumOuterIter;
 
 private:
-
 
 };
 

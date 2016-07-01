@@ -12,6 +12,8 @@ namespace reg
 
 
 
+
+
 /****************************************************************************
  * @brief monitor evolution of krylov subspace method
  *****************************************************************************/
@@ -36,6 +38,61 @@ PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 
     PetscFunctionReturn(0);
 }
+
+
+
+/********************************************************************
+ * @brief computes the matrix vector product Px
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "TwoLevelPCMatVec"
+PetscErrorCode TwoLevelPCMatVec(Mat P, Vec x, Vec Px)
+{
+    PetscErrorCode ierr;
+    void* ptr;
+    OptimizationProblem *optprob = NULL;
+
+    PetscFunctionBegin;
+
+    ierr=MatShellGetContext(P,&ptr); CHKERRQ(ierr);
+    optprob = (OptimizationProblem*)ptr;
+    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // apply hessian
+    ierr=optprob->TwoLevelPrecondMatVec(Px,x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief monitor evolution of krylov subspace method
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "PrecondMonitor"
+PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
+{
+    PetscErrorCode ierr;
+    (void)ksp;
+    OptimizationProblem* optprob=NULL;
+    std::stringstream itss, rnss;
+    std::string kspmeth, msg;
+
+    PetscFunctionBegin;
+
+    optprob = static_cast<OptimizationProblem*>(ptr);
+    ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
+
+    kspmeth=" >> PC  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
+    msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
+    ierr=DbgMsg(msg); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
 
 
 

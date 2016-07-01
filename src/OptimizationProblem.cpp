@@ -10,65 +10,8 @@ namespace reg
 
 
 
-/****************************************************************************
- * Function: PrecondMatVec
- * Description: computes the matrix vector product Px
- ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TwoLevelPCMatVec"
-PetscErrorCode TwoLevelPCMatVec(Mat P, Vec x, Vec Px)
-{
-    PetscErrorCode ierr;
-    void* ptr;
-    OptimizationProblem *optprob = NULL;
-
-    PetscFunctionBegin;
-
-    ierr=MatShellGetContext(P,&ptr); CHKERRQ(ierr);
-    optprob = (OptimizationProblem*)ptr;
-    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    // apply hessian
-    ierr=optprob->TwoLevelPrecondMatVec(Px,x); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/****************************************************************************
- * Function: PrecondMonitor
- * Description: monitor evolution of krylov subspace method
- *****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondMonitor"
-PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
-{
-    PetscErrorCode ierr;
-    (void)ksp;
-    OptimizationProblem* optprob=NULL;
-    std::stringstream itss, rnss;
-    std::string kspmeth, msg;
-
-    PetscFunctionBegin;
-
-    optprob = static_cast<OptimizationProblem*>(ptr);
-    ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
-
-    kspmeth=" >> PC  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
-    msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
-    ierr=DbgMsg(msg); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
 /********************************************************************
- * Name: OptimizationProblem
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimizationProblem"
@@ -81,8 +24,7 @@ OptimizationProblem::OptimizationProblem()
 
 
 /********************************************************************
- * Name: OptimizationProblem
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimizationProblem"
@@ -96,8 +38,7 @@ OptimizationProblem::OptimizationProblem(RegOpt* opt)
 
 
 /********************************************************************
- * Name: OptimizationProblem
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~OptimizationProblem"
@@ -109,8 +50,7 @@ OptimizationProblem::~OptimizationProblem(void)
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init class variables
+ * @brief init class variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -134,8 +74,7 @@ PetscErrorCode OptimizationProblem::Initialize(void)
 
 
 /********************************************************************
- * Name: SetOptions
- * Description: set the registration options
+ * @brief set the registration options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetOptions"
@@ -162,8 +101,7 @@ PetscErrorCode OptimizationProblem::SetOptions(RegOpt* opt)
 
 
 /********************************************************************
- * Name: DerivativeCheck
- * Description: check gradient based on a taylor expansion
+ * @brief check gradient based on a taylor expansion
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DerivativeCheck"
@@ -261,8 +199,7 @@ PetscErrorCode OptimizationProblem::DerivativeCheck()
 
 
 /********************************************************************
- * Name: HessianSymmetryCheck
- * Description: check symmetry of hessian
+ * @brief check symmetry of hessian
  * the idea is to use the identity
  *   \langle A x, A x \rangle = \langle A^T*Ax, x \rangle
  * for the inner product
