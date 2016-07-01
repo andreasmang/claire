@@ -423,7 +423,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     ierr=TaoGetSolutionStatus(tao,&iter,&J,&gnorm,NULL,&step,&convreason); CHKERRQ(ierr);
 
     // remember current iterate
-    optprob->SetNumOuterIter(iter);
+    optprob->IncrementIterations();
 
     // tao: display convergence reason
     if(optprob->GetOptions()->GetVerbosity() > 1){

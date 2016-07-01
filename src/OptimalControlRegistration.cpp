@@ -520,14 +520,15 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
         ierr=VecAXPY(this->m_WorkVecField1->m_X2,1.0,this->m_WorkVecField2->m_X2); CHKERRQ(ierr);
         ierr=VecAXPY(this->m_WorkVecField1->m_X3,1.0,this->m_WorkVecField2->m_X3); CHKERRQ(ierr);
 
+        // parse to output
+        ierr=this->m_WorkVecField1->GetComponents(dvJ); CHKERRQ(ierr);
+
     }
     else{
         // \vect{g}_v = \D{K}[\vect{b}]
-        ierr=this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
+        ierr=this->m_WorkVecField2->GetComponents(dvJ); CHKERRQ(ierr);
     }
 
-    // parse to output
-    ierr=this->m_WorkVecField1->GetComponents(dvJ); CHKERRQ(ierr);
 
     // stop timer
     ierr=this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
@@ -786,8 +787,10 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
     // pass to output
     ierr=this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
 
+    // stop hessian matvec timer
     ierr=this->m_Opt->StopTimer(HMVEXEC); CHKERRQ(ierr);
 
+    // increment matvecs
     this->m_Opt->IncrementCounter(HESSMATVEC);
 
     PetscFunctionReturn(0);

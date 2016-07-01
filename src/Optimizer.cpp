@@ -407,12 +407,119 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
 PetscErrorCode Optimizer::Finalize()
 {
     PetscErrorCode ierr;
+    int rank,indent,numindent,maxiter,iter,linelength;
+    ScalarType gatol,grtol,gttol,gnorm,J,g0norm;
+    bool stop[3],converged;
+    std::string line,msg;
+    TaoConvergedReason reason;
+    std::stringstream ss;
     PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     ierr=Assert(this->m_Tao !=NULL,"tao not set up"); CHKERRQ(ierr);
 
+    ierr=TaoGetTolerances(this->m_Tao,&gatol,&grtol,&gttol); CHKERRQ(ierr);
+    g0norm = this->m_OptimizationProblem->GetInitialGradNorm();
+
+    ierr=TaoGetMaximumIterations(this->m_Tao,&maxiter); CHKERRQ(ierr);
+    ierr=TaoGetSolutionStatus(this->m_Tao,&iter,&J,&gnorm,NULL,NULL,&reason); CHKERRQ(ierr);
+
+    linelength = this->m_Opt->GetLineLength();
+    line = std::string(linelength,'-');
+
+    stop[0] = (gnorm < gttol*g0norm);
+    stop[1] = (gnorm < gatol);
+    stop[2] = (iter  > maxiter);
+
+    converged=false;
+    for (int i = 0; i < 3; ++i){ if (stop[i]) converged=true; }
+
+    indent = 25;
+    numindent = 5;
+    if (rank == 0){
+        if (converged){
+            std::cout<< " convergence criteria fullfilled:" <<std::endl;
+            std::cout << " " << stop[0] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gttol*g0norm << " = " << "tol" << std::endl;
+            std::cout << " " << stop[1] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gatol << " = " << "tol" << std::endl;
+            std::cout << " " << stop[2] << "     iter = " << std::setw(14) << std::right << iter  << " > " << std::left << std::setw(14) << maxiter << " = " << "maxiter" << std::endl;
+        }
+    }
+
+    if (!converged){
+        switch(reason){
+            case TAO_CONVERGED_STEPTOL:
+            {
+                msg="line search failed";
+                break;
+            }
+            case TAO_CONVERGED_MINF:
+            {
+                msg="objective value to small";
+                break;
+            }
+            case TAO_DIVERGED_NAN:
+            {
+                msg="numerical issues (NaN detected)";
+                break;
+            }
+            case TAO_DIVERGED_MAXFCN:
+            {
+                msg="maximal number of function evaluations reached";
+                break;
+            }
+            case TAO_DIVERGED_LS_FAILURE:
+            {
+                msg="line search failed";
+                break;
+            }
+            case TAO_DIVERGED_TR_REDUCTION:
+            {
+                msg="trust region failed";
+                break;
+            }
+            default:{
+                msg="did not converge; reason not defined";
+                break;
+            }
+        }
+        ierr=WrngMsg(msg); CHKERRQ(ierr);
+    }
+
+    if (this->m_Opt->GetVerbosity() > 1){
+
+        if (converged) std::cout<< line <<std::endl;
+        ss << std::left << std::setw(indent)
+           << "outer iterations"
+           << std::right << std::setw(numindent)
+           << this->m_Opt->GetCounter(ITERATIONS) - 1;
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ss << std::left << std::setw(indent)
+           << "objective evals"
+           << std::right << std::setw(numindent)
+           << this->m_Opt->GetCounter(OBJEVAL);
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ss << std::left << std::setw(indent)
+           << "hessian matvecs"
+           << std::right << std::setw(numindent)
+           << this->m_Opt->GetCounter(HESSMATVEC);
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ss << std::left << std::setw(indent)
+           << "pde solves"
+           << std::right << std::setw(numindent)
+           << this->m_Opt->GetCounter(PDESOLVE);
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
     // display info to user, once we're done
-    ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+    //ierr=TaoView(this->m_Tao,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

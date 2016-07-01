@@ -51,7 +51,7 @@ public:
     inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
 
     inline void SetKSPTolerance(ScalarType value){this->m_KSPTol = value;};
-    inline void SetNumOuterIter(IntType value){this->m_NumOuterIter = value;};
+    inline void IncrementIterations(){this->m_Opt->IncrementCounter(ITERATIONS);};
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;

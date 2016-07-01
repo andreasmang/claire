@@ -139,6 +139,7 @@ enum CounterType
     IPVEC,        ///< interpolation execution time
     IP,           ///< interpolation execution time
     FFT,          ///< fft evaluations
+    ITERATIONS,   ///< number of outer iterations
     NCOUNTERS,    ///< to allocate the counters
 };
 

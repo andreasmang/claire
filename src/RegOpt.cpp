@@ -1422,27 +1422,27 @@ PetscErrorCode RegOpt::DisplayOptions()
             switch(this->m_Regularization.norm){
                 case L2:
                 {
-                    std::cout<<"L2-norm (betav estimated)"<<std::endl;
+                    std::cout<<"l2-norm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout<<"H1-norm (betav estimated)"<<std::endl;
+                    std::cout<<"h1-norm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H2:
                 {
-                    std::cout<<"H2-norm (betav estimated)"<<std::endl;
+                    std::cout<<"h2-norm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H1SN:
                 {
-                    std::cout<<"H1-seminorm (betav estimated)"<<std::endl;
+                    std::cout<<"h1-seminorm (betav estimated)"<<std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout<<"H2-seminorm (betav estimated)"<<std::endl;
+                    std::cout<<"h2-seminorm (betav estimated)"<<std::endl;
                     break;
                 }
                 default:
@@ -1468,14 +1468,14 @@ PetscErrorCode RegOpt::DisplayOptions()
             switch(this->m_Regularization.norm){
                 case L2:
                 {
-                    std::cout   << std::scientific << "L2-norm (betav="
+                    std::cout   << std::scientific << "l2-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout   << std::scientific << "H1-norm (betav="
+                    std::cout   << std::scientific << "h1-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ", "<< this->m_Regularization.beta[1]
                                 << ") "<<std::endl;
@@ -1483,7 +1483,7 @@ PetscErrorCode RegOpt::DisplayOptions()
                 }
                 case H2:
                 {
-                    std::cout   << std::scientific << "H2-norm (betav="
+                    std::cout   << std::scientific << "h2-norm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ", "<< this->m_Regularization.beta[1]
                                 << ")" <<std::endl;
@@ -1491,14 +1491,14 @@ PetscErrorCode RegOpt::DisplayOptions()
                 }
                 case H1SN:
                 {
-                    std::cout   << std::scientific <<  "H1-seminorm (betav="
+                    std::cout   << std::scientific <<  "h1-seminorm (betav="
                                 <<  this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout   << std::scientific << "H2-seminorm (betav="
+                    std::cout   << std::scientific << "h2-seminorm (betav="
                                 << this->m_Regularization.beta[0]
                                 << ")" <<std::endl;
                     break;
@@ -1519,16 +1519,16 @@ PetscErrorCode RegOpt::DisplayOptions()
         if (this->m_RegModel == reg::RELAXEDSTOKES){
             // display regularization model
             std::cout<< std::left << std::setw(indent) <<" regularization model w";
-            std::cout   <<  "H1-seminorm (betaw="
+            std::cout   <<  "h1-seminorm (betaw="
                         <<  this->m_Regularization.beta[2]<< ")" <<std::endl;
         }
 
         // display regularization model
-        std::cout<< std::left << std::setw(indent) <<" PDE solver (hyperbolic)";
+        std::cout<< std::left << std::setw(indent) <<" pde solver (hyperbolic)";
         switch(this->m_PDESolver){
             case RK2:
             {
-                std::cout<<"second order RK method"<<std::endl;
+                std::cout<<"second order rk method"<<std::endl;
                 break;
             }
             case SL:
@@ -1577,9 +1577,9 @@ PetscErrorCode RegOpt::DisplayOptions()
         std::cout << std::left << std::setw(indent) <<" convergence tolerances"
                   << std::setw(align) <<"||g(v)|| <= tol"
                   << this->m_OptPara.tol[0] << std::endl;
-        std::cout << std::left << std::setw(indent) <<" "
-                  << std::setw(align) <<"||g(v)||/|J(v)| <= tol"
-                  << this->m_OptPara.tol[1] << std::endl;
+//        std::cout << std::left << std::setw(indent) <<" "
+//                  << std::setw(align) <<"||g(v)||/|J(v)| <= tol"
+//                  << this->m_OptPara.tol[1] << std::endl;
         std::cout << std::left << std::setw(indent) <<" "
                   << std::setw(align) <<"||g(v)||/||g(v0)|| <= tol"
                   << this->m_OptPara.tol[2] << std::endl;

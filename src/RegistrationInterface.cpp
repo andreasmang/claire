@@ -1228,14 +1228,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
         }
 
-        // clean up
-        if(this->m_Optimizer!=NULL){
-            delete this->m_Optimizer; this->m_Optimizer = NULL;
-        }
-        if(this->m_RegProblem!=NULL){
-            delete this->m_RegProblem; this->m_RegProblem = NULL;
-        }
-
         // do the setup
         ierr=this->SetupSolver(); CHKERRQ(ierr);
 
@@ -1370,6 +1362,7 @@ PetscErrorCode RegistrationInterface::Finalize()
     PetscFunctionReturn(0);
 
 }
+
 
 
 
