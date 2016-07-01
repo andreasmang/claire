@@ -440,9 +440,15 @@ PetscErrorCode Optimizer::Finalize()
     if (rank == 0){
         if (converged){
             std::cout<< " convergence criteria fullfilled:" <<std::endl;
-            std::cout << " " << stop[0] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gttol*g0norm << " = " << "tol" << std::endl;
-            std::cout << " " << stop[1] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gatol << " = " << "tol" << std::endl;
-            std::cout << " " << stop[2] << "     iter = " << std::setw(14) << std::right << iter  << " > " << std::left << std::setw(14) << maxiter << " = " << "maxiter" << std::endl;
+            ss << "[ " << stop[0] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
+            std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+            ss.str(std::string()); ss.clear();
+            ss << "[ " << stop[1] << "    ||g|| = " << std::setw(14) << std::right << gnorm << " < " << std::left << std::setw(14) << gatol << " = " << "tol";
+            std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+            ss.str(std::string()); ss.clear();
+            ss << "[ " << stop[2] << "     iter = " << std::setw(14) << std::right << iter  << " > " << std::left << std::setw(14) << maxiter << " = " << "maxiter";
+            std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+            ss.str(std::string()); ss.clear();
         }
     }
 
