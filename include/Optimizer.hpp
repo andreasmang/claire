@@ -35,7 +35,6 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "OptimizationProblem.hpp"
-#include "TaoInterfaceRegistration.hpp"
 
 namespace reg
 {

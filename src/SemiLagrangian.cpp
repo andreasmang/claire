@@ -103,12 +103,12 @@ PetscErrorCode SemiLagrangian::ClearMemory()
 
     PetscFunctionBegin;
 
-    if(this->m_TrajectoryS != NULL){
+    if(this->m_TrajectoryS!=NULL){
         delete this->m_TrajectoryS;
         this->m_TrajectoryS = NULL;
     }
 
-    if(this->m_TrajectoryA != NULL){
+    if(this->m_TrajectoryA!=NULL){
         delete this->m_TrajectoryA;
         this->m_TrajectoryA = NULL;
     }
@@ -122,17 +122,14 @@ PetscErrorCode SemiLagrangian::ClearMemory()
         delete this->m_WorkVecField1;
         this->m_WorkVecField1 = NULL;
     }
-
     if(this->m_WorkVecField2!=NULL){
         delete this->m_WorkVecField2;
         this->m_WorkVecField2 = NULL;
     }
-
     if(this->m_WorkVecField3!=NULL){
         delete this->m_WorkVecField3;
         this->m_WorkVecField3 = NULL;
     }
-
     if(this->m_WorkVecField4!=NULL){
         delete this->m_WorkVecField4;
         this->m_WorkVecField4 = NULL;
@@ -142,27 +139,22 @@ PetscErrorCode SemiLagrangian::ClearMemory()
         delete this->m_xVecField;
         this->m_xVecField = NULL;
     }
-
     if(this->m_iVecField!=NULL){
         delete this->m_iVecField;
         this->m_iVecField = NULL;
     }
 
     if(this->m_XS!=NULL){
-        delete this->m_XS;
-        this->m_XS = NULL;
+        delete this->m_XS; this->m_XS = NULL;
     }
     if(this->m_XA!=NULL){
-        delete this->m_XA;
-        this->m_XA = NULL;
+        delete this->m_XA; this->m_XA = NULL;
     }
 
     if(this->m_AdjointPlan!=NULL){
         delete this->m_AdjointPlan;
         this->m_AdjointPlan = NULL;
     }
-
-
     if(this->m_StatePlan!=NULL){
         delete this->m_StatePlan;
         this->m_StatePlan = NULL;
@@ -174,6 +166,20 @@ PetscErrorCode SemiLagrangian::ClearMemory()
     if(this->m_AdjointPlanVec!=NULL){
         delete this->m_AdjointPlanVec;
         this->m_AdjointPlanVec = NULL;
+    }
+    if(this->m_VecFieldPlan!=NULL){
+        delete this->m_VecFieldPlan;
+        this->m_VecFieldPlan = NULL;
+    }
+
+    if (this->m_ScaFieldGhost!=NULL){
+        accfft_free(this->m_ScaFieldGhost);
+        this->m_ScaFieldGhost=NULL;
+    }
+
+    if (this->m_VecFieldGhost!=NULL){
+        accfft_free(this->m_VecFieldGhost);
+        this->m_VecFieldGhost=NULL;
     }
 
     PetscFunctionReturn(0);
@@ -873,10 +879,12 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
 
     // allocate initial trajectory
     if(this->m_InitialTrajectory==NULL){
+
         try{this->m_InitialTrajectory = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+
     }
 
     if (this->m_Opt->GetVerbosity() > 2){

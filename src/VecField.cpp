@@ -31,7 +31,7 @@ VecField::VecField()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~VecField"
-VecField::~VecField(void)
+VecField::~VecField()
 {
     this->ClearMemory();
 }
@@ -116,9 +116,9 @@ PetscErrorCode VecField::ClearMemory(void)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    if(this->m_X1 != NULL) { ierr=VecDestroy(&this->m_X1); CHKERRQ(ierr); this->m_X1 = NULL; }
-    if(this->m_X2 != NULL) { ierr=VecDestroy(&this->m_X2); CHKERRQ(ierr); this->m_X2 = NULL; }
-    if(this->m_X3 != NULL) { ierr=VecDestroy(&this->m_X3); CHKERRQ(ierr); this->m_X3 = NULL; }
+    if(this->m_X1!=NULL) { ierr=VecDestroy(&this->m_X1); CHKERRQ(ierr); this->m_X1=NULL; }
+    if(this->m_X2!=NULL) { ierr=VecDestroy(&this->m_X2); CHKERRQ(ierr); this->m_X2=NULL; }
+    if(this->m_X3!=NULL) { ierr=VecDestroy(&this->m_X3); CHKERRQ(ierr); this->m_X3=NULL; }
 
     PetscFunctionReturn(0);
 }
@@ -168,9 +168,15 @@ PetscErrorCode VecField::Allocate()
     ierr=VecSetSizes(this->m_X1,nl,ng); CHKERRQ(ierr);
     ierr=VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
 
-    // pass options
-    ierr=VecDuplicate(this->m_X1,&this->m_X2); CHKERRQ(ierr);
-    ierr=VecDuplicate(this->m_X1,&this->m_X3); CHKERRQ(ierr);
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X2); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X2,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X2); CHKERRQ(ierr);
+
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X3); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X3,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -200,9 +206,15 @@ PetscErrorCode VecField::Allocate(int level)
     ierr=VecSetSizes(this->m_X1,nl,ng); CHKERRQ(ierr);
     ierr=VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
 
-    // pass options
-    ierr=VecDuplicate(this->m_X1,&this->m_X2); CHKERRQ(ierr);
-    ierr=VecDuplicate(this->m_X1,&this->m_X3); CHKERRQ(ierr);
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X2); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X2,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X2); CHKERRQ(ierr);
+
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X3); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X3,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -228,9 +240,15 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng)
     ierr=VecSetSizes(this->m_X1,nl,ng); CHKERRQ(ierr);
     ierr=VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
 
-    // pass options
-    ierr=VecDuplicate(this->m_X1,&this->m_X2); CHKERRQ(ierr);
-    ierr=VecDuplicate(this->m_X1,&this->m_X3); CHKERRQ(ierr);
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X2); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X2,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X2); CHKERRQ(ierr);
+
+    // allocate vector field
+    ierr=VecCreate(PETSC_COMM_WORLD,&this->m_X3); CHKERRQ(ierr);
+    ierr=VecSetSizes(this->m_X3,nl,ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

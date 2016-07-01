@@ -11,6 +11,8 @@
 #define _OPTIMIZER_CPP_
 
 #include "Optimizer.hpp"
+#include "KrylovInterfaceReg.hpp"
+#include "TaoInterfaceRegistration.hpp"
 
 
 
@@ -250,14 +252,12 @@ PetscErrorCode Optimizer::SetupTao()
     grtol = this->m_Opt->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
     gttol = this->m_Opt->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
     ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
-
     ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptMaxit() - 1); CHKERRQ(ierr);
 
     ierr=MatCreateShell(PETSC_COMM_WORLD,nlu,nlu,ngu,ngu,static_cast<void*>(this->m_OptimizationProblem),&HMatVec); CHKERRQ(ierr);
     ierr=MatShellSetOperation(HMatVec,MATOP_MULT,(void(*)(void))HessianMatVec); CHKERRQ(ierr);
     ierr=MatSetOption(HMatVec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
     ierr=TaoSetHessianRoutine(this->m_Tao,HMatVec,HMatVec,EvaluateHessian,static_cast<void*>(&this->m_OptimizationProblem)); CHKERRQ(ierr);
-
 
     // get the ksp of the optimizer and set options
     ierr=TaoGetKSP(this->m_Tao,&taoksp); CHKERRQ(ierr);
@@ -441,7 +441,9 @@ PetscErrorCode Optimizer::Finalize()
     if (rank == 0){
 
         if (converged){
+            std::cout<<std::endl;
             std::cout<< " convergence criteria" <<std::endl;
+            std::cout<<std::endl;
 
             // relative change of gradient
             ss << "[ " << stop[0] << "    ||g|| = " << std::setw(14) <<
@@ -463,6 +465,7 @@ PetscErrorCode Optimizer::Finalize()
                 std::left << std::setw(14) << maxiter << " = " << "maxiter";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
+            std::cout<<std::endl;
         }
     }
 

@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright (c) 2015-2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
@@ -16,10 +16,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
-#ifndef _TAOINTERFACEREGISTRATION_H_
-#define _TAOINTERFACEREGISTRATION_H_
+#ifndef _KRYLOVINTERFACEREG_H_
+#define _KRYLOVINTERFACEREG_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -27,25 +27,11 @@
 namespace reg
 {
 
-// the following functions interface the tao solver
-PetscErrorCode EvaluateObjective(Tao,Vec,ScalarType*,void*);
-PetscErrorCode EvaluateGradient(Tao,Vec,Vec,void*);
-PetscErrorCode EvaluateObjectiveGradient(Tao,Vec,ScalarType*,Vec,void*);
-
-PetscErrorCode ConstructHessian(Tao,Vec,Mat*,Mat*,MatStructure*,void*);
-PetscErrorCode EvaluateHessian(Tao,Vec,Mat,Mat,void*);
-PetscErrorCode HessianMatVec(Mat,Vec,Vec);
-PetscErrorCode PrecondMatVec(PC,Vec,Vec);
-
-PetscErrorCode PrecondSetup(PC);
-
-PetscErrorCode CheckConvergence(Tao,void*);
-PetscErrorCode OptimizationMonitor(Tao,void*);
-PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason);
-PetscErrorCode DispTaoConvReason(TaoConvergedReason);
+PetscErrorCode KrylovMonitor(KSP,PetscInt,PetscReal,void*);
+PetscErrorCode DispKSPConvReason(KSPConvergedReason);
 
 
 
 } // end of name space
 
-#endif // _TAOINTERFACEREGISTRATION_H_
+#endif // _KRYLOVINTERFACEREG_H_

@@ -170,6 +170,10 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
         this->m_WorkVecField4 = NULL;
     }
 
+    if (this->m_SL != NULL){
+        delete this->m_SL; this->m_SL = NULL;
+    }
+
     // delete class for regularization model
     if (this->m_Regularization != NULL){
         delete this->m_Regularization;
@@ -192,6 +196,15 @@ PetscErrorCode OptimalControlRegistration::AllocateRegularization()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+
+    // delete regularization if already allocated
+    // (should never happen)
+    if (this->m_Regularization != NULL){
+        delete this->m_Regularization;
+        this->m_Regularization = NULL;
+    }
+
+    // switch between regularization norms
     switch(this->m_Opt->GetRegNorm()){
         case H1:
         {
@@ -246,7 +259,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization()
     PetscErrorCode ierr;
     IntType nl,ng;
     ScalarType value;
-    Vec dvJ;
+    Vec dvJ=NULL;
 
     PetscFunctionBegin;
 
@@ -269,6 +282,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization()
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
 
+    // allocate place holder for gradient
     ierr=VecCreate(PETSC_COMM_WORLD,&dvJ); CHKERRQ(ierr);
     ierr=VecSetSizes(dvJ,3*nl,3*ng); CHKERRQ(ierr);
     ierr=VecSetFromOptions(dvJ); CHKERRQ(ierr);
@@ -922,6 +936,7 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v)
     ierr=this->m_WorkVecField2->Scale(-1.0); CHKERRQ(ierr);
     ierr=this->m_Regularization->ApplyInverseOperator(this->m_VelocityField,this->m_WorkVecField2); CHKERRQ(ierr);
 
+    // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
 
     PetscFunctionReturn(0);
@@ -940,6 +955,7 @@ PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    // start timer
     ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
     // switch case for choice of preconditioner
@@ -984,8 +1000,10 @@ PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
         }
     }
 
+    // stop timer
     ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
 
+    // increment counter
     this->m_Opt->IncrementCounter(PCMATVEC);
 
 
@@ -1429,10 +1447,12 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
     // allocate state and adjoint variables
     if (this->m_StateVariable == NULL){
+
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_StateVariable); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_StateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_StateVariable); CHKERRQ(ierr);
         ierr=VecSet(this->m_StateVariable,0.0); CHKERRQ(ierr);
+
     }
 
     // check if velocity field is zero
@@ -1765,6 +1785,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void)
     if (this->m_Opt->GetVerbosity() > 2){
         ss << "solving adjoint equation (nt="<<nt<<")";
         ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     ierr=this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
@@ -2153,14 +2174,15 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
         ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
-    ierr=this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
-
     // allocate variables
     if (this->m_IncStateVariable == NULL){
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_IncStateVariable); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_IncStateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_IncStateVariable); CHKERRQ(ierr);
     }
+
+    // start timer
+    ierr=this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // set initial value
     ierr=VecSet(this->m_IncStateVariable,0.0); CHKERRQ(ierr);
@@ -2184,6 +2206,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
         }
     }
 
+    // stop timer
     ierr=this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
     // increment counter

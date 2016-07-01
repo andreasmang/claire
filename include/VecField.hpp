@@ -73,7 +73,6 @@ private:
     PetscErrorCode Allocate(IntType,IntType);
     PetscErrorCode Allocate(int);
 
-
     RegOpt* m_Opt;
 
 };

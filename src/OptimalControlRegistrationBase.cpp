@@ -70,8 +70,8 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_ReadWrite=NULL; ///< read / write object
     this->m_SL=NULL; ///< semi lagranigan
+    this->m_ReadWrite=NULL; ///< read / write object
 
     this->m_WorkScaField1 = NULL;
     this->m_WorkScaField2 = NULL;
@@ -157,6 +157,28 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
     if (this->m_WorkVecField4 != NULL){
         delete this->m_WorkVecField4;
         this->m_WorkVecField4 = NULL;
+    }
+
+
+    // TODO: memory leak!!!!! (if we delete, grid continuation
+    // crashes)
+    // if images have not been read, we have actually
+    // allocated the reference and template image; so
+    // we have to delete them
+    if (this->m_Opt->GetRegFlags().readimages == false){
+
+        // delete reference image
+        if (this->m_ReferenceImage != NULL){
+//            ierr=VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
+//            this->m_ReferenceImage = NULL;
+        }
+
+        // delete template image
+        if (this->m_TemplateImage != NULL){
+//            ierr=VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
+//            this->m_TemplateImage = NULL;
+        }
+
     }
 
     PetscFunctionReturn(0);
@@ -408,39 +430,43 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
 
     for (int i = 0; i < 3; ++i){
         hx[i]     = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
         istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     // allocate vector fields
     if(this->m_VelocityField == NULL){
+
         try{this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+
     }
 
-    if(this->m_Opt->GetRegModel() == STOKES){
-        problem=4;
-    }
+    if(this->m_Opt->GetRegModel() == STOKES){ problem=4; }
 
     // allocate reference image
     if(this->m_ReferenceImage == NULL){
+
         // create an extra array for initial guess (has to be flat for optimizer)
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_ReferenceImage); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_ReferenceImage); CHKERRQ(ierr);
         ierr=VecSet(this->m_ReferenceImage,0.0); CHKERRQ(ierr);
+
     }
 
     // allocate template image
     if(this->m_TemplateImage == NULL){
+
         // create an extra array for initial guess (has to be flat for optimizer)
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_TemplateImage); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_TemplateImage,nl,ng); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_TemplateImage); CHKERRQ(ierr);
         ierr=VecSet(this->m_TemplateImage,0.0); CHKERRQ(ierr);
+
     }
 
 
