@@ -1,24 +1,24 @@
 #ifndef _TAOINTERFACEREGISTRATION_CPP
 #define _TAOINTERFACEREGISTRATION_CPP_
 
-
 #include "TaoInterfaceRegistration.hpp"
 #include "OptimizationProblem.hpp"
+
+
+
 
 namespace reg
 {
 
+
+
+
 /****************************************************************************
- * Function: EvaluateObjective
- * Description: general purpose function to evaluate objective
- * input:
- *  tao    pointer to tao solver
- *  x      iterate x objective is to be evaluated at
- *  Jx     objective value J(x)
- *  ptr    pointer to actual optimziation problem (has to be
- *         implemented by the user)
- * output:
- *  Jx     objective value J(x)
+ * @brief general purpose function to evaluate objective
+ * @param tao pointer to tao solver
+ * @param x iterate x objective is to be evaluated at
+ * @param Jx objective value J(x)
+ * @param ptr pointer to optimziation problem (has to be implemented by user)
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjective"
@@ -43,15 +43,11 @@ PetscErrorCode EvaluateObjective(Tao tao,Vec x,ScalarType* Jx,void* ptr)
 
 
 /****************************************************************************
- * Function: EvaluateGradient
- * Description: general purpose function to evaluate the gradient
- * input:
- *  tao    pointer to tao solver
- *  x      iterate x gradient is to be evaluated at
- *  gx     gradient of objective functional, i.e. g(x)
- *  ptr    pointer to actual optimziation problem
- * output:
- *  gx     gradient of objective functional
+ * @brief general purpose function to evaluate the gradient
+ * @param tao pointer to tao solver
+ * @param x iterate x gradient is to be evaluated at
+ * @param gx gradient of objective functional, i.e. g(x)
+ * @param ptr pointer to actual optimziation problem
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateGradient"
@@ -74,19 +70,14 @@ PetscErrorCode EvaluateGradient(Tao tao, Vec x, Vec gx, void* ptr)
 
 
 
+
 /****************************************************************************
- * Function: EvaluateObjectiveGradient
- * Description: general purpose function to evaluate the ogjective
- * and the gradient
- * input:
- *  tao     pointer to tao solver
- *  x       iterate x gradient is to be evaluated at
- *  Jx      objective value J(x)
- *  gx      gradient of objective functional, i.e. g(x)
- *  ptr     pointer to actual optimziation problem
- * output:
- *  gx      gradient of objective functional
- *  Jx      objective functional
+ * @brief general purpose function to evaluate objective and gradient
+ * @param tao pointer to tao solver
+ * @param x iterate x gradient is to be evaluated at
+ * @param Jx objective value J(x)
+ * @param gx gradient of objective functional, i.e. g(x)
+ * @param  ptr pointer to actual optimziation problem
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjectiveGradient"
@@ -113,22 +104,16 @@ PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx,
 
 
 /****************************************************************************
- * Function: ConstructHessian
- * Description: general purpose function to compute the hessian matrix;
+ * @brief general purpose function to compute the hessian matrix;
  * has to be se in TaoSetHessianRoutine; this is a general purpose template
  * for matrix based algorithms; if your code is matrix free, use the
  * evaluate hessian function below!
- *
- * input:
- *  tao     pointer to tao solver
- *  x       iterate x hessian is to be evaluated at
- *  ptr     pointer to actual optimziation problem (has to be
- *          implemented by the user
- * output:
- *  H       hessian matrix
- *  P       preconditioner
- *  flag    flag used to set the Hessian matrix and linear
- *          solver in the KSP routine
+ * @param tao pointer to tao solver
+ * @param x iterate x hessian is to be evaluated at
+ * @param ptr pointer to optimziation problem (has to be implemented by user)
+ * @param H hessian matrix
+ * @param P preconditioner
+ * @param flag flag used to set Hessian matrix and linear solver in KSP routine
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ConstructHessian"
@@ -148,18 +133,12 @@ PetscErrorCode ConstructHessian(Tao tao,Vec x,Mat* H,Mat* P,MatStructure* flag,v
 
 
 /****************************************************************************
- * Function: evaluate hessian
- * Description: general purpose function to apply the hessian
- * input:
- *  tao      pointer to tao solver
- *  x        iterate x objective is to be evaluated at
- *  ptr      pointer to actual optimziation problem (has to be
- *              implemented by the user
- * output:
- *  H        hessian matrix (can be matrix free)
- *  P        preconditioner (can be matrix free)
- *  flag     flag used to set the Hessian matrix and linear
- *           solver in the KSP routine
+ * @brief general purpose function to apply the hessian
+ * @param tao pointer to tao solver
+ * @param x iterate x objective is to be evaluated at
+ * @param H hessian matrix (can be matrix free)
+ * @param Hpre preconditioner (can be matrix free)
+ * @param ptr pointer to optimzation problem (has to be implemented by user)
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateHessian"
@@ -237,9 +216,9 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
 
 
 
+
 /****************************************************************************
- * Function: HessianMatVec
- * Description: computes the hessian matrix vector product Hx = H*xtilde
+ * @brief computes the hessian matrix vector product Hx = H*xtilde
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianMatVec"
@@ -263,9 +242,9 @@ PetscErrorCode HessianMatVec(Mat H, Vec x, Vec Hx)
 
 
 
+
 /****************************************************************************
- * Function: PrecondMatVec
- * Description: computes the matrix vector product Px
+ * @brief computes the matrix vector product Px
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PrecondMatVec"
@@ -289,9 +268,9 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex)
 
 
 
+
 /****************************************************************************
- * Function: PrecondSetup
- * Description: setup the preconditioner
+ * @brief setup the preconditioner
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PrecondSetup"
@@ -309,13 +288,90 @@ PetscErrorCode PrecondSetup(PC Hpre)
 
 
 
+
 /****************************************************************************
- * Function: Monitor
- * Description: monitor the optimization process
- * input:
- *  tao    pointer to tao solver
- *  ptr    pointer to actual optimziation problem (has to be
- *         implemented by the user)
+ * @brief convergence test for optimization
+ * @param tao pointer to tao solver
+ * @param ptr pointer to optimziation problem (has to be implemented by user)
+ ****************************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "CheckConvergence"
+PetscErrorCode CheckConvergence(Tao tao, void* ptr)
+{
+    PetscErrorCode ierr;
+    OptimizationProblem* optprob=NULL;
+    IntType iter,maxiter;
+    ScalarType J,gnorm,step,gatol,grtol,gttol,g0norm,minstep;
+
+    PetscFunctionBegin;
+
+    optprob = static_cast<OptimizationProblem*>(ptr);
+    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    minstep = std::pow(2,10);
+    minstep = 1.0/minstep;
+
+    // get initial gradient
+    g0norm = optprob->GetInitialGradNorm();
+    g0norm = (g0norm > 0.0) ? g0norm : 1.0;
+
+    ierr=TaoGetTolerances(tao,&gatol,&grtol,&gttol); CHKERRQ(ierr);
+    ierr=TaoGetMaximumIterations(tao,&maxiter); CHKERRQ(ierr);
+    ierr=TaoGetSolutionStatus(tao,&iter,&J,&gnorm,NULL,&step,NULL); CHKERRQ(ierr);
+
+    // check for NaN value
+    if ( PetscIsInfOrNanReal(J) ){
+        ierr=WrngMsg("objective value is NaN"); CHKERRQ(ierr);
+        ierr=TaoSetConvergedReason(tao,TAO_DIVERGED_NAN); CHKERRQ(ierr);
+        PetscFunctionReturn(0);
+    }
+
+    // check for NaN value
+    if ( PetscIsInfOrNanReal(gnorm) ){
+        ierr=WrngMsg("||g|| is NaN"); CHKERRQ(ierr);
+        ierr=TaoSetConvergedReason(tao,TAO_DIVERGED_NAN); CHKERRQ(ierr);
+        PetscFunctionReturn(0);
+    }
+
+    // convergence criterium met
+    if (iter > maxiter){
+        ierr=TaoSetConvergedReason(tao,TAO_DIVERGED_MAXITS); CHKERRQ(ierr);
+        PetscFunctionReturn(0);
+    }
+
+    // convergence criterium met
+    if ( gnorm < gatol ){
+        ierr=TaoSetConvergedReason(tao,TAO_CONVERGED_GATOL); CHKERRQ(ierr);
+        PetscFunctionReturn(0);
+    }
+
+    // convergence criterium met
+    if ( gnorm < gttol*g0norm ){
+        ierr=TaoSetConvergedReason(tao,TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
+        PetscFunctionReturn(0);
+    }
+
+    // step size to small (essentially means, line search failed)
+    if ( step < minstep ){
+        ierr=TaoSetConvergedReason(tao,TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
+        PetscFunctionReturn(0);
+    }
+
+    // if we're here, we're good to go
+    ierr=TaoSetConvergedReason(tao,TAO_CONTINUE_ITERATING); CHKERRQ(ierr);
+
+    // go home
+    PetscFunctionReturn(0);
+
+}
+
+
+
+
+/****************************************************************************
+ * @brief monitor the optimization process
+ * @param tao pointer to tao solver
+ * @param ptr pointer to optimziation problem (has to be implemented by user)
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimizationMonitor"
@@ -325,19 +381,17 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     IntType iter;
     int iterdisp;
     char msg[256];
-    ScalarType J=0.0,gnorm=0.0,cnorm=0.0,step=0.0,D=0.0,
-                J0=0.0,D0=0.0,gnorm0=0.0,alpha,grtol,gatol,gttol;
+    ScalarType J,gnorm,step,D,J0,D0,gnorm0;
     OptimizationProblem* optprob = NULL;
-    TaoConvergedReason taoconvreason;
+    TaoConvergedReason convreason;
     TaoLineSearch ls=NULL;
     bool newtonkrylov;
     KSPConvergedReason kspconvreason;
-    TaoLineSearchConvergedReason taolsconvreason;
+    TaoLineSearchConvergedReason lsconvreason;
     Vec x=NULL;
     KSP ksp=NULL;
 
     PetscFunctionBegin;
-
 
     optprob = static_cast<OptimizationProblem*>(ptr);
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -348,74 +402,43 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
 
     if (newtonkrylov){
 
-        if(optprob->GetOptions()->GetVerbosity() >= 2){
-
+        if(optprob->GetOptions()->GetVerbosity() > 1){
             std::string convmsg;
             ierr=TaoGetKSP(tao,&ksp); CHKERRQ(ierr);
             ierr=KSPGetConvergedReason(ksp,&kspconvreason);
             ierr=DispKSPConvReason(kspconvreason); CHKERRQ(ierr);
-
         }
 
     }
 
     ierr=TaoGetLineSearch(tao,&ls); CHKERRQ(ierr);
-    ierr=TaoLineSearchGetSolution(ls,NULL,&J,NULL,&step,&taolsconvreason); CHKERRQ(ierr);
+    ierr=TaoLineSearchGetSolution(ls,NULL,&J,NULL,&step,&lsconvreason); CHKERRQ(ierr);
 
-    if(optprob->GetOptions()->GetVerbosity() >= 2){
-        ierr=DispLSConvReason(taolsconvreason); CHKERRQ(ierr);
+    if(optprob->GetOptions()->GetVerbosity() > 1){
+        ierr=DispLSConvReason(lsconvreason); CHKERRQ(ierr);
     }
-
 
     // get current iteration, objective value, norm of gradient, norm of
     // contraint, step length / trust region radius and termination reason
-    ierr=TaoGetSolutionStatus(tao,&iter,&J,&gnorm,&cnorm,&step,&taoconvreason); CHKERRQ(ierr);
+    ierr=TaoGetSolutionStatus(tao,&iter,&J,&gnorm,NULL,&step,&convreason); CHKERRQ(ierr);
 
     // remember current iterate
     optprob->SetNumOuterIter(iter);
 
     // tao: display convergence reason
-    if(optprob->GetOptions()->GetVerbosity() >= 2){
-        ierr=DispTaoConvReason(taoconvreason); CHKERRQ(ierr);
+    if(optprob->GetOptions()->GetVerbosity() > 1){
+        ierr=DispTaoConvReason(convreason); CHKERRQ(ierr);
     }
 
     // compute l2 distance at current iteration
-    ierr=optprob->EvaluateL2Distance(&D); CHKERRQ(ierr);
-
-    // parse initial gradient and display header
-    if ( optprob->InFirstIteration() == true ){
-
-        optprob->SetInitialGradNorm(gnorm); // set the initial gradient norm
-        optprob->SetInitialMismatchVal(D); // set the initial l2 distance
-        optprob->SetInitialObjVal(J); // set the initial objective value
-
-    }
-    else{
-        // handle multilevel/multiresolution problems
-        if (iter == 0){
-
-            // the tolerance of the solver has to be modified
-            // so that the relative reduction is with respect
-            // to the initial gradient
-
-            gatol = optprob->GetOptions()->GetOptTol(0);  // ||g(x)||              <= gatol
-            grtol = optprob->GetOptions()->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
-            gttol = optprob->GetOptions()->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
-
-            // get initial gradient
-            gnorm0 = optprob->GetInitialGradNorm();
-            gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
-            alpha = PetscMax(1.0,gnorm0/gnorm);
-            ierr=TaoSetTolerances(tao,gatol,grtol,alpha*gttol); CHKERRQ(ierr);
-        }
-    }
+    ierr=optprob->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
 
     // get initial gradient
     gnorm0 = optprob->GetInitialGradNorm();
     gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
 
     // get initial l2 distance
-    D0 = optprob->GetInitialMismatchVal();
+    D0 = optprob->GetInitialDistanceVal();
     D0 = (D0 > 0.0) ? D0 : 1.0;
 
     // get initial objective value
@@ -431,19 +454,15 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     sprintf(msg,"  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",iterdisp,J/J0,D/D0,gnorm/gnorm0,gnorm,step);
     PetscPrintf(MPI_COMM_WORLD,"%-80s\n",msg);
 
-    // make sure that everybody knows that we have performed the
-    // first iteration already
-    optprob->InFirstIteration(false);
-
     // go home
     PetscFunctionReturn(0);
 }
 
 
 
+
 /****************************************************************************
- * Function: KrylovMonitor
- * Description: monitor evolution of krylov subspace method
+ * @brief monitor evolution of krylov subspace method
  *****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "KrylovMonitor"
@@ -468,9 +487,10 @@ PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 }
 
 
+
+
 /****************************************************************************
- * Function: DispKSPConvReason
- * Description:display the convergence reason of the KSP method
+ * @briefdisplay the convergence reason of the KSP method
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DispKSPConvReason"
@@ -484,25 +504,25 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
     switch(flag){
         case KSP_CONVERGED_RTOL_NORMAL:
         {
-            msg="KSP convergence ||r||_2 < rtol ||b||_2";
+            msg="KSP convergence ||r||_2 < tol ||b||_2";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_ATOL_NORMAL:
         {
-            msg="KSP convergence ||r||_2 < atol";
+            msg="KSP convergence ||r||_2 < tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_RTOL:
         {
-            msg="KSP convergence ||r||_2 < rtol ||b||_2";
+            msg="KSP convergence ||r||_2 < tol ||b||_2";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_ATOL:
         {
-            msg="KSP convergence ||r||_2 < atol";
+            msg="KSP convergence ||r||_2 < tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -615,10 +635,9 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
 
 
 
+
 /****************************************************************************
- * Function: DispLSConvReason
- * Description:display the convergence reason of the KSP method
- * Author: Andreas Mang
+ * @brief display the convergence reason of the KSP method
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DispLSConvReason"
@@ -680,8 +699,7 @@ PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag)
         }
         case TAOLINESEARCH_CONTINUE_ITERATING:
         {
-//            msg="LS: continue iterating";
-//            ierr=DbgMsg(msg); CHKERRQ(ierr);
+            // do nothing, cause everything's fine
             break;
         }
         case TAOLINESEARCH_SUCCESS:
@@ -704,10 +722,9 @@ PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag)
 
 
 
+
 /****************************************************************************
- * Function: DispTaoConvReason
- * Description:display the convergence reason of the optimizer
- * Author: Andreas Mang
+ * @brief display the convergence reason of the optimizer
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DispTaoConvReason"
@@ -719,87 +736,75 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag)
     PetscFunctionBegin;
 
     switch(flag){
-//        case TAO_CONVERGED_FATOL:
-//        {
-//            msg="TAO: convergence J(x) - J(x*) <= Jabstol";
-//            ierr=DbgMsg(msg); CHKERRQ(ierr);
-//            break;
-//        }
-//        case TAO_CONVERGED_FRTOL:
-//        {
-//            msg="TAO: convergence |J(x) - J(x*)|/|J(x)| <= Jreltol";
-//            ierr=DbgMsg(msg); CHKERRQ(ierr);
-//            break;
-//        }
         case TAO_CONVERGED_GATOL:
         {
-            msg="TAO: convergence ||g(x)|| <= gabstol";
+            msg="converged: ||g(x)|| <= tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_GRTOL:
         {
-            msg="TAO: convergence ||g(x)||/J(x) <= greltol";
+            msg="converged: ||g(x)||/J(x) <= tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_GTTOL:
         {
-            msg="TAO: convergence ||g(x)||/||g(x0)|| <= greltol";
+            msg="converged: ||g(x)||/||g(x0)|| <= tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_STEPTOL:
         {
-            msg="TAO: step size too small";
+            msg="step size too small";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_MINF:
         {
-            msg="TAO: objective value to small (J(x) < J_min)";
+            msg="objective value to small";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_USER:
         {
-            msg="TAO: user defined convergence criteria met";
+            msg="user defined convergence criteria met";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_MAXITS:
         {
-            msg="TAO: maximum number of iterations reached";
+            msg="maximum number of iterations reached";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_NAN:
         {
-            msg="TAO: numerical problems (NAN detected)";
+            msg="numerical problems (NAN detected)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_MAXFCN:
         {
-            msg="TAO: maximal number of function evaluations reached";
+            msg="maximal number of function evaluations reached";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_LS_FAILURE:
         {
-            msg="TAO: line search failed";
+            msg="line search failed";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_TR_REDUCTION:
         {
-            msg="TAO: trust region failed";
+            msg="trust region failed";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_USER:
         {
-            msg="TAO: user defined divergence criterion met";
+            msg="user defined divergence criterion met";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -821,7 +826,12 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag)
     PetscFunctionReturn(0);
 }
 
+
+
+
 } // end of name space
+
+
 
 
 #endif // _TAOINTERFACEREGISTRATION_H_

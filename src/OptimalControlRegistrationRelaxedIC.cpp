@@ -155,7 +155,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // evaluate the L2 distance
-    ierr=this->EvaluateL2Distance(&D); CHKERRQ(ierr);
+    ierr=this->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
 
     // evaluate the regularization model for v
     ierr=this->m_Regularization->EvaluateFunctional(&Rv,this->m_VelocityField); CHKERRQ(ierr);

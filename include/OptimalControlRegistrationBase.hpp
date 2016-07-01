@@ -86,8 +86,11 @@ public:
     /*! compute synthetic test problem */
     PetscErrorCode SetupSyntheticProb();
 
+    /*! evaluate objective, gradient and distance measure for initial guess */
+    virtual PetscErrorCode InitializeOptimization() = 0;
+
     /*! evaluate l2-distance between observed and predicted state */
-    virtual PetscErrorCode EvaluateL2Distance(ScalarType*) = 0;
+    virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
 
     /*! evaluate objective functional J(v) */
     virtual PetscErrorCode EvaluateObjective(ScalarType*,Vec) = 0;

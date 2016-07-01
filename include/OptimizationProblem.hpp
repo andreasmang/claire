@@ -42,25 +42,22 @@ public:
 
     OptimizationProblem(void);
     OptimizationProblem(RegOpt*);
-    //virtual ~OptimizationProblem(void) = 0;
     ~OptimizationProblem(void);
 
     inline RegOpt* GetOptions(void){return this->m_Opt;};
 
-    inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
-    inline void SetInitialGradNorm(ScalarType value){this->m_InitGradNorm=value;};
-    inline ScalarType GetInitialMismatchVal(){return this->m_InitMismatchVal;};
-    inline void SetInitialMismatchVal(ScalarType value){this->m_InitMismatchVal=value;};
     inline ScalarType GetInitialObjVal(){return this->m_InitObjectiveVal;};
-    inline void SetInitialObjVal(ScalarType value){this->m_InitObjectiveVal=value;};
+    inline ScalarType GetInitialDistanceVal(){return this->m_InitDistanceVal;};
+    inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
 
     inline void SetKSPTolerance(ScalarType value){this->m_KSPTol = value;};
     inline void SetNumOuterIter(IntType value){this->m_NumOuterIter = value;};
-    inline bool InFirstIteration(){return this->m_InFirstIteration;};
-    inline void InFirstIteration(bool flag){this->m_InFirstIteration=flag;};
 
-    /*! evaluate l2-distance between observed and predicted state */
-    virtual PetscErrorCode EvaluateL2Distance(ScalarType*) = 0;
+    /*! evaluate objective, gradient and distance measure for initial guess */
+    virtual PetscErrorCode InitializeOptimization() = 0;
+
+    /*! evaluate distance between observed and predicted state */
+    virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
 
     /*! evaluate objective functional J(v) */
     virtual PetscErrorCode EvaluateObjective(ScalarType*,Vec) = 0;
@@ -107,12 +104,10 @@ protected:
 
     RegOpt* m_Opt;
 
-    bool m_InFirstIteration;
-
     ScalarType m_KSPTol;
     ScalarType m_InitGradNorm;
-    ScalarType m_InitMismatchVal;
     ScalarType m_InitObjectiveVal;
+    ScalarType m_InitDistanceVal;
     Mat m_PCMatVec;
 
     IntType m_NumOuterIter;

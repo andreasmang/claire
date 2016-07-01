@@ -91,9 +91,6 @@ PetscErrorCode OptimalControlRegistration::Initialize(void)
     this->m_SL = NULL;
     this->m_PCKSP = NULL;
 
-    // we have not done anything
-    this->m_InFirstIteration = true;
-
     this->m_PCMatVec = NULL;
     this->m_Regularization = NULL;
 
@@ -239,8 +236,74 @@ PetscErrorCode OptimalControlRegistration::AllocateRegularization()
 
 /********************************************************************
  * @brief solve the forward problem (we assume the user has
- * set the template image and the velocity field using the assocated
- * set functions)
+ * set the template image and the velocity field using the
+ * associated  set functions)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "InitializeOptimization"
+PetscErrorCode OptimalControlRegistration::InitializeOptimization()
+{
+    PetscErrorCode ierr;
+    IntType nl,ng;
+    ScalarType value;
+    Vec dvJ;
+
+    PetscFunctionBegin;
+
+    // allocate
+    if (this->m_WorkVecField2 == NULL){
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_VelocityField == NULL){
+        try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    // set components of velocity field to zero
+    ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
+    ierr=VecCreate(PETSC_COMM_WORLD,&dvJ); CHKERRQ(ierr);
+    ierr=VecSetSizes(dvJ,3*nl,3*ng); CHKERRQ(ierr);
+    ierr=VecSetFromOptions(dvJ); CHKERRQ(ierr);
+
+    // evaluate distance measure
+    ierr=this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
+    this->m_InitObjectiveVal=value;
+    this->m_InitDistanceVal=value;
+
+    // compute solution of adjoint equation (i.e., \lambda(x,t))
+    ierr=this->SolveAdjointEquation(); CHKERRQ(ierr);
+
+    // compute body force \int_0^1 grad(m)\lambda dt
+    // assigned to work vecfield 2
+    ierr=this->ComputeBodyForce(); CHKERRQ(ierr);
+
+    // parse to output
+    ierr=this->m_WorkVecField2->GetComponents(dvJ); CHKERRQ(ierr);
+
+    ierr=VecNorm(dvJ,NORM_2,&value); CHKERRQ(ierr);
+    this->m_InitGradNorm=value;
+
+    // clean up
+    ierr=VecDestroy(&dvJ); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief solve the forward problem (we assume the user has
+ * set the template image and the velocity field using the
+ * associated  set functions)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SolveForwardProblem"
@@ -283,8 +346,8 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
  * @brief evaluate the l2 distance between m_R and m_1
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "EvaluateL2Distance"
-PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
+#define __FUNCT__ "EvaluateDistanceMeasure"
+PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D)
 {
     PetscErrorCode ierr;
     ScalarType *p_m1=NULL,*p_m=NULL;
@@ -293,7 +356,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
 
     PetscFunctionBegin;
 
-    ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_ReferenceImage!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if(this->m_WorkScaField1 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
@@ -333,9 +396,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Distance(ScalarType* D)
 
 
 
-
-
-
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/
@@ -364,22 +424,28 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
         ierr=DbgMsg("evaluating objective functional"); CHKERRQ(ierr);
     }
 
+    // start timer
     ierr=this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
 
     // set components of velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // evaluate the regularization model
-    ierr=this->EvaluateL2Distance(&D); CHKERRQ(ierr);
+    ierr=this->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
 
     // evaluate the regularization model
-    ierr=this->m_Regularization->EvaluateFunctional(&R,this->m_VelocityField); CHKERRQ(ierr);
+    ierr=this->IsVelocityZero(); CHKERRQ(ierr);
+    if(!this->m_VelocityIsZero){
+        ierr=this->m_Regularization->EvaluateFunctional(&R,this->m_VelocityField); CHKERRQ(ierr);
+    }
 
     // add up the contributions
     *J = D + R;
 
+    // stop timer
     ierr=this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
 
+    // increment counter for objective evaluations
     this->m_Opt->IncrementCounter(OBJEVAL);
 
     PetscFunctionReturn(0);
@@ -430,6 +496,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
         ierr=DbgMsg("evaluating reduced gradient"); CHKERRQ(ierr);
     }
 
+    // start timer
     ierr=this->m_Opt->StartTimer(GRADEXEC); CHKERRQ(ierr);
 
     // parse input arguments
@@ -443,18 +510,29 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
     ierr=this->ComputeBodyForce(); CHKERRQ(ierr);
 
     // evaluate gradient of regularization model
-    ierr=this->m_Regularization->EvaluateGradient(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
+    ierr=this->IsVelocityZero(); CHKERRQ(ierr);
+    if(!this->m_VelocityIsZero){
 
-    // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
-    ierr=VecAXPY(this->m_WorkVecField1->m_X1,1.0,this->m_WorkVecField2->m_X1); CHKERRQ(ierr);
-    ierr=VecAXPY(this->m_WorkVecField1->m_X2,1.0,this->m_WorkVecField2->m_X2); CHKERRQ(ierr);
-    ierr=VecAXPY(this->m_WorkVecField1->m_X3,1.0,this->m_WorkVecField2->m_X3); CHKERRQ(ierr);
+        ierr=this->m_Regularization->EvaluateGradient(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
+
+        // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
+        ierr=VecAXPY(this->m_WorkVecField1->m_X1,1.0,this->m_WorkVecField2->m_X1); CHKERRQ(ierr);
+        ierr=VecAXPY(this->m_WorkVecField1->m_X2,1.0,this->m_WorkVecField2->m_X2); CHKERRQ(ierr);
+        ierr=VecAXPY(this->m_WorkVecField1->m_X3,1.0,this->m_WorkVecField2->m_X3); CHKERRQ(ierr);
+
+    }
+    else{
+        // \vect{g}_v = \D{K}[\vect{b}]
+        ierr=this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
+    }
 
     // parse to output
     ierr=this->m_WorkVecField1->GetComponents(dvJ); CHKERRQ(ierr);
 
+    // stop timer
     ierr=this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
 
+    // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
 
     PetscFunctionReturn(0);
@@ -476,7 +554,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType *p_mj=NULL,*p_m=NULL,*p_l=NULL,*p_l0=NULL,
                *p_gradm1=NULL,*p_gradm2=NULL,*p_gradm3=NULL,
-               *p_b1=NULL, *p_b2=NULL, *p_b3=NULL;
+               *p_b1=NULL,*p_b2=NULL,*p_b3=NULL;
     ScalarType ht,scale,hd;
     double ffttimers[5]={0,0,0,0,0};
 
@@ -523,7 +601,6 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
 
     // check if velocity field is zero
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
-    this->m_VelocityIsZero = false;
     if(this->m_VelocityIsZero){
 
         // m and \lambda are constant in time
@@ -1431,8 +1508,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
 
     }
-
-
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);

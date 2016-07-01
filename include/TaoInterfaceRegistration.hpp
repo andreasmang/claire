@@ -39,6 +39,7 @@ PetscErrorCode PrecondMatVec(PC,Vec,Vec);
 
 PetscErrorCode PrecondSetup(PC);
 
+PetscErrorCode CheckConvergence(Tao,void*);
 PetscErrorCode OptimizationMonitor(Tao,void*);
 PetscErrorCode KrylovMonitor(KSP,PetscInt,PetscReal,void*);
 PetscErrorCode DispKSPConvReason(KSPConvergedReason);

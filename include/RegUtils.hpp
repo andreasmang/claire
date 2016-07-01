@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright (c) 2015-2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 
 #ifndef _REGUTILS_H_
@@ -72,6 +72,7 @@ PetscErrorCode VecView(Vec);
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType);
 PetscErrorCode GetFileName(std::string&,std::string);
 std::vector<unsigned int> String2Vec( const std::string & );
+
 
 
 

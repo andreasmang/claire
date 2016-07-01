@@ -42,8 +42,11 @@ public:
     OptimalControlRegistration(RegOpt*);
     ~OptimalControlRegistration(void);
 
-    /*! evaluate l2-distance between observed and predicted state */
-    PetscErrorCode EvaluateL2Distance(ScalarType*);
+    /*! evaluate objective, gradient and distance measure for initial guess */
+    PetscErrorCode InitializeOptimization();
+
+    /*! evaluate distance between observed and predicted state */
+    PetscErrorCode EvaluateDistanceMeasure(ScalarType*);
 
     /*! evaluate objective value */
     PetscErrorCode EvaluateObjective(ScalarType*,Vec);

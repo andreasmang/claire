@@ -238,6 +238,7 @@ PetscErrorCode Optimizer::SetupTao()
     // set the monitor for the optimization process
     ierr=TaoCancelMonitors(this->m_Tao); CHKERRQ(ierr);
     ierr=TaoSetMonitor(this->m_Tao,OptimizationMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
+    ierr=TaoSetConvergenceTest(this->m_Tao,CheckConvergence,this->m_OptimizationProblem); CHKERRQ(ierr);
 
     TaoLineSearch ls;
     ierr=TaoGetLineSearch(this->m_Tao,&ls); CHKERRQ(ierr);

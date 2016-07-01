@@ -260,6 +260,7 @@ PetscErrorCode RegistrationInterface::SetupSolver()
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    // set up optimization problem
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -444,6 +445,10 @@ PetscErrorCode RegistrationInterface::RunSolver()
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
 
+    // initialize registration problem (evaluate objective and gradient
+    // for zero velocity field)
+    ierr=this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+
     // init solver
     ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
     ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
@@ -476,11 +481,13 @@ PetscErrorCode RegistrationInterface::RunSolver()
 PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
 {
     PetscErrorCode ierr;
-    Vec mT=NULL,mR=NULL;//,x=NULL;
+    Vec mT=NULL,mR=NULL;
     PetscFunctionBegin;
 
     // do the setup
     ierr=this->SetupSolver(); CHKERRQ(ierr);
+
+    // check if setup was complete
     ierr=Assert(this->m_RegProblem!= NULL, "registration problem is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_Optimizer!= NULL, "optimizer is null"); CHKERRQ(ierr);
 
@@ -525,6 +532,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
     // reset all the clocks we have used so far
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
+
+    // initialize registration problem (evaluate objective and gradient
+    // for zero velocity field)
+    ierr=this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     // switch between the different strategies for
     // doing the parameter continuation (default one
@@ -1002,12 +1013,6 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     level=0;
     while (level < maxlevel){
 
-        // this resets the optimizer to assume that we're in first iteration
-        // every time we solve the problem; TODO: add initialization stage
-        // for zero velocity field (compute gradient) to refer warm starts
-        // and every thing else to the initial gradient
-        this->m_RegProblem->InFirstIteration(true);
-
         solve=true;
         for (int i=0; i < 3; ++i){
 
@@ -1037,6 +1042,10 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
                 <<sigma[0]<<","<<sigma[1]<<","<<sigma[2]<<")";
             ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
+
+            // compute gradient, distance measure, and initial objective
+            // value for zero velocity field, but updated images
+            ierr=this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
             // run the optimization
             ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
@@ -1233,6 +1242,10 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         // set images
         ierr=this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+
+        // compute initial gradient, objective and
+        // distance mesure for zero velocity field
+        ierr=this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
         // set initial guess and registraiton problem
         ierr=this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);

@@ -587,8 +587,8 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f)
     int _nx_f[3],_ostart_f[3],_osize_f[3],_isize_f[3],_istart_f[3],
         rank,nprocs,nowned,nsend,xrank,c_grid[2],p1,p2;
     IntType nx[3],ostart_f[3],osize_f[3],oend_f[3],osize[3],ostart[3],
-            osizex2,osizex3,li,li_f,i1,i2,i3,i1_f,i2_f,i3_f;
-    ScalarType k1,k2,k3,k1_f,k2_f,k3_f,nxhalf[3];
+            osizex2,osizex3,li,li_f, i1,i2,i3, i1_f,i2_f,i3_f;
+    ScalarType k1,k2,k3, k1_f,k2_f,k3_f, nxhalf[3];
 
     PetscFunctionBegin;
 

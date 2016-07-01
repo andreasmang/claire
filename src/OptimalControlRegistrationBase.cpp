@@ -333,6 +333,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(VecField* v)
 
 
 
+
 /********************************************************************
  * @brief set the registration options
  *******************************************************************/
