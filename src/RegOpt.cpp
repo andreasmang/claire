@@ -1106,12 +1106,8 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
             ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
         }
+
     }
-
-
-    // initialize accft
-    accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_FFT.mpicomm);
-    accfft_init(this->m_NumThreads);
 
     // parse grid size for setup
     for (int i = 0; i < 3; ++i){
@@ -1119,19 +1115,38 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
 
+    if (this->m_FFT.mpicomm != NULL){
+        MPI_Comm_free(&this->m_FFT.mpicomm);
+        this->m_FFT.mpicomm=NULL;
+    }
+    // initialize accft
+    accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_FFT.mpicomm);
+    accfft_init(this->m_NumThreads);
+
+    // get sizes
+    nalloc = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
+    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+
+    // set up the fft
+    u = (ScalarType*)accfft_alloc(nalloc);
+    uk = (Complex*)accfft_alloc(nalloc);
+
     if (this->m_FFT.plan != NULL){
         accfft_destroy_plan(this->m_FFT.plan);
         this->m_FFT.plan = NULL;
         accfft_cleanup();
     }
 
-    // get sizes
-    nalloc = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
-    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+    fftsetuptime=-MPI_Wtime();
+    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_FFT.mpicomm,ACCFFT_MEASURE);
+    fftsetuptime+=MPI_Wtime();
+
+    // set the fft setup time
+    this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
 
     // compute global and local size
-    this->m_Domain.nlocal = 1;
-    this->m_Domain.nglobal = 1;
+    this->m_Domain.nlocal=1;
+    this->m_Domain.nglobal=1;
     for (int i = 0; i < 3; ++i){
 
         this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
@@ -1148,16 +1163,6 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
     ierr=reg::Assert(this->m_Domain.nlocal > 0,"bug in setup"); CHKERRQ(ierr);
     ierr=reg::Assert(this->m_Domain.nglobal > 0,"bug in setup"); CHKERRQ(ierr);
 
-    // set up the fft
-    u = (ScalarType*)accfft_alloc(nalloc);
-    uk = (Complex*)accfft_alloc(nalloc);
-
-    fftsetuptime=-MPI_Wtime();
-    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_FFT.mpicomm,ACCFFT_MEASURE);
-    fftsetuptime+=MPI_Wtime();
-
-    // set the fft setup time
-    this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
 
     // display the options to the user
     if (dispteaser==true){ ierr=this->DisplayOptions(); CHKERRQ(ierr); }
