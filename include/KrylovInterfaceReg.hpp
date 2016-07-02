@@ -23,16 +23,18 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
+#include "OptimizationProblem.hpp"
+#include "PrecondReg.hpp"
 
 namespace reg
 {
 
 // mat vec for two level preconditioner
-PetscErrorCode TwoLevelPCMatVec(Mat,Vec,Vec);
-PetscErrorCode PrecondMonitor(KSP,IntType,ScalarType,void*);
-
 PetscErrorCode KrylovMonitor(KSP,PetscInt,PetscReal,void*);
 PetscErrorCode DispKSPConvReason(KSPConvergedReason);
+
+PetscErrorCode InvertPrecondKrylovMonitor(KSP,PetscInt,PetscReal,void*);
+PetscErrorCode InvertPrecondMatVec(Mat,Vec,Vec);
 
 
 

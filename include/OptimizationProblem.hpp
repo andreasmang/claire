@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright (c) 2015-2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #ifndef _OPTIMIZATIONPROBLEM_H_
 #define _OPTIMIZATIONPROBLEM_H_
@@ -24,15 +24,10 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
-#include "KrylovInterfaceReg.hpp"
-
-
 
 
 namespace reg
 {
-
-
 
 
 class OptimizationProblem

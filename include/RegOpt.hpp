@@ -119,6 +119,7 @@ enum TimerType
     T2SEXEC = 0, ///< time to solution (execution time)
     PDEEXEC,     ///< pde solves (execution time)
     HMVEXEC,     ///< hessian mat vec (execution time)
+    PMVSETUP,    ///< setup time for preconditioner
     PMVEXEC,     ///< precond mat vec (execution time)
     GRADEXEC,    ///< gradient evaluation (execution time)
     OBJEXEC,     ///< objective evluation (execution time)
@@ -264,6 +265,7 @@ struct RegFlags{
 
 
 
+
 class RegOpt
 {
 
@@ -406,7 +408,7 @@ private:
     Optimization m_OptPara; ///< optimization parameters
     PDESolver m_PDESolver; ///< flag for PDE solver
     KrylovSolver m_KrylovSolverPara; ///< parameters for krylov solver
-    RegMonitor m_RegMonitor;  ///< monitor for registration
+    RegMonitor m_RegMonitor; ///< monitor for registration
     RegNorm m_RegNorm; ///< parameters for regularization model
     ParCont m_ParaCont; ///< flags for parameter continuation
     GridCont m_GridCont; ///< flags for grid continuation

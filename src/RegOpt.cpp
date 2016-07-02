@@ -279,6 +279,23 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
                 ierr=this->UsageRegistration(); CHKERRQ(ierr);
             }
         }
+        else if(strcmp(argv[1],"-precond") == 0){
+            argc--; argv++;
+            if (strcmp(argv[1],"none") == 0){
+                this->m_KrylovSolverPara.pctype = NOPC;
+            }
+            else if (strcmp(argv[1],"invreg") == 0){
+                this->m_KrylovSolverPara.pctype = INVREG;
+            }
+            else if (strcmp(argv[1],"2level") == 0){
+                this->m_KrylovSolverPara.pctype = TWOLEVEL;
+            }
+            else {
+                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            }
+        }
         else if (strcmp(argv[1],"-pdesolver") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"rk2") == 0){
@@ -732,6 +749,11 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         std::cout << "                           <type> is one of the following"<<std::endl;
         std::cout << "                               gn           Gauss-Newton (default)"<<std::endl;
         std::cout << "                               fn           full Newton"<<std::endl;
+        std::cout << " -precond <type>           preconditioner"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               none         no preconditioner (not recommended)"<<std::endl;
+        std::cout << "                               invreg       inverse regularization operator (default)"<<std::endl;
+        std::cout << "                               2level       2-level preconditioner"<<std::endl;
         std::cout << " -grel <dbl>               tolerance for optimization (default: 1E-2)"<<std::endl;
         std::cout << "                               relative change of gradient"<<std::endl;
         std::cout << "                               optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
@@ -2126,6 +2148,21 @@ PetscErrorCode RegOpt::WriteLogFile()
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
+
+
+        // if time has been logged
+        if (this->m_Timer[PMVSETUP][LOG] > 0.0){
+            ierr=Assert(this->m_Counter[PCMATVEC] > 0,"bug in counter"); CHKERRQ(ierr);
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << " pc mat vec" << std::right
+                << std::setw(nnum) << this->m_Timer[PMVSETUP][MIN]
+                << std::setw(nnum) << this->m_Timer[PMVSETUP][MAX]
+                << std::setw(nnum) << this->m_Timer[PMVSETUP][AVG]
+                << std::setw(nnum) << this->m_Timer[PMVSETUP][MAX]/static_cast<ScalarType>(this->m_Counter[PCMATVEC]);
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
+        }
+
 
         // if time has been logged
         if (this->m_Timer[PMVEXEC][LOG] > 0.0){

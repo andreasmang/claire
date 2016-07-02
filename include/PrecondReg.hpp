@@ -42,10 +42,14 @@ public:
     PrecondReg(RegOpt*);
     ~PrecondReg();
 
+    /*! set optimization problem */
     PetscErrorCode SetProblem(OptProbType*);
 
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec,Vec);
+
+    /*! apply hessian (for inversion) */
+    PetscErrorCode HessianMatVec(Vec,Vec);
 
 protected:
 
@@ -55,17 +59,26 @@ protected:
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
 
-    PetscErrorCode ApplyInvRegPC(Vec,Vec);
 
 private:
 
     /*! setup two level preconditioner */
-    PetscErrorCode DoSetup();
+    PetscErrorCode Setup2LevelPC();
+
+    /*! setup two level preconditioner */
+    PetscErrorCode SetupKrylovMethod();
+
+    /*! setup two level preconditioner */
+    PetscErrorCode SetTolerancesKrylovMethod();
+
+
+    PetscErrorCode ApplyInvRegPC(Vec,Vec);
+    PetscErrorCode Apply2LevelPC(Vec,Vec);
 
     RegOpt* m_Opt; ///< registration options
     KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
     Mat m_MatVec; ///< mat vec object (PETSc)
-    OptimizationProblem* m_OptimizationProblem; ///< pointer to optimization problem
+    OptProbType* m_OptimizationProblem; ///< pointer to optimization problem
 
 };
 

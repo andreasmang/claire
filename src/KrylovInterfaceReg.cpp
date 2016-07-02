@@ -2,7 +2,6 @@
 #define _KRYLOVINTERFACEREG_CPP_
 
 #include "KrylovInterfaceReg.hpp"
-#include "OptimizationProblem.hpp"
 
 
 
@@ -23,14 +22,10 @@ PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 {
     PetscErrorCode ierr;
     (void)ksp;
-//    OptimizationProblem* optprob=NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
-
-//    optprob = static_cast<OptimizationProblem*>(ptr);
-//    ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
 
     kspmeth="PCG  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
@@ -41,49 +36,21 @@ PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 
 
 
-/********************************************************************
- * @brief computes the matrix vector product Px
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TwoLevelPCMatVec"
-PetscErrorCode TwoLevelPCMatVec(Mat P, Vec x, Vec Px)
-{
-    PetscErrorCode ierr;
-    void* ptr;
-    OptimizationProblem *optprob = NULL;
-
-    PetscFunctionBegin;
-
-    ierr=MatShellGetContext(P,&ptr); CHKERRQ(ierr);
-    optprob = (OptimizationProblem*)ptr;
-    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    // apply hessian
-    //ierr=optprob->TwoLevelPrecondMatVec(Px,x); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
 
 /********************************************************************
- * @brief monitor evolution of krylov subspace method
+ * @brief monitor for evolution of krylov subspace method for the
+ * inversion of the preconditioner
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "PrecondMonitor"
-PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
+#define __FUNCT__ "InvertPrecondKrylovMonitor"
+PetscErrorCode InvertPrecondKrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 {
     PetscErrorCode ierr;
     (void)ksp;
-    OptimizationProblem* optprob=NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
-
-    optprob = static_cast<OptimizationProblem*>(ptr);
-    ierr=Assert(optprob!=NULL,"user is null pointer"); CHKERRQ(ierr);
 
     kspmeth=" >> PC  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
@@ -93,6 +60,30 @@ PetscErrorCode PrecondMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
 }
 
 
+
+
+/****************************************************************************
+ * @brief computes the hessian matrix vector product Hx = H*xtilde
+ ****************************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "InvertPrecondMatVec"
+PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px)
+{
+    PetscErrorCode ierr;
+    void* ptr;
+    PrecondReg *preconditioner = NULL;
+
+    PetscFunctionBegin;
+
+    ierr=MatShellGetContext(P,(void**)&ptr); CHKERRQ(ierr);
+    preconditioner = (PrecondReg*)ptr;
+    ierr=Assert(preconditioner!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // apply hessian
+    ierr=preconditioner->HessianMatVec(Px,x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
 
 
 

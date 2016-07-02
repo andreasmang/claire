@@ -910,7 +910,6 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
     if (this->m_WorkScaField1 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
     }
-
     if (this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
