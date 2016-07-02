@@ -354,7 +354,7 @@ PetscErrorCode RegistrationInterface::Run()
 
 
     // switch between solvers we have to solve optimization problem
-    if( this->m_Opt->GetParaContPara().enabled ){
+    if( this->m_Opt->GetParaCont().enabled ){
 
         // run different flavours of parameter continuation
         ierr=this->RunSolverRegParaCont(); CHKERRQ(ierr);
@@ -540,7 +540,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
     // switch between the different strategies for
     // doing the parameter continuation (default one
     // is binary search)
-    switch (this->m_Opt->GetRegParaContStrategy()){
+    switch (this->m_Opt->GetParaCont().strategy){
         case PCONTBINSEARCH:
         {
             ierr=this->RunSolverRegParaContBinarySearch(); CHKERRQ(ierr);
@@ -601,8 +601,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
 
     // get parameters
     betamin   = this->m_Opt->GetBetaMinParaCont();
-    betascale = this->m_Opt->GetBetaScaleParaCont();
-    maxsteps  = this->m_Opt->GetMaxStepsParaCont();
+    betascale = this->m_Opt->GetParaCont().betascale;
+    maxsteps  = this->m_Opt->GetParaCont().maxsteps;
 
     ierr=Assert(betascale < 1.0 && betascale > 0.0,"scale for beta not in (0,1)"); CHKERRQ(ierr);
     ierr=Assert(betamin > 0.0 && betamin < 1.0,"lower bound for beta in (0,1)"); CHKERRQ(ierr);
@@ -678,7 +678,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     // accurate we solve (how many digits) with respect to the
     // order of magnitude of magnitude of the regularization
     // parameter)
-    dbetascale = this->m_Opt->GetDeltaBetaScaleParaCont();
+    dbetascale = this->m_Opt->GetParaCont().dbetascale;
     ierr=Assert(dbetascale<1.0 && dbetascale>0.0,"scale for delta betav not in (0,1)"); CHKERRQ(ierr);
 
     //update beta
@@ -772,9 +772,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // get parameters
-    maxsteps  = this->m_Opt->GetMaxStepsParaCont();
     betamin   = this->m_Opt->GetBetaMinParaCont();
-    betascale = this->m_Opt->GetBetaScaleParaCont();
+    maxsteps  = this->m_Opt->GetParaCont().maxsteps;
+    betascale = this->m_Opt->GetParaCont().betascale;
 
     ierr=Assert(betascale < 1.0 && betascale > 0.0,"scale for beta not in (0,1)"); CHKERRQ(ierr);
     ierr=Assert(betamin > 0.0 && betamin < 1.0,"lower bound for beta in (0,1)"); CHKERRQ(ierr);
@@ -877,7 +877,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // get target regularization weight
-    betastar=this->m_Opt->GetRegularizationWeight(0);
+    betastar=this->m_Opt->GetRegNorm().beta[0];
     ierr=Assert(betastar>0.0 && betastar<1.0,"target beta not in (0,1)"); CHKERRQ(ierr);
 
     // set optimization problem

@@ -76,8 +76,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
 
     ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegularizationWeight(0);
-    beta[1] = this->m_Opt->GetRegularizationWeight(1);
+    beta[0] = this->m_Opt->GetRegNorm().beta[0];
+    beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     *R= 0.0;
 
@@ -203,8 +203,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
     ierr=Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvR != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegularizationWeight();
-    beta[1] = this->m_Opt->GetRegularizationWeight();
+    beta[0] = this->m_Opt->GetRegNorm().beta[0];
+    beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
     if ( beta[0]  == 0.0  && beta[1] == 0.0 ){
@@ -332,7 +332,7 @@ PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecFi
     ierr=Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvvR != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegularizationWeight();
+    beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0){
@@ -375,8 +375,8 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInverseOperator(VecField* Ainv
     ierr=Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr=Assert(Ainvx != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegularizationWeight();
-    beta[1] = this->m_Opt->GetRegularizationWeight();
+    beta[0] = this->m_Opt->GetRegNorm().beta[0];
+    beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
     if ( beta[0] == 0.0 && beta[1] == 0 ){

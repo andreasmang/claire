@@ -233,7 +233,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL()
     ierr=this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
 
     // compute trajectory
-    ierr=this->m_SL->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
 
     // copy initial condition \lambda = (m_R - m) at t=1
     ierr=VecGetArray(this->m_WorkScaField1,&p_lj); CHKERRQ(ierr);
@@ -248,7 +248,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL()
     for (IntType j = 0; j < nt; ++j){
 
         // compute lambda(t^j,X)
-        ierr=this->m_SL->Interpolate(p_ljX,p_lj,"adjoint"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_ljX,p_lj,"adjoint"); CHKERRQ(ierr);
 
         // store \lambda(X,t^{j+1})
         try{ std::copy(p_ljX,p_ljX+nl,p_lj); }
@@ -316,7 +316,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void)
 
     for (IntType j = 0; j < nt; ++j){
 
-        ierr=this->m_SL->Interpolate(p_ltildejX,p_ltildej,"adjoint"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_ltildejX,p_ltildej,"adjoint"); CHKERRQ(ierr);
 
         // store time history (necessary for optimization)
         try{ std::copy(p_ltildejX,p_ltildejX+nl,p_ltildej); }

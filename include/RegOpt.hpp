@@ -45,7 +45,7 @@ enum PDESolver
 
 
 // flags for regularization norms
-enum RegNorm
+enum RegNormType
 {
     L2,   ///< flag for L2-norm
     H1,   ///< flag for H1-norm
@@ -92,13 +92,13 @@ enum FSeqType
 
 
 // flags for preconditioners
-enum PCSolverType
+enum KrylovSolverType
 {
-    PCPCG,    ///< pcg as preconditioner
-    PCFCG,    ///< flexible cg as preconditioner
-    PCCHEB,   ///< chebyshev method as preconditioner
-    PCGMRES,  ///< gmres solver as preconditioner
-    PCFGMRES, ///< flexible gmres as preconditioner
+    PCG,    ///< pcg
+    FCG,    ///< flexible cg
+    CHEB,   ///< chebyshev method
+    GMRES,  ///< gmres
+    FGMRES, ///< flexible gmres
 };
 
 
@@ -173,11 +173,15 @@ struct Optimization{
 };
 
 
-/* parameters for KKT solver */
-struct KKTSolver{
+/* parameters for krylov solver */
+struct KrylovSolver{
     int maxit;
     ScalarType tol[3];
     FSeqType fseqtype; ///<forcing sequence type
+    PrecondMeth pctype;
+    KrylovSolverType solver;
+    KrylovSolverType pcsolver;
+    ScalarType reltol;
 };
 
 
@@ -229,9 +233,9 @@ struct RegMonitor{
 };
 
 
-struct Regularization{
+struct RegNorm{
     ScalarType beta[3]; ///< regularization parameter
-    RegNorm norm; ///< flag for regularization norm
+    RegNormType type; ///< flag for regularization norm
 };
 
 
@@ -284,7 +288,8 @@ public:
     inline Domain GetDomainPara(){return this->m_Domain;};
     inline GridCont GetGridContPara(){return this->m_GridCont;};
     inline ScaleCont GetScaleContPara(){return this->m_ScaleCont;};
-    inline ParCont GetParaContPara(){return this->m_ParaCont;};
+    inline ParCont GetParaCont(){return this->m_ParaCont;};
+    ScalarType GetBetaMinParaCont();
     inline FourierTransform GetFFT(){return this->m_FFT;};
     inline RegFlags GetRegFlags(){return this->m_RegFlags;};
     inline RegMonitor GetRegMonitor(){return this->m_RegMonitor;};
@@ -316,15 +321,12 @@ public:
     /* do setup for grid continuation */
     PetscErrorCode SetupGridCont();
 
-
     // regularization
-    inline RegNorm GetRegNorm(void){return this->m_Regularization.norm;};
+    inline RegNorm GetRegNorm(){return this->m_RegNorm; };
     inline void SetRegularizationWeight(ScalarType beta){
-        this->m_Regularization.beta[0]=beta;
-        this->m_Regularization.beta[1]=beta;
+        this->m_RegNorm.beta[0]=beta;
+        this->m_RegNorm.beta[1]=beta;
     };
-    inline ScalarType GetRegularizationWeight(void){return this->m_Regularization.beta[0];};
-    inline ScalarType GetRegularizationWeight(int i){return this->m_Regularization.beta[i];};
 
     // smoothing
     inline ScalarType GetSigma(int i){return this->m_Sigma[i];};
@@ -332,9 +334,9 @@ public:
 
     // solver flags
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
-    inline PrecondMeth GetPrecondMeth(void){return this->m_PrecondMeth;};
-    inline PCSolverType GetPCSolverType(){return this->m_PCSolverType;};
-    inline FSeqType GetFSeqType(void){return this->m_KKTSolverPara.fseqtype;};
+
+    inline KrylovSolver GetKrylovSolverPara(){ return this->m_KrylovSolverPara;};
+    inline void SetRelTolKrylovMethod(ScalarType tol){this->m_KrylovSolverPara.reltol=tol;};
 
     // jacobians
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};
@@ -343,13 +345,6 @@ public:
 
     // flag for setup
     inline bool SetupDone(){return this->m_SetupDone;};
-
-    // parameter continuation
-    inline ParaContType GetRegParaContStrategy(){return this->m_ParaCont.strategy;};
-    inline int GetMaxStepsParaCont(){return this->m_ParaCont.maxsteps;};
-    inline ScalarType GetBetaScaleParaCont(){return this->m_ParaCont.betascale;};
-    inline ScalarType GetDeltaBetaScaleParaCont(){return this->m_ParaCont.dbetascale;};
-    ScalarType GetBetaMinParaCont();
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id){return this->m_Counter[id];};
@@ -374,9 +369,6 @@ public:
     inline ScalarType GetOptTol(int i){return this->m_OptPara.tol[i];};
     inline int GetOptMaxit(){return this->m_OptPara.maxit;};
     inline OptMeth GetOptMeth(void){return this->m_OptPara.method;};
-
-    inline ScalarType GetKKTSolverTol(int i){return this->m_KKTSolverPara.tol[i];};
-    inline int GetKKTMaxit(){return this->m_KKTSolverPara.maxit;};
 
     inline int GetVerbosity(){return this->m_Verbosity;};
 
@@ -413,11 +405,9 @@ private:
 
     Optimization m_OptPara; ///< optimization parameters
     PDESolver m_PDESolver; ///< flag for PDE solver
-    KKTSolver m_KKTSolverPara; ///< parameters for KKT solver
+    KrylovSolver m_KrylovSolverPara; ///< parameters for krylov solver
     RegMonitor m_RegMonitor;  ///< monitor for registration
-    PrecondMeth m_PrecondMeth; ///< flag for preconditioner
-    PCSolverType m_PCSolverType; ///< flag for KSP solver for precond
-    Regularization m_Regularization; ///< parameters for regularization model
+    RegNorm m_RegNorm; ///< parameters for regularization model
     ParCont m_ParaCont; ///< flags for parameter continuation
     GridCont m_GridCont; ///< flags for grid continuation
     ScaleCont m_ScaleCont; ///< flags for scale continuation

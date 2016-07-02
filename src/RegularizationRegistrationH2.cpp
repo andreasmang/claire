@@ -75,8 +75,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
     hd = this->m_Opt->GetLebesqueMeasure();
 
     // get regularization weight
-    sqrtbeta[0] = sqrt(this->m_Opt->GetRegularizationWeight(0));
-    sqrtbeta[1] = sqrt(this->m_Opt->GetRegularizationWeight(1));
+    sqrtbeta[0] = sqrt(this->m_Opt->GetRegNorm().beta[0]);
+    sqrtbeta[1] = sqrt(this->m_Opt->GetRegNorm().beta[1]);
 
     *R = 0.0;
 
@@ -119,9 +119,6 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         ierr=VecRestoreArray(v->m_X1,&p_v1); CHKERRQ(ierr);
         ierr=VecRestoreArray(v->m_X2,&p_v2); CHKERRQ(ierr);
         ierr=VecRestoreArray(v->m_X3,&p_v3); CHKERRQ(ierr);
-
-        sqrtbeta[0] = sqrt(this->m_Opt->GetRegularizationWeight());
-        sqrtbeta[1] = sqrt(this->m_Opt->GetRegularizationWeight());
 
 #pragma omp parallel
 {
@@ -221,8 +218,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
     hd = this->m_Opt->GetLebesqueMeasure();
 
     // get regularization weight
-    beta[0] = this->m_Opt->GetRegularizationWeight(0);
-    beta[1] = this->m_Opt->GetRegularizationWeight(1);
+    beta[0] = this->m_Opt->GetRegNorm().beta[0];
+    beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
     if ( beta[0] == 0.0 && beta[1] == 0.0 ){
@@ -345,7 +342,7 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
     ierr=Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvvR != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegularizationWeight();
+    beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0){
@@ -383,8 +380,8 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
     ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(Ainvx != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegularizationWeight(0);
-    beta[1] = this->m_Opt->GetRegularizationWeight(1);
+    beta[0] = this->m_Opt->GetRegNorm().beta[0];
+    beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
     if ( beta[0] == 0.0 && beta[1] == 0.0 ){

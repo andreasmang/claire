@@ -116,9 +116,6 @@ public:
     /*! function that checks bounds in parameter continuation */
     virtual PetscErrorCode CheckBounds(Vec,bool&);
 
-    /* ! apply 2 level preconditioner */
-    virtual PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec) = 0;
-
 
 protected:
 
@@ -157,7 +154,7 @@ protected:
 
     bool m_VelocityIsZero;
 
-    SemiLagrangianType* m_SL;
+    SemiLagrangianType* m_SemiLagrangianMethod;
 
 private:
 

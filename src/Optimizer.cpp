@@ -274,7 +274,7 @@ PetscErrorCode Optimizer::SetupTao()
         // set the preconditioner
         ierr=KSPGetPC(taoksp,&taokktpc); CHKERRQ(ierr);
 
-        if(this->m_Opt->GetPrecondMeth() == NOPC){
+        if(this->m_Opt->GetKrylovSolverPara().pctype == NOPC){
             if (strcmp(method.c_str(),"nls") == 0){
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","none"); CHKERRQ(ierr);
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
@@ -287,8 +287,8 @@ PetscErrorCode Optimizer::SetupTao()
             }
             ierr=PCSetType(taokktpc,PCNONE); CHKERRQ(ierr);
         }
-        else if (  (this->m_Opt->GetPrecondMeth() == INVREG)
-                || (this->m_Opt->GetPrecondMeth() == TWOLEVEL) ) {
+        else if (  (this->m_Opt->GetKrylovSolverPara().pctype == INVREG)
+                || (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) ) {
 
             if (strcmp(method.c_str(),"nls") == 0){
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
@@ -311,10 +311,10 @@ PetscErrorCode Optimizer::SetupTao()
         else{ ierr=reg::ThrowError("preconditioner not defined"); CHKERRQ(ierr); }
 
         // set tolerances for krylov subspace method
-        reltol = this->m_Opt->GetKKTSolverTol(0); // 1E-12;
-        abstol = this->m_Opt->GetKKTSolverTol(1); // 1E-12;
-        divtol = this->m_Opt->GetKKTSolverTol(2); // 1E+06;
-        maxit  = this->m_Opt->GetKKTMaxit(); // 1000;
+        reltol = this->m_Opt->GetKrylovSolverPara().tol[0]; // 1E-12;
+        abstol = this->m_Opt->GetKrylovSolverPara().tol[1]; // 1E-12;
+        divtol = this->m_Opt->GetKrylovSolverPara().tol[2]; // 1E+06;
+        maxit  = this->m_Opt->GetKrylovSolverPara().maxit;  // 1000;
         ierr=KSPSetTolerances(taoksp,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
         ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_FALSE); CHKERRQ(ierr);
         //ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_TRUE); CHKERRQ(ierr);

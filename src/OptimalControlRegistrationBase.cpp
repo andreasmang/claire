@@ -70,8 +70,8 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_SL=NULL; ///< semi lagranigan
     this->m_ReadWrite=NULL; ///< read / write object
+    this->m_SemiLagrangianMethod=NULL; ///< semi lagranigan
 
     this->m_WorkScaField1 = NULL;
     this->m_WorkScaField2 = NULL;
@@ -939,8 +939,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     double timings[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -980,7 +980,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 
     // compute trajectory
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr=this->m_SL->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
 
     // store time series
     if (this->m_Opt->GetRegFlags().storetimeseries ){
@@ -1014,7 +1014,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     for( IntType j = 0; j < nt; ++j ){ // for all time points
 
         // compute J(X,t^j)
-        ierr=this->m_SL->Interpolate(p_jacX,p_jac,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_jacX,p_jac,"state"); CHKERRQ(ierr);
 
         // compute grad(jac) for convective derivative
         accfft_grad(p_gjx1,p_gjx2,p_gjx3,p_jac,this->m_Opt->GetFFT().plan,&XYZ,timings);
@@ -1043,10 +1043,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
         accfft_divergence(p_divjacv,p_jvx1,p_jvx2,p_jvx3,this->m_Opt->GetFFT().plan,timings);
 
         // compute J(X,t^j)
-        ierr=this->m_SL->Interpolate(p_cgradvjX,p_cgradvj,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_cgradvjX,p_cgradvj,"state"); CHKERRQ(ierr);
 
         // compute J(X,t^j)
-        ierr=this->m_SL->Interpolate(p_divjacvX,p_divjacv,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_divjacvX,p_divjacv,"state"); CHKERRQ(ierr);
 
 
 #pragma omp parallel
@@ -1218,17 +1218,17 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
     }
 
     // allocate semi-lagrangian solver
-    if(this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if(this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    ierr=this->m_SL->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
     // compute deformation map y using an SL time integrator
     ierr=this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);
-    ierr=this->m_SL->ComputeDeformationMap(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->ComputeDeformationMap(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

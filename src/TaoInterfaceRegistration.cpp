@@ -172,7 +172,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
 
     // user forcing sequence to estimate adequate tolerance
     // for solution of KKT system (Eisenstat-Walker)
-    if(optprob->GetOptions()->GetFSeqType() != NOFS){
+    if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype != NOFS){
 
         // get initial value for gradient
         gnorm0 = optprob->GetInitialGradNorm();
@@ -184,7 +184,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
 
         gnorm /= gnorm0;
 
-        if(optprob->GetOptions()->GetFSeqType() == QDFS){
+        if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype == QDFS){
             // assuming quadratic convergence (we do not solver more
             // accurately than 12 digits)
             reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,gnorm));
@@ -200,7 +200,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
     }
 
     // pass tolerance to optimization problem (for preconditioner)
-    optprob->SetKSPTolerance(reltol);
+    optprob->SetRelTolKrylovMethod(reltol);
 
     if(optprob->GetOptions()->GetVerbosity() >= 2){
         std::stringstream ss;

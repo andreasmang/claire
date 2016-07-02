@@ -1,16 +1,8 @@
 #ifndef _OPTIMALCONTROLREGISTRATION_CPP_
 #define _OPTIMALCONTROLREGISTRATION_CPP_
 
-#include <fstream>
-
 // local includes
 #include "OptimalControlRegistration.hpp"
-#include "RegularizationRegistrationH1.hpp"
-#include "RegularizationRegistrationH2.hpp"
-#include "RegularizationRegistrationH1SN.hpp"
-#include "RegularizationRegistrationH2SN.hpp"
-
-
 
 
 namespace reg
@@ -88,10 +80,8 @@ PetscErrorCode OptimalControlRegistration::Initialize(void)
     this->m_WorkVecField3 = NULL;
     this->m_WorkVecField4 = NULL;
 
-    this->m_SL = NULL;
-    this->m_PCKSP = NULL;
+    this->m_SemiLagrangianMethod = NULL;
 
-    this->m_PCMatVec = NULL;
     this->m_Regularization = NULL;
 
     PetscFunctionReturn(0);
@@ -170,8 +160,8 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
         this->m_WorkVecField4 = NULL;
     }
 
-    if (this->m_SL != NULL){
-        delete this->m_SL; this->m_SL = NULL;
+    if (this->m_SemiLagrangianMethod != NULL){
+        delete this->m_SemiLagrangianMethod; this->m_SemiLagrangianMethod = NULL;
     }
 
     // delete class for regularization model
@@ -205,7 +195,7 @@ PetscErrorCode OptimalControlRegistration::AllocateRegularization()
     }
 
     // switch between regularization norms
-    switch(this->m_Opt->GetRegNorm()){
+    switch(this->m_Opt->GetRegNorm().type){
         case H1:
         {
             try{ this->m_Regularization = new RegularizationRegistrationH1(this->m_Opt); }
@@ -959,7 +949,7 @@ PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
     ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
     // switch case for choice of preconditioner
-    switch(this->m_Opt->GetPrecondMeth()){
+    switch(this->m_Opt->GetKrylovSolverPara().pctype){
         case NOPC:
         {
             ierr=WrngMsg("no preconditioner used"); CHKERRQ(ierr);
@@ -990,7 +980,7 @@ PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
         }
         case TWOLEVEL:
         {
-            ierr=this->Apply2LevelPrecond(Px,x); CHKERRQ(ierr);
+            //ierr=this->Apply2LevelPrecond(Px,x); CHKERRQ(ierr);
             break;
         }
         default:
@@ -1006,179 +996,6 @@ PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
     // increment counter
     this->m_Opt->IncrementCounter(PCMATVEC);
 
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief applies the preconditioner for the hessian to a vector
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Apply2LevelPrecond"
-PetscErrorCode OptimalControlRegistration::Apply2LevelPrecond(Vec Px, Vec x)
-{
-    PetscErrorCode ierr;
-
-    PetscFunctionBegin;
-
-    ierr=this->Setup2LevelPrecond(); CHKERRQ(ierr);
-
-    ierr=KSPSolve(this->m_PCKSP,x,Px); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-
-}
-
-
-
-
-/********************************************************************
- * @brief estimate hessian eigenvalues
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EstimateHessianEigVals"
-PetscErrorCode OptimalControlRegistration::EstimateHessianEigVals()
-{
-    PetscErrorCode ierr;
-    ScalarType emax,emin;
-    PetscFunctionBegin;
-
-    emax = 1.0;
-    emin = 0.1;
-
-    ierr=KSPChebyshevSetEigenvalues(this->m_PCKSP,emax,emin); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief applies the preconditioner for the hessian to a vector
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Setup2LevelPrecond"
-PetscErrorCode OptimalControlRegistration::Setup2LevelPrecond()
-{
-    PetscErrorCode ierr;
-    PC pc=NULL;
-    ScalarType reltol,abstol,divtol;
-    IntType maxit;
-    IntType nl,ng;
-
-    PetscFunctionBegin;
-
-    divtol = 1E+06;
-    abstol = 1E-16;
-    reltol = 1E-16;
-    maxit  = 1000;
-
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
-
-    if (this->m_PCKSP == NULL){
-        ierr=KSPCreate(PETSC_COMM_WORLD,&this->m_PCKSP); CHKERRQ(ierr);
-    }
-
-
-    switch (this->m_Opt->GetPCSolverType()){
-        case PCCHEB:
-        {
-            // chebyshev iteration
-            ierr=KSPSetType(this->m_PCKSP,KSPCHEBYSHEV); CHKERRQ(ierr);
-            maxit  = 10;
-            break;
-        }
-        case PCPCG:
-        {
-            // preconditioned conjugate gradient
-            ierr=KSPSetType(this->m_PCKSP,KSPCG); CHKERRQ(ierr);
-            reltol = this->GetKSPTolerance();
-            reltol *= 1E-1;
-            break;
-        }
-        case PCFCG:
-        {
-            // flexible conjugate gradient
-            ierr=KSPSetType(this->m_PCKSP,KSPFCG); CHKERRQ(ierr);
-            maxit  = 10;
-            break;
-        }
-        case PCGMRES:
-        {
-            // GMRES
-            ierr=KSPSetType(this->m_PCKSP,KSPGMRES); CHKERRQ(ierr);
-            reltol = this->GetKSPTolerance();
-            reltol *= 1E-1;
-            break;
-        }
-        case PCFGMRES:
-        {
-            // flexible GMRES
-            ierr=KSPSetType(this->m_PCKSP,KSPFGMRES); CHKERRQ(ierr);
-            maxit  = 10;
-            break;
-        }
-        default:
-        {
-            ierr=ThrowError("preconditioner solver not defined"); CHKERRQ(ierr);
-            break;
-        }
-    }
-    reltol = std::max(reltol,1E-16); // make sure tolerance is non-zero
-    reltol = std::min(reltol,0.25); // make sure tolerance smaller than 0.25
-
-
-    ierr=KSPSetTolerances(this->m_PCKSP,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
-
-    //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
-    //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
-    //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
-    ierr=KSPSetNormType(this->m_PCKSP,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
-    ierr=KSPSetInitialGuessNonzero(this->m_PCKSP,PETSC_TRUE); CHKERRQ(ierr);
-
-    // set up matvec for preconditioner
-    if (this->m_PCMatVec != NULL){
-        ierr=MatDestroy(&this->m_PCMatVec); CHKERRQ(ierr);
-        this->m_PCMatVec = NULL;
-     }
-
-    ierr=MatCreateShell(PETSC_COMM_WORLD,3*nl,3*nl,3*ng,3*ng,this,&this->m_PCMatVec); CHKERRQ(ierr);
-    ierr=MatShellSetOperation(this->m_PCMatVec,MATOP_MULT,(void(*)(void))TwoLevelPCMatVec); CHKERRQ(ierr);
-
-    // set operator
-    ierr=KSPSetOperators(this->m_PCKSP,this->m_PCMatVec,this->m_PCMatVec);CHKERRQ(ierr);
-    ierr=KSPMonitorSet(this->m_PCKSP,PrecondMonitor,this,PETSC_NULL); CHKERRQ(ierr);
-    // remove preconditioner
-    ierr=KSPGetPC(this->m_PCKSP,&pc); CHKERRQ(ierr);
-    ierr=PCSetType(pc,PCNONE); CHKERRQ(ierr); ///< set no preconditioner
-
-    // finish
-    ierr=KSPSetUp(this->m_PCKSP); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-
-}
-
-
-
-
-/********************************************************************
- * @brief applies the preconditioner for the hessian to a vector
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TwoLevelPrecondMatVec"
-PetscErrorCode OptimalControlRegistration::TwoLevelPrecondMatVec(Vec Px, Vec x)
-{
-    PetscErrorCode ierr;
-
-    PetscFunctionBegin;
-
-    ierr=VecCopy(x,Px); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -1705,8 +1522,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
         }
     }
 
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1717,7 +1534,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
 
     // compute trajectory
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr=this->m_SL->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
 
     // copy memory (m_0 to m_j)
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
@@ -1732,7 +1549,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
     for( IntType j = 0; j < nt; ++j ){ // for all time points
 
         // compute m(X,t^{j+1}) (interpolate state variable)
-        ierr=this->m_SL->Interpolate(p_mjX,p_mj,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_mjX,p_mj,"state"); CHKERRQ(ierr);
 
         // store m(X,t^{j+1})
         try{ std::copy(p_mjX,p_mjX+nl,p_mj); }
@@ -2058,8 +1875,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -2084,11 +1901,11 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_vx3); CHKERRQ(ierr);
 
     // compute trajectory
-    ierr=this->m_SL->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
 
     // evaluate div(v) at X
     ierr=VecGetArray(this->m_WorkScaField4,&p_divvX); CHKERRQ(ierr);
-    ierr=this->m_SL->Interpolate(p_divvX,p_divv,"adjoint"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->Interpolate(p_divvX,p_divv,"adjoint"); CHKERRQ(ierr);
 
     // copy final condition
     ierr=VecGetArray(this->m_WorkScaField1,&p_lj); CHKERRQ(ierr);
@@ -2103,7 +1920,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
     for (IntType j = 0; j < nt; ++j){
 
         // compute lambda(t^j,X)
-        ierr=this->m_SL->Interpolate(p_ljX,p_lj,"adjoint"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_ljX,p_lj,"adjoint"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -2518,19 +2335,19 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
 
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_IncStateVariable,&p_mtilde); CHKERRQ(ierr);
 
     // compute \tilde{\vect{v}}(X)
-    ierr=this->m_SL->Interpolate(this->m_WorkVecField2,this->m_IncVelocityField,"state"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2,this->m_IncVelocityField,"state"); CHKERRQ(ierr);
 
     // get \tilde{\vect{v}}(X)
     ierr=VecGetArrayRead(this->m_WorkVecField2->m_X1,&p_vtildeXx1); CHKERRQ(ierr);
@@ -2583,10 +2400,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
         this->m_Opt->IncrementCounter(FFT,4);
 
         // interpolate gradient
-        ierr=this->m_SL->Interpolate(p_gmjXx1,p_gmjXx2,p_gmjXx3,p_gmjx1,p_gmjx2,p_gmjx3,"state");
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_gmjXx1,p_gmjXx2,p_gmjXx3,p_gmjx1,p_gmjx2,p_gmjx3,"state");
 
         // interpolate gradient
-        ierr=this->m_SL->Interpolate(p_mtjX,p_mtj,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_mtjX,p_mtj,"state"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -3159,12 +2976,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     if (this->m_WorkScaField4 == NULL){
         ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
     }
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"adjoint"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField,"adjoint"); CHKERRQ(ierr);
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
@@ -3202,13 +3019,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     // evaluate div(v) on characteristic
     ierr=VecGetArray(this->m_WorkScaField4,&p_divvX); CHKERRQ(ierr);
 
-    ierr=this->m_SL->Interpolate(p_divvX,p_divv,"adjoint"); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->Interpolate(p_divvX,p_divv,"adjoint"); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_WorkScaField2,&p_ltildejX); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j){
 
-        ierr=this->m_SL->Interpolate(p_ltildejX,p_ltildej,"adjoint"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_ltildejX,p_ltildej,"adjoint"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -3273,12 +3090,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void)
     PetscFunctionBegin;
 
 /*
-    if (this->m_SL == NULL){
-        try{this->m_SL = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        ierr=this->m_SL->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
 */
     ierr=ThrowError("not implemented"); CHKERRQ(ierr);

@@ -52,7 +52,7 @@ public:
     inline ScalarType GetInitialDistanceVal(){return this->m_InitDistanceVal;};
     inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
 
-    inline void SetKSPTolerance(ScalarType value){this->m_KSPTol = value;};
+    inline void SetRelTolKrylovMethod(ScalarType tol){this->m_Opt->SetRelTolKrylovMethod(tol);};
     inline void IncrementIterations(){this->m_Opt->IncrementCounter(ITERATIONS);};
 
     /*! evaluate objective, gradient and distance measure for initial guess */
@@ -83,9 +83,6 @@ public:
     virtual PetscErrorCode Finalize(VecField*) = 0;
 
     /*! apply two level preconditioner */
-    virtual PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec) = 0;
-
-    /*! apply two level preconditioner */
     virtual PetscErrorCode CheckBounds(Vec,bool&) = 0;
 
     /*! set registration options */
@@ -102,15 +99,11 @@ protected:
     PetscErrorCode Initialize(void);
     virtual PetscErrorCode ClearMemory(void) = 0;
 
-    inline ScalarType GetKSPTolerance(){return this->m_KSPTol;};
-
     RegOpt* m_Opt;
 
-    ScalarType m_KSPTol;
     ScalarType m_InitGradNorm;
     ScalarType m_InitObjectiveVal;
     ScalarType m_InitDistanceVal;
-    Mat m_PCMatVec;
 
     IntType m_NumOuterIter;
 

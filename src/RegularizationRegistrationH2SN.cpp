@@ -77,7 +77,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     hd = this->m_Opt->GetLebesqueMeasure();
 
     // get regularization weight
-    sqrtbeta = sqrt(this->m_Opt->GetRegularizationWeight());
+    sqrtbeta = sqrt(this->m_Opt->GetRegNorm().beta[0]);
 
     *R = 0.0;
 
@@ -118,8 +118,6 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         ierr=VecRestoreArray(v->m_X1,&p_v1); CHKERRQ(ierr);
         ierr=VecRestoreArray(v->m_X2,&p_v2); CHKERRQ(ierr);
         ierr=VecRestoreArray(v->m_X3,&p_v3); CHKERRQ(ierr);
-
-        sqrtbeta = sqrt(this->m_Opt->GetRegularizationWeight());
 
 #pragma omp parallel
 {
@@ -216,7 +214,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
     ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvR != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegularizationWeight();
+    beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0){
@@ -253,8 +251,6 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
         ierr=VecRestoreArray(v->m_X1,&p_v1); CHKERRQ(ierr);
         ierr=VecRestoreArray(v->m_X2,&p_v2); CHKERRQ(ierr);
         ierr=VecRestoreArray(v->m_X3,&p_v3); CHKERRQ(ierr);
-
-        beta = this->m_Opt->GetRegularizationWeight();
 
 #pragma omp parallel
 {
@@ -344,7 +340,7 @@ PetscErrorCode RegularizationRegistrationH2SN::HessianMatVec(VecField* dvvR, Vec
     ierr=Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvvR != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegularizationWeight();
+    beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0){
@@ -384,7 +380,7 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInverseOperator(VecField* Ai
     ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(Ainvx != NULL,"null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegularizationWeight();
+    beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0){
@@ -421,7 +417,6 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInverseOperator(VecField* Ai
         ierr=VecRestoreArray(x->m_X1,&p_x1); CHKERRQ(ierr);
         ierr=VecRestoreArray(x->m_X2,&p_x2); CHKERRQ(ierr);
         ierr=VecRestoreArray(x->m_X3,&p_x3); CHKERRQ(ierr);
-
 
 #pragma omp parallel
 {

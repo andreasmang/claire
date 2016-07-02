@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright (c) 2015-2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
@@ -16,17 +16,23 @@
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 
 
 #ifndef _OPTIMALCONTROLREGISTRATION_H_
 #define _OPTIMALCONTROLREGISTRATION_H_
 
-#include "RegOpt.hpp"
-#include "RegularizationRegistration.hpp"
-#include "OptimalControlRegistrationBase.hpp"
+#include <fstream>
 
+#include "RegOpt.hpp"
+#include "RegUtils.hpp"
+#include "RegularizationRegistration.hpp"
+#include "RegularizationRegistrationH1.hpp"
+#include "RegularizationRegistrationH2.hpp"
+#include "RegularizationRegistrationH1SN.hpp"
+#include "RegularizationRegistrationH2SN.hpp"
+#include "OptimalControlRegistrationBase.hpp"
 
 namespace reg
 {
@@ -134,12 +140,6 @@ protected:
     /*! sl solver for inc adjoint equation */
     PetscErrorCode SolveIncAdjointEquationFNSL();
 
-    /*! apply two level preconditioner */
-    PetscErrorCode Apply2LevelPrecond(Vec,Vec);
-
-    /*! apply two level preconditioner */
-    PetscErrorCode TwoLevelPrecondMatVec(Vec,Vec);
-
     /*! setup two level preconditioner */
     PetscErrorCode AllocateRegularization();
 
@@ -150,16 +150,6 @@ protected:
 
 private:
 
-    /*! setup two level preconditioner */
-    PetscErrorCode Setup2LevelPrecond();
-
-    /*! estimate eigenvalues for hessian */
-    PetscErrorCode EstimateHessianEigVals();
-
-    /*! mat vec for preconditioner */
-    PetscErrorCode PCMatVec(Vec,Vec);
-
-    KSP m_PCKSP; ///< pointer for KSP method (PETSc)
 
 };
 

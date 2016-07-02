@@ -260,18 +260,18 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-krylovmaxit") == 0){
             argc--; argv++;
-            this->m_KKTSolverPara.maxit = atoi(argv[1]);
+            this->m_KrylovSolverPara.maxit = atoi(argv[1]);
         }
         else if(strcmp(argv[1],"-krylovfseq") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"none") == 0){
-                this->m_KKTSolverPara.fseqtype = NOFS;
+                this->m_KrylovSolverPara.fseqtype = NOFS;
             }
             else if (strcmp(argv[1],"quadratic") == 0){
-                this->m_KKTSolverPara.fseqtype = QDFS;
+                this->m_KrylovSolverPara.fseqtype = QDFS;
             }
             else if (strcmp(argv[1],"suplinear") == 0){
-                this->m_KKTSolverPara.fseqtype = SLFS;
+                this->m_KrylovSolverPara.fseqtype = SLFS;
             }
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
@@ -296,19 +296,19 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         else if (strcmp(argv[1],"-regnorm") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"h1s") == 0){
-                this->m_Regularization.norm = H1SN;
+                this->m_RegNorm.type = H1SN;
             }
             else if (strcmp(argv[1],"h2s") == 0){
-                this->m_Regularization.norm = H2SN;
+                this->m_RegNorm.type = H2SN;
             }
             else if (strcmp(argv[1],"h1") == 0){
-                this->m_Regularization.norm = H1;
+                this->m_RegNorm.type = H1;
             }
             else if (strcmp(argv[1],"h2") == 0){
-                this->m_Regularization.norm = H2;
+                this->m_RegNorm.type = H2;
             }
             else if (strcmp(argv[1],"l2") == 0){
-                this->m_Regularization.norm = L2;
+                this->m_RegNorm.type = L2;
             }
             else {
                 msg="\n\x1b[31m regularization norm not available: %s\x1b[0m\n";
@@ -318,12 +318,12 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-betav") == 0){
             argc--; argv++;
-            this->m_Regularization.beta[0] = atof(argv[1]);
-            this->m_Regularization.beta[1] = atof(argv[1]);
+            this->m_RegNorm.beta[0] = atof(argv[1]);
+            this->m_RegNorm.beta[1] = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-betaw") == 0){
             argc--; argv++;
-            this->m_Regularization.beta[2] = atof(argv[1]);
+            this->m_RegNorm.beta[2] = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-train") == 0){
 
@@ -588,14 +588,13 @@ PetscErrorCode RegOpt::Initialize()
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
-    this->m_Regularization.norm = H2SN;
-    this->m_Regularization.beta[0] = 1E-2;
-    this->m_Regularization.beta[1] = 1E-2;
-    this->m_Regularization.beta[2] = 1E-4;
+    this->m_RegNorm.type = H2SN;
+    this->m_RegNorm.beta[0] = 1E-2;
+    this->m_RegNorm.beta[1] = 1E-2;
+    this->m_RegNorm.beta[2] = 1E-4;
 
     this->m_Verbosity = 1;
     this->m_PDESolver = SL;
-    this->m_PrecondMeth = INVREG;
     this->m_RegModel = COMPRESSIBLE;
 
     // smoothing
@@ -603,11 +602,15 @@ PetscErrorCode RegOpt::Initialize()
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
-    this->m_KKTSolverPara.tol[0] = 1E-12; // relative tolerance
-    this->m_KKTSolverPara.tol[1] = 1E-12; // absolute tolerance
-    this->m_KKTSolverPara.tol[2] = 1E+06; // divergence tolerance
-    this->m_KKTSolverPara.maxit  = 1000; // maximal iterations
-    this->m_KKTSolverPara.fseqtype = QDFS;
+    this->m_KrylovSolverPara.tol[0] = 1E-12; // relative tolerance
+    this->m_KrylovSolverPara.tol[1] = 1E-12; // absolute tolerance
+    this->m_KrylovSolverPara.tol[2] = 1E+06; // divergence tolerance
+    this->m_KrylovSolverPara.maxit  = 1000; // maximal iterations
+    this->m_KrylovSolverPara.reltol = 1E-12; // relative tolerance (actually computed in solver)
+    this->m_KrylovSolverPara.fseqtype = QDFS;
+    this->m_KrylovSolverPara.pctype = INVREG;
+    this->m_KrylovSolverPara.solver = PCG;
+    this->m_KrylovSolverPara.pcsolver = CHEB;
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
@@ -973,8 +976,8 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->UsageRegistration(); CHKERRQ(ierr);
         }
-        this->m_Regularization.beta[0] = betav;
-        this->m_Regularization.beta[1] = betav;
+        this->m_RegNorm.beta[0] = betav;
+        this->m_RegNorm.beta[1] = betav;
     }
 
     if (this->m_ScaleCont.enabled && this->m_ParaCont.enabled){
@@ -1193,9 +1196,9 @@ PetscErrorCode RegOpt::SetPresetParameters()
     if (this->m_SolveType == FAST_AGG){
 
         // use fast and aggressive method
-        this->m_KKTSolverPara.fseqtype = NOFS;
-        this->m_Regularization.norm = H1SN;
-        this->m_KKTSolverPara.maxit = 5;
+        this->m_KrylovSolverPara.fseqtype = NOFS;
+        this->m_KrylovSolverPara.maxit = 5;
+        this->m_RegNorm.type = H1SN;
         this->m_OptPara.maxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
 
@@ -1203,9 +1206,9 @@ PetscErrorCode RegOpt::SetPresetParameters()
     else if (this->m_SolveType == ACC_AGG){
 
         // use slow and aggressive method
-        this->m_Regularization.norm = H1SN;
-        this->m_KKTSolverPara.fseqtype = QDFS;
-        this->m_KKTSolverPara.maxit = 50;
+        this->m_RegNorm.type = H1SN;
+        this->m_KrylovSolverPara.fseqtype = QDFS;
+        this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
         this->m_OptPara.tol[2] = 1E-2;
 
@@ -1213,9 +1216,9 @@ PetscErrorCode RegOpt::SetPresetParameters()
     else if (this->m_SolveType == FAST_SMOOTH){
 
         // use fast and smooth method
-        this->m_Regularization.norm = H2SN;
-        this->m_KKTSolverPara.fseqtype = NOFS;
-        this->m_KKTSolverPara.maxit = 10;
+        this->m_RegNorm.type = H2SN;
+        this->m_KrylovSolverPara.fseqtype = NOFS;
+        this->m_KrylovSolverPara.maxit = 10;
         this->m_OptPara.maxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
 
@@ -1223,9 +1226,9 @@ PetscErrorCode RegOpt::SetPresetParameters()
     else if (this->m_SolveType == ACC_SMOOTH){
 
         // use slow and smooth method
-        this->m_Regularization.norm = H2SN;
-        this->m_KKTSolverPara.fseqtype = QDFS;
-        this->m_KKTSolverPara.maxit = 50;
+        this->m_RegNorm.type = H2SN;
+        this->m_KrylovSolverPara.fseqtype = QDFS;
+        this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
         this->m_OptPara.tol[2] = 1E-2;
 
@@ -1245,16 +1248,16 @@ PetscErrorCode RegOpt::SetPresetParameters()
 #define __FUNCT__ "GetBetaMinParaCont"
 ScalarType RegOpt::GetBetaMinParaCont()
 {
-    if (this->m_Regularization.norm == H1){
+    if (this->m_RegNorm.type == H1){
         return this->m_ParaCont.betavminh1;
     }
-    else if (this->m_Regularization.norm == H2){
+    else if (this->m_RegNorm.type == H2){
         return this->m_ParaCont.betavminh2;
     }
-    else if (this->m_Regularization.norm == H2SN){
+    else if (this->m_RegNorm.type == H2SN){
         return this->m_ParaCont.betavminh2;
     }
-    else if (this->m_Regularization.norm == H1SN){
+    else if (this->m_RegNorm.type == H1SN){
         return this->m_ParaCont.betavminh1;
     }
     else return 1E-9;
@@ -1424,7 +1427,7 @@ PetscErrorCode RegOpt::DisplayOptions()
 
         if( this->m_ParaCont.strategy == PCONTBINSEARCH
             || this->m_ParaCont.strategy == PCONTREDUCESEARCH){
-            switch(this->m_Regularization.norm){
+            switch(this->m_RegNorm.type){
                 case L2:
                 {
                     std::cout<<"l2-norm (betav estimated)"<<std::endl;
@@ -1470,41 +1473,41 @@ PetscErrorCode RegOpt::DisplayOptions()
                       << this->m_RegMonitor.jacbound << std::endl;
         }
         else{
-            switch(this->m_Regularization.norm){
+            switch(this->m_RegNorm.type){
                 case L2:
                 {
                     std::cout   << std::scientific << "l2-norm (betav="
-                                << this->m_Regularization.beta[0]
+                                << this->m_RegNorm.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H1:
                 {
                     std::cout   << std::scientific << "h1-norm (betav="
-                                << this->m_Regularization.beta[0]
-                                << ", "<< this->m_Regularization.beta[1]
+                                << this->m_RegNorm.beta[0]
+                                << ", "<< this->m_RegNorm.beta[1]
                                 << ") "<<std::endl;
                     break;
                 }
                 case H2:
                 {
                     std::cout   << std::scientific << "h2-norm (betav="
-                                << this->m_Regularization.beta[0]
-                                << ", "<< this->m_Regularization.beta[1]
+                                << this->m_RegNorm.beta[0]
+                                << ", "<< this->m_RegNorm.beta[1]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H1SN:
                 {
                     std::cout   << std::scientific <<  "h1-seminorm (betav="
-                                <<  this->m_Regularization.beta[0]
+                                <<  this->m_RegNorm.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
                 case H2SN:
                 {
                     std::cout   << std::scientific << "h2-seminorm (betav="
-                                << this->m_Regularization.beta[0]
+                                << this->m_RegNorm.beta[0]
                                 << ")" <<std::endl;
                     break;
                 }
@@ -1525,7 +1528,7 @@ PetscErrorCode RegOpt::DisplayOptions()
             // display regularization model
             std::cout<< std::left << std::setw(indent) <<" regularization model w";
             std::cout   <<  "h1-seminorm (betaw="
-                        <<  this->m_Regularization.beta[2]<< ")" <<std::endl;
+                        <<  this->m_RegNorm.beta[2]<< ")" <<std::endl;
         }
 
         // display regularization model
@@ -1600,16 +1603,16 @@ PetscErrorCode RegOpt::DisplayOptions()
             std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) << "forcing sequence";
 
-            switch(this->m_KKTSolverPara.fseqtype){
+            switch(this->m_KrylovSolverPara.fseqtype){
                 case NOFS:
                 {
                     std::cout << std::setw(align) << "disabled" << std::endl;
                     std::cout << std::left << std::setw(indent) <<" "
                               << std::setw(align) <<"absolute"
-                              << this->m_KKTSolverPara.tol[0] << std::endl;
+                              << this->m_KrylovSolverPara.tol[0] << std::endl;
                     std::cout << std::left << std::setw(indent) <<" "
                               << std::setw(align) <<"relative"
-                              << this->m_KKTSolverPara.tol[1] << std::endl;
+                              << this->m_KrylovSolverPara.tol[1] << std::endl;
                     break;
                 }
                 case QDFS:
@@ -1630,11 +1633,11 @@ PetscErrorCode RegOpt::DisplayOptions()
             }
             std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) <<"divergence"
-                      << this->m_KKTSolverPara.tol[2] << std::endl;
+                      << this->m_KrylovSolverPara.tol[2] << std::endl;
 
             std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) <<"maxit"
-                      << this->m_KKTSolverPara.maxit << std::endl;
+                      << this->m_KrylovSolverPara.maxit << std::endl;
 
         }
 

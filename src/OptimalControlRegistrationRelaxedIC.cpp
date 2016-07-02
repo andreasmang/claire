@@ -209,7 +209,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     }
 
     // get regularization weight
-    betaw = this->m_Opt->GetRegularizationWeight(2);
+    betaw = this->m_Opt->GetRegNorm().beta[2];
 
     // compute hd
     hd = this->m_Opt->GetLebesqueMeasure();
@@ -396,8 +396,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     this->m_Opt->IncrementCounter(FFT,3);
 
 
-    beta[0] = this->m_Opt->GetRegularizationWeight(0);
-    beta[2] = this->m_Opt->GetRegularizationWeight(2);
+    beta[0] = this->m_Opt->GetRegNorm().beta[0];
+    beta[2] = this->m_Opt->GetRegNorm().beta[2];
 
 #pragma omp parallel
 {

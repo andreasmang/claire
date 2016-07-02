@@ -59,7 +59,7 @@ PetscErrorCode TwoLevelPCMatVec(Mat P, Vec x, Vec Px)
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian
-    ierr=optprob->TwoLevelPrecondMatVec(Px,x); CHKERRQ(ierr);
+    //ierr=optprob->TwoLevelPrecondMatVec(Px,x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
