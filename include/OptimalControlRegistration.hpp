@@ -27,11 +27,6 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "RegularizationRegistration.hpp"
-#include "RegularizationRegistrationH1.hpp"
-#include "RegularizationRegistrationH2.hpp"
-#include "RegularizationRegistrationH1SN.hpp"
-#include "RegularizationRegistrationH2SN.hpp"
 #include "OptimalControlRegistrationBase.hpp"
 
 namespace reg
@@ -64,9 +59,6 @@ public:
     /*! compute Hessian matvec (second variation
         of lagrangian with respect to control variable(s) */
     PetscErrorCode HessianMatVec(Vec,Vec);
-
-    /*! apply preconditioner for KKT system */
-    PetscErrorCode PrecondMatVec(Vec, Vec);
 
     /*! solve the state equation */
     PetscErrorCode SolveForwardProblem(Vec);
@@ -139,9 +131,6 @@ protected:
 
     /*! sl solver for inc adjoint equation */
     PetscErrorCode SolveIncAdjointEquationFNSL();
-
-    /*! setup two level preconditioner */
-    PetscErrorCode AllocateRegularization();
 
     Vec m_StateVariable; ///< time dependent state variable m(x,t)
     Vec m_AdjointVariable; ///< time dependent adjoint variable \lambda(x,t)

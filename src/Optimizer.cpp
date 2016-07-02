@@ -75,6 +75,7 @@ PetscErrorCode Optimizer::Initialize(void)
 
     this->m_Tao = NULL;
     this->m_Solution = NULL;
+    this->m_Precond = NULL;
     this->m_OptimizationProblem = NULL;
 
     PetscFunctionReturn(0);
@@ -102,6 +103,12 @@ PetscErrorCode Optimizer::ClearMemory(void)
     if (this->m_Solution != NULL){
         ierr=VecDestroy(&this->m_Solution); CHKERRQ(ierr);
         this->m_Solution = NULL;
+    }
+
+    // delete class for preconditioner
+    if (this->m_Precond != NULL){
+        delete this->m_Precond;
+        this->m_Precond = NULL;
     }
 
     PetscFunctionReturn(0);
@@ -290,6 +297,13 @@ PetscErrorCode Optimizer::SetupTao()
         else if (  (this->m_Opt->GetKrylovSolverPara().pctype == INVREG)
                 || (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) ) {
 
+            // allocate preconditioner
+            try{ this->m_Precond = new PrecondReg(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            ierr=this->m_Precond->SetProblem(this->m_OptimizationProblem); CHKERRQ(ierr);
+
             if (strcmp(method.c_str(),"nls") == 0){
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
                 ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
@@ -303,7 +317,7 @@ PetscErrorCode Optimizer::SetupTao()
 
             ierr=PCSetType(taokktpc,PCSHELL); CHKERRQ(ierr);
             ierr=PCShellSetApply(taokktpc,PrecondMatVec); CHKERRQ(ierr);
-            ierr=PCShellSetContext(taokktpc,this->m_OptimizationProblem); CHKERRQ(ierr);
+            ierr=PCShellSetContext(taokktpc,this->m_Precond); CHKERRQ(ierr);
             //ierr=PCShellSetName(taokktpc,"kktpc"); CHKERRQ(ierr);
             ierr=PCShellSetSetUp(taokktpc,PrecondSetup); CHKERRQ(ierr);
 

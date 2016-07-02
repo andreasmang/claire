@@ -70,8 +70,8 @@ public:
     /*! apply Hessian matvec H\tilde{\vect{v}} */
     virtual PetscErrorCode HessianMatVec(Vec,Vec) = 0;
 
-    /*! apply preconditioner for KKT system */
-    virtual PetscErrorCode PrecondMatVec(Vec, Vec) = 0;
+    /*! apply inverse regularization operator */
+    virtual PetscErrorCode ApplyInvRegOp(Vec, Vec) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec) = 0;

@@ -161,7 +161,8 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
     }
 
     if (this->m_SemiLagrangianMethod != NULL){
-        delete this->m_SemiLagrangianMethod; this->m_SemiLagrangianMethod = NULL;
+        delete this->m_SemiLagrangianMethod;
+        this->m_SemiLagrangianMethod = NULL;
     }
 
     // delete class for regularization model
@@ -173,66 +174,6 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
     PetscFunctionReturn(0);
 }
 
-
-
-
-/********************************************************************
- * @brief allocate regularization model
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "AllocateRegularization"
-PetscErrorCode OptimalControlRegistration::AllocateRegularization()
-{
-    PetscErrorCode ierr;
-    PetscFunctionBegin;
-
-
-    // delete regularization if already allocated
-    // (should never happen)
-    if (this->m_Regularization != NULL){
-        delete this->m_Regularization;
-        this->m_Regularization = NULL;
-    }
-
-    // switch between regularization norms
-    switch(this->m_Opt->GetRegNorm().type){
-        case H1:
-        {
-            try{ this->m_Regularization = new RegularizationRegistrationH1(this->m_Opt); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            break;
-        }
-        case H2:
-        {
-            try{ this->m_Regularization = new RegularizationRegistrationH2(this->m_Opt); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            break;
-        }
-        case H1SN:
-        {
-            try{ this->m_Regularization = new RegularizationRegistrationH1SN(this->m_Opt); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            break;
-        }
-        case H2SN:
-        {
-            try{ this->m_Regularization = new RegularizationRegistrationH2SN(this->m_Opt); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            break;
-        }
-        default: { ierr=reg::ThrowError("regularization model not defined"); CHKERRQ(ierr); }
-    }
-
-    PetscFunctionReturn(0);
-}
 
 
 
@@ -936,75 +877,6 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v)
 
 
 /********************************************************************
- * @brief applies the preconditioner for the hessian to a vector
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondMatVec"
-PetscErrorCode OptimalControlRegistration::PrecondMatVec(Vec Px, Vec x)
-{
-    PetscErrorCode ierr;
-    PetscFunctionBegin;
-
-    // start timer
-    ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
-
-    // switch case for choice of preconditioner
-    switch(this->m_Opt->GetKrylovSolverPara().pctype){
-        case NOPC:
-        {
-            ierr=WrngMsg("no preconditioner used"); CHKERRQ(ierr);
-            ierr=VecCopy(x,Px); CHKERRQ(ierr);
-            break;
-        }
-        case INVREG:
-        {
-            if (this->m_WorkVecField1 == NULL){
-                try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-                catch (std::bad_alloc&){
-                    ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-                }
-            }
-
-            if (this->m_WorkVecField2 == NULL){
-                try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-                catch (std::bad_alloc&){
-                    ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-                }
-            }
-
-            ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-            ierr=this->m_Regularization->ApplyInverseOperator(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
-            ierr=this->m_WorkVecField2->GetComponents(Px); CHKERRQ(ierr);
-            break;
-
-        }
-        case TWOLEVEL:
-        {
-            //ierr=this->Apply2LevelPrecond(Px,x); CHKERRQ(ierr);
-            break;
-        }
-        default:
-        {
-            ierr=ThrowError("preconditioner not defined"); CHKERRQ(ierr);
-            break;
-        }
-    }
-
-    // stop timer
-    ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
-
-    // increment counter
-    this->m_Opt->IncrementCounter(PCMATVEC);
-
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-
-/********************************************************************
  * @brief compute the incremental body force
  * \tilde{\vect{b}} = \int_0^1 \igrad\tilde{m}\lambda
  *                           + \igrad m\tilde{\lambda} dt
@@ -1131,7 +1003,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
 #pragma omp for
             // compute \vect{\tilde{b}}^k_i
             // += h_d*ht*(\tilde{\lambda}^j (\grad m^j)^k
-            //    + \lambda^j (\grad \tilde{m}^j)^k)_i
+            //  + \lambda^j (\grad \tilde{m}^j)^k)_i
             for (IntType i=0; i < nl; ++i){ // for all grid points
 
                 // get \lambda(x_i,t^j) and \tilde{\lambda}(x_i,t^j)

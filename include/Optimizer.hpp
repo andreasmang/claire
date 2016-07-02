@@ -34,6 +34,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
+#include "PrecondReg.hpp"
 #include "OptimizationProblem.hpp"
 
 namespace reg
@@ -69,9 +70,10 @@ private:
     OptProbType* m_OptimizationProblem;
 
     Tao m_Tao;
-    TaoLineSearch m_LineSearch; ///< line search type
-    KSP m_KSP; ///< KSP object
-    PC m_KKTPC; ///< KSP preconditioner object
+//    TaoLineSearch m_LineSearch; ///< line search type
+//    KSP m_KrylovMethod; ///< KSP object
+//    PC m_KrylovMethodPC; ///< KSP preconditioner object
+    PrecondReg* m_Precond;
 
     Vec m_Solution; ///< solution vector
 

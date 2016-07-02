@@ -18,27 +18,34 @@
  *
  */
 
-#ifndef _TWOLEVELPRECONDREG_H_
-#define _TWOLEVELPRECONDREG_H_
+#ifndef _PRECONDREG_H_
+#define _PRECONDREG_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "KrylovInterfaceReg.hpp"
+#include "OptimizationProblem.hpp"
 
 
 namespace reg
 {
 
 
-class TwoLevelPrecondReg
+class PrecondReg
 {
 
 public:
 
-    TwoLevelPrecondReg();
-    TwoLevelPrecondReg(RegOpt*);
-    ~TwoLevelPrecondReg();
+    typedef OptimizationProblem OptProbType;
 
+    PrecondReg();
+    PrecondReg(RegOpt*);
+    ~PrecondReg();
+
+    PetscErrorCode SetProblem(OptProbType*);
+
+    /*! apply preconditioner */
+    PetscErrorCode MatVec(Vec,Vec);
 
 protected:
 
@@ -48,31 +55,21 @@ protected:
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
 
-    /*! apply two level preconditioner */
-    PetscErrorCode Apply(Vec,Vec);
-
+    PetscErrorCode ApplyInvRegPC(Vec,Vec);
 
 private:
 
     /*! setup two level preconditioner */
     PetscErrorCode DoSetup();
 
-    /*! apply two level preconditioner */
-    PetscErrorCode MatVec(Vec,Vec);
-
-    /*! estimate eigenvalues for hessian */
-    PetscErrorCode EstimateEigenValues();
-
-    /*! mat vec for preconditioner */
-    PetscErrorCode PCMatVec(Vec,Vec);
-
-    RegOpt* m_Opt;
-    KSP m_PCKSP; ///< pointer for KSP method (PETSc)
-    Mat m_PCMatVec;
+    RegOpt* m_Opt; ///< registration options
+    KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
+    Mat m_MatVec; ///< mat vec object (PETSc)
+    OptimizationProblem* m_OptimizationProblem; ///< pointer to optimization problem
 
 };
 
 } // end of namespace
 
 
-#endif
+#endif  //_PRECONDREG_H_

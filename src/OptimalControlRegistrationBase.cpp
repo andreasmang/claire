@@ -406,6 +406,104 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
 
 
 
+/********************************************************************
+ * @brief allocate regularization model
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "AllocateRegularization"
+PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization()
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+
+    // delete regularization if already allocated
+    // (should never happen)
+    if (this->m_Regularization != NULL){
+        delete this->m_Regularization;
+        this->m_Regularization = NULL;
+    }
+
+    // switch between regularization norms
+    switch(this->m_Opt->GetRegNorm().type){
+        case H1:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH1(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        case H2:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH2(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        case H1SN:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH1SN(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        case H2SN:
+        {
+            try{ this->m_Regularization = new RegularizationRegistrationH2SN(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        default: { ierr=reg::ThrowError("regularization model not defined"); CHKERRQ(ierr); }
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * @brief applies inverse regularization operator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "PrecondMatVec"
+PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    if (this->m_WorkVecField1 == NULL){
+        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_WorkVecField2 == NULL){
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_Regularization == NULL){
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+    ierr=this->m_Regularization->ApplyInverseOperator(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->GetComponents(Ainvx); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
 
 /********************************************************************
  * @brief compute a synthetic test problem
@@ -1195,6 +1293,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2()
 
 
 
+
+
+
+    /*! apply inverse regularization operator */
+    PetscErrorCode ApplyInvRegOp(Vec, Vec);
 
 
 /********************************************************************

@@ -29,6 +29,11 @@
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
 #include "RegularizationRegistration.hpp"
+#include "RegularizationRegistration.hpp"
+#include "RegularizationRegistrationH1.hpp"
+#include "RegularizationRegistrationH2.hpp"
+#include "RegularizationRegistrationH1SN.hpp"
+#include "RegularizationRegistrationH2SN.hpp"
 #include "OptimizationProblem.hpp"
 //#include "SemiLagrangianGPU.hpp"
 
@@ -101,8 +106,8 @@ public:
     /*! apply Hessian matvec H\tilde{\vect{v}} */
     virtual PetscErrorCode HessianMatVec(Vec,Vec) = 0;
 
-    /*! apply preconditioner for KKT system */
-    virtual PetscErrorCode PrecondMatVec(Vec, Vec) = 0;
+    /*! apply inverse regularization operator */
+    PetscErrorCode ApplyInvRegOp(Vec, Vec);
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec) = 0;
@@ -123,6 +128,9 @@ protected:
     PetscErrorCode ClearMemory(void);
     PetscErrorCode CopyToAllTimePoints(Vec,Vec);
     PetscErrorCode IsVelocityZero(void);
+
+    /*! allocate regularization operator */
+    PetscErrorCode AllocateRegularization();
 
     PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
     PetscErrorCode ComputeDetDefGradSL(); ///< implemented via SL time integrator

@@ -2,8 +2,6 @@
 #define _TAOINTERFACEREGISTRATION_CPP_
 
 #include "TaoInterfaceRegistration.hpp"
-#include "KrylovInterfaceReg.hpp"
-#include "OptimizationProblem.hpp"
 
 
 
@@ -253,16 +251,16 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex)
 {
     PetscErrorCode ierr;
     void* ptr;
-    OptimizationProblem *optprob = NULL;
+    PrecondReg *preconditioner = NULL;
 
     PetscFunctionBegin;
 
     ierr=PCShellGetContext(Hpre,&ptr); CHKERRQ(ierr);
-    optprob = (OptimizationProblem*)ptr;
-    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+    preconditioner = (PrecondReg*)ptr;
+    ierr=Assert(preconditioner!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian
-    ierr=optprob->PrecondMatVec(Hprex,x); CHKERRQ(ierr);
+    ierr=preconditioner->MatVec(Hprex,x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
