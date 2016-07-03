@@ -470,7 +470,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization()
  * @brief applies inverse regularization operator
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "PrecondMatVec"
+#define __FUNCT__ "ApplyInvRegOp"
 PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
 {
     PetscErrorCode ierr;
@@ -495,7 +495,7 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
     }
 
     ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-    ierr=this->m_Regularization->ApplyInverseOperator(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
     ierr=this->m_WorkVecField2->GetComponents(Ainvx); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -1292,12 +1292,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2()
 }
 
 
-
-
-
-
-    /*! apply inverse regularization operator */
-    PetscErrorCode ApplyInvRegOp(Vec, Vec);
 
 
 /********************************************************************

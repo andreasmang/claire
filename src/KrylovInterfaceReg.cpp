@@ -11,23 +11,21 @@ namespace reg
 
 
 
-
-
 /****************************************************************************
  * @brief monitor evolution of krylov subspace method
  *****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "KrylovMonitor"
-PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
+PetscErrorCode KrylovMonitor(KSP krylovmethod,IntType it,ScalarType rnorm,void* ptr)
 {
     PetscErrorCode ierr;
-    (void)ksp;
+    (void)krylovmethod;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    kspmeth="PCG  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
+    kspmeth="PCG  "; itss << std::setw(5) << it; rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
     ierr=DbgMsg(msg); CHKERRQ(ierr);
 
@@ -43,16 +41,19 @@ PetscErrorCode KrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "InvertPrecondKrylovMonitor"
-PetscErrorCode InvertPrecondKrylovMonitor(KSP ksp,IntType it,ScalarType rnorm,void* ptr)
+PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod,IntType it,ScalarType rnorm,void* ptr)
 {
     PetscErrorCode ierr;
-    (void)ksp;
+    (void)krylovmethod;
+    //PrecondReg *preconditioner = NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    kspmeth=" >> PC  "; itss << std::setw(3) << it; rnss << std::scientific << rnorm;
+    //preconditioner = (PrecondReg*)ptr;
+
+    kspmeth=" >> PC  "; itss << std::setw(5) << it; rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
     ierr=DbgMsg(msg); CHKERRQ(ierr);
 
@@ -81,6 +82,32 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px)
 
     // apply hessian
     ierr=preconditioner->HessianMatVec(Px,x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/****************************************************************************
+ * @brief applies a projection operator to the right hand size of the hessian
+ * system (needed for spectral/analytical preconditioning of the hessian);
+ * this method is called every time before the krylov solve
+ ****************************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ProjectGradient"
+PetscErrorCode ProjectGradient(KSP krylovmethod,Vec g,void* ptr)
+{
+    PetscErrorCode ierr;
+//    (void)krylovmethod;
+
+//    PetscFunctionBegin;
+    ierr=Assert(false,"hooray, i got called"); CHKERRQ(ierr);
+    std::cout<<"applying projection operator"<<std::endl;
+    //ierr=Assert(optimizationproblem!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // apply hessian
+    //ierr=optprob->ProjectGradient(g); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

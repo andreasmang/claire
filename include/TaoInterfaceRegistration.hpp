@@ -40,8 +40,6 @@ PetscErrorCode EvaluateHessian(Tao,Vec,Mat,Mat,void*);
 PetscErrorCode HessianMatVec(Mat,Vec,Vec);
 PetscErrorCode PrecondMatVec(PC,Vec,Vec);
 
-PetscErrorCode PrecondSetup(PC);
-
 PetscErrorCode CheckConvergence(Tao,void*);
 PetscErrorCode OptimizationMonitor(Tao,void*);
 PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason);

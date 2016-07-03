@@ -216,6 +216,7 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
     // start timer
     ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
+
     ierr=KSPSolve(this->m_KrylovMethod,x,Px); CHKERRQ(ierr);
 
 
@@ -306,7 +307,6 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
 
     ierr=MatCreateShell(PETSC_COMM_WORLD,3*nl,3*nl,3*ng,3*ng,this,&this->m_MatVec); CHKERRQ(ierr);
     ierr=MatShellSetOperation(this->m_MatVec,MATOP_MULT,(void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
-    // set operator
     ierr=KSPSetOperators(this->m_KrylovMethod,this->m_MatVec,this->m_MatVec);CHKERRQ(ierr);
     ierr=KSPMonitorSet(this->m_KrylovMethod,InvertPrecondKrylovMonitor,this,PETSC_NULL); CHKERRQ(ierr);
 
@@ -354,27 +354,27 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
         case PCG:
         {
             // preconditioned conjugate gradient
-            reltol = this->m_Opt->GetKrylovSolverPara().reltol;
-            reltol *= 1E-1;
+            reltol  = this->m_Opt->GetKrylovSolverPara().reltol;
+            reltol *= this->m_Opt->GetKrylovSolverPara().pcsolvertol;
             break;
         }
         case FCG:
         {
             // flexible conjugate gradient
-            maxit  = 10;
+            maxit  = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
             break;
         }
         case GMRES:
         {
             // GMRES
-            reltol = this->m_Opt->GetKrylovSolverPara().reltol;
-            reltol *= 1E-1;
+            reltol  = this->m_Opt->GetKrylovSolverPara().reltol;
+            reltol *= this->m_Opt->GetKrylovSolverPara().pcsolvertol;
             break;
         }
         case FGMRES:
         {
             // flexible GMRES
-            maxit  = 10;
+            maxit  = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
             break;
         }
         default:
@@ -396,7 +396,6 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
 
 
 
-
 /********************************************************************
  * @brief do setup for two level preconditioner
  *******************************************************************/
@@ -405,12 +404,21 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
 PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
 {
     PetscErrorCode ierr;
+    //Vec Px;
     PetscFunctionBegin;
 
     // check if optimization problem is set up
     ierr=Assert(this->m_OptimizationProblem!=NULL,"null pointer"); CHKERRQ(ierr);
 
+    //ierr=VecDuplicate(x,&Px); CHKERRQ(ierr);
+
+    // apply inverse regularization operator
+    //ierr=this->m_OptimizationProblem->ApplyInvRegOp(Px,x); CHKERRQ(ierr);
+    //ierr=this->m_OptimizationProblem->HessianMatVec(Hx,Px); CHKERRQ(ierr);
     ierr=this->m_OptimizationProblem->HessianMatVec(Hx,x); CHKERRQ(ierr);
+
+
+    //ierr=VecDestroy(&Px); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 

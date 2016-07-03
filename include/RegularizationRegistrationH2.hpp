@@ -38,9 +38,9 @@ public:
     ~RegularizationRegistrationH2(void);
 
     PetscErrorCode EvaluateFunctional(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradient(VecField*,VecField*);
-    PetscErrorCode HessianMatVec(VecField*,VecField*);
-    PetscErrorCode ApplyInverseOperator(VecField*,VecField*);
+    PetscErrorCode EvaluateGradient(VecField*,VecField*,bool applysqrt=false);
+    PetscErrorCode HessianMatVec(VecField*,VecField*,bool applysqrt=false);
+    PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false);
 
 protected:
 

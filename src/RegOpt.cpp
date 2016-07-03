@@ -34,7 +34,7 @@ RegOpt::RegOpt()
 RegOpt::RegOpt(int argc, char** argv, int id)
 {
     this->Initialize();
-    if (id == 0) this->ParseArgumentsRegistration(argc,argv);
+    if      (id == 0) this->ParseArgumentsRegistration(argc,argv);
     else if (id == 1) this->ParseArgumentsPostProcessing(argc,argv);
     else;
 }
@@ -258,6 +258,20 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             argc--; argv++;
             this->m_RegMonitor.jacbound = atof(argv[1]);
         }
+        else if(strcmp(argv[1],"-krylovsolver") == 0){
+            argc--; argv++;
+            if (strcmp(argv[1],"pcg") == 0){
+                this->m_KrylovSolverPara.solver = PCG;
+            }
+            else if (strcmp(argv[1],"gmres") == 0){
+                this->m_KrylovSolverPara.solver = GMRES;
+            }
+            else {
+                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            }
+        }
         else if(strcmp(argv[1],"-krylovmaxit") == 0){
             argc--; argv++;
             this->m_KrylovSolverPara.maxit = atoi(argv[1]);
@@ -295,6 +309,37 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
                 ierr=this->UsageRegistration(); CHKERRQ(ierr);
             }
+        }
+        else if(strcmp(argv[1],"-pcsolver") == 0){
+            argc--; argv++;
+            if (strcmp(argv[1],"pcg") == 0){
+                this->m_KrylovSolverPara.pcsolver = PCG;
+            }
+            else if (strcmp(argv[1],"fpcg") == 0){
+                this->m_KrylovSolverPara.pcsolver = FCG;
+            }
+            else if (strcmp(argv[1],"gmres") == 0){
+                this->m_KrylovSolverPara.pcsolver = GMRES;
+            }
+            else if (strcmp(argv[1],"fgmres") == 0){
+                this->m_KrylovSolverPara.pcsolver = FGMRES;
+            }
+            else if (strcmp(argv[1],"cheb") == 0){
+                this->m_KrylovSolverPara.pcsolver = CHEB;
+            }
+            else {
+                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            }
+        }
+        else if(strcmp(argv[1],"-pcsolvertol") == 0){
+            argc--; argv++;
+            this->m_KrylovSolverPara.pcsolvertol = atof(argv[1]);
+        }
+        else if(strcmp(argv[1],"-pcsolvermaxit") == 0){
+            argc--; argv++;
+            this->m_KrylovSolverPara.pcsolvermaxit = atof(argv[1]);
         }
         else if (strcmp(argv[1],"-pdesolver") == 0){
             argc--; argv++;
@@ -625,9 +670,12 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.maxit  = 1000; // maximal iterations
     this->m_KrylovSolverPara.reltol = 1E-12; // relative tolerance (actually computed in solver)
     this->m_KrylovSolverPara.fseqtype = QDFS;
+    //this->m_KrylovSolverPara.pctype = NOPC;
     this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.solver = PCG;
     this->m_KrylovSolverPara.pcsolver = CHEB;
+    this->m_KrylovSolverPara.pcsolvertol = 1E-1;
+    this->m_KrylovSolverPara.pcsolvermaxit = 10;
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
@@ -636,6 +684,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_OptPara.method = GAUSSNEWTON;
 
     this->m_SolveType = NOTSET;
+    this->m_HessianMatVecType = DEFAULTMATVEC;
+    //this->m_HessianMatVecType = PRECONDMATVEC;
 
     // flags
     this->m_RegFlags.readimages = false; ///< read images
@@ -647,8 +697,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegFlags.storeinterresults = false; ///< write out intermediate results
     this->m_RegFlags.loggingenabled = false; ///< switch on/off logging
     this->m_RegFlags.smoothingenabled = true; ///< switch on/off image smoothing
-    this->m_RegFlags.runpostproc = false;
-    this->m_RegFlags.resampledata = false;
+    this->m_RegFlags.runpostproc = false; ///< flag to run postprocessing
+    this->m_RegFlags.resampledata = false; ///< flag for resampling data (post processing)
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;
@@ -749,11 +799,6 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         std::cout << "                           <type> is one of the following"<<std::endl;
         std::cout << "                               gn           Gauss-Newton (default)"<<std::endl;
         std::cout << "                               fn           full Newton"<<std::endl;
-        std::cout << " -precond <type>           preconditioner"<<std::endl;
-        std::cout << "                           <type> is one of the following"<<std::endl;
-        std::cout << "                               none         no preconditioner (not recommended)"<<std::endl;
-        std::cout << "                               invreg       inverse regularization operator (default)"<<std::endl;
-        std::cout << "                               2level       2-level preconditioner"<<std::endl;
         std::cout << " -grel <dbl>               tolerance for optimization (default: 1E-2)"<<std::endl;
         std::cout << "                               relative change of gradient"<<std::endl;
         std::cout << "                               optimization stops if ||g_k||/||g_0|| <= tol"<<std::endl;
@@ -762,12 +807,33 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         std::cout << "                               optimization stops if ||g_k|| <= tol"<<std::endl;
         std::cout << "                               tol <= ||g||/||g_init||"<<std::endl;
         std::cout << " -maxit <int>              maximum number of (outer) Newton iterations (default: 50)"<<std::endl;
+        std::cout << " -krylovsolver <type>      solver for reduced space hessian system H[vtilde]=-g"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               pcg          preconditioned conjugate gradient method"<<std::endl;
+        std::cout << "                               gmres        generalized minimal residual method"<<std::endl;
         std::cout << " -krylovmaxit <int>        maximum number of (inner) Krylov iterations (default: 50)"<<std::endl;
         std::cout << " -krylovfseq <type>        forcing sequence for Krylov solver (tolerance for inner iterations)"<<std::endl;
-        std::cout << "                           where <types> are"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
         std::cout << "                               quadratic     quadratic (default)"<<std::endl;
         std::cout << "                               suplinear     super-linear"<<std::endl;
         std::cout << "                               none          exact solve (expensive)"<<std::endl;
+        std::cout << " -precond <type>           preconditioner"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               none         no preconditioner (not recommended)"<<std::endl;
+        std::cout << "                               invreg       inverse regularization operator (default)"<<std::endl;
+        std::cout << "                               2level       2-level preconditioner"<<std::endl;
+        std::cout << " -pcsolver <type>          solver for inversion of preconditioner (in case"<<std::endl;
+        std::cout << "                           the 2-level preconditioner is used)"<<std::endl;
+        std::cout << "                           <type> is one of the following"<<std::endl;
+        std::cout << "                               cheb         chebyshev method (default)"<<std::endl;
+        std::cout << "                               pcg          preconditioned conjugate gradient method"<<std::endl;
+        std::cout << "                               fpcg         flexible pcg"<<std::endl;
+        std::cout << "                               gmres        generalized minimal residual method"<<std::endl;
+        std::cout << "                               fgmres       flexible gmres"<<std::endl;
+        std::cout << " -pcsolvermaxit <int>      maximum number of iterations for inverting preconditioner; is"<<std::endl;
+        std::cout << "                           used for cheb, fgmres and fpcg; default: 10"<<std::endl;
+        std::cout << " -pcsolvertol <dbl>        scale for tolerance (preconditioner needs to be solver more"<<std::endl;
+        std::cout << "                           accurately; used for gmres and pcg; default: 1E-1"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " regularization/constraints"<<std::endl;
         std::cout << line << std::endl;
@@ -1024,6 +1090,12 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
 
     }
 
+    if (   this->m_KrylovSolverPara.pcsolvertol < 0.0
+        || this->m_KrylovSolverPara.pcsolvertol >= 1.0 ){
+        msg="\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
+        ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+        ierr=this->UsageRegistration(); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(0);
 }

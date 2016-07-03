@@ -103,35 +103,6 @@ PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx,
 
 
 /****************************************************************************
- * @brief general purpose function to compute the hessian matrix;
- * has to be se in TaoSetHessianRoutine; this is a general purpose template
- * for matrix based algorithms; if your code is matrix free, use the
- * evaluate hessian function below!
- * @param tao pointer to tao solver
- * @param x iterate x hessian is to be evaluated at
- * @param ptr pointer to optimziation problem (has to be implemented by user)
- * @param H hessian matrix
- * @param P preconditioner
- * @param flag flag used to set Hessian matrix and linear solver in KSP routine
- ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ConstructHessian"
-PetscErrorCode ConstructHessian(Tao tao,Vec x,Mat* H,Mat* P,MatStructure* flag,void* ptr)
-{
-    PetscErrorCode ierr;
-    (void)tao; (void)x; (void)H; (void)P; (void)flag; (void)ptr; (void)ierr;
-
-    PetscFunctionBegin;
-
-    /* DO NOTHING CURRENTLY: TODO */
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/****************************************************************************
  * @brief general purpose function to apply the hessian
  * @param tao pointer to tao solver
  * @param x iterate x objective is to be evaluated at
@@ -148,7 +119,7 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
     OptimizationProblem *optprob = NULL;
     std::string msg;
     Vec dJ;
-    KSP ksp;
+    KSP krylovmethod;
     ScalarType gnorm,gnorm0,reltol,abstol,divtol,uppergradbound,lowergradbound;
     IntType maxit;
 
@@ -163,10 +134,10 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // get krylov subspace object
-    ierr=TaoGetKSP(tao,&ksp); CHKERRQ(ierr);
+    ierr=TaoGetKSP(tao,&krylovmethod); CHKERRQ(ierr);
 
     // get current tolerances
-    ierr=KSPGetTolerances(ksp,&reltol,&abstol,&divtol,&maxit); CHKERRQ(ierr);
+    ierr=KSPGetTolerances(krylovmethod,&reltol,&abstol,&divtol,&maxit); CHKERRQ(ierr);
 
     // user forcing sequence to estimate adequate tolerance
     // for solution of KKT system (Eisenstat-Walker)
@@ -194,11 +165,15 @@ PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
         }
 
         // overwrite tolerances with estimate
-        ierr=KSPSetTolerances(ksp,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
+        ierr=KSPSetTolerances(krylovmethod,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
     }
 
     // pass tolerance to optimization problem (for preconditioner)
     optprob->SetRelTolKrylovMethod(reltol);
+
+    // apply projection operator to gradient
+    //ierr=KSPSetComputeRHS(krylovmethod,ProjectGradient,(void*)optprob);
+
 
     if(optprob->GetOptions()->GetVerbosity() >= 2){
         std::stringstream ss;
@@ -261,26 +236,6 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex)
 
     // apply hessian
     ierr=preconditioner->MatVec(Hprex,x); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/****************************************************************************
- * @brief setup the preconditioner
- ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondSetup"
-PetscErrorCode PrecondSetup(PC Hpre)
-{
-    PetscErrorCode ierr;
-    (void)Hpre; (void)ierr;
-
-    PetscFunctionBegin;
-
-    /* do nothing*/
 
     PetscFunctionReturn(0);
 }

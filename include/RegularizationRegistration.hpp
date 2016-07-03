@@ -41,9 +41,9 @@ public:
     ~RegularizationRegistration(void);
 
     virtual PetscErrorCode EvaluateFunctional(ScalarType*,VecField*) = 0;
-    virtual PetscErrorCode EvaluateGradient(VecField*,VecField*) = 0;
-    virtual PetscErrorCode HessianMatVec(VecField*,VecField*) = 0;
-    virtual PetscErrorCode ApplyInverseOperator(VecField*,VecField*) = 0;
+    virtual PetscErrorCode EvaluateGradient(VecField*,VecField*,bool applysqrt=false) = 0;
+    virtual PetscErrorCode HessianMatVec(VecField*,VecField*,bool applysqrt=false) = 0;
+    virtual PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false) = 0;
 
 protected:
 

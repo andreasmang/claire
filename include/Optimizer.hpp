@@ -71,7 +71,7 @@ private:
 
     Tao m_Tao;
 //    TaoLineSearch m_LineSearch; ///< line search type
-//    KSP m_KrylovMethod; ///< KSP object
+    KSP m_KrylovMethod; ///< KSP object
 //    PC m_KrylovMethodPC; ///< KSP preconditioner object
     PrecondReg* m_Precond;
 

@@ -550,6 +550,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
     else if (strcmp(flag.c_str(),"adjoint")!=0){
 
         ierr=Assert(this->m_XA!=NULL,"adjoint X is null pointer"); CHKERRQ(ierr);
+
         this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost,1,nx,isize,istart,
                             nl,this->m_GhostSize,w,c_dims,
                             this->m_Opt->GetFFT().mpicomm,timers);

@@ -56,6 +56,7 @@ enum RegNormType
     H3SN, ///< flag for H3-seminorm
 };
 
+
 enum ParaContType
 {
     PCONTOFF,
@@ -63,6 +64,16 @@ enum ParaContType
     PCONTREDUCESEARCH,
     PCONTINUATION
 };
+
+
+/*! hessian mat vec type */
+enum HessianMatVecType
+{
+    DEFAULTMATVEC,
+    PRECONDMATVEC,
+    PRECONDMATVECSYM,
+};
+
 
 // flags for optimization methods
 enum OptMeth
@@ -179,11 +190,16 @@ struct KrylovSolver{
     int maxit;
     ScalarType tol[3];
     FSeqType fseqtype; ///<forcing sequence type
-    PrecondMeth pctype;
     KrylovSolverType solver;
-    KrylovSolverType pcsolver;
     ScalarType reltol;
+    PrecondMeth pctype;
+    KrylovSolverType pcsolver;
+    ScalarType pcsolvertol;
+    int pcsolvermaxit;
 };
+
+
+
 
 
 /* parameter for parameter continuation (regularization parameter) */
@@ -336,7 +352,7 @@ public:
 
     // solver flags
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
-
+    inline HessianMatVecType GetHessianMatVecType(){return this->m_HessianMatVecType;}
     inline KrylovSolver GetKrylovSolverPara(){ return this->m_KrylovSolverPara;};
     inline void SetRelTolKrylovMethod(ScalarType tol){this->m_KrylovSolverPara.reltol=tol;};
 
@@ -417,6 +433,7 @@ private:
     RegModel m_RegModel; ///< flag for particular registration model
     FourierTransform m_FFT; ///< parameters for FFT/accfft
     RegFlags m_RegFlags; ///< flags for registration
+    HessianMatVecType m_HessianMatVecType;
 
     std::string m_XFolder; ///< identifier for folder to write results to
     std::string m_IFolder; ///< identifier for folder to read in results from

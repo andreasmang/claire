@@ -76,6 +76,7 @@ PetscErrorCode Optimizer::Initialize(void)
     this->m_Tao = NULL;
     this->m_Solution = NULL;
     this->m_Precond = NULL;
+    this->m_KrylovMethod = NULL;
     this->m_OptimizationProblem = NULL;
 
     PetscFunctionReturn(0);
@@ -95,11 +96,13 @@ PetscErrorCode Optimizer::ClearMemory(void)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    // clean up tao
     if(this->m_Tao != NULL){
         ierr=TaoDestroy(&this->m_Tao); CHKERRQ(ierr);
         this->m_Tao=NULL;
     }
 
+    // delete solution vector
     if (this->m_Solution != NULL){
         ierr=VecDestroy(&this->m_Solution); CHKERRQ(ierr);
         this->m_Solution = NULL;
@@ -218,9 +221,9 @@ PetscErrorCode Optimizer::SetupTao()
     IntType nlu,ngu;
     ScalarType gatol,grtol,gttol,reltol,abstol,divtol;
     IntType maxit;
-    Mat HMatVec;
-    KSP taoksp;
-    PC taokktpc;
+    Mat matvec;
+    PC preconditioner;
+    TaoLineSearch linesearch;
     PetscFunctionBegin;
 
     ierr=Assert(this->m_OptimizationProblem !=NULL,"optimization problem not set"); CHKERRQ(ierr);
@@ -239,60 +242,60 @@ PetscErrorCode Optimizer::SetupTao()
     ierr=TaoCreate(PETSC_COMM_WORLD,&this->m_Tao); CHKERRQ(ierr);
     ierr=TaoSetType(this->m_Tao,"nls"); CHKERRQ(ierr);
 
-    // set the routine to evaluate the objective and compute the gradient
-    ierr=TaoSetObjectiveRoutine(this->m_Tao,EvaluateObjective,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
-    ierr=TaoSetGradientRoutine(this->m_Tao,EvaluateGradient,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
-    ierr=TaoSetObjectiveAndGradientRoutine(this->m_Tao,EvaluateObjectiveGradient,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
-
-    // set the monitor for the optimization process
-    ierr=TaoCancelMonitors(this->m_Tao); CHKERRQ(ierr);
-    ierr=TaoSetMonitor(this->m_Tao,OptimizationMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
-    ierr=TaoSetConvergenceTest(this->m_Tao,CheckConvergence,this->m_OptimizationProblem); CHKERRQ(ierr);
-
-    TaoLineSearch ls;
-    ierr=TaoGetLineSearch(this->m_Tao,&ls); CHKERRQ(ierr);
-    ierr=TaoLineSearchSetType(ls,"armijo"); CHKERRQ(ierr);
-
-
-    // set tolearances for optimizer
-    gatol = this->m_Opt->GetOptTol(0);  // ||g(x)||              <= gatol
-    grtol = this->m_Opt->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
-    gttol = this->m_Opt->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
-
-    ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
-    ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptMaxit() - 1); CHKERRQ(ierr);
-
-
-    ierr=MatCreateShell(PETSC_COMM_WORLD,nlu,nlu,ngu,ngu,static_cast<void*>(this->m_OptimizationProblem),&HMatVec); CHKERRQ(ierr);
-    ierr=MatShellSetOperation(HMatVec,MATOP_MULT,(void(*)(void))HessianMatVec); CHKERRQ(ierr);
-    ierr=MatSetOption(HMatVec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
-    ierr=TaoSetHessianRoutine(this->m_Tao,HMatVec,HMatVec,EvaluateHessian,static_cast<void*>(&this->m_OptimizationProblem)); CHKERRQ(ierr);
-
     // get the ksp of the optimizer and set options
-    ierr=TaoGetKSP(this->m_Tao,&taoksp); CHKERRQ(ierr);
+    ierr=TaoGetKSP(this->m_Tao,&this->m_KrylovMethod); CHKERRQ(ierr);
 
     // ksp is only nonzero if we use a newton type method
-    if (taoksp != NULL){
+    if (this->m_KrylovMethod != NULL){
 
+        // switch of the standard preconditioner
+        if (strcmp(method.c_str(),"nls") == 0){
+            ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
+            ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","petsc"); CHKERRQ(ierr);
+            ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
+        }
+        else if (strcmp(method.c_str(),"ntr") == 0){
+            ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
+            ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","petsc"); CHKERRQ(ierr);
+            ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
+        }
+
+        // set tolerances for krylov subspace method
+        reltol = this->m_Opt->GetKrylovSolverPara().tol[0]; // 1E-12;
+        abstol = this->m_Opt->GetKrylovSolverPara().tol[1]; // 1E-12;
+        divtol = this->m_Opt->GetKrylovSolverPara().tol[2]; // 1E+06;
+        maxit  = this->m_Opt->GetKrylovSolverPara().maxit;  // 1000;
+        ierr=KSPSetTolerances(this->m_KrylovMethod,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
+        ierr=KSPSetInitialGuessNonzero(this->m_KrylovMethod,PETSC_FALSE); CHKERRQ(ierr);
+        //ierr=KSPSetInitialGuessNonzero(krylovmethod,PETSC_TRUE); CHKERRQ(ierr);
+
+        //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
+        //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
+        //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
+        ierr=KSPSetNormType(this->m_KrylovMethod,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+        //ierr=KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
+
+        //ierr=KSPSetType(this->m_KrylovMethod,KSPGMRES); CHKERRQ(ierr);
+        ierr=KSPSetType(this->m_KrylovMethod,KSPCG); CHKERRQ(ierr);
+        //ierr=KSPSetType(this->m_KrylovMethod,KSPCHEBYSHEV); CHKERRQ(ierr);
+
+        // apply projection operator to gradient
+        // TODO: this does not work, vor whatever reason
+        ierr=KSPSetComputeRHS(this->m_KrylovMethod,ProjectGradient,this->m_OptimizationProblem);
+
+        // set krylov monitor
         if(this->m_Opt->GetVerbosity() >= 2){
-            ierr=KSPMonitorSet(taoksp,KrylovMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
+            ierr=KSPMonitorSet(this->m_KrylovMethod,KrylovMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
         }
 
         // set the preconditioner
-        ierr=KSPGetPC(taoksp,&taokktpc); CHKERRQ(ierr);
+        ierr=KSPGetPC(this->m_KrylovMethod,&preconditioner); CHKERRQ(ierr);
+        ierr=KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
 
         if(this->m_Opt->GetKrylovSolverPara().pctype == NOPC){
-            if (strcmp(method.c_str(),"nls") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","none"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
-            }
-            else if (strcmp(method.c_str(),"ntr") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","none"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
-            }
-            ierr=PCSetType(taokktpc,PCNONE); CHKERRQ(ierr);
+
+            ierr=PCSetType(preconditioner,PCNONE); CHKERRQ(ierr);
+
         }
         else if (  (this->m_Opt->GetKrylovSolverPara().pctype == INVREG)
                 || (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) ) {
@@ -304,42 +307,47 @@ PetscErrorCode Optimizer::SetupTao()
             }
             ierr=this->m_Precond->SetProblem(this->m_OptimizationProblem); CHKERRQ(ierr);
 
-            if (strcmp(method.c_str(),"nls") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","cg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
-            }
-            else if (strcmp(method.c_str(),"ntr") == 0){
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
-                ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","stcg"); CHKERRQ(ierr);
-                ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
-            }
-
-            ierr=PCSetType(taokktpc,PCSHELL); CHKERRQ(ierr);
-            ierr=PCShellSetApply(taokktpc,PrecondMatVec); CHKERRQ(ierr);
-            ierr=PCShellSetContext(taokktpc,this->m_Precond); CHKERRQ(ierr);
+            // we have to create a shell object for the preconditioner,
+            // since our solver is matrix free
+            ierr=PCSetType(preconditioner,PCSHELL); CHKERRQ(ierr);
+            ierr=PCShellSetApply(preconditioner,PrecondMatVec); CHKERRQ(ierr);
+            ierr=PCShellSetContext(preconditioner,this->m_Precond); CHKERRQ(ierr);
             //ierr=PCShellSetName(taokktpc,"kktpc"); CHKERRQ(ierr);
-            ierr=PCShellSetSetUp(taokktpc,PrecondSetup); CHKERRQ(ierr);
+            //ierr=PCShellSetSetUp(preconditioner,PrecondSetup); CHKERRQ(ierr);
 
         }
         else{ ierr=reg::ThrowError("preconditioner not defined"); CHKERRQ(ierr); }
 
-        // set tolerances for krylov subspace method
-        reltol = this->m_Opt->GetKrylovSolverPara().tol[0]; // 1E-12;
-        abstol = this->m_Opt->GetKrylovSolverPara().tol[1]; // 1E-12;
-        divtol = this->m_Opt->GetKrylovSolverPara().tol[2]; // 1E+06;
-        maxit  = this->m_Opt->GetKrylovSolverPara().maxit;  // 1000;
-        ierr=KSPSetTolerances(taoksp,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
-        ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_FALSE); CHKERRQ(ierr);
-        //ierr=KSPSetInitialGuessNonzero(taoksp,PETSC_TRUE); CHKERRQ(ierr);
 
-        //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
-        //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
-        //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
-        ierr=KSPSetNormType(taoksp,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
-        //ierr=KSPSetNormType(taoksp,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
     }
 
+
+    // set the routine to evaluate the objective and compute the gradient
+    ierr=TaoSetObjectiveRoutine(this->m_Tao,EvaluateObjective,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
+    ierr=TaoSetGradientRoutine(this->m_Tao,EvaluateGradient,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
+    ierr=TaoSetObjectiveAndGradientRoutine(this->m_Tao,EvaluateObjectiveGradient,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);
+
+    // set the monitor for the optimization process
+    ierr=TaoCancelMonitors(this->m_Tao); CHKERRQ(ierr);
+    ierr=TaoSetMonitor(this->m_Tao,OptimizationMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
+    ierr=TaoSetConvergenceTest(this->m_Tao,CheckConvergence,this->m_OptimizationProblem); CHKERRQ(ierr);
+
+    ierr=TaoGetLineSearch(this->m_Tao,&linesearch); CHKERRQ(ierr);
+    ierr=TaoLineSearchSetType(linesearch,"armijo"); CHKERRQ(ierr);
+
+    // set tolearances for optimizer
+    gatol = this->m_Opt->GetOptTol(0);  // ||g(x)||              <= gatol
+    grtol = this->m_Opt->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
+    gttol = this->m_Opt->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
+
+    ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
+    ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptMaxit() - 1); CHKERRQ(ierr);
+    ierr=TaoSetFunctionLowerBound(this->m_Tao,1E-6); CHKERRQ(ierr);
+
+    ierr=MatCreateShell(PETSC_COMM_WORLD,nlu,nlu,ngu,ngu,static_cast<void*>(this->m_OptimizationProblem),&matvec); CHKERRQ(ierr);
+    ierr=MatShellSetOperation(matvec,MATOP_MULT,(void(*)(void))HessianMatVec); CHKERRQ(ierr);
+    ierr=MatSetOption(matvec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
+    ierr=TaoSetHessianRoutine(this->m_Tao,matvec,matvec,EvaluateHessian,static_cast<void*>(&this->m_OptimizationProblem)); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -374,6 +382,8 @@ PetscErrorCode Optimizer::Run()
 
     // set initial guess
     ierr=this->SetInitialGuess(); CHKERRQ(ierr);
+
+    ierr=TaoSetUp(this->m_Tao); CHKERRQ(ierr);
 
     // solve optimization problem
     ierr=this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);

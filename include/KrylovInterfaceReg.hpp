@@ -36,6 +36,8 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason);
 PetscErrorCode InvertPrecondKrylovMonitor(KSP,PetscInt,PetscReal,void*);
 PetscErrorCode InvertPrecondMatVec(Mat,Vec,Vec);
 
+PetscErrorCode ProjectGradient(KSP,Vec,void*);
+
 
 
 } // end of name space

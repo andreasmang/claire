@@ -13,8 +13,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: RegularizationRegistrationH2
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistrationH2"
@@ -27,8 +26,7 @@ RegularizationRegistrationH2::RegularizationRegistrationH2() : SuperClass()
 
 
 /********************************************************************
- * Name: ~RegularizationRegistrationH2
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~RegularizationRegistrationH2"
@@ -41,8 +39,7 @@ RegularizationRegistrationH2::~RegularizationRegistrationH2(void)
 
 
 /********************************************************************
- * Name: RegularizationRegistrationH2
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistrationH2"
@@ -55,8 +52,7 @@ RegularizationRegistrationH2::RegularizationRegistrationH2(RegOpt* opt) : SuperC
 
 
 /********************************************************************
- * Name: EvaluateFunctional
- * Description: evaluates the functional
+ * @brief evaluates the functional
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateFunctional"
@@ -194,12 +190,11 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
 
 
 /********************************************************************
- * Name: EvaluateGradient
- * Description: evaluates first variation of regularization norm
+ * @brief evaluates first variation of regularization norm
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateGradient"
-PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v)
+PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v, bool applysqrt)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],nx[3];
@@ -279,7 +274,10 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
                     biharik *= biharik;
 
                     // compute regularization operator
-                    regop = scale*(beta[0]*biharik + beta[1]);
+                    regop = beta[0]*biharik + beta[1];
+
+                    if (applysqrt) regop = sqrt(regop); // \Gamma^{1/2}
+                    regop *= scale; // scale with fft weight
 
                     i=GetLinearIndex(i1,i2,i3,iosize);
 
@@ -327,13 +325,12 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
 
 
 /********************************************************************
- * Name: HessianMatvec
- * Description: applies second variation of regularization norm to
+ * @brief applies second variation of regularization norm to
  * a vector
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianMatVec"
-PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecField* vtilde)
+PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecField* vtilde, bool applysqrt)
 {
     PetscErrorCode ierr;
     ScalarType beta;
@@ -350,7 +347,7 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
         ierr=VecSet(dvvR->m_X2,0.0); CHKERRQ(ierr);
         ierr=VecSet(dvvR->m_X3,0.0); CHKERRQ(ierr);
     }
-    else{ ierr=this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr); }
+    else{ ierr=this->EvaluateGradient(dvvR,vtilde,applysqrt); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 }
@@ -359,14 +356,13 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
 
 
 /********************************************************************
- * Name: ApplyInverseOperator
- * Description: apply the inverse of the regularization operator; we
+ * @brief apply the inverse of the regularization operator; we
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ApplyInverseOperator"
-PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainvx, VecField* x)
+#define __FUNCT__ "ApplyInvOp"
+PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],nx[3];
@@ -442,7 +438,10 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
                     biharik *= biharik;
 
                     // compute regularization operator
-                    regop = scale/(beta[0]*biharik + beta[1]);
+                    regop = beta[0]*biharik + beta[1];
+
+                    if (applysqrt) regop = sqrt(regop);
+                    regop = scale/regop;
 
                     i=GetLinearIndex(i1,i2,i3,iosize);
 
@@ -483,6 +482,9 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInverseOperator(VecField* Ainv
 
     PetscFunctionReturn(0);
 }
+
+
+
 
 
 
