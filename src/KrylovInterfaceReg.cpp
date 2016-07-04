@@ -102,20 +102,79 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px)
 PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 {
     PetscErrorCode ierr;
+    ScalarType gnorm,g0norm,reltol,abstol,divtol,
+                uppergradbound,lowergradbound;
+    IntType maxit;
+    std::stringstream ss;
+    std::string msg;
     OptimizationProblem* optprob=NULL;
 
     PetscFunctionBegin;
+
+    uppergradbound=0.5;
+    lowergradbound=1E-12;
 
     (void)krylovmethod;
 
     optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    // apply hessian
+    // apply pre processing to right hand side and initial condition
     ierr=optprob->PreKrylovSolve(b,x); CHKERRQ(ierr);
 
+    // user forcing sequence to estimate adequate tolerance
+    // for solution of KKT system (Eisenstat-Walker)
+    if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype != NOFS){
 
+        // get current gradient and compute norm
+        ierr=VecNorm(b,NORM_2,&gnorm); CHKERRQ(ierr);
 
+        if (!optprob->GetOptions()->GetKrylovSolverPara().g0normset){
+            if(optprob->GetOptions()->GetVerbosity() > 1){
+                ss << std::fixed << std::scientific << gnorm;
+                msg="setting initial ||g|| in krylov method (" + ss.str() + ")";
+                ierr=DbgMsg(msg); CHKERRQ(ierr);
+                ss.str(std::string()); ss.clear();
+            }
+            optprob->GetOptions()->SetInitialGradNormKrylovMethod(gnorm);
+        }
+
+        // get initial value for gradient
+        g0norm = optprob->GetOptions()->GetKrylovSolverPara().g0norm;
+        ierr=Assert(g0norm > 0.0,"initial gradient is zero"); CHKERRQ(ierr);
+
+        // normalize
+        gnorm /= g0norm;
+
+        // get current tolerances
+        ierr=KSPGetTolerances(krylovmethod,&reltol,&abstol,&divtol,&maxit); CHKERRQ(ierr);
+
+        if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype == QDFS){
+            // assuming quadratic convergence (we do not solver more
+            // accurately than 12 digits)
+            reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,gnorm));
+        }
+        else{
+            // assuming superlinear convergence (we do not solver
+            // more accurately than 12 digitis)
+            reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,std::sqrt(gnorm)));
+        }
+
+        // overwrite tolerances with estimate
+        ierr=KSPSetTolerances(krylovmethod,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
+    }
+
+    // pass tolerance to optimization problem (for preconditioner)
+    optprob->SetRelTolKrylovMethod(reltol);
+
+    if(optprob->GetOptions()->GetVerbosity() > 1){
+        ss << std::fixed << std::scientific << reltol;
+        msg = "computing solution of KKT system (tol=" + ss.str() + ")";
+        ierr=DbgMsg(msg); CHKERRQ(ierr);
+    }
+
+    // check symmetry of hessian
+//    ierr=optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

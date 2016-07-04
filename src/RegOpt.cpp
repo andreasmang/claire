@@ -676,6 +676,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.pcsolver = CHEB;
     this->m_KrylovSolverPara.pcsolvertol = 1E-1;
     this->m_KrylovSolverPara.pcsolvermaxit = 10;
+    this->m_KrylovSolverPara.g0normset = false;
+    this->m_KrylovSolverPara.g0norm = 0;
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
@@ -685,8 +687,8 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_SolveType = NOTSET;
     //this->m_HessianMatVecType = DEFAULTMATVEC;
-    this->m_HessianMatVecType = PRECONDMATVEC;
-    //this->m_HessianMatVecType = PRECONDMATVECSYM;
+    //this->m_HessianMatVecType = PRECONDMATVEC;
+    this->m_HessianMatVecType = PRECONDMATVECSYM;
 
     // flags
     this->m_RegFlags.readimages = false; ///< read images

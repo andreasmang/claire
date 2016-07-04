@@ -103,7 +103,9 @@ PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx,
 
 
 /****************************************************************************
- * @brief general purpose function to apply the hessian
+ * @brief this function is called before the hessian matvec; I used to have
+ * the initialization of the krylov method here; it's now moved to the
+ * preprocessing routine for the krylov method;
  * @param tao pointer to tao solver
  * @param x iterate x objective is to be evaluated at
  * @param H hessian matrix (can be matrix free)
@@ -114,78 +116,10 @@ PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx,
 #define __FUNCT__ "EvaluateHessian"
 PetscErrorCode EvaluateHessian(Tao tao,Vec x,Mat H,Mat Hpre,void* ptr)
 {
-    PetscErrorCode ierr;
-    (void)Hpre; (void)x;
-    OptimizationProblem *optprob = NULL;
-    std::string msg;
-    Vec dJ;
-    KSP krylovmethod;
-    ScalarType gnorm,gnorm0,reltol,abstol,divtol,uppergradbound,lowergradbound;
-    IntType maxit;
+    PetscErrorCode ierr=0;
+    (void)tao; (void)x; (void)H; (void)Hpre; (void)ptr;
 
-    PetscFunctionBegin;
-
-    uppergradbound=0.5;
-    lowergradbound=1E-12;
-
-    // get solver context
-    ierr=MatShellGetContext(H,(void**)&ptr); CHKERRQ(ierr);
-    optprob = (OptimizationProblem*)ptr;
-    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    // get krylov subspace object
-    ierr=TaoGetKSP(tao,&krylovmethod); CHKERRQ(ierr);
-
-    // get current tolerances
-    ierr=KSPGetTolerances(krylovmethod,&reltol,&abstol,&divtol,&maxit); CHKERRQ(ierr);
-
-    // user forcing sequence to estimate adequate tolerance
-    // for solution of KKT system (Eisenstat-Walker)
-    if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype != NOFS){
-
-        // get initial value for gradient
-        gnorm0 = optprob->GetInitialGradNorm();
-        ierr=Assert(gnorm0 > 0.0, "initial gradient is zero"); CHKERRQ(ierr);
-
-        // get current gradient and compute norm
-        ierr=TaoGetGradientVector(tao,&dJ); CHKERRQ(ierr);
-        ierr=VecNorm(dJ,NORM_2,&gnorm); CHKERRQ(ierr);
-
-        gnorm /= gnorm0;
-
-        if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype == QDFS){
-            // assuming quadratic convergence (we do not solver more
-            // accurately than 12 digits)
-            reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,gnorm));
-        }
-        else{
-            // assuming superlinear convergence (we do not solver
-            // more accurately than 12 digitis)
-            reltol=PetscMax(lowergradbound,PetscMin(uppergradbound,std::sqrt(gnorm)));
-        }
-
-        // overwrite tolerances with estimate
-        ierr=KSPSetTolerances(krylovmethod,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
-    }
-
-    // pass tolerance to optimization problem (for preconditioner)
-    optprob->SetRelTolKrylovMethod(reltol);
-
-    // apply projection operator to gradient
-    //ierr=KSPSetComputeRHS(krylovmethod,ProjectGradient,(void*)optprob);
-
-
-    if(optprob->GetOptions()->GetVerbosity() >= 2){
-        std::stringstream ss;
-        ss << std::fixed <<std::scientific << reltol;
-        msg = "computing solution of KKT system (tol=" + ss.str() + ")";
-        ierr=DbgMsg(msg); CHKERRQ(ierr);
-    }
-
-    // check symmetry of hessian
-//    ierr=optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

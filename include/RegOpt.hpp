@@ -195,6 +195,8 @@ struct KrylovSolver{
     PrecondMeth pctype;
     KrylovSolverType pcsolver;
     ScalarType pcsolvertol;
+    ScalarType g0norm;
+    bool g0normset;
     int pcsolvermaxit;
 };
 
@@ -354,7 +356,12 @@ public:
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
     inline HessianMatVecType GetHessianMatVecType(){return this->m_HessianMatVecType;}
     inline KrylovSolver GetKrylovSolverPara(){ return this->m_KrylovSolverPara;};
-    inline void SetRelTolKrylovMethod(ScalarType tol){this->m_KrylovSolverPara.reltol=tol;};
+    inline void SetRelTolKrylovMethod(ScalarType value){this->m_KrylovSolverPara.reltol=value;};
+    inline void SetInitialGradNormKrylovMethod(ScalarType value){
+        this->m_KrylovSolverPara.g0norm=value;
+        this->m_KrylovSolverPara.g0normset=true;
+    }
+    inline void InitialGradNormSet(bool flag){this->m_KrylovSolverPara.g0normset=flag;};
 
     // jacobians
     inline void SetJacMin(ScalarType value){this->m_RegMonitor.jacmin=value;};

@@ -469,6 +469,44 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization()
 
 
 /********************************************************************
+ * @brief applies inverse regularization operator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ApplyInvRegOp"
+PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    if (this->m_WorkVecField1 == NULL){
+        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_WorkVecField2 == NULL){
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_Regularization == NULL){
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+    ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->GetComponents(Ainvx); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
  * @brief pre-processing before the krylov solve
  *******************************************************************/
 #undef __FUNCT__
@@ -533,7 +571,7 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
         case PRECONDMATVECSYM:
         {
             ierr=this->ApplyProjectionOperator(x,true); CHKERRQ(ierr);
-            ierr=this->ApplyProjectionOperator(g,false); CHKERRQ(ierr);
+//            ierr=this->ApplyProjectionOperator(g,false); CHKERRQ(ierr);
             break;
         }
         default:
@@ -542,44 +580,6 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
             break;
         }
     }
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief applies inverse regularization operator
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyInvRegOp"
-PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
-{
-    PetscErrorCode ierr;
-    PetscFunctionBegin;
-
-    if (this->m_WorkVecField1 == NULL){
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    if (this->m_WorkVecField2 == NULL){
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    if (this->m_Regularization == NULL){
-        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
-    }
-
-    ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-    ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr=this->m_WorkVecField2->GetComponents(Ainvx); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
