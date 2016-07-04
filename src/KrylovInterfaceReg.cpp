@@ -90,24 +90,64 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px)
 
 
 /****************************************************************************
- * @brief applies a projection operator to the right hand size of the hessian
- * system (needed for spectral/analytical preconditioning of the hessian);
- * this method is called every time before the krylov solve
+ * @brief preprocess right hand side and initial condition before entering
+ * the krylov subspace method; in the context of numerical optimization this
+ * means we preprocess the gradient and the incremental control variable
+ * @para krylovmethod pointer to krylov method
+ * @para b right hand side of equation
+ * @para x solution vector
  ****************************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ProjectGradient"
-PetscErrorCode ProjectGradient(KSP krylovmethod,Vec g,void* ptr)
+#define __FUNCT__ "PreKrylovSolve"
+PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 {
     PetscErrorCode ierr;
-//    (void)krylovmethod;
+    OptimizationProblem* optprob=NULL;
 
-//    PetscFunctionBegin;
-    ierr=Assert(false,"hooray, i got called"); CHKERRQ(ierr);
-    std::cout<<"applying projection operator"<<std::endl;
-    //ierr=Assert(optimizationproblem!=NULL,"null pointer"); CHKERRQ(ierr);
+    PetscFunctionBegin;
+
+    (void)krylovmethod;
+
+    optprob = (OptimizationProblem*)ptr;
+    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian
-    //ierr=optprob->ProjectGradient(g); CHKERRQ(ierr);
+    ierr=optprob->PreKrylovSolve(b,x); CHKERRQ(ierr);
+
+
+
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+/****************************************************************************
+ * @brief postprocess right hand side and initial condition before entering
+ * the krylov subspace method; in the context of numerical optimization this
+ * means we postprocess the gradient and the incremental control variable
+ * @para krylovmethod pointer to krylov method
+ * @para b right hand side of equation
+ * @para x solution vector
+ ****************************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "PostKrylovSolve"
+PetscErrorCode PostKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
+{
+    PetscErrorCode ierr;
+    OptimizationProblem* optprob=NULL;
+
+    PetscFunctionBegin;
+
+    (void)krylovmethod;
+
+    optprob = (OptimizationProblem*)ptr;
+    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // apply hessian
+    ierr=optprob->PostKrylovSolve(b,x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

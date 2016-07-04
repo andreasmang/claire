@@ -706,38 +706,27 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     ierr=this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
 
-    // parse input
-    ierr=this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
 
-    // compute \tilde{m}(x,t)
-    ierr=this->SolveIncStateEquation(); CHKERRQ(ierr);
-
-    // compute \tilde{\lambda}(x,t)
-    ierr=this->SolveIncAdjointEquation(); CHKERRQ(ierr);
-
-    // compute incremental body force
-    ierr=this->ComputeIncBodyForce(); CHKERRQ(ierr);
-
+    // switch between hessian operators
     switch (this->m_Opt->GetHessianMatVecType()){
-
         case DEFAULTMATVEC:
         {
-            ierr=this->HessianMatVec(Hvtilde); CHKERRQ(ierr);
+            ierr=this->HessMatVec(Hvtilde,vtilde); CHKERRQ(ierr);
             break;
         }
         case PRECONDMATVEC:
         {
-            ierr=this->PrecondHessianMatVec(Hvtilde); CHKERRQ(ierr);
+            ierr=this->PrecondHessMatVec(Hvtilde,vtilde); CHKERRQ(ierr);
             break;
         }
         case PRECONDMATVECSYM:
         {
-        //    ierr=this->HessianPrecondMatVecSym(Hvtilde); CHKERRQ(ierr);
+            ierr=this->PrecondHessMatVecSym(Hvtilde,vtilde); CHKERRQ(ierr);
             break;
         }
         default:
         {
-            ierr=this->HessianMatVec(Hvtilde); CHKERRQ(ierr);
+            ierr=ThrowError("setup problem"); CHKERRQ(ierr);
             break;
         }
     }
@@ -758,11 +747,23 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
  * @brief applies the hessian to a vector (default way of doing this)
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
-PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde)
+#define __FUNCT__ "HessMatVec"
+PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+
+    // parse input
+    ierr=this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+
+    // compute \tilde{m}(x,t)
+    ierr=this->SolveIncStateEquation(); CHKERRQ(ierr);
+
+    // compute \tilde{\lambda}(x,t)
+    ierr=this->SolveIncAdjointEquation(); CHKERRQ(ierr);
+
+    // compute incremental body force
+    ierr=this->ComputeIncBodyForce(); CHKERRQ(ierr);
 
     // apply 2nd variation of regularization model to
     // incremental control variable: \beta*hd*\D{A}[\vect{\tilde{v}}]
@@ -793,8 +794,8 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde)
  * we therefore can't use pcg
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
-PetscErrorCode OptimalControlRegistration::PrecondHessianMatVec(Vec Hvtilde)
+#define __FUNCT__ "PrecondHessMatVec"
+PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vtilde)
 {
     PetscErrorCode ierr;
     ScalarType hd;
@@ -803,6 +804,18 @@ PetscErrorCode OptimalControlRegistration::PrecondHessianMatVec(Vec Hvtilde)
 
     // compute hd
     hd = this->m_Opt->GetLebesqueMeasure();
+
+    // parse input
+    ierr=this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+
+    // compute \tilde{m}(x,t)
+    ierr=this->SolveIncStateEquation(); CHKERRQ(ierr);
+
+    // compute \tilde{\lambda}(x,t)
+    ierr=this->SolveIncAdjointEquation(); CHKERRQ(ierr);
+
+    // compute incremental body force
+    ierr=this->ComputeIncBodyForce(); CHKERRQ(ierr);
 
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta \D{A})^{-1}\D{K}[\vect{\tilde{b}}]
@@ -821,6 +834,61 @@ PetscErrorCode OptimalControlRegistration::PrecondHessianMatVec(Vec Hvtilde)
     PetscFunctionReturn(0);
 }
 
+
+
+
+/********************************************************************
+ * @brief applies the analytically (spectrally) preconditioned
+ * hessian, i.e.
+ * P(H[\tilde{v}]) = \tilde{v} + P^{1/2}(b[\tilde{v}])P^{1/2}
+ * it is important to note, that this matrix is no longer symmetric;
+ * we therefore can't use pcg
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "PrecondHessMatVecSym"
+PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde)
+{
+    PetscErrorCode ierr;
+    ScalarType hd;
+
+    PetscFunctionBegin;
+
+    // compute hd
+    hd = this->m_Opt->GetLebesqueMeasure();
+
+    // parse input
+    ierr=this->m_WorkVecField1->SetComponents(vtilde); CHKERRQ(ierr);
+
+    // apply inverse of 2nd variation of regularization model to
+    // incremental body force: (\beta\D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta\D{A})^{-1/2}
+
+    // apply (\beta\D{A})^{-1/2} to incremental velocity field
+    ierr=this->m_Regularization->ApplyInvOp(this->m_IncVelocityField,this->m_WorkVecField1,true); CHKERRQ(ierr);
+
+    // compute \tilde{m}(x,t)
+    ierr=this->SolveIncStateEquation(); CHKERRQ(ierr);
+
+    // compute \tilde{\lambda}(x,t)
+    ierr=this->SolveIncAdjointEquation(); CHKERRQ(ierr);
+
+    // compute incremental body force
+    ierr=this->ComputeIncBodyForce(); CHKERRQ(ierr);
+
+    // apply (\beta\D{A})^{-1/2} to incremental body force
+    ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField1,this->m_WorkVecField2,true); CHKERRQ(ierr);
+
+    // \D{H}\vect{\tilde{v}} = hd*\vect{\tilde{v}} + (\beta \D{A})^{-1/2} hd*\D{K}[\vect{\tilde{b}}](\beta \D{A})^{-1/2}
+    // we use the same container for the bodyforce and the incremental body force to
+    // save some memory
+    ierr=VecWAXPY(this->m_WorkVecField2->m_X1,hd,this->m_IncVelocityField->m_X1,this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
+    ierr=VecWAXPY(this->m_WorkVecField2->m_X2,hd,this->m_IncVelocityField->m_X2,this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
+    ierr=VecWAXPY(this->m_WorkVecField2->m_X3,hd,this->m_IncVelocityField->m_X3,this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
+
+    // pass to output
+    ierr=this->m_WorkVecField2->GetComponents(Hvtilde); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
 
 
 
@@ -977,7 +1045,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
 
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType ht=0.0,scale=0.0,hd=0.0;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
@@ -1068,11 +1136,11 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
             }
 
             // computing gradient of m
-            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // computing gradient of \tilde{m}
-            accfft_grad(p_gradmt1,p_gradmt2,p_gradmt3,p_mtj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gradmt1,p_gradmt2,p_gradmt3,p_mtj,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // trapezoidal rule (revert scaling)
@@ -1127,7 +1195,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
             }
 
             // compute gradient of m^j
-            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gradm1,p_gradm2,p_gradm3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // trapezoidal rule (revert scaling)
@@ -1170,7 +1238,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
     ierr=VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr); // temporary vector
     ierr=VecRestoreArray(this->m_IncAdjointVariable,&p_lt); CHKERRQ(ierr); // incremental adjoint variable for all t^j
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     PetscFunctionReturn(0);
 }

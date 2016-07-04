@@ -37,6 +37,8 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP,PetscInt,PetscReal,void*);
 PetscErrorCode InvertPrecondMatVec(Mat,Vec,Vec);
 
 PetscErrorCode ProjectGradient(KSP,Vec,void*);
+PetscErrorCode PreKrylovSolve(KSP,Vec,Vec,void*);
+PetscErrorCode PostKrylovSolve(KSP,Vec,Vec,void*);
 
 
 

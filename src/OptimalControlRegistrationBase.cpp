@@ -406,6 +406,7 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
 
 
 
+
 /********************************************************************
  * @brief allocate regularization model
  *******************************************************************/
@@ -466,6 +467,88 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization()
 
 
 
+
+/********************************************************************
+ * @brief pre-processing before the krylov solve
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "PreKrylovSolve"
+PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    // switch between hessian operators
+    switch (this->m_Opt->GetHessianMatVecType()){
+        case DEFAULTMATVEC:
+        {
+            // do nothing
+            break;
+        }
+        case PRECONDMATVEC:
+        {
+            ierr=this->ApplyInvRegOp(g,g); CHKERRQ(ierr);
+            break;
+        }
+        case PRECONDMATVECSYM:
+        {
+            ierr=this->ApplyProjectionOperator(g,true); CHKERRQ(ierr);
+            break;
+        }
+        default:
+        {
+            ierr=ThrowError("something wrong with the setup"); CHKERRQ(ierr);
+            break;
+        }
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief post-processing after the krylov solve
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "PostKrylovSolve"
+PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    // switch between hessian operators
+    switch (this->m_Opt->GetHessianMatVecType()){
+        case DEFAULTMATVEC:
+        {
+            // do nothing
+            break;
+        }
+        case PRECONDMATVEC:
+        {
+            // do nothing
+            break;
+        }
+        case PRECONDMATVECSYM:
+        {
+            ierr=this->ApplyProjectionOperator(x,true); CHKERRQ(ierr);
+            ierr=this->ApplyProjectionOperator(g,false); CHKERRQ(ierr);
+            break;
+        }
+        default:
+        {
+            ierr=ThrowError("something wrong with the setup"); CHKERRQ(ierr);
+            break;
+        }
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
 /********************************************************************
  * @brief applies inverse regularization operator
  *******************************************************************/
@@ -503,6 +586,60 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
 
 
 
+
+/********************************************************************
+ * @brief apply projection operator (this is for the analytically/
+ * spectrally preconditioned hessian; it applies the projection
+ * operator to the search direction and the gradient)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ApplyProjectionOperator"
+PetscErrorCode OptimalControlRegistrationBase::ApplyProjectionOperator(Vec x, bool inverse)
+{
+    PetscErrorCode ierr;
+    bool usesqrt=true;
+    PetscFunctionBegin;
+
+    if (this->m_WorkVecField1 == NULL){
+        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL){
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_Regularization == NULL){
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    // set components
+    ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+
+
+    if (inverse){
+        // apply sqrt of inverse regularization operator
+        ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,
+                                                this->m_WorkVecField1,
+                                                usesqrt); CHKERRQ(ierr);
+    }
+    else{
+
+        // apply sqrt of inverse regularization operator
+        ierr=this->m_Regularization->HessianMatVec(this->m_WorkVecField2,
+                                                   this->m_WorkVecField1,
+                                                   usesqrt); CHKERRQ(ierr);
+
+    }
+
+    ierr=this->m_WorkVecField2->GetComponents(x); CHKERRQ(ierr);
+
+
+    PetscFunctionReturn(0);
+}
 
 
 /********************************************************************
@@ -566,7 +703,6 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
         ierr=VecSet(this->m_TemplateImage,0.0); CHKERRQ(ierr);
 
     }
-
 
     ierr=VecGetArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
@@ -739,8 +875,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
 
     }
 
-    ss  << "||v||_infty = " << std::scientific << std::fixed << vmax
-        << " nt_CFL = " << ntcfl;
+    ss<<"||v||_infty = "<<std::scientific<<std::fixed<<vmax<<" nt_CFL = "<<ntcfl;
     ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
 
 

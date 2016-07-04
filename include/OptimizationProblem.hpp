@@ -65,8 +65,14 @@ public:
     /*! apply Hessian matvec H\tilde{\vect{v}} */
     virtual PetscErrorCode HessianMatVec(Vec,Vec) = 0;
 
+    /*! pre processing before krylov solve */
+    virtual PetscErrorCode PreKrylovSolve(Vec,Vec) = 0;
+
+    /*! post processing after krylov solve */
+    virtual PetscErrorCode PostKrylovSolve(Vec,Vec) = 0;
+
     /*! apply inverse regularization operator */
-    virtual PetscErrorCode ApplyInvRegOp(Vec, Vec) = 0;
+    virtual PetscErrorCode ApplyInvRegOp(Vec,Vec) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec) = 0;

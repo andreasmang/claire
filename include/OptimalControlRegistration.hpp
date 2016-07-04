@@ -139,9 +139,9 @@ protected:
 
 private:
 
-    PetscErrorCode HessianMatVec(Vec);
-    PetscErrorCode PrecondHessianMatVec(Vec);
-    PetscErrorCode PrecondHessianMatVecSym(Vec);
+    PetscErrorCode HessMatVec(Vec,Vec);
+    PetscErrorCode PrecondHessMatVec(Vec,Vec);
+    PetscErrorCode PrecondHessMatVecSym(Vec,Vec);
 
 };
 

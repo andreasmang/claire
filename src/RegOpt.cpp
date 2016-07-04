@@ -670,8 +670,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.maxit  = 1000; // maximal iterations
     this->m_KrylovSolverPara.reltol = 1E-12; // relative tolerance (actually computed in solver)
     this->m_KrylovSolverPara.fseqtype = QDFS;
-    //this->m_KrylovSolverPara.pctype = NOPC;
-    this->m_KrylovSolverPara.pctype = INVREG;
+    this->m_KrylovSolverPara.pctype = NOPC;
+    //this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.solver = PCG;
     this->m_KrylovSolverPara.pcsolver = CHEB;
     this->m_KrylovSolverPara.pcsolvertol = 1E-1;
@@ -684,8 +684,9 @@ PetscErrorCode RegOpt::Initialize()
     this->m_OptPara.method = GAUSSNEWTON;
 
     this->m_SolveType = NOTSET;
-    this->m_HessianMatVecType = DEFAULTMATVEC;
-    //this->m_HessianMatVecType = PRECONDMATVEC;
+    //this->m_HessianMatVecType = DEFAULTMATVEC;
+    this->m_HessianMatVecType = PRECONDMATVEC;
+    //this->m_HessianMatVecType = PRECONDMATVECSYM;
 
     // flags
     this->m_RegFlags.readimages = false; ///< read images

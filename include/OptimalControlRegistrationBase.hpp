@@ -106,6 +106,12 @@ public:
     /*! apply Hessian matvec H\tilde{\vect{v}} */
     virtual PetscErrorCode HessianMatVec(Vec,Vec) = 0;
 
+    /*! pre processing before krylov solve */
+    PetscErrorCode PreKrylovSolve(Vec,Vec);
+
+    /*! post processing after krylov solve */
+    PetscErrorCode PostKrylovSolve(Vec,Vec);
+
     /*! apply inverse regularization operator */
     PetscErrorCode ApplyInvRegOp(Vec, Vec);
 
@@ -137,7 +143,7 @@ protected:
     PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator
     PetscErrorCode ComputeDeformationMapSL(); ///< implementation via SL time integrator
 
-    /* ! apply 2 level preconditioner */
+    /* ! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
     Vec m_TemplateImage; ///< data container for reference image mR
@@ -166,6 +172,7 @@ protected:
 
 private:
 
+    PetscErrorCode ApplyProjectionOperator(Vec,bool);
 
 
 };

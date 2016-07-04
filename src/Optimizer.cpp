@@ -275,13 +275,14 @@ PetscErrorCode Optimizer::SetupTao()
         ierr=KSPSetNormType(this->m_KrylovMethod,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
         //ierr=KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
 
-        //ierr=KSPSetType(this->m_KrylovMethod,KSPGMRES); CHKERRQ(ierr);
-        ierr=KSPSetType(this->m_KrylovMethod,KSPCG); CHKERRQ(ierr);
+        ierr=KSPSetType(this->m_KrylovMethod,KSPGMRES); CHKERRQ(ierr);
+        //ierr=KSPSetType(this->m_KrylovMethod,KSPCG); CHKERRQ(ierr);
         //ierr=KSPSetType(this->m_KrylovMethod,KSPCHEBYSHEV); CHKERRQ(ierr);
 
         // apply projection operator to gradient
         // TODO: this does not work, vor whatever reason
-        ierr=KSPSetComputeRHS(this->m_KrylovMethod,ProjectGradient,this->m_OptimizationProblem);
+        ierr=KSPSetPostSolve(this->m_KrylovMethod,PostKrylovSolve,this->m_OptimizationProblem);
+        ierr=KSPSetPreSolve(this->m_KrylovMethod,PreKrylovSolve,this->m_OptimizationProblem);
 
         // set krylov monitor
         if(this->m_Opt->GetVerbosity() >= 2){
