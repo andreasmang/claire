@@ -61,14 +61,11 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
     PetscErrorCode ierr;
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
-    ScalarType sqrtbeta[2],ipxi,scale,hd;
+    ScalarType sqrtbeta[2],ipxi,scale;
     int isize[3],osize[3],istart[3],ostart[3],nx[3];
     IntType iosize[3];
     double ffttimers[5]={0,0,0,0,0};
     PetscFunctionBegin;
-
-    // compute hd
-    hd = this->m_Opt->GetLebesqueMeasure();
 
     // get regularization weight
     sqrtbeta[0] = sqrt(this->m_Opt->GetRegNorm().beta[0]);
@@ -124,7 +121,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
 
         #pragma omp for
         for (IntType i1 = 0; i1 < iosize[0]; ++i1){
-            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+            for (IntType i2 = 0; i2 < iosize[1]; ++i2){
                 for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
@@ -175,12 +172,11 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         ierr=VecTDot(this->m_WorkVecField->m_X1,this->m_WorkVecField->m_X1,&ipxi); CHKERRQ(ierr); *R += ipxi;
         ierr=VecTDot(this->m_WorkVecField->m_X2,this->m_WorkVecField->m_X2,&ipxi); CHKERRQ(ierr); *R += ipxi;
         ierr=VecTDot(this->m_WorkVecField->m_X3,this->m_WorkVecField->m_X3,&ipxi); CHKERRQ(ierr); *R += ipxi;
-
-
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(ffttimers);
+
         // multiply with regularization weight
-        *R *= 0.5*hd;
+        *R *= 0.5;
     }
 
     PetscFunctionReturn(0);
@@ -194,23 +190,20 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateGradient"
-PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v, bool applysqrt)
+PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],nx[3];
     IntType iosize[3];
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
-    ScalarType beta[2],hd,scale;
+    ScalarType beta[2],scale;
     double ffttimers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
     ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvR != NULL,"null pointer"); CHKERRQ(ierr);
-
-    // compute hd
-    hd = this->m_Opt->GetLebesqueMeasure();
 
     // get regularization weight
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
@@ -255,12 +248,12 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
 #pragma omp parallel
 {
         long int w[3];
-        ScalarType biharik,regop;
+        ScalarType lapik,regop;
         IntType i;
 
 #pragma omp for
         for (IntType i1 = 0; i1 < iosize[0]; ++i1){
-            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+            for (IntType i2 = 0; i2 < iosize[1]; ++i2){
                 for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
@@ -270,15 +263,12 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
                     CheckWaveNumbers(w,nx);
 
                     // compute bilaplacian operator
-                    biharik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-                    biharik *= biharik;
+                    lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = beta[0]*biharik + beta[1];
+                    regop = scale*(beta[0]*(lapik*lapik) + beta[1]);
 
-                    if (applysqrt) regop = sqrt(regop); // \Gamma^{1/2}
-                    regop *= scale; // scale with fft weight
-
+                    // get linear index
                     i=GetLinearIndex(i1,i2,i3,iosize);
 
                     // apply to individual components
@@ -311,9 +301,6 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
         ierr=VecRestoreArray(dvR->m_X2,&p_Lv2); CHKERRQ(ierr);
         ierr=VecRestoreArray(dvR->m_X3,&p_Lv3); CHKERRQ(ierr);
 
-        // scale vector field
-        ierr=dvR->Scale(hd); CHKERRQ(ierr);
-
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(ffttimers);
     }
@@ -330,7 +317,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianMatVec"
-PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecField* vtilde, bool applysqrt)
+PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecField* vtilde)
 {
     PetscErrorCode ierr;
     ScalarType beta;
@@ -347,7 +334,7 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
         ierr=VecSet(dvvR->m_X2,0.0); CHKERRQ(ierr);
         ierr=VecSet(dvvR->m_X3,0.0); CHKERRQ(ierr);
     }
-    else{ ierr=this->EvaluateGradient(dvvR,vtilde,applysqrt); CHKERRQ(ierr); }
+    else{ ierr=this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 }
@@ -419,12 +406,12 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
 #pragma omp parallel
 {
         long int w[3];
-        ScalarType biharik,regop;
+        ScalarType lapik,regop;
         IntType i;
 
 #pragma omp for
         for (IntType i1 = 0; i1 < iosize[0]; ++i1){
-            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+            for (IntType i2 = 0; i2 < iosize[1]; ++i2){
                 for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
@@ -434,11 +421,10 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
                     CheckWaveNumbersInv(w,nx);
 
                     // compute bilaplacian operator
-                    biharik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-                    biharik *= biharik;
+                    lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = beta[0]*biharik + beta[1];
+                    regop = beta[0]*(lapik*lapik) + beta[1];
 
                     if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
@@ -482,9 +468,6 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
 
     PetscFunctionReturn(0);
 }
-
-
-
 
 
 

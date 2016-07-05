@@ -65,13 +65,10 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
                 *p_gv31=NULL,*p_gv32=NULL,*p_gv33=NULL;
     double ffttimers[5]={0,0,0,0,0};
     std::bitset<3>XYZ=0; XYZ[0]=1; XYZ[1]=1; XYZ[2]=1;
-    ScalarType beta,hd,value;
+    ScalarType beta,value;
     PetscFunctionBegin;
 
     ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
-
-    // compute hd
-    hd = this->m_Opt->GetLebesqueMeasure();
 
     // get regularization parameter
     beta = this->m_Opt->GetRegNorm().beta[0];
@@ -158,7 +155,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
         ierr=VecRestoreArray(v->m_X3,&p_v3); CHKERRQ(ierr);
 
         // multiply with regularization weight
-        *R = 0.5*hd*beta*(*R);
+        *R = 0.5*beta*(*R);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(ffttimers);
@@ -175,14 +172,14 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateGradient"
-PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, VecField* v, bool applysqrt)
+PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, VecField* v)
 {
     PetscErrorCode ierr;
     int isize[3],osize[3],istart[3],ostart[3],nx[3];
     IntType iosize[3];
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
-    ScalarType beta,scale,hd;
+    ScalarType beta,scale;
     double ffttimers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
@@ -236,7 +233,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
 
 #pragma omp for
         for (IntType i1 = 0; i1 < iosize[0]; ++i1){
-            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+            for (IntType i2 = 0; i2 < iosize[1]; ++i2){
                 for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);
@@ -249,11 +246,9 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = -beta*lapik;
+                    regop = -scale*beta*lapik;
 
-                    if (applysqrt) regop = sqrt(regop); // \Gamma^{1/2}
-                    regop *= scale; // scale with fft weight
-
+                    // get linear index
                     i=GetLinearIndex(i1,i2,i3,iosize);
 
                     // apply to individual components
@@ -289,12 +284,6 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(ffttimers);
 
-        // compute hd
-        hd = this->m_Opt->GetLebesqueMeasure();
-
-        // scale vector field
-        ierr=dvR->Scale(hd); CHKERRQ(ierr);
-
     }
 
     PetscFunctionReturn(0);
@@ -309,7 +298,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianMatVec"
-PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, VecField* vtilde, bool applysqrt)
+PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, VecField* vtilde)
 {
     PetscErrorCode ierr;
     ScalarType beta;
@@ -326,7 +315,7 @@ PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, Vec
         ierr=VecSet(dvvR->m_X2,0.0); CHKERRQ(ierr);
         ierr=VecSet(dvvR->m_X3,0.0); CHKERRQ(ierr);
     }
-    else{ ierr=this->EvaluateGradient(dvvR,vtilde,applysqrt); CHKERRQ(ierr); }
+    else{ ierr=this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr); }
 
     PetscFunctionReturn(0);
 }
@@ -402,7 +391,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
 
 #pragma omp for
         for (IntType i1 = 0; i1 < iosize[0]; ++i1){
-            for (IntType i2 = 0; i2 < iosize[1]; i2++){
+            for (IntType i2 = 0; i2 < iosize[1]; ++i2){
                 for (IntType i3 = 0; i3 < iosize[2]; ++i3){
 
                     w[0] = static_cast<long int>(i1 + ostart[0]);

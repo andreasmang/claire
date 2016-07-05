@@ -38,8 +38,8 @@ public:
     ~RegularizationRegistrationH1(void);
 
     PetscErrorCode EvaluateFunctional(ScalarType*,VecField*);
-    PetscErrorCode EvaluateGradient(VecField*,VecField*,bool applysqrt=false);
-    PetscErrorCode HessianMatVec(VecField*,VecField*,bool applysqrt=false);
+    PetscErrorCode EvaluateGradient(VecField*,VecField*);
+    PetscErrorCode HessianMatVec(VecField*,VecField*);
     PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false);
 
 protected:

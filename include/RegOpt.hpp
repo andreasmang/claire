@@ -164,6 +164,11 @@ enum RegModel
 };
 
 
+
+
+
+
+
 /* parameters for domain */
 struct Domain{
     IntType isize[3]; ///< size of grid in spatial domain for mpi proc
@@ -191,17 +196,16 @@ struct KrylovSolver{
     ScalarType tol[3];
     FSeqType fseqtype; ///<forcing sequence type
     KrylovSolverType solver;
+    std::string name;
     ScalarType reltol;
     PrecondMeth pctype;
+    std::string pcname;
     KrylovSolverType pcsolver;
     ScalarType pcsolvertol;
     ScalarType g0norm;
     bool g0normset;
     int pcsolvermaxit;
 };
-
-
-
 
 
 /* parameter for parameter continuation (regularization parameter) */
@@ -333,7 +337,6 @@ public:
 
     inline std::string GetTemplateFN(void){return this->m_TemplateFN;};
     inline std::string GetReferenceFN(void){return this->m_ReferenceFN;};
-
 
     // registration model
     inline RegModel GetRegModel(void){return this->m_RegModel;};

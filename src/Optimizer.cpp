@@ -275,9 +275,14 @@ PetscErrorCode Optimizer::SetupTao()
         ierr=KSPSetNormType(this->m_KrylovMethod,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
         //ierr=KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
 
-        ierr=KSPSetType(this->m_KrylovMethod,KSPGMRES); CHKERRQ(ierr);
-        //ierr=KSPSetType(this->m_KrylovMethod,KSPCG); CHKERRQ(ierr);
-        //ierr=KSPSetType(this->m_KrylovMethod,KSPCHEBYSHEV); CHKERRQ(ierr);
+        // set the kylov method
+        if (this->m_Opt->GetKrylovSolverPara().solver==GMRES){
+            ierr=KSPSetType(this->m_KrylovMethod,KSPGMRES); CHKERRQ(ierr);
+        }
+        else if (this->m_Opt->GetKrylovSolverPara().solver==PCG){
+            ierr=KSPSetType(this->m_KrylovMethod,KSPCG); CHKERRQ(ierr);
+        }
+        else{ ierr=ThrowError("interface for solver not provided"); CHKERRQ(ierr); }
 
         // apply projection operator to gradient
         // TODO: this does not work, vor whatever reason
@@ -298,8 +303,8 @@ PetscErrorCode Optimizer::SetupTao()
             ierr=PCSetType(preconditioner,PCNONE); CHKERRQ(ierr);
 
         }
-        else if (  (this->m_Opt->GetKrylovSolverPara().pctype == INVREG)
-                || (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) ) {
+        else if (  ( this->m_Opt->GetKrylovSolverPara().pctype == INVREG   )
+                || ( this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL ) ) {
 
             // allocate preconditioner
             try{ this->m_Precond = new PrecondReg(this->m_Opt); }

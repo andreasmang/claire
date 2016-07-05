@@ -528,7 +528,7 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag)
         }
         default:
         {
-            msg="TAO: convergence reason not defined";
+            msg="convergence reason not defined";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }

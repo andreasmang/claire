@@ -20,13 +20,18 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod,IntType it,ScalarType rnorm,void* 
 {
     PetscErrorCode ierr;
     (void)krylovmethod;
+    OptimizationProblem* optprob;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    kspmeth="PCG  "; itss << std::setw(5) << it; rnss << std::scientific << rnorm;
-    msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
+    optprob = (OptimizationProblem*)ptr;
+    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    kspmeth = optprob->GetOptions()->GetKrylovSolverPara().name;
+    itss << std::setw(5) << it; rnss << std::scientific << rnorm;
+    msg = kspmeth + "   " + itss.str() + "  ||r||_2 = " + rnss.str();
     ierr=DbgMsg(msg); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -45,15 +50,17 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod,IntType it,ScalarType
 {
     PetscErrorCode ierr;
     (void)krylovmethod;
-    //PrecondReg *preconditioner = NULL;
+    PrecondReg *precond = NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    //preconditioner = (PrecondReg*)ptr;
+    precond = (PrecondReg*)ptr;
+    ierr=Assert(precond!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    kspmeth=" >> PC  "; itss << std::setw(5) << it; rnss << std::scientific << rnorm;
+    kspmeth = " >> PC " + precond->GetOptions()->GetKrylovSolverPara().pcname;
+    itss << std::setw(5) << it; rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
     ierr=DbgMsg(msg); CHKERRQ(ierr);
 
@@ -102,7 +109,7 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px)
 PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 {
     PetscErrorCode ierr;
-    ScalarType gnorm,g0norm,reltol,abstol,divtol,
+    ScalarType gnorm=0.0,g0norm=0.0,reltol,abstol,divtol,
                 uppergradbound,lowergradbound;
     IntType maxit;
     std::stringstream ss;
@@ -119,6 +126,13 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
     optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
+    if (optprob->GetOptions()->GetHessianMatVecType() == PRECONDMATVEC){
+        // get current gradient and compute norm
+        // before we apply the preconditioner to
+        // the right hand side
+        ierr=VecNorm(b,NORM_2,&gnorm); CHKERRQ(ierr);
+    }
+
     // apply pre processing to right hand side and initial condition
     ierr=optprob->PreKrylovSolve(b,x); CHKERRQ(ierr);
 
@@ -126,13 +140,16 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
     // for solution of KKT system (Eisenstat-Walker)
     if(optprob->GetOptions()->GetKrylovSolverPara().fseqtype != NOFS){
 
-        // get current gradient and compute norm
-        ierr=VecNorm(b,NORM_2,&gnorm); CHKERRQ(ierr);
+        if (gnorm == 0.0){
+            // get current gradient and compute norm
+            ierr=VecNorm(b,NORM_2,&gnorm); CHKERRQ(ierr);
+        }
 
         if (!optprob->GetOptions()->GetKrylovSolverPara().g0normset){
             if(optprob->GetOptions()->GetVerbosity() > 1){
                 ss << std::fixed << std::scientific << gnorm;
-                msg="setting initial ||g|| in krylov method (" + ss.str() + ")";
+                msg = optprob->GetOptions()->GetKrylovSolverPara().name +
+                    ": setting initial ||g|| in krylov method (" + ss.str() + ")";
                 ierr=DbgMsg(msg); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
@@ -169,7 +186,8 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 
     if(optprob->GetOptions()->GetVerbosity() > 1){
         ss << std::fixed << std::scientific << reltol;
-        msg = "computing solution of KKT system (tol=" + ss.str() + ")";
+        msg = optprob->GetOptions()->GetKrylovSolverPara().name +
+              ": computing solution of hessian system (tol=" + ss.str() + ")";
         ierr=DbgMsg(msg); CHKERRQ(ierr);
     }
 
@@ -178,7 +196,6 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -229,25 +246,25 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
     switch(flag){
         case KSP_CONVERGED_RTOL_NORMAL:
         {
-            msg="KSP convergence ||r||_2 < tol ||b||_2";
+            msg="converged: ||r||_2 < tol ||b||_2";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_ATOL_NORMAL:
         {
-            msg="KSP convergence ||r||_2 < tol";
+            msg="converged: ||r||_2 < tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_RTOL:
         {
-            msg="KSP convergence ||r||_2 < tol ||b||_2";
+            msg="converged: ||r||_2 < tol ||b||_2";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_ATOL:
         {
-            msg="KSP convergence ||r||_2 < tol";
+            msg="converged: ||r||_2 < tol";
             ierr=DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -255,49 +272,49 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         {
             //used by the KSPPREONLY solver after the single iteration of
             //the preconditioner is applied
-            msg="KSP convergence k > maxit (KSPPREONLY)";
+            msg="converged: k > maxit (KSPPREONLY)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_CG_NEG_CURVE:
         {
-            msg="KSP negative curvature detected";
+            msg="negative curvature detected";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_CG_CONSTRAINED:
         {
-            msg="KSP convergence is reached along a constrained (full step goes beyond trust region)";
+            msg="convergence is reached along a constrained (full step goes beyond trust region)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_STEP_LENGTH:
         {
-            msg="KSP converged step length";
+            msg="converged step length";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_CONVERGED_HAPPY_BREAKDOWN:
         {
-            msg="KSP converged happy break down";
+            msg="converged happy break down";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_NULL:
         {
-            msg="KSP divergence detected";
+            msg="divergence detected";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_ITS:
         {
-            msg="KSP max number of iterations reached";
+            msg="max number of iterations reached";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_DTOL:
         {
-            msg="KSP divergence detected (||r||_2 increased by a factor of divtol)";
+            msg="divergence detected (||r||_2 increased by a factor of divtol)";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -306,37 +323,37 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
             //breakdown in Krylov method was detected
             //method could not continue to enlarge Krylov subspace;
             //could be due to a singlular matrix or preconditioner
-            msg="KSP generic breakdown; potential singular operator";
+            msg="generic breakdown; potential singular operator";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_BREAKDOWN_BICG:
         {
-            msg="KSP initial ||r||_2 is orthogonal to preconditioned residual";
+            msg="initial ||r||_2 is orthogonal to preconditioned residual";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_NONSYMMETRIC:
         {
-            msg="KSP operators (A or P) are not symmetric";
+            msg="operators (A or P) are not symmetric";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_INDEFINITE_PC:
         {
-            msg="KSP preconditioner is indefinite";
+            msg="preconditioner is indefinite";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_NANORINF:
         {
-            msg="KSP: ||r||_2 is NAN or INF";
+            msg="||r||_2 is NAN or INF";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case KSP_DIVERGED_INDEFINITE_MAT:
         {
-            msg="KSP A is indefinite";
+            msg="A is indefinite";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -347,7 +364,7 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag)
         }
         default:
         {
-            msg="KSP convergence reason not defined";
+            msg="convergence reason not defined";
             ierr=WrngMsg(msg); CHKERRQ(ierr);
             break;
         }

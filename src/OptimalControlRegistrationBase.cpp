@@ -530,7 +530,7 @@ PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x)
         }
         case PRECONDMATVECSYM:
         {
-            ierr=this->ApplyProjectionOperator(g,true); CHKERRQ(ierr);
+            ierr=this->ApplyInvRegOpSqrt(g); CHKERRQ(ierr);
             break;
         }
         default:
@@ -570,8 +570,7 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
         }
         case PRECONDMATVECSYM:
         {
-            ierr=this->ApplyProjectionOperator(x,true); CHKERRQ(ierr);
-//            ierr=this->ApplyProjectionOperator(g,false); CHKERRQ(ierr);
+            ierr=this->ApplyInvRegOpSqrt(x); CHKERRQ(ierr);
             break;
         }
         default:
@@ -593,8 +592,8 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
  * operator to the search direction and the gradient)
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ApplyProjectionOperator"
-PetscErrorCode OptimalControlRegistrationBase::ApplyProjectionOperator(Vec x, bool inverse)
+#define __FUNCT__ "ApplyInvRegOpSqrt"
+PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOpSqrt(Vec x)
 {
     PetscErrorCode ierr;
     bool usesqrt=true;
@@ -619,27 +618,18 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyProjectionOperator(Vec x, bo
     // set components
     ierr=this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
 
-
-    if (inverse){
-        // apply sqrt of inverse regularization operator
-        ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,
-                                                this->m_WorkVecField1,
-                                                usesqrt); CHKERRQ(ierr);
-    }
-    else{
-
-        // apply sqrt of inverse regularization operator
-        ierr=this->m_Regularization->HessianMatVec(this->m_WorkVecField2,
-                                                   this->m_WorkVecField1,
-                                                   usesqrt); CHKERRQ(ierr);
-
-    }
+    // apply sqrt of inverse regularization operator
+    ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,
+                                            this->m_WorkVecField1,
+                                            usesqrt); CHKERRQ(ierr);
 
     ierr=this->m_WorkVecField2->GetComponents(x); CHKERRQ(ierr);
 
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 /********************************************************************
@@ -824,9 +814,8 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
 PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
 {
     PetscErrorCode ierr;
-    ScalarType vmax,vmaxscaled;
     std::stringstream ss;
-    ScalarType hx[3],c;
+    ScalarType hx[3],c,vmax,vmaxscaled;
     IntType ntcfl;
     PetscFunctionBegin;
 

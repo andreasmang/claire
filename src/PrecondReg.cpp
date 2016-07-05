@@ -303,7 +303,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     if (this->m_MatVec != NULL){
         ierr=MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
         this->m_MatVec = NULL;
-     }
+    }
 
     ierr=MatCreateShell(PETSC_COMM_WORLD,3*nl,3*nl,3*ng,3*ng,this,&this->m_MatVec); CHKERRQ(ierr);
     ierr=MatShellSetOperation(this->m_MatVec,MATOP_MULT,(void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
@@ -331,7 +331,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
 PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
 {
     PetscErrorCode ierr;
-    ScalarType reltol,abstol,divtol;
+    ScalarType reltol,abstol,divtol,scale;
     IntType maxit;
 
     PetscFunctionBegin;
@@ -344,37 +344,37 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
     // check for null pointer
     ierr=Assert(this->m_KrylovMethod!=NULL,"null pointer"); CHKERRQ(ierr);
 
+    scale = this->m_Opt->GetKrylovSolverPara().pcsolvertol;
+
     switch (this->m_Opt->GetKrylovSolverPara().pcsolver){
         case CHEB:
         {
             // chebyshev iteration
-            maxit  = 10;
+            maxit = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
             break;
         }
         case PCG:
         {
             // preconditioned conjugate gradient
-            reltol  = this->m_Opt->GetKrylovSolverPara().reltol;
-            reltol *= this->m_Opt->GetKrylovSolverPara().pcsolvertol;
+            reltol = scale*this->m_Opt->GetKrylovSolverPara().reltol;
             break;
         }
         case FCG:
         {
             // flexible conjugate gradient
-            maxit  = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
+            maxit = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
             break;
         }
         case GMRES:
         {
             // GMRES
-            reltol  = this->m_Opt->GetKrylovSolverPara().reltol;
-            reltol *= this->m_Opt->GetKrylovSolverPara().pcsolvertol;
+            reltol = scale*this->m_Opt->GetKrylovSolverPara().reltol;
             break;
         }
         case FGMRES:
         {
             // flexible GMRES
-            maxit  = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
+            maxit = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
             break;
         }
         default:
@@ -384,7 +384,7 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
         }
     }
     reltol = std::max(reltol,1E-16); // make sure tolerance is non-zero
-    reltol = std::min(reltol,0.25); // make sure tolerance smaller than 0.25
+    reltol = std::min(reltol,0.5); // make sure tolerance smaller than 0.25
 
     // set tolerances
     ierr=KSPSetTolerances(this->m_KrylovMethod,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
@@ -404,21 +404,13 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
 PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
 {
     PetscErrorCode ierr;
-    //Vec Px;
     PetscFunctionBegin;
 
     // check if optimization problem is set up
     ierr=Assert(this->m_OptimizationProblem!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    //ierr=VecDuplicate(x,&Px); CHKERRQ(ierr);
-
-    // apply inverse regularization operator
-    //ierr=this->m_OptimizationProblem->ApplyInvRegOp(Px,x); CHKERRQ(ierr);
-    //ierr=this->m_OptimizationProblem->HessianMatVec(Hx,Px); CHKERRQ(ierr);
+    // apply hessian (hessian matvec)
     ierr=this->m_OptimizationProblem->HessianMatVec(Hx,x); CHKERRQ(ierr);
-
-
-    //ierr=VecDestroy(&Px); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 

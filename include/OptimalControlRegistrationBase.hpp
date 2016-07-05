@@ -143,6 +143,8 @@ protected:
     PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator
     PetscErrorCode ComputeDeformationMapSL(); ///< implementation via SL time integrator
 
+    PetscErrorCode ApplyInvRegOpSqrt(Vec);
+
     /* ! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
@@ -158,6 +160,7 @@ protected:
     VecField* m_WorkVecField2; ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField3; ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField4; ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField5; ///< data container for vector field (temporary variable)
 
     // regularization model
     ReadWriteType* m_ReadWrite;
@@ -172,7 +175,6 @@ protected:
 
 private:
 
-    PetscErrorCode ApplyProjectionOperator(Vec,bool);
 
 
 };

@@ -262,9 +262,11 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             argc--; argv++;
             if (strcmp(argv[1],"pcg") == 0){
                 this->m_KrylovSolverPara.solver = PCG;
+                this->m_KrylovSolverPara.name = "PCG";
             }
             else if (strcmp(argv[1],"gmres") == 0){
                 this->m_KrylovSolverPara.solver = GMRES;
+                this->m_KrylovSolverPara.name = "GMRES";
             }
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
@@ -288,7 +290,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
                 this->m_KrylovSolverPara.fseqtype = SLFS;
             }
             else {
-                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                msg="\n\x1b[31m forcing sequence not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
                 ierr=this->UsageRegistration(); CHKERRQ(ierr);
             }
@@ -305,7 +307,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
                 this->m_KrylovSolverPara.pctype = TWOLEVEL;
             }
             else {
-                msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                msg="\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
                 ierr=this->UsageRegistration(); CHKERRQ(ierr);
             }
@@ -320,12 +322,15 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             }
             else if (strcmp(argv[1],"gmres") == 0){
                 this->m_KrylovSolverPara.pcsolver = GMRES;
+                this->m_KrylovSolverPara.name = "GMRES";
             }
             else if (strcmp(argv[1],"fgmres") == 0){
                 this->m_KrylovSolverPara.pcsolver = FGMRES;
+                this->m_KrylovSolverPara.name = "FGMRES";
             }
             else if (strcmp(argv[1],"cheb") == 0){
                 this->m_KrylovSolverPara.pcsolver = CHEB;
+                this->m_KrylovSolverPara.name = "CHEB";
             }
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
@@ -889,12 +894,12 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         std::cout << " -xiterates                store/write out iterates (deformed template image and velocity field)"<<std::endl;
         std::cout << " -xiresults                store intermediate results/data (for scale, grid, and para continuation)"<<std::endl;
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
+        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         }
         // ####################### advanced options #######################
 
@@ -1658,13 +1663,13 @@ PetscErrorCode RegOpt::DisplayOptions()
             }
             case FULLNEWTON:
             {
-                std::cout<< "full newton method" << std::endl;
+                std::cout<< "newton method" << std::endl;
                 newtontype=true;
                 break;
             }
             case GAUSSNEWTON:
             {
-                std::cout<< "gauss newton method" << std::endl;
+                std::cout<< "gauss-newton method" << std::endl;
                 newtontype=true;
                 break;
             }
@@ -1694,8 +1699,21 @@ PetscErrorCode RegOpt::DisplayOptions()
 
             std::cout << std::left << std::setw(indent)
                       <<" hessian sytem"
-                      << std::setw(align) << "solver"
-                      << "PCG" << std::endl;
+                      << std::setw(align) << "solver";
+
+            switch(this->m_KrylovSolverPara.solver){
+                case PCG:
+                    this->m_KrylovSolverPara.name = "PCG";
+                    break;
+                case GMRES:
+                    this->m_KrylovSolverPara.name = "GMRES";
+                    break;
+                default:
+                    ierr=ThrowError("solver not defined"); CHKERRQ(ierr);
+                    break;
+            }
+
+            std::cout<< this->m_KrylovSolverPara.name << std::endl;
 
             std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) << "forcing sequence";
@@ -1728,13 +1746,83 @@ PetscErrorCode RegOpt::DisplayOptions()
                     break;
                 }
             }
-            std::cout << std::left << std::setw(indent) <<" "
-                      << std::setw(align) <<"divergence"
-                      << this->m_KrylovSolverPara.tol[2] << std::endl;
 
             std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) <<"maxit"
                       << this->m_KrylovSolverPara.maxit << std::endl;
+
+            bool twolevel=false;
+            std::cout << std::left << std::setw(indent) <<" "
+                      << std::setw(align) << "preconditioner";
+
+            switch(this->m_KrylovSolverPara.pctype){
+                case INVREG:
+                {
+                    std::cout << "regularization operator" << std::endl;
+                    break;
+                }
+                case TWOLEVEL:
+                {
+                    std::cout << "2-level multigrid" << std::endl;
+                    twolevel=true;
+                    break;
+                }
+                case NOPC:
+                {
+                    std::cout << "none" << std::endl;
+                    break;
+                }
+                default:
+                {
+                    ierr=ThrowError("preconditioner not defined"); CHKERRQ(ierr);
+                    break;
+                }
+            }
+
+            if (twolevel){
+
+                std::cout << std::left << std::setw(indent) <<" "
+                          << std::setw(align) << "solver (preconditioner)";
+
+                switch(this->m_KrylovSolverPara.pcsolver){
+                    case PCG:
+                    {
+                        this->m_KrylovSolverPara.pcname = "PCG";
+                        break;
+                    }
+                    case FCG:
+                    {
+                        this->m_KrylovSolverPara.pcname = "FPCG";
+                        break;
+                    }
+                    case GMRES:
+                    {
+                        this->m_KrylovSolverPara.pcname = "GMRES";
+                        break;
+                    }
+                    case FGMRES:
+                    {
+                        this->m_KrylovSolverPara.pcname = "FGMRES";
+                        break;
+                    }
+                    case CHEB:
+                    {
+                        this->m_KrylovSolverPara.pcname = "CHEB";
+                        break;
+                    }
+                    default:
+                    {
+                        ierr=ThrowError("solver not defined"); CHKERRQ(ierr);
+                        break;
+                    }
+                }
+                std::cout<< this->m_KrylovSolverPara.pcname << std::endl;
+
+            }
+
+/*          std::cout << std::left << std::setw(indent) <<" "
+                      << std::setw(align) <<"divergence"
+                      << this->m_KrylovSolverPara.tol[2] << std::endl;*/
 
         }
 
@@ -1755,11 +1843,12 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng)
 {
     PetscErrorCode ierr;
     int _nx[3],_isize[3],_istart[3],_osize[3],_ostart[3];
+
     PetscFunctionBegin;
 
-    ierr=Assert(nx[0] > 0,"error in size"); CHKERRQ(ierr);
-    ierr=Assert(nx[1] > 0,"error in size"); CHKERRQ(ierr);
-    ierr=Assert(nx[2] > 0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[0]>0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[1]>0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[2]>0,"error in size"); CHKERRQ(ierr);
 
     _nx[0] = static_cast<int>(nx[0]);
     _nx[1] = static_cast<int>(nx[1]);
@@ -1789,9 +1878,9 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize)
     int _nx[3],_isize[3],_istart[3],_osize[3],_ostart[3];
     PetscFunctionBegin;
 
-    ierr=Assert(nx[0] > 0,"error in size"); CHKERRQ(ierr);
-    ierr=Assert(nx[1] > 0,"error in size"); CHKERRQ(ierr);
-    ierr=Assert(nx[2] > 0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[0]>0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[1]>0,"error in size"); CHKERRQ(ierr);
+    ierr=Assert(nx[2]>0,"error in size"); CHKERRQ(ierr);
 
     _nx[0] = static_cast<int>(nx[0]);
     _nx[1] = static_cast<int>(nx[1]);
@@ -1823,7 +1912,6 @@ ScalarType RegOpt::ComputeFFTScale()
     return 1.0/scale;
 
 };
-
 
 
 
@@ -1888,7 +1976,6 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id)
 
 /********************************************************************
  * @brief start the timer (checks if running)
- * Author: Andreas Mang
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "StartTimer"
@@ -2181,7 +2268,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_Timer[PDEEXEC][MIN]
                 << std::setw(nnum) << this->m_Timer[PDEEXEC][MAX]
                 << std::setw(nnum) << this->m_Timer[PDEEXEC][AVG]
-                << std::setw(nnum) << this->m_Timer[PDEEXEC][MAX]/static_cast<ScalarType>(this->m_Counter[PDESOLVE]);
+                << std::setw(nnum) << this->m_Timer[PDEEXEC][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[PDESOLVE]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2194,7 +2282,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_Timer[OBJEXEC][MIN]
                 << std::setw(nnum) << this->m_Timer[OBJEXEC][MAX]
                 << std::setw(nnum) << this->m_Timer[OBJEXEC][AVG]
-                << std::setw(nnum) << this->m_Timer[PDEEXEC][MAX]/static_cast<ScalarType>(this->m_Counter[OBJEVAL]);
+                << std::setw(nnum) << this->m_Timer[PDEEXEC][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[OBJEVAL]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2206,7 +2295,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_Timer[GRADEXEC][MIN]
                 << std::setw(nnum) << this->m_Timer[GRADEXEC][MAX]
                 << std::setw(nnum) << this->m_Timer[GRADEXEC][AVG]
-                << std::setw(nnum) << this->m_Timer[GRADEXEC][MAX]/static_cast<ScalarType>(this->m_Counter[GRADEVAL]);
+                << std::setw(nnum) << this->m_Timer[GRADEXEC][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[GRADEVAL]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2219,7 +2309,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_Timer[HMVEXEC][MIN]
                 << std::setw(nnum) << this->m_Timer[HMVEXEC][MAX]
                 << std::setw(nnum) << this->m_Timer[HMVEXEC][AVG]
-                << std::setw(nnum) << this->m_Timer[HMVEXEC][MAX]/static_cast<ScalarType>(this->m_Counter[HESSMATVEC]);
+                << std::setw(nnum) << this->m_Timer[HMVEXEC][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[HESSMATVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2233,7 +2324,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_Timer[PMVSETUP][MIN]
                 << std::setw(nnum) << this->m_Timer[PMVSETUP][MAX]
                 << std::setw(nnum) << this->m_Timer[PMVSETUP][AVG]
-                << std::setw(nnum) << this->m_Timer[PMVSETUP][MAX]/static_cast<ScalarType>(this->m_Counter[PCMATVEC]);
+                << std::setw(nnum) << this->m_Timer[PMVSETUP][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[PCMATVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2247,7 +2339,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_Timer[PMVEXEC][MIN]
                 << std::setw(nnum) << this->m_Timer[PMVEXEC][MAX]
                 << std::setw(nnum) << this->m_Timer[PMVEXEC][AVG]
-                << std::setw(nnum) << this->m_Timer[PMVEXEC][MAX]/static_cast<ScalarType>(this->m_Counter[PCMATVEC]);
+                << std::setw(nnum) << this->m_Timer[PMVEXEC][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[PCMATVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2273,7 +2366,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_FFTTimers[2][MIN]
                 << std::setw(nnum) << this->m_FFTTimers[2][MAX]
                 << std::setw(nnum) << this->m_FFTTimers[2][AVG]
-                << std::setw(nnum) << this->m_FFTTimers[2][MAX]/static_cast<ScalarType>(this->m_Counter[FFT]);
+                << std::setw(nnum) << this->m_FFTTimers[2][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[FFT]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2286,7 +2380,8 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_FFTTimers[4][MIN]
                 << std::setw(nnum) << this->m_FFTTimers[4][MAX]
                 << std::setw(nnum) << this->m_FFTTimers[4][AVG]
-                << std::setw(nnum) << this->m_FFTTimers[4][MAX]/static_cast<ScalarType>(this->m_Counter[FFT]);
+                << std::setw(nnum) << this->m_FFTTimers[4][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[FFT]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2299,7 +2394,9 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_InterpTimers[0][MIN]
                 << std::setw(nnum) << this->m_InterpTimers[0][MAX]
                 << std::setw(nnum) << this->m_InterpTimers[0][AVG]
-                << std::setw(nnum) << this->m_InterpTimers[0][MAX]/static_cast<ScalarType>(this->m_Counter[IP] + this->m_Counter[IPVEC]);
+                << std::setw(nnum) << this->m_InterpTimers[0][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[IP]
+                                    + this->m_Counter[IPVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2312,7 +2409,9 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_InterpTimers[1][MIN]
                 << std::setw(nnum) << this->m_InterpTimers[1][MAX]
                 << std::setw(nnum) << this->m_InterpTimers[1][AVG]
-                << std::setw(nnum) << this->m_InterpTimers[1][MAX]/static_cast<ScalarType>(this->m_Counter[IP] + this->m_Counter[IPVEC]);
+                << std::setw(nnum) << this->m_InterpTimers[1][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[IP]
+                                    + this->m_Counter[IPVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2325,7 +2424,9 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_InterpTimers[2][MIN]
                 << std::setw(nnum) << this->m_InterpTimers[2][MAX]
                 << std::setw(nnum) << this->m_InterpTimers[2][AVG]
-                << std::setw(nnum) << this->m_InterpTimers[2][MAX]/static_cast<ScalarType>(this->m_Counter[IP] + this->m_Counter[IPVEC]);
+                << std::setw(nnum) << this->m_InterpTimers[2][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[IP]
+                                    + this->m_Counter[IPVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
@@ -2338,7 +2439,9 @@ PetscErrorCode RegOpt::WriteLogFile()
                 << std::setw(nnum) << this->m_InterpTimers[3][MIN]
                 << std::setw(nnum) << this->m_InterpTimers[3][MAX]
                 << std::setw(nnum) << this->m_InterpTimers[3][AVG]
-                << std::setw(nnum) << this->m_InterpTimers[3][MAX]/static_cast<ScalarType>(this->m_Counter[IP] + this->m_Counter[IPVEC]);
+                << std::setw(nnum) << this->m_InterpTimers[3][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[IP]
+                                    + this->m_Counter[IPVEC]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }

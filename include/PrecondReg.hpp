@@ -51,6 +51,8 @@ public:
     /*! apply hessian (for inversion) */
     PetscErrorCode HessianMatVec(Vec,Vec);
 
+    inline RegOpt* GetOptions(){ return this->m_Opt; };
+
 protected:
 
     /*! init class variables (called by constructor) */
