@@ -25,6 +25,9 @@
 #include "RegUtils.hpp"
 #include "KrylovInterfaceReg.hpp"
 #include "OptimizationProblem.hpp"
+#include "OptimalControlRegistration.hpp"
+#include "OptimalControlRegistrationIC.hpp"
+#include "OptimalControlRegistrationRelaxedIC.hpp"
 
 
 namespace reg
@@ -45,13 +48,14 @@ public:
     /*! set optimization problem */
     PetscErrorCode SetProblem(OptProbType*);
 
+    /*! get parameters */
+    inline RegOpt* GetOptions(){ return this->m_Opt; };
+
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec,Vec);
 
     /*! apply hessian (for inversion) */
     PetscErrorCode HessianMatVec(Vec,Vec);
-
-    inline RegOpt* GetOptions(){ return this->m_Opt; };
 
 protected:
 
@@ -61,11 +65,10 @@ protected:
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
 
-
 private:
 
     /*! setup two level preconditioner */
-    PetscErrorCode Setup2LevelPC();
+    PetscErrorCode SetUp2LevelPC();
 
     /*! setup two level preconditioner */
     PetscErrorCode SetupKrylovMethod();
@@ -73,14 +76,19 @@ private:
     /*! setup two level preconditioner */
     PetscErrorCode SetTolerancesKrylovMethod();
 
-
     PetscErrorCode ApplyInvRegPC(Vec,Vec);
     PetscErrorCode Apply2LevelPC(Vec,Vec);
 
+
     RegOpt* m_Opt; ///< registration options
-    KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
     Mat m_MatVec; ///< mat vec object (PETSc)
-    OptProbType* m_OptimizationProblem; ///< pointer to optimization problem
+    OptProbType* m_OptProb; ///< pointer to optimization problem
+
+    OptProbType* m_OptProbCoarse; ///< pointer to optimization problem (coarse level)
+    VecField* m_VelocityFieldCoarse; ///< pointer to optimization problem (coarse level)
+
+
+    KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
 
 };
 

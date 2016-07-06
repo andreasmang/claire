@@ -61,8 +61,11 @@ PetscErrorCode PrecondReg::Initialize()
     PetscFunctionBegin;
 
     this->m_Opt = NULL;
-    this->m_KrylovMethod = NULL;
     this->m_MatVec = NULL;
+    this->m_KrylovMethod = NULL;
+
+    this->m_OptProbCoarse = NULL;
+    this->m_VelocityFieldCoarse = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -90,6 +93,15 @@ PetscErrorCode PrecondReg::ClearMemory()
         this->m_MatVec = NULL;
      }
 
+    if (this->m_OptProbCoarse != NULL){
+        delete this->m_OptProbCoarse;
+        this->m_OptProbCoarse=NULL;
+    }
+
+    if (this->m_VelocityFieldCoarse != NULL){
+        delete this->m_VelocityFieldCoarse;
+        this->m_VelocityFieldCoarse=NULL;
+    }
     PetscFunctionReturn(0);
 }
 
@@ -109,7 +121,7 @@ PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob)
     PetscFunctionBegin;
 
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
-    this->m_OptimizationProblem = optprob;
+    this->m_OptProb = optprob;
 
     PetscFunctionReturn(0);
 }
@@ -176,13 +188,13 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x)
     PetscFunctionBegin;
 
     // check if optimization problem is set up
-    ierr=Assert(this->m_OptimizationProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // start timer
     ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
     // apply inverse regularization operator
-    ierr=this->m_OptimizationProblem->ApplyInvRegOp(Px,x); CHKERRQ(ierr);
+    ierr=this->m_OptProb->ApplyInvRegOp(Px,x); CHKERRQ(ierr);
 
     // stop timer
     ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
@@ -205,7 +217,10 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
     PetscFunctionBegin;
 
     // check if optimization problem is set up
-    ierr=Assert(this->m_OptimizationProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // setup preconditioner
+    ierr=this->SetUp2LevelPC(); CHKERRQ(ierr);
 
     // do setup
     if (this->m_KrylovMethod == NULL){
@@ -230,7 +245,84 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
 
 
 /********************************************************************
- * @brief do setup for two level preconditioner
+ * @brief setup 2 level preconditioner
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetUp2LevelPC"
+PetscErrorCode PrecondReg::SetUp2LevelPC()
+{
+    PetscErrorCode ierr;
+    Vec m=NULL,lambda=NULL;
+    PetscFunctionBegin;
+
+    // check if optimization problem is set up
+    ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // start timer
+    ierr=this->m_Opt->StartTimer(PMVSETUP); CHKERRQ(ierr);
+
+    if (this->m_OptProbCoarse==NULL){
+
+        // allocate class for registration
+        if (this->m_Opt->GetRegModel() == COMPRESSIBLE){
+            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        else if (this->m_Opt->GetRegModel() == STOKES){
+            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES){
+            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        else{
+            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_Opt); }
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+    }
+
+    // allocate velocity field
+    if(this->m_VelocityFieldCoarse==NULL){
+        try{ this->m_VelocityFieldCoarse = new VecField(this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    ierr=this->m_OptProb->GetControlVariable(this->m_VelocityFieldCoarse); CHKERRQ(ierr);
+    ierr=this->m_OptProb->GetStateVariable(m); CHKERRQ(ierr);
+    ierr=this->m_OptProb->GetAdjointVariable(lambda); CHKERRQ(ierr);
+
+    ierr=Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(lambda!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_VelocityFieldCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    ierr=this->m_OptProbCoarse->SetControlVariable(this->m_VelocityFieldCoarse); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->SetStateVariable(m); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->SetAdjointVariable(lambda); CHKERRQ(ierr);
+
+    // stop timer
+    ierr=this->m_Opt->StopTimer(PMVSETUP); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+/********************************************************************
+ * @brief do setup for krylov method
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupKrylovMethod"
@@ -323,8 +415,9 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
 
 
 
+
 /********************************************************************
- * @brief set the tolerances for the krylov method
+ * @brief set the tolerances for krylov method
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetTolerancesKrylovMethod"
@@ -407,14 +500,17 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
     PetscFunctionBegin;
 
     // check if optimization problem is set up
-    ierr=Assert(this->m_OptimizationProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OptProbCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // apply hessian (hessian matvec)
-    ierr=this->m_OptimizationProblem->HessianMatVec(Hx,x); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->HessianMatVec(Hx,x); CHKERRQ(ierr);
+    //ierr=this->m_OptProb->HessianMatVec(Hx,x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
 }
+
+
 
 
 } // end of namespace

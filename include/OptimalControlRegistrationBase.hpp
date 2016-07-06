@@ -72,11 +72,23 @@ public:
     /*! set reference image */
     PetscErrorCode GetReferenceImage(Vec&);
 
-    /*! set velocity field */
-    PetscErrorCode SetVelocityField(Vec);
+    /*! set control variable */
+    PetscErrorCode SetControlVariable(VecField*);
 
-    /*! set velocity field */
-    PetscErrorCode SetVelocityField(VecField*);
+    /*! get control variable */
+    PetscErrorCode GetControlVariable(VecField*);
+
+    /*! get state variable */
+    virtual PetscErrorCode GetStateVariable(Vec&) = 0;
+
+    /*! set state variable */
+    virtual PetscErrorCode SetStateVariable(Vec) = 0;
+
+    /*! get state variable */
+    virtual PetscErrorCode GetAdjointVariable(Vec&) = 0;
+
+    /*! set state variable */
+    virtual PetscErrorCode SetAdjointVariable(Vec) = 0;
 
     /*! set velocity field to zero */
     PetscErrorCode SetVelocity2Zero();

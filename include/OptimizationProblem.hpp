@@ -41,6 +41,7 @@ public:
     OptimizationProblem(RegOpt*);
     ~OptimizationProblem(void);
 
+    PetscErrorCode SetOptions(RegOpt* opt);
     inline RegOpt* GetOptions(void){return this->m_Opt;};
 
     inline ScalarType GetInitialObjVal(){return this->m_InitObjectiveVal;};
@@ -77,6 +78,24 @@ public:
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec) = 0;
 
+    /*! set control variable */
+    virtual PetscErrorCode SetControlVariable(VecField*) = 0;
+
+    /*! get control variable */
+    virtual PetscErrorCode GetControlVariable(VecField*) = 0;
+
+    /*! get state variable */
+    virtual PetscErrorCode GetStateVariable(Vec&) = 0;
+
+    /*! set state variable */
+    virtual PetscErrorCode SetStateVariable(Vec) = 0;
+
+    /*! get state variable */
+    virtual PetscErrorCode GetAdjointVariable(Vec&) = 0;
+
+    /*! set state variable */
+    virtual PetscErrorCode SetAdjointVariable(Vec) = 0;
+
     /*! finalize iteration */
     virtual PetscErrorCode FinalizeIteration(Vec) = 0;
 
@@ -85,9 +104,6 @@ public:
 
     /*! apply two level preconditioner */
     virtual PetscErrorCode CheckBounds(Vec,bool&) = 0;
-
-    /*! set registration options */
-    PetscErrorCode SetOptions(RegOpt* opt);
 
     /*! check gradient (derivative check via tayler expansion) */
     PetscErrorCode DerivativeCheck(void);

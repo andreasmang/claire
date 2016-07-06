@@ -137,10 +137,12 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x)
     ngu = 3*this->m_Opt->GetDomainPara().nglobal;
 
     if(this->m_Solution==NULL){
+
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
         ierr=VecSet(this->m_Solution,0.0); CHKERRQ(ierr);
+
     }
 
     // the input better is not zero
@@ -172,10 +174,12 @@ PetscErrorCode Optimizer::SetInitialGuess()
     ierr=Assert(this->m_Tao!=NULL,"tao is null"); CHKERRQ(ierr);
 
     if(this->m_Solution==NULL){
+
         ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
         ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
         ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
         ierr=VecSet(this->m_Solution,0.0); CHKERRQ(ierr);
+
     }
 
     // parse initial guess to tao
@@ -284,13 +288,12 @@ PetscErrorCode Optimizer::SetupTao()
         }
         else{ ierr=ThrowError("interface for solver not provided"); CHKERRQ(ierr); }
 
-        // apply projection operator to gradient
-        // TODO: this does not work, vor whatever reason
+        // apply projection operator to gradient and solution
         ierr=KSPSetPostSolve(this->m_KrylovMethod,PostKrylovSolve,this->m_OptimizationProblem);
         ierr=KSPSetPreSolve(this->m_KrylovMethod,PreKrylovSolve,this->m_OptimizationProblem);
 
         // set krylov monitor
-        if(this->m_Opt->GetVerbosity() >= 2){
+        if(this->m_Opt->GetVerbosity() > 1){
             ierr=KSPMonitorSet(this->m_KrylovMethod,KrylovMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
         }
 
@@ -298,13 +301,13 @@ PetscErrorCode Optimizer::SetupTao()
         ierr=KSPGetPC(this->m_KrylovMethod,&preconditioner); CHKERRQ(ierr);
         ierr=KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
 
+        // switch between different preconditioners
         if(this->m_Opt->GetKrylovSolverPara().pctype == NOPC){
 
             ierr=PCSetType(preconditioner,PCNONE); CHKERRQ(ierr);
 
         }
-        else if (  ( this->m_Opt->GetKrylovSolverPara().pctype == INVREG   )
-                || ( this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL ) ) {
+        else{
 
             // allocate preconditioner
             try{ this->m_Precond = new PrecondReg(this->m_Opt); }
@@ -322,8 +325,6 @@ PetscErrorCode Optimizer::SetupTao()
             //ierr=PCShellSetSetUp(preconditioner,PrecondSetup); CHKERRQ(ierr);
 
         }
-        else{ ierr=reg::ThrowError("preconditioner not defined"); CHKERRQ(ierr); }
-
 
     }
 
@@ -479,23 +480,23 @@ PetscErrorCode Optimizer::Finalize()
             std::cout<<std::endl;
 
             // relative change of gradient
-            ss << "[  " << stop[0] << "    ||g|| = " << std::setw(14) <<
-                std::right << std::scientific << gnorm << "    <    " <<
-                std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
+            ss  << "[  " << stop[0] << "    ||g|| = " << std::setw(14)
+                << std::right << std::scientific << gnorm << "    <    "
+                << std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
 
             // absolute norm of gradient
-            ss << "[  " << stop[1] << "    ||g|| = " << std::setw(14) <<
-                std::right << std::scientific << gnorm << "    <    "  <<
-                std::left << std::setw(14) << gatol << " = " << "tol";
+            ss  << "[  " << stop[1] << "    ||g|| = " << std::setw(14)
+                << std::right << std::scientific << gnorm << "    <    "
+                << std::left << std::setw(14) << gatol << " = " << "tol";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
 
             // number of iterations
-            ss << "[  " << stop[2] << "     iter = " << std::setw(14) <<
-                std::right << iter  << "    >    " <<
-                std::left << std::setw(14) << maxiter << " = " << "maxiter";
+            ss  << "[  " << stop[2] << "     iter = " << std::setw(14)
+                << std::right << iter  << "    >    "
+                << std::left << std::setw(14) << maxiter << " = " << "maxiter";
             std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
             ss.str(std::string()); ss.clear();
             std::cout<<std::endl;

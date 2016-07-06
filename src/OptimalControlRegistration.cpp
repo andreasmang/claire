@@ -213,12 +213,13 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+
     // set components of velocity field to zero
     ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
+    // get global and local sizes
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
-
     hd = this->m_Opt->GetLebesqueMeasure();
 
     // allocate place holder for gradient
@@ -240,6 +241,9 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization()
 
     // parse to output
     ierr=this->m_WorkVecField2->GetComponents(dvJ); CHKERRQ(ierr);
+
+    // scale gradient by lebesque measure
+    hd = this->m_Opt->GetLebesqueMeasure();
     ierr=VecScale(dvJ,hd); CHKERRQ(ierr);
 
     ierr=VecNorm(dvJ,NORM_2,&value); CHKERRQ(ierr);
@@ -297,6 +301,160 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
 
 
 /********************************************************************
+ * @brief set state variable from externally
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetStateVariable"
+PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m)
+{
+    PetscErrorCode ierr;
+    IntType nl,ng,nt;
+
+    PetscFunctionBegin;
+
+    ierr=Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // get sizes
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    nt = this->m_Opt->GetDomainPara().nt;
+
+    // we have to allocate the variable, because we delete it
+    // at the end once we're done; since it comes from external
+    // we need to make sure that we don't delete the external
+    // pointer
+    if (this->m_StateVariable == NULL){
+        ierr=VecCreate(this->m_StateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
+    }
+
+    ierr=VecCopy(m,this->m_StateVariable); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetPDESolver() == SL){
+
+        ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+
+        if (this->m_SemiLagrangianMethod == NULL){
+            try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+        if (this->m_WorkVecField1 == NULL){
+            try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        // compute trajectory
+        ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief set state variable from externally
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetStateVariable"
+PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m)
+{
+    PetscErrorCode ierr;
+
+    PetscFunctionBegin;
+
+    ierr=Assert(this->m_StateVariable!=NULL,"null pointer"); CHKERRQ(ierr);
+    m = this->m_StateVariable;
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief set adjoint variable from externally
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetAdjointVariable"
+PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda)
+{
+    PetscErrorCode ierr;
+    IntType nl,ng,nt;
+
+    PetscFunctionBegin;
+
+    ierr=Assert(lambda!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // get sizes
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    nt = this->m_Opt->GetDomainPara().nt;
+
+    // we have to allocate the variable, because we delete it
+    // at the end once we're done; since it comes from external
+    // we need to make sure that we don't delete the external
+    // pointer
+    if (this->m_AdjointVariable == NULL){
+        ierr=VecCreate(this->m_AdjointVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
+    }
+
+    ierr=VecCopy(lambda,this->m_AdjointVariable); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetPDESolver() == SL){
+
+        ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+
+        if (this->m_SemiLagrangianMethod == NULL){
+            try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+        if (this->m_WorkVecField1 == NULL){
+            try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        // compute trajectory
+        ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
+        ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
+    }
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief set state variable from externally
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetAdjointVariable"
+PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda)
+{
+    PetscErrorCode ierr;
+
+    PetscFunctionBegin;
+
+    ierr=Assert(this->m_AdjointVariable!=NULL,"null pointer"); CHKERRQ(ierr);
+    lambda=this->m_AdjointVariable;
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
  * @brief evaluate the l2 distance between m_R and m_1
  *******************************************************************/
 #undef __FUNCT__
@@ -305,23 +463,25 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 {
     PetscErrorCode ierr;
     ScalarType *p_m1=NULL,*p_m=NULL;
-    IntType nt,nl;
+    IntType nt,nl,ng;
     ScalarType dr;
 
     PetscFunctionBegin;
 
     ierr=Assert(this->m_ReferenceImage!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    if(this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
-    }
-    if(this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
-    }
-
-    // compute hd
+    // get sizes
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
+    if(this->m_WorkScaField1 == NULL){
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+    }
+    if(this->m_WorkScaField2 == NULL){
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
+    }
+
 
     // compute solution of state equation
     ierr=this->SolveStateEquation(); CHKERRQ(ierr);
@@ -487,9 +647,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
         ierr=this->m_WorkVecField2->GetComponents(dvJ); CHKERRQ(ierr);
     }
 
-    // stop timer
-    ierr=this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
-
     // get lebesque measure
     hd = this->m_Opt->GetLebesqueMeasure();
     ierr=Assert(hd > 0,"spatial step size <= 0"); CHKERRQ(ierr);
@@ -497,6 +654,8 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
     // scale by lebesque measure
     ierr=VecScale(dvJ,hd); CHKERRQ(ierr);
 
+    // stop timer
+    ierr=this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
 
     // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
@@ -516,7 +675,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v)
 PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
 {
     PetscErrorCode ierr;
-    IntType nt,nl;
+    IntType nt,ng,nl;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType *p_mj=NULL,*p_m=NULL,*p_l=NULL,*p_l0=NULL,
                *p_gradm1=NULL,*p_gradm2=NULL,*p_gradm3=NULL,
@@ -529,6 +688,12 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
     // check for null pointers
     ierr=Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // get problem dimensions and weights
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
 
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -543,17 +708,11 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
         }
     }
     if(this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("computing body force"); CHKERRQ(ierr);
     }
-
-    // get problem dimensions and weights
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ht = this->m_Opt->GetTimeStepSize();
 
     ierr=Assert(nt > 0,"number of time points < 0"); CHKERRQ(ierr);
     ierr=Assert(ht > 0,"time step size <= 0"); CHKERRQ(ierr);
@@ -1073,14 +1232,11 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v)
 PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
 {
     PetscErrorCode ierr;
-    IntType nt=0;
-    IntType nl=0;
-
+    IntType nt,nl,ng;
     ScalarType *p_m=NULL,*p_mj=NULL,*p_mt=NULL,*p_mtj=NULL,
                 *p_l=NULL,*p_lt=NULL,*p_bt1=NULL,*p_bt2=NULL,*p_bt3=NULL,
                 *p_gradm1=NULL,*p_gradm2=NULL,*p_gradm3=NULL,
                 *p_gradmt1=NULL,*p_gradmt2=NULL,*p_gradmt3=NULL;
-
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType ht,scale;
     double timers[5]={0,0,0,0,0};
@@ -1091,11 +1247,16 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
         ierr=DbgMsg("computing incremental body force"); CHKERRQ(ierr);
     }
 
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
+
     ierr=Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1115,10 +1276,6 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ht = this->m_Opt->GetTimeStepSize();
 
     ierr=Assert(nt > 0,"number of time points <= 0"); CHKERRQ(ierr);
     ierr=Assert(ht > 0,"time step size <= 0"); CHKERRQ(ierr);
@@ -1145,7 +1302,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce()
         ierr=Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
         if (this->m_WorkScaField2 == NULL){
-            ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+            ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
         }
 
         ierr=VecGetArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr); // adjoint variable for all t^j
@@ -1376,7 +1533,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
     if ( this->m_Opt->GetRegFlags().storetimeseries ){
 
         if (this->m_WorkScaField1 == NULL){
-            ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+            ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
         }
         ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -1425,7 +1582,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 {
     PetscErrorCode ierr;
-    IntType nl,nt;
+    IntType nl,ng,nt;
     ScalarType *p_mj=NULL,*p_m=NULL,*p_mbar=NULL,*p_rhs0=NULL,
                 *p_gmx1=NULL,*p_gmx2=NULL,*p_gmx3=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL;
@@ -1437,6 +1594,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1447,13 +1605,13 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
         }
     }
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
 
     // copy initial condition to buffer
@@ -1559,17 +1717,22 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
 {
     PetscErrorCode ierr;
-    IntType nl,nt;
+    IntType nl,ng,nt;
     ScalarType *p_m=NULL,*p_mj=NULL,*p_mjX=NULL;
     std::stringstream ss;
     std::string filename;
+
     PetscFunctionBegin;
 
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
     if(this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1577,16 +1740,12 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
     if (this->m_SemiLagrangianMethod == NULL){
         try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // compute trajectory
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
@@ -1664,16 +1823,14 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void)
     ierr=this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // allocate variables
-    if (this->m_AdjointVariable == NULL){
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_AdjointVariable); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_AdjointVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_AdjointVariable); CHKERRQ(ierr);
-    }
     if(this->m_WorkScaField1==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField2==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
+    }
+    if (this->m_AdjointVariable == NULL){
+        ierr=VecCreate(this->m_AdjointVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
     }
 
 
@@ -1756,8 +1913,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void)
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 {
     PetscErrorCode ierr;
-    IntType nl;
-    IntType nt;
+    IntType nl,ng,nt;
     ScalarType *p_l=NULL,*p_rhs0=NULL,*p_rhs1=NULL,*p_lj=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_ljvx1=NULL,*p_ljvx2=NULL,*p_ljvx3=NULL;
@@ -1767,6 +1923,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1774,13 +1931,13 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
     ierr=Assert(ht > 0, "number of time points < 0"); CHKERRQ(ierr);
 
     if(this->m_WorkScaField1==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField3==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField4==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1902,28 +2059,28 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
                 *p_divv=NULL,*p_divvX=NULL,
                 *p_l=NULL,*p_lj=NULL,*p_ljX=NULL;
     ScalarType ht;
-    IntType nl;
-    IntType nt;
+    IntType nl,ng,nt;
 
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if(this->m_WorkScaField1==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField2==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField3==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkScaField4==NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
     if(this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -2040,7 +2197,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
-    ierr=Assert(nt > 0, "number of time points < 0"); CHKERRQ(ierr);
+    ierr=Assert(nt > 0,"number of time points < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2){
         ss << "solving incremental state equation (nt="<<nt<<")";
@@ -2048,10 +2205,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
     }
 
     // allocate variables
-    if (this->m_IncStateVariable == NULL){
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_IncStateVariable); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_IncStateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_IncStateVariable); CHKERRQ(ierr);
+    if (this->m_IncStateVariable==NULL){
+        ierr=VecCreate(this->m_IncStateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
     }
 
     // start timer
@@ -2103,21 +2258,20 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
 {
     PetscErrorCode ierr=0;
-    IntType nl=0;
-    IntType nt=0;
+    IntType nl,ng,nt;
     ScalarType *p_m=NULL,*p_mj=NULL,*p_mt=NULL,*p_mtj=NULL,*p_mtbar=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_gmx1=NULL,*p_gmx2=NULL,*p_gmx3=NULL,
                 *p_gmtx1=NULL,*p_gmtx2=NULL,*p_gmtx3=NULL,
                 *p_vtx1=NULL,*p_vtx2=NULL,*p_vtx3=NULL,*p_rhs0=NULL;
-    ScalarType ht=0.0,hthalf=0.0;
+    ScalarType ht,hthalf;
     double ffttimers[5]={0,0,0,0,0};
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     PetscFunctionBegin;
 
-
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2126,16 +2280,16 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
 
     // allocate variables
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField4 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
 
     if (this->m_WorkVecField1 == NULL){
@@ -2151,6 +2305,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
         }
     }
 
+    ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_IncStateVariable,&p_mt); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_gmx1); CHKERRQ(ierr);
@@ -2166,10 +2321,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
     if(this->m_VelocityIsZero){
 
         // compute gradient of m_1 (m is constant)
-        ierr=VecGetArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
+        try{ std::copy(p_m,p_m+nl,p_mj); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
         accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
         this->m_Opt->IncrementCounter(FFT,4);
-        ierr=VecRestoreArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
 
         // compute numerical time integration
         for (IntType j = 0; j < nt; ++j){
@@ -2198,8 +2355,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
         ierr=VecGetArray(this->m_WorkScaField2,&p_mtbar); CHKERRQ(ierr);
         ierr=VecGetArray(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
         ierr=VecGetArray(this->m_WorkScaField4,&p_mtj); CHKERRQ(ierr);
-
-        ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
         ierr=VecGetArray(this->m_WorkVecField2->m_X1,&p_gmtx1); CHKERRQ(ierr);
         ierr=VecGetArray(this->m_WorkVecField2->m_X2,&p_gmtx2); CHKERRQ(ierr);
@@ -2292,8 +2447,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
         ierr=VecRestoreArray(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
         ierr=VecRestoreArray(this->m_WorkScaField4,&p_mtj); CHKERRQ(ierr);
 
-        ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-
         ierr=VecRestoreArray(this->m_WorkVecField2->m_X1,&p_gmtx1); CHKERRQ(ierr);
         ierr=VecRestoreArray(this->m_WorkVecField2->m_X2,&p_gmtx2); CHKERRQ(ierr);
         ierr=VecRestoreArray(this->m_WorkVecField2->m_X3,&p_gmtx3); CHKERRQ(ierr);
@@ -2315,6 +2468,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_gmx3); CHKERRQ(ierr);
 
     ierr=VecRestoreArray(this->m_IncStateVariable,&p_mt); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(ffttimers);
 
@@ -2336,8 +2490,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
 {
     PetscErrorCode ierr=0;
-    IntType nl=0;
-    IntType nt=0;
+    IntType nl,nt,ng;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType ht,hthalf;
     double ffttimers[5]={0,0,0,0,0};
@@ -2352,20 +2505,22 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
-    ierr=Assert(this->m_StateVariable!=NULL, "state variable is null"); CHKERRQ(ierr);
-    ierr=Assert(this->m_IncStateVariable!=NULL, "incremental state variable is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_StateVariable!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_IncStateVariable!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_IncVelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -2424,16 +2579,19 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
     ierr=VecGetArray(this->m_WorkVecField4->m_X3,&p_gmjXx3); CHKERRQ(ierr);
 
     // copy gradient for m_0 = m_T
-    ierr=VecGetArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+    try{ std::copy(p_m,p_m+nl,p_mj); }
+    catch(std::exception&){
+        ierr=ThrowError("copying of data failed"); CHKERRQ(ierr);
+    }
     accfft_grad(p_gmjx1,p_gmjx2,p_gmjx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
     this->m_Opt->IncrementCounter(FFT,4);
-    ierr=VecRestoreArray(this->m_TemplateImage,&p_mj); CHKERRQ(ierr);
+
 
     ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_gmjnextx1); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkVecField1->m_X2,&p_gmjnextx2); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_gmjnextx3); CHKERRQ(ierr);
 
-    ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField2,&p_mtjX); CHKERRQ(ierr);
 
     // copy initial condition
@@ -2552,14 +2710,14 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
     ierr=Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
-    }
-
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
     ierr=Assert(nt > 0, "number of time points not set correctly"); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField1 == NULL){
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+    }
 
     if (this->m_Opt->GetVerbosity() > 2){
         ss << "solving incremental adjoint equation (nt="<<nt<<")";
@@ -2570,9 +2728,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
 
     // allocate state and adjoint variables
     if (this->m_IncAdjointVariable == NULL){
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_IncAdjointVariable); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_IncAdjointVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_IncAdjointVariable); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_IncAdjointVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
     }
 
     // set terminal condition \tilde{\lambda}_1 = -\tilde{m}_1
@@ -2680,8 +2836,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 {
     PetscErrorCode ierr;
-    IntType nl=0;
-    IntType nt=0;
+    IntType nl,ng,nt;
     ScalarType *p_lt=NULL,*p_ltj=NULL,*p_rhs0=NULL,*p_rhs1=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_ltjvx1=NULL,*p_ltjvx2=NULL,*p_ltjvx3=NULL;
@@ -2691,20 +2846,21 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField4 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
 
     ierr=VecGetArray(this->m_IncAdjointVariable,&p_lt); CHKERRQ(ierr);
@@ -2822,8 +2978,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 {
     PetscErrorCode ierr;
-    IntType nl=0;
-    IntType nt=0;
+    IntType nl,ng,nt;
     ScalarType *p_l=NULL,*p_lj=NULL,*p_lt=NULL,
                 *p_rhs0=NULL,*p_rhs1=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
@@ -2836,11 +2991,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
 
     ierr=VecGetArray(this->m_IncAdjointVariable,&p_lt); CHKERRQ(ierr);
@@ -3008,14 +3164,20 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
 {
     PetscErrorCode ierr;
-    IntType nl=0;
-    IntType nt=0;
+    IntType nl,ng,nt;
     double ffttimers[5]={0,0,0,0,0};
     ScalarType *p_ltilde=NULL,*p_ltildej=NULL,*p_ltildejX=NULL,
                 *p_divv=NULL,*p_divvX=NULL,*p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL;
     ScalarType ht=0.0,hthalf=0.0;
 
     PetscFunctionBegin;
+
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
 
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -3024,13 +3186,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
         }
     }
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField4 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_SemiLagrangianMethod == NULL){
         try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -3040,10 +3202,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
         ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField,"adjoint"); CHKERRQ(ierr);
     }
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
 
     // remember time history (i.e. copy final condition
     // $\tilde{\lambda}_1 = -\tilde{m}_1$ into buffer for $\tilde{\lambda}
@@ -3173,7 +3331,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     PetscErrorCode ierr;
     int rank;
-    IntType nl=0,nt=0;
+    IntType nl,ng,nt;
     std::string filename,fnx1,fnx2,fnx3;
     std::stringstream ss;
     std::ofstream logwriter;
@@ -3187,10 +3345,11 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     // get number of time points and grid points
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     // allocate
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
 
     // if not yet allocted, do so
@@ -3287,9 +3446,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 {
     PetscErrorCode ierr;
     std::string filename,fn,ext;
-    IntType nt;
+    IntType nl,ng,nt;
     int rank,nproc,nstr,nnum;
-    IntType nl;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
     ScalarType mRmT_2,mRmT_infty,mRm1_2,
@@ -3305,6 +3463,10 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
 
+    // get sizes
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     if (this->m_Opt->GetVerbosity() >= 2){
         ierr=DbgMsg("finalizing registration"); CHKERRQ(ierr);
@@ -3318,13 +3480,13 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         }
     }
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
 
     // process timers
@@ -3361,10 +3523,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     // deformed template out
     // compute solution of state equation
     ierr=this->SolveStateEquation(); CHKERRQ(ierr);
-
-    // compute hd
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
 
     // copy memory for m_1
     ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);

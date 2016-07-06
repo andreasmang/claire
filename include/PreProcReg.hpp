@@ -66,8 +66,8 @@ private:
 
     ReadWriteType* m_ReadWrite;
 
-    std::vector<std::vector<IntType>> m_IndicesF;
-    std::vector<std::vector<IntType>> m_IndicesC;
+    std::vector< std::vector<IntType> > m_IndicesF;
+    std::vector< std::vector<IntType> > m_IndicesC;
 
 };
 

@@ -291,21 +291,13 @@ PetscErrorCode OptimalControlRegistrationBase::GetTemplateImage(Vec& mT)
  * @brief set velocity field
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetVelocityField"
-PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
+#define __FUNCT__ "SetControlVariable"
+PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v)
 {
     PetscErrorCode ierr;
-    IntType nl;
-    PetscInt nlv;
     PetscFunctionBegin;
 
-    // check for null pointer
-    ierr=Assert(v!=NULL,"input velocity field is null pointer"); CHKERRQ(ierr);
-
-    // check input vector size
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ierr=VecGetLocalSize(v,&nlv); CHKERRQ(ierr);
-    ierr=Assert(3*nl == nlv, "size mismatch"); CHKERRQ(ierr);
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // allocate velocity field
     if(this->m_VelocityField == NULL){
@@ -316,10 +308,9 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
     }
 
     // copy buffer
-    ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
-
 }
 
 
@@ -329,22 +320,14 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(Vec v)
  * @brief set velocity field
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetVelocityField"
-PetscErrorCode OptimalControlRegistrationBase::SetVelocityField(VecField* v)
+#define __FUNCT__ "GetControlVariable"
+PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField* v)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    // check for null pointer
-    ierr=Assert(v!=NULL,"input velocity field is null pointer"); CHKERRQ(ierr);
-
-    // allocate velocity field
-    if(this->m_VelocityField == NULL){
-        try{this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // copy buffer
     ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
@@ -816,11 +799,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
     PetscErrorCode ierr;
     std::stringstream ss;
     ScalarType hx[3],c,vmax,vmaxscaled;
-    IntType ntcfl;
+    IntType nl,ng,ntcfl;
+
     PetscFunctionBegin;
 
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
 
     if (this->m_WorkVecField1 == NULL){
@@ -949,13 +936,17 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
 {
     PetscErrorCode ierr;
     ScalarType minddg,maxddg,meanddg;
+    IntType nl,ng;
     std::stringstream ss, ssnum;
 
     PetscFunctionBegin;
 
     if (this->m_Opt->GetVerbosity() > 2){
-        ierr=DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
+        ierr=DbgMsg("computing determinant of deformation gradient"); CHKERRQ(ierr);
     }
+
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     if (this->m_VelocityField == NULL){
        try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -966,7 +957,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
     }
 
     if (this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
 
     // set initial condition
@@ -1029,17 +1020,18 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
 PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
 {
     PetscErrorCode ierr;
+    IntType nl,ng,nt;
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_jbar=NULL,
                 *p_gx1=NULL,*p_gx2=NULL,*p_gx3=NULL,*p_divv=NULL,
                 *p_jac=NULL, *p_rhs0=NULL;
     ScalarType ht,hthalf;
-    IntType nl,nt;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1050,13 +1042,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
         }
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField4 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
 
     // set initial condition
@@ -1155,11 +1147,18 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
                 *p_jvx1=NULL,*p_jvx2=NULL,*p_jvx3=NULL,
                 *p_jac=NULL,*p_jacX=NULL,*p_rhs0=NULL;
     ScalarType ht,hthalf;
-    IntType nl,nt;
+    IntType nl,ng,nt;
     std::stringstream ss;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
+
     PetscFunctionBegin;
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
 
     if (this->m_SemiLagrangianMethod == NULL){
         try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -1186,19 +1185,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
         }
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField3); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField4 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField4); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
     }
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
 
     // compute trajectory
     ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);

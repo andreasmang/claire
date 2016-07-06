@@ -194,9 +194,13 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
                 *p_divv=NULL;
     ScalarType value,betaw,hd;
     double ffttimers[5]={0,0,0,0,0};
+    IntType nl,ng;
     std::bitset<3>XYZ=0; XYZ[0]=1,XYZ[1]=1,XYZ[2]=1;
 
     PetscFunctionBegin;
+
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
 
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -205,7 +209,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
         }
     }
     if(this->m_WorkScaField1 == NULL){
-        ierr=VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
 
     // get regularization weight
@@ -345,25 +349,25 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL, *p_x2=NULL, *p_x3=NULL;
     ScalarType nx[3],beta[3],scale;
-    int isize[3],osize[3],istart[3],ostart[3],n[3];
-    IntType alloc_max;
+    int _isize[3],_osize[3],_istart[3],_ostart[3],_nx[3];
+    IntType alloc_max,osize[3],ostart[3];
     double ffttimers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
-    n[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-    n[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-    n[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+    _nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
+    _nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
+    _nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
     scale = 1.0;
     for (int i=0; i < 3; ++i){
-        nx[i] = static_cast<ScalarType>(n[i]);
+        nx[i] = static_cast<ScalarType>(_nx[i]);
         scale *= nx[i];
     }
     scale  = 1.0/scale;
 
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,this->m_Opt->GetFFT().mpicomm);
+    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(_nx,_isize,_istart,_osize,_ostart,this->m_Opt->GetFFT().mpicomm);
 
     if(this->m_x1hat == NULL){
         this->m_x1hat=(FFTScaType*)accfft_alloc(alloc_max);
@@ -384,6 +388,12 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     if(this->m_Kx3hat == NULL){
         this->m_Kx3hat=(FFTScaType*)accfft_alloc(alloc_max);
     }
+
+    for (int i=0; i < 3; ++i){
+        osize[i] = static_cast<IntType>(_osize[i]);
+        ostart[i] = static_cast<IntType>(_ostart[i]);
+    }
+
 
     ierr=VecGetArray(x->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecGetArray(x->m_X2,&p_x2); CHKERRQ(ierr);
@@ -406,7 +416,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     long int i;
 #pragma omp for
     for (IntType i1 = 0; i1 < osize[0]; ++i1){
-        for (IntType i2 = 0; i2 < osize[1]; i2++){
+        for (IntType i2 = 0; i2 < osize[1]; ++i2){
             for (IntType i3 = 0; i3 < osize[2]; ++i3){
 
                 x1 = static_cast<long int>(i1 + ostart[0]);
@@ -418,9 +428,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
                 wx2 = x2;
                 wx3 = x3;
 
-                if(x1 > n[0]/2) wx1-=n[0];
-                if(x2 > n[1]/2) wx2-=n[1];
-                if(x3 > n[2]/2) wx3-=n[2];
+                if(x1 > _nx[0]/2) wx1-=_nx[0];
+                if(x2 > _nx[1]/2) wx2-=_nx[1];
+                if(x3 > _nx[2]/2) wx3-=_nx[2];
 
                 // compute inverse laplacian operator
                 lapik = static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
@@ -428,9 +438,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
                 //lapinvik = round(lapinvik) == 0.0 ? -1.0 : 1.0/lapinvik;
                 lapinvik = lapik == 0.0 ? -1.0 : -1.0/lapik;
 
-                if(x1 == n[0]/2) wx1 = 0;
-                if(x2 == n[1]/2) wx2 = 0;
-                if(x3 == n[2]/2) wx3 = 0;
+                if(x1 == _nx[0]/2) wx1 = 0;
+                if(x2 == _nx[1]/2) wx2 = 0;
+                if(x3 == _nx[2]/2) wx3 = 0;
 
                 // compute gradient operator
                 gradik1 = static_cast<ScalarType>(wx1);

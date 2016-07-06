@@ -60,6 +60,18 @@ public:
         of lagrangian with respect to control variable(s) */
     PetscErrorCode HessianMatVec(Vec,Vec);
 
+    /*! get state variable */
+    PetscErrorCode GetStateVariable(Vec&);
+
+    /*! set state variable */
+    PetscErrorCode SetStateVariable(Vec);
+
+    /*! get state variable */
+    PetscErrorCode GetAdjointVariable(Vec&);
+
+    /*! set state variable */
+    PetscErrorCode SetAdjointVariable(Vec);
+
     /*! solve the state equation */
     PetscErrorCode SolveForwardProblem(Vec);
 

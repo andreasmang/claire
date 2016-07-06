@@ -35,10 +35,10 @@
 #include "accfft_operators.h"
 
 #define IntType PetscInt
-//#define ScalarType PetscScalar
+#define ScalarType PetscScalar
 
 //#define IntType int
-#define ScalarType double
+//#define ScalarType double
 
 
 //#include "VecField.h"
@@ -65,6 +65,9 @@ PetscErrorCode WrngMsg(std::string);
 
 /*! display dgb message (PETSc interface) */
 PetscErrorCode DbgMsg(std::string);
+
+/*! interface to create a vector */
+PetscErrorCode VecCreate(Vec&,IntType,IntType);
 
 /*! display scalar field */
 PetscErrorCode VecView(Vec);

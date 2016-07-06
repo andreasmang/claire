@@ -58,7 +58,9 @@ PreProcReg::~PreProcReg()
 PetscErrorCode PreProcReg::Initialize()
 {
     this->m_Opt = NULL;
+
     this->m_ReadWrite = NULL;
+
     this->m_xhat = NULL;
     this->m_yhat = NULL;
 

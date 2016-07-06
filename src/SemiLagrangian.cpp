@@ -508,52 +508,52 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w,Vec v,std::string flag)
 PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::string flag)
 {
     PetscErrorCode ierr;
-    int nx[3],isize_g[3],isize[3],istart_g[3],istart[3],c_dims[2];
+    int _nx[3],_isize_g[3],_isize[3],_istart_g[3],_istart[3],c_dims[2],_nl;
     accfft_plan* plan=NULL;
-    IntType g_alloc_max,nl;
+    IntType g_alloc_max;
     double timers[4]={0,0,0,0};
 
     PetscFunctionBegin;
 
-    ierr=Assert(w!=NULL,"output is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(v!=NULL,"input is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(w!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
-        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+        _nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        _isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        _istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    _nl =static_cast<int>( this->m_Opt->GetDomainPara().nlocal );
 
     // deal with ghost points
     plan = this->m_Opt->GetFFT().plan;
-    g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
+    g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,_isize_g,_istart_g);
 
     if(this->m_ScaFieldGhost==NULL){
         this->m_ScaFieldGhost = (ScalarType*)accfft_alloc(g_alloc_max);
     }
 
-    accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,v,this->m_ScaFieldGhost);
+    accfft_get_ghost_xyz(plan,this->m_GhostSize,_isize_g,v,this->m_ScaFieldGhost);
 
     if (strcmp(flag.c_str(),"state")!=0){
 
         ierr=Assert(this->m_XS!=NULL,"state X is null pointer"); CHKERRQ(ierr);
 
-        this->m_StatePlan->interpolate(this->m_ScaFieldGhost,1,nx,isize,istart,
-                            nl,this->m_GhostSize,w,c_dims,
-                            this->m_Opt->GetFFT().mpicomm,timers);
+        this->m_StatePlan->interpolate(this->m_ScaFieldGhost,1,_nx,_isize,_istart,
+                                        _nl,this->m_GhostSize,w,c_dims,
+                                        this->m_Opt->GetFFT().mpicomm,timers);
     }
     else if (strcmp(flag.c_str(),"adjoint")!=0){
 
         ierr=Assert(this->m_XA!=NULL,"adjoint X is null pointer"); CHKERRQ(ierr);
 
-        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost,1,nx,isize,istart,
-                            nl,this->m_GhostSize,w,c_dims,
-                            this->m_Opt->GetFFT().mpicomm,timers);
+        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost,1,_nx,_isize,_istart,
+                                        _nl,this->m_GhostSize,w,c_dims,
+                                        this->m_Opt->GetFFT().mpicomm,timers);
 
     }
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
@@ -581,8 +581,8 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string
                 *p_wx1=NULL,*p_wx2=NULL,*p_wx3=NULL;
     PetscFunctionBegin;
 
-    ierr=Assert(v!=NULL,"output is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(w!=NULL,"input is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(w!=NULL,"null pointer"); CHKERRQ(ierr);
 
     ierr=VecGetArray(w->m_X1,&p_wx1); CHKERRQ(ierr);
     ierr=VecGetArray(w->m_X2,&p_wx2); CHKERRQ(ierr);
@@ -756,17 +756,17 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     IntType nl,nlghost,g_alloc_max;
     PetscFunctionBegin;
 
-    ierr=Assert(vx1!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vx2!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vx3!=NULL,"input is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(vx1!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(vx2!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(vx3!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    ierr=Assert(wx1!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(wx2!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(wx3!=NULL,"input is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(wx1!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(wx2!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(wx3!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    ierr=Assert(yx1!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(yx2!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(yx3!=NULL,"input is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(yx1!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(yx2!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(yx3!=NULL,"null pointer"); CHKERRQ(ierr);
 
 
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -788,7 +788,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
         }
     }
 
-    if (this->m_xVecField == NULL){
+    if (this->m_xVecField==NULL){
         try{ this->m_xVecField = new double [3*nl]; }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -796,7 +796,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     }
 
     // create planer
-    if (this->m_VecFieldPlan == NULL){
+    if (this->m_VecFieldPlan==NULL){
         try{ this->m_VecFieldPlan = new Interp3_Plan; }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -894,8 +894,8 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
 
     for (int i = 0; i < 3; ++i){
         hx[i]     = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     ierr=VecGetArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
@@ -932,6 +932,10 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X3,&p_x3); CHKERRQ(ierr);
 
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("slm: computing initial condition done"); CHKERRQ(ierr);
+    }
+
     PetscFunctionReturn(0);
 }
 
@@ -948,21 +952,23 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
 {
     PetscErrorCode ierr;
     const ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
-    int nx[3],nl,isize[3],istart[3];
+    int _nx[3],_nl,_isize[3],_istart[3];
+    IntType nl;
     int c_dims[2];
     double timers[4] = {0,0,0,0};
 
     PetscFunctionBegin;
 
     for (int i = 0; i < 3; ++i){
-        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+        _nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        _isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        _istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl  = this->m_Opt->GetDomainPara().nlocal;
+    _nl = static_cast<int>(nl);
 
     if (strcmp(flag.c_str(),"state")!=0){
 
@@ -998,10 +1004,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_StatePlan->allocate(nl,1);
+            this->m_StatePlan->allocate(_nl,1);
         }
         // scatter
-        this->m_StatePlan->scatter(1,nx,isize,istart,nl,
+        this->m_StatePlan->scatter(1,_nx,_isize,_istart,_nl,
                                     this->m_GhostSize,this->m_XS,
                                     c_dims,this->m_Opt->GetFFT().mpicomm,timers);
 
@@ -1012,10 +1018,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_StatePlanVec->allocate(nl,3);
+            this->m_StatePlanVec->allocate(_nl,3);
         }
         // scatter
-        this->m_StatePlanVec->scatter(3,nx,isize,istart,nl,
+        this->m_StatePlanVec->scatter(3,_nx,_isize,_istart,_nl,
                                         this->m_GhostSize,this->m_XS,
                                         c_dims,this->m_Opt->GetFFT().mpicomm,timers);
 
@@ -1060,7 +1066,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
         }
 
         // scatter
-        this->m_AdjointPlan->scatter(1,nx,isize,istart,nl,
+        this->m_AdjointPlan->scatter(1,_nx,_isize,_istart,_nl,
                                     this->m_GhostSize,this->m_XA,
                                     c_dims,this->m_Opt->GetFFT().mpicomm,timers);
 
@@ -1070,13 +1076,13 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_AdjointPlanVec->allocate(nl,3);
+            this->m_AdjointPlanVec->allocate(_nl,3);
         }
 
         // scatter
-        this->m_AdjointPlanVec->scatter(3,nx,isize,istart,nl,
-                                    this->m_GhostSize,this->m_XA,
-                                    c_dims,this->m_Opt->GetFFT().mpicomm,timers);
+        this->m_AdjointPlanVec->scatter(3,_nx,_isize,_istart,_nl,
+                                        this->m_GhostSize,this->m_XA,
+                                        c_dims,this->m_Opt->GetFFT().mpicomm,timers);
 
     }
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }

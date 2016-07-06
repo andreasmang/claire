@@ -63,8 +63,8 @@ PetscErrorCode OptimizationProblem::Initialize(void)
     this->m_NumOuterIter=0;
 
     this->m_InitGradNorm=0.0;
-    this->m_InitObjectiveVal=0.0;
     this->m_InitDistanceVal=0.0;
+    this->m_InitObjectiveVal=0.0;
 
     PetscFunctionReturn(0);
 }
