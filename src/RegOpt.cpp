@@ -40,6 +40,105 @@ RegOpt::RegOpt(int argc, char** argv, int id)
 }
 
 
+/********************************************************************
+ * @brief constructor
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "RegOpt"
+RegOpt::RegOpt(const RegOpt& opt)
+{
+    this->Initialize();
+
+    this->m_SetupDone = opt.m_SetupDone;
+
+    this->m_Domain.nt = opt.m_Domain.nt;
+    this->m_Domain.nx[0] = opt.m_Domain.nx[0];
+    this->m_Domain.nx[1] = opt.m_Domain.nx[0];
+    this->m_Domain.nx[2] = opt.m_Domain.nx[0];
+    this->m_Domain.timehorizon[0] = opt.m_Domain.timehorizon[0];
+    this->m_Domain.timehorizon[1] = opt.m_Domain.timehorizon[1];
+
+    this->m_RegNorm.type = opt.m_RegNorm.type;
+    this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];
+    this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];
+    this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];
+
+    this->m_Verbosity = opt.m_Verbosity;
+    this->m_PDESolver = opt.m_PDESolver;
+    this->m_RegModel = opt.m_RegModel;
+
+    // smoothing
+    this->m_Sigma[0] = opt.m_Sigma[0];
+    this->m_Sigma[1] = opt.m_Sigma[1];
+    this->m_Sigma[2] = opt.m_Sigma[2];
+
+    this->m_KrylovSolverPara.tol[0] = opt.m_KrylovSolverPara.tol[0];
+    this->m_KrylovSolverPara.tol[1] = opt.m_KrylovSolverPara.tol[1];
+    this->m_KrylovSolverPara.tol[2] = opt.m_KrylovSolverPara.tol[2];
+    this->m_KrylovSolverPara.maxit = opt.m_KrylovSolverPara.maxit;
+    this->m_KrylovSolverPara.reltol = opt.m_KrylovSolverPara.reltol;
+    this->m_KrylovSolverPara.fseqtype = opt.m_KrylovSolverPara.fseqtype;
+    this->m_KrylovSolverPara.pctype = opt.m_KrylovSolverPara.pctype;
+    this->m_KrylovSolverPara.solver = opt.m_KrylovSolverPara.solver;
+    this->m_KrylovSolverPara.pcsolver = opt.m_KrylovSolverPara.pcsolver;
+    this->m_KrylovSolverPara.pcsolvertol = opt.m_KrylovSolverPara.pcsolvertol;
+    this->m_KrylovSolverPara.pcsolvermaxit = opt.m_KrylovSolverPara.pcsolvermaxit;
+    this->m_KrylovSolverPara.g0normset = opt.m_KrylovSolverPara.g0normset;
+    this->m_KrylovSolverPara.g0norm = opt.m_KrylovSolverPara.g0norm;
+
+    this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
+    this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
+    this->m_OptPara.tol[2] = opt.m_OptPara.tol[2];
+    this->m_OptPara.maxit = opt.m_OptPara.maxit;
+    this->m_OptPara.method = opt.m_OptPara.method;
+
+    this->m_SolveType = opt.m_SolveType;
+    this->m_HessianMatVecType = opt.m_HessianMatVecType;
+
+    // flags
+    this->m_RegFlags.readimages = opt.m_RegFlags.readimages;
+    this->m_RegFlags.storetimeseries = opt.m_RegFlags.storetimeseries;
+    this->m_RegFlags.storeiterates = opt.m_RegFlags.storeiterates;
+    this->m_RegFlags.storeresults = opt.m_RegFlags.storeresults;
+    this->m_RegFlags.storedefgrad = opt.m_RegFlags.storedefgrad;
+    this->m_RegFlags.storedefmap = opt.m_RegFlags.storedefmap;
+    this->m_RegFlags.storeinterresults = opt.m_RegFlags.storeinterresults;
+    this->m_RegFlags.loggingenabled = opt.m_RegFlags.loggingenabled;
+    this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
+    this->m_RegFlags.runpostproc = opt.m_RegFlags.runpostproc;
+    this->m_RegFlags.resampledata = opt.m_RegFlags.resampledata;
+
+    // parameter continuation
+    this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
+    this->m_ParaCont.enabled = opt.m_ParaCont.enabled;
+    this->m_ParaCont.targetbeta = opt.m_ParaCont.targetbeta;
+
+    // grid continuation
+    this->m_GridCont.enabled = opt.m_GridCont.enabled;
+
+    // scale continuation
+    this->m_ScaleCont.enabled=opt.m_ScaleCont.enabled;
+    for (int i = 0; i < 3; ++i){
+        for (int j = 0; j < 6; ++j){
+            this->m_ScaleCont.sigma[i][j] = opt.m_ScaleCont.sigma[i][j];
+        }
+    }
+
+    // monitor for registration
+    this->m_RegMonitor.JAC = opt.m_RegMonitor.JAC;
+    this->m_RegMonitor.CFL = opt.m_RegMonitor.CFL;
+    this->m_RegMonitor.jacmin = opt.m_RegMonitor.jacmin;
+    this->m_RegMonitor.jacmax = opt.m_RegMonitor.jacmax;
+    this->m_RegMonitor.jacmean = opt.m_RegMonitor.jacmean;
+    this->m_RegMonitor.jacbound = opt.m_RegMonitor.jacbound;
+
+    this->m_NumThreads=opt.m_NumThreads;
+    this->m_CartGridDims[0]=opt.m_CartGridDims[0];
+    this->m_CartGridDims[1]=opt.m_CartGridDims[1];
+
+
+}
+
 
 
 /********************************************************************

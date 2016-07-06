@@ -297,6 +297,7 @@ public:
 
     RegOpt();
     RegOpt(int,char**,int id=0);
+    RegOpt(const RegOpt&);
     ~RegOpt();
 
     // spatial grid

@@ -81,6 +81,7 @@ private:
 
 
     RegOpt* m_Opt; ///< registration options
+    RegOpt* m_OptCoarse; ///< registration options
     Mat m_MatVec; ///< mat vec object (PETSc)
     OptProbType* m_OptProb; ///< pointer to optimization problem
 

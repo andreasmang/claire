@@ -61,6 +61,7 @@ PetscErrorCode PrecondReg::Initialize()
     PetscFunctionBegin;
 
     this->m_Opt = NULL;
+    this->m_OptCoarse = NULL;
     this->m_MatVec = NULL;
     this->m_KrylovMethod = NULL;
 
@@ -91,11 +92,15 @@ PetscErrorCode PrecondReg::ClearMemory()
     if (this->m_MatVec != NULL){
         ierr=MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
         this->m_MatVec = NULL;
-     }
+    }
 
     if (this->m_OptProbCoarse != NULL){
         delete this->m_OptProbCoarse;
         this->m_OptProbCoarse=NULL;
+    }
+    if (this->m_OptCoarse != NULL){
+        delete this->m_OptCoarse;
+        this->m_OptCoarse = NULL;
     }
 
     if (this->m_VelocityFieldCoarse != NULL){
@@ -263,27 +268,33 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
 
     if (this->m_OptProbCoarse==NULL){
 
+        try{ this->m_OptCoarse = new RegOpt(*this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
+
         // allocate class for registration
         if (this->m_Opt->GetRegModel() == COMPRESSIBLE){
-            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_Opt); }
+            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse); }
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         else if (this->m_Opt->GetRegModel() == STOKES){
-            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_Opt); }
+            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse); }
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES){
-            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_Opt); }
+            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse); }
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         else{
-            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_Opt); }
+            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse); }
             catch (std::bad_alloc&){
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -293,7 +304,7 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
 
     // allocate velocity field
     if(this->m_VelocityFieldCoarse==NULL){
-        try{ this->m_VelocityFieldCoarse = new VecField(this->m_Opt); }
+        try{ this->m_VelocityFieldCoarse = new VecField(this->m_OptCoarse); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
