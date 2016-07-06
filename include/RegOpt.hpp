@@ -192,19 +192,19 @@ struct Optimization{
 
 /* parameters for krylov solver */
 struct KrylovSolver{
-    int maxit;
-    ScalarType tol[3];
+    int maxit; ///< max number of iterations for krylov solver
+    ScalarType tol[3]; ///< tolerances for krylov method
     FSeqType fseqtype; ///<forcing sequence type
-    KrylovSolverType solver;
-    std::string name;
-    ScalarType reltol;
-    PrecondMeth pctype;
-    std::string pcname;
-    KrylovSolverType pcsolver;
-    ScalarType pcsolvertol;
-    ScalarType g0norm;
-    bool g0normset;
-    int pcsolvermaxit;
+    KrylovSolverType solver; ///< flag for krylov solver
+    std::string name; ///< name of krylov solver
+    ScalarType reltol; ///< relative tolerance for krylov solver
+    PrecondMeth pctype; ///< flag for type of preconditioner
+    std::string pcname; ///< name of preconditioner
+    KrylovSolverType pcsolver; ///< solver for preconditioner
+    ScalarType pcsolvertol; ///< tolerance for preconditioner
+    ScalarType g0norm; ///< initial norm of gradient (to normalize stopping condition)
+    bool g0normset; ///< flag to identify if initial norm of gradient has been set
+    int pcsolvermaxit; ///< number of max iterations for solver for preconditioner
 };
 
 

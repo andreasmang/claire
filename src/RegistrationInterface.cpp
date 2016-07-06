@@ -71,6 +71,7 @@ PetscErrorCode RegistrationInterface::Initialize(void)
     this->m_PreProc=NULL;
     this->m_ReadWrite=NULL;
     this->m_Optimizer=NULL;
+    this->m_Precond=NULL;
     this->m_RegProblem=NULL;
     this->m_ReferencePyramid=NULL;
     this->m_TemplatePyramid=NULL;
@@ -96,30 +97,45 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
     //PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    // delete class for registration problem
     if (this->m_RegProblem != NULL){
         delete this->m_RegProblem;
         this->m_RegProblem = NULL;
     }
+
+    // delete class for optimizer
     if (this->m_Optimizer != NULL){
         delete this->m_Optimizer;
         this->m_Optimizer = NULL;
     }
+
+    // delete class for pre-processing
     if (this->m_PreProc != NULL){
         delete this->m_PreProc;
         this->m_PreProc = NULL;
     }
+
+    // delete class for preconditioner
+    if (this->m_Precond != NULL){
+        delete this->m_Precond;
+        this->m_Precond = NULL;
+    }
+
     if (this->m_Solution != NULL){
         delete this->m_Solution;
         this->m_Solution=NULL;
     }
+
     if (this->m_ReferencePyramid != NULL){
         delete this->m_ReferencePyramid;
         this->m_ReferencePyramid=NULL;
     }
+
     if (this->m_TemplatePyramid != NULL){
         delete this->m_TemplatePyramid;
         this->m_TemplatePyramid=NULL;
     }
+
     PetscFunctionReturn(0);
 }
 
@@ -188,7 +204,8 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR)
 
     ierr=Assert(mR!=NULL,"reference image is null"); CHKERRQ(ierr);
     ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
-    this->m_ReferenceImage=mR;
+
+    this->m_ReferenceImage = mR;
 
     PetscFunctionReturn(0);
 
@@ -209,7 +226,8 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT)
 
     ierr=Assert(mT!=NULL,"template image is null"); CHKERRQ(ierr);
     ierr=Rescale(mT,0.0,1.0); CHKERRQ(ierr);
-    this->m_TemplateImage=mT;
+
+    this->m_TemplateImage = mT;
 
     PetscFunctionReturn(0);
 
@@ -262,6 +280,30 @@ PetscErrorCode RegistrationInterface::SetupSolver()
 
     // set up optimization problem
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+
+    if(this->m_Opt->GetKrylovSolverPara().pctype != NOPC){
+
+        if(this->m_PreProc!=NULL){
+            delete this->m_PreProc; this->m_PreProc=NULL;
+        }
+        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
+        if(this->m_Precond!=NULL){
+            delete this->m_Precond; this->m_Precond=NULL;
+        }
+        // allocate preconditioner
+        try{ this->m_Precond = new PrecondReg(this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_Precond->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
+        ierr=this->m_Precond->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
+        ierr=this->m_Optimizer->SetPreconditioner(this->m_Precond); CHKERRQ(ierr);
+
+    }
 
     PetscFunctionReturn(0);
 }
@@ -1290,8 +1332,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField** v, int level)
 {
     PetscErrorCode ierr;
-    IntType nx[3],nl,ng;
-    VecField *vpro;
+    IntType nx_f[3],nx_c[3],nl_f,ng_f;
+    VecField *v_f;
     PetscFunctionBegin;
 
     ierr=Assert(*v!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -1311,30 +1353,31 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField** v, int lev
 
     // get number of grid points for current level
     for (int i = 0; i<3; ++i){
-        nx[i] = this->m_Opt->GetGridContPara().nx[level][i];
+        nx_f[i] = this->m_Opt->GetGridContPara().nx[level ][i];
+        nx_c[i] = this->m_Opt->GetGridContPara().nx[level-1][i];
     }
 
     // get number of points to allocate
-    ierr=this->m_Opt->GetSizes(nx,nl,ng); CHKERRQ(ierr);
+    ierr=this->m_Opt->GetSizes(nx_f,nl_f,ng_f); CHKERRQ(ierr);
 
     // allocate container for velocity field
-    try{ vpro = new reg::VecField(nl,ng); }
+    try{ v_f = new reg::VecField(nl_f,ng_f); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
     // apply prolongation operator
-    ierr=this->m_PreProc->Prolong(vpro,*v,nx); CHKERRQ(ierr);
+    ierr=this->m_PreProc->Prolong(v_f,*v,nx_f,nx_c); CHKERRQ(ierr);
 
     // allocate container for velocity field
     delete *v; *v = NULL;
-    try{ *v = new reg::VecField(nl,ng); }
+    try{ *v = new reg::VecField(nl_f,ng_f); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
-    ierr=(*v)->Copy(vpro); CHKERRQ(ierr);
+    ierr=(*v)->Copy(v_f); CHKERRQ(ierr);
 
-    delete vpro; vpro=NULL;
+    delete v_f; v_f=NULL;
 
     PetscFunctionReturn(0);
 

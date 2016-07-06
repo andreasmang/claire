@@ -35,6 +35,7 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "PrecondReg.hpp"
+#include "PreProcReg.hpp"
 #include "OptimizationProblem.hpp"
 
 namespace reg
@@ -57,6 +58,7 @@ public:
     PetscErrorCode Run();
     PetscErrorCode GetSolution(Vec&);
     PetscErrorCode SetInitialGuess(VecField*);
+    PetscErrorCode SetPreconditioner(PrecondReg*);
     PetscErrorCode Finalize();
 
 private:
@@ -74,6 +76,7 @@ private:
     KSP m_KrylovMethod; ///< KSP object
 //    PC m_KrylovMethodPC; ///< KSP preconditioner object
     PrecondReg* m_Precond;
+    PreProcReg* m_PreProc;
 
     Vec m_Solution; ///< solution vector
 

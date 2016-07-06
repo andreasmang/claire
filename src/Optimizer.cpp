@@ -74,8 +74,9 @@ PetscErrorCode Optimizer::Initialize(void)
     PetscFunctionBegin;
 
     this->m_Tao = NULL;
-    this->m_Solution = NULL;
     this->m_Precond = NULL;
+    this->m_PreProc = NULL;
+    this->m_Solution = NULL;
     this->m_KrylovMethod = NULL;
     this->m_OptimizationProblem = NULL;
 
@@ -108,12 +109,6 @@ PetscErrorCode Optimizer::ClearMemory(void)
         this->m_Solution = NULL;
     }
 
-    // delete class for preconditioner
-    if (this->m_Precond != NULL){
-        delete this->m_Precond;
-        this->m_Precond = NULL;
-    }
-
     PetscFunctionReturn(0);
 }
 
@@ -132,15 +127,13 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x)
 
     PetscFunctionBegin;
 
-    // compute the number of unknowns
-    nlu = 3*this->m_Opt->GetDomainPara().nlocal;
-    ngu = 3*this->m_Opt->GetDomainPara().nglobal;
-
     if(this->m_Solution==NULL){
 
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
+        // compute the number of unknowns
+        nlu = 3*this->m_Opt->GetDomainPara().nlocal;
+        ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+
+        ierr=VecCreate(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
         ierr=VecSet(this->m_Solution,0.0); CHKERRQ(ierr);
 
     }
@@ -167,17 +160,15 @@ PetscErrorCode Optimizer::SetInitialGuess()
 
     PetscFunctionBegin;
 
-    nlu = 3*this->m_Opt->GetDomainPara().nlocal;
-    ngu = 3*this->m_Opt->GetDomainPara().nglobal;
-
     // check if tao has been set up
-    ierr=Assert(this->m_Tao!=NULL,"tao is null"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Tao!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if(this->m_Solution==NULL){
 
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_Solution); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_Solution); CHKERRQ(ierr);
+        nlu = 3*this->m_Opt->GetDomainPara().nlocal;
+        ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+
+        ierr=VecCreate(this->m_Solution,nlu,ngu); CHKERRQ(ierr);
         ierr=VecSet(this->m_Solution,0.0); CHKERRQ(ierr);
 
     }
@@ -203,9 +194,28 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
-    ierr=Assert(optprob!=NULL,"opt prob is null"); CHKERRQ(ierr);
 
+    ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
     this->m_OptimizationProblem = optprob;
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief set the preconditioner
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetPreconditioner"
+PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(precond!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_Precond = precond;
 
     PetscFunctionReturn(0);
 }
@@ -309,12 +319,7 @@ PetscErrorCode Optimizer::SetupTao()
         }
         else{
 
-            // allocate preconditioner
-            try{ this->m_Precond = new PrecondReg(this->m_Opt); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            ierr=this->m_Precond->SetProblem(this->m_OptimizationProblem); CHKERRQ(ierr);
+            ierr=Assert(this->m_Precond!=NULL,"null pointer"); CHKERRQ(ierr);
 
             // we have to create a shell object for the preconditioner,
             // since our solver is matrix free

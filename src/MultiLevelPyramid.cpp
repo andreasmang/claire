@@ -361,13 +361,14 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng)
 PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 {
     PetscErrorCode ierr;
-    IntType nxlevel[3];
+    IntType nxlevel[3],nx[3];
     int nlevels;
     Vec *xlevel;
     PetscFunctionBegin;
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_PreProc->ResetGridChangeOperators(true);
 
     // allocate the data pyramid
     ierr=this->AllocatePyramid(); CHKERRQ(ierr);
@@ -377,6 +378,10 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 
     // set data on finest grid
     ierr=this->SetData(x,nlevels-1); CHKERRQ(ierr);
+
+    nx[0] = this->m_Opt->GetDomainPara().nx[0];
+    nx[1] = this->m_Opt->GetDomainPara().nx[1];
+    nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
     // for all levels
     for (int l = 0; l < nlevels-1; ++l){
@@ -391,7 +396,8 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
         ierr=Assert(*xlevel!=NULL,"null pointer"); CHKERRQ(ierr);
 
         // restrict data
-        ierr=this->m_PreProc->Restrict(xlevel,x,nxlevel); CHKERRQ(ierr);
+        ierr=this->m_PreProc->Restrict(xlevel,x,nxlevel,nx); CHKERRQ(ierr);
+
     }
 
     PetscFunctionReturn(0);
@@ -406,7 +412,6 @@ PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
 #undef __FUNCT__
 #define __FUNCT__ "GetLevel"
 PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level)
-//PetscErrorCode MultiLevelPyramid::GetLevel(Vec x, int level)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;

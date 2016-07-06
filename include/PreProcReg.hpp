@@ -45,20 +45,22 @@ public:
     PetscErrorCode SetReadWrite(ReadWriteType*);
     PetscErrorCode ApplySmoothing(Vec,Vec);
 
-    PetscErrorCode Prolong(Vec*,Vec,IntType*,bool flag=true);
-    PetscErrorCode Prolong(VecField*,VecField*,IntType*);
+    PetscErrorCode Prolong(Vec*,Vec,IntType*,IntType*,bool flag=true);
+    PetscErrorCode Prolong(VecField*,VecField*,IntType*,IntType*);
 
-    PetscErrorCode Restrict(Vec*,Vec,IntType*,bool flag=true);
-    PetscErrorCode Restrict(VecField*,VecField*,IntType*);
-
+    PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*,bool flag=true);
+    PetscErrorCode Restrict(VecField*,VecField*,IntType*,IntType*);
+    inline void ResetGridChangeOperators(bool flag){this->m_ResetGridChangeOperators=flag;};
 
 private:
 
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
 
-    PetscErrorCode SetupRestriction(IntType*);
-    PetscErrorCode SetupProlongation(IntType*);
+    PetscErrorCode SetupGridChangeOperators(IntType*,IntType*);
+
+    PetscErrorCode SetupRestriction(IntType*,IntType*);
+    PetscErrorCode SetupProlongation(IntType*,IntType*);
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
@@ -69,6 +71,20 @@ private:
     std::vector< std::vector<IntType> > m_IndicesF;
     std::vector< std::vector<IntType> > m_IndicesC;
 
+    accfft_plan* m_FFTFinePlan;
+    accfft_plan* m_FFTCoarsePlan;
+    ScalarType m_FFTFineScale;
+    ScalarType m_FFTCoarseScale;
+
+    ScalarTypeFD* m_XHatFine;
+    ScalarTypeFD* m_XHatCoarse;
+    IntType m_osize_c[3];
+    IntType m_osize_f[3];
+    IntType m_ostart_c[3];
+    IntType m_ostart_f[3];
+
+
+    bool m_ResetGridChangeOperators;
 };
 
 

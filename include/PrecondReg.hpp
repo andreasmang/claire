@@ -45,11 +45,14 @@ public:
     PrecondReg(RegOpt*);
     ~PrecondReg();
 
+    /*! get parameters */
+    inline RegOpt* GetOptions(){ return this->m_Opt; };
+
     /*! set optimization problem */
     PetscErrorCode SetProblem(OptProbType*);
 
-    /*! get parameters */
-    inline RegOpt* GetOptions(){ return this->m_Opt; };
+    /*! set preprocessing interface */
+    PetscErrorCode SetPreProc(PreProcReg*);
 
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec,Vec);
@@ -85,16 +88,25 @@ private:
     OptProbType* m_OptProb; ///< pointer to optimization problem
     OptProbType* m_OptProbCoarse; ///< pointer to optimization problem (coarse level)
 
-    VecField* m_VelocityField; ///< pointer to velocity field
+    VecField* m_ControlVariable; ///< pointer to velocity field
+    VecField* m_IncControlVariable; ///< pointer to velocity field
+
+    Vec m_WorkScaField1; ///< work scalar field
+    Vec m_WorkScaField2; ///< work scalar field
+    Vec m_WorkScaFieldCoarse1; ///< work scalar field (coarse level)
+    Vec m_WorkScaFieldCoarse2; ///< work scalar field (coarse level)
+
+    Vec m_xCoarse;
+    Vec m_HxCoarse;
 
     Vec m_StateVariableCoarse; ///< pointer to state variable (coarse level)
     Vec m_AdjointVariableCoarse; ///< pointer to adjoint variable (coarse level)
-    VecField* m_VelocityFieldCoarse; ///< pointer to velocity field (coarse level)
+    VecField* m_ControlVariableCoarse; ///< pointer to velocity field (coarse level)
+    VecField* m_IncControlVariableCoarse; ///< pointer to velocity field (coarse level)
 
     Mat m_MatVec; ///< mat vec object (PETSc)
 
-
-
+    PreProcReg* m_PreProc; ///< pointer to preprocessing
     KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
 
 };

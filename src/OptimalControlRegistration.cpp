@@ -183,7 +183,6 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
 
 
 
-
 /********************************************************************
  * @brief solve the forward problem (we assume the user has
  * set the template image and the velocity field using the

@@ -32,6 +32,7 @@
 #include "RegUtils.hpp"
 #include "ReadWriteReg.hpp"
 #include "Optimizer.hpp"
+#include "PrecondReg.hpp"
 #include "MultiLevelPyramid.hpp"
 #include "OptimalControlRegistrationBase.hpp"
 #include "OptimalControlRegistration.hpp"
@@ -89,6 +90,7 @@ private:
 
     RegOpt* m_Opt;
     PreProcType* m_PreProc;
+    PrecondReg* m_Precond;
     ReadWriteType* m_ReadWrite;
     OptimizerType* m_Optimizer;
     RegProblemType* m_RegProblem;

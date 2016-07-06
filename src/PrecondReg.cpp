@@ -62,13 +62,28 @@ PetscErrorCode PrecondReg::Initialize()
 
     this->m_Opt = NULL;
     this->m_OptCoarse = NULL;
+
     this->m_MatVec = NULL;
     this->m_KrylovMethod = NULL;
 
+    this->m_xCoarse = NULL;
+    this->m_HxCoarse = NULL;
+
+    this->m_PreProc = NULL;
     this->m_OptProbCoarse = NULL;
-    this->m_VelocityFieldCoarse = NULL;
+
+    this->m_ControlVariable = NULL;
+    this->m_IncControlVariable = NULL;
+
     this->m_StateVariableCoarse = NULL;
     this->m_AdjointVariableCoarse = NULL;
+    this->m_ControlVariableCoarse = NULL;
+    this->m_IncControlVariableCoarse = NULL;
+
+    this->m_WorkScaField1 = NULL; ///< work scalar field
+    this->m_WorkScaField2 = NULL; ///< work scalar field
+    this->m_WorkScaFieldCoarse1 = NULL; ///< work scalar field (coarse level)
+    this->m_WorkScaFieldCoarse2 = NULL; ///< work scalar field (coarse level)
 
     PetscFunctionReturn(0);
 }
@@ -90,12 +105,19 @@ PetscErrorCode PrecondReg::ClearMemory()
         ierr=KSPDestroy(&this->m_KrylovMethod); CHKERRQ(ierr);
         this->m_KrylovMethod = NULL;
     }
-
     if (this->m_MatVec != NULL){
         ierr=MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
         this->m_MatVec = NULL;
     }
 
+    if (this->m_xCoarse != NULL){
+        ierr=VecDestroy(&this->m_xCoarse); CHKERRQ(ierr);
+        this->m_xCoarse = NULL;
+    }
+    if (this->m_HxCoarse != NULL){
+        ierr=VecDestroy(&this->m_HxCoarse); CHKERRQ(ierr);
+        this->m_HxCoarse = NULL;
+    }
     if (this->m_OptProbCoarse != NULL){
         delete this->m_OptProbCoarse;
         this->m_OptProbCoarse=NULL;
@@ -104,11 +126,11 @@ PetscErrorCode PrecondReg::ClearMemory()
         delete this->m_OptCoarse;
         this->m_OptCoarse = NULL;
     }
-
-    if (this->m_VelocityFieldCoarse != NULL){
-        delete this->m_VelocityFieldCoarse;
-        this->m_VelocityFieldCoarse=NULL;
+    if (this->m_ControlVariableCoarse != NULL){
+        delete this->m_ControlVariableCoarse;
+        this->m_ControlVariableCoarse=NULL;
     }
+
     PetscFunctionReturn(0);
 }
 
@@ -132,6 +154,28 @@ PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob)
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * @brief set the optimization problem (this is a general purpose
+ * implementation; the user can set different optimization problems
+ * and we can solve them)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetPreProc"
+PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=Assert(preproc!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_PreProc = preproc;
+
+    PetscFunctionReturn(0);
+}
+
 
 
 
@@ -238,9 +282,7 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
     // start timer
     ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
-
     ierr=KSPSolve(this->m_KrylovMethod,x,Px); CHKERRQ(ierr);
-
 
     // stop timer
     ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
@@ -259,15 +301,38 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
 PetscErrorCode PrecondReg::SetUp2LevelPC()
 {
     PetscErrorCode ierr;
-    IntType nl,ng,nt;
+    IntType nl_f,ng_f,nl_c,ng_c,nt,nx_c[3],nx_f[3];
+    ScalarType scale;
     Vec m=NULL,lambda=NULL;
+    ScalarType *p_mj=NULL,*p_m=NULL,*p_mjcoarse=NULL,*p_mcoarse=NULL,
+                *p_lj=NULL,*p_l=NULL,*p_ljcoarse=NULL,*p_lcoarse=NULL;
+
     PetscFunctionBegin;
 
     // check if optimization problem is set up
     ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("setting up two-level preconditioner"); CHKERRQ(ierr);
+    }
 
     // start timer
     ierr=this->m_Opt->StartTimer(PMVSETUP); CHKERRQ(ierr);
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl_f = this->m_Opt->GetDomainPara().nlocal;
+    ng_f = this->m_Opt->GetDomainPara().nglobal;
+
+    scale = 2.0;
+
+    nx_f[0] = this->m_Opt->GetDomainPara().nx[0];
+    nx_f[1] = this->m_Opt->GetDomainPara().nx[1];
+    nx_f[2] = this->m_Opt->GetDomainPara().nx[2];
+
+    nx_c[0] = static_cast<IntType>( std::ceil( static_cast<ScalarType>(nx_f[0])/scale ) );
+    nx_c[1] = static_cast<IntType>( std::ceil( static_cast<ScalarType>(nx_f[1])/scale ) );
+    nx_c[2] = static_cast<IntType>( std::ceil( static_cast<ScalarType>(nx_f[2])/scale ) );
 
     if (this->m_OptProbCoarse==NULL){
 
@@ -280,7 +345,14 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+        this->m_OptCoarse->SetNumGridPoints(0,nx_c[0]);
+        this->m_OptCoarse->SetNumGridPoints(1,nx_c[1]);
+        this->m_OptCoarse->SetNumGridPoints(2,nx_c[2]);
+
         ierr=this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
+
+        nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
+        ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
 
         // allocate class for registration
         if (this->m_Opt->GetRegModel() == COMPRESSIBLE){
@@ -308,45 +380,113 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
             }
         }
 
-        nt = this->m_OptCoarse->GetDomainPara().nt;
-        nl = this->m_OptCoarse->GetDomainPara().nlocal;
-        ng = this->m_OptCoarse->GetDomainPara().nglobal;
+        ierr=VecCreate(this->m_WorkScaField1,nl_f,ng_f); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl_f,ng_f); CHKERRQ(ierr);
 
-        ierr=VecCreate(this->m_StateVariableCoarse,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
-        ierr=VecCreate(this->m_AdjointVariableCoarse,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
-
-        try{ this->m_VelocityField = new VecField(this->m_Opt); }
+        try{ this->m_ControlVariable = new VecField(this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        try{ this->m_IncControlVariable = new VecField(this->m_Opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        try{ this->m_VelocityFieldCoarse = new VecField(this->m_OptCoarse); }
+        ierr=VecCreate(this->m_StateVariableCoarse,(nt+1)*nl_c,(nt+1)*ng_c); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_AdjointVariableCoarse,(nt+1)*nl_c,(nt+1)*ng_c); CHKERRQ(ierr);
+
+        ierr=VecCreate(this->m_WorkScaFieldCoarse1,nl_c,ng_c); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaFieldCoarse2,nl_c,ng_c); CHKERRQ(ierr);
+
+        try{ this->m_ControlVariableCoarse = new VecField(this->m_OptCoarse); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+        try{ this->m_IncControlVariableCoarse = new VecField(this->m_OptCoarse); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
+        ierr=VecCreate(this->m_xCoarse,3*nl_c,3*ng_c); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_HxCoarse,3*nl_c,3*ng_c); CHKERRQ(ierr);
 
     }
 
     // get variables from optimization problem on fine level
-    ierr=this->m_OptProb->GetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
+    ierr=this->m_OptProb->GetControlVariable(this->m_ControlVariable); CHKERRQ(ierr);
     ierr=this->m_OptProb->GetStateVariable(m); CHKERRQ(ierr);
     ierr=this->m_OptProb->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
-    ierr=this->m_VelocityFieldCoarse->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr=VecCopy(m,this->m_StateVariableCoarse); CHKERRQ(ierr);
-    ierr=VecCopy(lambda,this->m_AdjointVariableCoarse); CHKERRQ(ierr);
+    ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
+    ierr=VecGetArray(lambda,&p_l); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_StateVariableCoarse,&p_mcoarse); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_AdjointVariableCoarse,&p_lcoarse); CHKERRQ(ierr);
+
+    // apply restriction operator
+    for (IntType j = 0; j <= nt; ++j){
+
+        // get current time point
+        ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+        try{ std::copy(p_m+j*nl_f,p_m+(j+1)*nl_f,p_mj); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+
+        // get current time point
+        ierr=VecGetArray(this->m_WorkScaField2,&p_lj); CHKERRQ(ierr);
+        try{ std::copy(p_l+j*nl_f,p_l+(j+1)*nl_f,p_lj); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaField2,&p_lj); CHKERRQ(ierr);
+
+        ierr=this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse1,this->m_WorkScaField1,nx_c,nx_f); CHKERRQ(ierr);
+        ierr=this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse2,this->m_WorkScaField2,nx_c,nx_f); CHKERRQ(ierr);
+
+        // get current time point
+        ierr=VecGetArray(this->m_WorkScaFieldCoarse1,&p_mjcoarse); CHKERRQ(ierr);
+        try{ std::copy(p_mjcoarse,p_mjcoarse+nl_c,p_mcoarse+j*nl_c); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaFieldCoarse1,&p_mjcoarse); CHKERRQ(ierr);
+
+        // get current time point
+        ierr=VecGetArray(this->m_WorkScaFieldCoarse2,&p_ljcoarse); CHKERRQ(ierr);
+        try{ std::copy(p_ljcoarse,p_ljcoarse+nl_c,p_lcoarse+j*nl_c); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaFieldCoarse2,&p_ljcoarse); CHKERRQ(ierr);
+    }
+
+    ierr=VecRestoreArray(this->m_AdjointVariableCoarse,&p_lcoarse); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_StateVariableCoarse,&p_mcoarse); CHKERRQ(ierr);
+    ierr=VecRestoreArray(lambda,&p_l); CHKERRQ(ierr);
+    ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
+
+    // restrict control variable
+    ierr=this->m_PreProc->Restrict(this->m_ControlVariableCoarse,this->m_ControlVariable,nx_c,nx_f); CHKERRQ(ierr);
+
+//    ierr=this->m_ControlVariableCoarse->Copy(this->m_ControlVariable); CHKERRQ(ierr);
+//    ierr=VecCopy(m,this->m_StateVariableCoarse); CHKERRQ(ierr);
+//    ierr=VecCopy(lambda,this->m_AdjointVariableCoarse); CHKERRQ(ierr);
 
     // parse variables to optimization problem on coarse level
-    ierr=this->m_OptProbCoarse->SetControlVariable(this->m_VelocityFieldCoarse); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->SetControlVariable(this->m_ControlVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("setup of two-level preconditioner done"); CHKERRQ(ierr);
+    }
 
     // stop timer
     ierr=this->m_Opt->StopTimer(PMVSETUP); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -527,14 +667,46 @@ PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
 PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
 {
     PetscErrorCode ierr;
+    IntType nx_c[3],nx_f[3];
     PetscFunctionBegin;
 
     // check if optimization problem is set up
+    ierr=Assert(this->m_xCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_HxCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_OptProbCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_IncControlVariable!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_IncControlVariableCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // get number of grid points
+    nx_c[0] = this->m_OptCoarse->GetDomainPara().nx[0];
+    nx_c[1] = this->m_OptCoarse->GetDomainPara().nx[1];
+    nx_c[2] = this->m_OptCoarse->GetDomainPara().nx[2];
+
+    nx_f[0] = this->m_Opt->GetDomainPara().nx[0];
+    nx_f[1] = this->m_Opt->GetDomainPara().nx[1];
+    nx_f[2] = this->m_Opt->GetDomainPara().nx[2];
+
+    ierr=Assert(nx_f[0] >= nx_c[0],"nx_f[0] < nx_c[0]"); CHKERRQ(ierr);
+    ierr=Assert(nx_f[1] >= nx_c[1],"nx_f[1] < nx_c[1]"); CHKERRQ(ierr);
+    ierr=Assert(nx_f[2] >= nx_c[2],"nx_f[2] < nx_c[2]"); CHKERRQ(ierr);
+
+    // set components
+    ierr=this->m_IncControlVariable->SetComponents(x); CHKERRQ(ierr);
+
+    // apply restriction operator
+    ierr=this->m_PreProc->Restrict(this->m_IncControlVariableCoarse,this->m_IncControlVariable,nx_c,nx_f); CHKERRQ(ierr);
+    ierr=this->m_IncControlVariableCoarse->GetComponents(this->m_xCoarse); CHKERRQ(ierr);
 
     // apply hessian (hessian matvec)
-    ierr=this->m_OptProbCoarse->HessianMatVec(Hx,x); CHKERRQ(ierr);
-    //ierr=this->m_OptProb->HessianMatVec(Hx,x); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->HessianMatVec(this->m_HxCoarse,this->m_xCoarse); CHKERRQ(ierr);
+
+    // get components (for interface of hessian matvec)
+    ierr=this->m_IncControlVariableCoarse->SetComponents(this->m_HxCoarse); CHKERRQ(ierr);
+
+    // apply prolongation operator
+    ierr=this->m_PreProc->Prolong(this->m_IncControlVariable,this->m_IncControlVariableCoarse,nx_f,nx_c); CHKERRQ(ierr);
+    ierr=this->m_IncControlVariable->GetComponents(Hx); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 

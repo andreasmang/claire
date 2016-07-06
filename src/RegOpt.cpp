@@ -49,8 +49,26 @@ RegOpt::RegOpt(const RegOpt& opt)
 {
     this->Initialize();
 
-    this->m_SetupDone = opt.m_SetupDone;
+    this->m_SetupDone = false;
 
+    this->m_FFT.plan = NULL;
+    this->m_FFT.mpicomm = NULL;
+
+    this->m_FFT.osize[0] = opt.m_FFT.osize[0];
+    this->m_FFT.osize[1] = opt.m_FFT.osize[1];
+    this->m_FFT.osize[2] = opt.m_FFT.osize[2];
+    this->m_FFT.ostart[0] = opt.m_FFT.ostart[0];
+    this->m_FFT.ostart[1] = opt.m_FFT.ostart[1];
+    this->m_FFT.ostart[2] = opt.m_FFT.ostart[2];
+
+    this->m_Domain.nlocal = opt.m_Domain.nlocal;
+    this->m_Domain.nglobal = opt.m_Domain.nglobal;
+    this->m_Domain.isize[0] = opt.m_Domain.isize[0];
+    this->m_Domain.isize[1] = opt.m_Domain.isize[1];
+    this->m_Domain.isize[2] = opt.m_Domain.isize[2];
+    this->m_Domain.istart[0] = opt.m_Domain.istart[0];
+    this->m_Domain.istart[1] = opt.m_Domain.istart[1];
+    this->m_Domain.istart[2] = opt.m_Domain.istart[2];
     this->m_Domain.nt = opt.m_Domain.nt;
     this->m_Domain.nx[0] = opt.m_Domain.nx[0];
     this->m_Domain.nx[1] = opt.m_Domain.nx[0];
@@ -746,7 +764,21 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = NULL;
+    this->m_FFT.osize[0] = 0;
+    this->m_FFT.osize[1] = 0;
+    this->m_FFT.osize[2] = 0;
+    this->m_FFT.ostart[0] = 0;
+    this->m_FFT.ostart[1] = 0;
+    this->m_FFT.ostart[2] = 0;
 
+    this->m_Domain.nlocal=0;
+    this->m_Domain.nglobal=0;
+    this->m_Domain.isize[0] = 0;
+    this->m_Domain.isize[1] = 0;
+    this->m_Domain.isize[2] = 0;
+    this->m_Domain.istart[0] = 0;
+    this->m_Domain.istart[1] = 0;
+    this->m_Domain.istart[2] = 0;
     this->m_Domain.nt = 4;
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
