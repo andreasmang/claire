@@ -82,11 +82,17 @@ private:
 
     RegOpt* m_Opt; ///< registration options
     RegOpt* m_OptCoarse; ///< registration options
-    Mat m_MatVec; ///< mat vec object (PETSc)
     OptProbType* m_OptProb; ///< pointer to optimization problem
-
     OptProbType* m_OptProbCoarse; ///< pointer to optimization problem (coarse level)
-    VecField* m_VelocityFieldCoarse; ///< pointer to optimization problem (coarse level)
+
+    VecField* m_VelocityField; ///< pointer to velocity field
+
+    Vec m_StateVariableCoarse; ///< pointer to state variable (coarse level)
+    Vec m_AdjointVariableCoarse; ///< pointer to adjoint variable (coarse level)
+    VecField* m_VelocityFieldCoarse; ///< pointer to velocity field (coarse level)
+
+    Mat m_MatVec; ///< mat vec object (PETSc)
+
 
 
     KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)

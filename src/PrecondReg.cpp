@@ -67,6 +67,8 @@ PetscErrorCode PrecondReg::Initialize()
 
     this->m_OptProbCoarse = NULL;
     this->m_VelocityFieldCoarse = NULL;
+    this->m_StateVariableCoarse = NULL;
+    this->m_AdjointVariableCoarse = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -257,6 +259,7 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
 PetscErrorCode PrecondReg::SetUp2LevelPC()
 {
     PetscErrorCode ierr;
+    IntType nl,ng,nt;
     Vec m=NULL,lambda=NULL;
     PetscFunctionBegin;
 
@@ -267,6 +270,11 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
     ierr=this->m_Opt->StartTimer(PMVSETUP); CHKERRQ(ierr);
 
     if (this->m_OptProbCoarse==NULL){
+
+        if (this->m_OptCoarse!=NULL){
+            delete this->m_OptCoarse;
+            this->m_OptCoarse=NULL;
+        }
 
         try{ this->m_OptCoarse = new RegOpt(*this->m_Opt); }
         catch (std::bad_alloc&){
@@ -300,27 +308,38 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
             }
         }
 
-    }
+        nt = this->m_OptCoarse->GetDomainPara().nt;
+        nl = this->m_OptCoarse->GetDomainPara().nlocal;
+        ng = this->m_OptCoarse->GetDomainPara().nglobal;
 
-    // allocate velocity field
-    if(this->m_VelocityFieldCoarse==NULL){
+        ierr=VecCreate(this->m_StateVariableCoarse,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_AdjointVariableCoarse,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
+
+        try{ this->m_VelocityField = new VecField(this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
         try{ this->m_VelocityFieldCoarse = new VecField(this->m_OptCoarse); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+
     }
 
-    ierr=this->m_OptProb->GetControlVariable(this->m_VelocityFieldCoarse); CHKERRQ(ierr);
+    // get variables from optimization problem on fine level
+    ierr=this->m_OptProb->GetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     ierr=this->m_OptProb->GetStateVariable(m); CHKERRQ(ierr);
     ierr=this->m_OptProb->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
-    ierr=Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(lambda!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(this->m_VelocityFieldCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=this->m_VelocityFieldCoarse->Copy(this->m_VelocityField); CHKERRQ(ierr);
+    ierr=VecCopy(m,this->m_StateVariableCoarse); CHKERRQ(ierr);
+    ierr=VecCopy(lambda,this->m_AdjointVariableCoarse); CHKERRQ(ierr);
 
+    // parse variables to optimization problem on coarse level
     ierr=this->m_OptProbCoarse->SetControlVariable(this->m_VelocityFieldCoarse); CHKERRQ(ierr);
-    ierr=this->m_OptProbCoarse->SetStateVariable(m); CHKERRQ(ierr);
-    ierr=this->m_OptProbCoarse->SetAdjointVariable(lambda); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
 
     // stop timer
     ierr=this->m_Opt->StopTimer(PMVSETUP); CHKERRQ(ierr);

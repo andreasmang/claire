@@ -212,6 +212,8 @@ PetscErrorCode VecCreate(Vec& x,IntType nl, IntType ng)
 {
     PetscErrorCode ierr;
 
+    if(x!=NULL){ ierr=VecDestroy(&x); CHKERRQ(ierr); x=NULL; }
+
     ierr=VecCreate(PETSC_COMM_WORLD,&x); CHKERRQ(ierr);
     ierr=VecSetSizes(x,nl,ng); CHKERRQ(ierr);
     ierr=VecSetFromOptions(x); CHKERRQ(ierr);
