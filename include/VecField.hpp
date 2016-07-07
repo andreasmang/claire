@@ -58,6 +58,10 @@ public:
     PetscErrorCode Scale(VecField*,Vec);
 
     PetscErrorCode Copy(VecField*);
+    PetscErrorCode GetArrays(ScalarType*&,ScalarType*&,ScalarType*&);
+    PetscErrorCode RestoreArrays(ScalarType*&,ScalarType*&,ScalarType*&);
+    PetscErrorCode WAXPY(ScalarType,VecField*,VecField*);
+    PetscErrorCode AXPY(ScalarType,VecField*);
 
     // individual components
     Vec m_X1;
