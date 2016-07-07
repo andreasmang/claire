@@ -150,7 +150,7 @@ PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite)
 #define __FUNCT__ "SetupGridChangeOperators"
 PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
 {
-    //PetscErrorCode ierr;
+    PetscErrorCode ierr;
     IntType nalloc_c,nalloc_f;
     int _nx_f[3],_ostart_f[3],_osize_f[3],_isize_f[3],_istart_f[3],
         _nx_c[3],_ostart_c[3],_osize_c[3],_isize_c[3],_istart_c[3];
@@ -158,6 +158,10 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     Complex *p_xfdhat=NULL,*p_xcdhat=NULL;
     MPI_Comm mpicomm;
     PetscFunctionBegin;
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("setting up grid change operators"); CHKERRQ(ierr);
+    }
 
     // parse input sizes
     _nx_f[0] = static_cast<int>(nx_f[0]);
@@ -184,24 +188,29 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     if ( this->m_ResetGridChangeOperators ){
 
         if (this->m_XHatCoarse != NULL){
+            std::cout<< "deleting x hat coarse"<<std::endl;
             accfft_free(this->m_XHatCoarse);
             this->m_XHatCoarse=NULL;
         }
         if (this->m_XHatFine != NULL){
+            std::cout<< "deleting x hat fine"<<std::endl;
             accfft_free(this->m_XHatFine);
             this->m_XHatFine=NULL;
         }
 
         if(this->m_FFTFinePlan != NULL){
+            std::cout<< "deleting fft plan fine"<<std::endl;
             accfft_destroy_plan(this->m_FFTFinePlan);
             this->m_FFTFinePlan=NULL;
+            accfft_cleanup();
         }
 
         if(this->m_FFTCoarsePlan != NULL){
+            std::cout<< "deleting fft plan coarse"<<std::endl;
             accfft_destroy_plan(this->m_FFTCoarsePlan);
             this->m_FFTCoarsePlan=NULL;
+            accfft_cleanup();
         }
-
     }
 
     nalloc_c = accfft_local_size_dft_r2c(_nx_c,_isize_c,_istart_c,_osize_c,_ostart_c,mpicomm);
@@ -216,10 +225,12 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     }
 
     if (this->m_XHatCoarse == NULL){
+        std::cout<< "allocating x hat coarse"<<std::endl;
         this->m_XHatCoarse = (ScalarTypeFD*)accfft_alloc(nalloc_c);
     }
 
     if (this->m_XHatFine == NULL){
+        std::cout<< "allocating x hat fine"<<std::endl;
         this->m_XHatFine = (ScalarTypeFD*)accfft_alloc(nalloc_f);
     }
 
@@ -229,22 +240,28 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
         p_xfd = (ScalarType*)accfft_alloc(nalloc_f);
         p_xfdhat = (Complex*)accfft_alloc(nalloc_f);
 
+        std::cout<< "allocating fft plan fine"<<std::endl;
         this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f,p_xfd,(double*)p_xfdhat,mpicomm,ACCFFT_MEASURE);
 
-        accfft_free(p_xfd);
-
-        accfft_free(p_xfdhat);
+        accfft_free(p_xfd); p_xfd=NULL;
+        accfft_free(p_xfdhat); p_xfdhat=NULL;
     }
 
     // allocate plan for coarse grid
     if (this->m_FFTCoarsePlan == NULL){
+
         p_xcd = (ScalarType*)accfft_alloc(nalloc_c);
         p_xcdhat = (Complex*)accfft_alloc(nalloc_c);
 
+        std::cout<< "allocating fft plan coarse"<<std::endl;
         this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c,p_xcd,(double*)p_xcdhat,mpicomm,ACCFFT_MEASURE);
 
-        accfft_free(p_xcd);
-        accfft_free(p_xcdhat);
+        accfft_free(p_xcd); p_xcd=NULL;
+        accfft_free(p_xcdhat); p_xcdhat=NULL;
+    }
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("setup of grid change operators done"); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(0);
@@ -290,10 +307,10 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
-PetscErrorCode PreProcReg::Restrict(Vec* xcoarse, Vec xfine, IntType* nx_c, IntType* nx_f, bool dosetup)
+PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f, bool dosetup)
 {
     PetscErrorCode ierr;
-    ScalarType *p_xfine=NULL,*p_xcoarse=NULL,scale;
+    ScalarType *p_xf=NULL,*p_xc=NULL,scale;
     IntType n;
     int rank;
     double timer[5]={0,0,0,0,0};
@@ -306,8 +323,8 @@ PetscErrorCode PreProcReg::Restrict(Vec* xcoarse, Vec xfine, IntType* nx_c, IntT
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
-    ierr=Assert(xfine!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(xcoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(x_f!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(x_c!=NULL,"null pointer"); CHKERRQ(ierr);
 
     ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
 
@@ -326,9 +343,9 @@ PetscErrorCode PreProcReg::Restrict(Vec* xcoarse, Vec xfine, IntType* nx_c, IntT
     }
 
     // compute fft of data on fine grid
-    ierr=VecGetArray(xfine,&p_xfine); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTFinePlan,p_xfine,this->m_XHatFine,timer);
-    ierr=VecRestoreArray(xfine,&p_xfine); CHKERRQ(ierr);
+    ierr=VecGetArray(x_f,&p_xf); CHKERRQ(ierr);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTFinePlan,p_xf,this->m_XHatFine,timer);
+    ierr=VecRestoreArray(x_f,&p_xf); CHKERRQ(ierr);
 
     // get size
     if (dosetup) ierr=this->SetupRestriction(nx_f,nx_c); CHKERRQ(ierr);
@@ -357,9 +374,9 @@ PetscErrorCode PreProcReg::Restrict(Vec* xcoarse, Vec xfine, IntType* nx_c, IntT
 } // pragma omp parallel
 
 
-    ierr=VecGetArray(*xcoarse,&p_xcoarse); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTCoarsePlan,this->m_XHatCoarse,p_xcoarse,timer);
-    ierr=VecRestoreArray(*xcoarse,&p_xcoarse); CHKERRQ(ierr);
+    ierr=VecGetArray(*x_c,&p_xc); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTCoarsePlan,this->m_XHatCoarse,p_xc,timer);
+    ierr=VecRestoreArray(*x_c,&p_xc); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -566,7 +583,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     PetscFunctionBegin;
 
     if (this->m_Opt->GetVerbosity() > 2){
-        ierr=DbgMsg("applying restriction operator"); CHKERRQ(ierr);
+        ierr=DbgMsg("applying prolongation operator"); CHKERRQ(ierr);
     }
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -575,7 +592,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     ierr=Assert(x_f!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // allocate operators
-    ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
+    if (dosetup) ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
 
     // set freqencies to zero
     for (IntType i1_f = 0; i1_f < this->m_osize_f[0]; ++i1_f){

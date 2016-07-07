@@ -169,6 +169,73 @@ PetscErrorCode ThrowError(std::string msg)
 
 
 /********************************************************************
+ * @brief setup library
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Init"
+PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
+{
+    PetscErrorCode ierr;
+    IntType nprocs,ompthreads,np;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    omp_set_dynamic(0);
+    omp_set_num_threads(nthreads);
+
+    // check if number of threads is consistent with user options
+    ompthreads=omp_get_max_threads();
+    ss << "max number of openmp threads is not a match (user,set)=("
+       << nthreads <<"," << ompthreads <<")\n";
+    ierr=Assert(ompthreads == nthreads,ss.str().c_str()); CHKERRQ(ierr);
+    ss.str( std::string() );
+    ss.clear();
+
+    // set up MPI/cartesian grid
+    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
+    np = c_grid[0]*c_grid[1];
+
+    // check number of procs
+    if(np!=nprocs){
+
+        // update cartesian grid layout
+        c_grid[0]=0;
+        c_grid[1]=0;
+        MPI_Dims_create(nprocs,2,c_grid);
+
+    }
+
+    if (c_comm != NULL){ MPI_Comm_free(&c_comm); c_comm=NULL; }
+
+    // initialize accft
+    accfft_create_comm(PETSC_COMM_WORLD,c_grid,&c_comm);
+    accfft_init(nthreads);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * @brief view vector entries (transpose output)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Finalize"
+PetscErrorCode Finalize()
+{
+    PetscErrorCode ierr;
+
+    accfft_cleanup();
+
+    // clean up petsc
+    ierr=PetscFinalize(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+/********************************************************************
  * @brief view vector entries (transpose output)
  *******************************************************************/
 #undef __FUNCT__
@@ -251,6 +318,8 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout)
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 /********************************************************************

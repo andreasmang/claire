@@ -91,8 +91,7 @@ int main(int argc,char **argv)
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
 
-    // clean up petsc
-    ierr=PetscFinalize(); CHKERRQ(ierr);
+    ierr=reg::Finalize(); CHKERRQ(ierr);
 
     return 0;
 }

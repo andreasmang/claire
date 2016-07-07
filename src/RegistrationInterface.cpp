@@ -280,16 +280,16 @@ PetscErrorCode RegistrationInterface::SetupSolver()
 
     // set up optimization problem
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+/*
+    if(this->m_PreProc!=NULL){
+        delete this->m_PreProc; this->m_PreProc=NULL;
+    }
+    try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
 
     if(this->m_Opt->GetKrylovSolverPara().pctype != NOPC){
-
-        if(this->m_PreProc!=NULL){
-            delete this->m_PreProc; this->m_PreProc=NULL;
-        }
-        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
 
         if(this->m_Precond!=NULL){
             delete this->m_Precond; this->m_Precond=NULL;
@@ -304,7 +304,7 @@ PetscErrorCode RegistrationInterface::SetupSolver()
         ierr=this->m_Optimizer->SetPreconditioner(this->m_Precond); CHKERRQ(ierr);
 
     }
-
+*/
     PetscFunctionReturn(0);
 }
 
@@ -1153,6 +1153,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    this->m_PreProc->ResetGridChangeOperators(true);
 
     if (!this->m_Opt->GetRegFlags().readimages){
 
@@ -1296,7 +1297,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
         if (level < nlevels){
 
-            ierr=this->ProlongVelocityField(&v,level); CHKERRQ(ierr);
+            ierr=this->ProlongVelocityField(v,level); CHKERRQ(ierr);
 
             if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
             if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
@@ -1329,31 +1330,31 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ProlongVelocityField"
-PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField** v, int level)
+PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int level)
 {
     PetscErrorCode ierr;
     IntType nx_f[3],nx_c[3],nl_f,ng_f;
-    VecField *v_f;
+    VecField *v_f=NULL;
     PetscFunctionBegin;
 
-    ierr=Assert(*v!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 1){
+    if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("prolonging velocity field"); CHKERRQ(ierr);
     }
 
     // set up preprocessing
-    if(this->m_PreProc!=NULL){
-        delete this->m_PreProc; this->m_PreProc=NULL;
+    if(this->m_PreProc==NULL){
+        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
     }
-    try{this->m_PreProc = new PreProcReg(this->m_Opt);}
-    catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
+    this->m_PreProc->ResetGridChangeOperators(true);
 
     // get number of grid points for current level
     for (int i = 0; i<3; ++i){
-        nx_f[i] = this->m_Opt->GetGridContPara().nx[level ][i];
+        nx_f[i] = this->m_Opt->GetGridContPara().nx[level  ][i];
         nx_c[i] = this->m_Opt->GetGridContPara().nx[level-1][i];
     }
 
@@ -1367,17 +1368,17 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField** v, int lev
     }
 
     // apply prolongation operator
-    ierr=this->m_PreProc->Prolong(v_f,*v,nx_f,nx_c); CHKERRQ(ierr);
+    ierr=this->m_PreProc->Prolong(v_f,v,nx_f,nx_c); CHKERRQ(ierr);
 
     // allocate container for velocity field
-    delete *v; *v = NULL;
-    try{ *v = new reg::VecField(nl_f,ng_f); }
+    delete v; v = NULL;
+    try{ v = new reg::VecField(nl_f,ng_f); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
-    ierr=(*v)->Copy(v_f); CHKERRQ(ierr);
+    ierr=v->Copy(v_f); CHKERRQ(ierr);
 
-    delete v_f; v_f=NULL;
+    if (v_f!=NULL) { delete v_f; v_f=NULL; }
 
     PetscFunctionReturn(0);
 

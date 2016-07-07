@@ -37,6 +37,7 @@ RegOpt::RegOpt(int argc, char** argv, int id)
     if      (id == 0) this->ParseArgumentsRegistration(argc,argv);
     else if (id == 1) this->ParseArgumentsPostProcessing(argc,argv);
     else;
+
 }
 
 
@@ -151,6 +152,9 @@ RegOpt::RegOpt(const RegOpt& opt)
     this->m_RegMonitor.jacbound = opt.m_RegMonitor.jacbound;
 
     this->m_NumThreads=opt.m_NumThreads;
+
+    this->m_FFT.mpicomm=opt.m_FFT.mpicomm;
+
     this->m_CartGridDims[0]=opt.m_CartGridDims[0];
     this->m_CartGridDims[1]=opt.m_CartGridDims[1];
 
@@ -574,6 +578,9 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
     if (this->m_SolveType != NOTSET){
         ierr=this->SetPresetParameters(); CHKERRQ(ierr);
     }
+
+    // set number of threads
+    ierr=Init(this->m_NumThreads,this->m_CartGridDims,this->m_FFT.mpicomm); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -1236,6 +1243,8 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
         ierr=this->UsageRegistration(); CHKERRQ(ierr);
     }
 
+    ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
+
     PetscFunctionReturn(0);
 }
 
@@ -1279,6 +1288,7 @@ PetscErrorCode RegOpt::CheckArgumentsPostProcessing()
 
     }
 
+    ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -1294,7 +1304,7 @@ PetscErrorCode RegOpt::CheckArgumentsPostProcessing()
 PetscErrorCode RegOpt::DoSetup(bool dispteaser)
 {
     PetscErrorCode ierr;
-    int nx[3],isize[3],istart[3],osize[3],ostart[3],ompthreads,nprocs,np;
+    int nx[3],isize[3],istart[3],osize[3],ostart[3];
     IntType nalloc;
     ScalarType *u=NULL, fftsetuptime;
     Complex *uk=NULL;
@@ -1302,62 +1312,11 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
 
     PetscFunctionBegin;
 
-    // set number of threads
-    ierr=reg::Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
-
-    omp_set_dynamic(0);
-    omp_set_num_threads(this->m_NumThreads);
-
-    // check if number of threads is consistent with user options
-    ompthreads=omp_get_max_threads();
-    ss << "max number of openmp threads is not a match (user,set)=("
-       << this->m_NumThreads <<"," << ompthreads <<")\n";
-    ierr=Assert(ompthreads == this->m_NumThreads,ss.str().c_str()); CHKERRQ(ierr);
-    ss.str( std::string() );
-    ss.clear();
-
-    // set up MPI/cartesian grid
-    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
-    np = this->m_CartGridDims[0]*this->m_CartGridDims[1];
-
-    // check number of procs
-    if(np!=nprocs){
-
-        if (this->m_Verbosity > 2){
-            ss << "cartesian grid setup wrong: px1*px2="
-                << this->m_CartGridDims[0] <<"*"<<this->m_CartGridDims[1]
-                <<"="<< np << " != " << nprocs << "=p";
-            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
-        }
-
-        // update cartesian grid layout
-        this->m_CartGridDims[0]=0;
-        this->m_CartGridDims[1]=0;
-        MPI_Dims_create(nprocs,2,this->m_CartGridDims);
-
-        if (this->m_Verbosity > 2){
-            ss << "switching to cartesian grid setup: "
-                << this->m_CartGridDims[0] <<"x"<<this->m_CartGridDims[1];
-            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
-        }
-
-    }
-
     // parse grid size for setup
     for (int i = 0; i < 3; ++i){
         nx[i] = static_cast<int>(this->m_Domain.nx[i]);
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
-
-    if (this->m_FFT.mpicomm != NULL){
-        MPI_Comm_free(&this->m_FFT.mpicomm);
-        this->m_FFT.mpicomm=NULL;
-    }
-    // initialize accft
-    accfft_create_comm(PETSC_COMM_WORLD,this->m_CartGridDims,&this->m_FFT.mpicomm);
-    accfft_init(this->m_NumThreads);
 
     // get sizes
     nalloc = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
@@ -1370,7 +1329,6 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
     if (this->m_FFT.plan != NULL){
         accfft_destroy_plan(this->m_FFT.plan);
         this->m_FFT.plan = NULL;
-        accfft_cleanup();
     }
 
     fftsetuptime=-MPI_Wtime();

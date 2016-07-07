@@ -86,7 +86,7 @@ private:
     PetscErrorCode RunSolverRegParaContReductSearch(void);
     PetscErrorCode RunSolverRegParaContReduction(void);
 
-    PetscErrorCode ProlongVelocityField(VecField**,int);
+    PetscErrorCode ProlongVelocityField(VecField*&,int);
 
     RegOpt* m_Opt;
     PreProcType* m_PreProc;

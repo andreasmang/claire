@@ -118,17 +118,61 @@ PetscErrorCode PrecondReg::ClearMemory()
         ierr=VecDestroy(&this->m_HxCoarse); CHKERRQ(ierr);
         this->m_HxCoarse = NULL;
     }
+    if (this->m_StateVariableCoarse != NULL){
+        ierr=VecDestroy(&this->m_StateVariableCoarse); CHKERRQ(ierr);
+        this->m_StateVariableCoarse = NULL;
+    }
+    if (this->m_AdjointVariableCoarse != NULL){
+        ierr=VecDestroy(&this->m_AdjointVariableCoarse); CHKERRQ(ierr);
+        this->m_AdjointVariableCoarse = NULL;
+    }
+
+    if (this->m_WorkScaField1 != NULL){
+        ierr=VecDestroy(&this->m_WorkScaField1); CHKERRQ(ierr);
+        this->m_WorkScaField1 = NULL;
+    }
+    if (this->m_WorkScaField2 != NULL){
+        ierr=VecDestroy(&this->m_WorkScaField2); CHKERRQ(ierr);
+        this->m_WorkScaField2 = NULL;
+    }
+
+    if (this->m_WorkScaFieldCoarse1 != NULL){
+        ierr=VecDestroy(&this->m_WorkScaFieldCoarse1); CHKERRQ(ierr);
+        this->m_WorkScaFieldCoarse1 = NULL;
+    }
+    if (this->m_WorkScaFieldCoarse2 != NULL){
+        ierr=VecDestroy(&this->m_WorkScaFieldCoarse2); CHKERRQ(ierr);
+        this->m_WorkScaFieldCoarse2 = NULL;
+    }
+
+
     if (this->m_OptProbCoarse != NULL){
         delete this->m_OptProbCoarse;
         this->m_OptProbCoarse=NULL;
     }
-    if (this->m_OptCoarse != NULL){
-        delete this->m_OptCoarse;
-        this->m_OptCoarse = NULL;
+
+    if (this->m_ControlVariable != NULL){
+        delete this->m_ControlVariable;
+        this->m_ControlVariable=NULL;
     }
+    if (this->m_IncControlVariable != NULL){
+        delete this->m_IncControlVariable;
+        this->m_IncControlVariable=NULL;
+    }
+
     if (this->m_ControlVariableCoarse != NULL){
         delete this->m_ControlVariableCoarse;
         this->m_ControlVariableCoarse=NULL;
+    }
+    if (this->m_IncControlVariableCoarse != NULL){
+        delete this->m_IncControlVariableCoarse;
+        this->m_IncControlVariableCoarse=NULL;
+    }
+
+
+    if (this->m_OptCoarse != NULL){
+        delete this->m_OptCoarse;
+        this->m_OptCoarse = NULL;
     }
 
     PetscFunctionReturn(0);

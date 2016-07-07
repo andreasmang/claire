@@ -77,6 +77,9 @@ PetscErrorCode GetFileName(std::string&,std::string);
 std::vector<unsigned int> String2Vec( const std::string & );
 
 
+PetscErrorCode Init(int,int*, MPI_Comm&);
+PetscErrorCode Finalize();
+
 
 
 /********************************************************************

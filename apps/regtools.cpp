@@ -141,6 +141,7 @@ int main(int argc,char **argv)
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+        preproc->ResetGridChangeOperators(true);
 
         reg::SynProbRegistration* synprob=NULL;
         // allocate class for io
@@ -204,8 +205,8 @@ int main(int argc,char **argv)
         }
         ierr=vres->SetValue(0.0); CHKERRQ(ierr);
 
-        ierr=preproc->Restrict(&mres,m,nxres); CHKERRQ(ierr);
-        ierr=preproc->Restrict(vres,v,nxres); CHKERRQ(ierr);
+        ierr=preproc->Restrict(&mres,m,nxres,nx); CHKERRQ(ierr);
+        ierr=preproc->Restrict(vres,v,nxres,nx); CHKERRQ(ierr);
 
         nxpro[0] = 2*nx[0];
         nxpro[1] = 2*nx[1];
@@ -225,8 +226,8 @@ int main(int argc,char **argv)
         }
         ierr=vpro->SetValue(0.0); CHKERRQ(ierr);
 
-        ierr=preproc->Prolong(&mpro,m,nxpro); CHKERRQ(ierr);
-        ierr=preproc->Prolong(vpro,v,nxpro); CHKERRQ(ierr);
+        ierr=preproc->Prolong(&mpro,m,nxpro,nx); CHKERRQ(ierr);
+        ierr=preproc->Prolong(vpro,v,nxpro,nx); CHKERRQ(ierr);
 
         // initialize
         for (int i=0; i<3; ++i){

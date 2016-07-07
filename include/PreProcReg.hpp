@@ -50,6 +50,7 @@ public:
 
     PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*,bool flag=true);
     PetscErrorCode Restrict(VecField*,VecField*,IntType*,IntType*);
+
     inline void ResetGridChangeOperators(bool flag){this->m_ResetGridChangeOperators=flag;};
 
 private:
@@ -65,7 +66,6 @@ private:
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
     ScalarTypeFD* m_yhat;
-
     ReadWriteType* m_ReadWrite;
 
     std::vector< std::vector<IntType> > m_IndicesF;
@@ -73,16 +73,17 @@ private:
 
     accfft_plan* m_FFTFinePlan;
     accfft_plan* m_FFTCoarsePlan;
-    ScalarType m_FFTFineScale;
-    ScalarType m_FFTCoarseScale;
 
     ScalarTypeFD* m_XHatFine;
     ScalarTypeFD* m_XHatCoarse;
+
     IntType m_osize_c[3];
     IntType m_osize_f[3];
     IntType m_ostart_c[3];
     IntType m_ostart_f[3];
 
+    ScalarType m_FFTFineScale;
+    ScalarType m_FFTCoarseScale;
 
     bool m_ResetGridChangeOperators;
 };
