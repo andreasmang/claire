@@ -169,7 +169,7 @@ PetscErrorCode MultiLevelPyramid::ClearMemory()
  * @brief set read write operator
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetReadWrite"
+#define __FUNCT__ "SetPreProc"
 PetscErrorCode MultiLevelPyramid::SetPreProc(PreProcReg* ppr)
 {
     PetscErrorCode ierr;
@@ -357,8 +357,8 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng)
  * @brief do setup
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetUp"
-PetscErrorCode MultiLevelPyramid::SetUp(Vec x)
+#define __FUNCT__ "DoSetup"
+PetscErrorCode MultiLevelPyramid::DoSetup(Vec x)
 {
     PetscErrorCode ierr;
     IntType nxlevel[3],nx[3];
@@ -488,7 +488,7 @@ PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level)
  * @brief get data at specific level
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "GetLevel"
+#define __FUNCT__ "GetData"
 PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level)
 {
     PetscErrorCode ierr;

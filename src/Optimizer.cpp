@@ -228,7 +228,7 @@ PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond)
  * and parses the default parameters to TAO)
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "DoSetup"
+#define __FUNCT__ "SetupTao"
 PetscErrorCode Optimizer::SetupTao()
 {
     PetscErrorCode ierr;
@@ -332,7 +332,6 @@ PetscErrorCode Optimizer::SetupTao()
         }
 
     }
-
 
     // set the routine to evaluate the objective and compute the gradient
     ierr=TaoSetObjectiveRoutine(this->m_Tao,EvaluateObjective,(void*)this->m_OptimizationProblem); CHKERRQ(ierr);

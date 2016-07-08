@@ -82,6 +82,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_WorkVecField2 = NULL;
     this->m_WorkVecField3 = NULL;
     this->m_WorkVecField4 = NULL;
+    this->m_WorkVecField5 = NULL;
 
     this->m_VelocityIsZero = false; // flag for velocity field
 
@@ -157,6 +158,10 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
     if (this->m_WorkVecField4 != NULL){
         delete this->m_WorkVecField4;
         this->m_WorkVecField4 = NULL;
+    }
+    if (this->m_WorkVecField5 != NULL){
+        delete this->m_WorkVecField5;
+        this->m_WorkVecField5 = NULL;
     }
 
 

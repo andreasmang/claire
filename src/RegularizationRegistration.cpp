@@ -13,8 +13,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: RegularizationRegistration
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistration"
@@ -27,8 +26,7 @@ RegularizationRegistration::RegularizationRegistration()
 
 
 /********************************************************************
- * Name: ~RegularizationRegistration
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~RegularizationRegistration"
@@ -41,8 +39,7 @@ RegularizationRegistration::~RegularizationRegistration(void)
 
 
 /********************************************************************
- * Name: RegularizationRegistration
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistration"
@@ -56,8 +53,7 @@ RegularizationRegistration::RegularizationRegistration(RegOpt* opt)
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init variables
+ * @brief init variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -83,8 +79,7 @@ PetscErrorCode RegularizationRegistration::Initialize(void)
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -108,8 +103,7 @@ PetscErrorCode RegularizationRegistration::ClearMemory(void)
 
 
 /********************************************************************
- * Name: Allocate
- * Description: allocate arrays for fft (we might have to do this
+ * @brief allocate arrays for fft (we might have to do this
  * in several functions, so we do it collectively here)
  *******************************************************************/
 #undef __FUNCT__
@@ -155,8 +149,7 @@ PetscErrorCode RegularizationRegistration::Allocate(void)
 
 
 /********************************************************************
- * Name: Deallocate
- * Description: deallocate arrays for fft (we might have to do this
+ * @brief deallocate arrays for fft (we might have to do this
  * in several functions, so we do it collectively here)
  *******************************************************************/
 #undef __FUNCT__

@@ -352,7 +352,7 @@ PetscErrorCode RegularizationRegistrationH2SN::HessianMatVec(VecField* dvvR, Vec
 PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt)
 {
     PetscErrorCode ierr;
-    int isize[3],osize[3],istart[3],ostart[3],nx[3];
+    int nx[3];
     ScalarType beta,scale;
     IntType iosize[3];
     double timers[5]={0,0,0,0,0};
@@ -380,12 +380,6 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvx, VecFi
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
         nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
-        accfft_local_size_dft_r2c_t<ScalarType>(nx,isize,istart,osize,ostart,
-                                                this->m_Opt->GetFFT().mpicomm);
-
-        for (int i=0; i < 3; ++i){
-            iosize[i] = static_cast<IntType>(osize[i]);
-        }
         scale = this->m_Opt->ComputeFFTScale();
 
         ierr=VecGetArray(x->m_X1,&p_x1); CHKERRQ(ierr);
@@ -409,13 +403,13 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvx, VecFi
         IntType i;
 
 #pragma omp for
-        for (IntType i1 = 0; i1 < iosize[0]; ++i1){
-            for (IntType i2 = 0; i2 < iosize[1]; ++i2){
-                for (IntType i3 = 0; i3 < iosize[2]; ++i3){
+        for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
+            for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){
+                for (IntType i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){
 
-                    w[0] = static_cast<long int>(i1 + ostart[0]);
-                    w[1] = static_cast<long int>(i2 + ostart[1]);
-                    w[2] = static_cast<long int>(i3 + ostart[2]);
+                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
                     CheckWaveNumbersInv(w,nx);
 
@@ -423,12 +417,12 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvx, VecFi
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = (fabs(lapik) == 0) ? beta : beta*(lapik*lapik);
+                    regop = (std::abs(lapik) == 0.0) ? beta : beta*(lapik*lapik);
 
-                    if (applysqrt) regop = sqrt(regop);
+                    if (applysqrt) regop = std::sqrt(regop);
                     regop = scale/regop;
 
-                    i=GetLinearIndex(i1,i2,i3,iosize);
+                    i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
 
                     // apply to individual components
                     this->m_Lv1hat[i][0] = regop*this->m_v1hat[i][0];

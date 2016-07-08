@@ -44,6 +44,8 @@ public:
 
     PetscErrorCode SetReadWrite(ReadWriteType*);
     PetscErrorCode ApplySmoothing(Vec,Vec);
+    PetscErrorCode ApplyRectFreqFilter(Vec,Vec,ScalarType,bool flag=true);
+    PetscErrorCode ApplyRectFreqFilter(VecField*,VecField*,ScalarType,bool flag=true);
 
     PetscErrorCode Prolong(Vec*,Vec,IntType*,IntType*,bool flag=true);
     PetscErrorCode Prolong(VecField*,VecField*,IntType*,IntType*);

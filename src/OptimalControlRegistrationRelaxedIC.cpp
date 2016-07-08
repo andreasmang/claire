@@ -13,8 +13,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationRelaxedIC
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistrationRelaxedIC"
@@ -27,8 +26,7 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : Sup
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationRelaxedIC
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~OptimalControlRegistrationRelaxedIC"
@@ -41,8 +39,7 @@ OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC(void)
 
 
 /********************************************************************
- * Name: OptimalControlRegistrationRelaxedIC
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistrationRelaxedIC"
@@ -55,8 +52,7 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt*
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init variables
+ * @brief init variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -79,8 +75,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void)
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clean up
+ * @brief clean up
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -121,15 +116,14 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void)
 
 
 /********************************************************************
- * Name: EvaluateObjective
- * Description: evaluates the objective value
+ * @brief evaluates the objective value
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjective"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType* J, Vec v)
 {
     PetscErrorCode ierr;
-    ScalarType D=0.0,Rv=0.0,Rw=0.0;
+    ScalarType D,Rv,Rw;
     PetscFunctionBegin;
 
     // allocate velocity field
@@ -177,8 +171,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
 
 
 /********************************************************************
- * Name: ComputeBodyForce
- * Description: compute the body force
+ * @brief compute the body force
  * b = K[\int_0^1 \igrad m \lambda d t],
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
@@ -192,7 +185,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_gdv1=NULL,*p_gdv2=NULL,*p_gdv3=NULL,
                 *p_divv=NULL;
-    ScalarType value,betaw,hd;
+    ScalarType value,betaw; //,hd;
     double ffttimers[5]={0,0,0,0,0};
     IntType nl,ng;
     std::bitset<3>XYZ=0; XYZ[0]=1,XYZ[1]=1,XYZ[2]=1;
@@ -215,8 +208,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     // get regularization weight
     betaw = this->m_Opt->GetRegNorm().beta[2];
 
-    // compute hd
-    hd = this->m_Opt->GetLebesqueMeasure();
     ierr=VecGetArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_VelocityField->m_X1,&p_v1); CHKERRQ(ierr);
@@ -253,7 +244,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecTDot(this->m_WorkScaField1,this->m_WorkScaField1,&value); *Rw +=value;
 
     // add up contributions
-    *Rw *= 0.5*hd*betaw;
+    //hd = this->m_Opt->GetLebesqueMeasure();
+    //*Rw *= 0.5*hd*betaw;
+    *Rw *= 0.5*betaw;
 
     this->m_Opt->IncreaseFFTTimers(ffttimers);
 
@@ -264,8 +257,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
 
 
 /********************************************************************
- * Name: ComputeBodyForce
- * Description: compute the body force
+ * @brief compute the body force
  * b = K[\int_0^1 \igrad m \lambda d t],
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
@@ -301,8 +293,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce()
 
 
 /********************************************************************
- * Name: ComputeIncBodyForce
- * Description: compute the body force
+ * @brief compute the body force
  * b = K[\int_0^1\igrad\tilde{m}\lambda+\igrad m \tilde{\lambda} dt]
  * where K is an operator that projects \tilde{v} onto the manifold
  * of divergence free velocity fields
@@ -338,8 +329,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce()
 
 
 /********************************************************************
- * Name: ApplyProjection
- * Description: apply projection to map \tilde{v} onto the manifold
+ * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
 #undef __FUNCT__
@@ -404,7 +394,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x2,this->m_x2hat,ffttimers);
     accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x3,this->m_x3hat,ffttimers);
     this->m_Opt->IncrementCounter(FFT,3);
-
 
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
     beta[2] = this->m_Opt->GetRegNorm().beta[2];

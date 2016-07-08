@@ -176,7 +176,7 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x)
  * @brief set read write operator
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetIO"
+#define __FUNCT__ "SetReadWrite"
 PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw)
 {
     PetscErrorCode ierr;
@@ -280,7 +280,7 @@ PetscErrorCode RegistrationInterface::SetupSolver()
 
     // set up optimization problem
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
-/*
+
     if(this->m_PreProc!=NULL){
         delete this->m_PreProc; this->m_PreProc=NULL;
     }
@@ -304,7 +304,7 @@ PetscErrorCode RegistrationInterface::SetupSolver()
         ierr=this->m_Optimizer->SetPreconditioner(this->m_Precond); CHKERRQ(ierr);
 
     }
-*/
+
     PetscFunctionReturn(0);
 }
 
@@ -358,11 +358,13 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
 
     // set up initial condition
     if (this->m_Solution==NULL){
+
         try{ this->m_Solution = new VecField(this->m_Opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
+
     }
 
     PetscFunctionReturn(0);
@@ -1193,7 +1195,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     }
     // setup multilevel pyramid for reference image
     ierr=this->m_ReferencePyramid->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
-    ierr=this->m_ReferencePyramid->SetUp(this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr=this->m_ReferencePyramid->DoSetup(this->m_ReferenceImage); CHKERRQ(ierr);
 
     // allocate multilevel pyramid for template image
     if (this->m_Opt->GetVerbosity() > 1){
@@ -1207,7 +1209,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     }
     // setup multilevel pyramid for template image
     ierr=this->m_TemplatePyramid->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
-    ierr=this->m_TemplatePyramid->SetUp(this->m_TemplateImage); CHKERRQ(ierr);
+    ierr=this->m_TemplatePyramid->DoSetup(this->m_TemplateImage); CHKERRQ(ierr);
 
     // get grid size
     for (int i = 0; i < 3; ++i){

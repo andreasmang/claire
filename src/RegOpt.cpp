@@ -712,6 +712,9 @@ PetscErrorCode RegOpt::ParseArgumentsPostProcessing(int argc, char** argv)
     // check the arguments/parameters set by the user
     ierr=this->CheckArgumentsPostProcessing(); CHKERRQ(ierr);
 
+    // set number of threads
+    ierr=Init(this->m_NumThreads,this->m_CartGridDims,this->m_FFT.mpicomm); CHKERRQ(ierr);
+
     PetscFunctionReturn(0);
 }
 
@@ -816,7 +819,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.pctype = NOPC;
     //this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.solver = PCG;
-    this->m_KrylovSolverPara.pcsolver = CHEB;
+    this->m_KrylovSolverPara.pcsolver = PCG;
     this->m_KrylovSolverPara.pcsolvertol = 1E-1;
     this->m_KrylovSolverPara.pcsolvermaxit = 10;
     this->m_KrylovSolverPara.g0normset = false;
@@ -890,7 +893,7 @@ PetscErrorCode RegOpt::Initialize()
  * @brief display usage message for binary
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "Usage"
+#define __FUNCT__ "UsageRegistration"
 PetscErrorCode RegOpt::UsageRegistration(bool advanced)
 {
 
@@ -1062,7 +1065,7 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
  * @brief display usage message for binary
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "Usage"
+#define __FUNCT__ "UsagePostProcessing"
 PetscErrorCode RegOpt::UsagePostProcessing(bool advanced)
 {
 
@@ -1514,7 +1517,9 @@ PetscErrorCode RegOpt::SetupGridCont()
         // compute number of grid points for current level
         for (int i = 0; i < 3; ++i){
 
-            if (level==0) this->m_GridCont.nx[j][i] = this->m_Domain.nx[i];
+            if (level==0){
+                this->m_GridCont.nx[j][i] = this->m_Domain.nx[i];
+            }
             else{
                 value = static_cast<ScalarType>(this->m_GridCont.nx[j+1][i]);
                 this->m_GridCont.nx[j][i] = static_cast<IntType>( std::ceil(value/2.0) );
@@ -1928,6 +1933,8 @@ PetscErrorCode RegOpt::DisplayOptions()
 /********************************************************************
  * @brief compute sizes
  *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng)
 {
     PetscErrorCode ierr;
@@ -1961,6 +1968,8 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng)
 /********************************************************************
  * @brief compute sizes
  *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize)
 {
     PetscErrorCode ierr;
@@ -1991,6 +2000,8 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize)
 /********************************************************************
  * @brief compute weight for FFT
  *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeFFTScale"
 ScalarType RegOpt::ComputeFFTScale()
 {
 

@@ -53,7 +53,7 @@ public:
 
     PetscErrorCode GetLevel(Vec*,int);
     //PetscErrorCode GetLevel(Vec,int);
-    PetscErrorCode SetUp(Vec);
+    PetscErrorCode DoSetup(Vec);
 
     PetscErrorCode SetPreProc(PreProcReg*);
 

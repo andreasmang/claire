@@ -91,13 +91,14 @@ private:
     VecField* m_ControlVariable; ///< pointer to velocity field
     VecField* m_IncControlVariable; ///< pointer to velocity field
 
-    Vec m_WorkScaField1; ///< work scalar field
-    Vec m_WorkScaField2; ///< work scalar field
-    Vec m_WorkScaFieldCoarse1; ///< work scalar field (coarse level)
-    Vec m_WorkScaFieldCoarse2; ///< work scalar field (coarse level)
+    Vec m_WorkScaField1; ///< temporary scalar field
+    Vec m_WorkScaField2; ///< temprary scalar field
+    VecField* m_WorkVecField; ///< temporary vector field
+    Vec m_WorkScaFieldCoarse1; ///< temporary scalar field (coarse level)
+    Vec m_WorkScaFieldCoarse2; ///< temporary scalar field (coarse level)
 
-    Vec m_xCoarse;
-    Vec m_HxCoarse;
+    Vec m_xCoarse; // array for input to hessian mat vec (on coarse level)
+    Vec m_HxCoarse; // array for hessian mat vec (on coarse level)
 
     Vec m_StateVariableCoarse; ///< pointer to state variable (coarse level)
     Vec m_AdjointVariableCoarse; ///< pointer to adjoint variable (coarse level)

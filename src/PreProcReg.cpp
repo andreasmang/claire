@@ -188,28 +188,22 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     if ( this->m_ResetGridChangeOperators ){
 
         if (this->m_XHatCoarse != NULL){
-            std::cout<< "deleting x hat coarse"<<std::endl;
             accfft_free(this->m_XHatCoarse);
             this->m_XHatCoarse=NULL;
         }
         if (this->m_XHatFine != NULL){
-            std::cout<< "deleting x hat fine"<<std::endl;
             accfft_free(this->m_XHatFine);
             this->m_XHatFine=NULL;
         }
 
         if(this->m_FFTFinePlan != NULL){
-            std::cout<< "deleting fft plan fine"<<std::endl;
             accfft_destroy_plan(this->m_FFTFinePlan);
             this->m_FFTFinePlan=NULL;
-            accfft_cleanup();
         }
 
         if(this->m_FFTCoarsePlan != NULL){
-            std::cout<< "deleting fft plan coarse"<<std::endl;
             accfft_destroy_plan(this->m_FFTCoarsePlan);
             this->m_FFTCoarsePlan=NULL;
-            accfft_cleanup();
         }
     }
 
@@ -225,12 +219,10 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     }
 
     if (this->m_XHatCoarse == NULL){
-        std::cout<< "allocating x hat coarse"<<std::endl;
         this->m_XHatCoarse = (ScalarTypeFD*)accfft_alloc(nalloc_c);
     }
 
     if (this->m_XHatFine == NULL){
-        std::cout<< "allocating x hat fine"<<std::endl;
         this->m_XHatFine = (ScalarTypeFD*)accfft_alloc(nalloc_f);
     }
 
@@ -240,7 +232,6 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
         p_xfd = (ScalarType*)accfft_alloc(nalloc_f);
         p_xfdhat = (Complex*)accfft_alloc(nalloc_f);
 
-        std::cout<< "allocating fft plan fine"<<std::endl;
         this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f,p_xfd,(double*)p_xfdhat,mpicomm,ACCFFT_MEASURE);
 
         accfft_free(p_xfd); p_xfd=NULL;
@@ -253,7 +244,6 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
         p_xcd = (ScalarType*)accfft_alloc(nalloc_c);
         p_xcdhat = (Complex*)accfft_alloc(nalloc_c);
 
-        std::cout<< "allocating fft plan coarse"<<std::endl;
         this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c,p_xcd,(double*)p_xcdhat,mpicomm,ACCFFT_MEASURE);
 
         accfft_free(p_xcd); p_xcd=NULL;
@@ -348,7 +338,8 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     ierr=VecRestoreArray(x_f,&p_xf); CHKERRQ(ierr);
 
     // get size
-    if (dosetup) ierr=this->SetupRestriction(nx_f,nx_c); CHKERRQ(ierr);
+    //if (dosetup) ierr=this->SetupRestriction(nx_f,nx_c); CHKERRQ(ierr);
+    ierr=this->SetupRestriction(nx_f,nx_c); CHKERRQ(ierr);
 
     // get grid sizes/fft scales
     scale = this->m_FFTFineScale;
@@ -381,6 +372,8 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
 
+    // increment counter
+    this->m_Opt->IncrementCounter(FFT,2);
 
     PetscFunctionReturn(0);
 }
@@ -429,8 +422,8 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
     }
 
     for(int i = 0; i < 3; ++i){
-        nxhalf_c[i] = std::floor(static_cast<ScalarType>(nx_c[i])/2.0);
-        oend_c[i]   = this->m_ostart_c[i] + this->m_osize_c[i];
+        nxhalf_c[i] = std::ceil(static_cast<ScalarType>(nx_c[i])/2.0);
+        oend_c[i] = this->m_ostart_c[i] + this->m_osize_c[i];
     }
 
     // get cartesian grid (MPI)
@@ -447,15 +440,19 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
             for (i3_f = 0; i3_f < this->m_osize_f[2]; ++i3_f){ // x3
 
                 // compute wave number index on fine grid
-                k1_f = static_cast<IntType>(i1_f + this->m_ostart_f[0]);
-                k2_f = static_cast<IntType>(i2_f + this->m_ostart_f[1]);
-                k3_f = static_cast<IntType>(i3_f + this->m_ostart_f[2]);
+                k1_f = static_cast<ScalarType>(i1_f + this->m_ostart_f[0]);
+                k2_f = static_cast<ScalarType>(i2_f + this->m_ostart_f[1]);
+                k3_f = static_cast<ScalarType>(i3_f + this->m_ostart_f[2]);
 
                 // only if current fourier entry is represented in
-                // spectral domain of coarse grid
-                if (  ( k1_f <= nxhalf_c[0] || k1_f > (nx_f[0] - nxhalf_c[0]) )
-                   && ( k2_f <= nxhalf_c[1] || k2_f > (nx_f[1] - nxhalf_c[1]) )
-                   && ( k3_f <= nxhalf_c[2] || k3_f > (nx_f[2] - nxhalf_c[2]) ) ){
+                // spectral domain of coarse grid; we ignore the nyquist
+                // frequency
+                if (  ( k1_f < nxhalf_c[0] || k1_f > (nx_f[0] - nxhalf_c[0]) )
+                   && ( k2_f < nxhalf_c[1] || k2_f > (nx_f[1] - nxhalf_c[1]) )
+                   && ( k3_f < nxhalf_c[2] || k3_f > (nx_f[2] - nxhalf_c[2]) ) ){
+//                if (  ( k1_f <= nxhalf_c[0] || k1_f > (nx_f[0] - nxhalf_c[0]) )
+//                   && ( k2_f <= nxhalf_c[1] || k2_f > (nx_f[1] - nxhalf_c[1]) )
+//                   && ( k3_f <= nxhalf_c[2] || k3_f > (nx_f[2] - nxhalf_c[2]) ) ){
 
                     ++nprocessed;
 
@@ -495,6 +492,7 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
                         if ( (i1_c < 0.0) || (i2_c < 0.0) || (i3_c < 0.0) ){
                             std::cout<<"index out of bounds (negative)"<<std::endl;
                         }
+
                         // compute flat index
                         li_c = GetLinearIndex(i1_c,i2_c,i3_c,this->m_osize_c);
                         li_f = GetLinearIndex(i1_f,i2_f,i3_f,this->m_osize_f);
@@ -575,9 +573,9 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
 PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c, bool dosetup)
 {
     PetscErrorCode ierr;
-    ScalarType *p_xf=NULL,*p_xc=NULL,scale;
-    IntType n;
     int rank;
+    IntType n;
+    ScalarType *p_xf=NULL,*p_xc=NULL,scale;
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
@@ -592,7 +590,8 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     ierr=Assert(x_f!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // allocate operators
-    if (dosetup) ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
+    //if (dosetup) ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
+    ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
 
     // set freqencies to zero
     for (IntType i1_f = 0; i1_f < this->m_osize_f[0]; ++i1_f){
@@ -609,7 +608,8 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     }
 
     // get size
-    if (dosetup) ierr=this->SetupProlongation(nx_f,nx_c); CHKERRQ(ierr);
+    //if (dosetup) ierr=this->SetupProlongation(nx_f,nx_c); CHKERRQ(ierr);
+    ierr=this->SetupProlongation(nx_f,nx_c); CHKERRQ(ierr);
 
     // compute fft of data on fine grid
     ierr=VecGetArray(x_c,&p_xc); CHKERRQ(ierr);
@@ -646,6 +646,9 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
+
+    // increment counter
+    this->m_Opt->IncrementCounter(FFT,2);
 
     PetscFunctionReturn(0);
 }
@@ -695,7 +698,7 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
 
     for(int i = 0; i < 3; ++i){
         oend_f[i] = this->m_ostart_f[i] + this->m_osize_f[i];
-        nxhalf_c[i] = std::floor(static_cast<ScalarType>(nx_c[i])/2.0);
+        nxhalf_c[i] = std::ceil(static_cast<ScalarType>(nx_c[i])/2.0);
     }
 
     // get cartesian grid (MPI)
@@ -728,56 +731,68 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
                     std::cout<<"index out of bounds (larger than nx)"<<std::endl;
                 }
 
-                // compute processor id
-                p1=static_cast<int>(k2_f/osizex2);
-                p2=static_cast<int>(k3_f/osizex3);
-                xrank = p1*c_grid[1] + p2;
+                bool nyquistfreq=false;
+                if (k1_f == nxhalf_c[0]){ nyquistfreq=true; };
+                if (k2_f == nxhalf_c[1]){ nyquistfreq=true; };
+                if (k3_f == nxhalf_c[2]){ nyquistfreq=true; };
 
-                // only if current fourier entry is represented in
-                // spectral domain of coarse grid
-                if (  ( k1_f >= this->m_ostart_f[0] && k1_f < oend_f[0] )
-                   && ( k2_f >= this->m_ostart_f[1] && k2_f < oend_f[1] )
-                   && ( k3_f >= this->m_ostart_f[2] && k3_f < oend_f[2] ) ){
+                // we ignore the nyquist frequency, because it is
+                // not informative
+                if (nyquistfreq != true){
 
-                    // compute local index
-                    i1_f = static_cast<IntType>(k1_f) - this->m_ostart_f[0];
-                    i2_f = static_cast<IntType>(k2_f) - this->m_ostart_f[1];
-                    i3_f = static_cast<IntType>(k3_f) - this->m_ostart_f[2];
+                    // compute processor id
+                    p1=static_cast<int>(k2_f/osizex2);
+                    p2=static_cast<int>(k3_f/osizex3);
+                    xrank = p1*c_grid[1] + p2;
 
-                    if ( (i1_f >= this->m_osize_f[0]) || (i2_f >= this->m_osize_f[1]) || (i3_f >= this->m_osize_f[2]) ){
-                        std::cout<<"index out of bounds (larger than osize)"<<std::endl;
+                    // only if current fourier entry is represented in
+                    // spectral domain of coarse grid
+                    if (  ( k1_f >= this->m_ostart_f[0] && k1_f < oend_f[0] )
+                       && ( k2_f >= this->m_ostart_f[1] && k2_f < oend_f[1] )
+                       && ( k3_f >= this->m_ostart_f[2] && k3_f < oend_f[2] ) ){
+
+                        // compute local index
+                        i1_f = static_cast<IntType>(k1_f) - this->m_ostart_f[0];
+                        i2_f = static_cast<IntType>(k2_f) - this->m_ostart_f[1];
+                        i3_f = static_cast<IntType>(k3_f) - this->m_ostart_f[2];
+
+                        if (    (i1_f >= this->m_osize_f[0])
+                             || (i2_f >= this->m_osize_f[1])
+                             || (i3_f >= this->m_osize_f[2]) ){
+                            std::cout<<"index out of bounds (larger than osize)"<<std::endl;
+                        }
+                        if ( (i1_f < 0.0) || (i2_f < 0.0) || (i3_f < 0.0) ){
+                            std::cout<<"index out of bounds (negative)"<<std::endl;
+                        }
+
+                        // compute flat index
+                        li_f = GetLinearIndex(i1_f,i2_f,i3_f,this->m_osize_f);
+                        li_c = GetLinearIndex(i1_c,i2_c,i3_c,this->m_osize_c);
+
+                        // assign computed indices to array (for given rank)
+                        this->m_IndicesF[rank].push_back(li_f);
+                        this->m_IndicesC[rank].push_back(li_c);
+
+                        ++nowned;
+
+                        // check if woned is really owned
+                        if ( rank != xrank ){
+                            std::cout<<"rank not owned: " << rank <<" "<< xrank <<std::endl;
+                        }
                     }
-                    if ( (i1_f < 0.0) || (i2_f < 0.0) || (i3_f < 0.0) ){
-                        std::cout<<"index out of bounds (negative)"<<std::endl;
+                    else{
+
+                        if ( rank == xrank ){
+                            std::cout<<" rank owned: "<< rank <<" "<< xrank <<std::endl;
+                        }
+
+                        this->m_IndicesF[xrank].push_back(0);
+                        this->m_IndicesC[xrank].push_back(0);
+
+                        ++nsend;
+
                     }
-                    // compute flat index
-                    li_f = GetLinearIndex(i1_f,i2_f,i3_f,this->m_osize_f);
-                    li_c = GetLinearIndex(i1_c,i2_c,i3_c,this->m_osize_c);
-
-                    // assign computed indices to array (for given rank)
-                    this->m_IndicesF[rank].push_back(li_f);
-                    this->m_IndicesC[rank].push_back(li_c);
-
-                    ++nowned;
-
-                    // check if woned is really owned
-                    if ( rank != xrank ){
-                        std::cout<<"rank not owned: " << rank <<" "<< xrank <<std::endl;
-                    }
-                }
-                else{
-
-                    if ( rank == xrank ){
-                        std::cout<<" rank owned: "<< rank <<" "<< xrank <<std::endl;
-                    }
-
-                    this->m_IndicesF[xrank].push_back(0);
-                    this->m_IndicesC[xrank].push_back(0);
-
-                    ++nsend;
-
-                }
-
+                } // nyquist
             } // i1
         } // i2
     } // i3
@@ -792,6 +807,139 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
 
 
 /********************************************************************
+ * @brief apply cutoff frequency filter
+ * @param xflt output/filtered x
+ * @param x input
+ * @param pct cut off precentage (provide 0.5 for 50%)
+ * @param lowpass flag to switch on low pass filter; default is true
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ApplyRectFreqFilter"
+PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt,VecField* v,ScalarType pct,bool lowpass)
+{
+    PetscErrorCode ierr=0;
+
+    ierr=this->ApplyRectFreqFilter(vflt->m_X1,v->m_X1,pct,lowpass); CHKERRQ(ierr);
+    ierr=this->ApplyRectFreqFilter(vflt->m_X2,v->m_X2,pct,lowpass); CHKERRQ(ierr);
+    ierr=this->ApplyRectFreqFilter(vflt->m_X3,v->m_X3,pct,lowpass); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief apply cutoff frequency filter
+ * @param xflt output/filtered x
+ * @param x input
+ * @param pct cut off precentage (provide 0.5 for 50%)
+ * @param lowpass flag to switch on low pass filter; default is true
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ApplyRectFreqFilter"
+PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt,Vec x,ScalarType pct,bool lowpass)
+{
+    PetscErrorCode ierr=0;
+    IntType nalloc;
+    ScalarType *p_x=NULL,*p_xflt=NULL,nxhalf[3],
+                scale,cfreq[3][2],indicator[2],indic;
+    int nx[3];
+    double timer[5]={0,0,0,0,0};
+
+    PetscFunctionBegin;
+
+    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(xflt!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(pct >= 0.0 && pct <= 1.0,"parameter error"); CHKERRQ(ierr);
+
+    indicator[0] = 1;
+    indicator[1] = 0;
+
+    if(!lowpass){
+        indicator[0] = 1 - indicator[0];
+        indicator[1] = 1 - indicator[1];
+    }
+
+    // get local pencil size and allocation size
+    nalloc=this->m_Opt->GetFFT().nalloc;
+
+    // allocate
+    if(this->m_xhat==NULL){ this->m_xhat=(ScalarTypeFD*)accfft_alloc(nalloc); }
+
+    // get parameters
+    for (int i = 0; i < 3; ++i){
+        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        nxhalf[i] = static_cast<ScalarType>(nx[i]/2.0);
+    }
+    scale = this->m_Opt->ComputeFFTScale();
+
+    // compute fft
+    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,timer);
+    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+
+    // compute cutoff frequency
+    cfreq[0][0] = pct*(nxhalf[0]-1);
+    cfreq[1][0] = pct*(nxhalf[1]-1);
+    cfreq[2][0] = pct*(nxhalf[2]-1);
+
+    cfreq[0][1] = static_cast<ScalarType>(nx[0]) - pct*(nxhalf[0]);
+    cfreq[1][1] = static_cast<ScalarType>(nx[1]) - pct*(nxhalf[1]);
+    cfreq[2][1] = static_cast<ScalarType>(nx[2]) - pct*(nxhalf[2]);
+
+#pragma omp parallel
+{
+    long int w[3];
+#pragma omp for
+    for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){ // x3
+
+                // compute coordinates (nodal grid)
+                w[0] = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                w[1] = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                w[2] = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
+
+                bool inside = true;
+                inside = ( ( (w[0] < cfreq[0][0]) || (w[0] > cfreq[0][1]) ) && inside ) ? true : false;
+                inside = ( ( (w[1] < cfreq[1][0]) || (w[1] > cfreq[1][1]) ) && inside ) ? true : false;
+                inside = ( ( (w[2] < cfreq[2][0]) || (w[2] > cfreq[2][1]) ) && inside ) ? true : false;
+
+                indic = inside ? indicator[0] : indicator[1];
+
+                // compute linear / flat index
+                IntType li = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+
+                this->m_xhat[li][0] *= scale*indic;
+                this->m_xhat[li][1] *= scale*indic;
+
+            } // i1
+        } // i2
+    } // i3
+
+} // pragma omp parallel
+
+
+    // compute inverse fft
+    ierr=VecGetArray(xflt,&p_xflt); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_xflt,timer);
+    ierr=VecRestoreArray(xflt,&p_xflt); CHKERRQ(ierr);
+
+    // increment fft timer
+    this->m_Opt->IncreaseFFTTimers(timer);
+
+    // increment counter
+    this->m_Opt->IncrementCounter(FFT,2);
+
+    PetscFunctionReturn(ierr);
+
+}
+
+
+
+
+/********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
 #undef __FUNCT__
@@ -799,13 +947,14 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
 PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 {
     PetscErrorCode ierr;
-    IntType osize[3],ostart[3],nalloc;
-    ScalarType hx[3],nx[3],c[3],scale;
-    ScalarType *p_x=NULL, *p_xsmooth=NULL;
+    IntType nalloc;
+    ScalarType *p_x=NULL,*p_xsmooth=NULL,nx[3],c[3],scale;
     double timer[5]={0,0,0,0,0};
+
     PetscFunctionBegin;
 
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(xsmooth!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // get local pencil size and allocation size
     nalloc=this->m_Opt->GetFFT().nalloc;
@@ -817,14 +966,10 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
     // get parameters
     for (int i = 0; i < 3; ++i){
 
-        osize[i] = this->m_Opt->GetFFT().osize[i];
-        ostart[i] = this->m_Opt->GetFFT().ostart[i];
-
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
         nx[i] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i]);
 
         // sigma is provided by user in # of grid points
-        c[i] = this->m_Opt->GetSigma(i)*hx[i];
+        c[i] = this->m_Opt->GetSigma(i)*this->m_Opt->GetDomainPara().hx[i];
         c[i] *= c[i];
 
     }
@@ -840,14 +985,14 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i1 = 0; i1 < osize[0]; ++i1){ // x1
-        for (IntType i2 = 0; i2 < osize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < osize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
-                ScalarType k1 = static_cast<ScalarType>(i1 + ostart[0]);
-                ScalarType k2 = static_cast<ScalarType>(i2 + ostart[1]);
-                ScalarType k3 = static_cast<ScalarType>(i3 + ostart[2]);
+                ScalarType k1 = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                ScalarType k2 = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                ScalarType k3 = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
                 // check if grid index is larger or smaller then
                 // half of the total grid size
@@ -859,11 +1004,11 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
                 k2 = flagx2 ? k2 : -nx[1] + k2;
                 k3 = flagx3 ? k3 : -nx[2] + k3;
 
-                ScalarType sik = 0.5*((k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]));
+                ScalarType sik = 0.5*( (k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]) );
                 sik = exp(-sik);
 
                 // compute linear / flat index
-                IntType li = GetLinearIndex(i1,i2,i3,osize);
+                IntType li = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
 
                 this->m_xhat[li][0] *= scale*sik;
                 this->m_xhat[li][1] *= scale*sik;
