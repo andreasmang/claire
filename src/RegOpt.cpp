@@ -49,6 +49,19 @@ RegOpt::RegOpt(int argc, char** argv, int id)
 RegOpt::RegOpt(const RegOpt& opt)
 {
     this->Initialize();
+    this->Copy(opt);
+}
+
+
+
+
+/********************************************************************
+ * @brief copy entries of input options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Copy"
+void RegOpt::Copy(const RegOpt& opt)
+{
 
     this->m_SetupDone = false;
 
@@ -82,7 +95,6 @@ RegOpt::RegOpt(const RegOpt& opt)
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];
 
-    this->m_Verbosity = opt.m_Verbosity;
     this->m_PDESolver = opt.m_PDESolver;
     this->m_RegModel = opt.m_RegModel;
 
@@ -99,11 +111,17 @@ RegOpt::RegOpt(const RegOpt& opt)
     this->m_KrylovSolverPara.fseqtype = opt.m_KrylovSolverPara.fseqtype;
     this->m_KrylovSolverPara.pctype = opt.m_KrylovSolverPara.pctype;
     this->m_KrylovSolverPara.solver = opt.m_KrylovSolverPara.solver;
-    this->m_KrylovSolverPara.pcsolver = opt.m_KrylovSolverPara.pcsolver;
-    this->m_KrylovSolverPara.pcsolvertol = opt.m_KrylovSolverPara.pcsolvertol;
-    this->m_KrylovSolverPara.pcsolvermaxit = opt.m_KrylovSolverPara.pcsolvermaxit;
+
     this->m_KrylovSolverPara.g0normset = opt.m_KrylovSolverPara.g0normset;
     this->m_KrylovSolverPara.g0norm = opt.m_KrylovSolverPara.g0norm;
+
+    this->m_KrylovSolverPara.pcsolver = opt.m_KrylovSolverPara.pcsolver;
+    this->m_KrylovSolverPara.pcsolvertolscale = opt.m_KrylovSolverPara.pcsolvertolscale;
+    this->m_KrylovSolverPara.pcsolvermaxit = opt.m_KrylovSolverPara.pcsolvermaxit;
+    this->m_KrylovSolverPara.pctol[0] = opt.m_KrylovSolverPara.pctol[0];
+    this->m_KrylovSolverPara.pctol[1] = opt.m_KrylovSolverPara.pctol[1];
+    this->m_KrylovSolverPara.pctol[2] = opt.m_KrylovSolverPara.pctol[2];
+    this->m_KrylovSolverPara.pcmaxit = opt.m_KrylovSolverPara.pcmaxit;
 
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
@@ -134,6 +152,7 @@ RegOpt::RegOpt(const RegOpt& opt)
 
     // grid continuation
     this->m_GridCont.enabled = opt.m_GridCont.enabled;
+    this->m_GridCont.nlevels = opt.m_GridCont.nlevels;
 
     // scale continuation
     this->m_ScaleCont.enabled=opt.m_ScaleCont.enabled;
@@ -159,7 +178,12 @@ RegOpt::RegOpt(const RegOpt& opt)
     this->m_CartGridDims[1]=opt.m_CartGridDims[1];
 
 
+    this->m_Verbosity = opt.m_Verbosity;
+    this->m_Indent = opt.m_Indent;
+
 }
+
+
 
 
 
@@ -420,12 +444,16 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             argc--; argv++;
             if (strcmp(argv[1],"none") == 0){
                 this->m_KrylovSolverPara.pctype = NOPC;
+                this->m_HessianMatVecType = DEFAULTMATVEC;
             }
             else if (strcmp(argv[1],"invreg") == 0){
                 this->m_KrylovSolverPara.pctype = INVREG;
+                this->m_HessianMatVecType = DEFAULTMATVEC;
             }
             else if (strcmp(argv[1],"2level") == 0){
                 this->m_KrylovSolverPara.pctype = TWOLEVEL;
+                //this->m_HessianMatVecType = PRECONDMATVECSYM;
+                this->m_HessianMatVecType = PRECONDMATVEC;
             }
             else {
                 msg="\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
@@ -459,9 +487,9 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
                 ierr=this->UsageRegistration(); CHKERRQ(ierr);
             }
         }
-        else if(strcmp(argv[1],"-pcsolvertol") == 0){
+        else if(strcmp(argv[1],"-pcsolvertolscale") == 0){
             argc--; argv++;
-            this->m_KrylovSolverPara.pcsolvertol = atof(argv[1]);
+            this->m_KrylovSolverPara.pcsolvertolscale = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-pcsolvermaxit") == 0){
             argc--; argv++;
@@ -611,7 +639,7 @@ PetscErrorCode RegOpt::ParseArgumentsPostProcessing(int argc, char** argv)
             ierr=this->UsagePostProcessing(); CHKERRQ(ierr);
         }
         if (strcmp(argv[1],"-advanced") == 0){
-                ierr=this->UsagePostProcessing(true); CHKERRQ(ierr);
+            ierr=this->UsagePostProcessing(true); CHKERRQ(ierr);
         }
         else if(strcmp(argv[1],"-nt") == 0){
             argc--; argv++;
@@ -801,7 +829,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegNorm.beta[1] = 1E-2;
     this->m_RegNorm.beta[2] = 1E-4;
 
-    this->m_Verbosity = 1;
+    this->m_Verbosity = 0;
     this->m_PDESolver = SL;
     this->m_RegModel = COMPRESSIBLE;
 
@@ -813,17 +841,22 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.tol[0] = 1E-12; // relative tolerance
     this->m_KrylovSolverPara.tol[1] = 1E-12; // absolute tolerance
     this->m_KrylovSolverPara.tol[2] = 1E+06; // divergence tolerance
-    this->m_KrylovSolverPara.maxit  = 1000; // maximal iterations
+    this->m_KrylovSolverPara.maxit = 1000; // maximal iterations
     this->m_KrylovSolverPara.reltol = 1E-12; // relative tolerance (actually computed in solver)
     this->m_KrylovSolverPara.fseqtype = QDFS;
-    this->m_KrylovSolverPara.pctype = NOPC;
-    //this->m_KrylovSolverPara.pctype = INVREG;
+    this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.solver = PCG;
-    this->m_KrylovSolverPara.pcsolver = PCG;
-    this->m_KrylovSolverPara.pcsolvertol = 1E-1;
-    this->m_KrylovSolverPara.pcsolvermaxit = 10;
+
     this->m_KrylovSolverPara.g0normset = false;
     this->m_KrylovSolverPara.g0norm = 0;
+
+    this->m_KrylovSolverPara.pcsolver = PCG;
+    this->m_KrylovSolverPara.pcsolvertolscale = 1E-2;
+    this->m_KrylovSolverPara.pcsolvermaxit = 10;
+    this->m_KrylovSolverPara.pctol[0] = 1E-12; // relative tolerance
+    this->m_KrylovSolverPara.pctol[1] = 1E-12; // absolute tolerance
+    this->m_KrylovSolverPara.pctol[2] = 1E+06; // divergence tolerance
+    this->m_KrylovSolverPara.pcmaxit = 1000; // maximal iterations
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
@@ -832,9 +865,9 @@ PetscErrorCode RegOpt::Initialize()
     this->m_OptPara.method = GAUSSNEWTON;
 
     this->m_SolveType = NOTSET;
-    //this->m_HessianMatVecType = DEFAULTMATVEC;
+    this->m_HessianMatVecType = DEFAULTMATVEC;
     //this->m_HessianMatVecType = PRECONDMATVEC;
-    this->m_HessianMatVecType = PRECONDMATVECSYM;
+    //this->m_HessianMatVecType = PRECONDMATVECSYM;
 
     // flags
     this->m_RegFlags.readimages = false; ///< read images
@@ -856,6 +889,7 @@ PetscErrorCode RegOpt::Initialize()
 
     // grid continuation
     this->m_GridCont.enabled = false;
+    this->m_GridCont.nlevels = 0;
 
     // scale continuation
     this->m_ScaleCont.enabled=false;
@@ -879,6 +913,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_NumThreads=1;
     this->m_CartGridDims[0]=1;
     this->m_CartGridDims[1]=1;
+
+    this->m_Indent = 0;
 
     ierr=this->ResetTimers(); CHKERRQ(ierr);
     ierr=this->ResetCounters(); CHKERRQ(ierr);
@@ -1040,7 +1076,7 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 2; default: 0)"<<std::endl;
         }
         // ####################### advanced options #######################
 
@@ -1239,8 +1275,8 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
 
     }
 
-    if (   this->m_KrylovSolverPara.pcsolvertol < 0.0
-        || this->m_KrylovSolverPara.pcsolvertol >= 1.0 ){
+    if (   this->m_KrylovSolverPara.pcsolvertolscale < 0.0
+        || this->m_KrylovSolverPara.pcsolvertolscale >= 1.0 ){
         msg="\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
         ierr=this->UsageRegistration(); CHKERRQ(ierr);

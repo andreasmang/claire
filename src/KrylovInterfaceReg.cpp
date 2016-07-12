@@ -95,6 +95,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
         }
 
         if (!optprob->GetOptions()->GetKrylovSolverPara().g0normset){
+
             if(optprob->GetOptions()->GetVerbosity() > 1){
                 ss << std::fixed << std::scientific << gnorm;
                 msg = optprob->GetOptions()->GetKrylovSolverPara().name +
@@ -102,7 +103,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
                 ierr=DbgMsg(msg); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
+
             optprob->GetOptions()->SetInitialGradNormKrylovMethod(gnorm);
+
         }
 
         // get initial value for gradient
@@ -133,7 +136,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
     // pass tolerance to optimization problem (for preconditioner)
     optprob->SetRelTolKrylovMethod(reltol);
 
-    if(optprob->GetOptions()->GetVerbosity() > 1){
+    if(optprob->GetOptions()->GetVerbosity() > 0){
         ss << std::fixed << std::scientific << reltol;
         msg = optprob->GetOptions()->GetKrylovSolverPara().name +
               ": computing solution of hessian system (tol=" + ss.str() + ")";
@@ -141,7 +144,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
     }
 
     // check symmetry of hessian
+    #ifdef _REG_DEBUG_
     ierr=optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
+    #endif// _REG_DEBUG_
 
     PetscFunctionReturn(0);
 }
@@ -163,6 +168,8 @@ PetscErrorCode PostKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 {
     PetscErrorCode ierr;
     OptimizationProblem* optprob=NULL;
+    KSPConvergedReason reason;
+    std::string convmsg;
 
     PetscFunctionBegin;
 
@@ -173,6 +180,12 @@ PetscErrorCode PostKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 
     // apply hessian
     ierr=optprob->PostKrylovSolve(b,x); CHKERRQ(ierr);
+
+    if(optprob->GetOptions()->GetVerbosity() > 0){
+        ierr=KSPGetConvergedReason(krylovmethod,&reason);
+        ierr=DispKSPConvReason(reason); CHKERRQ(ierr);
+    }
+
 
     PetscFunctionReturn(0);
 }
@@ -387,6 +400,7 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px)
 
 
 
+
 /****************************************************************************
  * @brief
  * @para krylovmethod pointer to krylov method
@@ -399,15 +413,66 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
 {
     PetscErrorCode ierr;
     PrecondReg* precond=NULL;
-    ScalarType reltol;
+    IntType maxits;
+    ScalarType reltol,abstol,divtol,scale;
     std::stringstream itss,rnss;
     std::string msg;
-    IntType maxits;
 
     PetscFunctionBegin;
 
     precond = (PrecondReg*)ptr;
     ierr=Assert(precond!=NULL,"null pointer"); CHKERRQ(ierr);
+
+
+    reltol = precond->GetOptions()->GetKrylovSolverPara().pctol[0];
+    abstol = precond->GetOptions()->GetKrylovSolverPara().pctol[1];
+    divtol = precond->GetOptions()->GetKrylovSolverPara().pctol[2];
+    maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
+    scale  = precond->GetOptions()->GetKrylovSolverPara().pcsolvertolscale;
+
+    switch (precond->GetOptions()->GetKrylovSolverPara().pcsolver){
+        case CHEB:
+        {
+            // chebyshev iteration
+            maxits = precond->GetOptions()->GetKrylovSolverPara().pcsolvermaxit;
+            break;
+        }
+        case PCG:
+        {
+            // preconditioned conjugate gradient
+            reltol = scale*precond->GetOptions()->GetKrylovSolverPara().reltol;
+            break;
+        }
+        case FCG:
+        {
+            // flexible conjugate gradient
+            maxits = precond->GetOptions()->GetKrylovSolverPara().pcsolvermaxit;
+            break;
+        }
+        case GMRES:
+        {
+            // GMRES
+            reltol = scale*precond->GetOptions()->GetKrylovSolverPara().reltol;
+            break;
+        }
+        case FGMRES:
+        {
+            // flexible GMRES
+            maxits = precond->GetOptions()->GetKrylovSolverPara().pcsolvermaxit;
+            break;
+        }
+        default:
+        {
+            ierr=ThrowError("preconditioner solver not defined"); CHKERRQ(ierr);
+            break;
+        }
+    }
+    reltol = std::max( reltol, 1E-16 ); // make sure tolerance is non-zero
+    reltol = std::min( reltol, 5E-1  ); // make sure tolerance smaller than 0.25
+
+    // set tolerances
+    ierr=KSPSetTolerances(krylovmethod,reltol,abstol,divtol,maxits); CHKERRQ(ierr);
+
 
     if (precond->GetOptions()->GetVerbosity() > 1){
 

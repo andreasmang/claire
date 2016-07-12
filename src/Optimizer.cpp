@@ -303,7 +303,7 @@ PetscErrorCode Optimizer::SetupTao()
         ierr=KSPSetPreSolve(this->m_KrylovMethod,PreKrylovSolve,this->m_OptimizationProblem);
 
         // set krylov monitor
-        if(this->m_Opt->GetVerbosity() > 1){
+        if(this->m_Opt->GetVerbosity() > 0){
             ierr=KSPMonitorSet(this->m_KrylovMethod,KrylovMonitor,this->m_OptimizationProblem,NULL); CHKERRQ(ierr);
         }
 
@@ -347,12 +347,12 @@ PetscErrorCode Optimizer::SetupTao()
     ierr=TaoLineSearchSetType(linesearch,"armijo"); CHKERRQ(ierr);
 
     // set tolearances for optimizer
-    gatol = this->m_Opt->GetOptTol(0);  // ||g(x)||              <= gatol
-    grtol = this->m_Opt->GetOptTol(1);  // ||g(x)|| / |J(x)|     <= grtol
-    gttol = this->m_Opt->GetOptTol(2);  // ||g(x)|| / ||g(x0)||  <= gttol
+    gatol = this->m_Opt->GetOptPara().tol[0];  // ||g(x)||              <= gatol
+    grtol = this->m_Opt->GetOptPara().tol[1];  // ||g(x)|| / |J(x)|     <= grtol
+    gttol = this->m_Opt->GetOptPara().tol[2];  // ||g(x)|| / ||g(x0)||  <= gttol
 
     ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
-    ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptMaxit() - 1); CHKERRQ(ierr);
+    ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptPara().maxit - 1); CHKERRQ(ierr);
     ierr=TaoSetFunctionLowerBound(this->m_Tao,1E-6); CHKERRQ(ierr);
 
     ierr=MatCreateShell(PETSC_COMM_WORLD,nlu,nlu,ngu,ngu,static_cast<void*>(this->m_OptimizationProblem),&matvec); CHKERRQ(ierr);

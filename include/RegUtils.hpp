@@ -81,7 +81,6 @@ PetscErrorCode Init(int,int*, MPI_Comm&);
 PetscErrorCode Finalize();
 
 
-
 /********************************************************************
  * @brief display array content
  *******************************************************************/

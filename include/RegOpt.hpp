@@ -22,12 +22,13 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
+//#define _REG_DEBUG_
+
 //global includes
 #include <sstream>
 
 // local includes
 #include "RegUtils.hpp"
-
 
 namespace reg
 {
@@ -198,12 +199,15 @@ struct KrylovSolver{
     KrylovSolverType solver; ///< flag for krylov solver
     std::string name; ///< name of krylov solver
     ScalarType reltol; ///< relative tolerance for krylov solver
+    ScalarType g0norm; ///< initial norm of gradient (to normalize stopping condition)
+    bool g0normset; ///< flag to identify if initial norm of gradient has been set
+
+    ScalarType pctol[3]; ///< tolerances for krylov method (preconditioner)
+    IntType pcmaxit; ///< tolerances for krylov method (preconditioner)
     PrecondMeth pctype; ///< flag for type of preconditioner
     std::string pcname; ///< name of preconditioner
     KrylovSolverType pcsolver; ///< solver for preconditioner
-    ScalarType pcsolvertol; ///< tolerance for preconditioner
-    ScalarType g0norm; ///< initial norm of gradient (to normalize stopping condition)
-    bool g0normset; ///< flag to identify if initial norm of gradient has been set
+    ScalarType pcsolvertolscale; ///< tolerance scaling for preconditioner
     int pcsolvermaxit; ///< number of max iterations for solver for preconditioner
 };
 
@@ -233,6 +237,7 @@ struct ScaleCont{
 struct GridCont{
     bool enabled;
     static const int minlevels=3;
+    int nlevels;
     std::vector<std::vector<IntType>> nx;
     std::vector<std::vector<IntType>> isize;
     std::vector<std::vector<IntType>> istart;
@@ -241,7 +246,6 @@ struct GridCont{
     std::vector<IntType> nlocal;
     std::vector<IntType> nglobal;
     std::vector<IntType> nalloc;
-    int nlevels;
 };
 
 
@@ -300,6 +304,8 @@ public:
     RegOpt(const RegOpt&);
     ~RegOpt();
 
+    void Copy(const RegOpt&);
+
     // spatial grid
     inline void SetNumGridPoints(int i,IntType nx){this->m_Domain.nx[i] = nx;};
     inline IntType GetNumGridPoints(int i){return this->m_Domain.nx[i];};
@@ -318,6 +324,10 @@ public:
     inline FourierTransform GetFFT(){return this->m_FFT;};
     inline RegFlags GetRegFlags(){return this->m_RegFlags;};
     inline RegMonitor GetRegMonitor(){return this->m_RegMonitor;};
+
+    inline Optimization GetOptPara(){return this->m_OptPara;};
+    inline void SetOptTol(int i,ScalarType value){this->m_OptPara.tol[i] = value;};
+
     inline void DisableSmoothing(){ this->m_RegFlags.smoothingenabled=false; };
     inline void EnableSmoothing(){ this->m_RegFlags.smoothingenabled=true; };
 
@@ -347,9 +357,8 @@ public:
 
     // regularization
     inline RegNorm GetRegNorm(){return this->m_RegNorm; };
-    inline void SetRegularizationWeight(ScalarType beta){
-        this->m_RegNorm.beta[0]=beta;
-        this->m_RegNorm.beta[1]=beta;
+    inline void SetRegularizationWeight(int i, ScalarType beta){
+        this->m_RegNorm.beta[i]=beta;
     };
 
     // smoothing
@@ -395,9 +404,7 @@ public:
         for(int i=0; i < 4; ++i) this->m_InterpTimers[i][LOG]+=timers[i];
     };
 
-    inline ScalarType GetOptTol(int i){return this->m_OptPara.tol[i];};
-    inline int GetOptMaxit(){return this->m_OptPara.maxit;};
-    inline OptMeth GetOptMeth(void){return this->m_OptPara.method;};
+
 
     inline int GetVerbosity(){return this->m_Verbosity;};
 
@@ -417,6 +424,26 @@ public:
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
     PetscErrorCode DoSetup(bool dispteaser=true);
+
+
+    inline void Enter(std::string fname)
+    {
+        #ifdef _REG_DEBUG_
+        std::stringstream ss;
+        ss << std::string(this->m_Indent++,' ') << ">> " << fname << std::endl;
+        PetscPrintf(PETSC_COMM_WORLD,ss.str().c_str());
+        #endif
+    }
+
+    inline void Exit(std::string fname)
+    {
+        #ifdef _REG_DEBUG_
+        std::stringstream ss;
+        ss << std::string(--this->m_Indent,' ') << "<< " << fname << std::endl;
+        PetscPrintf(PETSC_COMM_WORLD,ss.str().c_str());
+        #endif
+    }
+
 
 private:
 
@@ -471,6 +498,7 @@ private:
     ScalarType m_Sigma[3];
     SolveType m_SolveType;
 
+    int m_Indent;
     int m_Verbosity;
 
 };

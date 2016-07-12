@@ -76,9 +76,6 @@ private:
     /*! setup two level preconditioner */
     PetscErrorCode SetupKrylovMethod();
 
-    /*! setup two level preconditioner */
-    PetscErrorCode SetTolerancesKrylovMethod();
-
     PetscErrorCode ApplyInvRegPC(Vec,Vec);
     PetscErrorCode Apply2LevelPC(Vec,Vec);
 

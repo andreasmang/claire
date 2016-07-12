@@ -282,8 +282,12 @@ PetscErrorCode OptimalControlRegistrationBase::GetTemplateImage(Vec& mT)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
     mT = this->m_TemplateImage;
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -302,6 +306,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // allocate velocity field
@@ -314,6 +320,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v)
 
     // copy buffer
     ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -331,11 +339,15 @@ PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField* v)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // copy buffer
     ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -353,6 +365,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocity2Zero()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__FUNCT__);
 
     if(this->m_VelocityField == NULL){
         try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -362,6 +375,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocity2Zero()
     }
 
     ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -379,6 +393,7 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
     PetscErrorCode ierr;
     ScalarType normv1,normv2,normv3;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__FUNCT__);
 
     this->m_VelocityIsZero = false;
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -388,6 +403,8 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
     ierr=VecNorm(this->m_VelocityField->m_X3,NORM_INFINITY,&normv3); CHKERRQ(ierr);
 
     this->m_VelocityIsZero = (normv1 == 0.0) && (normv2 == 0.0) && (normv3 == 0.0);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }

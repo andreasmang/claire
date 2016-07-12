@@ -58,7 +58,7 @@ public:
 
     /*! compute Hessian matvec (second variation
         of lagrangian with respect to control variable(s) */
-    PetscErrorCode HessianMatVec(Vec,Vec);
+    PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true);
 
     /*! get state variable */
     PetscErrorCode GetStateVariable(Vec&);

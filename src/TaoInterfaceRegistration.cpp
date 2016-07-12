@@ -273,34 +273,15 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     OptimizationProblem* optprob = NULL;
     TaoConvergedReason convreason;
     TaoLineSearch ls=NULL;
-    bool newtonkrylov;
-    KSPConvergedReason kspconvreason;
     TaoLineSearchConvergedReason lsconvreason;
     Vec x=NULL,g=NULL;
-    KSP ksp=NULL;
 
     PetscFunctionBegin;
 
     optprob = static_cast<OptimizationProblem*>(ptr);
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    // do we use a newton krylov method
-    newtonkrylov =  (optprob->GetOptions()->GetOptMeth() == GAUSSNEWTON)
-                 || (optprob->GetOptions()->GetOptMeth() == FULLNEWTON);
-
-    if (newtonkrylov){
-
-        if(optprob->GetOptions()->GetVerbosity() > 1){
-            std::string convmsg;
-            ierr=TaoGetKSP(tao,&ksp); CHKERRQ(ierr);
-            ierr=KSPGetConvergedReason(ksp,&kspconvreason);
-            ierr=DispKSPConvReason(kspconvreason); CHKERRQ(ierr);
-        }
-
-    }
-
-
-    if(optprob->GetOptions()->GetVerbosity() > 1){
+    if (optprob->GetOptions()->GetVerbosity() > 1){
 
         nl = optprob->GetOptions()->GetDomainPara().nlocal;
         ng = optprob->GetOptions()->GetDomainPara().nglobal;
@@ -325,13 +306,13 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     optprob->IncrementIterations();
 
     // tao: display convergence reason
-    if(optprob->GetOptions()->GetVerbosity() > 1){
+    if (optprob->GetOptions()->GetVerbosity() > 0){
         ierr=DispTaoConvReason(convreason); CHKERRQ(ierr);
     }
 
     // compute l2 distance at current iteration
     ierr=optprob->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
-//    D*=optprob->GetOptions()->GetLebesqueMeasure();
+    D*=optprob->GetOptions()->GetLebesqueMeasure();
 
     // get initial gradient
     gnorm0 = optprob->GetInitialGradNorm();

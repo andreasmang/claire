@@ -176,7 +176,6 @@ PetscErrorCode PrecondReg::ClearMemory()
         this->m_IncControlVariableCoarse=NULL;
     }
 
-
     if (this->m_OptCoarse != NULL){
         delete this->m_OptCoarse;
         this->m_OptCoarse = NULL;
@@ -200,8 +199,12 @@ PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
     this->m_OptProb = optprob;
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -221,8 +224,12 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(preproc!=NULL,"null pointer"); CHKERRQ(ierr);
     this->m_PreProc = preproc;
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -241,6 +248,8 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x)
     PetscErrorCode ierr;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // switch case for choice of preconditioner
     switch(this->m_Opt->GetKrylovSolverPara().pctype){
@@ -270,7 +279,7 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x)
     // increment counter
     this->m_Opt->IncrementCounter(PCMATVEC);
 
-
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -289,6 +298,8 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x)
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     // check if optimization problem is set up
     ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -300,6 +311,8 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x)
 
     // stop timer
     ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -318,6 +331,8 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     // check if optimization problem is set up
     ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -328,8 +343,6 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
     if (this->m_KrylovMethod == NULL){
         ierr=this->SetupKrylovMethod(); CHKERRQ(ierr);
     }
-    ierr=this->SetTolerancesKrylovMethod(); CHKERRQ(ierr);
-
     // setup preconditioner
     ierr=this->SetUp2LevelPC(); CHKERRQ(ierr);
 
@@ -340,6 +353,8 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
     ierr=this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
     ierr=KSPSolve(this->m_KrylovMethod,x,Px); CHKERRQ(ierr);
     ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -363,13 +378,11 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     // check if optimization problem is set up
     ierr=Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    if (this->m_Opt->GetVerbosity() > 2){
-        ierr=DbgMsg("setting up two-level preconditioner"); CHKERRQ(ierr);
-    }
 
     nt   = this->m_Opt->GetDomainPara().nt;
     nl_f = this->m_Opt->GetDomainPara().nlocal;
@@ -462,6 +475,11 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
 
     }
 
+    if (this->m_Opt->GetParaCont().enabled){
+        this->m_OptCoarse->SetRegularizationWeight(0,this->m_Opt->GetRegNorm().beta[0]);
+        this->m_OptCoarse->SetRegularizationWeight(1,this->m_Opt->GetRegNorm().beta[1]);
+    }
+
     // get variables from optimization problem on fine level
     ierr=this->m_OptProb->GetControlVariable(this->m_ControlVariable); CHKERRQ(ierr);
     ierr=this->m_OptProb->GetStateVariable(m); CHKERRQ(ierr);
@@ -474,7 +492,6 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
     ierr=VecGetArray(lambda,&p_l); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_StateVariableCoarse,&p_mcoarse); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_AdjointVariableCoarse,&p_lcoarse); CHKERRQ(ierr);
-
 
     // apply restriction operator
     for (IntType j = 0; j <= nt; ++j){
@@ -531,6 +548,8 @@ PetscErrorCode PrecondReg::SetUp2LevelPC()
         ierr=DbgMsg("setup of two-level preconditioner done"); CHKERRQ(ierr);
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -549,6 +568,8 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     IntType nl,ng;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // get sizes
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -632,78 +653,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     ierr=KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
     ierr=KSPSetUp(this->m_KrylovMethod); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
-
-}
-
-
-
-
-/********************************************************************
- * @brief set the tolerances for krylov method
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetTolerancesKrylovMethod"
-PetscErrorCode PrecondReg::SetTolerancesKrylovMethod()
-{
-    PetscErrorCode ierr;
-    ScalarType reltol,abstol,divtol,scale;
-    IntType maxit;
-
-    PetscFunctionBegin;
-
-    divtol = 1E+06;
-    abstol = 1E-16;
-    reltol = 1E-16;
-    maxit  = 1000;
-
-    // check for null pointer
-    ierr=Assert(this->m_KrylovMethod!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    scale = this->m_Opt->GetKrylovSolverPara().pcsolvertol;
-
-    switch (this->m_Opt->GetKrylovSolverPara().pcsolver){
-        case CHEB:
-        {
-            // chebyshev iteration
-            maxit = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
-            break;
-        }
-        case PCG:
-        {
-            // preconditioned conjugate gradient
-            reltol = scale*this->m_Opt->GetKrylovSolverPara().reltol;
-            break;
-        }
-        case FCG:
-        {
-            // flexible conjugate gradient
-            maxit = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
-            break;
-        }
-        case GMRES:
-        {
-            // GMRES
-            reltol = scale*this->m_Opt->GetKrylovSolverPara().reltol;
-            break;
-        }
-        case FGMRES:
-        {
-            // flexible GMRES
-            maxit = this->m_Opt->GetKrylovSolverPara().pcsolvermaxit;
-            break;
-        }
-        default:
-        {
-            ierr=ThrowError("preconditioner solver not defined"); CHKERRQ(ierr);
-            break;
-        }
-    }
-    reltol = std::max( reltol, 1E-16 ); // make sure tolerance is non-zero
-    reltol = std::min( reltol, 5E-1  ); // make sure tolerance smaller than 0.25
-
-    // set tolerances
-    ierr=KSPSetTolerances(this->m_KrylovMethod,reltol,abstol,divtol,maxit); CHKERRQ(ierr);
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -744,7 +694,10 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
     PetscErrorCode ierr;
     IntType nx_c[3],nx_f[3];
     ScalarType pct,value;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // check if all the necessary pointers have been initialized
     ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -796,7 +749,7 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
     ierr=this->m_IncControlVariableCoarse->GetComponents(this->m_xCoarse); CHKERRQ(ierr);
 
     // apply hessian (hessian matvec)
-    ierr=this->m_OptProbCoarse->HessianMatVec(this->m_HxCoarse,this->m_xCoarse); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->HessianMatVec(this->m_HxCoarse,this->m_xCoarse,false); CHKERRQ(ierr);
 
     // get components (for interface of hessian matvec)
     ierr=this->m_IncControlVariableCoarse->SetComponents(this->m_HxCoarse); CHKERRQ(ierr);
@@ -818,6 +771,8 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
 
     // parse to output
     ierr=this->m_IncControlVariable->GetComponents(Hx); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 

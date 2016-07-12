@@ -64,7 +64,7 @@ public:
     virtual PetscErrorCode EvaluateGradient(Vec,Vec) = 0;
 
     /*! apply Hessian matvec H\tilde{\vect{v}} */
-    virtual PetscErrorCode HessianMatVec(Vec,Vec) = 0;
+    virtual PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true) = 0;
 
     /*! pre processing before krylov solve */
     virtual PetscErrorCode PreKrylovSolve(Vec,Vec) = 0;

@@ -265,7 +265,10 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank)
 PetscErrorCode RegistrationInterface::SetupSolver()
 {
     PetscErrorCode ierr;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // reset optimization problem
     if (this->m_Optimizer != NULL){
@@ -305,6 +308,8 @@ PetscErrorCode RegistrationInterface::SetupSolver()
 
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -321,6 +326,8 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // reset registration problem
     if (this->m_RegProblem != NULL){
@@ -367,6 +374,8 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
 
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -383,9 +392,10 @@ PetscErrorCode RegistrationInterface::Run()
 {
     PetscErrorCode ierr;
     int rank;
-    //IntType nlu,ngu;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
@@ -422,6 +432,8 @@ PetscErrorCode RegistrationInterface::Run()
 
     ierr=this->Finalize(); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -440,6 +452,8 @@ PetscErrorCode RegistrationInterface::RunSolver()
     Vec mT=NULL,mR=NULL,x=NULL;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // do the setup
     ierr=this->SetupSolver(); CHKERRQ(ierr);
@@ -511,6 +525,8 @@ PetscErrorCode RegistrationInterface::RunSolver()
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -526,7 +542,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
 {
     PetscErrorCode ierr;
     Vec mT=NULL,mR=NULL;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // do the setup
     ierr=this->SetupSolver(); CHKERRQ(ierr);
@@ -611,6 +630,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -625,7 +646,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
  * on jacobian set by user
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "RunSolverRegParaBinarySearch"
+#define __FUNCT__ "RunSolverRegParaContBinarySearch"
 PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
 {
     PetscErrorCode ierr;
@@ -637,6 +658,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     Vec x;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(this->m_Optimizer!=NULL,"optimizer is null"); CHKERRQ(ierr);
     ierr=Assert(this->m_RegProblem!=NULL,"registration problem is null"); CHKERRQ(ierr);
@@ -666,7 +689,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     stop=false; level = 0;
     while(level < maxsteps){
 
-        this->m_Opt->SetRegularizationWeight(beta);
+        this->m_Opt->SetRegularizationWeight(0,beta);
+        this->m_Opt->SetRegularizationWeight(1,beta);
+        //this->m_Opt->InitialGradNormSet(false);
+
 
         ss << std::scientific << std::setw(3)
             << "level "<< level <<" ( betav="<<beta
@@ -736,7 +762,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     while(!stop){
 
         // set regularization parameter
-        this->m_Opt->SetRegularizationWeight(beta);
+        this->m_Opt->SetRegularizationWeight(0,beta);
+        this->m_Opt->SetRegularizationWeight(1,beta);
 
         // display regularization parameter to user
         ss<<std::setw(3)<<"level "<<level<<" ( betav="<<beta<<"; betav*="<<betastar<<" )";
@@ -786,6 +813,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     // wrap up
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -812,6 +841,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
     bool stop;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
@@ -841,7 +872,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
     while(level < maxsteps){
 
         // set regularization weight
-        this->m_Opt->SetRegularizationWeight(beta);
+        this->m_Opt->SetRegularizationWeight(0,beta);
+        this->m_Opt->SetRegularizationWeight(1,beta);
 
         // display message to user
         ss << std::scientific<<std::setw(3)<<"level "<<level<<" (beta="<<beta<<")";
@@ -895,6 +927,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
     // wrap up
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -918,6 +952,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // get target regularization weight
@@ -935,7 +971,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     while(beta > betastar){
 
         // set regularization weight
-        this->m_Opt->SetRegularizationWeight(beta);
+        this->m_Opt->SetRegularizationWeight(0,beta);
+        this->m_Opt->SetRegularizationWeight(1,beta);
 
         // display message to user
         ss << std::scientific << std::setw(3)
@@ -955,7 +992,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     beta = betastar;
 
     // set regularization weight
-    this->m_Opt->SetRegularizationWeight(beta);
+    this->m_Opt->SetRegularizationWeight(0,beta);
+    this->m_Opt->SetRegularizationWeight(1,beta);
 
     // display message to user
     ss << std::scientific << std::setw(3)
@@ -973,6 +1011,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 
     // wrap up
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -1136,14 +1176,12 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 PetscErrorCode RegistrationInterface::RunSolverGridCont()
 {
     PetscErrorCode ierr;
-    //Vec *mT=NULL,*mR=NULL;
-    Vec mT=NULL,mR=NULL;
-    VecField *v=NULL;
-    Vec xstar=NULL;
-
     int rank,level,nlevels;
-    IntType nx[3],nl,ng;
     std::stringstream ss;
+    IntType nx[3],nl,ng;
+    Vec mT=NULL,mR=NULL,xstar=NULL;
+    VecField *v=NULL;
+    ScalarType greltol,tolscale=1E1;
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -1225,6 +1263,24 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     ierr=v->SetValue(0.0); CHKERRQ(ierr);
 
 
+    // reset tolerance for gradient (optimization); we do not want
+    // to solve as accurately when we solve on the coarse grid
+    greltol = this->m_Opt->GetOptPara().tol[2];
+
+    if (greltol < 1E-2){
+
+        if (this->m_Opt->GetVerbosity() > 1){
+            ss  << std::scientific
+                << "increasing tolerance for gradient: "
+                << greltol << " >> " << tolscale*greltol;
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str( std::string() ); ss.clear();
+        }
+
+        this->m_Opt->SetOptTol(2,tolscale*greltol);
+
+    }
+
     // reset all the clocks we have used so far
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr=this->m_Opt->ResetCounters(); CHKERRQ(ierr);
@@ -1288,6 +1344,21 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);
         ierr=this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
+        // reset tolerances
+        if ( (level == (nlevels-1)) && (greltol < 1E-2) ){
+
+            if (this->m_Opt->GetVerbosity() > 1){
+                ss  << std::scientific
+                    << "reseting tolerance for gradient: "
+                    << tolscale*greltol << " >> " << greltol;
+                ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.str( std::string() ); ss.clear();
+            }
+
+            this->m_Opt->SetOptTol(2,greltol);
+
+        }
+
         // run the optimizer
         ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
@@ -1305,7 +1376,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
             if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
 
         }
-
 
     }
 
@@ -1337,7 +1407,10 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
     PetscErrorCode ierr;
     IntType nx_f[3],nx_c[3],nl_f,ng_f;
     VecField *v_f=NULL;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -1382,6 +1455,10 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     if (v_f!=NULL) { delete v_f; v_f=NULL; }
 
+    this->m_PreProc->ResetGridChangeOperators(false);
+
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 
 }
@@ -1397,13 +1474,18 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 PetscErrorCode RegistrationInterface::Finalize()
 {
     PetscErrorCode ierr;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // finalize optimizer (show tao output)
     ierr=this->m_Optimizer->Finalize(); CHKERRQ(ierr);
 
     // display time to solution
     ierr=this->m_Opt->DisplayTimeToSolution(); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -1421,7 +1503,10 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
 {
     PetscErrorCode ierr;
     Vec mR=NULL,mT=NULL;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=this->SetupRegProblem(); CHKERRQ(ierr);
     ierr=Assert(this->m_RegProblem!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -1464,6 +1549,8 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
     // destroy vectors
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
