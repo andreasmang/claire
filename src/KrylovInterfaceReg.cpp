@@ -414,7 +414,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
     PetscErrorCode ierr;
     PrecondReg* precond=NULL;
     IntType maxits;
-    ScalarType reltol,abstol,divtol,scale,eigmax,eigmin;
+    ScalarType reltol,abstol,divtol,scale;
     std::stringstream itss,rnss;
     std::string msg;
 
