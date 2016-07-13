@@ -299,7 +299,7 @@ PetscErrorCode VecField::SetValue(ScalarType value)
 
 
 /********************************************************************
- * @brief pointwise scale of a vector field
+ * @brief get arrays of vector field
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetArrays"
@@ -310,6 +310,25 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,ScalarType*& p_x2,ScalarTyp
     ierr=VecGetArray(this->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_X3,&p_x3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief get arrays of vector field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetArrays"
+PetscErrorCode VecField::GetArraysRead(const ScalarType*& p_x1, const ScalarType*& p_x2, const ScalarType*& p_x3)
+{
+    PetscErrorCode ierr=0;
+
+    ierr=VecGetArrayRead(this->m_X1,&p_x1); CHKERRQ(ierr);
+    ierr=VecGetArrayRead(this->m_X2,&p_x2); CHKERRQ(ierr);
+    ierr=VecGetArrayRead(this->m_X3,&p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -337,6 +356,24 @@ PetscErrorCode VecField::RestoreArrays(ScalarType*& p_x1,ScalarType*& p_x2,Scala
 
 
 /********************************************************************
+ * @brief restore arrays of vector field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetArrays"
+PetscErrorCode VecField::RestoreArraysRead(const ScalarType*& p_x1, const ScalarType*& p_x2, const ScalarType*& p_x3)
+{
+    PetscErrorCode ierr=0;
+
+    ierr=VecRestoreArrayRead(this->m_X1,&p_x1); CHKERRQ(ierr);
+    ierr=VecRestoreArrayRead(this->m_X2,&p_x2); CHKERRQ(ierr);
+    ierr=VecRestoreArrayRead(this->m_X3,&p_x3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+/********************************************************************
  * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
  *******************************************************************/
@@ -359,9 +396,7 @@ PetscErrorCode VecField::SetComponents(Vec w)
     ierr=Assert(this->m_X3!=NULL,"null pointer"); CHKERRQ(ierr);
 
     ierr=VecGetArrayRead(w,&p_w); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr=this->GetArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
 
     //compute size of each individual component
     nl = n / 3;
@@ -379,9 +414,7 @@ PetscErrorCode VecField::SetComponents(Vec w)
 
 
     ierr=VecRestoreArrayRead(w,&p_w); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr=this->RestoreArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
 
 
     PetscFunctionReturn(0);
@@ -408,9 +441,7 @@ PetscErrorCode VecField::GetComponents(Vec w)
     ierr=VecGetLocalSize(w,&n); CHKERRQ(ierr);
 
     ierr=VecGetArray(w,&p_w); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr=this->GetArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
 
     //compute size of each individual component
     nl = n / 3;
@@ -427,9 +458,7 @@ PetscErrorCode VecField::GetComponents(Vec w)
 } // pragma omp parallel
 
     ierr=VecRestoreArray(w,&p_w); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr=this->RestoreArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -472,11 +501,7 @@ PetscErrorCode VecField::Scale(Vec s)
 
     // get pointers
     ierr=VecGetArray(s,&p_s); CHKERRQ(ierr);
-
-    this->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
-//    ierr=VecGetArray(this->m_X1,&p_vx1); CHKERRQ(ierr);
-//    ierr=VecGetArray(this->m_X2,&p_vx2); CHKERRQ(ierr);
-//    ierr=VecGetArray(this->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=this->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     // get local size of vector field
     ierr=VecGetLocalSize(s,&nl); CHKERRQ(ierr);
@@ -495,11 +520,7 @@ PetscErrorCode VecField::Scale(Vec s)
 
     // get pointers
     ierr=VecRestoreArray(s,&p_s); CHKERRQ(ierr);
-
-    this->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
-    //ierr=VecRestoreArray(this->m_X1,&p_vx1); CHKERRQ(ierr);
-    //ierr=VecRestoreArray(this->m_X2,&p_vx2); CHKERRQ(ierr);
-    //ierr=VecRestoreArray(this->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=this->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -525,16 +546,8 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
     // get pointers
     ierr=VecGetArray(s,&p_s); CHKERRQ(ierr);
 
-    this->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
-//    ierr=VecGetArray(this->m_X1,&p_vx1); CHKERRQ(ierr);
-//    ierr=VecGetArray(this->m_X2,&p_vx2); CHKERRQ(ierr);
-//    ierr=VecGetArray(this->m_X3,&p_vx3); CHKERRQ(ierr);
-
-
+    ierr=this->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
     ierr=v->GetArrays(p_svx1,p_svx2,p_svx3); CHKERRQ(ierr);
-//    ierr=VecGetArray(v->m_X1,&p_svx1); CHKERRQ(ierr);
-//    ierr=VecGetArray(v->m_X2,&p_svx2); CHKERRQ(ierr);
-//    ierr=VecGetArray(v->m_X3,&p_svx3); CHKERRQ(ierr);
 
     // get local size of vector field
     ierr=VecGetLocalSize(s,&nl); CHKERRQ(ierr);
@@ -555,14 +568,7 @@ PetscErrorCode VecField::Scale(VecField* v,Vec s)
     ierr=VecRestoreArray(s,&p_s); CHKERRQ(ierr);
 
     this->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
-//    ierr=VecRestoreArray(this->m_X1,&p_vx1); CHKERRQ(ierr);
-//    ierr=VecRestoreArray(this->m_X2,&p_vx2); CHKERRQ(ierr);
-//    ierr=VecRestoreArray(this->m_X3,&p_vx3); CHKERRQ(ierr);
-
     ierr=v->RestoreArrays(p_svx1,p_svx2,p_svx3); CHKERRQ(ierr);
-//    ierr=VecRestoreArray(v->m_X1,&p_svx1); CHKERRQ(ierr);
-//    ierr=VecRestoreArray(v->m_X2,&p_svx2); CHKERRQ(ierr);
-//    ierr=VecRestoreArray(v->m_X3,&p_svx3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
