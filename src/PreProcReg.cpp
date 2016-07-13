@@ -60,6 +60,7 @@ PetscErrorCode PreProcReg::Initialize()
 {
     this->m_Opt = NULL;
 
+    this->m_IndicesComputed=false;
     this->m_ResetGridChangeOperators=false;
 
     this->m_ReadWrite = NULL;
@@ -159,7 +160,9 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     MPI_Comm mpicomm;
     PetscFunctionBegin;
 
-    if (this->m_Opt->GetVerbosity() > 2){
+    this->m_Opt->Enter(__FUNCT__);
+
+    if (this->m_Opt->GetVerbosity() > 1){
         ierr=DbgMsg("setting up grid change operators"); CHKERRQ(ierr);
     }
 
@@ -180,7 +183,6 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
     }
     this->m_FFTFineScale = 1.0/this->m_FFTFineScale;
     this->m_FFTCoarseScale = 1.0/this->m_FFTCoarseScale;
-
 
     // get communicator
     mpicomm = this->m_Opt->GetFFT().mpicomm;
@@ -250,9 +252,7 @@ PetscErrorCode PreProcReg::SetupGridChangeOperators(IntType* nx_f,IntType* nx_c)
         accfft_free(p_xcdhat); p_xcdhat=NULL;
     }
 
-    if (this->m_Opt->GetVerbosity() > 2){
-        ierr=DbgMsg("setup of grid change operators done"); CHKERRQ(ierr);
-    }
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -271,12 +271,18 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
 {
     PetscErrorCode ierr;
 
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(vfine!=NULL, "null pointer"); CHKERRQ(ierr);
     ierr=Assert(vcoarse!=NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr=this->Restrict(&vcoarse->m_X1,vfine->m_X1,nx_c,nx_f); CHKERRQ(ierr);
-    ierr=this->Restrict(&vcoarse->m_X2,vfine->m_X2,nx_c,nx_f,false); CHKERRQ(ierr);
-    ierr=this->Restrict(&vcoarse->m_X3,vfine->m_X3,nx_c,nx_f,false); CHKERRQ(ierr);
+    ierr=this->Restrict(&vcoarse->m_X2,vfine->m_X2,nx_c,nx_f); CHKERRQ(ierr);
+    ierr=this->Restrict(&vcoarse->m_X3,vfine->m_X3,nx_c,nx_f); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -297,15 +303,17 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
-PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f, bool dosetup)
+PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     ScalarType *p_xf=NULL,*p_xc=NULL,scale;
     IntType n;
     int rank;
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("applying restriction operator"); CHKERRQ(ierr);
@@ -316,7 +324,15 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     ierr=Assert(x_f!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(x_c!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
+    if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ){
+        ierr=VecCopy(x_f,*x_c); CHKERRQ(ierr);
+        PetscFunctionReturn(ierr);
+    }
+
+    // compute indices
+    if (this->m_IndicesComputed==false){
+        ierr=this->ComputeIndices(nx_f,nx_c); CHKERRQ(ierr);
+    }
 
     // set freqencies to zero
     for (IntType i1_c = 0; i1_c < this->m_osize_c[0]; ++i1_c){
@@ -336,10 +352,6 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     ierr=VecGetArray(x_f,&p_xf); CHKERRQ(ierr);
     accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTFinePlan,p_xf,this->m_XHatFine,timer);
     ierr=VecRestoreArray(x_f,&p_xf); CHKERRQ(ierr);
-
-    // get size
-    //if (dosetup) ierr=this->SetupRestriction(nx_f,nx_c); CHKERRQ(ierr);
-    ierr=this->SetupRestriction(nx_f,nx_c); CHKERRQ(ierr);
 
     // get grid sizes/fft scales
     scale = this->m_FFTFineScale;
@@ -375,7 +387,9 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     // increment counter
     this->m_Opt->IncrementCounter(FFT,2);
 
-    PetscFunctionReturn(0);
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -386,10 +400,10 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
  * @param nx_c grid size on coarse grid
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetupRestriction"
-PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
+#define __FUNCT__ "ComputeIndices"
+PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     int rank,nprocs,nowned,nsend,nprocessed,xrank,c_grid[2],p1,p2;
     IntType oend_c[3],osizex2,osizex3,li_f,li_c,i1_f,i2_f,i3_f,i1_c,i2_c,i3_c;
     ScalarType k1_f,k2_f,k3_f,k1_c,k2_c,k3_c,nxhalf_c[3];
@@ -397,12 +411,16 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
     ierr=Assert(nx_c[0] <= nx_f[0],"grid size in restriction wrong"); CHKERRQ(ierr);
     ierr=Assert(nx_c[1] <= nx_f[1],"grid size in restriction wrong"); CHKERRQ(ierr);
     ierr=Assert(nx_c[2] <= nx_f[2],"grid size in restriction wrong"); CHKERRQ(ierr);
+
+    ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
 
     // allocate if necessary
     if (this->m_IndicesC.empty()){
@@ -444,15 +462,11 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
                 k2_f = static_cast<ScalarType>(i2_f + this->m_ostart_f[1]);
                 k3_f = static_cast<ScalarType>(i3_f + this->m_ostart_f[2]);
 
-                // only if current fourier entry is represented in
-                // spectral domain of coarse grid; we ignore the nyquist
-                // frequency
+                // only if current fourier entry is represented in spectral
+                // domain of coarse grid; we ignore the nyquist frequency
                 if (  ( k1_f < nxhalf_c[0] || k1_f > (nx_f[0] - nxhalf_c[0]) )
                    && ( k2_f < nxhalf_c[1] || k2_f > (nx_f[1] - nxhalf_c[1]) )
                    && ( k3_f < nxhalf_c[2] || k3_f > (nx_f[2] - nxhalf_c[2]) ) ){
-//                if (  ( k1_f <= nxhalf_c[0] || k1_f > (nx_f[0] - nxhalf_c[0]) )
-//                   && ( k2_f <= nxhalf_c[1] || k2_f > (nx_f[1] - nxhalf_c[1]) )
-//                   && ( k3_f <= nxhalf_c[2] || k3_f > (nx_f[2] - nxhalf_c[2]) ) ){
 
                     ++nprocessed;
 
@@ -503,14 +517,14 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
 
                         // check if woned is really owned
                         if ( rank != xrank ){
-                            std::cout<<"rank not owned: " << rank << " " << xrank <<std::endl;
+                            std::cout<<"rank not owned: "<<rank<<" "<<xrank<<std::endl;
                         }
                         ++nowned;
                     }
                     else{
 
                         if ( rank == xrank ){
-                            std::cout<<" rank owned: " << rank << " " << xrank <<std::endl;
+                            std::cout<<" rank owned: "<<rank<<" "<<xrank<<std::endl;
                         }
 
                         this->m_IndicesC[xrank].push_back(0);
@@ -525,11 +539,15 @@ PetscErrorCode PreProcReg::SetupRestriction(IntType* nx_f,IntType* nx_c)
         } // i2
     } // i3
 
+    this->m_Opt->Exit(__FUNCT__);
+
     // TODO: send data that does not belong to current proc to
     // other procs
+
+    this->m_IndicesComputed = true;
+
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -544,12 +562,12 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
 {
     PetscErrorCode ierr;
 
-    ierr=Assert(v_f!=NULL, "null pointer"); CHKERRQ(ierr);
-    ierr=Assert(v_c!=NULL, "null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v_f!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v_c!=NULL,"null pointer"); CHKERRQ(ierr);
 
     ierr=this->Prolong(&v_f->m_X1,v_c->m_X1,nx_f,nx_c); CHKERRQ(ierr);
-    ierr=this->Prolong(&v_f->m_X2,v_c->m_X2,nx_f,nx_c,false); CHKERRQ(ierr);
-    ierr=this->Prolong(&v_f->m_X3,v_c->m_X3,nx_f,nx_c,false); CHKERRQ(ierr);
+    ierr=this->Prolong(&v_f->m_X2,v_c->m_X2,nx_f,nx_c); CHKERRQ(ierr);
+    ierr=this->Prolong(&v_f->m_X3,v_c->m_X3,nx_f,nx_c); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
@@ -570,15 +588,17 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Prolong"
-PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c, bool dosetup)
+PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     int rank;
     IntType n;
     ScalarType *p_xf=NULL,*p_xc=NULL,scale;
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("applying prolongation operator"); CHKERRQ(ierr);
@@ -589,9 +609,16 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     ierr=Assert(x_c!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(x_f!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    // allocate operators
-    //if (dosetup) ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
-    ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
+    if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ){
+        ierr=VecCopy(x_c,*x_f); CHKERRQ(ierr);
+        PetscFunctionReturn(ierr);
+    }
+
+
+    // get size
+    if (this->m_IndicesComputed==false){
+        ierr=this->ComputeIndices(nx_f,nx_c); CHKERRQ(ierr);
+    }
 
     // set freqencies to zero
     for (IntType i1_f = 0; i1_f < this->m_osize_f[0]; ++i1_f){
@@ -606,10 +633,6 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
             }
         }
     }
-
-    // get size
-    //if (dosetup) ierr=this->SetupProlongation(nx_f,nx_c); CHKERRQ(ierr);
-    ierr=this->SetupProlongation(nx_f,nx_c); CHKERRQ(ierr);
 
     // compute fft of data on fine grid
     ierr=VecGetArray(x_c,&p_xc); CHKERRQ(ierr);
@@ -650,6 +673,8 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     // increment counter
     this->m_Opt->IncrementCounter(FFT,2);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -660,9 +685,12 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
  * @brief do setup for applying prolongation operator
  * @param nx_f grid size on fine grid
  *******************************************************************/
+/*
+//#define __FUNCT__ "SetupProlongation"
 #undef __FUNCT__
-#define __FUNCT__ "SetupProlongation"
-PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
+#define __FUNCT__ "ComputeIndices"
+//PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
+PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f, IntType* nx_c)
 {
     PetscErrorCode ierr;
     int rank,nprocs,nowned,nsend,xrank,c_grid[2],p1,p2;
@@ -671,6 +699,8 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
     ScalarType k1_c,k2_c,k3_c, k1_f,k2_f,k3_f, nxhalf_c[3];
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
@@ -738,7 +768,7 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
 
                 // we ignore the nyquist frequency, because it is
                 // not informative
-                if (nyquistfreq != true){
+                if (nyquistfreq == false){
 
                     // compute processor id
                     p1=static_cast<int>(k2_f/osizex2);
@@ -777,7 +807,7 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
 
                         // check if woned is really owned
                         if ( rank != xrank ){
-                            std::cout<<"rank not owned: " << rank <<" "<< xrank <<std::endl;
+                            std::cout<<"rank not owned: "<< rank <<" "<< xrank << std::endl;
                         }
                     }
                     else{
@@ -797,13 +827,15 @@ PetscErrorCode PreProcReg::SetupProlongation(IntType* nx_f, IntType* nx_c)
         } // i2
     } // i3
 
+    this->m_Opt->Exit(__FUNCT__);
+
     // TODO: send data that does not belong to current proc to
     // other procs
     PetscFunctionReturn(0);
 
 }
 
-
+*/
 
 
 /********************************************************************
@@ -819,9 +851,15 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt,VecField* v,Scalar
 {
     PetscErrorCode ierr=0;
 
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=this->ApplyRectFreqFilter(vflt->m_X1,v->m_X1,pct,lowpass); CHKERRQ(ierr);
     ierr=this->ApplyRectFreqFilter(vflt->m_X2,v->m_X2,pct,lowpass); CHKERRQ(ierr);
     ierr=this->ApplyRectFreqFilter(vflt->m_X3,v->m_X3,pct,lowpass); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
@@ -842,23 +880,34 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt,Vec x,ScalarType pct,boo
 {
     PetscErrorCode ierr=0;
     IntType nalloc;
-    ScalarType *p_x=NULL,*p_xflt=NULL,nxhalf[3],
-                scale,cfreq[3][2],indicator[2],indic;
+    ScalarType *p_x=NULL,*p_xflt=NULL;
+    ScalarType nxhalf[3],scale,cfreq[3][2],indicator[2],indic;
     int nx[3];
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(xflt!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(pct >= 0.0 && pct <= 1.0,"parameter error"); CHKERRQ(ierr);
+
+    if (pct == 1.0 && lowpass){
+        ierr=VecCopy(x,xflt); CHKERRQ(ierr);
+        PetscFunctionReturn(ierr);
+    }
+    if (pct == 1.0 && !lowpass){
+        ierr=VecSet(xflt,0.0); CHKERRQ(ierr);
+        PetscFunctionReturn(ierr);
+    }
 
     indicator[0] = 1;
     indicator[1] = 0;
 
     if(!lowpass){
-        indicator[0] = 1 - indicator[0];
-        indicator[1] = 1 - indicator[1];
+        indicator[0] = 0;
+        indicator[1] = 1;
     }
 
     // get local pencil size and allocation size
@@ -891,6 +940,7 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt,Vec x,ScalarType pct,boo
 #pragma omp parallel
 {
     long int w[3];
+    IntType li;
 #pragma omp for
     for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){ // x1
         for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){ // x2
@@ -909,10 +959,16 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt,Vec x,ScalarType pct,boo
                 indic = inside ? indicator[0] : indicator[1];
 
                 // compute linear / flat index
-                IntType li = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                li = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
 
-                this->m_xhat[li][0] *= scale*indic;
-                this->m_xhat[li][1] *= scale*indic;
+                if ( indic == 0 ){
+                    this->m_xhat[li][0] = 0.0;
+                    this->m_xhat[li][1] = 0.0;
+                }
+                else{
+                    this->m_xhat[li][0] *= scale;
+                    this->m_xhat[li][1] *= scale;
+                }
 
             } // i1
         } // i2
@@ -931,6 +987,8 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt,Vec x,ScalarType pct,boo
 
     // increment counter
     this->m_Opt->IncrementCounter(FFT,2);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 
@@ -952,6 +1010,8 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(xsmooth!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -1027,6 +1087,8 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 

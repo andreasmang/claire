@@ -47,13 +47,15 @@ public:
     PetscErrorCode ApplyRectFreqFilter(Vec,Vec,ScalarType,bool flag=true);
     PetscErrorCode ApplyRectFreqFilter(VecField*,VecField*,ScalarType,bool flag=true);
 
-    PetscErrorCode Prolong(Vec*,Vec,IntType*,IntType*,bool flag=true);
+    PetscErrorCode Prolong(Vec*,Vec,IntType*,IntType*);
     PetscErrorCode Prolong(VecField*,VecField*,IntType*,IntType*);
 
-    PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*,bool flag=true);
+    PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*);
     PetscErrorCode Restrict(VecField*,VecField*,IntType*,IntType*);
 
     inline void ResetGridChangeOperators(bool flag){this->m_ResetGridChangeOperators=flag;};
+
+    PetscErrorCode ComputeIndices(IntType*,IntType*);
 
 private:
 
@@ -62,8 +64,6 @@ private:
 
     PetscErrorCode SetupGridChangeOperators(IntType*,IntType*);
 
-    PetscErrorCode SetupRestriction(IntType*,IntType*);
-    PetscErrorCode SetupProlongation(IntType*,IntType*);
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
@@ -88,6 +88,7 @@ private:
     ScalarType m_FFTCoarseScale;
 
     bool m_ResetGridChangeOperators;
+    bool m_IndicesComputed;
 };
 
 

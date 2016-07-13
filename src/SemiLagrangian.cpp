@@ -231,7 +231,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
         }
     }
 
-    if (strcmp(flag.c_str(),"state")!=0){
+    if (strcmp(flag.c_str(),"state")==0){
 
         if (this->m_TrajectoryS==NULL){
             try{this->m_TrajectoryS = new VecField(this->m_Opt);}
@@ -242,7 +242,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
         X = this->m_TrajectoryS;
 
     }
-    else if (strcmp(flag.c_str(),"adjoint")!=0){
+    else if (strcmp(flag.c_str(),"adjoint")==0){
 
         if (this->m_TrajectoryA==NULL){
             try{this->m_TrajectoryA = new VecField(this->m_Opt);}
@@ -539,7 +539,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
 
     accfft_get_ghost_xyz(plan,this->m_GhostSize,_isize_g,v,this->m_ScaFieldGhost);
 
-    if (strcmp(flag.c_str(),"state")!=0){
+    if (strcmp(flag.c_str(),"state")==0){
 
         ierr=Assert(this->m_XS!=NULL,"state X is null pointer"); CHKERRQ(ierr);
 
@@ -547,7 +547,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
                                         _nl,this->m_GhostSize,w,c_dims,
                                         this->m_Opt->GetFFT().mpicomm,timers);
     }
-    else if (strcmp(flag.c_str(),"adjoint")!=0){
+    else if (strcmp(flag.c_str(),"adjoint")==0){
 
         ierr=Assert(this->m_XA!=NULL,"adjoint X is null pointer"); CHKERRQ(ierr);
 
@@ -592,8 +592,7 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string
     ierr=VecGetArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
     ierr=VecGetArray(v->m_X3,&p_vx3); CHKERRQ(ierr);
 
-    ierr=this->Interpolate(p_wx1,p_wx2,p_wx3,
-                           p_vx1,p_vx2,p_vx3,flag); CHKERRQ(ierr);
+    ierr=this->Interpolate(p_wx1,p_wx2,p_wx3,p_vx1,p_vx2,p_vx3,flag); CHKERRQ(ierr);
 
     ierr=VecRestoreArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
     ierr=VecRestoreArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
@@ -692,7 +691,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
                                  &this->m_VecFieldGhost[i*nlghost]);
     }
 
-    if (strcmp(flag.c_str(),"state")!=0){
+    if (strcmp(flag.c_str(),"state")==0){
 
         ierr=Assert(this->m_XS!=NULL,"state X null pointer"); CHKERRQ(ierr);
         ierr=Assert(this->m_StatePlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
@@ -704,7 +703,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
     }
-    else if (strcmp(flag.c_str(),"adjoint")!=0){
+    else if (strcmp(flag.c_str(),"adjoint")==0){
 
         ierr=Assert(this->m_XA!=NULL,"adjoint X null pointer"); CHKERRQ(ierr);
         ierr=Assert(this->m_AdjointPlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
@@ -967,10 +966,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    nl  = this->m_Opt->GetDomainPara().nlocal;
+     nl = this->m_Opt->GetDomainPara().nlocal;
     _nl = static_cast<int>(nl);
 
-    if (strcmp(flag.c_str(),"state")!=0){
+    if (strcmp(flag.c_str(),"state")==0){
 
         if (this->m_XS == NULL){
             try{ this->m_XS = new double [3*nl]; }
@@ -1028,7 +1027,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
 
 
     }
-    else if (strcmp(flag.c_str(),"adjoint")!=0){
+    else if (strcmp(flag.c_str(),"adjoint")==0){
 
         if (this->m_XA == NULL){
             try{ this->m_XA = new double [3*nl]; }

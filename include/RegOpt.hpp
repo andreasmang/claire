@@ -207,8 +207,9 @@ struct KrylovSolver{
     PrecondMeth pctype; ///< flag for type of preconditioner
     std::string pcname; ///< name of preconditioner
     KrylovSolverType pcsolver; ///< solver for preconditioner
-    ScalarType pcsolvertolscale; ///< tolerance scaling for preconditioner
-    int pcsolvermaxit; ///< number of max iterations for solver for preconditioner
+    bool pcsetupdone; ///< flag to indicate if setup of preconditioner is done
+    ScalarType pctolscale; ///< tolerance scaling for preconditioner
+    ScalarType pcgridscale; ///< this is for the two level preconditioner; defines scale for grid size change
 };
 
 
@@ -368,7 +369,8 @@ public:
     // solver flags
     inline PDESolver GetPDESolver(void){return this->m_PDESolver;};
     inline HessianMatVecType GetHessianMatVecType(){return this->m_HessianMatVecType;}
-    inline KrylovSolver GetKrylovSolverPara(){ return this->m_KrylovSolverPara;};
+    inline KrylovSolver GetKrylovSolverPara(){return this->m_KrylovSolverPara;};
+    inline void PrecondSetupDone(bool flag){this->m_KrylovSolverPara.pcsetupdone=flag;};
     inline void SetRelTolKrylovMethod(ScalarType value){this->m_KrylovSolverPara.reltol=value;};
     inline void SetInitialGradNormKrylovMethod(ScalarType value){
         this->m_KrylovSolverPara.g0norm=value;

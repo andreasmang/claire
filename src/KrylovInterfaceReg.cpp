@@ -423,18 +423,22 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
     precond = (PrecondReg*)ptr;
     ierr=Assert(precond!=NULL,"null pointer"); CHKERRQ(ierr);
 
+    // setup preconditioner
+    if (!precond->GetOptions()->GetKrylovSolverPara().pcsetupdone){
+        ierr=precond->DoSetup(); CHKERRQ(ierr);
+    }
 
     reltol = precond->GetOptions()->GetKrylovSolverPara().pctol[0];
     abstol = precond->GetOptions()->GetKrylovSolverPara().pctol[1];
     divtol = precond->GetOptions()->GetKrylovSolverPara().pctol[2];
     maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
-    scale  = precond->GetOptions()->GetKrylovSolverPara().pcsolvertolscale;
+    scale  = precond->GetOptions()->GetKrylovSolverPara().pctolscale;
 
     switch (precond->GetOptions()->GetKrylovSolverPara().pcsolver){
         case CHEB:
         {
             // chebyshev iteration
-            maxits = precond->GetOptions()->GetKrylovSolverPara().pcsolvermaxit;
+            maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
             break;
         }
         case PCG:
@@ -446,7 +450,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
         case FCG:
         {
             // flexible conjugate gradient
-            maxits = precond->GetOptions()->GetKrylovSolverPara().pcsolvermaxit;
+            maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
             break;
         }
         case GMRES:
@@ -458,7 +462,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
         case FGMRES:
         {
             // flexible GMRES
-            maxits = precond->GetOptions()->GetKrylovSolverPara().pcsolvermaxit;
+            maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
             break;
         }
         default:

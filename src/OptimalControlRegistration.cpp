@@ -327,12 +327,14 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m)
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external
     // pointer
-    if (this->m_StateVariable == NULL){
+    if ( this->m_StateVariable == NULL ){
         ierr=VecCreate(this->m_StateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
     }
 
     ierr=VecCopy(m,this->m_StateVariable); CHKERRQ(ierr);
 
+    // if semi lagrangian pde solver is used,
+    // we have to initialize it here
     if (this->m_Opt->GetPDESolver() == SL){
 
         ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -378,6 +380,7 @@ PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m)
 
     ierr=Assert(this->m_StateVariable!=NULL,"null pointer"); CHKERRQ(ierr);
     m = this->m_StateVariable;
+    //ierr=VecCopy(this->m_StateVariable,m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -438,6 +441,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda)
 
         // compute trajectory
         ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
+        ierr=this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
         ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
     }
 
@@ -464,6 +468,7 @@ PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda)
 
     ierr=Assert(this->m_AdjointVariable!=NULL,"null pointer"); CHKERRQ(ierr);
     lambda=this->m_AdjointVariable;
+//    ierr=VecCopy(this->m_AdjointVariable,lambda); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -574,9 +579,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // evaluate the regularization model
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
     if(!this->m_VelocityIsZero){
-
         ierr=this->m_Regularization->EvaluateFunctional(&R,this->m_VelocityField); CHKERRQ(ierr);
-
     }
 
     // add up the contributions
@@ -1223,8 +1226,10 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v)
     // parse input arguments
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    // compute solution of adjoint equation (i.e., \lambda(x,t))
+    // compute solution of state equation (i.e., m(x,t))
     ierr=this->SolveStateEquation(); CHKERRQ(ierr);
+
+    // compute solution of adjoint equation (i.e., \lambda(x,t))
     ierr=this->SolveAdjointEquation(); CHKERRQ(ierr);
 
     // compute body force (assigned to work vec field 2)
@@ -1596,7 +1601,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
                 *p_gmx1=NULL,*p_gmx2=NULL,*p_gmx3=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL;
     ScalarType ht=0.0,hthalf=0.0;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
 
     PetscFunctionBegin;
@@ -1644,7 +1649,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
     for (IntType j = 0; j < nt; ++j){
 
         // compute gradient of m_j
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -1663,7 +1668,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 } // pragma omp parallel
 
         // compute gradient of \bar{m}
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mbar,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mbar,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -1698,7 +1703,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
     ierr=this->m_WorkVecField1->RestoreArrays(p_gmx1,p_gmx2,p_gmx3); CHKERRQ(ierr);
     ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1757,12 +1762,12 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
     // copy memory (m_0 to m_j)
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField2,&p_mjX); CHKERRQ(ierr);
+
     try{ std::copy(p_m,p_m+nl,p_mj); }
     catch(std::exception&){
         ierr=ThrowError("copy failed"); CHKERRQ(ierr);
     }
-
-    ierr=VecGetArray(this->m_WorkScaField2,&p_mjX); CHKERRQ(ierr);
 
     for( IntType j = 0; j < nt; ++j ){ // for all time points
 
@@ -1784,9 +1789,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void)
     }// for all time points
 
     ierr=VecRestoreArray(this->m_WorkScaField2,&p_mjX); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1928,7 +1932,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_ljvx1=NULL,*p_ljvx2=NULL,*p_ljvx3=NULL;
     ScalarType hthalf,ht;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -1991,7 +1995,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\lambda\vect{v})
-        accfft_divergence(p_rhs0,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFT().plan,ffttimers);
+        accfft_divergence(p_rhs0,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFT().plan,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2011,7 +2015,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\bar{\lambda}\vect{v})
-        accfft_divergence(p_rhs1,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFT().plan,ffttimers);
+        accfft_divergence(p_rhs1,p_ljvx1,p_ljvx2,p_ljvx3,this->m_Opt->GetFFT().plan,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2037,7 +2041,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 
     ierr=VecRestoreArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -2058,7 +2062,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void)
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
 {
     PetscErrorCode ierr;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_divv=NULL,*p_divvX=NULL,
                 *p_l=NULL,*p_lj=NULL,*p_ljX=NULL;
@@ -2111,7 +2115,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
     ierr=VecGetArray(this->m_WorkScaField3,&p_divv); CHKERRQ(ierr);
 
     // compute \idiv(\tilde{\lambda}\vect{v})
-    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,ffttimers);
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,timers);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=this->m_WorkVecField1->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
@@ -2166,7 +2170,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL()
     ierr=VecRestoreArray(this->m_WorkScaField3,&p_divv); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -2274,7 +2278,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
                 *p_gmtx1=NULL,*p_gmtx2=NULL,*p_gmtx3=NULL,
                 *p_vtx1=NULL,*p_vtx2=NULL,*p_vtx3=NULL,*p_rhs0=NULL;
     ScalarType ht,hthalf;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     PetscFunctionBegin;
 
@@ -2332,7 +2336,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
         catch(std::exception&){
             ierr=ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
         ierr=VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
 
@@ -2386,11 +2390,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
             }
 
             // compute gradient of m_j
-            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // compute gradient of \tilde{m}_j
-            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtj,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2414,11 +2418,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
             }
 
             // compute gradient of m_{j+1}
-            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
             // compute gradient of \tilde{m}_j
-            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtbar,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+            accfft_grad(p_gmtx1,p_gmtx2,p_gmtx3,p_mtbar,this->m_Opt->GetFFT().plan,&XYZ,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2462,7 +2466,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void)
     ierr=VecRestoreArray(this->m_IncStateVariable,&p_mt); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -2487,7 +2491,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
     IntType nl,nt,ng;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     ScalarType ht,hthalf;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     ScalarType *p_gmjx1=NULL,*p_gmjx2=NULL,*p_gmjx3=NULL,
                 *p_gmjnextx1=NULL,*p_gmjnextx2=NULL,*p_gmjnextx3=NULL,
                 *p_gmjXx1=NULL,*p_gmjXx2=NULL,*p_gmjXx3=NULL,
@@ -2580,7 +2584,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
     catch(std::exception&){
         ierr=ThrowError("copying of data failed"); CHKERRQ(ierr);
     }
-    accfft_grad(p_gmjx1,p_gmjx2,p_gmjx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+    accfft_grad(p_gmjx1,p_gmjx2,p_gmjx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
     this->m_Opt->IncrementCounter(FFT,4);
 
 
@@ -2606,7 +2610,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
         }
 
         // compute gradient
-        accfft_grad(p_gmjnextx1,p_gmjnextx2,p_gmjnextx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+        accfft_grad(p_gmjnextx1,p_gmjnextx2,p_gmjnextx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
         // interpolate gradient
@@ -2676,7 +2680,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void)
     ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_IncStateVariable,&p_mtilde); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -2842,7 +2846,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
     ScalarType *p_lt=NULL,*p_ltj=NULL,*p_rhs0=NULL,*p_rhs1=NULL,
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_ltjvx1=NULL,*p_ltjvx2=NULL,*p_ltjvx3=NULL;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     ScalarType ht,hthalf;
     PetscFunctionBegin;
 
@@ -2908,7 +2912,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\tilde{\lambda}\vect{v})
-        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
+        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2928,7 +2932,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 } // pragma omp parallel
 
         // compute \idiv(\bar{\lambda}\vect{v})
-        accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
+        accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2961,7 +2965,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void)
 
     ierr=VecRestoreArray(this->m_IncAdjointVariable,&p_lt); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
@@ -2989,7 +2993,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
                 *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_vtx1=NULL,*p_vtx2=NULL,*p_vtx3=NULL,
                 *p_ltjvx1=NULL,*p_ltjvx2=NULL,*p_ltjvx3=NULL;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     ScalarType ht,hthalf;
 
     PetscFunctionBegin;
@@ -3042,7 +3046,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
         ierr=VecRestoreArray(this->m_AdjointVariable,&p_lj); CHKERRQ(ierr);
 
         // compute \idiv(\tilde{\lambda}\vect{v})
-        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
+        accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
         // compute numerical time integration
@@ -3092,7 +3096,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 } // pragma omp parallel
 
             // compute \idiv(\tilde{\lambda}\vect{v})
-            accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
+            accfft_divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -3113,7 +3117,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 } // pragma omp parallel
 
             // compute \idiv(\bar{\lambda}\vect{v})
-            accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,ffttimers);
+            accfft_divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3,this->m_Opt->GetFFT().plan,timers);
             this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -3149,7 +3153,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void)
 
     ierr=VecRestoreArray(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
@@ -3173,10 +3177,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
 {
     PetscErrorCode ierr;
     IntType nl,ng,nt;
-    double ffttimers[5]={0,0,0,0,0};
+    double timers[5]={0,0,0,0,0};
     ScalarType *p_ltilde=NULL,*p_ltildej=NULL,*p_ltildejX=NULL,
                 *p_divv=NULL,*p_divvX=NULL,*p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL;
-    ScalarType ht=0.0,hthalf=0.0;
+    ScalarType ht,hthalf;
 
     PetscFunctionBegin;
 
@@ -3232,7 +3236,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_vx3); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,ffttimers);
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,timers);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_vx1); CHKERRQ(ierr);
@@ -3286,7 +3290,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     ierr=VecRestoreArray(this->m_IncAdjointVariable,&p_ltilde); CHKERRQ(ierr);
 
     // increment fft timer
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timers);
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);

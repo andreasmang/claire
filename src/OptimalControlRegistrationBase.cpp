@@ -317,7 +317,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
+    ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     // copy buffer
     ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
@@ -334,7 +334,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetControlVariable"
-PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField* v)
+PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField*& v)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -345,7 +345,7 @@ PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField* v)
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // copy buffer
-    ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+    ierr=v->Copy(this->m_VelocityField); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -659,8 +659,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
     ng = this->m_Opt->GetDomainPara().nglobal;
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
-        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        isize[i] = this->m_Opt->GetDomainPara().isize[i];
         istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 

@@ -76,7 +76,7 @@ public:
     PetscErrorCode SetControlVariable(VecField*);
 
     /*! get control variable */
-    PetscErrorCode GetControlVariable(VecField*);
+    PetscErrorCode GetControlVariable(VecField*&);
 
     /*! get state variable */
     virtual PetscErrorCode GetStateVariable(Vec&) = 0;

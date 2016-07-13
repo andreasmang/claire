@@ -54,6 +54,10 @@ public:
     /*! set preprocessing interface */
     PetscErrorCode SetPreProc(PreProcReg*);
 
+    /*! setup preconditioner */
+    PetscErrorCode DoSetup();
+
+
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec,Vec);
 
@@ -71,9 +75,10 @@ protected:
 private:
 
     /*! setup two level preconditioner */
-    PetscErrorCode SetUp2LevelPC();
+    PetscErrorCode Setup2LevelPrecond();
+    PetscErrorCode HessianMatVecRestrict(Vec,Vec);
 
-    /*! setup two level preconditioner */
+    /*! setup krylov method */
     PetscErrorCode SetupKrylovMethod();
 
     PetscErrorCode ApplyInvRegPC(Vec,Vec);

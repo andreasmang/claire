@@ -281,6 +281,9 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr)
     optprob = static_cast<OptimizationProblem*>(ptr);
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
 
+    // reinit the initialization of the preconditioner
+    optprob->GetOptions()->PrecondSetupDone(false);
+
     if (optprob->GetOptions()->GetVerbosity() > 1){
 
         nl = optprob->GetOptions()->GetDomainPara().nlocal;
