@@ -132,6 +132,7 @@ int main(int argc,char **argv)
         regopt->SetNumGridPoints(1,128);
         regopt->SetNumGridPoints(2,128);
 */
+
         if ( !regopt->SetupDone() ){
             ierr=regopt->DoSetup(); CHKERRQ(ierr);
         }
@@ -169,6 +170,8 @@ int main(int argc,char **argv)
         ierr=VecCopy(m,v->m_X1); CHKERRQ(ierr);
         ierr=VecCopy(m,v->m_X2); CHKERRQ(ierr);
         ierr=VecCopy(m,v->m_X3); CHKERRQ(ierr);
+
+//        ierr=preproc->ApplyRectFreqFilter(m,m,0.5,false); CHKERRQ(ierr);
 
         // if not yet allocted, do so
         // allocate class for io
@@ -273,7 +276,6 @@ int main(int argc,char **argv)
         delete readwrite; readwrite = NULL;
 
         delete synprob; synprob=NULL;
-
     }
 
     // clean up
