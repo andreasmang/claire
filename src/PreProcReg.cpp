@@ -399,6 +399,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
  * @brief do setup for applying restriction operator
  * @param nx_c grid size on coarse grid
  *******************************************************************/
+/*
 #undef __FUNCT__
 #define __FUNCT__ "ComputeIndices"
 PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
@@ -548,7 +549,7 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
 
     PetscFunctionReturn(0);
 }
-
+*/
 
 
 /********************************************************************
@@ -685,7 +686,6 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
  * @brief do setup for applying prolongation operator
  * @param nx_f grid size on fine grid
  *******************************************************************/
-/*
 //#define __FUNCT__ "SetupProlongation"
 #undef __FUNCT__
 #define __FUNCT__ "ComputeIndices"
@@ -835,7 +835,7 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f, IntType* nx_c)
 
 }
 
-*/
+
 
 
 /********************************************************************
