@@ -414,7 +414,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
     PetscErrorCode ierr;
     PrecondReg* precond=NULL;
     IntType maxits;
-    ScalarType reltol,abstol,divtol,scale;
+    ScalarType reltol,abstol,divtol,scale,eigmax,eigmin;
     std::stringstream itss,rnss;
     std::string msg;
 
@@ -428,10 +428,11 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
         ierr=precond->DoSetup(); CHKERRQ(ierr);
     }
 
+    // set the default values
+    maxits = 1E3;
     reltol = precond->GetOptions()->GetKrylovSolverPara().pctol[0];
     abstol = precond->GetOptions()->GetKrylovSolverPara().pctol[1];
     divtol = precond->GetOptions()->GetKrylovSolverPara().pctol[2];
-    maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
     scale  = precond->GetOptions()->GetKrylovSolverPara().pctolscale;
 
     switch (precond->GetOptions()->GetKrylovSolverPara().pcsolver){
@@ -439,6 +440,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
         {
             // chebyshev iteration
             maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
+            ierr=precond->EstimateEigenValues(); CHKERRQ(ierr);
             break;
         }
         case PCG:

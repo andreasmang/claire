@@ -72,6 +72,11 @@ PetscErrorCode RegularizationRegistration::Initialize(void)
     this->m_Lv2hat = NULL;
     this->m_Lv3hat = NULL;
 
+    this->m_InvRegOpMinEigval=0.0;
+    this->m_InvRegOpMaxEigval=0.0;
+    this->m_RegOpMaxEigval=0.0;
+    this->m_RegOpMinEigval=0.0;
+
     PetscFunctionReturn(0);
 }
 

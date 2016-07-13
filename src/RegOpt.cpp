@@ -855,7 +855,7 @@ PetscErrorCode RegOpt::Initialize()
 
     this->m_KrylovSolverPara.pcsolver = PCG;
     this->m_KrylovSolverPara.pctolscale = 1E-1;
-    this->m_KrylovSolverPara.pcmaxit = 1000;
+    this->m_KrylovSolverPara.pcmaxit = 10;
     this->m_KrylovSolverPara.pcgridscale = 2;
     this->m_KrylovSolverPara.pctol[0] = 1E-12; // relative tolerance
     this->m_KrylovSolverPara.pctol[1] = 1E-12; // absolute tolerance

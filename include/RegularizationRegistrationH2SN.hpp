@@ -41,6 +41,7 @@ public:
     PetscErrorCode EvaluateGradient(VecField*,VecField*);
     PetscErrorCode HessianMatVec(VecField*,VecField*);
     PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false);
+    PetscErrorCode GetExtremeEigValsInvOp(ScalarType&,ScalarType&);
 
 protected:
 

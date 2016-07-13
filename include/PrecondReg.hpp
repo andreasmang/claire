@@ -57,12 +57,14 @@ public:
     /*! setup preconditioner */
     PetscErrorCode DoSetup();
 
-
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec,Vec);
 
     /*! apply hessian (for inversion) */
     PetscErrorCode HessianMatVec(Vec,Vec);
+
+    /*! estimate eigenvalues */
+    PetscErrorCode EstimateEigenValues();
 
 protected:
 

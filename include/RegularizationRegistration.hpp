@@ -44,6 +44,8 @@ public:
     virtual PetscErrorCode EvaluateGradient(VecField*,VecField*) = 0;
     virtual PetscErrorCode HessianMatVec(VecField*,VecField*) = 0;
     virtual PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false) = 0;
+    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&,ScalarType&) = 0;
+
 
 protected:
 
@@ -62,7 +64,6 @@ protected:
     FFTScaType *m_Lv1hat;
     FFTScaType *m_Lv2hat;
     FFTScaType *m_Lv3hat;
-
 
 };
 

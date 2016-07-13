@@ -587,6 +587,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
     ierr=this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
 
+
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
@@ -605,7 +606,6 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     PetscErrorCode ierr;
     PC pc=NULL;
     IntType nl,ng;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -693,6 +693,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     ierr=KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
     ierr=KSPSetUp(this->m_KrylovMethod); CHKERRQ(ierr);
 
+    ierr=KSPChebyshevEstEigSet(this->m_KrylovMethod,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE); CHKERRQ(ierr);
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
@@ -824,6 +825,28 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x)
     PetscFunctionReturn(0);
 
 }
+
+
+
+
+/********************************************************************
+ * @brief do setup for two level preconditioner
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EstimateEigenValues"
+PetscErrorCode PrecondReg::EstimateEigenValues()
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    ierr=KSPChebyshevEstEigSet(this->m_KrylovMethod,PETSC_DECIDE,
+                                                    PETSC_DECIDE,
+                                                    PETSC_DECIDE,
+                                                    PETSC_DECIDE); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
 
 
 

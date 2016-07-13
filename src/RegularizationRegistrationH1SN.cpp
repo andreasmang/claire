@@ -453,6 +453,38 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
 
 
 
+/********************************************************************
+ * @brief computes the largest and smallest eigenvalue of
+ * the inverse regularization operator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetExtremeEigValsInvOp"
+PetscErrorCode RegularizationRegistrationH1SN::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax)
+{
+    PetscErrorCode ierr=0;
+    ScalarType w[3],beta1,beta2,regop;
+
+    PetscFunctionBegin;
+
+    beta1=this->m_Opt->GetRegNorm().beta[0];
+    beta2=this->m_Opt->GetRegNorm().beta[1];
+
+    // get max value
+    w[0] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[0])/2.0;
+    w[1] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[1])/2.0;
+    w[2] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[2])/2.0;
+
+    // compute largest value for operator
+    regop = -(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]); // laplacian
+    regop = -beta1*regop + beta2; // beta_1*laplacian + beta_2
+    emin = 1.0/regop;
+    emax = 1.0/beta2; // 1/(\beta_1*0 + \beta_2)
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
 } // end of name space
 
 
