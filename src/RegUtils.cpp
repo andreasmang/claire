@@ -155,7 +155,7 @@ PetscErrorCode WrngMsg(std::string msg)
 #define __FUNCT__ "ThrowError"
 PetscErrorCode ThrowError(std::string msg)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
 
     PetscFunctionBegin;
 
@@ -163,6 +163,36 @@ PetscErrorCode ThrowError(std::string msg)
     ierr=PetscError(PETSC_COMM_WORLD,__LINE__,PETSC_FUNCTION_NAME,__FILE__,1,PETSC_ERROR_INITIAL,errmsg.c_str());
 
     PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief mpi error handling
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "MPIERRQ"
+PetscErrorCode MPIERRQ(int cerr)
+{
+    int rank;
+    PetscErrorCode ierr=0;
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    if (cerr != MPI_SUCCESS) {
+        char error_string[BUFSIZ];
+        int length_of_error_string, error_class;
+
+        MPI_Error_class(cerr, &error_class);
+        MPI_Error_string(error_class, error_string, &length_of_error_string);
+        ierr=ThrowError(error_string); CHKERRQ(ierr);
+
+    }
+
+    PetscFunctionReturn(ierr);
+
 }
 
 

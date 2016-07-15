@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <omp.h>
+#include <cstdlib>
 
 // local includes
 #include "petsc.h"
@@ -53,6 +54,9 @@ PetscErrorCode Assert(bool, std::string);
 
 /*! throw error (PETSc interface) */
 PetscErrorCode ThrowError(std::string);
+
+/*! mpi error handling */
+PetscErrorCode MPIERRQ(int);
 
 /*! check if file exists */
 bool FileExists(const std::string&);

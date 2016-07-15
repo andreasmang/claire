@@ -18,6 +18,7 @@ buildfftw=0
 buildaccfft=0
 buildnifticlib=0
 buildpetsc=0
+buildpetscdgb=0
 buildzlib=0
 cleanup=0
 
@@ -60,6 +61,10 @@ case $i in
     ;;
     --bpetsc)
     buildpetsc=1
+    shift # past argument=value
+    ;;
+    --bpetscdbg)
+    buildpetscdgb=1
     shift # past argument=value
     ;;
     --useIMPI)
@@ -145,6 +150,21 @@ CXXOPTFLAGS='-O3'
 --with-shared=0
 --with-x=0
 --with-fc=0"
+
+
+
+PETSC_DBG_OPTIONS="
+--with-cc=${MPI_C}
+--CFLAGS=${CFLAGS}
+--with-cxx=${MPI_CXX}
+--CXXFLAGS=${CXXFLAGS}
+--download-f2cblaslapack
+--with-debugging=1
+--with-shared=0
+--with-x=0
+--with-fc=0"
+
+
 
 
 #### FFTW OPTIONS
@@ -371,6 +391,68 @@ echo "export PETSC_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 echo "export PETSC_ARCH=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
 
 echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
+
+
+
+
+
+################################
+# PETSC
+################################
+PETSC_LIB_DIR=${BUILD_DIR}/petsc_dbg
+SRC_DIR=${PETSC_LIB_DIR}/src
+BLD_DIR=${PETSC_LIB_DIR}/build
+PETSC_ARCH=cxx_opt
+
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${PETSC_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting PETSC lib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+if [ ${builddep} -eq 1 -o ${buildpetscdgb} -eq 1 ]; then 
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "configuring PETSC" 
+	echo "----------------------------------------------------------------------------------"
+	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${SRC_DIR}/${PETSC_ARCH}
+	fi
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}/build
+	fi
+	mkdir ${BLD_DIR}
+	cd ${SRC_DIR}
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_DBG_OPTIONS}
+	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_DBG_OPTIONS}
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "building PETSC" 
+	echo "----------------------------------------------------------------------------------"
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
+else
+	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+echo "export PETSC_DBG_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export PETSC_DBG_ARCH=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
+
+
+
 
 
 

@@ -63,7 +63,7 @@ private:
     PetscErrorCode Initialize();
 
     PetscErrorCode SetupGridChangeOperators(IntType*,IntType*);
-
+    PetscErrorCode CommunicateData();
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
