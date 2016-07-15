@@ -1,14 +1,20 @@
 CXX=mpicxx
 
 USEINTEL=yes
-USEINTELMPI=yes
-BUILDTOOLS=yes
+USEINTELMPI=no #yes
+BUILDTOOLS=yes #yes
+DBGCODE=no #yes
 PEDANTIC=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
 
-CXXFLAGS = -O3 -ansi
+ifeq ($(DBGCODE),yes)
+	CXXFLAGS = -g -debug all
+else
+	CXXFLAGS = -O3 -ansi
+endif
+
 ifeq ($(USEINTEL),yes)
 	CXXFLAGS+= -std=c++11 -DINVERT_RHO -xhost -parallel
 	CXXFLAGS+= -openmp
@@ -34,14 +40,22 @@ INCDIR = ./include
 APPDIR = ./apps
 
 COLD_INC = -I$(INCDIR)
-COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
+ifeq ($(DBGCODE),yes)
+	COLD_INC+= -isystem$(PETSC_DBG_DIR)/include -isystem$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/include
+else
+	COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
+endif
 COLD_INC+= -I$(ACCFFT_DIR)/include
 COLD_INC+= -I$(FFTW_DIR)/include
 COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
-LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
+ifeq ($(DBGCODE),yes)
+	LDFLAGS+= -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
+else
+	LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
+endif
 LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
 LDFLAGS+= -L$(ZLIB_DIR)/lib -lz
 #LDFLAGS+= -lcrypto -lssl -ldl
@@ -55,9 +69,10 @@ ifeq ($(USEINTELMPI),yes)
 endif
 LDFLAGS+= -lm
 
-#BIN+= $(BINDIR)/runcoldreg
+BIN+=$(BINDIR)/runcoldreg
+#BIN+=$(BINDIR)/regtools
 ifeq ($(BUILDTOOLS),yes)
-	BIN+= $(BINDIR)/regtools
+#	BIN+=$(BINDIR)/regtools
 #	BIN+= $(BINDIR)/par_interp3_driver
 endif
 
@@ -72,9 +87,11 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
+		$(SRCDIR)/KrylovInterfaceReg.cpp \
 		$(SRCDIR)/TaoInterfaceRegistration.cpp \
 		$(SRCDIR)/RegistrationInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
+		$(SRCDIR)/PrecondReg.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
