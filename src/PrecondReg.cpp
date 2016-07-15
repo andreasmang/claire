@@ -446,9 +446,9 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        this->m_OptCoarse->SetNumGridPoints(0,nx_c[0]);
-        this->m_OptCoarse->SetNumGridPoints(1,nx_c[1]);
-        this->m_OptCoarse->SetNumGridPoints(2,nx_c[2]);
+        for (int i =0; i < 3; ++i){
+            this->m_OptCoarse->SetNumGridPoints(i,nx_c[i]);
+        }
         ierr=this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
 
         nl_c = this->m_OptCoarse->GetDomainPara().nlocal;

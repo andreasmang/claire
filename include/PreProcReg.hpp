@@ -72,6 +72,8 @@ private:
 
     std::vector< std::vector<IntType> > m_IndicesF;
     std::vector< std::vector<IntType> > m_IndicesC;
+    std::vector< std::vector<ScalarTypeFD> > m_ValuesF;
+    std::vector< std::vector<ScalarTypeFD> > m_ValuesC;
 
     accfft_plan* m_FFTFinePlan;
     accfft_plan* m_FFTCoarsePlan;
