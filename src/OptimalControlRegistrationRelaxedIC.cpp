@@ -123,7 +123,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void)
 PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType* J, Vec v)
 {
     PetscErrorCode ierr;
-    ScalarType D,Rv,Rw;
+    ScalarType D,Rv,Rw,hd;
     PetscFunctionBegin;
 
     // allocate velocity field
@@ -145,6 +145,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
 
     ierr=this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
 
+    // get lebesque measure
+    hd = this->m_Opt->GetLebesqueMeasure();
+
     // set components of velocity field
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
@@ -158,7 +161,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
     ierr=this->EvaluteRegFunctionalW(&Rw); CHKERRQ(ierr); CHKERRQ(ierr);
 
     // add up the contributions
-    *J = D + Rv + Rw;
+    *J = hd*(D + Rv + Rw);
 
     ierr=this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
 
@@ -185,7 +188,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_gdv1=NULL,*p_gdv2=NULL,*p_gdv3=NULL,
                 *p_divv=NULL;
-    ScalarType value,betaw; //,hd;
+    ScalarType value,betaw;
     double ffttimers[5]={0,0,0,0,0};
     IntType nl,ng;
     std::bitset<3>XYZ=0; XYZ[0]=1,XYZ[1]=1,XYZ[2]=1;
@@ -244,8 +247,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecTDot(this->m_WorkScaField1,this->m_WorkScaField1,&value); *Rw +=value;
 
     // add up contributions
-    //hd = this->m_Opt->GetLebesqueMeasure();
-    //*Rw *= 0.5*hd*betaw;
     *Rw *= 0.5*betaw;
 
     this->m_Opt->IncreaseFFTTimers(ffttimers);
