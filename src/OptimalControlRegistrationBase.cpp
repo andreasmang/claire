@@ -1207,13 +1207,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
         }
     }
     if (this->m_WorkScaField2 == NULL){
-        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL){
-        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField4 == NULL){
-        ierr=VecCreate(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
     }
 
 
