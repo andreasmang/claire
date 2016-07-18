@@ -127,6 +127,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
     ScalarType D,Rv,Rw,hd;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     // allocate velocity field
     if (this->m_VelocityField == NULL){
         try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -168,6 +170,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
 
     this->m_Opt->IncrementCounter(OBJEVAL);
 
+    this->m_Opt->Exit(__FUNCT__);
     PetscFunctionReturn(0);
 }
 
@@ -190,11 +193,12 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
                 *p_gdv1=NULL,*p_gdv2=NULL,*p_gdv3=NULL,
                 *p_divv=NULL;
     ScalarType value,regvalue,betaw;
-    double ffttimers[5]={0,0,0,0,0};
+    double timer[5]={0,0,0,0,0};
     IntType nl,ng;
     std::bitset<3>XYZ=0; XYZ[0]=1,XYZ[1]=1,XYZ[2]=1;
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__FUNCT__);
 
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
@@ -219,7 +223,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecGetArray(this->m_VelocityField->m_X3,&p_v3); CHKERRQ(ierr);
 
     // compute \idiv(\vect{v})
-    accfft_divergence(p_divv,p_v1,p_v2,p_v3,this->m_Opt->GetFFT().plan,ffttimers);
+    accfft_divergence(p_divv,p_v1,p_v2,p_v3,this->m_Opt->GetFFT().plan,timer);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_v1); CHKERRQ(ierr);
@@ -231,7 +235,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_gdv3); CHKERRQ(ierr);
 
     // compute gradient
-    accfft_grad(p_gdv3,p_gdv2,p_gdv1,p_divv,this->m_Opt->GetFFT().plan,&XYZ,ffttimers);
+    accfft_grad(p_gdv3,p_gdv2,p_gdv1,p_divv,this->m_Opt->GetFFT().plan,&XYZ,timer);
     this->m_Opt->IncrementCounter(FFT,4);
 
     ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_gdv1); CHKERRQ(ierr);
@@ -251,7 +255,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     // add up contributions
     *Rw = 0.5*betaw*regvalue;
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timer);
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -271,6 +276,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_WorkVecField1 == NULL){
         this->m_WorkVecField1 = new VecField(this->m_Opt);
@@ -285,10 +291,11 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce()
     ierr=this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr=this->ApplyProjection(this->m_WorkVecField1); CHKERRQ(ierr);
 
-    ierr=VecAXPY(this->m_WorkVecField2->m_X1,-1.0,this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
-    ierr=VecAXPY(this->m_WorkVecField2->m_X2,-1.0,this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
-    ierr=VecAXPY(this->m_WorkVecField2->m_X3,-1.0,this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
+    ierr=VecAXPY(this->m_WorkVecField2->m_X1,1.0,this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
+    ierr=VecAXPY(this->m_WorkVecField2->m_X2,1.0,this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
+    ierr=VecAXPY(this->m_WorkVecField2->m_X3,1.0,this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
     PetscFunctionReturn(0);
 }
 
@@ -307,6 +314,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_WorkVecField1 == NULL){
         this->m_WorkVecField1 = new VecField(this->m_Opt);
@@ -321,10 +329,11 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce()
     ierr=this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr=this->ApplyProjection(this->m_WorkVecField1); CHKERRQ(ierr);
 
-    ierr=VecAXPY(this->m_WorkVecField2->m_X1,-1.0,this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
-    ierr=VecAXPY(this->m_WorkVecField2->m_X2,-1.0,this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
-    ierr=VecAXPY(this->m_WorkVecField2->m_X3,-1.0,this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
+    ierr=VecAXPY(this->m_WorkVecField2->m_X1,1.0,this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
+    ierr=VecAXPY(this->m_WorkVecField2->m_X2,1.0,this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
+    ierr=VecAXPY(this->m_WorkVecField2->m_X3,1.0,this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
     PetscFunctionReturn(0);
 }
 
@@ -344,9 +353,10 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ScalarType beta[3],scale;
     long int nx[3];
     IntType nalloc;
-    double ffttimers[5]={0,0,0,0,0};
+    double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__FUNCT__);
 
     nx[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
     nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
@@ -380,9 +390,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ierr=VecGetArray(x->m_X3,&p_x3); CHKERRQ(ierr);
 
     // compute forward fft
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x1,this->m_x1hat,ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x2,this->m_x2hat,ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x3,this->m_x3hat,ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x1,this->m_x1hat,timer);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x2,this->m_x2hat,timer);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x3,this->m_x3hat,timer);
     this->m_Opt->IncrementCounter(FFT,3);
 
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
@@ -393,10 +403,11 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     long int x1,x2,x3,wx1,wx2,wx3;
     ScalarType lapik,lapinvik,gradik1,gradik2,gradik3,opik;
     long int i;
+    IntType i1,i2,i3;
 #pragma omp for
-    for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
-        for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){
-            for (IntType i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){
+    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
+        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){
+            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){
 
                 x1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
                 x2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
@@ -412,10 +423,10 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
                 if(x3 > nx[2]/2) wx3-=nx[2];
 
                 // compute inverse laplacian operator
-                lapik = static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
+                lapik = -static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
 
                 //lapinvik = round(lapinvik) == 0.0 ? -1.0 : 1.0/lapinvik;
-                lapinvik = lapik == 0.0 ? 1.0 : 1.0/lapik;
+                lapinvik = lapik == 0.0 ? -1.0 : 1.0/lapik;
 
                 if(x1 == nx[0]/2) wx1 = 0;
                 if(x2 == nx[1]/2) wx2 = 0;
@@ -438,8 +449,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
                                              + gradik3*this->m_x3hat[i][1]);
 
                 // compute M^{-1] = (\beta_v (\beta_w(-\ilap + 1))^{-1} + 1)^{-1}
-                opik =  1.0/(beta[2]*(lapik + 1.0));
-                opik = -1.0/(beta[0]*opik + 1.0);
+                opik = 1.0/(beta[2]*(-lapik + 1.0));
+                opik = 1.0/(beta[0]*opik + 1.0);
 
                 // compute lap^{-1} div(b)
                 this->m_Kx1hat[i][0] *= opik*lapinvik;
@@ -464,16 +475,17 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
 
 
     // compute inverse fft
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx1hat,p_x1,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx2hat,p_x2,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx3hat,p_x3,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx1hat,p_x1,timer);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx2hat,p_x2,timer);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx3hat,p_x3,timer);
     this->m_Opt->IncrementCounter(FFT,3);
 
     ierr=VecRestoreArray(x->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecRestoreArray(x->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecRestoreArray(x->m_X3,&p_x3); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timer);
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
