@@ -70,6 +70,18 @@ PetscErrorCode PreProcReg::Initialize()
     this->m_FFTFinePlan = NULL;
     this->m_FFTCoarsePlan = NULL;
 
+    this->m_FourierCoeffSendF = NULL;
+    this->m_FourierCoeffSendC = NULL;
+
+    this->m_FourierCoeffRecvF = NULL;
+    this->m_FourierCoeffRecvC = NULL;
+
+    this->m_FourierIndicesRecvF = NULL;
+    this->m_FourierIndicesRecvC = NULL;
+
+    this->m_FourierIndicesSendF = NULL;
+    this->m_FourierIndicesSendC = NULL;
+
     this->m_xhat = NULL;
     this->m_yhat = NULL;
 
@@ -113,6 +125,49 @@ PetscErrorCode PreProcReg::ClearMemory()
         accfft_destroy_plan(this->m_FFTCoarsePlan);
         this->m_FFTCoarsePlan=NULL;
     }
+
+
+    if (this->m_FourierCoeffSendF == NULL){
+        delete [] this->m_FourierCoeffSendF;
+        this->m_FourierCoeffSendF = NULL;
+    }
+
+    if (this->m_FourierCoeffSendC == NULL){
+        delete [] this->m_FourierCoeffSendC;
+        this->m_FourierCoeffSendC = NULL;
+    }
+
+    if (this->m_FourierCoeffRecvF == NULL){
+        delete [] this->m_FourierCoeffRecvF;
+        this->m_FourierCoeffRecvF = NULL;
+    }
+
+    if (this->m_FourierCoeffRecvC == NULL){
+        delete [] this->m_FourierCoeffRecvC;
+        this->m_FourierCoeffRecvC = NULL;
+    }
+
+    if (this->m_FourierIndicesRecvF == NULL){
+        delete [] this->m_FourierIndicesRecvF;
+        this->m_FourierIndicesRecvF = NULL;
+    }
+
+    if (this->m_FourierIndicesRecvC == NULL){
+        delete [] this->m_FourierIndicesRecvC;
+        this->m_FourierIndicesRecvC = NULL;
+    }
+
+    if (this->m_FourierIndicesSendF == NULL){
+        delete [] this->m_FourierIndicesSendF;
+        this->m_FourierIndicesSendF = NULL;
+    }
+
+    if (this->m_FourierIndicesSendC == NULL){
+        delete [] this->m_FourierIndicesSendC;
+        this->m_FourierIndicesSendC = NULL;
+    }
+
+
 
     PetscFunctionReturn(0);
 
@@ -329,6 +384,11 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
         PetscFunctionReturn(ierr);
     }
 
+    for (int i = 0; i < 3; ++i){
+        this->m_nx_c[i] = nx_c[i];
+        this->m_nx_f[i] = nx_f[i];
+    }
+
     // set up fft operators
     ierr=this->SetupGridChangeOperators(nx_f,nx_c); CHKERRQ(ierr);
 
@@ -430,8 +490,8 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
 {
     PetscErrorCode ierr=0;
     int rank,nprocs,nowned,ncommunicate,nprocessed,xrank,cart_grid[2],p1,p2;
-    IntType oend_c[3],osc_x2,osc_x3,i_f[3];
-    ScalarType k_f[3], k_c[3], nxhalf_c[3], nc[2];
+    IntType oend_c[3],osc_x2,osc_x3,i_f[3],k_f[3],k_c[3],nxhalf_c[3];
+    ScalarType nc[2];
     bool locallyowned,oncoarsegrid;
 
     PetscFunctionBegin;
@@ -453,14 +513,6 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
         this->m_IndicesF.resize(nprocs);
     }
 
-    // allocate if necessary
-    if (this->m_ValuesC.empty()){
-        this->m_ValuesC.resize(nprocs);
-    }
-    if (this->m_ValuesF.empty()){
-        this->m_ValuesF.resize(nprocs);
-    }
-
     for (int i = 0; i < nprocs; ++i){
         if (!this->m_IndicesC[i].empty()){
             this->m_IndicesC[i].clear();
@@ -468,16 +520,10 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
         if (!this->m_IndicesF[i].empty()){
             this->m_IndicesF[i].clear();
         }
-        if (!this->m_ValuesC[i].empty()){
-            this->m_IndicesC[i].clear();
-        }
-        if (!this->m_ValuesC[i].empty()){
-            this->m_IndicesC[i].clear();
-        }
     }
 
     for(int i = 0; i < 3; ++i){
-        nxhalf_c[i] = std::ceil(static_cast<ScalarType>(nx_c[i])/2.0);
+        nxhalf_c[i] = static_cast<IntType>(std::ceil(static_cast<ScalarType>(nx_c[i])/2.0));
         oend_c[i] = this->m_ostart_c[i] + this->m_osize_c[i];
     }
 
@@ -500,7 +546,7 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
 
                 for (int i = 0; i < 3; ++i){
                     // compute wave number index on fine grid
-                    k_f[i] = static_cast<ScalarType>(i_f[i] + this->m_ostart_f[i]);
+                    k_f[i] = i_f[i] + this->m_ostart_f[i];
 
                     // only if current fourier entry is represented in spectral
                     // domain of coarse grid; we ignore the nyquist frequency nx_i/2
@@ -567,21 +613,278 @@ PetscErrorCode PreProcReg::ComputeIndices(IntType* nx_f,IntType* nx_c)
 
                     }
                 }
-
             } // i1
         } // i2
     } // i3
 
-    this->m_Opt->Exit(__FUNCT__);
 
     ierr=this->CommunicateData(); CHKERRQ(ierr);
+    ierr=this->AssignFourierCoeff(); CHKERRQ(ierr);
 
     this->m_IndicesComputed = true;
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
 
 
+
+
+/********************************************************************
+ * @brief do setup for applying restriction operator
+ * @param nx_c grid size on coarse grid
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "AssignFourierCoeff"
+PetscErrorCode PreProcReg::AssignFourierCoeff()
+{
+    PetscErrorCode ierr=0;
+    int merr,nprocs,rank,i_recv,i_send;
+    IntType n,k_f[3],l,i_f[3],nalloc_send,nalloc_recv,os_send,os_recv,nr,ns,nxhalf_c[3];
+    IntType *n_offset_send=NULL,*n_offset_recv=NULL,*n_send=NULL,*n_recv=NULL;
+    MPI_Request *send_request=NULL,*recv_request=NULL;
+    MPI_Status status;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
+
+    try{n_offset_send = new IntType[nprocs];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{n_offset_recv = new IntType[nprocs];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{n_send = new IntType[nprocs];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{n_recv = new IntType[nprocs];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    try{send_request = new MPI_Request[nprocs];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{recv_request = new MPI_Request[nprocs];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+
+    // compute size to be allocated
+    for (int p = 0; p < nprocs; ++p){
+        n_send[p] = 0;
+        if (!this->m_IndicesF[p].empty()){
+            n_send[p] = this->m_IndicesF[p].size()/3;
+        }
+
+    }
+
+    for(int i = 0; i < 3; ++i){
+        nxhalf_c[i] = static_cast<IntType>(std::ceil(static_cast<ScalarType>(this->m_nx_c[i])/2.0));
+    }
+
+    // communicate the amount of data we will send from one
+    // processor to another
+    MPI_Alltoall(n_send,1,MPI_INT,n_recv,1,MPI_INT,PETSC_COMM_WORLD);
+
+    nalloc_send=n_send[0];
+    nalloc_recv=n_recv[0];
+    n_offset_send[0] = 0;
+    n_offset_recv[0] = 0;
+    for (int p = 1; p < nprocs; ++p){
+        n_offset_send[p] = n_offset_send[p-1] + n_send[p-1];
+        n_offset_recv[p] = n_offset_recv[p-1] + n_recv[p-1];
+
+        nalloc_send += n_send[p];
+        nalloc_recv += n_recv[p];
+    }
+
+
+    // if we actually need to allocate something
+    if (nalloc_send > 0){
+
+        if (this->m_FourierCoeffSendF==NULL){
+            try{this->m_FourierCoeffSendF = new ScalarType[nalloc_send*2];}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+        if (this->m_FourierIndicesSendF==NULL){
+            try{this->m_FourierIndicesSendF = new IntType[nalloc_send*3];}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+        for (int p = 0; p < nprocs; ++p){
+
+            if (n_send[p] != 0){
+
+                n = this->m_IndicesF[p].size()/3;
+                if (n != n_send[p]){
+                    ss << "size mismatch " << n << "!=" << n_send[p];
+                    ierr=ThrowError(ss.str()); CHKERRQ(ierr);
+                }
+
+                for (int j = 0; j < n; ++j){
+                    for (int i = 0; i < 3; ++i){
+
+                        k_f[i] = this->m_IndicesF[p][j*3 + i];
+
+                        // convert global index into local index
+                        i_f[i] = k_f[i] - this->m_ostart_f[i];
+
+                        // check if we're inside expected range
+                        if ( (i_f[i] >= this->m_osize_f[i]) || (i_f[i] < 0) ){
+                            std::cout<<" r "<<rank<<" "<<i_f[i]<<">="<<this->m_osize_f[i]<<"   "<<i_f[i]<<"<0"<< std::endl;
+                        }
+
+                    }
+
+                    // compute flat index
+                    l = GetLinearIndex(i_f[0],i_f[1],i_f[2],this->m_osize_f);
+
+                    os_send = n_offset_send[p];
+                    os_recv = n_offset_recv[p];
+
+                    // assign values to coarse grid
+                    this->m_FourierCoeffSendF[2*j + 0 + 2*os_send] = this->m_XHatFine[l][0];
+                    this->m_FourierCoeffSendF[2*j + 1 + 2*os_send] = this->m_XHatFine[l][1];
+
+                    this->m_FourierIndicesSendF[3*j + 0 + 3*os_send] = k_f[0];
+                    this->m_FourierIndicesSendF[3*j + 1 + 3*os_send] = k_f[1];
+                    this->m_FourierIndicesSendF[3*j + 2 + 3*os_send] = k_f[2];
+
+
+                } // for all points
+            } // if indices are not empty
+        } // for all procs
+    }
+
+    if (nalloc_recv > 0){
+        if (this->m_FourierCoeffRecvF==NULL){
+            try{this->m_FourierCoeffRecvF = new ScalarType[nalloc_recv*2];}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+        if (this->m_FourierIndicesRecvF==NULL){
+            try{this->m_FourierIndicesRecvF = new IntType[nalloc_recv*3];}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
+        for (int i = 0; i < 2*nalloc_recv; ++i){
+            this->m_FourierCoeffRecvF[i] = -1;
+        }
+
+        for (int i = 0; i < 3*nalloc_recv; ++i){
+            this->m_FourierIndicesRecvF[i] = -1;
+        }
+
+    }
+
+    // send and recv fourier coefficients on fine grid
+    for (int i = 0; i < nprocs; ++i){
+
+        i_send=i; i_recv=i;
+        send_request[i_send] = MPI_REQUEST_NULL;
+        recv_request[i_recv] = MPI_REQUEST_NULL;
+
+        os_send = n_offset_send[i];
+        ns = n_send[i];
+        if (ns > 0){
+            merr=MPI_Isend(&this->m_FourierCoeffSendF[2*os_send],2*ns,MPI_DOUBLE,i_send,0,PETSC_COMM_WORLD,&send_request[i_send]);
+            ierr=MPIERRQ(merr); CHKERRQ(ierr);
+        }
+
+        os_recv = n_offset_recv[i];
+        nr = n_recv[i];
+        if (nr > 0){
+            merr=MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv],2*nr,MPI_DOUBLE,i_recv,0,PETSC_COMM_WORLD,&recv_request[i_recv]);
+            ierr=MPIERRQ(merr); CHKERRQ(ierr);
+        }
+    }
+
+    for (int i=0; i < nprocs; ++i){
+        if(send_request[i]!=MPI_REQUEST_NULL) { MPI_Wait(&send_request[i], &status); }
+        if(recv_request[i]!=MPI_REQUEST_NULL) { MPI_Wait(&recv_request[i], &status); }
+    }
+
+
+    // send and recv indices on fine grid
+    for (int i = 0; i < nprocs; ++i){
+
+        i_send=i; i_recv=i;
+        send_request[i_send] = MPI_REQUEST_NULL;
+        recv_request[i_recv] = MPI_REQUEST_NULL;
+
+        os_send = n_offset_send[i];
+        ns = n_send[i];
+        if (ns > 0){
+            merr=MPI_Isend(&this->m_FourierIndicesSendF[3*os_send],3*ns,MPI_INT,i_send,0,PETSC_COMM_WORLD,&send_request[i_send]);
+            ierr=MPIERRQ(merr); CHKERRQ(ierr);
+        }
+
+        os_recv = n_offset_recv[i];
+        nr = n_recv[i];
+        if (nr > 0){
+            merr=MPI_Irecv(&this->m_FourierIndicesRecvF[3*os_recv],3*nr,MPI_INT,i_recv,0,PETSC_COMM_WORLD,&recv_request[i_recv]);
+            ierr=MPIERRQ(merr); CHKERRQ(ierr);
+        }
+    }
+
+    for (int i=0; i < nprocs; ++i){
+        if(send_request[i]!=MPI_REQUEST_NULL) { MPI_Wait(&send_request[i], &status); }
+        if(recv_request[i]!=MPI_REQUEST_NULL) { MPI_Wait(&recv_request[i], &status); }
+    }
+
+    IntType k_c[3];
+    for (int p = 0; p < nprocs; ++p){
+        nr = n_recv[p];
+        os_recv = n_offset_recv[p];
+        for (int j = 0; j < nr; ++j){
+            bool outofbounds=false;
+            for (int i = 0; i < 3; ++i){
+                k_f[i] = this->m_FourierIndicesRecvF[3*j + i + 3*os_recv];
+
+                // get wave number index on coarse grid from index on fine grid
+                k_c[i] = k_f[i] <= nxhalf_c[i] ? k_f[i] : this->m_nx_c[i] - this->m_nx_f[i] + k_f[i];
+
+                if ( (k_c[i] < this->m_ostart_c[i]) || (k_c[i] > this->m_ostart_c[i] + this->m_osize_c[i]) ){
+                    outofbounds=true;
+                }
+            }
+            if (outofbounds) std::cout << k_f[0] << " " << k_f[1] << " " << k_f[2] << std::endl;
+        }
+    }
+
+
+    if (send_request!=NULL) { delete [] send_request; send_request=NULL; }
+    if (recv_request!=NULL) { delete [] recv_request; recv_request=NULL; }
+    if (n_offset_send!=NULL) { delete [] n_offset_send; n_offset_send=NULL; }
+    if (n_offset_recv!=NULL) { delete [] n_offset_recv; n_offset_recv=NULL; }
+    if (n_send!=NULL) { delete [] n_send; n_send=NULL; }
+    if (n_recv!=NULL) { delete [] n_recv; n_recv=NULL; }
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+}
 
 
 /********************************************************************
@@ -632,7 +935,7 @@ PetscErrorCode PreProcReg::CommunicateData()
     }
 
     for (int i = 0; i < nprocs; ++i){
-        n_send[i] = rand() % 10 + 1;
+        n_send[i] = this->m_IndicesF[i].size()/3;
     }
 
     // communicate the amount of data we will send from one
@@ -651,8 +954,8 @@ PetscErrorCode PreProcReg::CommunicateData()
         nalloc_recv += n_recv[i];
         nalloc_send += n_send[i];
     }
-    std::cout<<" alloc recv "<< nalloc_recv<<std::endl;
-    std::cout<<" alloc send "<< nalloc_send<<std::endl;
+//    std::cout<<" alloc recv "<< nalloc_recv<<std::endl;
+//    std::cout<<" alloc send "<< nalloc_send<<std::endl;
 
     // allocate container to hold values (send and receive)
     try{send_val = new double[nalloc_send];}
@@ -665,7 +968,7 @@ PetscErrorCode PreProcReg::CommunicateData()
     }
 
 
-    if (rank == 0) std::cout<< "starting communication" << std::endl;
+    //if (rank == 0) std::cout<< "starting communication" << std::endl;
     for (int i = 0; i < nalloc_send; ++i){
         send_val[i] = rank;
     }
@@ -702,15 +1005,14 @@ PetscErrorCode PreProcReg::CommunicateData()
         if(send_request[i]!=MPI_REQUEST_NULL) { MPI_Wait(&send_request[i], &status); }
     }
 
-    if (rank == 0){
+/*  if (rank == 0){
         std::cout << " rank " << rank << std::endl;
         for (int i=0; i<nalloc_recv; ++i){ std::cout << std::setprecision(1) << (int)recv_val[i] << std::endl; }
     }
     if (rank == 1){
         std::cout << " rank " << rank << std::endl;
         for (int i=0; i<nalloc_recv; ++i){ std::cout << std::setprecision(1) << (int)recv_val[i] << std::endl; }
-    }
-
+    } */
 
     if(n_send!=NULL) delete [] n_send;
     if(n_recv!=NULL) delete [] n_recv;
@@ -724,7 +1026,7 @@ PetscErrorCode PreProcReg::CommunicateData()
     if(send_request!=NULL) delete [] send_request;
     if(recv_request!=NULL) delete [] recv_request;
 
-    if (rank == 0) std::cout<< "communication done" << std::endl;
+//    if (rank == 0) std::cout<< "communication done" << std::endl;
 
     PetscFunctionReturn(ierr);
 
@@ -966,6 +1268,11 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ){
         ierr=VecCopy(x_c,*x_f); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
+    }
+
+    for (int i = 0; i < 3; ++i){
+        this->m_nx_c[i] = nx_c[i];
+        this->m_nx_f[i] = nx_f[i];
     }
 
     // set up fft operators

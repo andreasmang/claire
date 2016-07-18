@@ -64,6 +64,7 @@ private:
 
     PetscErrorCode SetupGridChangeOperators(IntType*,IntType*);
     PetscErrorCode CommunicateData();
+    PetscErrorCode AssignFourierCoeff();
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
@@ -72,8 +73,15 @@ private:
 
     std::vector< std::vector<IntType> > m_IndicesF;
     std::vector< std::vector<IntType> > m_IndicesC;
-    std::vector< std::vector<ScalarTypeFD> > m_ValuesF;
-    std::vector< std::vector<ScalarTypeFD> > m_ValuesC;
+
+    ScalarType* m_FourierCoeffSendF;
+    ScalarType* m_FourierCoeffSendC;
+    ScalarType* m_FourierCoeffRecvF;
+    ScalarType* m_FourierCoeffRecvC;
+    IntType* m_FourierIndicesSendF;
+    IntType* m_FourierIndicesSendC;
+    IntType* m_FourierIndicesRecvF;
+    IntType* m_FourierIndicesRecvC;
 
     accfft_plan* m_FFTFinePlan;
     accfft_plan* m_FFTCoarsePlan;
@@ -81,6 +89,8 @@ private:
     ScalarTypeFD* m_XHatFine;
     ScalarTypeFD* m_XHatCoarse;
 
+    IntType m_nx_c[3];
+    IntType m_nx_f[3];
     IntType m_osize_c[3];
     IntType m_osize_f[3];
     IntType m_ostart_c[3];

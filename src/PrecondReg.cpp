@@ -269,10 +269,6 @@ PetscErrorCode PrecondReg::DoSetup()
 
 
 
-
-
-
-
 /********************************************************************
  * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
