@@ -357,7 +357,7 @@ public:
     PetscErrorCode SetupGridCont();
 
     // regularization
-    inline RegNorm GetRegNorm(){return this->m_RegNorm; };
+    inline RegNorm GetRegNorm(){ return this->m_RegNorm; };
     inline void SetRegularizationWeight(int i, ScalarType beta){
         this->m_RegNorm.beta[i]=beta;
     };

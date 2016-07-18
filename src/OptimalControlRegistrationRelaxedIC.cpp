@@ -96,6 +96,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void)
         accfft_free(this->m_x3hat);
         this->m_x3hat = NULL;
     }
+
     if(this->m_Kx1hat!=NULL){
         accfft_free(this->m_Kx1hat);
         this->m_Kx1hat = NULL;
@@ -180,7 +181,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
  * divergence free velocity fields
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ComputeBodyForce"
+#define __FUNCT__ "EvaluteRegFunctionalW"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(ScalarType* Rw)
 {
 
@@ -188,7 +189,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_gdv1=NULL,*p_gdv2=NULL,*p_gdv3=NULL,
                 *p_divv=NULL;
-    ScalarType value,betaw;
+    ScalarType value,regvalue,betaw;
     double ffttimers[5]={0,0,0,0,0};
     IntType nl,ng;
     std::bitset<3>XYZ=0; XYZ[0]=1,XYZ[1]=1,XYZ[2]=1;
@@ -240,14 +241,15 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr=VecRestoreArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
 
     // compute inner products ||\igrad w||_L2 + ||w||_L2
-    *Rw=0.0;
-    ierr=VecTDot(this->m_WorkVecField1->m_X1,this->m_WorkVecField1->m_X1,&value); *Rw +=value;
-    ierr=VecTDot(this->m_WorkVecField1->m_X2,this->m_WorkVecField1->m_X2,&value); *Rw +=value;
-    ierr=VecTDot(this->m_WorkVecField1->m_X3,this->m_WorkVecField1->m_X3,&value); *Rw +=value;
-    ierr=VecTDot(this->m_WorkScaField1,this->m_WorkScaField1,&value); *Rw +=value;
+    regvalue=0.0;
+    ierr=VecTDot(this->m_WorkVecField1->m_X1,this->m_WorkVecField1->m_X1,&value); regvalue +=value;
+    ierr=VecTDot(this->m_WorkVecField1->m_X2,this->m_WorkVecField1->m_X2,&value); regvalue +=value;
+    ierr=VecTDot(this->m_WorkVecField1->m_X3,this->m_WorkVecField1->m_X3,&value); regvalue +=value;
+
+    ierr=VecTDot(this->m_WorkScaField1,this->m_WorkScaField1,&value); regvalue +=value;
 
     // add up contributions
-    *Rw *= 0.5*betaw;
+    *Rw = 0.5*betaw*regvalue;
 
     this->m_Opt->IncreaseFFTTimers(ffttimers);
 
@@ -339,52 +341,39 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
 {
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL, *p_x2=NULL, *p_x3=NULL;
-    ScalarType nx[3],beta[3],scale;
-    int _isize[3],_osize[3],_istart[3],_ostart[3],_nx[3];
-    IntType alloc_max,osize[3],ostart[3];
+    ScalarType beta[3],scale;
+    long int nx[3];
+    IntType nalloc;
     double ffttimers[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
-    _nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-    _nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-    _nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+    nx[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
+    nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
+    nx[2] = static_cast<long int>(this->m_Opt->GetNumGridPoints(2));
 
-    scale = 1.0;
-    for (int i=0; i < 3; ++i){
-        nx[i] = static_cast<ScalarType>(_nx[i]);
-        scale *= nx[i];
-    }
-    scale  = 1.0/scale;
-
-    // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(_nx,_isize,_istart,_osize,_ostart,this->m_Opt->GetFFT().mpicomm);
+    scale = this->m_Opt->ComputeFFTScale();
+    nalloc = this->m_Opt->GetFFT().nalloc;
 
     if(this->m_x1hat == NULL){
-        this->m_x1hat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_x1hat=(FFTScaType*)accfft_alloc(nalloc);
     }
     if(this->m_x2hat == NULL){
-        this->m_x2hat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_x2hat=(FFTScaType*)accfft_alloc(nalloc);
     }
     if(this->m_x3hat == NULL){
-        this->m_x3hat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_x3hat=(FFTScaType*)accfft_alloc(nalloc);
     }
 
     if(this->m_Kx1hat == NULL){
-        this->m_Kx1hat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_Kx1hat=(FFTScaType*)accfft_alloc(nalloc);
     }
     if(this->m_Kx2hat == NULL){
-        this->m_Kx2hat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_Kx2hat=(FFTScaType*)accfft_alloc(nalloc);
     }
     if(this->m_Kx3hat == NULL){
-        this->m_Kx3hat=(FFTScaType*)accfft_alloc(alloc_max);
+        this->m_Kx3hat=(FFTScaType*)accfft_alloc(nalloc);
     }
-
-    for (int i=0; i < 3; ++i){
-        osize[i] = static_cast<IntType>(_osize[i]);
-        ostart[i] = static_cast<IntType>(_ostart[i]);
-    }
-
 
     ierr=VecGetArray(x->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecGetArray(x->m_X2,&p_x2); CHKERRQ(ierr);
@@ -405,39 +394,39 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ScalarType lapik,lapinvik,gradik1,gradik2,gradik3,opik;
     long int i;
 #pragma omp for
-    for (IntType i1 = 0; i1 < osize[0]; ++i1){
-        for (IntType i2 = 0; i2 < osize[1]; ++i2){
-            for (IntType i3 = 0; i3 < osize[2]; ++i3){
+    for (IntType i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
+        for (IntType i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){
+            for (IntType i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){
 
-                x1 = static_cast<long int>(i1 + ostart[0]);
-                x2 = static_cast<long int>(i2 + ostart[1]);
-                x3 = static_cast<long int>(i3 + ostart[2]);
+                x1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                x2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                x3 = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
                 // set wavenumber
                 wx1 = x1;
                 wx2 = x2;
                 wx3 = x3;
 
-                if(x1 > _nx[0]/2) wx1-=_nx[0];
-                if(x2 > _nx[1]/2) wx2-=_nx[1];
-                if(x3 > _nx[2]/2) wx3-=_nx[2];
+                if(x1 > nx[0]/2) wx1-=nx[0];
+                if(x2 > nx[1]/2) wx2-=nx[1];
+                if(x3 > nx[2]/2) wx3-=nx[2];
 
                 // compute inverse laplacian operator
                 lapik = static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
 
                 //lapinvik = round(lapinvik) == 0.0 ? -1.0 : 1.0/lapinvik;
-                lapinvik = lapik == 0.0 ? -1.0 : -1.0/lapik;
+                lapinvik = lapik == 0.0 ? 1.0 : 1.0/lapik;
 
-                if(x1 == _nx[0]/2) wx1 = 0;
-                if(x2 == _nx[1]/2) wx2 = 0;
-                if(x3 == _nx[2]/2) wx3 = 0;
+                if(x1 == nx[0]/2) wx1 = 0;
+                if(x2 == nx[1]/2) wx2 = 0;
+                if(x3 == nx[2]/2) wx3 = 0;
 
                 // compute gradient operator
                 gradik1 = static_cast<ScalarType>(wx1);
                 gradik2 = static_cast<ScalarType>(wx2);
                 gradik3 = static_cast<ScalarType>(wx3);
 
-                i=(i1*osize[1]+i2)*osize[2]+i3;
+                i=GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
 
                 // compute div(b)
                 this->m_Kx1hat[i][0] = -scale*(gradik1*this->m_x1hat[i][0]

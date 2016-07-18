@@ -348,17 +348,12 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
         }
     }
     else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES){
-        try{ this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt); }
+        try{ this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    else{
-        try{ this->m_RegProblem = new OptimalControlRegistration(this->m_Opt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    else{ ierr=ThrowError("registration modle not available"); CHKERRQ(ierr); }
 
     ierr=Assert(this->m_ReadWrite!=NULL,"read/write is null"); CHKERRQ(ierr);
     ierr=this->m_RegProblem->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
