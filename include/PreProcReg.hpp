@@ -89,12 +89,17 @@ private:
     ScalarTypeFD* m_XHatFine;
     ScalarTypeFD* m_XHatCoarse;
 
-    IntType m_nx_c[3];
-    IntType m_nx_f[3];
-    IntType m_osize_c[3];
-    IntType m_osize_f[3];
-    IntType m_ostart_c[3];
-    IntType m_ostart_f[3];
+    IntType m_nxC[3];
+    IntType m_nxF[3];
+    IntType m_osizeC[3];
+    IntType m_osizeF[3];
+    IntType m_ostartC[3];
+    IntType m_ostartF[3];
+
+    IntType *m_NumSendF;
+    IntType *m_NumRecvF;
+    IntType *m_OffsetSendF;
+    IntType *m_OffsetRecvF;
 
     ScalarType m_FFTFineScale;
     ScalarType m_FFTCoarseScale;

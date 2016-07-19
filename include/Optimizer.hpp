@@ -59,6 +59,7 @@ public:
     PetscErrorCode GetSolution(Vec&);
     PetscErrorCode SetInitialGuess(VecField*);
     PetscErrorCode SetPreconditioner(PrecondReg*);
+    PetscErrorCode GetSolutionStatus(bool&);
     PetscErrorCode Finalize();
 
 private:

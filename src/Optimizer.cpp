@@ -415,8 +415,8 @@ PetscErrorCode Optimizer::Run()
 
 
 /********************************************************************
- * @param x vector to hold solution
  * @brief get the solution
+ * @param x vector to hold solution
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetSolution"
@@ -430,6 +430,32 @@ PetscErrorCode Optimizer::GetSolution(Vec &x)
 
     // get solution
     ierr=TaoGetSolutionVector(this->m_Tao,&x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief get the solution status (convergence reason)
+ * @param get solution status
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetSolutionStatus"
+PetscErrorCode Optimizer::GetSolutionStatus(bool &converged)
+{
+    PetscErrorCode ierr;
+    TaoConvergedReason reason;
+    PetscFunctionBegin;
+
+    // check if we have solved the problem / set up tao
+    ierr=Assert(this->m_Tao!=NULL, "optimization object not initialized"); CHKERRQ(ierr);
+
+    // get solution
+    ierr=TaoGetConvergedReason(this->m_Tao, &reason); CHKERRQ(ierr);
+    converged=true;
+    if (reason < 0) converged=false;
 
     PetscFunctionReturn(0);
 }

@@ -646,8 +646,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
 {
     PetscErrorCode ierr;
     int maxsteps,level,rank;
-    bool stop,boundreached;
+    bool stop,boundreached,converged;
+    std::ofstream logwriter;
     std::stringstream ss;
+    std::string filename;
     ScalarType beta,betamin,betascale,dbetascale,
                 betastar,betahat,dbeta,dbetamin;
     Vec x;
@@ -700,6 +702,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
 
         // run the optimization
         ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+        ierr=this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
+        if (!converged) break;
 
         // get the solution
         ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
@@ -771,29 +775,46 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
         // run the optimization
         ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
-        // get the solution
-        ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+        // if we did not converge, beta is too small, also
+        ierr=this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
+        if (converged){
 
-        // check bounds on jacobian
-        boundreached=false;
-        ierr=this->m_RegProblem->CheckBounds(x,boundreached); CHKERRQ(ierr);
+            // get the solution
+            ierr=this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
 
-        // if bound is reached, the lower bound is now beta
-        // if not, beta is our new best estimate
-        if (boundreached){ betahat = beta; }
-        else{
+            // check bounds on jacobian
+            boundreached=false;
+            ierr=this->m_RegProblem->CheckBounds(x,boundreached); CHKERRQ(ierr);
 
-            betastar = beta; // new best estimate
+            // if bound is reached, the lower bound is now beta
+            // if not, beta is our new best estimate
+            if (boundreached){ betahat = beta; }
+            else{
 
-            // if we got here, the solution is valid
-            ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
+                betastar = beta; // new best estimate
 
+                // if we got here, the solution is valid
+                ierr=this->m_Solution->SetComponents(x); CHKERRQ(ierr);
+
+            }
         }
+        else{
+            ierr=WrngMsg("solver did not converge"); CHKERRQ(ierr);
+            betahat = beta;
+        };
 
         // increase or reduce beta
         dbeta = (betastar - betahat)/2.0;
         beta  = betastar - dbeta;
-        if (fabs(dbeta) < dbetamin){ stop = true; }
+        if (fabs(dbeta) < dbetamin){
+            stop = true;
+            if (this->m_Opt->GetVerbosity() > 0){
+                ss  << std::setw(3)<<"update for beta to small ( "
+                    << fabs(dbeta) << " < " << dbetamin << " )";
+                ierr=DbgMsg(ss.str());
+                ss.str( std::string() ); ss.clear();
+            }
+        }
 
         ++level;
 
@@ -804,6 +825,18 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
     ierr=Msg(ss.str()); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
     ss.str( std::string() ); ss.clear();
+
+
+    if (rank == 0){
+        filename  = this->m_Opt->GetXFolder();
+        filename += "parameter-continuation-estimated-beta.log";
+        // create output file or append to output file
+        logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
+        ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
+        ss  << std::scientific <<  "betav " << std::setw(3) << std::right << betastar;
+        logwriter << ss.str() << std::endl;
+        ss.str( std::string() ); ss.clear();
+    }
 
     // wrap up
     ierr=this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);

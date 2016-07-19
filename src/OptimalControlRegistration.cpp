@@ -3381,8 +3381,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
             logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
             ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
             ss  << std::scientific
-                <<  "iter " << std::setw(3)
-                << std::right << this->m_NumOuterIter << "    " << std::left
+                <<  "iter = " << this->m_NumOuterIter
+                <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
+                << std::left
                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
