@@ -105,6 +105,7 @@ private:
     ScalarType m_FFTCoarseScale;
 
     bool m_ResetGridChangeOperators;
+    bool m_GridChangeOperatorsSet;
     bool m_IndicesComputed;
 };
 
