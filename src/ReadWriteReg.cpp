@@ -15,8 +15,7 @@ namespace reg
 
 
 /********************************************************************
- * Name: ReadWriteReg
- * Description: default constructor
+ * @brief default constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadWriteReg"
@@ -29,8 +28,7 @@ ReadWriteReg::ReadWriteReg()
 
 
 /********************************************************************
- * Name: ReadWriteReg
- * Description: constructor
+ * @brief constructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadWriteReg"
@@ -44,8 +42,7 @@ ReadWriteReg::ReadWriteReg(RegOpt* opt)
 
 
 /********************************************************************
- * Name: ReadWriteReg
- * Description: default destructor
+ * @brief default destructor
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~ReadWriteReg"
@@ -58,8 +55,7 @@ ReadWriteReg::~ReadWriteReg()
 
 
 /********************************************************************
- * Name: Initialize
- * Description: init class variables
+ * @brief init class variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
@@ -80,8 +76,7 @@ PetscErrorCode ReadWriteReg::Initialize()
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clear class variables
+ * @brief clear class variables
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
@@ -94,8 +89,7 @@ PetscErrorCode ReadWriteReg::ClearMemory()
 
 
 /********************************************************************
- * Name: Read
- * Description: read data from file
+ * @brief read data from file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Read"
@@ -135,8 +129,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
 
 
 /********************************************************************
- * Name: Read
- * Description: read data from file
+ * @brief read data from file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Read"
@@ -161,8 +154,7 @@ PetscErrorCode ReadWriteReg::Read(VecField* v,
 
 
 /********************************************************************
- * Name: WriteTimeSeries
- * Description: write time series data to file
+ * @brief write time series data to file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteTimeSeries"
@@ -187,8 +179,7 @@ PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: ReadTimeSeries
- * Description:read temporal data from file
+ * @brief read temporal data from file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadTimeSeries"
@@ -212,8 +203,7 @@ PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: ReadBlock
- * Description: read data from file
+ * @brief read data from file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadBlock"
@@ -237,8 +227,7 @@ PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename
 
 
 /********************************************************************
- * Name: WriteBlock
- * Description: write data to file
+ * @brief write data to file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteBlock"
@@ -263,8 +252,7 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
 
 
 /********************************************************************
- * Name: Write
- * Description: write data to file
+ * @brief write data to file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Write"
@@ -310,8 +298,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: Write
- * Description: write data to file
+ * @brief write data to file
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Write"
@@ -336,8 +323,7 @@ PetscErrorCode ReadWriteReg::Write(VecField* v,
 
 
 /********************************************************************
- * Name: ReadNetCDF
- * Description: read data from file
+ * @brief read data from file
  *******************************************************************/
 /*
 #undef __FUNCT__
@@ -379,8 +365,7 @@ PetscErrorCode ReadWriteReg::ReadNetCDF(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: ReadBlockNetCDF
- * Description: read data to file
+ * @brief read data to file
  *******************************************************************/
 /*
 #undef __FUNCT__
@@ -417,8 +402,7 @@ PetscErrorCode ReadWriteReg::ReadBlockNetCDF(Vec x, int bsize[3], std::string fi
 
 
 /********************************************************************
- * Name: WriteBlockNetCDF
- * Description: write data to file
+ * @brief write data to file
  *******************************************************************/
 /*
 #undef __FUNCT__
@@ -456,8 +440,7 @@ PetscErrorCode ReadWriteReg::WriteBlockNetCDF(Vec x, int bsize[3], std::string f
 
 
 /********************************************************************
- * Name: WriteNetCDF
- * Description: write data to file
+ * @brief write data to file
  *******************************************************************/
 /*
 #undef __FUNCT__
@@ -500,8 +483,7 @@ PetscErrorCode ReadWriteReg::WriteNetCDF(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: WriteTimeSeriesNetCDF
- * Description: write data to file
+ * @brief write data to file
  *******************************************************************/
 /*
 #undef __FUNCT__
@@ -567,8 +549,7 @@ PetscErrorCode ReadWriteReg::WriteTimeSeriesNetCDF(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: ReadTimeSeriesNetCDF
- * Description: read netcdf time series
+ * @brief read netcdf time series
  *******************************************************************/
 /*
 #undef __FUNCT__
@@ -633,8 +614,7 @@ PetscErrorCode ReadWriteReg::ReadTimeSeriesNetCDF(Vec x, std::string filename)
 
 
 /********************************************************************
- * Name: GetComponentType
- * Description: get component type of NII images
+ * @brief get component type of NII images
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetComponentTypeNII"
@@ -698,8 +678,7 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage)
 
 
 /********************************************************************
- * Name: ReadNII
- * Description: read nifty image
+ * @brief read nifty image
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
@@ -838,8 +817,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
 
 /********************************************************************
- * Name: ReadNII
- * Description: read nifty image with right component type
+ * @brief read nifty image with right component type
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
@@ -917,13 +895,11 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
 
 
 /********************************************************************
- * Name: GetComponentType
- * Description: get component type of NII images
+ * @brief get component type of NII images
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ReadImageBuffer"
-template <typename T>
-PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
+#define __FUNCT__ "ReadNII"
+template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
 {
     PetscErrorCode ierr;
     T *data=NULL;
@@ -947,7 +923,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
 
     // assign data
     data = static_cast<T*>(niiimage->data);
-    ierr=Assert(data != NULL,"image buffer is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(data!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // get global number of points
     ng = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
@@ -964,8 +940,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
 
 
 /********************************************************************
- * Name: WriteNII
- * Description: write buffer to nii files
+ * @brief write buffer to nii files
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
@@ -1001,8 +976,7 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
 
 
 /********************************************************************
- * Name: WriteNII
- * Description: write buffer to nii files
+ * @brief write buffer to nii files
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
@@ -1073,14 +1047,11 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 
 
 /********************************************************************
- * Name: WriteNII
- * Description: write buffer to nii files
- * Author: Andreas Mang
+ * @brief write buffer to nii files
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
-template <typename T>
-PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
+template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
 {
     PetscErrorCode ierr;
     IntType nglobal;
@@ -1278,8 +1249,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 
 
 /********************************************************************
- * Name: AllocateNII
- * Description: allocate buffer for nifty image
+ * @brief allocate buffer for nifty image
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "AllocateNII"

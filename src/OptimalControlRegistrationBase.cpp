@@ -77,6 +77,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_WorkScaField2 = NULL;
     this->m_WorkScaField3 = NULL;
     this->m_WorkScaField4 = NULL;
+    this->m_WorkScaField5 = NULL;
 
     this->m_WorkVecField1 = NULL;
     this->m_WorkVecField2 = NULL;
@@ -993,9 +994,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
         switch (this->m_Opt->GetPDESolver()){
             case RK2:
             {
-                ierr=this->ComputeDetDefGradRK2(); CHKERRQ(ierr);
+//                ierr=this->ComputeDetDefGradRK2(); CHKERRQ(ierr);
+                ierr=this->ComputeDetDefGradRK2A(); CHKERRQ(ierr);
                 break;
             }
+//            case RK2A:
+//            {
+//                ierr=this->ComputeDetDefGradRK2A(); CHKERRQ(ierr);
+//                break;
+//            }
             case SL:
             {
                 ierr=this->ComputeDetDefGradSL(); CHKERRQ(ierr);
@@ -1077,13 +1084,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ierr=VecSet(this->m_WorkScaField1,1.0); CHKERRQ(ierr);
 
     // get pointers
-    ierr=VecGetArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_gx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X2,&p_gx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_gx3); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->GetArrays(p_gx1,p_gx2,p_gx3); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
@@ -1140,13 +1142,174 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ierr=VecRestoreArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
 
-    ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->RestoreArrays(p_gx1,p_gx2,p_gx3); CHKERRQ(ierr);
 
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_gx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X2,&p_gx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_gx3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief compute determinant of deformation gradient
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeDetDefGradRK2A"
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
+{
+    PetscErrorCode ierr;
+    IntType nl,ng,nt;
+    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_jbar=NULL,
+                *p_gphi1=NULL,*p_gphi2=NULL,*p_gphi3=NULL,*p_divv=NULL,
+                *p_phiv1=NULL,*p_phiv2=NULL,*p_phiv3=NULL,
+                *p_phi=NULL, *p_rhs0=NULL, *p_divvphi=NULL;
+    ScalarType ht,hthalf;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    double timings[5]={0,0,0,0,0};
+    PetscFunctionBegin;
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    if (this->m_WorkVecField1 == NULL){
+       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL){
+       try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkScaField2 == NULL){
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL){
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField4 == NULL){
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField5 == NULL){
+        ierr=VecCreate(this->m_WorkScaField5,nl,ng); CHKERRQ(ierr);
+    }
+
+    // set initial condition
+    ierr=VecSet(this->m_WorkScaField1,1.0); CHKERRQ(ierr);
+
+    // get pointers
+    ierr=this->m_VelocityField->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->GetArrays(p_gphi1,p_gphi2,p_gphi3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->GetArrays(p_phiv1,p_phiv2,p_phiv3); CHKERRQ(ierr);
+
+    ierr=VecGetArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField5,&p_divvphi); CHKERRQ(ierr);
+
+    // compute div(v)
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,timings);
+
+
+#pragma omp parallel
+{
+#pragma omp  for
+    for (IntType i=0; i < nl; ++i){ // for all grid points
+        // compute phi \vect{v} = 1 \vect{v}
+        p_phiv1[i] = p_vx1[i];
+        p_phiv2[i] = p_vx2[i];
+        p_phiv3[i] = p_vx3[i];
+
+    }
+} // pragma omp
+
+
+    // for all time points
+    for (IntType j = 0; j <= nt; ++j){
+
+        // compute grad(\phi_j)
+        accfft_grad(p_gphi1,p_gphi2,p_gphi3,p_phi,this->m_Opt->GetFFT().plan,&XYZ,timings);
+
+        // compute div(\vect{v}\phi_j)
+        accfft_divergence(p_divvphi,p_phiv1,p_phiv2,p_phiv3,this->m_Opt->GetFFT().plan,timings);
+
+#pragma omp parallel
+{
+#pragma omp  for
+        for (IntType i=0; i < nl; ++i){ // for all grid points
+
+            // \bar{j} = -(\vect{v} \cdot \igrad) \phi + j (\idiv \vect{v})
+            p_rhs0[i] = - ( p_vx1[i]*p_gphi1[i]
+                          + p_vx2[i]*p_gphi2[i]
+                          + p_vx3[i]*p_gphi3[i] )
+                          + 0.5*p_phi[i]*p_divv[i]
+                          + 0.5*p_divvphi[i]
+                          - 0.5*( p_gphi1[i]*p_vx1[i]
+                                + p_gphi2[i]*p_vx2[i]
+                                + p_gphi3[i]*p_vx3[i] );
+
+            p_jbar[i] = p_phi[i] + ht*p_rhs0[i];
+
+            // compute \bar{phi} \vect{v}
+            p_phiv1[i] = p_jbar[i]*p_vx1[i];
+            p_phiv2[i] = p_jbar[i]*p_vx2[i];
+            p_phiv3[i] = p_jbar[i]*p_vx3[i];
+
+        }
+} // pragma omp
+
+        accfft_grad(p_gphi1,p_gphi2,p_gphi3,p_jbar,this->m_Opt->GetFFT().plan,&XYZ,timings);
+
+        // compute div(\vect{v}\bar{\phi}_j)
+        accfft_divergence(p_divvphi,p_phiv1,p_phiv2,p_phiv3,this->m_Opt->GetFFT().plan,timings);
+
+#pragma omp parallel
+{
+#pragma omp  for
+        for (IntType i=0; i < nl; ++i){ // for all grid points
+
+            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
+            ScalarType rhs1 = -( p_vx1[i]*p_gphi1[i]
+                               + p_vx2[i]*p_gphi2[i]
+                               + p_vx3[i]*p_gphi3[i] )
+                               + 0.5*p_jbar[i]*p_divv[i]
+                               + 0.5*p_divvphi[i]
+                               - 0.5*( p_gphi1[i]*p_vx1[i]
+                                     + p_gphi2[i]*p_vx2[i]
+                                     + p_gphi3[i]*p_vx3[i] );
+;
+
+            p_phi[i] = p_phi[i] + hthalf*(p_rhs0[i] + rhs1);
+
+            // compute \phi \vect{v} for next time step
+            p_phiv1[i] = p_phi[i]*p_vx1[i];
+            p_phiv2[i] = p_phi[i]*p_vx2[i];
+            p_phiv3[i] = p_phi[i]*p_vx3[i];
+
+        }
+} // pragma omp
+
+
+    }
+
+    ierr=VecRestoreArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField5,&p_divvphi); CHKERRQ(ierr);
+
+    ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->RestoreArrays(p_gphi1,p_gphi2,p_gphi3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->RestoreArrays(p_phiv1,p_phiv2,p_phiv3); CHKERRQ(ierr);
+
 
     PetscFunctionReturn(0);
 }
@@ -1229,26 +1392,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     }
 
     // get pointers
-    ierr=VecGetArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_gjx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X2,&p_gjx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_gjx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField2->m_X1,&p_jvx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField2->m_X2,&p_jvx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField2->m_X3,&p_jvx3); CHKERRQ(ierr);
-
     ierr=VecGetArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField2,&p_jacX); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField3,&p_cgradvj); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField4,&p_divjacv); CHKERRQ(ierr);
 
-    ierr=VecGetArray(this->m_WorkVecField3->m_X1,&p_rhs0); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField3->m_X2,&p_cgradvjX); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField3->m_X3,&p_divjacvX); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->GetArrays(p_gjx1,p_gjx2,p_gjx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->GetArrays(p_jvx1,p_jvx2,p_jvx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField3->GetArrays(p_rhs0,p_cgradvjX,p_divjacvX); CHKERRQ(ierr);
 
     for( IntType j = 0; j < nt; ++j ){ // for all time points
 
@@ -1343,26 +1495,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 
     } // for all time points
 
-    ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_gjx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X2,&p_gjx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_gjx3); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_WorkVecField2->m_X1,&p_jvx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField2->m_X2,&p_jvx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField2->m_X3,&p_jvx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField3->RestoreArrays(p_rhs0,p_cgradvjX,p_divjacvX); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->RestoreArrays(p_jvx1,p_jvx2,p_jvx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->RestoreArrays(p_gjx1,p_gjx2,p_gjx3); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     ierr=VecRestoreArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField2,&p_jacX); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField3,&p_cgradvj); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField4,&p_divjacv); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_WorkVecField3->m_X1,&p_rhs0); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField3->m_X2,&p_cgradvjX); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField3->m_X3,&p_divjacvX); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 

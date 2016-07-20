@@ -150,10 +150,12 @@ protected:
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();
 
-    PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
     PetscErrorCode ComputeDetDefGradSL(); ///< implemented via SL time integrator
-    PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
+    PetscErrorCode ComputeDetDefGradRK2A(); ///< implemented via RK2 time integrator (asymetric form)
+
     PetscErrorCode ComputeDeformationMapSL(); ///< implementation via SL time integrator
+    PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator
 
     PetscErrorCode ApplyInvRegOpSqrt(Vec);
 
@@ -167,6 +169,7 @@ protected:
     Vec m_WorkScaField2; ///< work scalar field
     Vec m_WorkScaField3; ///< work scalar field
     Vec m_WorkScaField4; ///< work scalar field
+    Vec m_WorkScaField5; ///< work scalar field
 
     VecField* m_WorkVecField1; ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField2; ///< data container for vector field (temporary variable)

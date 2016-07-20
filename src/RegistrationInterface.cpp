@@ -218,7 +218,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR)
  * @brief set template image (i.e., the template image)
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "SetReferenceImage"
+#define __FUNCT__ "SetTemplateImage"
 PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT)
 {
     PetscErrorCode ierr;
@@ -1526,7 +1526,7 @@ PetscErrorCode RegistrationInterface::Finalize()
  * @brief run postprocessing of input data
  ********************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "Finalize"
+#define __FUNCT__ "RunPostProcessing"
 PetscErrorCode RegistrationInterface::RunPostProcessing()
 {
     PetscErrorCode ierr;

@@ -647,6 +647,20 @@ PetscErrorCode RegOpt::ParseArgumentsPostProcessing(int argc, char** argv)
             argc--; argv++;
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
         }
+        else if (strcmp(argv[1],"-pdesolver") == 0){
+            argc--; argv++;
+            if (strcmp(argv[1],"rk2") == 0){
+                this->m_PDESolver = RK2;
+            }
+            else if (strcmp(argv[1],"sl") == 0){
+                this->m_PDESolver = SL;
+            }
+            else {
+                msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            }
+        }
         else if(strcmp(argv[1],"-sigma") == 0){
 
             argc--; argv++;

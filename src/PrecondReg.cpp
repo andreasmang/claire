@@ -236,6 +236,7 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc)
 
 
 
+
 /********************************************************************
  * @brief setup phase of preconditioner
  *******************************************************************/
@@ -448,6 +449,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
         nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
         ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
 
+
         // allocate class for registration
         if (this->m_Opt->GetRegModel() == COMPRESSIBLE){
             try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse); }
@@ -526,10 +528,10 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
     nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
     ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
 
-    // apply restriction operator
+    // apply restriction operator to time series of images
     for (IntType j = 0; j <= nt; ++j){
 
-        // copying time point from container on fine grid
+        // get time point of state variable on fine grid
         ierr=VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
         try{ std::copy(p_m+j*nl_f, p_m+(j+1)*nl_f, p_mj); }
         catch(std::exception&){
@@ -537,10 +539,10 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
         }
         ierr=VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
 
-        // applying restriction operator
+        // apply restriction operator to m_j
         ierr=this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse1,this->m_WorkScaField1,nx_c,nx_f); CHKERRQ(ierr);
 
-        // copying time point to container on coarse grid
+        // store restricted state variable
         ierr=VecGetArray(this->m_WorkScaFieldCoarse1, &p_mjcoarse); CHKERRQ(ierr);
         try{ std::copy(p_mjcoarse, p_mjcoarse+nl_c, p_mcoarse+j*nl_c); }
         catch(std::exception&){
@@ -548,7 +550,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
         }
         ierr=VecRestoreArray(this->m_WorkScaFieldCoarse1, &p_mjcoarse); CHKERRQ(ierr);
 
-        // restrict adjoint variable
+        // get time point of adjoint variable on fine grid
         ierr=VecGetArray(this->m_WorkScaField2,&p_lj); CHKERRQ(ierr);
         try{ std::copy(p_l+j*nl_f,p_l+(j+1)*nl_f,p_lj); }
         catch(std::exception&){
@@ -556,9 +558,10 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
         }
         ierr=VecRestoreArray(this->m_WorkScaField2,&p_lj); CHKERRQ(ierr);
 
+        // apply restriction operator
         ierr=this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse2,this->m_WorkScaField2,nx_c,nx_f); CHKERRQ(ierr);
 
-        // get current time point
+        // store restricted adjoint variable
         ierr=VecGetArray(this->m_WorkScaFieldCoarse2,&p_ljcoarse); CHKERRQ(ierr);
         try{ std::copy(p_ljcoarse,p_ljcoarse+nl_c,p_lcoarse+j*nl_c); }
         catch(std::exception&){
@@ -574,10 +577,9 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
     ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
 
     // parse variables to optimization problem on coarse level
+    ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetControlVariable(this->m_ControlVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
-    ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
-
 
     this->m_Opt->Exit(__FUNCT__);
 
