@@ -979,11 +979,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
         ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
+    // set initial condition
     if (this->m_WorkScaField1 == NULL){
         ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
-
-    // set initial condition
     ierr=VecSet(this->m_WorkScaField1,1.0); CHKERRQ(ierr);
 
     // check if velocity field is zero
@@ -1161,7 +1160,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
 {
     PetscErrorCode ierr;
     IntType nl,ng,nt;
-    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_jbar=NULL,
+    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_phibar=NULL,
                 *p_gphi1=NULL,*p_gphi2=NULL,*p_gphi3=NULL,*p_divv=NULL,
                 *p_phiv1=NULL,*p_phiv2=NULL,*p_phiv3=NULL,
                 *p_phi=NULL, *p_rhs0=NULL, *p_divvphi=NULL;
@@ -1211,7 +1210,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
 
     ierr=VecGetArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField3,&p_phibar); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_WorkScaField5,&p_divvphi); CHKERRQ(ierr);
 
@@ -1247,26 +1246,21 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
         for (IntType i=0; i < nl; ++i){ // for all grid points
 
             // \bar{j} = -(\vect{v} \cdot \igrad) \phi + j (\idiv \vect{v})
-            p_rhs0[i] = - ( p_vx1[i]*p_gphi1[i]
-                          + p_vx2[i]*p_gphi2[i]
-                          + p_vx3[i]*p_gphi3[i] )
-                          + 0.5*p_phi[i]*p_divv[i]
-                          + 0.5*p_divvphi[i]
-                          - 0.5*( p_gphi1[i]*p_vx1[i]
-                                + p_gphi2[i]*p_vx2[i]
-                                + p_gphi3[i]*p_vx3[i] );
+            p_rhs0[i] = - ( p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i] )
+                          + 0.5*p_phi[i]*p_divv[i] + 0.5*p_divvphi[i]
+                          - 0.5*( p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i] );
 
-            p_jbar[i] = p_phi[i] + ht*p_rhs0[i];
+            p_phibar[i] = p_phi[i] + ht*p_rhs0[i];
 
             // compute \bar{phi} \vect{v}
-            p_phiv1[i] = p_jbar[i]*p_vx1[i];
-            p_phiv2[i] = p_jbar[i]*p_vx2[i];
-            p_phiv3[i] = p_jbar[i]*p_vx3[i];
+            p_phiv1[i] = p_phibar[i]*p_vx1[i];
+            p_phiv2[i] = p_phibar[i]*p_vx2[i];
+            p_phiv3[i] = p_phibar[i]*p_vx3[i];
 
         }
 } // pragma omp
 
-        accfft_grad(p_gphi1,p_gphi2,p_gphi3,p_jbar,this->m_Opt->GetFFT().plan,&XYZ,timings);
+        accfft_grad(p_gphi1,p_gphi2,p_gphi3,p_phibar,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
         // compute div(\vect{v}\bar{\phi}_j)
         accfft_divergence(p_divvphi,p_phiv1,p_phiv2,p_phiv3,this->m_Opt->GetFFT().plan,timings);
@@ -1277,14 +1271,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
         for (IntType i=0; i < nl; ++i){ // for all grid points
 
             // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            ScalarType rhs1 = -( p_vx1[i]*p_gphi1[i]
-                               + p_vx2[i]*p_gphi2[i]
-                               + p_vx3[i]*p_gphi3[i] )
-                               + 0.5*p_jbar[i]*p_divv[i]
-                               + 0.5*p_divvphi[i]
-                               - 0.5*( p_gphi1[i]*p_vx1[i]
-                                     + p_gphi2[i]*p_vx2[i]
-                                     + p_gphi3[i]*p_vx3[i] );
+            ScalarType rhs1 = -( p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i] )
+                               + 0.5*p_phibar[i]*p_divv[i] + 0.5*p_divvphi[i]
+                               - 0.5*( p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i] );
 ;
 
             p_phi[i] = p_phi[i] + hthalf*(p_rhs0[i] + rhs1);
@@ -1302,7 +1291,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
 
     ierr=VecRestoreArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField3,&p_phibar); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField5,&p_divvphi); CHKERRQ(ierr);
 

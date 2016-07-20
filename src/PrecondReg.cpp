@@ -577,9 +577,9 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
     ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
 
     // parse variables to optimization problem on coarse level
-    ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetControlVariable(this->m_ControlVariableCoarse); CHKERRQ(ierr);
     ierr=this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
+    ierr=this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
