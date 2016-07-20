@@ -142,7 +142,7 @@ int main(int argc,char **argv)
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        preproc->ResetGridChangeOperators(true);
+        preproc->ResetGridChangeOps(true);
 
         reg::SynProbRegistration* synprob=NULL;
         // allocate class for io
