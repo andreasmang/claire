@@ -874,6 +874,8 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
     // check for null pointers
     ierr=Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
+    hd = this->m_Opt->GetLebesqueMeasure();
+
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL){
         try{this->m_IncVelocityField = new VecField(this->m_Opt);}
@@ -926,8 +928,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
         case PRECONDMATVECSYM:
         {
             // apply analytically preconditioned hessian H to \tilde{v}
-            // compared to the implementation above, the operator is
-            // symmetrized
+            // hessian operator is symmetrized
             ierr=this->PrecondHessMatVecSym(Hvtilde,vtilde); CHKERRQ(ierr);
             break;
         }
@@ -940,10 +941,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
 
     // scale by lebesque measure
-    if (scale){
-        hd = this->m_Opt->GetLebesqueMeasure();
-        ierr=VecScale(Hvtilde,hd); CHKERRQ(ierr);
-    }
+    if (scale){ ierr=VecScale(Hvtilde,hd); CHKERRQ(ierr); }
 
     // stop hessian matvec timer
     ierr=this->m_Opt->StopTimer(HMVEXEC); CHKERRQ(ierr);

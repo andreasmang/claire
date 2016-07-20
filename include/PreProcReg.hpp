@@ -53,18 +53,18 @@ public:
     PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*);
     PetscErrorCode Restrict(VecField*,VecField*,IntType*,IntType*);
 
-    inline void ResetGridChangeOperators(bool flag){this->m_ResetGridChangeOperators=flag;};
-
-    PetscErrorCode ComputeIndices(IntType*,IntType*);
+    inline void ResetGridChangeOps(bool flag){this->m_ResetGridChangeOps=flag;};
+    PetscErrorCode ComputeGridChangeIndices(IntType*,IntType*);
 
 private:
 
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
 
-    PetscErrorCode SetupGridChangeOperators(IntType*,IntType*);
-    PetscErrorCode CommunicateData();
-    PetscErrorCode AssignFourierCoeff();
+    PetscErrorCode GridChangeCommDataRestrict();
+    PetscErrorCode GridChangeCommDataProlong();
+    PetscErrorCode GridChangeCommIndices();
+    PetscErrorCode SetupGridChangeOps(IntType*,IntType*);
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
@@ -78,6 +78,7 @@ private:
     ScalarType* m_FourierCoeffSendC;
     ScalarType* m_FourierCoeffRecvF;
     ScalarType* m_FourierCoeffRecvC;
+
     IntType* m_FourierIndicesSendF;
     IntType* m_FourierIndicesSendC;
     IntType* m_FourierIndicesRecvF;
@@ -96,17 +97,20 @@ private:
     IntType m_ostartC[3];
     IntType m_ostartF[3];
 
-    IntType *m_NumSendF;
-    IntType *m_NumRecvF;
-    IntType *m_OffsetSendF;
-    IntType *m_OffsetRecvF;
+    IntType *m_NumSend;
+    IntType *m_NumRecv;
+    IntType *m_OffsetSend;
+    IntType *m_OffsetRecv;
+    IntType m_nAllocSend;
+    IntType m_nAllocRecv;
 
     ScalarType m_FFTFineScale;
     ScalarType m_FFTCoarseScale;
 
-    bool m_ResetGridChangeOperators;
-    bool m_GridChangeOperatorsSet;
-    bool m_IndicesComputed;
+    bool m_GridChangeOpsSet;
+    bool m_ResetGridChangeOps;
+    bool m_IndicesCommunicated;
+    bool m_GridChangeIndicesComputed;
 };
 
 

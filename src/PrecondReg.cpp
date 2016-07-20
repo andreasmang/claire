@@ -394,7 +394,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
 {
     PetscErrorCode ierr;
     IntType nl_f,ng_f,nl_c,ng_c,nt,nx_c[3],nx_f[3];
-    ScalarType scale;
+    ScalarType scale,value;
     std::stringstream ss;
     Vec m=NULL,lambda=NULL;
     ScalarType *p_mj=NULL,*p_m=NULL,*p_mjcoarse=NULL,*p_mcoarse=NULL,
@@ -415,13 +415,11 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
 
     scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
 
-    nx_f[0] = this->m_Opt->GetDomainPara().nx[0];
-    nx_f[1] = this->m_Opt->GetDomainPara().nx[1];
-    nx_f[2] = this->m_Opt->GetDomainPara().nx[2];
-
-    nx_c[0] = static_cast<IntType>( std::ceil( static_cast<ScalarType>(nx_f[0])/scale ) );
-    nx_c[1] = static_cast<IntType>( std::ceil( static_cast<ScalarType>(nx_f[1])/scale ) );
-    nx_c[2] = static_cast<IntType>( std::ceil( static_cast<ScalarType>(nx_f[2])/scale ) );
+    for (int i=0; i < 3; ++i){
+        nx_f[i] = this->m_Opt->GetDomainPara().nx[i];
+        value = static_cast<ScalarType>(nx_f[i])/scale;
+        nx_c[i] = static_cast<IntType>( std::ceil(value) );
+    }
 
     if (this->m_Opt->GetVerbosity() > 1){
         ss  << "initializing two-level preconditioner; "
@@ -442,7 +440,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        for (int i =0; i < 3; ++i){
+        for (int i=0; i < 3; ++i){
             this->m_OptCoarse->SetNumGridPoints(i,nx_c[i]);
         }
         ierr=this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
@@ -469,13 +467,10 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond()
                 ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
-        else{
-            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        else{ ierr=ThrowError("registration model not defined"); CHKERRQ(ierr); }
 
+
+        // create vector fields
         ierr=VecCreate(this->m_WorkScaField1,nl_f,ng_f); CHKERRQ(ierr);
         ierr=VecCreate(this->m_WorkScaField2,nl_f,ng_f); CHKERRQ(ierr);
 
@@ -674,7 +669,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     ierr=MatCreateShell(PETSC_COMM_WORLD,3*nl,3*nl,3*ng,3*ng,this,&this->m_MatVec); CHKERRQ(ierr);
     ierr=MatShellSetOperation(this->m_MatVec,MATOP_MULT,(void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
     ierr=KSPSetOperators(this->m_KrylovMethod,this->m_MatVec,this->m_MatVec);CHKERRQ(ierr);
-    //ierr=MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
+    ierr=MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
     //ierr=MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 1){
@@ -773,7 +768,6 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x)
 
     // set components
     ierr=this->m_WorkVecField->SetComponents(x); CHKERRQ(ierr);
-//    ierr=this->m_IncControlVariable->SetComponents(x); CHKERRQ(ierr);
 
     // apply low pass filter before we restrict
     // incremental control variable to coarse grid

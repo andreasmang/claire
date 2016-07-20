@@ -368,7 +368,7 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x)
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
-    this->m_PreProc->ResetGridChangeOperators(true);
+    this->m_PreProc->ResetGridChangeOps(true);
 
     // allocate the data pyramid
     ierr=this->AllocatePyramid(); CHKERRQ(ierr);

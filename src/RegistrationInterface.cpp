@@ -1221,7 +1221,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    this->m_PreProc->ResetGridChangeOperators(true);
+    this->m_PreProc->ResetGridChangeOps(true);
 
     if (!this->m_Opt->GetRegFlags().readimages){
 
@@ -1453,7 +1453,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    this->m_PreProc->ResetGridChangeOperators(true);
+    this->m_PreProc->ResetGridChangeOps(true);
 
     // get number of grid points for current level
     for (int i = 0; i<3; ++i){
@@ -1483,7 +1483,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     if (v_f!=NULL) { delete v_f; v_f=NULL; }
 
-    this->m_PreProc->ResetGridChangeOperators(false);
+    this->m_PreProc->ResetGridChangeOps(false);
 
     this->m_Opt->Exit(__FUNCT__);
 
