@@ -88,7 +88,6 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
         // get arrays
         ierr=v->GetArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
 
-
         // X1 gradient
         ierr=this->m_WorkVecField->GetArrays(p_gv11,p_gv12,p_gv13); CHKERRQ(ierr);
         accfft_grad(p_gv11,p_gv12,p_gv13,p_v1,this->m_Opt->GetFFT().plan,&XYZ,timer);

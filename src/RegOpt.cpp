@@ -144,6 +144,7 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
     this->m_RegFlags.runpostproc = opt.m_RegFlags.runpostproc;
     this->m_RegFlags.resampledata = opt.m_RegFlags.resampledata;
+    this->m_RegFlags.detdefgradfrommap = opt.m_RegFlags.detdefgradfrommap;
 
     // parameter continuation
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
@@ -330,6 +331,9 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-xdefgrad") == 0){
             this->m_RegFlags.storedefgrad = true;
+        }
+        else if(strcmp(argv[1],"-detdefgradmapbased") == 0){
+            this->m_RegFlags.detdefgradfrommap = true;
         }
         else if(strcmp(argv[1],"-xdefmap") == 0){
             this->m_RegFlags.storedefmap = true;
@@ -898,6 +902,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegFlags.smoothingenabled = true; ///< switch on/off image smoothing
     this->m_RegFlags.runpostproc = false; ///< flag to run postprocessing
     this->m_RegFlags.resampledata = false; ///< flag for resampling data (post processing)
+    this->m_RegFlags.detdefgradfrommap = false; ///< flag for
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;

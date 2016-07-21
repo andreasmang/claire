@@ -153,7 +153,7 @@ protected:
     PetscErrorCode ComputeDetDefGradSL(); ///< implemented via SL time integrator
     PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
     PetscErrorCode ComputeDetDefGradRK2A(); ///< implemented via RK2 time integrator (asymetric form)
-    PetscErrorCode ComputeDetDefGradViaDefMapSL(); ///< implemented via RK2 time integrator (asymetric form)
+    PetscErrorCode ComputeDetDefGradViaDefMap(); ///< implemented via RK2 time integrator (asymetric form)
 
     PetscErrorCode ComputeDeformationMapSL(); ///< implementation via SL time integrator
     PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator

@@ -288,6 +288,7 @@ struct RegFlags{
     bool loggingenabled;
     bool runpostproc;
     bool resampledata;
+    bool detdefgradfrommap;
 };
 
 

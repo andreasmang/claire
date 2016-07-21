@@ -250,6 +250,55 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc)
 
 
 
+/********************************************************************
+ * @brief make sure that we re-initiate/recompute important
+ * quantities; implemented to allow multiple calls of the solver
+ * without destroying it;
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Reset"
+PetscErrorCode PrecondReg::Reset()
+{
+    PetscErrorCode ierr;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    // switch case for choice of preconditioner
+    switch(this->m_Opt->GetKrylovSolverPara().pctype){
+        case NOPC:
+        {
+            break;
+        }
+        case INVREG:
+        {
+            break;
+        }
+        case TWOLEVEL:
+        {
+            // in case we call the solver multiple times (for
+            // instance when considering a parameter continuation)
+            // without destrying it, it is necessary to recompute
+            // the eigenvalues
+            this->m_EigenValuesEstimated=false;
+            break;
+        }
+        default:
+        {
+            ierr=ThrowError("preconditioner not defined"); CHKERRQ(ierr);
+            break;
+        }
+    }
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
 
 /********************************************************************
  * @brief setup phase of preconditioner
@@ -849,9 +898,9 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x)
 PetscErrorCode PrecondReg::EstimateEigenValues()
 {
     PetscErrorCode ierr=0;
-    IntType n,neig,nl,ng;
-    Vec b=NULL,x=NULL;
-    ScalarType *re=NULL,*im=NULL,eigmin,eigmax;
+    //IntType n,neig,nl,ng;
+    //Vec b=NULL,x=NULL;
+    //ScalarType *re=NULL,*im=NULL,eigmin,eigmax;
     PetscFunctionBegin;
 
     if (!this->m_EigenValuesEstimated){
@@ -905,8 +954,8 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
     }
     this->m_EigenValuesEstimated=true;
 
-    if (x != NULL) { ierr=VecDestroy(&x); CHKERRQ(ierr); }
-    if (b != NULL) { ierr=VecDestroy(&b); CHKERRQ(ierr); }
+//    if (x != NULL) { ierr=VecDestroy(&x); CHKERRQ(ierr); }
+//    if (b != NULL) { ierr=VecDestroy(&b); CHKERRQ(ierr); }
 
     PetscFunctionReturn(ierr);
 }

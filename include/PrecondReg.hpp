@@ -57,6 +57,9 @@ public:
     /*! setup preconditioner */
     PetscErrorCode DoSetup();
 
+    /*! setup preconditioner */
+    PetscErrorCode Reset();
+
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec,Vec);
 
@@ -120,8 +123,8 @@ private:
 
     PreProcReg* m_PreProc; ///< pointer to preprocessing
     KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
-    PetscRandom m_RandomNumGen;
 
+    PetscRandom m_RandomNumGen; //< random number generated
     KSP m_KrylovMethodEigEst;
     bool m_EigenValuesEstimated;
 
