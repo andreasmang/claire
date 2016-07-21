@@ -440,6 +440,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* p
         {
             // chebyshev iteration
             maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
+            // estimate the eigenvalues
             ierr=precond->EstimateEigenValues(); CHKERRQ(ierr);
             break;
         }

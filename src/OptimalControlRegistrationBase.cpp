@@ -989,6 +989,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
     if(this->m_VelocityIsZero == false){
 
+
         // call the solver
         switch (this->m_Opt->GetPDESolver()){
             case RK2:
@@ -1147,6 +1148,119 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * @brief compute determinant of deformation gradient
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeDetDefGradViaDefMapSL"
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDefMapSL()
+{
+    PetscErrorCode ierr;
+    IntType nl,ng,nt;
+    ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_jbar=NULL,
+                *p_gx1=NULL,*p_gx2=NULL,*p_gx3=NULL,*p_divv=NULL,
+                *p_jac=NULL, *p_rhs0=NULL;
+    ScalarType ht,hthalf;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    double timings[5]={0,0,0,0,0};
+    PetscFunctionBegin;
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    if (this->m_WorkVecField1 == NULL){
+       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkScaField2 == NULL){
+        ierr=VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL){
+        ierr=VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField4 == NULL){
+        ierr=VecCreate(this->m_WorkScaField4,nl,ng); CHKERRQ(ierr);
+    }
+
+    // set initial condition
+    ierr=VecSet(this->m_WorkScaField1,1.0); CHKERRQ(ierr);
+
+    // get pointers
+    ierr=this->m_VelocityField->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->GetArrays(p_gx1,p_gx2,p_gx3); CHKERRQ(ierr);
+
+    ierr=VecGetArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
+    ierr=VecGetArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
+
+    // compute div(v)
+    accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,timings);
+
+    // for all time points
+    for (IntType j = 0; j <= nt; ++j){
+
+        accfft_grad(p_gx1,p_gx2,p_gx3,p_jac,this->m_Opt->GetFFT().plan,&XYZ,timings);
+
+#pragma omp parallel
+{
+#pragma omp  for
+        for (IntType i=0; i < nl; ++i){ // for all grid points
+
+            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
+            p_rhs0[i] = -( p_vx1[i]*p_gx1[i]
+                         + p_vx2[i]*p_gx2[i]
+                         + p_vx3[i]*p_gx3[i] )
+                         + p_jac[i]*p_divv[i];
+
+            p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
+
+        }
+} // pragma omp
+
+        accfft_grad(p_gx1,p_gx2,p_gx3,p_jbar,this->m_Opt->GetFFT().plan,&XYZ,timings);
+
+#pragma omp parallel
+{
+#pragma omp  for
+        for (IntType i=0; i < nl; ++i){ // for all grid points
+
+            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
+            ScalarType rhs1 = -( p_vx1[i]*p_gx1[i]
+                               + p_vx2[i]*p_gx2[i]
+                               + p_vx3[i]*p_gx3[i] )
+                               + p_jbar[i]*p_divv[i];
+
+            p_jac[i] = p_jac[i] + hthalf*(p_rhs0[i] + rhs1);
+
+        }
+} // pragma omp
+
+
+    }
+
+    ierr=VecRestoreArray(this->m_WorkScaField1,&p_jac); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField2,&p_divv); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField3,&p_jbar); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField4,&p_rhs0); CHKERRQ(ierr);
+
+    ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->RestoreArrays(p_gx1,p_gx2,p_gx3); CHKERRQ(ierr);
+
+
+    PetscFunctionReturn(0);
+}
+
+
 
 
 

@@ -83,7 +83,13 @@ private:
     /*! setup krylov method */
     PetscErrorCode SetupKrylovMethod();
 
+    /*! setup krylov method for estimating eigenvalues */
+    PetscErrorCode SetupKrylovMethodEigEst();
+
+    /*! apply inverse regularization operator as preconditioner */
     PetscErrorCode ApplyInvRegPC(Vec,Vec);
+
+    /*! apply 2Level PC as preconditioner */
     PetscErrorCode Apply2LevelPC(Vec,Vec);
 
 
@@ -110,9 +116,14 @@ private:
     VecField* m_IncControlVariableCoarse; ///< pointer to velocity field (coarse level)
 
     Mat m_MatVec; ///< mat vec object (PETSc)
+    Mat m_MatVecEigEst; ///< mat vec object (PETSc)
 
     PreProcReg* m_PreProc; ///< pointer to preprocessing
     KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
+    PetscRandom m_RandomNumGen;
+
+    KSP m_KrylovMethodEigEst;
+    bool m_EigenValuesEstimated;
 
 };
 
