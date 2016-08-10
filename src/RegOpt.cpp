@@ -234,7 +234,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else{
                 msg="\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
 
         }
@@ -264,7 +264,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else{
                 msg="\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
 
         }
@@ -296,7 +296,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else{
                 msg="\n\x1b[31m error in number of procs: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-mr") == 0){
@@ -368,7 +368,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m high level solver flag not available: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-ic") == 0){
@@ -388,7 +388,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-maxit") == 0){
@@ -441,7 +441,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m forcing sequence not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-precond") == 0){
@@ -576,7 +576,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
            if (this->m_ParaCont.enabled){
                 msg="\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
             }
 
             this->m_ParaCont.strategy = PCONTINUATION;
@@ -601,7 +601,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         else {
             msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            ierr=this->UsageRegistration(true); CHKERRQ(ierr);
         }
         argc--; argv++;
     }
@@ -871,6 +871,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.g0norm = 0;
     this->m_KrylovSolverPara.g0normset = false;
 
+    this->m_KrylovSolverPara.iter = 0; // divergence tolerance
     this->m_KrylovSolverPara.pcsolver = PCG;
     this->m_KrylovSolverPara.pctolscale = 1E-1;
     this->m_KrylovSolverPara.pcmaxit = 10;
@@ -878,6 +879,8 @@ PetscErrorCode RegOpt::Initialize()
     this->m_KrylovSolverPara.pctol[0] = 1E-12; // relative tolerance
     this->m_KrylovSolverPara.pctol[1] = 1E-12; // absolute tolerance
     this->m_KrylovSolverPara.pctol[2] = 1E+06; // divergence tolerance
+    //this->m_KrylovSolverPara.usepetsceigest = false;
+    this->m_KrylovSolverPara.usepetsceigest = true;
 
     this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
     this->m_OptPara.tol[1] = 1E-16; // grad rel tol
@@ -998,7 +1001,10 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         {
         std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
         std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
-        std::cout << " -xlog                     flag: write log files (requires -x option)"<<std::endl;
+        std::cout << " -xlog                     flag: write log files (requires -x option); logging includes"<<std::endl;
+        std::cout << "                           timers and counters; if monitor for determinant of deformation"<<std::endl;
+        std::cout << "                           gradient is enabled, an additional log file with jacobian values"<<std::endl;
+        std::cout << "                           will be created"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters"<<std::endl;
         std::cout << line << std::endl;

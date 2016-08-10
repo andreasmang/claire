@@ -194,6 +194,7 @@ struct Optimization{
 /* parameters for krylov solver */
 struct KrylovSolver{
     int maxit; ///< max number of iterations for krylov solver
+    IntType iter; ///< max number of iterations for krylov solver
     ScalarType tol[3]; ///< tolerances for krylov method
     FSeqType fseqtype; ///<forcing sequence type
     KrylovSolverType solver; ///< flag for krylov solver
@@ -208,15 +209,16 @@ struct KrylovSolver{
     std::string pcname; ///< name of preconditioner
     KrylovSolverType pcsolver; ///< solver for preconditioner
     bool pcsetupdone; ///< flag to indicate if setup of preconditioner is done
-    ScalarType pctolscale; ///< tolerance scaling for preconditioner
-    ScalarType pcgridscale; ///< this is for the two level preconditioner; defines scale for grid size change
+    ScalarType pctolscale; ///< tolerance scaling for preconditioner; default: 1E-1
+    ScalarType pcgridscale; ///< this is for the two level preconditioner; defines scale for grid size change; default: 2
+    bool usepetsceigest; ///< in cheb method we need to estimate eigenvalues; we can use the petsc implementation or our own implementation
 };
 
 
 /* parameter for parameter continuation (regularization parameter) */
 struct ParCont{
-    static const ScalarType betavminh1=1E-3; ///< minimal regularization parameter for h1 type norm
-    static const ScalarType betavminh2=1E-6; ///< minimal regularization parameter for h2 type norm
+    static const ScalarType betavminh1=1E-4; ///< minimal regularization parameter for h1 type norm
+    static const ScalarType betavminh2=1E-7; ///< minimal regularization parameter for h2 type norm
     static const int maxsteps = 10; ///< max number of steps
     static const ScalarType betascale = 1E-1; ///< default reduction factor (one order of magnitude)
     static const ScalarType dbetascale = 1E-2; ///< default reduction factor (one order of magnitude)
@@ -373,6 +375,7 @@ public:
     inline KrylovSolver GetKrylovSolverPara(){return this->m_KrylovSolverPara;};
     inline void PrecondSetupDone(bool flag){this->m_KrylovSolverPara.pcsetupdone=flag;};
     inline void SetRelTolKrylovMethod(ScalarType value){this->m_KrylovSolverPara.reltol=value;};
+    inline void SetKrylovIterations(IntType value){this->m_KrylovSolverPara.iter=value;};
     inline void SetInitialGradNormKrylovMethod(ScalarType value){
         this->m_KrylovSolverPara.g0norm=value;
         this->m_KrylovSolverPara.g0normset=true;

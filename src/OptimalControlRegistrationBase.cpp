@@ -166,27 +166,6 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
     }
 
 
-    // TODO: memory leak!!!!! (if we delete, grid continuation
-    // crashes)
-    // if images have not been read, we have actually
-    // allocated the reference and template image; so
-    // we have to delete them
-    if (this->m_Opt->GetRegFlags().readimages == false){
-
-        // delete reference image
-        if (this->m_ReferenceImage != NULL){
-//            ierr=VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
-//            this->m_ReferenceImage = NULL;
-        }
-
-        // delete template image
-        if (this->m_TemplateImage != NULL){
-//            ierr=VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
-//            this->m_TemplateImage = NULL;
-        }
-
-    }
-
     PetscFunctionReturn(0);
 }
 
@@ -513,6 +492,32 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
 
 
 /********************************************************************
+ * @brief estimate eigenvalues of hessian
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EstimateExtremalHessEigVals"
+PetscErrorCode OptimalControlRegistrationBase::EstimateExtremalHessEigVals(ScalarType &emin, ScalarType &emax)
+{
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+
+    if (this->m_Regularization == NULL){
+        ierr=this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    ierr=this->m_Regularization->GetExtremeEigValsInvOp(emin,emax); CHKERRQ(ierr);
+    emin += 1.0;
+    emax += 1.0; // this is crap
+
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+/********************************************************************
  * @brief pre-processing before the krylov solve
  *******************************************************************/
 #undef __FUNCT__
@@ -643,11 +648,10 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOpSqrt(Vec x)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupSyntheticProb"
-PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
+PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &mT)
 {
     PetscErrorCode ierr;
     IntType nl,ng;
-    IntType isize[3],istart[3];
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_mt=NULL,hx[3];
     int problem=3;
 
@@ -661,8 +665,6 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
 
     for (int i = 0; i < 3; ++i){
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     // allocate vector fields
@@ -679,47 +681,30 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
     if(this->m_Opt->GetRegModel() == STOKES){ problem=4; }
 
     // allocate reference image
-    if(this->m_ReferenceImage == NULL){
-
-        // create an extra array for initial guess (has to be flat for optimizer)
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_ReferenceImage,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr=VecSet(this->m_ReferenceImage,0.0); CHKERRQ(ierr);
-
-    }
+    if(mR == NULL){ ierr=VecCreate(mR,nl,ng); CHKERRQ(ierr); }
+    ierr=VecSet(mR,0.0); CHKERRQ(ierr);
 
     // allocate template image
-    if(this->m_TemplateImage == NULL){
+    if(mT == NULL){ ierr=VecCreate(mT,nl,ng); CHKERRQ(ierr); }
+    ierr=VecSet(mT,0.0); CHKERRQ(ierr);
 
-        // create an extra array for initial guess (has to be flat for optimizer)
-        ierr=VecCreate(PETSC_COMM_WORLD,&this->m_TemplateImage); CHKERRQ(ierr);
-        ierr=VecSetSizes(this->m_TemplateImage,nl,ng); CHKERRQ(ierr);
-        ierr=VecSetFromOptions(this->m_TemplateImage); CHKERRQ(ierr);
-        ierr=VecSet(this->m_TemplateImage,0.0); CHKERRQ(ierr);
-
-    }
-
-    ierr=VecGetArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=VecGetArray(mT,&p_mt); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (IntType i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1){  // x1
+        for (IntType i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
-                ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                ScalarType x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                ScalarType x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+                ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
+                ScalarType x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
+                ScalarType x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
 
                 // compute linear / flat index
-                IntType i = GetLinearIndex(i1,i2,i3,isize);
+                IntType i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
                 p_mt[i] = (sin(x1)*sin(x1) + sin(x2)*sin(x2) + sin(x3)*sin(x3))/3.0;
 
                 if (problem == 0){
@@ -750,21 +735,17 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb()
     } // i3
 } // pragma omp parallel
 
-    ierr=VecRestoreArray(this->m_VelocityField->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_VelocityField->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_VelocityField->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=VecRestoreArray(mT,&p_mt); CHKERRQ(ierr);
 
-    ierr=VecRestoreArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
-    ierr=Rescale(this->m_TemplateImage,0.0,1.0); CHKERRQ(ierr);
+    ierr=Rescale(mT,0.0,1.0); CHKERRQ(ierr);
 
     // solve the forward problem using the computed
     // template image and the computed velocity field as input
-    ierr=this->SolveForwardProblem(this->m_ReferenceImage); CHKERRQ(ierr);
-    ierr=Rescale(this->m_ReferenceImage,0.0,1.0); CHKERRQ(ierr);
+    ierr=this->SolveForwardProblem(mR,mT); CHKERRQ(ierr);
+    ierr=Rescale(mR,0.0,1.0); CHKERRQ(ierr);
 
-    ierr=VecSet(this->m_VelocityField->m_X1,0.0); CHKERRQ(ierr);
-    ierr=VecSet(this->m_VelocityField->m_X2,0.0); CHKERRQ(ierr);
-    ierr=VecSet(this->m_VelocityField->m_X3,0.0); CHKERRQ(ierr);
+    ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -921,7 +902,7 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     maxboundreached = 1.0/jmax <= jbound;
 
     boundreached = (minboundreached || maxboundreached) ? true : false;
-    if (boundreached) ierr=WrngMsg("jacobian bound reached"); CHKERRQ(ierr);
+    if (boundreached){ ierr=WrngMsg("jacobian bound reached"); CHKERRQ(ierr); }
 
     // display what's going on
     if (this->m_Opt->GetVerbosity() > 1){

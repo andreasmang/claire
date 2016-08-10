@@ -73,7 +73,7 @@ public:
     PetscErrorCode SetAdjointVariable(Vec);
 
     /*! solve the state equation */
-    PetscErrorCode SolveForwardProblem(Vec);
+    PetscErrorCode SolveForwardProblem(Vec,Vec);
 
     /*! finalize iteration */
     PetscErrorCode FinalizeIteration(Vec);

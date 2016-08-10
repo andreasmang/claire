@@ -94,7 +94,7 @@ PetscErrorCode RegistrationInterface::Initialize(void)
 #define __FUNCT__ "ClearMemory"
 PetscErrorCode RegistrationInterface::ClearMemory(void)
 {
-    //PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     PetscFunctionBegin;
 
     // delete class for registration problem
@@ -136,7 +136,27 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
         this->m_TemplatePyramid=NULL;
     }
 
-    PetscFunctionReturn(0);
+
+    // if we did not read the images, we can
+    // destroy the containers here
+    if (this->m_Opt->GetRegFlags().readimages == false){
+
+        // delete reference image
+        if (this->m_ReferenceImage != NULL){
+            ierr=VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
+            this->m_ReferenceImage = NULL;
+        }
+
+        // delete template image
+        if (this->m_TemplateImage != NULL){
+            ierr=VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
+            this->m_TemplateImage = NULL;
+        }
+
+    }
+
+
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -386,6 +406,8 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
 PetscErrorCode RegistrationInterface::Run()
 {
     PetscErrorCode ierr;
+    IntType nxmax,nx;
+    std::stringstream ss;
     int rank;
 
     PetscFunctionBegin;
@@ -417,9 +439,22 @@ PetscErrorCode RegistrationInterface::Run()
     }
     else if( this->m_Opt->GetGridContPara().enabled ){
 
-        // run grid continuation
-        ierr=this->RunSolverGridCont(); CHKERRQ(ierr);
+        nxmax = PETSC_MIN_INT;
+        for (int i=0; i < 3; ++i){
+            nx = this->m_Opt->GetDomainPara().nx[i];
+            nxmax = nx > nxmax ? nx : nxmax;
+        }
 
+        // run grid continuation
+        if (nxmax >= 32){ ierr=this->RunSolverGridCont(); CHKERRQ(ierr); }
+        else{
+
+            ss << "max(nx) = " << nxmax << " too small for grid continuation; switching to default solver";
+            ierr=WrngMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+
+            ierr=this->RunSolver(); CHKERRQ(ierr);
+        }
     }
     else{ ierr=this->RunSolver(); CHKERRQ(ierr); }
 
@@ -492,7 +527,13 @@ PetscErrorCode RegistrationInterface::RunSolver()
         ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
 
     }
-    else{ ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr); }
+    else{
+        // set up synthetic test problem
+        ierr=this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage,this->m_TemplateImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+
+    }
 
     // reset all the clocks we have used so far
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
@@ -585,7 +626,14 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
         ierr=this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
 
     }
-    else{ ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr); }
+    else{
+        // set up synthetic test problem
+        ierr=this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage,this->m_TemplateImage); CHKERRQ(ierr);
+
+        ierr=this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+
+    }
 
     // reset all the clocks we have used so far
     ierr=this->m_Opt->ResetTimers(); CHKERRQ(ierr);
@@ -1086,18 +1134,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
 
     // set up synthetic problem if we did not read images
     if (!this->m_Opt->GetRegFlags().readimages){
-
-        // set up synthetic test problem
-        ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
-
-        // make sure images have not been set
-        ierr=Assert(this->m_TemplateImage==NULL,"template image is not null"); CHKERRQ(ierr);
-        ierr=Assert(this->m_ReferenceImage==NULL,"reference image is not null"); CHKERRQ(ierr);
-
-        // pass images
-        ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
-        ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
-
+        ierr=this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage,this->m_TemplateImage); CHKERRQ(ierr);
     }
 
     // check if images have been set
@@ -1233,15 +1270,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=Assert(this->m_RegProblem!=NULL,"registration problem is not set up"); CHKERRQ(ierr);
 
         // set up synthetic test problem
-        ierr=this->m_RegProblem->SetupSyntheticProb(); CHKERRQ(ierr);
-
-        // make sure images have not been set
-        ierr=Assert(this->m_TemplateImage==NULL,"template image is null"); CHKERRQ(ierr);
-        ierr=Assert(this->m_ReferenceImage==NULL,"reference image is null"); CHKERRQ(ierr);
-
-        // pass images
-        ierr=this->m_RegProblem->GetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
-        ierr=this->m_RegProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage,this->m_TemplateImage); CHKERRQ(ierr);
 
     }
 

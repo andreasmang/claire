@@ -419,7 +419,10 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 //    }
 
     // set up fft operators
-    if (this->m_ResetGridChangeOps){ this->m_GridChangeOpsSet=false; }
+    if (this->m_ResetGridChangeOps){
+        this->m_GridChangeOpsSet=false;
+        this->m_GridChangeIndicesComputed=false;
+    }
     if (!this->m_GridChangeOpsSet){
         ierr=this->SetupGridChangeOps(nx_f,nx_c); CHKERRQ(ierr);
     }
@@ -794,6 +797,17 @@ PetscErrorCode PreProcReg::GridChangeCommIndices()
     // if we actually need to allocate something
     if (this->m_nAllocSend > 0){
 
+        if (this->m_ResetGridChangeOps){
+            if (this->m_FourierIndicesSendF!=NULL){
+                delete [] this->m_FourierIndicesSendF;
+                this->m_FourierIndicesSendF=NULL;
+            }
+            if (this->m_FourierIndicesSendC!=NULL){
+                delete [] this->m_FourierIndicesSendC;
+                this->m_FourierIndicesSendC=NULL;
+            }
+        }
+
         if (this->m_FourierIndicesSendF==NULL){
             try{this->m_FourierIndicesSendF = new IntType[this->m_nAllocSend*3];}
             catch (std::bad_alloc&){
@@ -850,6 +864,20 @@ PetscErrorCode PreProcReg::GridChangeCommIndices()
 
     // allocate receiving array
     if (this->m_nAllocRecv > 0){
+
+        if (this->m_ResetGridChangeOps){
+
+            if (this->m_FourierIndicesRecvF!=NULL){
+                delete [] this->m_FourierIndicesRecvF;
+                this->m_FourierIndicesRecvF=NULL;
+            }
+
+            if (this->m_FourierIndicesRecvC!=NULL){
+                delete [] this->m_FourierIndicesRecvC;
+                this->m_FourierIndicesRecvC=NULL;
+            }
+
+        }
 
         if (this->m_FourierIndicesRecvF==NULL){
             try{this->m_FourierIndicesRecvF = new IntType[this->m_nAllocRecv*3];}
@@ -980,6 +1008,13 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict()
     // if we actually need to allocate something
     if (this->m_nAllocSend > 0){
 
+        if (this->m_ResetGridChangeOps){
+            if (this->m_FourierCoeffSendF!=NULL){
+                delete [] this->m_FourierCoeffSendF;
+                this->m_FourierCoeffSendF=NULL;
+            }
+        }
+
         if (this->m_FourierCoeffSendF==NULL){
             try{this->m_FourierCoeffSendF = new ScalarType[this->m_nAllocSend*2];}
             catch (std::bad_alloc&){
@@ -1019,6 +1054,13 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict()
     }
 
     if (this->m_nAllocRecv > 0){
+
+        if (this->m_ResetGridChangeOps){
+            if (this->m_FourierCoeffRecvF!=NULL){
+                delete [] this->m_FourierCoeffRecvF;
+                this->m_FourierCoeffRecvF=NULL;
+            }
+        }
 
         if (this->m_FourierCoeffRecvF==NULL){
             try{this->m_FourierCoeffRecvF = new ScalarType[this->m_nAllocRecv*2];}
@@ -1110,6 +1152,13 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong()
     // if we actually need to allocate something
     if (this->m_nAllocRecv > 0){
 
+        if (this->m_ResetGridChangeOps){
+            if (this->m_FourierCoeffSendC!=NULL){
+                delete [] this->m_FourierCoeffSendC;
+                this->m_FourierCoeffSendC=NULL;
+            }
+        }
+
         if (this->m_FourierCoeffSendC==NULL){
             try{this->m_FourierCoeffSendC = new ScalarType[this->m_nAllocRecv*2];}
             catch (std::bad_alloc&){
@@ -1149,6 +1198,13 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong()
     }
 
     if (this->m_nAllocSend > 0){
+
+        if (this->m_ResetGridChangeOps){
+            if (this->m_FourierCoeffRecvC!=NULL){
+                delete [] this->m_FourierCoeffRecvC;
+                this->m_FourierCoeffRecvC=NULL;
+            }
+        }
 
         if (this->m_FourierCoeffRecvC==NULL){
             try{this->m_FourierCoeffRecvC = new ScalarType[this->m_nAllocSend*2];}
@@ -1268,6 +1324,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 
     if (this->m_ResetGridChangeOps){
         this->m_GridChangeOpsSet=false;
+        this->m_GridChangeIndicesComputed=false;
     }
 
     // set up fft operators

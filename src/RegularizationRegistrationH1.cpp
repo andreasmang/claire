@@ -429,7 +429,6 @@ PetscErrorCode RegularizationRegistrationH1::GetExtremeEigValsInvOp(ScalarType& 
     regop = -(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]); // laplacian
     regop = -beta1*regop + beta2; // -beta_1 * lap + beta_2
     emin = 1.0/regop;
-
     emax = 1.0/beta2;  // 1.0/(\beta_1*0 + \beta_2)
 
     PetscFunctionReturn(ierr);

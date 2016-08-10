@@ -101,7 +101,7 @@ public:
     PetscErrorCode ComputeDeformationMap();
 
     /*! compute synthetic test problem */
-    PetscErrorCode SetupSyntheticProb();
+    PetscErrorCode SetupSyntheticProb(Vec&,Vec&);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;
@@ -118,6 +118,9 @@ public:
     /*! apply Hessian matvec H\tilde{\vect{v}} */
     virtual PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true) = 0;
 
+    /*! compute estimate of extremal eigenvalues of hessian */
+    PetscErrorCode EstimateExtremalHessEigVals(ScalarType&,ScalarType&);
+
     /*! pre processing before krylov solve */
     PetscErrorCode PreKrylovSolve(Vec,Vec);
 
@@ -128,7 +131,7 @@ public:
     PetscErrorCode ApplyInvRegOp(Vec, Vec);
 
     /*! solve forward problem */
-    virtual PetscErrorCode SolveForwardProblem(Vec) = 0;
+    virtual PetscErrorCode SolveForwardProblem(Vec,Vec) = 0;
 
     /*! solve the current iteration */
     virtual PetscErrorCode FinalizeIteration(Vec) = 0;

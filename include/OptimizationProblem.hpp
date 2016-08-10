@@ -57,14 +57,17 @@ public:
     /*! evaluate distance between observed and predicted state */
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
 
-    /*! evaluate objective functional J(v) */
+    /*! evaluate objective functional J(x) */
     virtual PetscErrorCode EvaluateObjective(ScalarType*,Vec) = 0;
 
-    /*! evaluate gradient of Lagrangian L(v) */
+    /*! evaluate gradient of Lagrangian L(x) */
     virtual PetscErrorCode EvaluateGradient(Vec,Vec) = 0;
 
-    /*! apply Hessian matvec H\tilde{\vect{v}} */
+    /*! apply Hessian matvec H\tilde{\vect{x}} */
     virtual PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true) = 0;
+
+    /*! compute estimate of extremal eigenvalues of hessian */
+    virtual PetscErrorCode EstimateExtremalHessEigVals(ScalarType&,ScalarType&) = 0;
 
     /*! pre processing before krylov solve */
     virtual PetscErrorCode PreKrylovSolve(Vec,Vec) = 0;
@@ -76,7 +79,7 @@ public:
     virtual PetscErrorCode ApplyInvRegOp(Vec,Vec) = 0;
 
     /*! solve forward problem */
-    virtual PetscErrorCode SolveForwardProblem(Vec) = 0;
+    virtual PetscErrorCode SolveForwardProblem(Vec,Vec) = 0;
 
     /*! set control variable */
     virtual PetscErrorCode SetControlVariable(VecField*) = 0;
@@ -121,8 +124,6 @@ protected:
     ScalarType m_InitGradNorm;
     ScalarType m_InitObjectiveVal;
     ScalarType m_InitDistanceVal;
-
-    IntType m_NumOuterIter;
 
 private:
 

@@ -36,6 +36,8 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod,IntType it,ScalarType rnorm,void* 
     msg = kspmeth + "   " + itss.str() + "  ||r||_2 = " + rnss.str();
     ierr=DbgMsg(msg); CHKERRQ(ierr);
 
+    optprob->GetOptions()->SetKrylovIterations(it);
+
     ierr=KSPGetConvergedReason(krylovmethod,&reason); CHKERRQ(ierr);
     ierr=DispKSPConvReason(reason); CHKERRQ(ierr);
 
@@ -74,6 +76,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod,Vec b, Vec x,void* ptr)
 
     optprob = (OptimizationProblem*)ptr;
     ierr=Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // set the iteration count to zero
+    optprob->GetOptions()->SetKrylovIterations(0);
 
     if (optprob->GetOptions()->GetHessianMatVecType() == PRECONDMATVEC){
         // get current gradient and compute norm

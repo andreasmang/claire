@@ -267,7 +267,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SolveForwardProblem"
-PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
+PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1,Vec m0)
 {
     PetscErrorCode ierr;
     ScalarType *p_m1=NULL,*p_m=NULL;
@@ -276,7 +276,9 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr=Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(m0!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(m1!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_TemplateImage=m0;
 
     // compute solution of state equation
     ierr=this->SolveStateEquation(); CHKERRQ(ierr);
@@ -285,7 +287,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
     nl = this->m_Opt->GetDomainPara().nlocal;
 
     // copy memory for m_1
-    ierr=VecGetArray(m,&p_m1); CHKERRQ(ierr);
+    ierr=VecGetArray(m1,&p_m1); CHKERRQ(ierr);
     ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
     try{ std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1); }
@@ -294,7 +296,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m)
     }
 
     ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-    ierr=VecRestoreArray(m,&p_m1); CHKERRQ(ierr);
+    ierr=VecRestoreArray(m1,&p_m1); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -3287,7 +3289,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     PetscErrorCode ierr;
     int rank;
-    IntType nl,ng,nt;
+    IntType nl,ng,nt,iter;
     std::string filename,fnx1,fnx2,fnx3;
     std::stringstream ss;
     std::ofstream logwriter;
@@ -3325,6 +3327,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     // store iterates
     if ( this->m_Opt->GetRegFlags().storeiterates ){
 
+        iter = this->m_Opt->GetCounter(ITERATIONS);
+        ierr=Assert(iter>=0,"problem in counter"); CHKERRQ(ierr);
+
         // copy memory for m_1
         ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
         ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
@@ -3335,28 +3340,20 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
         ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
         ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
-        ss  << "deformed-template-image-i="
-            << std::setw(3) << std::setfill('0')
-            << this->m_NumOuterIter  << ".nii.gz";
+        ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter  << ".nii.gz";
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 
         // construct file names for velocity field components
-        ss  << "velocity-field-i="
-            << std::setw(3) << std::setfill('0')
-            << this->m_NumOuterIter  << "-x1.nii.gz";
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x1.nii.gz";
         fnx1 = ss.str();
         ss.str( std::string() ); ss.clear();
 
-        ss  << "velocity-field-i="
-            << std::setw(3) << std::setfill('0')
-            << this->m_NumOuterIter  << "-x2.nii.gz";
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x2.nii.gz";
         fnx2 = ss.str();
         ss.str( std::string() ); ss.clear();
 
-        ss  << "velocity-field-i="
-            << std::setw(3) << std::setfill('0')
-            << this->m_NumOuterIter  << "-x3.nii.gz";
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x3.nii.gz";
         fnx3 = ss.str();
         ss.str( std::string() ); ss.clear();
 
@@ -3370,26 +3367,30 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
         ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
-        if (rank == 0){
+        // only if user enabled the logger
+        if (this->m_Opt->GetRegFlags().loggingenabled){
 
-            filename  = this->m_Opt->GetXFolder();
-            filename += "registration-performance-jacobians.log";
+            if (rank == 0){
 
-            // create output file or append to output file
-            logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
-            ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
-            ss  << std::scientific
-                <<  "iter = " << this->m_NumOuterIter
-                <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
-                << std::left
-                << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
-                << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
-                << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
-            logwriter << ss.str() << std::endl;
-            ss.str( std::string() ); ss.clear();
+                filename  = this->m_Opt->GetXFolder();
+                filename += "registration-performance-detdefgrad.log";
+
+                // create output file or append to output file
+                logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
+                ierr=Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
+                ss  << std::scientific
+                    <<  "iter = "     << this->m_Opt->GetCounter(ITERATIONS)
+                    <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
+                    << std::left
+                    << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
+                    << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
+                    << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
+                logwriter << ss.str() << std::endl;
+                ss.str( std::string() ); ss.clear();
+
+            } // if on master rank
 
         }
-
     }
 
     this->m_Opt->Exit(__FUNCT__);

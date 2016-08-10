@@ -250,6 +250,7 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc)
 
 
 
+
 /********************************************************************
  * @brief make sure that we re-initiate/recompute important
  * quantities; implemented to allow multiple calls of the solver
@@ -269,18 +270,20 @@ PetscErrorCode PrecondReg::Reset()
     switch(this->m_Opt->GetKrylovSolverPara().pctype){
         case NOPC:
         {
+            // no need to do anything
             break;
         }
         case INVREG:
         {
+            // no need to do anything
             break;
         }
         case TWOLEVEL:
         {
             // in case we call the solver multiple times (for
-            // instance when considering a parameter continuation)
-            // without destrying it, it is necessary to recompute
-            // the eigenvalues
+            // instance when we do parameter continuation) without
+            // destroying the preconditioner, it is necessary to
+            // recompute eigenvalues
             this->m_EigenValuesEstimated=false;
             break;
         }
@@ -295,7 +298,6 @@ PetscErrorCode PrecondReg::Reset()
 
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -438,10 +440,10 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x)
     ierr=KSPSolve(this->m_KrylovMethod,x,Px); CHKERRQ(ierr);
     ierr=this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
-
     // increment counter
     this->m_Opt->IncrementCounter(PCMATVEC);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -671,12 +673,6 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
     ng = this->m_Opt->GetDomainPara().nglobal;
 
     ierr=Assert(this->m_KrylovMethod==NULL,"expecting null pointer"); CHKERRQ(ierr);
-
-    // create krylov method
-//    if (this->m_KrylovMethod != NULL){
-//        ierr=KSPDestroy(&this->m_KrylovMethod); CHKERRQ(ierr);
-//        this->m_KrylovMethod = NULL;
-//    }
     ierr=KSPCreate(PETSC_COMM_WORLD,&this->m_KrylovMethod); CHKERRQ(ierr);
 
     switch (this->m_Opt->GetKrylovSolverPara().pcsolver){
@@ -772,11 +768,15 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     // apply hessian (hessian matvec)
     if ( this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL ){
         ierr=this->HessianMatVecRestrict(Hx,x); CHKERRQ(ierr);
     }
     else{ ierr=this->m_OptProb->HessianMatVec(Hx,x); CHKERRQ(ierr); }
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -898,68 +898,103 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x)
 PetscErrorCode PrecondReg::EstimateEigenValues()
 {
     PetscErrorCode ierr=0;
-    //IntType n,neig,nl,ng;
-    //Vec b=NULL,x=NULL;
-    //ScalarType *re=NULL,*im=NULL,eigmin,eigmax;
+    IntType n,neig,nl,ng,itermax;
+    KSPConvergedReason reason;
+    std::stringstream ss;
+    Vec b=NULL,x=NULL;
+    ScalarType *re=NULL,*im=NULL,eigmin,eigmax,emin,emax;
     PetscFunctionBegin;
+
+    itermax = 3;
+
+    // get iteration number; if we need to many iterations, we
+    // might want to reestimate the eigenvalues
+    n = this->m_Opt->GetKrylovSolverPara().iter;
+    if ( n > itermax ){
+
+        ss << "iter="<< n << " > itermax=" << itermax <<" re-estimating eigenvalues";
+        ierr=WrngMsg(ss.str()); CHKERRQ(ierr);
+        this->m_EigenValuesEstimated=false;
+
+        // reset krylov iterations
+        this->m_Opt->SetKrylovIterations(0);
+
+    }
+
+    // if we detect a divergence, we'll have to restimate
+    // the eigenvalues
+    ierr=KSPGetConvergedReason(this->m_KrylovMethod,&reason); CHKERRQ(ierr);
+    if(reason !=  KSP_DIVERGED_ITS){ this->m_EigenValuesEstimated=false; }
 
     if (!this->m_EigenValuesEstimated){
 
         if (this->m_Opt->GetVerbosity() > 1){
             ierr=DbgMsg("estimating eigenvalues of hessian"); CHKERRQ(ierr);
         }
-/*
-        // get sizes
-        nl = this->m_Opt->GetDomainPara().nlocal;
-        ng = this->m_Opt->GetDomainPara().nglobal;
 
-        ierr=VecCreate(x,3*nl,3*ng); CHKERRQ(ierr);
-        ierr=VecCreate(b,3*nl,3*ng); CHKERRQ(ierr);
-        ierr=VecSet(b,1.0); CHKERRQ(ierr);
+        if (this->m_Opt->GetKrylovSolverPara().usepetsceigest){
 
-        // do setup
-        if (this->m_KrylovMethodEigEst == NULL){
-            ierr=this->SetupKrylovMethodEigEst(); CHKERRQ(ierr);
+            // default interface for chebyshev method; this interface
+            // we have to compute the eigenvalues at every iteration
+            // using this interface (at least it seems to be like that)
+            ierr=KSPChebyshevEstEigSet(this->m_KrylovMethod,PETSC_DECIDE,
+                                                            PETSC_DECIDE,
+                                                            PETSC_DECIDE,
+                                                            PETSC_DECIDE); CHKERRQ(ierr);
         }
-        ierr=Assert(this->m_KrylovMethodEigEst!=NULL, "null pointer"); CHKERRQ(ierr);
+        else{
 
-        ierr=KSPSolve(this->m_KrylovMethodEigEst,b,x); CHKERRQ(ierr);
-        ierr=KSPGetIterationNumber(this->m_KrylovMethodEigEst,&n); CHKERRQ(ierr);
+            // get sizes
+            nl = this->m_Opt->GetDomainPara().nlocal;
+            ng = this->m_Opt->GetDomainPara().nglobal;
 
-        std::cout << n <<std::endl;
-        ierr=PetscMalloc2(n,&re,n,&im); CHKERRQ(ierr);
-        ierr=KSPComputeEigenvalues(this->m_KrylovMethodEigEst,n,re,im,&neig); CHKERRQ(ierr);
-        std::cout << neig <<std::endl;
-        eigmin = PETSC_MAX_REAL;
-        eigmax = PETSC_MIN_REAL;
-        for (IntType i=0; i<neig; ++i) {
-            std::cout<<re[i]<<std::endl;
-            eigmin = PetscMin(eigmin,re[i]);
-            eigmax = PetscMax(eigmax,re[i]);
-        }
-        ierr=PetscFree2(re,im); CHKERRQ(ierr);
+            ierr=VecCreate(x,3*nl,3*ng); CHKERRQ(ierr);
+            ierr=VecCreate(b,3*nl,3*ng); CHKERRQ(ierr);
 
+            // use random right hand side
+            if (this->m_RandomNumGen==NULL){
+                ierr=PetscRandomCreate(PetscObjectComm((PetscObject)b),&this->m_RandomNumGen); CHKERRQ(ierr);
+            }
+            ierr=VecSetRandom(b,this->m_RandomNumGen); CHKERRQ(ierr);
 
-        std::cout<<eigmin << " " << eigmax << std::endl;
+            // do setup
+            if (this->m_KrylovMethodEigEst == NULL){
+                ierr=this->SetupKrylovMethodEigEst(); CHKERRQ(ierr);
+            }
+            ierr=Assert(this->m_KrylovMethodEigEst!=NULL, "null pointer"); CHKERRQ(ierr);
 
-        ierr=KSPChebyshevSetEigenvalues(this->m_KrylovMethod,eigmax,eigmin); CHKERRQ(ierr);
-*/
-        // default interface for chebyshev method; this interface
-        // we have to compute the eigenvalues at every iteration
-        // using this interface (at least it seems to be like that)
-        ierr=KSPChebyshevEstEigSet(this->m_KrylovMethod,PETSC_DECIDE,
-                                                        PETSC_DECIDE,
-                                                        PETSC_DECIDE,
-                                                        PETSC_DECIDE); CHKERRQ(ierr);
+            ierr=KSPSolve(this->m_KrylovMethodEigEst,b,x); CHKERRQ(ierr);
+            ierr=KSPGetIterationNumber(this->m_KrylovMethodEigEst,&n); CHKERRQ(ierr);
+
+            std::cout << n <<std::endl;
+            ierr=PetscMalloc2(n,&re,n,&im); CHKERRQ(ierr);
+            ierr=KSPComputeEigenvalues(this->m_KrylovMethodEigEst,n,re,im,&neig); CHKERRQ(ierr);
+
+            eigmin = PETSC_MAX_REAL;
+            eigmax = PETSC_MIN_REAL;
+
+            for (IntType i=0; i<neig; ++i) {
+                eigmin = PetscMin(eigmin,re[i]);
+                eigmax = PetscMax(eigmax,re[i]);
+            }
+
+            // clear memory
+            ierr=PetscFree2(re,im); CHKERRQ(ierr);
+            ierr=this->m_OptProbCoarse->EstimateExtremalHessEigVals(emin,emax); CHKERRQ(ierr);
+            std::cout<<eigmin << " " << eigmax << std::endl;
+            std::cout<<emin << " " << emax << std::endl;
+
+            ierr=KSPChebyshevSetEigenvalues(this->m_KrylovMethod,eigmax,eigmin); CHKERRQ(ierr);
+
+        }// switch between eigenvalue estimators
     }
     this->m_EigenValuesEstimated=true;
 
-//    if (x != NULL) { ierr=VecDestroy(&x); CHKERRQ(ierr); }
-//    if (b != NULL) { ierr=VecDestroy(&b); CHKERRQ(ierr); }
+    if (x != NULL) { ierr=VecDestroy(&x); CHKERRQ(ierr); }
+    if (b != NULL) { ierr=VecDestroy(&b); CHKERRQ(ierr); }
 
     PetscFunctionReturn(ierr);
 }
-
 
 
 
