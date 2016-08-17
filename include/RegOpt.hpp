@@ -285,12 +285,11 @@ struct RegFlags{
     bool storeiterates;
     bool storedefgrad;
     bool storedefmap;
+    bool storedeffield;
     bool storeresults;
     bool storeinterresults;
     bool loggingenabled;
-    bool runpostproc;
-    bool resampledata;
-    bool detdefgradfrommap;
+    bool detdefgradfromdeffield;
 };
 
 
@@ -304,7 +303,7 @@ public:
     typedef RegOpt Self;
 
     RegOpt();
-    RegOpt(int,char**,int id=0);
+    RegOpt(int,char**);
     RegOpt(const RegOpt&);
     ~RegOpt();
 
@@ -451,16 +450,13 @@ public:
     }
 
 
-private:
+protected:
 
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-    PetscErrorCode ParseArgumentsRegistration(int,char**);
-    PetscErrorCode ParseArgumentsPostProcessing(int,char**);
-    PetscErrorCode UsageRegistration(bool advanced=false);
-    PetscErrorCode UsagePostProcessing(bool advanced=false);
-    PetscErrorCode CheckArgumentsRegistration(void);
-    PetscErrorCode CheckArgumentsPostProcessing(void);
+    PetscErrorCode ParseArguments(int,char**);
+    PetscErrorCode Usage(bool advanced=false);
+    PetscErrorCode CheckArguments(void);
     PetscErrorCode SetPresetParameters();
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};

@@ -177,7 +177,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
     }
     else{
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -322,7 +323,8 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
     }
     else{
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));

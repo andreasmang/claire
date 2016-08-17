@@ -247,6 +247,7 @@ PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
 
 
 
+
 /********************************************************************
  * @brief view vector entries (transpose output)
  *******************************************************************/
@@ -263,6 +264,8 @@ PetscErrorCode Finalize()
 
     PetscFunctionReturn(0);
 }
+
+
 
 
 /********************************************************************

@@ -139,7 +139,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
 
     // if we did not read the images, we can
     // destroy the containers here
-    if (this->m_Opt->GetRegFlags().readimages == false){
+    if (!this->m_Opt->GetRegFlags().readimages){
 
         // delete reference image
         if (this->m_ReferenceImage != NULL){

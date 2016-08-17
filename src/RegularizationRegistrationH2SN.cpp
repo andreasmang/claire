@@ -76,7 +76,8 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     // if regularization weight is zero, do noting
     if (sqrtbeta != 0.0){
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         if (this->m_WorkVecField==NULL){
             try{this->m_WorkVecField = new VecField(this->m_Opt);}
@@ -201,7 +202,8 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
     }
     else{
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -341,7 +343,8 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
     }
     else{
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));

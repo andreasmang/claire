@@ -72,6 +72,16 @@ PetscErrorCode RegularizationRegistration::Initialize(void)
     this->m_Lv2hat = NULL;
     this->m_Lv3hat = NULL;
 
+    this->m_Dv11hat = NULL;
+    this->m_Dv12hat = NULL;
+    this->m_Dv13hat = NULL;
+    this->m_Dv21hat = NULL;
+    this->m_Dv22hat = NULL;
+    this->m_Dv23hat = NULL;
+    this->m_Dv31hat = NULL;
+    this->m_Dv32hat = NULL;
+    this->m_Dv33hat = NULL;
+
     PetscFunctionReturn(0);
 }
 
@@ -108,43 +118,67 @@ PetscErrorCode RegularizationRegistration::ClearMemory(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Allocate"
-PetscErrorCode RegularizationRegistration::Allocate(void)
+PetscErrorCode RegularizationRegistration::Allocate(int flag)
 {
-    int isize[3],osize[3],istart[3],ostart[3],nx[3];
-    size_t alloc_max;
-
     PetscFunctionBegin;
 
-    nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-    nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-    nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+    if (flag==0){
+        if(this->m_v1hat == NULL){
+            this->m_v1hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_v2hat == NULL){
+            this->m_v2hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_v3hat == NULL){
+            this->m_v3hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+    }
+    else if (flag == 1){
+        if(this->m_Lv1hat == NULL){
+            this->m_Lv1hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Lv2hat == NULL){
+            this->m_Lv2hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Lv3hat == NULL){
+            this->m_Lv3hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+    }
+    else if (flag == 2){
+        if(this->m_Dv11hat == NULL){
+            this->m_Dv11hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Dv12hat == NULL){
+            this->m_Dv12hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Dv13hat == NULL){
+            this->m_Dv13hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
 
-    // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(nx,isize,istart,osize,ostart,
-                                                        this->m_Opt->GetFFT().mpicomm);
+        if(this->m_Dv21hat == NULL){
+            this->m_Dv21hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Dv22hat == NULL){
+            this->m_Dv22hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Dv23hat == NULL){
+            this->m_Dv23hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
 
-    if(this->m_v1hat == NULL){
-        this->m_v1hat=(FFTScaType*)accfft_alloc(alloc_max);
-    }
-    if(this->m_v2hat == NULL){
-        this->m_v2hat=(FFTScaType*)accfft_alloc(alloc_max);
-    }
-    if(this->m_v3hat == NULL){
-        this->m_v3hat=(FFTScaType*)accfft_alloc(alloc_max);
-    }
-
-    if(this->m_Lv1hat == NULL){
-        this->m_Lv1hat=(FFTScaType*)accfft_alloc(alloc_max);
-    }
-    if(this->m_Lv2hat == NULL){
-        this->m_Lv2hat=(FFTScaType*)accfft_alloc(alloc_max);
-    }
-    if(this->m_Lv3hat == NULL){
-        this->m_Lv3hat=(FFTScaType*)accfft_alloc(alloc_max);
+        if(this->m_Dv31hat == NULL){
+            this->m_Dv31hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Dv32hat == NULL){
+            this->m_Dv32hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
+        if(this->m_Dv33hat == NULL){
+            this->m_Dv33hat=(FFTScaType*)accfft_alloc(this->m_Opt->GetFFT().nalloc);
+        }
     }
 
     PetscFunctionReturn(0);
 }
+
 
 
 
@@ -182,6 +216,43 @@ PetscErrorCode RegularizationRegistration::Deallocate(void)
     if(this->m_Lv3hat!=NULL){
         accfft_free(this->m_Lv3hat);
         this->m_Lv3hat = NULL;
+    }
+
+    if(this->m_Dv11hat!=NULL){
+        accfft_free(this->m_Dv11hat);
+        this->m_Dv11hat = NULL;
+    }
+    if(this->m_Dv12hat!=NULL){
+        accfft_free(this->m_Dv12hat);
+        this->m_Dv12hat = NULL;
+    }
+    if(this->m_Dv13hat!=NULL){
+        accfft_free(this->m_Dv13hat);
+        this->m_Dv13hat = NULL;
+    }
+    if(this->m_Dv21hat!=NULL){
+        accfft_free(this->m_Dv21hat);
+        this->m_Dv21hat = NULL;
+    }
+    if(this->m_Dv22hat!=NULL){
+        accfft_free(this->m_Dv22hat);
+        this->m_Dv22hat = NULL;
+    }
+    if(this->m_Dv23hat!=NULL){
+        accfft_free(this->m_Dv23hat);
+        this->m_Dv23hat = NULL;
+    }
+    if(this->m_Dv31hat!=NULL){
+        accfft_free(this->m_Dv31hat);
+        this->m_Dv31hat = NULL;
+    }
+    if(this->m_Dv32hat!=NULL){
+        accfft_free(this->m_Dv32hat);
+        this->m_Dv32hat = NULL;
+    }
+    if(this->m_Dv33hat!=NULL){
+        accfft_free(this->m_Dv33hat);
+        this->m_Dv33hat = NULL;
     }
 
     PetscFunctionReturn(0);

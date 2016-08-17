@@ -32,8 +32,10 @@
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistrationH1.hpp"
 #include "RegularizationRegistrationH2.hpp"
+#include "RegularizationRegistrationH3.hpp"
 #include "RegularizationRegistrationH1SN.hpp"
 #include "RegularizationRegistrationH2SN.hpp"
+#include "RegularizationRegistrationH3SN.hpp"
 #include "OptimizationProblem.hpp"
 //#include "SemiLagrangianGPU.hpp"
 
@@ -100,6 +102,9 @@ public:
     /*! compute deformation map */
     PetscErrorCode ComputeDeformationMap();
 
+    /*! compute displacement field */
+    PetscErrorCode ComputeDisplacementField();
+
     /*! compute synthetic test problem */
     PetscErrorCode SetupSyntheticProb(Vec&,Vec&);
 
@@ -155,11 +160,17 @@ protected:
 
     PetscErrorCode ComputeDetDefGradSL(); ///< implemented via SL time integrator
     PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
-    PetscErrorCode ComputeDetDefGradRK2A(); ///< implemented via RK2 time integrator (asymetric form)
-    PetscErrorCode ComputeDetDefGradViaDefMap(); ///< implemented via RK2 time integrator (asymetric form)
+    PetscErrorCode ComputeDetDefGradRK2A(); ///< implemented via RK2 time integrator (assymetric form)
+    PetscErrorCode ComputeDetDefGradViaDispField(); ///< implemented via RK2 time integrator (asymetric form)
 
     PetscErrorCode ComputeDeformationMapSL(); ///< implementation via SL time integrator
     PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDeformationMapRK2A(); ///< implementation via RK2A time integrator
+
+    PetscErrorCode ComputeDefMapFromDisplacement(); ///< compute deformation map from displacement
+
+    PetscErrorCode ComputeDisplacementFieldSL(); ///< implementation via SL time integrator
+    PetscErrorCode ComputeDisplacementFieldRK2(); ///< implementation via RK2 time integrator
 
     PetscErrorCode ApplyInvRegOpSqrt(Vec);
 

@@ -404,6 +404,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ScalarType lapik,lapinvik,gradik1,gradik2,gradik3,opik;
     long int i;
     IntType i1,i2,i3;
+
 #pragma omp for
     for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
         for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){

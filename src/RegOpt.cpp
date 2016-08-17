@@ -31,12 +31,10 @@ RegOpt::RegOpt()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegOpt"
-RegOpt::RegOpt(int argc, char** argv, int id)
+RegOpt::RegOpt(int argc, char** argv)
 {
     this->Initialize();
-    if      (id == 0) this->ParseArgumentsRegistration(argc,argv);
-    else if (id == 1) this->ParseArgumentsPostProcessing(argc,argv);
-    else;
+    this->ParseArguments(argc,argv);
 
 }
 
@@ -142,9 +140,7 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_RegFlags.storeinterresults = opt.m_RegFlags.storeinterresults;
     this->m_RegFlags.loggingenabled = opt.m_RegFlags.loggingenabled;
     this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
-    this->m_RegFlags.runpostproc = opt.m_RegFlags.runpostproc;
-    this->m_RegFlags.resampledata = opt.m_RegFlags.resampledata;
-    this->m_RegFlags.detdefgradfrommap = opt.m_RegFlags.detdefgradfrommap;
+    this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
 
     // parameter continuation
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
@@ -187,13 +183,12 @@ void RegOpt::Copy(const RegOpt& opt)
 
 
 
-
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ParseArgumentsRegistration"
-PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
+#define __FUNCT__ "ParseArguments"
+PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
 {
     PetscErrorCode ierr;
     std::string msg;
@@ -207,10 +202,10 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         if ( (strcmp(argv[1],"-help") == 0)
             ||(strcmp(argv[1],"-h") == 0)
             ||(strcmp(argv[1],"-HELP") == 0) ){
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
         }
         if ( strcmp(argv[1],"-advanced") == 0 ){
-            ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+            ierr=this->Usage(true); CHKERRQ(ierr);
         }
         else if(strcmp(argv[1],"-nx") == 0){
 
@@ -234,7 +229,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else{
                 msg="\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
 
         }
@@ -264,7 +259,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else{
                 msg="\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
 
         }
@@ -296,7 +291,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else{
                 msg="\n\x1b[31m error in number of procs: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-mr") == 0){
@@ -332,8 +327,8 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         else if(strcmp(argv[1],"-xdefgrad") == 0){
             this->m_RegFlags.storedefgrad = true;
         }
-        else if(strcmp(argv[1],"-detdefgradmapbased") == 0){
-            this->m_RegFlags.detdefgradfrommap = true;
+        else if(strcmp(argv[1],"-xdeffield") == 0){
+            this->m_RegFlags.storedeffield = true;
         }
         else if(strcmp(argv[1],"-xdefmap") == 0){
             this->m_RegFlags.storedefmap = true;
@@ -346,6 +341,9 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-xlog") == 0){
             this->m_RegFlags.loggingenabled = true;
+        }
+        else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
+            this->m_RegFlags.detdefgradfromdeffield = true;
         }
         else if(strcmp(argv[1],"-i") == 0){
             argc--; argv++;
@@ -368,7 +366,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m high level solver flag not available: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-ic") == 0){
@@ -388,7 +386,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-maxit") == 0){
@@ -420,7 +418,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-krylovmaxit") == 0){
@@ -441,7 +439,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m forcing sequence not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-precond") == 0){
@@ -464,7 +462,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-pcsolver") == 0){
@@ -490,7 +488,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-pctolscale") == 0){
@@ -512,7 +510,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
         else if (strcmp(argv[1],"-regnorm") == 0){
@@ -523,11 +521,17 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else if (strcmp(argv[1],"h2s") == 0){
                 this->m_RegNorm.type = H2SN;
             }
+            else if (strcmp(argv[1],"h3s") == 0){
+                this->m_RegNorm.type = H3SN;
+            }
             else if (strcmp(argv[1],"h1") == 0){
                 this->m_RegNorm.type = H1;
             }
             else if (strcmp(argv[1],"h2") == 0){
                 this->m_RegNorm.type = H2;
+            }
+            else if (strcmp(argv[1],"h3") == 0){
+                this->m_RegNorm.type = H3;
             }
             else if (strcmp(argv[1],"l2") == 0){
                 this->m_RegNorm.type = L2;
@@ -535,7 +539,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m regularization norm not available: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-betav") == 0){
@@ -552,7 +556,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             if (this->m_ParaCont.enabled){
                 msg="\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
 
             argc--; argv++;
@@ -567,7 +571,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
             else {
                 msg="\n\x1b[31m training method not implemented: %s\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
+                ierr=this->Usage(); CHKERRQ(ierr);
             }
 
         }
@@ -576,7 +580,7 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
            if (this->m_ParaCont.enabled){
                 msg="\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
                 ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
             }
 
             this->m_ParaCont.strategy = PCONTINUATION;
@@ -601,164 +605,17 @@ PetscErrorCode RegOpt::ParseArgumentsRegistration(int argc, char** argv)
         else {
             msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(true); CHKERRQ(ierr);
+            ierr=this->Usage(true); CHKERRQ(ierr);
         }
         argc--; argv++;
     }
 
     // check the arguments/parameters set by the user
-    ierr=this->CheckArgumentsRegistration(); CHKERRQ(ierr);
+    ierr=this->CheckArguments(); CHKERRQ(ierr);
 
     if (this->m_SolveType != NOTSET){
         ierr=this->SetPresetParameters(); CHKERRQ(ierr);
     }
-
-    // set number of threads
-    ierr=Init(this->m_NumThreads,this->m_CartGridDims,this->m_FFT.mpicomm); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief parse user arguments
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ParseArgumentsPostProcessing"
-PetscErrorCode RegOpt::ParseArgumentsPostProcessing(int argc, char** argv)
-{
-    PetscErrorCode ierr;
-    std::string msg;
-    std::vector<unsigned int> np;
-    std::vector<unsigned int> sigma;
-    PetscFunctionBegin;
-
-    if (argc == 1){ ierr=this->UsagePostProcessing(); CHKERRQ(ierr); }
-
-    while(argc > 1){
-
-        if ( (strcmp(argv[1],"-help") == 0)
-            || (strcmp(argv[1],"-h") == 0)
-            || (strcmp(argv[1],"-HELP") == 0) ){
-            ierr=this->UsagePostProcessing(); CHKERRQ(ierr);
-        }
-        if (strcmp(argv[1],"-advanced") == 0){
-            ierr=this->UsagePostProcessing(true); CHKERRQ(ierr);
-        }
-        else if(strcmp(argv[1],"-nt") == 0){
-            argc--; argv++;
-            this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
-        }
-        else if (strcmp(argv[1],"-pdesolver") == 0){
-            argc--; argv++;
-            if (strcmp(argv[1],"rk2") == 0){
-                this->m_PDESolver = RK2;
-            }
-            else if (strcmp(argv[1],"sl") == 0){
-                this->m_PDESolver = SL;
-            }
-            else {
-                msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsageRegistration(); CHKERRQ(ierr);
-            }
-        }
-        else if(strcmp(argv[1],"-sigma") == 0){
-
-            argc--; argv++;
-
-            const std::string sigmainput = argv[1];
-
-            // strip the "x" in the string to get the numbers
-            sigma = String2Vec( sigmainput );
-
-            if (sigma.size() == 1){
-                for(unsigned int i=0; i < 3; ++i){
-                    this->m_Sigma[i] = static_cast<ScalarType>(sigma[0]);
-                }
-            }
-            else if(sigma.size() == 3){
-                for(unsigned int i=0; i < 3; ++i){
-                    this->m_Sigma[i] = static_cast<IntType>(sigma[i]);
-                }
-            }
-            else{
-                msg="\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsagePostProcessing(); CHKERRQ(ierr);
-            }
-
-        }
-        else if(strcmp(argv[1],"-disablesmoothing") == 0){
-            this->m_RegFlags.smoothingenabled=false;
-        }
-        else if(strcmp(argv[1],"-nthreads") == 0){
-            argc--; argv++;
-            this->m_NumThreads = atoi(argv[1]);
-        }
-        else if(strcmp(argv[1],"-np") == 0){
-
-            argc--; argv++;
-            const std::string npinput = argv[1];
-
-            // strip the "x" in the string to get the numbers
-            np = String2Vec( npinput );
-
-            if (np.size() == 1){
-                for(unsigned int i=0; i < 2; ++i){
-                    this->m_CartGridDims[i] = static_cast<unsigned int>(np[0]);
-                }
-            }
-            else if (np.size() == 2){
-                for(unsigned int i=0; i < 2; ++i){
-                    this->m_CartGridDims[i] = static_cast<unsigned int>(np[i]);
-                }
-            }
-            else{
-                msg="\n\x1b[31m error in number of procs: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->UsagePostProcessing(); CHKERRQ(ierr);
-            }
-        }
-        else if(strcmp(argv[1],"-x") == 0){
-            argc--; argv++;
-            this->m_XFolder = argv[1];
-        }
-        else if(strcmp(argv[1],"-xresults") == 0){
-            this->m_RegFlags.storeresults=true;
-        }
-        else if(strcmp(argv[1],"-xdefgrad") == 0){
-            this->m_RegFlags.storedefgrad = true;
-        }
-        else if(strcmp(argv[1],"-xdefmap") == 0){
-            this->m_RegFlags.storedefmap = true;
-        }
-        else if(strcmp(argv[1],"-xtimeseries") == 0){
-            this->m_RegFlags.storetimeseries = true;
-        }
-        else if(strcmp(argv[1],"-i") == 0){
-            argc--; argv++;
-            this->m_IFolder = argv[1];
-        }
-        else if(strcmp(argv[1],"-resample") == 0){
-            this->m_RegFlags.resampledata = true;
-        }
-        else if(strcmp(argv[1],"-verbosity") == 0){
-            argc--; argv++;
-            this->m_Verbosity = atoi(argv[1]);
-        }
-        else {
-            msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-            ierr=this->UsagePostProcessing(); CHKERRQ(ierr);
-        }
-        argc--; argv++;
-    }
-
-    // check the arguments/parameters set by the user
-    ierr=this->CheckArgumentsPostProcessing(); CHKERRQ(ierr);
 
     // set number of threads
     ierr=Init(this->m_NumThreads,this->m_CartGridDims,this->m_FFT.mpicomm); CHKERRQ(ierr);
@@ -900,12 +757,11 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegFlags.storeresults = false; ///< write out results (deformed template; velocity)
     this->m_RegFlags.storedefgrad = false; ///< write out deformation gradient
     this->m_RegFlags.storedefmap = false; ///< write out deformation map
+    this->m_RegFlags.storedeffield = false; ///< write out deformation field / displacement field
     this->m_RegFlags.storeinterresults = false; ///< write out intermediate results
     this->m_RegFlags.loggingenabled = false; ///< switch on/off logging
     this->m_RegFlags.smoothingenabled = true; ///< switch on/off image smoothing
-    this->m_RegFlags.runpostproc = false; ///< flag to run postprocessing
-    this->m_RegFlags.resampledata = false; ///< flag for resampling data (post processing)
-    this->m_RegFlags.detdefgradfrommap = false; ///< flag for
+    this->m_RegFlags.detdefgradfromdeffield = false; ///< flag for computing determinant of deformation field from displacement field u
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;
@@ -954,8 +810,8 @@ PetscErrorCode RegOpt::Initialize()
  * @brief display usage message for binary
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "UsageRegistration"
-PetscErrorCode RegOpt::UsageRegistration(bool advanced)
+#define __FUNCT__ "Usage"
+PetscErrorCode RegOpt::Usage(bool advanced)
 {
 
     PetscErrorCode ierr;
@@ -1001,6 +857,7 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         {
         std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
         std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
+        std::cout << " -xdeffield                flag: write deformation field/displacement field to file"<<std::endl;
         std::cout << " -xlog                     flag: write log files (requires -x option); logging includes"<<std::endl;
         std::cout << "                           timers and counters; if monitor for determinant of deformation"<<std::endl;
         std::cout << "                           gradient is enabled, an additional log file with jacobian values"<<std::endl;
@@ -1054,8 +911,10 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
         std::cout << "                           <type> is one of the following"<<std::endl;
         std::cout << "                               h1s          H1-seminorm"<<std::endl;
         std::cout << "                               h2s          H2-seminorm (default)"<<std::endl;
+        std::cout << "                               h3s          H3-seminorm"<<std::endl;
         std::cout << "                               h1           H1-norm"<<std::endl;
         std::cout << "                               h2           H2-norm"<<std::endl;
+        std::cout << "                               h3           H3-norm"<<std::endl;
         std::cout << "                               l2           l2-norm (discouraged)"<<std::endl;
         std::cout << " -betav <dbl>              regularization parameter (velocity field; default: 1E-2)"<<std::endl;
         std::cout << " -betaw <dbl>              regularization parameter (mass source map; default: 1E-4; enable relaxed"<<std::endl;
@@ -1126,107 +985,11 @@ PetscErrorCode RegOpt::UsageRegistration(bool advanced)
 
 
 /********************************************************************
- * @brief display usage message for binary
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "UsagePostProcessing"
-PetscErrorCode RegOpt::UsagePostProcessing(bool advanced)
-{
-
-    PetscErrorCode ierr;
-    int rank;
-    std::string line;
-    PetscFunctionBegin;
-
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-
-    line = std::string(this->m_LineLength,'-');
-
-    if (rank == 0){
-
-        std::cout << std::endl;
-        std::cout << line << std::endl;
-        std::cout << " usage: postproc [options] " <<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " where [options] is one or more of the following"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " ### compute measures from velocity field"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -i <path>                 input path (defines where registration results (i.e., velocity field,"<<std::endl;
-        std::cout << "                           template image, and reference image) are stored; a prefix can be"<<std::endl;
-        std::cout << "                           added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout << " -x <path>                 output path (by default only deformed template image and velocity"<<std::endl;
-        std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
-        std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
-        std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
-
-        // ####################### advanced options #######################
-        if (advanced)
-        {
-        std::cout << line << std::endl;
-        std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;"<<std::endl;
-        std::cout << "                           units: voxel size; if only one parameter is set"<<std::endl;
-        std::cout << "                           uniform smoothing is assumed: default: 1x1x1)"<<std::endl;
-        std::cout << " -disablesmoothing         flag: disable smoothing"<<std::endl;
-        }
-        // ####################### advanced options #######################
-
-        // ####################### advanced options #######################
-        if (advanced)
-        {
-        std::cout << line << std::endl;
-        std::cout << " solver specific parameters (numerics)"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -pdesolver <type>         numerical time integrator for transport equations"<<std::endl;
-        std::cout << "                           <type> is one of the following"<<std::endl;
-        std::cout << "                               sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
-        std::cout << "                               rk2          rk2 time integrator (conditionally stable)"<<std::endl;
-        std::cout << " -nt <int>                 number of time points (for time integration; default: 4)"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " memory distribution and parallelism"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -nthreads <int>           number of threads (default: 1)"<<std::endl;
-        std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
-        std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " other parameters/debugging"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
-        std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
-        std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
-        }
-        // ####################### advanced options #######################
-
-        std::cout << line << std::endl;
-        std::cout << " ### resampling"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -resample                flag: resample data"<<std::endl;
-        std::cout << " -ifile <filename>        input file (image)"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -help                     display a brief version of the user message"<<std::endl;
-        std::cout << " -advanced                 display this message"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << line << std::endl;
-
-    }
-
-    ierr=PetscFinalize(); CHKERRQ(ierr);
-    exit(0);
-
-    PetscFunctionReturn(0);
-
-}
-
-
-
-
-/********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "CheckArgumentsRegistration"
-PetscErrorCode RegOpt::CheckArgumentsRegistration()
+#define __FUNCT__ "CheckArguments"
+PetscErrorCode RegOpt::CheckArguments()
 {
     PetscErrorCode ierr;
     bool readmR=false,readmT=false;
@@ -1252,12 +1015,12 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
     else if( (readmT == false) && readmR ) {
         msg="\x1b[31m you need to also assign a template image\x1b[0m\n";
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-        ierr=this->UsageRegistration(); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
     }
     else if( readmT && (readmR == false) ) {
         msg="\x1b[31m you need to also assign a reference image\x1b[0m\n";
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-        ierr=this->UsageRegistration(); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
     }
     else if( (readmT == false) && (readmR == false) ){
         this->m_RegFlags.readimages=false;
@@ -1270,12 +1033,12 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
         if(betav <= 0.0){
             msg="\x1b[31m target betav <= 0.0 \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
         }
         if(betav > 1.0){
             msg="\x1b[31m target betav >= 1.0 \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
         }
         this->m_RegNorm.beta[0] = betav;
         this->m_RegNorm.beta[1] = betav;
@@ -1284,7 +1047,7 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
     if (this->m_ScaleCont.enabled && this->m_ParaCont.enabled){
         msg="\x1b[31m combined parameter and scale continuation not available \x1b[0m\n";
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-        ierr=this->UsageRegistration(); CHKERRQ(ierr);
+        ierr=this->Usage(); CHKERRQ(ierr);
     }
 
     // check output arguments
@@ -1298,7 +1061,7 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
         if ( this->m_XFolder.empty() ){
             msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
+            ierr=this->Usage(); CHKERRQ(ierr);
         }
 
     }
@@ -1307,52 +1070,7 @@ PetscErrorCode RegOpt::CheckArgumentsRegistration()
         || this->m_KrylovSolverPara.pctolscale >= 1.0 ){
         msg="\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
         ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-        ierr=this->UsageRegistration(); CHKERRQ(ierr);
-    }
-
-    ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief check the arguments set by user
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CheckArgumentsPostProcessing"
-PetscErrorCode RegOpt::CheckArgumentsPostProcessing()
-{
-    PetscErrorCode ierr;
-    std::string msg;
-    PetscFunctionBegin;
-
-    this->m_XExtension = ".nii.gz";
-
-    // check output arguments
-    if (   this->m_RegFlags.storeresults
-        || this->m_RegFlags.storedefgrad
-        || this->m_RegFlags.storedefmap
-        || this->m_RegFlags.storetimeseries
-        || this->m_RegFlags.storeinterresults
-        || this->m_RegFlags.loggingenabled ){
-
-        if ( this->m_XFolder.empty() ){
-            msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
-        }
-
-        if ( this->m_IFolder.empty() ){
-            msg="\x1b[31m input folder needs to be set (-i option) \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->UsageRegistration(); CHKERRQ(ierr);
-        }
-
-        this->m_RegFlags.runpostproc = true;
-
+        ierr=this->Usage(); CHKERRQ(ierr);
     }
 
     ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
@@ -1705,6 +1423,11 @@ PetscErrorCode RegOpt::DisplayOptions()
                     std::cout<<"h2-norm (betav estimated)"<<std::endl;
                     break;
                 }
+                case H3:
+                {
+                    std::cout<<"h3-norm (betav estimated)"<<std::endl;
+                    break;
+                }
                 case H1SN:
                 {
                     std::cout<<"h1-seminorm (betav estimated)"<<std::endl;
@@ -1713,6 +1436,11 @@ PetscErrorCode RegOpt::DisplayOptions()
                 case H2SN:
                 {
                     std::cout<<"h2-seminorm (betav estimated)"<<std::endl;
+                    break;
+                }
+                case H3SN:
+                {
+                    std::cout<<"h3-seminorm (betav estimated)"<<std::endl;
                     break;
                 }
                 default:
@@ -1759,6 +1487,14 @@ PetscErrorCode RegOpt::DisplayOptions()
                                 << ")" <<std::endl;
                     break;
                 }
+                case H3:
+                {
+                    std::cout   << std::scientific << "h3-norm (betav="
+                                << this->m_RegNorm.beta[0]
+                                << ", "<< this->m_RegNorm.beta[1]
+                                << ")" <<std::endl;
+                    break;
+                }
                 case H1SN:
                 {
                     std::cout   << std::scientific <<  "h1-seminorm (betav="
@@ -1769,6 +1505,13 @@ PetscErrorCode RegOpt::DisplayOptions()
                 case H2SN:
                 {
                     std::cout   << std::scientific << "h2-seminorm (betav="
+                                << this->m_RegNorm.beta[0]
+                                << ")" <<std::endl;
+                    break;
+                }
+                case H3SN:
+                {
+                    std::cout   << std::scientific << "h3-seminorm (betav="
                                 << this->m_RegNorm.beta[0]
                                 << ")" <<std::endl;
                     break;
@@ -1799,6 +1542,11 @@ PetscErrorCode RegOpt::DisplayOptions()
             case RK2:
             {
                 std::cout<<"second order rk method"<<std::endl;
+                break;
+            }
+            case RK2A:
+            {
+                std::cout<<"antisymmetric rk2"<<std::endl;
                 break;
             }
             case SL:

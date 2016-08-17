@@ -186,6 +186,8 @@ PetscErrorCode SemiLagrangian::ClearMemory()
 }
 
 
+
+
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
@@ -290,7 +292,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMap"
-PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
+PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v, bool inverse)
 {
 
     PetscErrorCode ierr;
@@ -354,29 +356,16 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
+    if (inverse){ ht *= -1.0; }
     hthalf = 0.5*ht;
 
     ierr=y->Copy(this->m_InitialTrajectory); CHKERRQ(ierr);
 
-    ierr=VecGetArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecGetArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecGetArray(v->m_X3,&p_vx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(y->m_X1,&p_yx1); CHKERRQ(ierr);
-    ierr=VecGetArray(y->m_X2,&p_yx2); CHKERRQ(ierr);
-    ierr=VecGetArray(y->m_X3,&p_yx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_ytildex1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X2,&p_ytildex2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_ytildex3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField2->m_X1,&p_vyx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField2->m_X2,&p_vyx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField2->m_X3,&p_vyx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField3->m_X1,&p_vytildex1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField3->m_X2,&p_vytildex2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField3->m_X3,&p_vytildex3); CHKERRQ(ierr);
+    ierr=v->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=y->GetArrays(p_yx1,p_yx2,p_yx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->GetArrays(p_ytildex1,p_ytildex2,p_ytildex3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->GetArrays(p_vyx1,p_vyx2,p_vyx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField3->GetArrays(p_vytildex1,p_vytildex2,p_vytildex3); CHKERRQ(ierr);
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j){
@@ -421,9 +410,7 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
 
             ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
 
-            ierr=VecRestoreArray(y->m_X1,&p_yx1); CHKERRQ(ierr);
-            ierr=VecRestoreArray(y->m_X2,&p_yx2); CHKERRQ(ierr);
-            ierr=VecRestoreArray(y->m_X3,&p_yx3); CHKERRQ(ierr);
+            ierr=y->RestoreArrays(p_yx1,p_yx2,p_yx3); CHKERRQ(ierr);
 
             // write out y1
             ss.str(std::string()); ss.clear();
@@ -438,33 +425,18 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v)
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3.nii.gz";
             ierr=this->m_ReadWrite->Write(y->m_X3,ss.str()); CHKERRQ(ierr);
 
-            ierr=VecGetArray(y->m_X1,&p_yx1); CHKERRQ(ierr);
-            ierr=VecGetArray(y->m_X2,&p_yx2); CHKERRQ(ierr);
-            ierr=VecGetArray(y->m_X3,&p_yx3); CHKERRQ(ierr);
+            ierr=y->GetArrays(p_yx1,p_yx2,p_yx3); CHKERRQ(ierr);
+
         }
 
     } // for all time points
 
-    ierr=VecRestoreArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(v->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=v->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr=y->RestoreArrays(p_yx1,p_yx2,p_yx3); CHKERRQ(ierr);
 
-    ierr=VecRestoreArray(y->m_X1,&p_yx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(y->m_X2,&p_yx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(y->m_X3,&p_yx3); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_ytildex1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X2,&p_ytildex2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_ytildex3); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_WorkVecField2->m_X1,&p_vyx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField2->m_X2,&p_vyx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField2->m_X3,&p_vyx3); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(this->m_WorkVecField3->m_X1,&p_vytildex1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField3->m_X2,&p_vytildex2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField3->m_X3,&p_vytildex3); CHKERRQ(ierr);
-
+    ierr=this->m_WorkVecField1->RestoreArrays(p_ytildex1,p_ytildex2,p_ytildex3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->RestoreArrays(p_vyx1,p_vyx2,p_vyx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField3->RestoreArrays(p_vytildex1,p_vytildex2,p_vytildex3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -584,23 +556,13 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(w!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    ierr=VecGetArray(w->m_X1,&p_wx1); CHKERRQ(ierr);
-    ierr=VecGetArray(w->m_X2,&p_wx2); CHKERRQ(ierr);
-    ierr=VecGetArray(w->m_X3,&p_wx3); CHKERRQ(ierr);
-
-    ierr=VecGetArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecGetArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecGetArray(v->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=w->GetArrays(p_wx1,p_wx2,p_wx3); CHKERRQ(ierr);
+    ierr=v->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     ierr=this->Interpolate(p_wx1,p_wx2,p_wx3,p_vx1,p_vx2,p_vx3,flag); CHKERRQ(ierr);
 
-    ierr=VecRestoreArray(v->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(v->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(v->m_X3,&p_vx3); CHKERRQ(ierr);
-
-    ierr=VecRestoreArray(w->m_X1,&p_wx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(w->m_X2,&p_wx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(w->m_X3,&p_wx3); CHKERRQ(ierr);
+    ierr=w->RestoreArrays(p_wx1,p_wx2,p_wx3); CHKERRQ(ierr);
+    ierr=v->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
@@ -872,7 +834,6 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
 {
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
-    IntType isize[3],istart[3];
     ScalarType hx[3];
 
     PetscFunctionBegin;
@@ -892,44 +853,38 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     }
 
     for (int i = 0; i < 3; ++i){
-        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
-        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
     }
 
-    ierr=VecGetArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_InitialTrajectory->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_InitialTrajectory->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr=this->m_InitialTrajectory->GetArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
-    IntType li;
+    IntType i,i1,i2,i3;
     ScalarType x1,x2,x3;
 #pragma omp for
-    for (IntType i1 = 0; i1 < isize[0]; ++i1){  // x1
-        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
+    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1){  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2){ // x2
+            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
 
                 // compute linear / flat index
-                li = GetLinearIndex(i1,i2,i3,isize);
-                // assign values
-                p_x1[li] = x1;
-                p_x2[li] = x2;
-                p_x3[li] = x3;
+                i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
+
+                p_x1[i] = x1;
+                p_x2[i] = x2;
+                p_x3[i] = x3;
 
             } // i1
         } // i2
     } // i3
 }// pragma omp for
 
-    ierr=VecRestoreArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_InitialTrajectory->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_InitialTrajectory->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr=this->m_InitialTrajectory->RestoreArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("slm: computing initial condition done"); CHKERRQ(ierr);
@@ -1090,6 +1045,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
 
     PetscFunctionReturn(0);
 }
+
 
 
 

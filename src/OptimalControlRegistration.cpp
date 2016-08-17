@@ -1600,7 +1600,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 #define __FUNCT__ "SolveStateEquationRK2"
 PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     IntType nl,ng,nt;
     ScalarType *p_mj=NULL,*p_m=NULL,*p_mbar=NULL,*p_rhs0=NULL,
                 *p_gmx1=NULL,*p_gmx2=NULL,*p_gmx3=NULL,
@@ -1712,7 +1712,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void)
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -3174,22 +3174,16 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void)
     ierr=this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_WorkScaField3,&p_divv); CHKERRQ(ierr);
-
-    ierr=VecGetArray(this->m_WorkVecField1->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_WorkVecField1->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     // compute div(v)
     accfft_divergence(p_divv,p_vx1,p_vx2,p_vx3,this->m_Opt->GetFFT().plan,timers);
     this->m_Opt->IncrementCounter(FFT,4);
 
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X1,&p_vx1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X2,&p_vx2); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_WorkVecField1->m_X3,&p_vx3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField1->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
 
     // evaluate div(v) on characteristic
     ierr=VecGetArray(this->m_WorkScaField4,&p_divvX); CHKERRQ(ierr);
-
     ierr=this->m_SemiLagrangianMethod->Interpolate(p_divvX,p_divv,"adjoint"); CHKERRQ(ierr);
 
     ierr=VecGetArray(this->m_WorkScaField2,&p_ltildejX); CHKERRQ(ierr);
@@ -3270,6 +3264,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void)
         ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
     }
 */
+
     ierr=ThrowError("not implemented"); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -3487,28 +3482,32 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
     }
 
-    // deformed template out
-    // compute solution of state equation
-    ierr=this->SolveStateEquation(); CHKERRQ(ierr);
+    if (this->m_Opt->GetRegFlags().loggingenabled || this->m_Opt->GetRegFlags().storeresults){
 
-    // copy memory for m_1
-    ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-    ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-    try{ std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1); }
-    catch(std::exception&){
-        ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        // deformed template out (compute solution of state equation)
+        ierr=this->SolveStateEquation(); CHKERRQ(ierr);
+
+        // copy memory for m_1
+        ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
+        ierr=VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+        try{ std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1); }
+        catch(std::exception&){
+            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
+        ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+
+        // ||m_R - m_1 ||
+        ierr=VecWAXPY(this->m_WorkScaField2,-1.0,this->m_WorkScaField1,this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=VecNorm(this->m_WorkScaField2,NORM_2,&mRm1_2); CHKERRQ(ierr);
+        ierr=VecNorm(this->m_WorkScaField2,NORM_INFINITY,&mRm1_infty); CHKERRQ(ierr);
+
     }
-    ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-    ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-
-    // ||m_R - m_1 ||
-    ierr=VecWAXPY(this->m_WorkScaField2,-1.0,this->m_WorkScaField1,this->m_ReferenceImage); CHKERRQ(ierr);
-    ierr=VecNorm(this->m_WorkScaField2,NORM_2,&mRm1_2); CHKERRQ(ierr);
-    ierr=VecNorm(this->m_WorkScaField2,NORM_INFINITY,&mRm1_infty); CHKERRQ(ierr);
 
     if(this->m_Opt->GetRegFlags().storeresults){
 
-        ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
+        // rescale thescalar field
+        //ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"deformed-template-image"+ext); CHKERRQ(ierr);
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField2,"residual-after"+ext); CHKERRQ(ierr);
@@ -3535,25 +3534,33 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     }
 
     if(this->m_Opt->GetRegFlags().storedefmap){
-
         ierr=this->ComputeDeformationMap(); CHKERRQ(ierr);
         ierr=Assert( this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"deformation-map-x1"+ext,
                                                             "deformation-map-x2"+ext,
                                                             "deformation-map-x3"+ext); CHKERRQ(ierr);
+    }
+
+    if(this->m_Opt->GetRegFlags().storedeffield){
+
+        ierr=this->ComputeDisplacementField(); CHKERRQ(ierr);
+        ierr=Assert( this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"displacement-field-x1"+ext,
+                                                            "displacement-field-x2"+ext,
+                                                            "displacement-field-x3"+ext); CHKERRQ(ierr);
 
     }
 
-    ierr=VecNorm(this->m_ReferenceImage,NORM_2,&mR_2); CHKERRQ(ierr);
-    ierr=VecNorm(this->m_ReferenceImage,NORM_INFINITY,&mR_infty); CHKERRQ(ierr);
-
-    mRmT_infty = (mRmT_infty > 0.0) ? mRmT_infty : 1.0;
-    mRmT_2     = (mRmT_2     > 0.0) ? mRmT_2     : 1.0;
-
-    drrel_infty=mRm1_infty/mRmT_infty;
-    drrel_2=mRm1_2/mRmT_2;
-
     if (this->m_Opt->GetRegFlags().loggingenabled){
+
+        ierr=VecNorm(this->m_ReferenceImage,NORM_2,&mR_2); CHKERRQ(ierr);
+        ierr=VecNorm(this->m_ReferenceImage,NORM_INFINITY,&mR_infty); CHKERRQ(ierr);
+
+        mRmT_infty = (mRmT_infty > 0.0) ? mRmT_infty : 1.0;
+        mRmT_2     = (mRmT_2     > 0.0) ? mRmT_2     : 1.0;
+
+        drrel_infty=mRm1_infty/mRmT_infty;
+        drrel_2=mRm1_2/mRmT_2;
 
         if (rank == 0){
 

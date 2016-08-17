@@ -1,9 +1,9 @@
 CXX=mpicxx
 
 USEINTEL=yes
-USEINTELMPI=no #yes
-BUILDTOOLS=yes #yes
-DBGCODE=no #yes
+USEINTELMPI=yes
+BUILDTOOLS=yes
+DBGCODE=yes
 PEDANTIC=yes
 
 RM = rm -f
@@ -69,8 +69,8 @@ ifeq ($(USEINTELMPI),yes)
 endif
 LDFLAGS+= -lm
 
-BIN+=$(BINDIR)/runcoldreg
-#BIN+=$(BINDIR)/regtools
+#BIN+=$(BINDIR)/runcoldreg
+BIN+=$(BINDIR)/regtools
 ifeq ($(BUILDTOOLS),yes)
 #	BIN+=$(BINDIR)/regtools
 #	BIN+= $(BINDIR)/par_interp3_driver
@@ -78,6 +78,7 @@ endif
 
 
 CPPFILES=$(SRCDIR)/RegOpt.cpp \
+		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/RegUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
@@ -95,8 +96,10 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
+		$(SRCDIR)/RegularizationRegistrationH3.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
+		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/OptimalControlRegistrationBase.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \

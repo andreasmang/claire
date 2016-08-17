@@ -77,7 +77,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
 
         ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         if (this->m_WorkVecField==NULL){
             try{this->m_WorkVecField = new VecField(this->m_Opt);}
@@ -198,7 +199,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
     }
     else{
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -337,7 +339,8 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
     }
     else{
 
-        ierr=this->Allocate(); CHKERRQ(ierr);
+        ierr=this->Allocate(0); CHKERRQ(ierr);
+        ierr=this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
