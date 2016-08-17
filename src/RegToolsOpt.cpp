@@ -472,7 +472,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
             ierr=this->Usage(); CHKERRQ(ierr);
         }
 
-        this->m_PostProcPara.enabled = true;
+//        this->m_PostProcPara.enabled = true;
 
         // set this flag to true, so that containers for reference and
         // template image are not to be deleted in registration class

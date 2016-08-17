@@ -57,6 +57,8 @@ int main(int argc,char **argv)
     if ( regopt->GetPostProcPara().enabled ){
         ierr=RunPostProcessing(regopt); CHKERRQ(ierr);
     }
+    else if (regopt->GetRegFlags().storedefgrad ){
+    }
     else if( regopt->GetResamplingPara().enabled ){
 
         if ( regopt->GetFlags().readvecfield ){
@@ -77,6 +79,8 @@ int main(int argc,char **argv)
 
     return 0;
 }
+
+
 
 
 /********************************************************************
@@ -165,6 +169,80 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+
+/********************************************************************
+ * @brief post process image registration results
+ *******************************************************************/
+PetscErrorCode ComputeDeformationGradient(reg::RegToolsOpt* regopt)
+{
+    PetscErrorCode ierr=0;
+    std::string ifolder,xfolder,filename;
+    Vec vx1=NULL,vx2=NULL,vx3=NULL;
+    reg::VecField *v=NULL;
+
+    reg::ReadWriteReg* readwrite = NULL;
+    reg::RegistrationInterface* registration = NULL;
+
+    PetscFunctionBegin;
+
+    // allocate class for io
+    try{ readwrite = new reg::ReadWriteReg(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ifolder=regopt->GetIFolder();
+    ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
+
+    // read velocity components
+    filename = ifolder + "velocity-field-x1.nii.gz";
+    ierr=readwrite->Read(&vx1,filename); CHKERRQ(ierr);
+
+    if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
+
+    // allocate container for velocity field
+    try{ v = new reg::VecField(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr=VecCopy(vx1,v->m_X1); CHKERRQ(ierr);
+    if (vx1!=NULL){ ierr=VecDestroy(&vx1); CHKERRQ(ierr); vx1=NULL; }
+
+    filename = ifolder + "velocity-field-x2.nii.gz";
+    ierr=readwrite->Read(&vx2,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vx2,v->m_X2); CHKERRQ(ierr);
+    if (vx2!=NULL){ ierr=VecDestroy(&vx2); CHKERRQ(ierr); vx2=NULL; }
+
+    filename = ifolder + "velocity-field-x3.nii.gz";
+    ierr=readwrite->Read(&vx3,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vx3,v->m_X3); CHKERRQ(ierr);
+    if (vx3!=NULL){ ierr=VecDestroy(&vx3); CHKERRQ(ierr); vx3=NULL; }
+
+    // allocate class for registration interface
+    try{ registration = new reg::RegistrationInterface(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // set all we need
+    ierr=registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+    ierr=registration->SetInitialGuess(v); CHKERRQ(ierr);
+
+    // run post processing
+    ierr=registration->ComputeDetDefGrad(); CHKERRQ(ierr);
+
+    if (v!=NULL){ delete v; v=NULL; }
+    if (readwrite!=NULL){ delete readwrite; readwrite=NULL; }
+    if (registration!=NULL){ delete registration; registration=NULL; }
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

@@ -328,6 +328,17 @@ PetscErrorCode RegistrationInterface::SetupSolver()
 
     }
 
+    // set up initial condition
+    if (this->m_Solution==NULL){
+
+        try{ this->m_Solution = new VecField(this->m_Opt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
+
+    }
+
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
@@ -377,17 +388,6 @@ PetscErrorCode RegistrationInterface::SetupRegProblem()
 
     ierr=Assert(this->m_ReadWrite!=NULL,"read/write is null"); CHKERRQ(ierr);
     ierr=this->m_RegProblem->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
-
-    // set up initial condition
-    if (this->m_Solution==NULL){
-
-        try{ this->m_Solution = new VecField(this->m_Opt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
-
-    }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1606,6 +1606,38 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
     // destroy vectors
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); }
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+/********************************************************************
+ * @brief run postprocessing of input data
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeDeformationMap"
+PetscErrorCode RegistrationInterface::ComputeDetDefGrad()
+{
+    PetscErrorCode ierr;
+    Vec mR=NULL,mT=NULL;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=Assert(this->m_RegProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // user needs to set template and reference image and the solution
+    ierr=Assert(this->m_Solution!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // compute stuff
+    ierr=this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->ComputeDetDefGrad(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
