@@ -345,6 +345,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetVelocity2Zero()
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+
     this->m_Opt->Enter(__FUNCT__);
 
     if(this->m_VelocityField == NULL){
@@ -372,7 +373,9 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
 {
     PetscErrorCode ierr;
     ScalarType normv1,normv2,normv3;
+
     PetscFunctionBegin;
+
     this->m_Opt->Enter(__FUNCT__);
 
     this->m_VelocityIsZero = false;
@@ -400,8 +403,10 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero()
 PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization()
 {
     PetscErrorCode ierr;
+
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
 
     // delete regularization if already allocated
     // (should never happen)
@@ -463,6 +468,8 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization()
         default: { ierr=reg::ThrowError("regularization model not defined"); CHKERRQ(ierr); }
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -478,6 +485,8 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
 {
     PetscErrorCode ierr;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -501,6 +510,8 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOp(Vec Ainvx, Vec x)
     ierr=this->m_Regularization->ApplyInvOp(this->m_WorkVecField2,this->m_WorkVecField1); CHKERRQ(ierr);
     ierr=this->m_WorkVecField2->GetComponents(Ainvx); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -517,6 +528,8 @@ PetscErrorCode OptimalControlRegistrationBase::EstimateExtremalHessEigVals(Scala
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     if (this->m_Regularization == NULL){
         ierr=this->AllocateRegularization(); CHKERRQ(ierr);
     }
@@ -525,6 +538,7 @@ PetscErrorCode OptimalControlRegistrationBase::EstimateExtremalHessEigVals(Scala
     emin += 1.0;
     emax += 1.0; // this is crap
 
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -541,7 +555,10 @@ PetscErrorCode OptimalControlRegistrationBase::EstimateExtremalHessEigVals(Scala
 PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x)
 {
     PetscErrorCode ierr;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // switch between hessian operators
     switch (this->m_Opt->GetHessianMatVecType()){
@@ -567,6 +584,8 @@ PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x)
         }
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -580,8 +599,11 @@ PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x)
 #define __FUNCT__ "PostKrylovSolve"
 PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // switch between hessian operators
     switch (this->m_Opt->GetHessianMatVecType()){
@@ -607,6 +629,8 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x)
         }
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -624,7 +648,10 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOpSqrt(Vec x)
 {
     PetscErrorCode ierr;
     bool usesqrt=true;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_WorkVecField1 == NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -652,6 +679,7 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOpSqrt(Vec x)
 
     ierr=this->m_WorkVecField2->GetComponents(x); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -672,6 +700,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     int problem=3;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("setting up synthetic test problem"); CHKERRQ(ierr);
@@ -763,6 +793,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -779,7 +811,10 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     PetscErrorCode ierr;
     ScalarType *p_u=NULL,*p_uj=NULL;
     IntType nl,nt;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -803,6 +838,8 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     ierr=VecRestoreArray(u,&p_u); CHKERRQ(ierr);
     ierr=VecRestoreArray(uj,&p_uj); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -822,6 +859,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
     IntType nl,ng,ntcfl;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
@@ -874,6 +913,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition()
     ss<<"||v||_infty = "<<std::scientific<<std::fixed<<vmax<<" nt_CFL = "<<ntcfl;
     ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -891,7 +932,10 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     ScalarType jmin,jmax,jbound;
     bool minboundreached,maxboundreached;
     std::stringstream ss;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_VelocityField == NULL){
        try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -940,6 +984,8 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
 
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -959,6 +1005,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
     std::stringstream ss, ssnum;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("computing determinant of deformation gradient"); CHKERRQ(ierr);
@@ -1034,6 +1082,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
         ss.str( std::string() ); ss.clear();
     }
 
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -1056,7 +1105,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ScalarType ht,hthalf;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1145,6 +1197,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ierr=this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
     ierr=this->m_WorkVecField1->RestoreArrays(p_gx1,p_gx2,p_gx3); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1168,7 +1221,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
     ScalarType ht,hthalf;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1303,6 +1359,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A()
     ierr=this->m_WorkVecField1->RestoreArrays(p_gphi1,p_gphi2,p_gphi3); CHKERRQ(ierr);
     ierr=this->m_WorkVecField2->RestoreArrays(p_phiv1,p_phiv2,p_phiv3); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -1327,7 +1385,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField()
                 *p_gu31=NULL,*p_gu32=NULL,*p_gu33=NULL;
     double timer[5]={0,0,0,0,0};
     std::bitset<3>XYZ=0; XYZ[0]=1; XYZ[1]=1; XYZ[2]=1;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -1406,6 +1467,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField()
     ierr=this->m_WorkVecField3->RestoreArrays(p_gu21,p_gu22,p_gu23); CHKERRQ(ierr);
     ierr=this->m_WorkVecField4->RestoreArrays(p_gu31,p_gu32,p_gu33); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -1429,6 +1492,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     double timings[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1541,6 +1606,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     ierr=VecRestoreArray(this->m_WorkScaField2,&p_jX); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_WorkScaField1,&p_j); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 
 }
@@ -1556,7 +1623,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap()
 {
     PetscErrorCode ierr=0;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // allocate velocity field
     if (this->m_VelocityField == NULL){
@@ -1589,6 +1659,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap()
             break;
         }
     }
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1800,6 +1872,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
     PetscErrorCode ierr=0;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // allocate vector fields
@@ -1823,6 +1897,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
     ierr=this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);
     ierr=this->m_SemiLagrangianMethod->ComputeDeformationMap(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -1837,7 +1913,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
 PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField()
 {
     PetscErrorCode ierr=0;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // allocate velocity field
     if (this->m_VelocityField == NULL){
@@ -1873,6 +1952,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField()
         }
     }
 
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1914,6 +1994,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL()
                 *p_uX1=NULL,*p_uX2=NULL,*p_uX3=NULL;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1975,6 +2057,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL()
     ierr=this->m_WorkVecField2->RestoreArrays(p_vX1,p_vX2,p_vX3); CHKERRQ(ierr);
     ierr=this->m_VelocityField->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -1991,7 +2075,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement()
     PetscErrorCode ierr=0;
     ScalarType hx[3];
     ScalarType *p_u1=NULL,*p_u2=NULL,*p_u3=NULL;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // allocate velocity field
     if (this->m_VelocityField == NULL){
@@ -2061,6 +2148,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement()
     } // i3
 }// pragma omp for
     ierr=this->m_WorkVecField1->RestoreArrays(p_u1,p_u2,p_u3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }

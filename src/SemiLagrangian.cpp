@@ -222,6 +222,8 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     if (this->m_InitialTrajectory == NULL){
         ierr=this->ComputeInitialCondition(); CHKERRQ(ierr);
     }
@@ -280,6 +282,8 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag)
 
     ierr=this->MapCoordinateVector(flag); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -306,6 +310,8 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v, bo
                 *p_yx1=NULL,*p_yx2=NULL,*p_yx3=NULL;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(y != NULL, "input map is null"); CHKERRQ(ierr);
     ierr=Assert(v != NULL, "input velocity field is null"); CHKERRQ(ierr);
@@ -438,6 +444,8 @@ PetscErrorCode SemiLagrangian::ComputeDeformationMap(VecField *y,VecField* v, bo
     ierr=this->m_WorkVecField2->RestoreArrays(p_vyx1,p_vyx2,p_vyx3); CHKERRQ(ierr);
     ierr=this->m_WorkVecField3->RestoreArrays(p_vytildex1,p_vytildex2,p_vytildex3); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -455,6 +463,9 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w,Vec v,std::string flag)
     ScalarType *p_w=NULL,*p_v=NULL;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(*w!=NULL,"output is null pointer"); CHKERRQ(ierr);
     ierr=Assert(v!=NULL,"input is null pointer"); CHKERRQ(ierr);
 
@@ -465,6 +476,8 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w,Vec v,std::string flag)
 
     ierr=VecRestoreArray(*w,&p_w); CHKERRQ(ierr);
     ierr=VecRestoreArray(v,&p_v); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -486,6 +499,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
     double timers[4]={0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(w!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -535,6 +550,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w,ScalarType* v,std::stri
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -553,6 +570,8 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string
                 *p_wx1=NULL,*p_wx2=NULL,*p_wx3=NULL;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(w!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -563,6 +582,8 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string
 
     ierr=w->RestoreArrays(p_wx1,p_wx2,p_wx3); CHKERRQ(ierr);
     ierr=v->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -590,7 +611,10 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     accfft_plan* plan=NULL;
     IntType g_alloc_max;
     IntType nl,nlghost;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(vx1!=NULL,"input is null pointer"); CHKERRQ(ierr);
     ierr=Assert(vx2!=NULL,"input is null pointer"); CHKERRQ(ierr);
@@ -611,28 +635,35 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
+    ierr=DbgMsg("allocating memory"); CHKERRQ(ierr);
+
     if (this->m_iVecField==NULL){
         try{ this->m_iVecField = new double [3*nl]; }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_xVecField == NULL){
+    if (this->m_xVecField==NULL){
         try{ this->m_xVecField = new double [3*nl]; }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    ierr=DbgMsg("allocating memory done"); CHKERRQ(ierr);
 
+    ierr=DbgMsg("parsing values"); CHKERRQ(ierr);
     for (IntType i = 0; i < nl; ++i){
         this->m_iVecField[0*nl + i] = vx1[i];
         this->m_iVecField[1*nl + i] = vx2[i];
         this->m_iVecField[2*nl + i] = vx3[i];
     }
+    ierr=DbgMsg("parsing values done"); CHKERRQ(ierr);
 
     // get ghost sizes
+    ierr=DbgMsg("computing ghost points"); CHKERRQ(ierr);
     plan = this->m_Opt->GetFFT().plan;
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
+    ierr=DbgMsg("computing ghost points done"); CHKERRQ(ierr);
 
     // get nlocal for ghosts
     nlghost = 1;
@@ -647,11 +678,14 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
     // do the communication for the ghost points
+    ierr=DbgMsg("communicate ghost points"); CHKERRQ(ierr);
     for (int i = 0; i < 3; i++){
+        std::cout<< i << " " << isize_g[i] <<std::endl;
         accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,
                                  &this->m_iVecField[i*nl],
                                  &this->m_VecFieldGhost[i*nlghost]);
     }
+    ierr=DbgMsg("communication done"); CHKERRQ(ierr);
 
     if (strcmp(flag.c_str(),"state")==0){
 
@@ -687,6 +721,8 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 
 }
@@ -715,7 +751,10 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     double timers[4] = {0,0,0,0};
     accfft_plan* plan=NULL;
     IntType nl,nlghost,g_alloc_max;
+
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(vx1!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(vx2!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -818,6 +857,8 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 
 }
@@ -837,6 +878,8 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
     ScalarType hx[3];
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     // allocate initial trajectory
     if(this->m_InitialTrajectory==NULL){
@@ -890,6 +933,8 @@ PetscErrorCode SemiLagrangian::ComputeInitialCondition()
         ierr=DbgMsg("slm: computing initial condition done"); CHKERRQ(ierr);
     }
 
+    this->m_Opt->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -912,6 +957,8 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
     double timers[4] = {0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
 
     for (int i = 0; i < 3; ++i){
         _nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
@@ -1042,6 +1089,8 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
 
     this->m_Opt->IncreaseInterpTimers(timers);
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
