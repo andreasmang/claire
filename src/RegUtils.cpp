@@ -3,7 +3,7 @@
 
 
 #include "RegUtils.hpp"
-
+#include <time.h>
 
 
 namespace reg
@@ -196,6 +196,21 @@ PetscErrorCode MPIERRQ(int cerr)
 }
 
 
+/********************************************************************
+ * @brief function to slow down code
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "isleep"
+void isleep( unsigned int nanosec )
+{
+    clock_t wait = (clock_t) nanosec;
+    clock_t start_time = clock();
+    while( clock() != start_time + wait ){};
+
+    return;
+}
+
+
 
 
 /********************************************************************
@@ -206,7 +221,7 @@ PetscErrorCode MPIERRQ(int cerr)
 PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
 {
     PetscErrorCode ierr;
-    IntType nprocs,ompthreads,np;
+    int nprocs,ompthreads,np;
     std::stringstream ss;
 
     PetscFunctionBegin;

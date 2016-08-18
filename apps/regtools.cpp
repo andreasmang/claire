@@ -285,7 +285,6 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
     for(int i=0; i < 3; ++i){
         nx[i]  = regopt->GetDomainPara().nx[i];
         nxl[i] = static_cast<IntType>(ceil(scale*regopt->GetDomainPara().nx[i]));
-        std::cout<<nxl[i] << std::endl;
     }
     ierr=regopt->GetSizes(nxl,nl,ng); CHKERRQ(ierr);
 

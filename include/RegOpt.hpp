@@ -25,6 +25,7 @@
 //#define _REG_DEBUG_
 
 //global includes
+#include <fstream>
 #include <sstream>
 
 // local includes

@@ -97,6 +97,10 @@ private:
     IntType m_ostartC[3];
     IntType m_ostartF[3];
 
+/*
+    IntType *m_NumSend;
+    IntType *m_NumRecv;
+*/
     IntType *m_NumSend;
     IntType *m_NumRecv;
     IntType *m_OffsetSend;
@@ -106,6 +110,8 @@ private:
 
     ScalarType m_FFTFineScale;
     ScalarType m_FFTCoarseScale;
+    MPI_Request *m_SendRequest;
+    MPI_Request *m_RecvRequest;
 
     bool m_GridChangeOpsSet;
     bool m_ResetGridChangeOps;

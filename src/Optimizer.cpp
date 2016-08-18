@@ -475,7 +475,8 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged)
 PetscErrorCode Optimizer::Finalize()
 {
     PetscErrorCode ierr;
-    int rank,indent,numindent,maxiter,iter,linelength;
+    int rank,indent,numindent,linelength;
+    IntType maxiter,iter;
     ScalarType gatol,grtol,gttol,gnorm,J,g0norm;
     bool stop[3],converged;
     std::string line,msg;

@@ -42,8 +42,6 @@
 //#define ScalarType double
 
 
-//#include "VecField.h"
-
 
 namespace reg
 {
@@ -57,6 +55,9 @@ PetscErrorCode ThrowError(std::string);
 
 /*! mpi error handling */
 PetscErrorCode MPIERRQ(int);
+
+/*! check if file exists */
+void isleep(unsigned int);
 
 /*! check if file exists */
 bool FileExists(const std::string&);

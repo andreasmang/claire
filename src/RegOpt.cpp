@@ -1,7 +1,6 @@
 #ifndef _REGOPT_CPP_
 #define _REGOPT_CPP_
 
-#include <fstream>
 #include "RegOpt.hpp"
 
 
