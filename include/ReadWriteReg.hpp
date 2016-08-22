@@ -86,9 +86,8 @@ private:
     VoxelType m_ComponentType;
 
     RegOpt* m_Opt;
-    nifti_image* m_NIIImage;
 
-    ScalarType* m_BCastDataBuffer;
+    ScalarType* m_Data;
     IntType m_nx[3];
 
 };

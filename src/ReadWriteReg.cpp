@@ -63,8 +63,7 @@ PetscErrorCode ReadWriteReg::Initialize()
 {
 
     this->m_Opt = NULL;
-    this->m_NIIImage = NULL;
-    this->m_BCastDataBuffer = NULL;
+    this->m_Data = NULL;
     this->m_nx[0] = -1;
     this->m_nx[1] = -1;
     this->m_nx[2] = -1;
@@ -176,10 +175,6 @@ PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename)
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
     filename = this->m_Opt->GetXFolder() + filename;
-//    if (filename.find(".nc") != std::string::npos){
-//        ierr=this->WriteTimeSeriesNetCDF(x,filename); CHKERRQ(ierr);
-//    }
-//    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -203,11 +198,6 @@ PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename)
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
-//    if (filename.find(".nc") != std::string::npos){
-//        ierr=this->ReadTimeSeriesNetCDF(x,filename); CHKERRQ(ierr);
-//    }
-//    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
-
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
@@ -229,11 +219,6 @@ PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename
     this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
-
-//    if (filename.find(".nc") != std::string::npos){
-//        ierr=this->ReadBlockNetCDF(x,isize,filename); CHKERRQ(ierr);
-//    }
-//    else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -258,10 +243,6 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
     filename = this->m_Opt->GetXFolder() + filename;
-    //if (filename.find(".nc") != std::string::npos){
-    //    ierr=this->WriteBlockNetCDF(x,isize,filename); CHKERRQ(ierr);
-    //}
-    //else{ ierr=ThrowError("can not write data type to file"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -296,10 +277,6 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
     }
 
     filename = this->m_Opt->GetXFolder() + filename;
-//    if (filename.find(".nc") != std::string::npos){
-//        ierr=this->WriteNetCDF(x,filename); CHKERRQ(ierr);
-//    }
-//    else if (filename.find(".nii") != std::string::npos){
     if (filename.find(".nii") != std::string::npos){
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
     }
@@ -346,321 +323,6 @@ PetscErrorCode ReadWriteReg::Write(VecField* v,
 }
 
 
-
-
-/********************************************************************
- * @brief read data from file
- *******************************************************************/
-/*
-#undef __FUNCT__
-#define __FUNCT__ "ReadNetCDF"
-PetscErrorCode ReadWriteReg::ReadNetCDF(Vec x, std::string filename)
-{
-    PetscErrorCode ierr;
-    ScalarType *p_x=NULL;
-    MPI_Offset isize[3],istart[3];
-    MPI_Comm c;
-    int nx[3];
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__FUNCT__);
-
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-
-    isize[0] = this->m_Opt->m_MiscOpt->isize[0];
-    isize[1] = this->m_Opt->m_MiscOpt->isize[1];
-    isize[2] = this->m_Opt->m_MiscOpt->isize[2];
-
-    istart[0] = this->m_Opt->m_MiscOpt->istart[0];
-    istart[1] = this->m_Opt->m_MiscOpt->istart[1];
-    istart[2] = this->m_Opt->m_MiscOpt->istart[2];
-
-    c = this->m_Opt->m_MiscOpt->c_comm;
-
-    nx[0] = this->m_Opt->m_MiscOpt->N[0];
-    nx[1] = this->m_Opt->m_MiscOpt->N[1];
-    nx[2] = this->m_Opt->m_MiscOpt->N[2];
-
-    // call io of accfft
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    read_pnetcdf(filename,istart,isize,c,nx,p_x);
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__FUNCT__);
-
-    PetscFunctionReturn(0);
-}
-
-*/
-
-
-/********************************************************************
- * @brief read data to file
- *******************************************************************/
-/*
-#undef __FUNCT__
-#define __FUNCT__ "ReadBlockNetCDF"
-PetscErrorCode ReadWriteReg::ReadBlockNetCDF(Vec x, int bsize[3], std::string filename)
-{
-    PetscErrorCode ierr;
-    ScalarType *p_x=NULL;
-    MPI_Offset isize[3],istart[3];
-    MPI_Comm c;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__FUNCT__);
-
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-
-    isize[0] = bsize[0];
-    isize[1] = bsize[1];
-    isize[2] = bsize[2];
-
-    istart[0] = 0;
-    istart[1] = 0;
-    istart[2] = 0;
-
-    c = this->m_Opt->m_MiscOpt->c_comm;
-
-    // call io of accfft
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    read_pnetcdf(filename,istart,isize,c,bsize,p_x);
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__FUNCT__);
-
-    PetscFunctionReturn(0);
-}
-*/
-
-
-
-/********************************************************************
- * @brief write data to file
- *******************************************************************/
-/*
-#undef __FUNCT__
-#define __FUNCT__ "WriteBlockNetCDF"
-PetscErrorCode ReadWriteReg::WriteBlockNetCDF(Vec x, int bsize[3], std::string filename)
-{
-    PetscErrorCode ierr;
-    ScalarType *p_x=NULL;
-    MPI_Offset isize[3],istart[3];
-    MPI_Comm c;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__FUNCT__);
-
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-
-    isize[0] = bsize[0];
-    isize[1] = bsize[1];
-    isize[2] = bsize[2];
-
-    istart[0] = 0;
-    istart[1] = 0;
-    istart[2] = 0;
-
-    c = this->m_Opt->m_MiscOpt->c_comm;
-
-    // call io of accfft
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    write_pnetcdf(filename,istart,isize,c,bsize,p_x);
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__FUNCT__);
-
-    PetscFunctionReturn(0);
-}
-*/
-
-
-
-
-/********************************************************************
- * @brief write data to file
- *******************************************************************/
-/*
-#undef __FUNCT__
-#define __FUNCT__ "WriteNetCDF"
-PetscErrorCode ReadWriteReg::WriteNetCDF(Vec x, std::string filename)
-{
-    PetscErrorCode ierr;
-    ScalarType *p_x=NULL;
-    MPI_Offset isize[3],istart[3];
-    MPI_Comm c;
-    int nx[3];
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__FUNCT__);
-
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-
-    isize[0] = this->m_Opt->m_MiscOpt->isize[0];
-    isize[1] = this->m_Opt->m_MiscOpt->isize[1];
-    isize[2] = this->m_Opt->m_MiscOpt->isize[2];
-
-    istart[0] = this->m_Opt->m_MiscOpt->istart[0];
-    istart[1] = this->m_Opt->m_MiscOpt->istart[1];
-    istart[2] = this->m_Opt->m_MiscOpt->istart[2];
-
-    c = this->m_Opt->m_MiscOpt->c_comm;
-
-    nx[0] = this->m_Opt->m_MiscOpt->N[0];
-    nx[1] = this->m_Opt->m_MiscOpt->N[1];
-    nx[2] = this->m_Opt->m_MiscOpt->N[2];
-
-    // call io of accfft
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    write_pnetcdf(filename,istart,isize,c,nx,p_x);
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__FUNCT__);
-
-    PetscFunctionReturn(0);
-}
-*/
-
-
-
-
-/********************************************************************
- * @brief write data to file
- *******************************************************************/
-/*
-#undef __FUNCT__
-#define __FUNCT__ "WriteTimeSeriesNetCDF"
-PetscErrorCode ReadWriteReg::WriteTimeSeriesNetCDF(Vec x, std::string filename)
-{
-    PetscErrorCode ierr;
-    ScalarType *p_x=NULL, *p_xj=NULL;
-    Vec xj;
-    std::string::size_type pos;
-    std::ostringstream ss;;
-    std::string fn;
-    MPI_Offset is[3],in[3];
-    MPI_Comm c;
-    IntType nl,ng,nt;
-    int nx[3];
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__FUNCT__);
-
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-
-    for (unsigned int i=0; i < 3; ++i){
-        nx[i] = this->m_Opt->m_MiscOpt->N[i];
-        in[i] = this->m_Opt->m_MiscOpt->isize[i];
-        is[i] = this->m_Opt->m_MiscOpt->istart[i];
-    }
-
-    c  = this->m_Opt->m_MiscOpt->c_comm;
-    nt = this->m_Opt->GetNumTimePoints();
-    nl = this->m_Opt->GetNLocal();
-    ng = this->m_Opt->GetNGlobal();
-
-    ierr=VecCreate(PETSC_COMM_WORLD,&xj); CHKERRQ(ierr);
-    ierr=VecSetSizes(xj,nl,ng); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(xj); CHKERRQ(ierr);
-
-    // call io of accfft
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    ierr=VecGetArray(xj,&p_xj); CHKERRQ(ierr);
-    pos = filename.find_last_of(".");
-    fn = (std::string::npos == pos) ? filename : filename.substr(0, pos);
-
-    for (unsigned int j = 0; j <= nt; ++j){
-
-        try{ std::copy(p_x+j*nl,p_x+(j+1)*nl,p_xj); }
-        catch(std::exception&){
-            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
-        }
-
-        // construct file name
-        ss << std::setw(3) << std::setfill('0') << j;
-        filename = fn + "-j-" + ss.str() + ".nc"; ss.str("");
-        // write to file
-        write_pnetcdf(filename,is,in,c,nx,p_xj);
-    }
-
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-    ierr=VecRestoreArray(xj,&p_xj); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__FUNCT__);
-
-    PetscFunctionReturn(0);
-}
-*/
-
-
-
-/********************************************************************
- * @brief read netcdf time series
- *******************************************************************/
-/*
-#undef __FUNCT__
-#define __FUNCT__ "ReadTimeSeriesNetCDF"
-PetscErrorCode ReadWriteReg::ReadTimeSeriesNetCDF(Vec x, std::string filename)
-{
-    PetscErrorCode ierr;
-    ScalarType *p_x=NULL, *p_xj=NULL;
-    Vec xj;
-    std::string::size_type pos;
-    std::ostringstream ss;;
-    std::string fn;
-    MPI_Offset is[3],in[3];
-    MPI_Comm c;
-    IntType nl,ng,nt;
-    int nx[3];
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__FUNCT__);
-
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-
-    for (unsigned int i=0; i < 3; ++i){
-        nx[i] = this->m_Opt->m_MiscOpt->N[i];
-        in[i] = this->m_Opt->m_MiscOpt->isize[i];
-        is[i] = this->m_Opt->m_MiscOpt->istart[i];
-    }
-
-    c  = this->m_Opt->m_MiscOpt->c_comm;
-    nt = this->m_Opt->GetNumTimePoints();
-    nl = this->m_Opt->GetNLocal();
-    ng = this->m_Opt->GetNGlobal();
-
-    ierr=VecCreate(PETSC_COMM_WORLD,&xj); CHKERRQ(ierr);
-    ierr=VecSetSizes(xj,nl,ng); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(xj); CHKERRQ(ierr);
-
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    ierr=VecGetArray(xj,&p_xj); CHKERRQ(ierr);
-    pos = filename.find_last_of(".");
-    fn = (std::string::npos == pos) ? filename : filename.substr(0, pos);
-
-    for (unsigned int j = 0; j <= nt; ++j){
-
-        // construct file name
-        ss << std::setw(3) << std::setfill('0') << j;
-        filename = fn + "-j-" + ss.str() + ".nc"; ss.str("");
-        // write to file
-        read_pnetcdf(filename,is,in,c,nx,p_xj);
-        try{ std::copy(p_xj,p_xj+nl,p_x+j*nl); }
-        catch(std::exception&){
-            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
-        }
-
-    }
-
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-    ierr=VecRestoreArray(xj,&p_xj); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__FUNCT__);
-
-    PetscFunctionReturn(0);
-}
-*/
 
 
 /********************************************************************
@@ -811,13 +473,13 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr=VecSetFromOptions(*x); CHKERRQ(ierr);
 
     // allocate data buffer
-    if (this->m_BCastDataBuffer != NULL){
-        delete this->m_BCastDataBuffer;
-        this->m_BCastDataBuffer=NULL;
+    if (this->m_Data != NULL){
+        delete this->m_Data;
+        this->m_Data=NULL;
     }
 
     // allocate data buffer
-    try{ this->m_BCastDataBuffer = new ScalarType[ng]; }
+    try{ this->m_Data = new ScalarType[ng]; }
         catch(std::bad_alloc&){
         ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -826,7 +488,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     if(rank==0){ ierr=this->ReadNII(niiimage,filename); CHKERRQ(ierr); }
 
     // TODO: switch between float and double
-    rval=MPI_Bcast(&this->m_BCastDataBuffer[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
+    rval=MPI_Bcast(&this->m_Data[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
     ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
@@ -847,7 +509,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
                 IntType j = GetLinearIndex(j1,j2,j3,nx);
                 IntType k = GetLinearIndex(i1,i2,i3,isize);
 
-                p_x[k] = static_cast<ScalarType>(this->m_BCastDataBuffer[j]);
+                p_x[k] = static_cast<ScalarType>(this->m_Data[j]);
 
             }
         }
@@ -858,9 +520,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     // rescale image intensities to [0,1]
 //    ierr=Rescale(*x,0.0,1.0); CHKERRQ(ierr);
 
-    if (this->m_BCastDataBuffer != NULL){
-        delete this->m_BCastDataBuffer;
-        this->m_BCastDataBuffer=NULL;
+    if (this->m_Data != NULL){
+        delete this->m_Data;
+        this->m_Data=NULL;
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -973,7 +635,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr=Assert(this->m_BCastDataBuffer != NULL,"image buffer is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_Data != NULL,"null pointer"); CHKERRQ(ierr);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     msg = "should only be called on master/root rank";
@@ -993,7 +655,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 
     // copy buffer
     for (IntType i = 0; i < ng; ++i){
-        this->m_BCastDataBuffer[i] = static_cast<ScalarType>(data[i]);
+        this->m_Data[i] = static_cast<ScalarType>(data[i]);
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1023,7 +685,6 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
     // the input intensity range was
     //rescale = this->m_RescaleImage;
     //this->m_RescaleImage = true;
-
 
     // write x buffer to nifti image
     //ierr=this->WriteNII(&this->m_Image,x,filename); CHKERRQ(ierr);
@@ -1131,8 +792,9 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
     IntType nglobal;
     T* p_niibuffer;
     ScalarType *p_xl=NULL,*p_xg=NULL;
-    int nprocs,rank,rval,*istart,*isize,listart[3],lisize[3];
-    IntType nx[3];
+    int nprocs,rank,rval;
+    IntType *istart_c,*isize_c,istart[3],isize[3],nx[3];
+    IntType i1,i2,i3,j1,j2,j3,j;
     Vec xg=NULL,xl=NULL;
     VecScatter vecscat;
     std::string msg;
@@ -1238,32 +900,32 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         // allocate the index buffers on master rank
         if (rank == 0){
 
-            try{ istart = new int[3*nprocs]; }
+            try{ istart_c = new IntType[3*nprocs]; }
             catch(std::bad_alloc&){
                 ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
             }
 
-            try{ isize = new int[3*nprocs]; }
+            try{ isize_c = new IntType[3*nprocs]; }
             catch(std::bad_alloc&){
                 ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
             }
 
         }
 
-        lisize[0] = static_cast<int>(this->m_Opt->GetDomainPara().isize[0]);
-        lisize[1] = static_cast<int>(this->m_Opt->GetDomainPara().isize[1]);
-        lisize[2] = static_cast<int>(this->m_Opt->GetDomainPara().isize[2]);
+        isize[0] = this->m_Opt->GetDomainPara().isize[0];
+        isize[1] = this->m_Opt->GetDomainPara().isize[1];
+        isize[2] = this->m_Opt->GetDomainPara().isize[2];
 
-        listart[0] = static_cast<int>(this->m_Opt->GetDomainPara().istart[0]);
-        listart[1] = static_cast<int>(this->m_Opt->GetDomainPara().istart[1]);
-        listart[2] = static_cast<int>(this->m_Opt->GetDomainPara().istart[2]);
+        istart[0] = this->m_Opt->GetDomainPara().istart[0];
+        istart[1] = this->m_Opt->GetDomainPara().istart[1];
+        istart[2] = this->m_Opt->GetDomainPara().istart[2];
 
         // gather the indices
-        rval=MPI_Gather(listart,3,MPI_INT,istart,3,MPI_INT,0,PETSC_COMM_WORLD);
-        ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
+        rval=MPI_Gather(istart,3,MPIU_INT,istart_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+        ierr=MPIERRQ(rval); CHKERRQ(ierr);
 
-        rval=MPI_Gather(lisize,3,MPI_INT,isize,3,MPI_INT,0,PETSC_COMM_WORLD);
-        ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
+        rval=MPI_Gather(isize,3,MPIU_INT,isize_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+        ierr=MPIERRQ(rval); CHKERRQ(ierr);
 
         // create scatter object
         if(xg == NULL){
@@ -1287,15 +949,15 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
             int k = 0;
             for(int pid = 0; pid < nprocs; ++pid){
 
-                for (IntType i1 = 0; i1 < isize[3*pid]; ++i1){ // x1
-                    for (IntType i2 = 0; i2 < isize[3*pid+1]; ++i2){ // x2
-                        for (IntType i3 = 0; i3 < isize[3*pid+2]; ++i3){ // x3
+                for (i1 = 0; i1 < isize_c[3*pid+0]; ++i1){ // x1
+                    for (i2 = 0; i2 < isize_c[3*pid+1]; ++i2){ // x2
+                        for (i3 = 0; i3 < isize_c[3*pid+2]; ++i3){ // x3
 
-                            IntType j1 = i1 + istart[3*pid  ];
-                            IntType j2 = i2 + istart[3*pid+1];
-                            IntType j3 = i3 + istart[3*pid+2];
+                            j1 = i1 + istart_c[3*pid+0];
+                            j2 = i2 + istart_c[3*pid+1];
+                            j3 = i3 + istart_c[3*pid+2];
 
-                            IntType j = GetLinearIndex(j1,j2,j3,nx);
+                            j = GetLinearIndex(j1,j2,j3,nx);
                             p_niibuffer[j] = static_cast<T>(p_xg[k++]);
 
                         } // for i1
@@ -1304,11 +966,11 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
 
             } // for all procs
 
-          ierr=VecRestoreArray(xg,&p_xg); CHKERRQ(ierr);
+            ierr=VecRestoreArray(xg,&p_xg); CHKERRQ(ierr);
 
             // clear memory
-            delete istart; istart=NULL;
-            delete isize; isize=NULL;
+            delete istart_c; istart_c=NULL;
+            delete isize_c; isize_c=NULL;
 
         } // if on master
 
