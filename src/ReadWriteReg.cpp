@@ -403,7 +403,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     PetscErrorCode ierr;
     std::string msg, file;
     int nprocs,rank,rval;
-    IntType nx[3],isize[3],istart[3],ng,nl;
+    IntType nx[3],isize[3],istart[3],ng,ngx,nl;
     ScalarType *p_x=NULL;
     nifti_image *niiimage=NULL;
 
@@ -457,14 +457,14 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
         ierr=this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
 
-    // compute global size
-    ng=1;
-    for(int i = 0; i < 3; ++i){ ng*=nx[i]; }
-    msg="global size mismatch (-nx option probably wrong)";
-    ierr=Assert(ng==this->m_Opt->GetDomainPara().nglobal,"global size mismatch"); CHKERRQ(ierr);
-
     // get local size
     nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
+    // compute global size
+    ngx=1;
+    for(int i = 0; i < 3; ++i){ ngx*=nx[i]; }
+    ierr=Assert(ng==ngx,"global size mismatch"); CHKERRQ(ierr);
 
     // allocate vector
     if ( *x != NULL ){ ierr=VecDestroy(x); CHKERRQ(ierr); }
