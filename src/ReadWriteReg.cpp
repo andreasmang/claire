@@ -404,10 +404,11 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     std::string msg,file;
     std::stringstream ss;
     int nprocs,rank,rval;
-    IntType nx[3],isize[3],istart[3],*isize_c=NULL,*istart_c=NULL,ng,ngx,nl;
+    IntType nx[3],isize[3],istart[3],*isize_c=NULL,*istart_c=NULL;
+    IntType ng,ngx,nl,i1,i2,i3,j1,j2,j3,j,k;
     ScalarType *p_x=NULL;
-    ScalarType *values=NULL;
-    nifti_image *niiimage=NULL;
+    ScalarType *comdata=NULL;
+    nifti_image *image=NULL;
 
     PetscFunctionBegin;
 
@@ -424,14 +425,14 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr=Assert(FileExists(filename),msg); CHKERRQ(ierr);
 
     // read header file
-    niiimage = nifti_image_read(filename.c_str(),false);
+    image = nifti_image_read(filename.c_str(),false);
     msg="could not read nifti image " + file;
-    ierr=Assert(niiimage != NULL,msg); CHKERRQ(ierr);
+    ierr=Assert(image!=NULL,msg); CHKERRQ(ierr);
 
     // get number of grid points
-    nx[0] = static_cast<IntType>(niiimage->nx);
-    nx[1] = static_cast<IntType>(niiimage->ny);
-    nx[2] = static_cast<IntType>(niiimage->nz);
+    nx[0] = static_cast<IntType>(image->nx);
+    nx[1] = static_cast<IntType>(image->ny);
+    nx[2] = static_cast<IntType>(image->nz);
 
     // if we read images, we want to make sure that they have the same size
     if (   (this->m_nx[0] == -1)
@@ -498,7 +499,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
             ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        ierr=this->ReadNII(niiimage,filename); CHKERRQ(ierr);
+        ierr=this->ReadNII(image,filename); CHKERRQ(ierr);
 
         // get all the sizes to read and assign data correctly
         if (isize_c==NULL){
@@ -537,113 +538,56 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     if (rank == 0){
 
         IntType offset = 0;
-        for (int j = 0; j < nprocs; ++j){
+        for (int p = 0; p < nprocs; ++p){
             IntType nsend = 1;
             for (int i = 0; i < 3; ++i){
-               nsend *= isize_c[j*3+i];
+               nsend *= isize_c[p*3+i];
             }
-            numsend[j] = static_cast<int>(nsend);
-            numoffset[j] = offset;
+            numsend[p] = static_cast<int>(nsend);
+            numoffset[p] = offset;
             offset += nsend;
         }
 
         // allocate data buffer
-        try{ values = new ScalarType[ng]; }
+        try{ comdata = new ScalarType[ng]; }
             catch(std::bad_alloc&){
             ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        IntType i1,i2,i3,j1,j2,j3,j,k=0;
-            for(int p = 0; p < nprocs; ++p){
+        k=0;
+        for(int p = 0; p < nprocs; ++p){
 
-                for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
-                    for (i2 = 0; i2 < isize_c[3*p+1]; ++i2){ // x2
-                        for (i3 = 0; i3 < isize_c[3*p+2]; ++i3){ // x3
+            for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
+                for (i2 = 0; i2 < isize_c[3*p+1]; ++i2){ // x2
+                    for (i3 = 0; i3 < isize_c[3*p+2]; ++i3){ // x3
 
-                            j1 = i1 + istart_c[3*p+0];
-                            j2 = i2 + istart_c[3*p+1];
-                            j3 = i3 + istart_c[3*p+2];
+                        j1 = i1 + istart_c[3*p+0];
+                        j2 = i2 + istart_c[3*p+1];
+                        j3 = i3 + istart_c[3*p+2];
 
-                            j = GetLinearIndex(j1,j2,j3,nx);
-                            //p_niibuffer[j] = static_cast<T>(p_xg[k++]);
-                            values[k++] = this->m_Data[j];
+                        j = GetLinearIndex(j1,j2,j3,nx);
+                        comdata[k++] = this->m_Data[j];
 
-                        } // for i1
-                    } // for i2
-                } // for i3
+                    } // for i1
+                } // for i2
+            } // for i3
 
-            } // for all procs
+        } // for all procs
 
     }
 
     int nrecv = static_cast<int>(nl);
 
-//    Vec y; ScalarType*p_y=NULL;
-
-//    ierr=VecCreate(PETSC_COMM_WORLD,&y); CHKERRQ(ierr);
-//    ierr=VecSetSizes(y,nl,ng); CHKERRQ(ierr);
-//    ierr=VecSetFromOptions(y); CHKERRQ(ierr);
-
     ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
-
-//    ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    // TODO: switch between float and double
-//    rval=MPI_Bcast(&this->m_Data[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
-//    ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
-
-//    rval=MPI_Scatterv(this->m_Data,numsend,numoffset,
-//                        MPI_DOUBLE,p_x,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
-    rval=MPI_Scatterv(values,numsend,numoffset,
+    rval=MPI_Scatterv(comdata,numsend,numoffset,
                         MPI_DOUBLE,p_x,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
-    //rval=MPI_Scatterv(values,numsend,numoffset,
-    //                    MPI_DOUBLE,p_y,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
-    //ierr=MPIERRQ(rval); CHKERRQ(ierr);
-/*
-    IntType sst=0;
-    for (IntType i1 = 0; i1 < isize[0]; ++i1){ // x1
-        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
-
-                IntType l = GetLinearIndex(i1,i2,i3,isize);
-
-                p_x[l] = p_y[sst++];
-
-            }
-        }
-    }
-    ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
-    ierr=VecDestroy(&y); CHKERRQ(ierr);
-*/
-/*
-    for (IntType i1 = 0; i1 < isize[0]; ++i1){ // x1
-        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
-
-                IntType j1 = i1 + istart[0];
-                IntType j2 = i2 + istart[1];
-                IntType j3 = i3 + istart[2];
-
-                IntType j = GetLinearIndex(j1,j2,j3,nx);
-                IntType k = GetLinearIndex(i1,i2,i3,isize);
-
-                p_x[k] = static_cast<ScalarType>(this->m_Data[j]);
-
-            }
-        }
-    }
-*/
     ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
 
-    // rescale image intensities to [0,1]
-//    ierr=Rescale(*x,0.0,1.0); CHKERRQ(ierr);
-
-    if (this->m_Data != NULL){
-        delete this->m_Data;
-        this->m_Data=NULL;
-    }
-
+    if (comdata != NULL){ delete [] comdata; comdata=NULL; }
+    if (image!=NULL){ nifti_image_free(image); image=NULL; }
     if (isize_c!=NULL){ delete [] isize_c; isize_c=NULL; }
     if (istart_c!=NULL){ delete [] istart_c; istart_c=NULL; }
+    if (this->m_Data != NULL){ delete [] this->m_Data; this->m_Data=NULL; }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -909,14 +853,14 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
 {
     PetscErrorCode ierr;
-    IntType nglobal;
-    T* p_niibuffer;
-    ScalarType *p_xl=NULL,*p_xg=NULL;
+    IntType ng;
+    T* data=NULL;
+    ScalarType *p_xc=NULL;
     int nprocs,rank,rval;
-    IntType *istart_c,*isize_c,istart[3],isize[3],nx[3];
+    IntType *istart_c=NULL,*isize_c=NULL,istart[3],isize[3],nx[3];
     IntType i1,i2,i3,j1,j2,j3,j;
-    Vec xg=NULL,xl=NULL;
-    VecScatter vecscat;
+    Vec xcollect=NULL;
+    VecScatter scatterctx=NULL;
     std::string msg;
 
     PetscFunctionBegin;
@@ -927,18 +871,8 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
-    // we have to copy the buffer to prevent that the scaling
-    // is applied to the input data
-    ierr=VecDuplicate(x,&xl); CHKERRQ(ierr);
-    ierr=VecCopy(x,xl); CHKERRQ(ierr);
-
-    // TODO
-//    if(this->m_RescaleImage){
-//        ierr=Rescale(xl,this->m_MinIValue,this->m_MaxIValue); CHKERRQ(ierr);
-//    }
-
     // get local size
-    nglobal = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
+    ng = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
 
     // allocate the index buffers on master rank
     if (rank == 0){
@@ -999,20 +933,20 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
     // get array
     if( nprocs == 1 ){
 
-        ierr=VecGetArray(xl,&p_xl); CHKERRQ(ierr);
+        ierr=VecGetArray(x,&p_xc); CHKERRQ(ierr);
 
         // cast pointer of nifti image data
-        p_niibuffer = static_cast<T*>((*niiimage)->data);
+        data = static_cast<T*>((*niiimage)->data);
 
 #pragma omp parallel
 {
 #pragma omp for
-        for (IntType i=0; i < nglobal; ++i){
-            p_niibuffer[i] = static_cast<T>(p_xl[i]);
+        for (IntType i=0; i < ng; ++i){
+            data[i] = static_cast<T>(p_xc[i]);
         }
 } /// pragma omp parallel
 
-        ierr=VecRestoreArray(xl,&p_xl); CHKERRQ(ierr);
+        ierr=VecRestoreArray(x,&p_xc); CHKERRQ(ierr);
 
     }
     else{
@@ -1048,13 +982,11 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         ierr=MPIERRQ(rval); CHKERRQ(ierr);
 
         // create scatter object
-        if(xg == NULL){
-            ierr=VecScatterCreateToZero(xl,&vecscat,&xg); CHKERRQ(ierr);
-        }
+        ierr=VecScatterCreateToZero(x,&scatterctx,&xcollect); CHKERRQ(ierr);
 
         // gather the data
-        ierr=VecScatterBegin(vecscat,xl,xg,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
-        ierr=VecScatterEnd(vecscat,xl,xg,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
+        ierr=VecScatterBegin(scatterctx,x,xcollect,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
+        ierr=VecScatterEnd(scatterctx,x,xcollect,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
 
         nx[0] = this->m_Opt->GetNumGridPoints(0);
         nx[1] = this->m_Opt->GetNumGridPoints(1);
@@ -1063,10 +995,10 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         // if we are on master rank
         if (rank == 0){
 
-            p_niibuffer = static_cast<T*>( (*niiimage)->data);
-            ierr=VecGetArray(xg,&p_xg); CHKERRQ(ierr);
+            data = static_cast<T*>( (*niiimage)->data);
+            ierr=VecGetArray(xcollect,&p_xc); CHKERRQ(ierr);
 
-            int k = 0;
+            IntType k = 0;
             for(int p = 0; p < nprocs; ++p){
 
                 for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
@@ -1078,8 +1010,7 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
                             j3 = i3 + istart_c[3*p+2];
 
                             j = GetLinearIndex(j1,j2,j3,nx);
-                            p_niibuffer[j] = static_cast<T>(p_xg[k++]);
-                            //p_niibuffer[j] = static_cast<T>(p_xg[j]);
+                            data[j] = static_cast<T>(p_xc[k++]);
 
                         } // for i1
                     } // for i2
@@ -1087,18 +1018,18 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
 
             } // for all procs
 
-            ierr=VecRestoreArray(xg,&p_xg); CHKERRQ(ierr);
-
-            // clear memory
-            delete istart_c; istart_c=NULL;
-            delete isize_c; isize_c=NULL;
+            ierr=VecRestoreArray(xcollect,&p_xc); CHKERRQ(ierr);
 
         } // if on master
 
     }// else
 
-    // clean that up
-    ierr=VecDestroy(&xl); CHKERRQ(ierr);
+
+    // clear memory
+    if (xcollect !=NULL){ ierr=VecDestroy(&xcollect); CHKERRQ(ierr); }
+    if (isize_c!=NULL){ delete [] isize_c; isize_c=NULL; }
+    if (istart_c!=NULL){ delete [] istart_c; istart_c=NULL; }
+    if (scatterctx!=NULL){ ierr=VecScatterDestroy(&scatterctx); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
 
