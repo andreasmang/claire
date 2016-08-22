@@ -401,18 +401,20 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage)
 PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 {
     PetscErrorCode ierr;
-    std::string msg, file;
+    std::string msg,file;
+    std::stringstream ss;
     int nprocs,rank,rval;
-    IntType nx[3],isize[3],istart[3],ng,ngx,nl;
+    IntType nx[3],isize[3],istart[3],*isize_c=NULL,*istart_c=NULL,ng,ngx,nl;
     ScalarType *p_x=NULL;
+    ScalarType *values=NULL;
     nifti_image *niiimage=NULL;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
     // get file name without path
     ierr=GetFileName(file,filename); CHKERRQ(ierr);
@@ -438,6 +440,11 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
         for (int i = 0; i < 3; ++i){ this->m_nx[i] = nx[i]; }
 
+        if(this->m_Opt->GetVerbosity() > 2){
+            ss << "grid size ("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<")";
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        }
+
     }
     else{
 
@@ -460,10 +467,13 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     // get local size
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
+    for (int i = 0; i < 3; ++i){
+        isize[i] = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+    }
 
-    // compute global size
-    ngx=1;
-    for(int i = 0; i < 3; ++i){ ngx*=nx[i]; }
+    //check global size
+    ngx=1; for(int i = 0; i < 3; ++i){ ngx*=nx[i]; }
     ierr=Assert(ng==ngx,"global size mismatch"); CHKERRQ(ierr);
 
     // allocate vector
@@ -472,32 +482,139 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr=VecSetSizes(*x,nl,ng); CHKERRQ(ierr);
     ierr=VecSetFromOptions(*x); CHKERRQ(ierr);
 
-    // allocate data buffer
-    if (this->m_Data != NULL){
-        delete this->m_Data;
-        this->m_Data=NULL;
-    }
-
-    // allocate data buffer
-    try{ this->m_Data = new ScalarType[ng]; }
-        catch(std::bad_alloc&){
-        ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
 
     // read data only on master rank
-    if(rank==0){ ierr=this->ReadNII(niiimage,filename); CHKERRQ(ierr); }
+    if(rank==0){
 
-    // TODO: switch between float and double
-    rval=MPI_Bcast(&this->m_Data[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
-    ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
+        // allocate data buffer
+        if (this->m_Data != NULL){
+            delete this->m_Data;
+            this->m_Data=NULL;
+        }
 
-    for (int i = 0; i < 3; ++i){
-        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        // allocate data buffer
+        try{ this->m_Data = new ScalarType[ng]; }
+            catch(std::bad_alloc&){
+            ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
+        ierr=this->ReadNII(niiimage,filename); CHKERRQ(ierr);
+
+        // get all the sizes to read and assign data correctly
+        if (isize_c==NULL){
+            try{ isize_c = new IntType[3*nprocs]; }
+            catch(std::bad_alloc&){
+                ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        if (istart_c==NULL){
+            try{ istart_c = new IntType[3*nprocs]; }
+            catch(std::bad_alloc&){
+                ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+
     }
+
+    int *numsend=NULL,*numoffset=NULL;
+    try{ numsend = new int[3*nprocs]; }
+    catch(std::bad_alloc&){
+         ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{ numoffset = new int[3*nprocs]; }
+    catch(std::bad_alloc&){
+         ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // gather isize and istart on master rank
+    rval=MPI_Gather(isize,3,MPIU_INT,isize_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+    ierr=MPIERRQ(rval); CHKERRQ(ierr);
+    rval=MPI_Gather(istart,3,MPIU_INT,istart_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+    ierr=MPIERRQ(rval); CHKERRQ(ierr);
+
+
+    // compute offset and number of entries to send
+    if (rank == 0){
+
+        IntType offset = 0;
+        for (int j = 0; j < nprocs; ++j){
+            IntType nsend = 1;
+            for (int i = 0; i < 3; ++i){
+               nsend *= isize_c[j*3+i];
+            }
+            numsend[j] = static_cast<int>(nsend);
+            numoffset[j] = offset;
+            offset += nsend;
+        }
+
+        // allocate data buffer
+        try{ values = new ScalarType[ng]; }
+            catch(std::bad_alloc&){
+            ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
+        IntType i1,i2,i3,j1,j2,j3,j,k=0;
+            for(int p = 0; p < nprocs; ++p){
+
+                for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
+                    for (i2 = 0; i2 < isize_c[3*p+1]; ++i2){ // x2
+                        for (i3 = 0; i3 < isize_c[3*p+2]; ++i3){ // x3
+
+                            j1 = i1 + istart_c[3*p+0];
+                            j2 = i2 + istart_c[3*p+1];
+                            j3 = i3 + istart_c[3*p+2];
+
+                            j = GetLinearIndex(j1,j2,j3,nx);
+                            //p_niibuffer[j] = static_cast<T>(p_xg[k++]);
+                            values[k++] = this->m_Data[j];
+
+                        } // for i1
+                    } // for i2
+                } // for i3
+
+            } // for all procs
+
+    }
+
+    int nrecv = static_cast<int>(nl);
+
+//    Vec y; ScalarType*p_y=NULL;
+
+//    ierr=VecCreate(PETSC_COMM_WORLD,&y); CHKERRQ(ierr);
+//    ierr=VecSetSizes(y,nl,ng); CHKERRQ(ierr);
+//    ierr=VecSetFromOptions(y); CHKERRQ(ierr);
 
     ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
 
+//    ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
+    // TODO: switch between float and double
+//    rval=MPI_Bcast(&this->m_Data[0], ng, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
+//    ierr=Assert(rval==MPI_SUCCESS,"mpi gather returned an error"); CHKERRQ(ierr);
+
+//    rval=MPI_Scatterv(this->m_Data,numsend,numoffset,
+//                        MPI_DOUBLE,p_x,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
+    rval=MPI_Scatterv(values,numsend,numoffset,
+                        MPI_DOUBLE,p_x,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
+    //rval=MPI_Scatterv(values,numsend,numoffset,
+    //                    MPI_DOUBLE,p_y,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
+    //ierr=MPIERRQ(rval); CHKERRQ(ierr);
+/*
+    IntType sst=0;
+    for (IntType i1 = 0; i1 < isize[0]; ++i1){ // x1
+        for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
+            for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
+
+                IntType l = GetLinearIndex(i1,i2,i3,isize);
+
+                p_x[l] = p_y[sst++];
+
+            }
+        }
+    }
+    ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
+    ierr=VecDestroy(&y); CHKERRQ(ierr);
+*/
+/*
     for (IntType i1 = 0; i1 < isize[0]; ++i1){ // x1
         for (IntType i2 = 0; i2 < isize[1]; ++i2){ // x2
             for (IntType i3 = 0; i3 < isize[2]; ++i3){ // x3
@@ -514,7 +631,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
             }
         }
     }
-
+*/
     ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
 
     // rescale image intensities to [0,1]
@@ -524,6 +641,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
         delete this->m_Data;
         this->m_Data=NULL;
     }
+
+    if (isize_c!=NULL){ delete [] isize_c; isize_c=NULL; }
+    if (istart_c!=NULL){ delete [] istart_c; istart_c=NULL; }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -947,18 +1067,19 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
             ierr=VecGetArray(xg,&p_xg); CHKERRQ(ierr);
 
             int k = 0;
-            for(int pid = 0; pid < nprocs; ++pid){
+            for(int p = 0; p < nprocs; ++p){
 
-                for (i1 = 0; i1 < isize_c[3*pid+0]; ++i1){ // x1
-                    for (i2 = 0; i2 < isize_c[3*pid+1]; ++i2){ // x2
-                        for (i3 = 0; i3 < isize_c[3*pid+2]; ++i3){ // x3
+                for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
+                    for (i2 = 0; i2 < isize_c[3*p+1]; ++i2){ // x2
+                        for (i3 = 0; i3 < isize_c[3*p+2]; ++i3){ // x3
 
-                            j1 = i1 + istart_c[3*pid+0];
-                            j2 = i2 + istart_c[3*pid+1];
-                            j3 = i3 + istart_c[3*pid+2];
+                            j1 = i1 + istart_c[3*p+0];
+                            j2 = i2 + istart_c[3*p+1];
+                            j3 = i3 + istart_c[3*p+2];
 
                             j = GetLinearIndex(j1,j2,j3,nx);
                             p_niibuffer[j] = static_cast<T>(p_xg[k++]);
+                            //p_niibuffer[j] = static_cast<T>(p_xg[j]);
 
                         } // for i1
                     } // for i2
