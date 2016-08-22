@@ -26,13 +26,14 @@
 #include "RegOpt.hpp"
 
 struct ResamplingPara{
-    ScalarType scale;
+    ScalarType gridscale;
     bool enabled;
 };
 
 
 struct PostProcPara{
     bool enabled;
+    bool computedeffields;
 };
 
 

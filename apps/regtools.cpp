@@ -32,6 +32,7 @@
 PetscErrorCode RunPostProcessing(reg::RegToolsOpt*);
 PetscErrorCode ResampleVecField(reg::RegToolsOpt*);
 PetscErrorCode ResampleScaField(reg::RegToolsOpt*);
+PetscErrorCode ComputeDefFields(reg::RegToolsOpt*);
 
 
 /********************************************************************
@@ -57,7 +58,8 @@ int main(int argc,char **argv)
     if ( regopt->GetPostProcPara().enabled ){
         ierr=RunPostProcessing(regopt); CHKERRQ(ierr);
     }
-    else if (regopt->GetRegFlags().storedefgrad ){
+    else if (regopt->GetPostProcPara().computedeffields ){
+        ierr=ComputeDefFields(regopt); CHKERRQ(ierr);
     }
     else if( regopt->GetResamplingPara().enabled ){
 
@@ -86,6 +88,8 @@ int main(int argc,char **argv)
 /********************************************************************
  * @brief post process image registration results
  *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "RunPostProcessing"
 PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
@@ -177,11 +181,13 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
 /********************************************************************
  * @brief post process image registration results
  *******************************************************************/
-PetscErrorCode ComputeDeformationGradient(reg::RegToolsOpt* regopt)
+#undef __FUNCT__
+#define __FUNCT__ "ComputeDefFields"
+PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
     std::string ifolder,xfolder,filename;
-    Vec vx1=NULL,vx2=NULL,vx3=NULL;
+    Vec vxi=NULL;
     reg::VecField *v=NULL;
 
     reg::ReadWriteReg* readwrite = NULL;
@@ -200,8 +206,7 @@ PetscErrorCode ComputeDeformationGradient(reg::RegToolsOpt* regopt)
 
     // read velocity components
     filename = ifolder + "velocity-field-x1.nii.gz";
-    ierr=readwrite->Read(&vx1,filename); CHKERRQ(ierr);
-
+    ierr=readwrite->Read(&vxi,filename); CHKERRQ(ierr);
     if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
 
     // allocate container for velocity field
@@ -210,18 +215,18 @@ PetscErrorCode ComputeDeformationGradient(reg::RegToolsOpt* regopt)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ierr=VecCopy(vx1,v->m_X1); CHKERRQ(ierr);
-    if (vx1!=NULL){ ierr=VecDestroy(&vx1); CHKERRQ(ierr); vx1=NULL; }
+    ierr=VecCopy(vxi,v->m_X1); CHKERRQ(ierr);
+    if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
 
     filename = ifolder + "velocity-field-x2.nii.gz";
-    ierr=readwrite->Read(&vx2,filename); CHKERRQ(ierr);
-    ierr=VecCopy(vx2,v->m_X2); CHKERRQ(ierr);
-    if (vx2!=NULL){ ierr=VecDestroy(&vx2); CHKERRQ(ierr); vx2=NULL; }
+    ierr=readwrite->Read(&vxi,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vxi,v->m_X2); CHKERRQ(ierr);
+    if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
 
     filename = ifolder + "velocity-field-x3.nii.gz";
-    ierr=readwrite->Read(&vx3,filename); CHKERRQ(ierr);
-    ierr=VecCopy(vx3,v->m_X3); CHKERRQ(ierr);
-    if (vx3!=NULL){ ierr=VecDestroy(&vx3); CHKERRQ(ierr); vx3=NULL; }
+    ierr=readwrite->Read(&vxi,filename); CHKERRQ(ierr);
+    ierr=VecCopy(vxi,v->m_X3); CHKERRQ(ierr);
+    if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
 
     // allocate class for registration interface
     try{ registration = new reg::RegistrationInterface(regopt); }
@@ -234,7 +239,7 @@ PetscErrorCode ComputeDeformationGradient(reg::RegToolsOpt* regopt)
     ierr=registration->SetInitialGuess(v); CHKERRQ(ierr);
 
     // run post processing
-    ierr=registration->ComputeDetDefGrad(); CHKERRQ(ierr);
+    ierr=registration->ComputeDefFields(); CHKERRQ(ierr);
 
     if (v!=NULL){ delete v; v=NULL; }
     if (readwrite!=NULL){ delete readwrite; readwrite=NULL; }
@@ -249,17 +254,23 @@ PetscErrorCode ComputeDeformationGradient(reg::RegToolsOpt* regopt)
 /********************************************************************
  * @brief resample scalar field
  *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ResampleScaField"
 PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
     std::string filename;
-    IntType nl,ng,nx[3],nxl[2];
-    ScalarType scale;
+    std::stringstream ss;
+    int rank;
+    IntType nl,ng,nx[3],nxl[3];
+    ScalarType gridscale,value;
     Vec m=NULL,ml=NULL;
     reg::PreProcReg* preproc = NULL;
     reg::ReadWriteReg* readwrite = NULL;
 
     PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
 
     // allocate class for io
     try{ readwrite = new reg::ReadWriteReg(regopt); }
@@ -267,48 +278,79 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
     // read velocity components
     filename = regopt->GetScaFieldFN(0);
     ierr=readwrite->Read(&m,filename); CHKERRQ(ierr);
+    ierr=reg::Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
 
-    // allocate container for velocity field
-    try{ preproc = new reg::PreProcReg(regopt); }
-    catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    preproc->ResetGridChangeOps(true);
-
     // compute grid size
-    scale=regopt->GetResamplingPara().scale;
-    for(int i=0; i < 3; ++i){
-        nx[i]  = regopt->GetDomainPara().nx[i];
-        nxl[i] = static_cast<IntType>(ceil(scale*regopt->GetDomainPara().nx[i]));
+    gridscale=regopt->GetResamplingPara().gridscale;
+
+    if (gridscale != 1.0){
+
+        // allocate container for velocity field
+        try{ preproc = new reg::PreProcReg(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        preproc->ResetGridChangeOps(true);
+
+        for(int i=0; i < 3; ++i){
+            nx[i] = regopt->GetDomainPara().nx[i];
+            value = gridscale*static_cast<ScalarType>(regopt->GetDomainPara().nx[i]);
+            nxl[i] = static_cast<IntType>(ceil(value));
+        }
+        ierr=regopt->GetSizes(nxl,nl,ng); CHKERRQ(ierr);
+        if (regopt->GetVerbosity() > 2){
+            ss << "new grid size ("<<nxl[0]<<","<<nx[1]<<","<<nx[2]<<")";
+            ierr=reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        }
+
+        // allocate array
+        ierr=reg::VecCreate(ml,nl,ng); CHKERRQ(ierr);
+
+        // restrict of prolong the vector field
+        if (gridscale > 1.0){ ierr=preproc->Prolong(&ml,m,nxl,nx); CHKERRQ(ierr); }
+        else                { ierr=preproc->Restrict(&ml,m,nxl,nx); CHKERRQ(ierr); }
+
+        // reset io
+        if (readwrite!=NULL){ delete readwrite; readwrite = NULL; }
+        for (int i=0; i<3; ++i){
+            regopt->SetNumGridPoints(i,nxl[i]);
+        }
+        ierr=regopt->DoSetup(false); CHKERRQ(ierr);
+
+        try{ readwrite = new reg::ReadWriteReg(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
+        // read velocity components
+        filename = regopt->GetScaFieldFN(1);
+        ierr=readwrite->Write(ml,filename); CHKERRQ(ierr);
+
     }
-    ierr=regopt->GetSizes(nxl,nl,ng); CHKERRQ(ierr);
+    else{
+        if (readwrite!=NULL){ delete readwrite; readwrite = NULL; }
+        for (int i=0; i<3; ++i){
+            nx[i] = regopt->GetDomainPara().nx[i];
+            std::cout<< nx[i] <<" " <<std::endl;
+            regopt->SetNumGridPoints(i,nx[i]);
+        }
+        ierr=regopt->DoSetup(false); CHKERRQ(ierr);
 
-    // allocate array
-    ierr=reg::VecCreate(ml,nl,ng); CHKERRQ(ierr);
-
-    // restrict of prolong the vector field
-    if (scale > 1.0){ ierr=preproc->Prolong(&ml,m,nxl,nx); CHKERRQ(ierr); }
-    else            { ierr=preproc->Restrict(&ml,m,nxl,nx); CHKERRQ(ierr); }
-
-    // reset io
-    if (readwrite!=NULL){ delete readwrite; readwrite = NULL; }
-    for (int i=0; i<3; ++i){
-        regopt->SetNumGridPoints(i,nxl[i]);
+        try{ readwrite = new reg::ReadWriteReg(regopt); }
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        // read velocity components
+        filename = regopt->GetScaFieldFN(1);
+        ierr=readwrite->Write(m,filename); CHKERRQ(ierr);
     }
-    ierr=regopt->DoSetup(false); CHKERRQ(ierr);
-    try{ readwrite = new reg::ReadWriteReg(regopt); }
-    catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // read velocity components
-    filename = regopt->GetScaFieldFN(1);
-    ierr=readwrite->Write(ml,filename); CHKERRQ(ierr);
 
     if (m!=NULL){ ierr=VecDestroy(&m); CHKERRQ(ierr); }
     if (ml!=NULL){ ierr=VecDestroy(&ml); CHKERRQ(ierr); }
@@ -316,14 +358,19 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
     if (preproc != NULL) { delete preproc; preproc=NULL; }
     if (readwrite != NULL) { delete readwrite; readwrite=NULL; }
 
+    regopt->Exit(__FUNCT__);
+
     PetscFunctionReturn(ierr);
 }
+
 
 
 
 /********************************************************************
  * @brief resample vector field
  *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ResampleVecField"
 PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
@@ -372,7 +419,7 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt)
     preproc->ResetGridChangeOps(true);
 
     // compute grid size
-    scale=regopt->GetResamplingPara().scale;
+    scale=regopt->GetResamplingPara().gridscale;
     for(int i=0; i < 3; ++i){
         nx[i]  = regopt->GetDomainPara().nx[i];
         nxl[i] = scale*regopt->GetDomainPara().nx[i];

@@ -997,7 +997,7 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDetDefGrad"
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file)
 {
     PetscErrorCode ierr;
     ScalarType minddg,maxddg,meanddg;
@@ -1080,6 +1080,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad()
             << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
         ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
+    }
+
+    if (write2file){
+        std::string ext = ".nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"det-deformation-grad"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1513,18 +1518,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_WorkVecField2 == NULL){
-       try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField3 == NULL){
-       try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
     if (this->m_WorkScaField1 == NULL){
         ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
@@ -1620,10 +1613,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDeformationMap"
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2file)
 {
     PetscErrorCode ierr=0;
-
+    std::string ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -1658,6 +1651,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap()
             ierr=ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
             break;
         }
+    }
+
+    if (write2file){
+        ext = ".nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"deformation-map-x1"+ext,
+                                                            "deformation-map-x2"+ext,
+                                                            "deformation-map-x3"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1910,7 +1910,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDisplacementField"
-PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField()
+PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool write2file)
 {
     PetscErrorCode ierr=0;
 
@@ -1950,6 +1950,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField()
             ierr=ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
             break;
         }
+    }
+
+    if (write2file){
+        std::string ext=".nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"displacement-field-x1"+ext,
+                                                            "displacement-field-x2"+ext,
+                                                            "displacement-field-x3"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__FUNCT__);

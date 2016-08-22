@@ -1,7 +1,6 @@
 #ifndef _REGTOOLSOPT_CPP_
 #define _REGTOOLSOPT_CPP_
 
-#include <fstream>
 #include "RegToolsOpt.hpp"
 
 
@@ -197,7 +196,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-rscale") == 0){
             argc--; argv++;
-            this->m_ResamplingPara.scale = atof(argv[1]);
+            this->m_ResamplingPara.gridscale = atof(argv[1]);
         }
         else if(strcmp(argv[1],"-i") == 0){
             argc--; argv++;
@@ -285,9 +284,10 @@ PetscErrorCode RegToolsOpt::Initialize()
     this->m_RegToolsFlags.readscafield = false;
 
     this->m_PostProcPara.enabled = false;
+    this->m_PostProcPara.computedeffields = false;
 
     this->m_ResamplingPara.enabled = false;
-    this->m_ResamplingPara.scale = 1.0;
+    this->m_ResamplingPara.gridscale = -1.0;
 
     PetscFunctionReturn(0);
 }
@@ -452,13 +452,9 @@ PetscErrorCode RegToolsOpt::CheckArguments()
     this->m_XExtension = ".nii.gz";
 
     // check output arguments
-    if (   this->m_RegFlags.storeresults
-        || this->m_RegFlags.storedefgrad
+    if (   this->m_RegFlags.storedefgrad
         || this->m_RegFlags.storedefmap
-        || this->m_RegFlags.storedeffield
-        || this->m_RegFlags.storetimeseries
-        || this->m_RegFlags.storeinterresults
-        || this->m_RegFlags.loggingenabled ){
+        || this->m_RegFlags.storedeffield ){
 
         if ( this->m_XFolder.empty() ){
             msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
@@ -472,7 +468,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
             ierr=this->Usage(); CHKERRQ(ierr);
         }
 
-//        this->m_PostProcPara.enabled = true;
+        this->m_PostProcPara.computedeffields = true;
 
         // set this flag to true, so that containers for reference and
         // template image are not to be deleted in registration class
@@ -492,7 +488,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
     if ( this->m_ResamplingPara.enabled ){
 
-        if ( this->m_ResamplingPara.scale == 1.0 ){
+        if ( this->m_ResamplingPara.gridscale == -1.0 ){
             msg="\x1b[31m scale for rescaling needs to be set \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->Usage(true); CHKERRQ(ierr);
@@ -531,7 +527,6 @@ PetscErrorCode RegToolsOpt::CheckArguments()
             if (sep != std::string::npos){
                 path=this->m_iScaFieldFN.substr(0,sep);
                 this->m_xScaFieldFN = path + "/resampled_" + this->m_iScaFieldFN.substr(sep + 1);
-                std::cout << this->m_xScaFieldFN << std::endl;
             }
         }
 

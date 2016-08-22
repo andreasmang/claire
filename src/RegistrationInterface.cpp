@@ -136,7 +136,6 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
         this->m_TemplatePyramid=NULL;
     }
 
-
     // if we did not read the images, we can
     // destroy the containers here
     if (!this->m_Opt->GetRegFlags().readimages){
@@ -1616,14 +1615,13 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
 
 
 /********************************************************************
- * @brief run postprocessing of input data
+ * @brief compute deformation map or deformation gradient
  ********************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ComputeDeformationMap"
-PetscErrorCode RegistrationInterface::ComputeDetDefGrad()
+#define __FUNCT__ "ComputeDefFields"
+PetscErrorCode RegistrationInterface::ComputeDefFields()
 {
     PetscErrorCode ierr;
-    Vec mR=NULL,mT=NULL;
 
     PetscFunctionBegin;
 
@@ -1637,7 +1635,13 @@ PetscErrorCode RegistrationInterface::ComputeDetDefGrad()
 
     // compute stuff
     ierr=this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
-    ierr=this->m_RegProblem->ComputeDetDefGrad(); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetRegFlags().storedefgrad){
+        ierr=this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->GetRegFlags().storedefmap){
+        ierr=this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__FUNCT__);
 

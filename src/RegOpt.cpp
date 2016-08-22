@@ -1089,12 +1089,17 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
 {
     PetscErrorCode ierr;
     int nx[3],isize[3],istart[3],osize[3],ostart[3];
-    IntType nalloc;
+    int nalloc,rank,nproc;
     ScalarType *u=NULL, fftsetuptime;
     Complex *uk=NULL;
     std::stringstream ss;
 
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
 
     // parse grid size for setup
     for (int i = 0; i < 3; ++i){
@@ -1102,22 +1107,46 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
 
+    if (this->GetVerbosity() > 2){
+        ss << "setup of memory distribution/accfft";
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
     // get sizes
     nalloc = accfft_local_size_dft_r2c(nx,isize,istart,osize,ostart,this->m_FFT.mpicomm);
+
+    if (this->GetVerbosity() > 2){
+        ss << "np="<< nproc <<"; nx=("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<"); "
+           << "isize=("<<isize[0]<<","<<isize[1]<<","<<isize[2]<<"); "
+           << "istart=("<<istart[0]<<","<<istart[1]<<","<<istart[2]<<"); "
+           << "(nl,ng)=("<<isize[0]*isize[1]*isize[2]<<","<<nx[0]*nx[1]*nx[2]<<")";
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
+    ierr=Assert(nalloc!=0,"alloc problem"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
 
     // set up the fft
     u = (ScalarType*)accfft_alloc(nalloc);
+    ierr=Assert(u!=NULL,"alloc failed"); CHKERRQ(ierr);
+
     uk = (Complex*)accfft_alloc(nalloc);
+    ierr=Assert(uk!=NULL,"alloc failed"); CHKERRQ(ierr);
 
     if (this->m_FFT.plan != NULL){
         accfft_destroy_plan(this->m_FFT.plan);
         this->m_FFT.plan = NULL;
     }
 
+    ierr=DbgMsg("allocating fft plan"); CHKERRQ(ierr);
+
     fftsetuptime=-MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_FFT.mpicomm,ACCFFT_MEASURE);
     fftsetuptime+=MPI_Wtime();
+
+    ierr=DbgMsg("allocating fft plan done"); CHKERRQ(ierr);
 
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
@@ -1125,7 +1154,7 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
     // compute global and local size
     this->m_Domain.nlocal=1;
     this->m_Domain.nglobal=1;
-    for (int i = 0; i < 3; ++i){
+    for (int i = 0; i<3; ++i){
 
         this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
@@ -1148,8 +1177,10 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
     this->m_SetupDone=true;
 
     // clean up
-    accfft_free(u);
-    accfft_free(uk);
+    if (u!=NULL) { accfft_free(u); u=NULL; }
+    if (uk!=NULL) { accfft_free(uk); uk=NULL; }
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -1167,6 +1198,8 @@ PetscErrorCode RegOpt::SetPresetParameters()
     PetscErrorCode ierr;
 
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     if (this->m_SolveType == FAST_AGG){
 
@@ -1209,6 +1242,8 @@ PetscErrorCode RegOpt::SetPresetParameters()
 
     }
     else { ierr=ThrowError("flag not defined"); CHKERRQ(ierr); }
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -1255,6 +1290,8 @@ PetscErrorCode RegOpt::SetupGridCont()
     ScalarType value;
 
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     // compute number of levels
     nxmin = this->m_Domain.nx[0];
@@ -1340,6 +1377,7 @@ PetscErrorCode RegOpt::SetupGridCont()
 
     }
 
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -1361,6 +1399,8 @@ PetscErrorCode RegOpt::DisplayOptions()
     bool newtontype;
 
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
@@ -1737,6 +1777,8 @@ PetscErrorCode RegOpt::DisplayOptions()
 
     }
 
+    this->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -1755,6 +1797,8 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng)
 
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     ierr=Assert(nx[0]>0,"error in size"); CHKERRQ(ierr);
     ierr=Assert(nx[1]>0,"error in size"); CHKERRQ(ierr);
     ierr=Assert(nx[2]>0,"error in size"); CHKERRQ(ierr);
@@ -1771,6 +1815,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng)
         ng *= static_cast<IntType>(_nx[i]);
     }
 
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 };
@@ -1787,7 +1832,10 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize)
 {
     PetscErrorCode ierr;
     int _nx[3],_isize[3],_istart[3],_osize[3],_ostart[3];
+
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     ierr=Assert(nx[0]>0,"error in size"); CHKERRQ(ierr);
     ierr=Assert(nx[1]>0,"error in size"); CHKERRQ(ierr);
@@ -1803,6 +1851,8 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize)
         isize[i] = static_cast<IntType>(_isize[i]);
         istart[i] = static_cast<IntType>(_nx[i]);
     }
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 };
@@ -1838,6 +1888,8 @@ PetscErrorCode RegOpt::ResetTimers()
 {
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     for (int i = 0; i < NTIMERS; ++i){
         if (i != FFTSETUP){
             for (int j = 0; j < NVALTYPES; ++j){
@@ -1860,6 +1912,8 @@ PetscErrorCode RegOpt::ResetTimers()
         }
     }
 
+    this->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -1875,11 +1929,15 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id)
 {
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     for (int j = 0; j < NVALTYPES; ++j){
         this->m_Timer[id][j] = 0.0;
     }
     this->m_TimerIsRunning[id] = false;
     this->m_TempTimer[id] = 0.0;
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -1900,11 +1958,15 @@ PetscErrorCode RegOpt::StartTimer(TimerType id)
 
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     msg="fatal error: timer has already been started";
     ierr=Assert(this->m_TimerIsRunning[id]==false,msg); CHKERRQ(ierr);
 
     this->m_TempTimer[id] = -MPI_Wtime();
     this->m_TimerIsRunning[id] = true;
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -1925,6 +1987,8 @@ PetscErrorCode RegOpt::StopTimer(TimerType id)
 
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     msg="fatal error: timer has not been started";
     ierr=Assert(this->m_TimerIsRunning[id],msg); CHKERRQ(ierr);
 
@@ -1933,6 +1997,8 @@ PetscErrorCode RegOpt::StopTimer(TimerType id)
 
     // tell the world that we stop the timer
     this->m_TimerIsRunning[id] = false;
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -1953,6 +2019,8 @@ PetscErrorCode RegOpt::ProcessTimers()
     double ival=0.0,xval=0.0;
 
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
@@ -2029,6 +2097,7 @@ PetscErrorCode RegOpt::ProcessTimers()
 
     }
 
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 
@@ -2046,7 +2115,11 @@ PetscErrorCode RegOpt::ResetCounters()
 {
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     for(int i = 0; i < NCOUNTERS; ++i) this->m_Counter[i] = 0;
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -2063,7 +2136,11 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id)
 {
     PetscFunctionBegin;
 
+    this->Enter(__FUNCT__);
+
     this->m_Counter[id] = 0;
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }
@@ -2085,6 +2162,8 @@ PetscErrorCode RegOpt::WriteLogFile()
     int rank, nnum, nstr, nproc;
 
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -2432,6 +2511,8 @@ PetscErrorCode RegOpt::WriteLogFile()
 
     }
 
+    this->Exit(__FUNCT__);
+
     PetscFunctionReturn(0);
 }
 
@@ -2452,6 +2533,8 @@ PetscErrorCode RegOpt::DisplayTimeToSolution()
     std::stringstream ss;
     std::string line;
     PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
 
     time = this->m_Timer[T2SEXEC][MAX];
 
@@ -2475,6 +2558,8 @@ PetscErrorCode RegOpt::DisplayTimeToSolution()
 
     ierr=Msg(ss.str()); CHKERRQ(ierr);
     ierr=PetscPrintf(PETSC_COMM_WORLD,"%s\n",line.c_str()); CHKERRQ(ierr);
+
+    this->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
 }

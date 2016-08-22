@@ -68,7 +68,7 @@ public:
     PetscErrorCode SetInitialGuess(VecField*);
 
     PetscErrorCode RunPostProcessing();
-    PetscErrorCode ComputeDetDefGrad();
+    PetscErrorCode ComputeDefFields();
 
 private:
 

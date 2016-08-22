@@ -3298,7 +3298,6 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
-
     // get number of time points and grid points
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -3524,31 +3523,20 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     }
 
 
+    // write determinant of deformation gradient to file
     if(this->m_Opt->GetRegFlags().storedefgrad){
-
-        // determinant of deformation gradient out
-        ierr=this->ComputeDetDefGrad(); CHKERRQ(ierr);
-        ierr=Assert( this->m_WorkScaField1 != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"det-deformation-grad"+ext); CHKERRQ(ierr);
+        ierr=this->ComputeDetDefGrad(true); CHKERRQ(ierr);
 
     }
 
+    // write deformation map to file
     if(this->m_Opt->GetRegFlags().storedefmap){
-        ierr=this->ComputeDeformationMap(); CHKERRQ(ierr);
-        ierr=Assert( this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"deformation-map-x1"+ext,
-                                                            "deformation-map-x2"+ext,
-                                                            "deformation-map-x3"+ext); CHKERRQ(ierr);
+        ierr=this->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
 
+    // write deformation field to file
     if(this->m_Opt->GetRegFlags().storedeffield){
-
-        ierr=this->ComputeDisplacementField(); CHKERRQ(ierr);
-        ierr=Assert( this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"displacement-field-x1"+ext,
-                                                            "displacement-field-x2"+ext,
-                                                            "displacement-field-x3"+ext); CHKERRQ(ierr);
-
+        ierr=this->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->GetRegFlags().loggingenabled){

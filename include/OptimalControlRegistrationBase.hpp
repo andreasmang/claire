@@ -97,13 +97,13 @@ public:
 
     /*! compute determinant of deformation gradient, i.e.
         the jacobian of the deformation map */
-    PetscErrorCode ComputeDetDefGrad();
+    PetscErrorCode ComputeDetDefGrad(bool write2file=false);
 
     /*! compute deformation map */
-    PetscErrorCode ComputeDeformationMap();
+    PetscErrorCode ComputeDeformationMap(bool write2file=false);
 
     /*! compute displacement field */
-    PetscErrorCode ComputeDisplacementField();
+    PetscErrorCode ComputeDisplacementField(bool write2file=false);
 
     /*! compute synthetic test problem */
     PetscErrorCode SetupSyntheticProb(Vec&,Vec&);

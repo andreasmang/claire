@@ -123,79 +123,79 @@ PetscErrorCode PreProcReg::ClearMemory()
         this->m_yhat = NULL;
     }
 
-    if(this->m_XHatFine != NULL){
+    if(this->m_XHatFine!=NULL){
         accfft_free(this->m_XHatFine);
         this->m_XHatFine=NULL;
     }
-    if(this->m_XHatCoarse != NULL){
+    if(this->m_XHatCoarse!=NULL){
         accfft_free(this->m_XHatCoarse);
         this->m_XHatCoarse=NULL;
     }
 
-    if(this->m_FFTFinePlan != NULL){
+    if(this->m_FFTFinePlan!=NULL){
         accfft_destroy_plan(this->m_FFTFinePlan);
         this->m_FFTFinePlan=NULL;
     }
-    if(this->m_FFTCoarsePlan != NULL){
+    if(this->m_FFTCoarsePlan!=NULL){
         accfft_destroy_plan(this->m_FFTCoarsePlan);
         this->m_FFTCoarsePlan=NULL;
     }
 
 
-    if (this->m_FourierCoeffSendF == NULL){
+    if (this->m_FourierCoeffSendF!=NULL){
         delete [] this->m_FourierCoeffSendF;
-        this->m_FourierCoeffSendF = NULL;
+        this->m_FourierCoeffSendF=NULL;
     }
 
-    if (this->m_FourierCoeffSendC == NULL){
+    if (this->m_FourierCoeffSendC!=NULL){
         delete [] this->m_FourierCoeffSendC;
-        this->m_FourierCoeffSendC = NULL;
+        this->m_FourierCoeffSendC=NULL;
     }
 
-    if (this->m_FourierCoeffRecvF == NULL){
+    if (this->m_FourierCoeffRecvF!=NULL){
         delete [] this->m_FourierCoeffRecvF;
-        this->m_FourierCoeffRecvF = NULL;
+        this->m_FourierCoeffRecvF=NULL;
     }
 
-    if (this->m_FourierCoeffRecvC == NULL){
+    if (this->m_FourierCoeffRecvC!=NULL){
         delete [] this->m_FourierCoeffRecvC;
-        this->m_FourierCoeffRecvC = NULL;
+        this->m_FourierCoeffRecvC=NULL;
     }
 
-    if (this->m_FourierIndicesRecvF == NULL){
+    if (this->m_FourierIndicesRecvF!=NULL){
         delete [] this->m_FourierIndicesRecvF;
-        this->m_FourierIndicesRecvF = NULL;
+        this->m_FourierIndicesRecvF=NULL;
     }
 
-    if (this->m_FourierIndicesRecvC == NULL){
+    if (this->m_FourierIndicesRecvC!=NULL){
         delete [] this->m_FourierIndicesRecvC;
-        this->m_FourierIndicesRecvC = NULL;
+        this->m_FourierIndicesRecvC=NULL;
     }
 
-    if (this->m_FourierIndicesSendF == NULL){
+    if (this->m_FourierIndicesSendF!=NULL){
         delete [] this->m_FourierIndicesSendF;
-        this->m_FourierIndicesSendF = NULL;
+        this->m_FourierIndicesSendF=NULL;
     }
 
-    if (this->m_FourierIndicesSendC == NULL){
+    if (this->m_FourierIndicesSendC!=NULL){
         delete [] this->m_FourierIndicesSendC;
-        this->m_FourierIndicesSendC = NULL;
+        this->m_FourierIndicesSendC=NULL;
     }
 
-    if (this->m_NumSend==NULL){
+    if (this->m_NumSend!=NULL){
         delete [] this->m_NumSend;
         this->m_NumSend=NULL;
     }
-    if (this->m_NumRecv==NULL){
+    if (this->m_NumRecv!=NULL){
         delete [] this->m_NumRecv;
         this->m_NumRecv=NULL;
     }
 
-    if (this->m_OffsetSend==NULL){
+    if (this->m_OffsetSend!=NULL){
         delete [] this->m_OffsetSend;
         this->m_OffsetSend=NULL;
     }
-    if (this->m_OffsetRecv==NULL){
+    if (this->m_OffsetRecv!=NULL){
         delete [] this->m_OffsetRecv;
         this->m_OffsetRecv=NULL;
     }
@@ -253,6 +253,7 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
     ScalarType *p_xfd=NULL,*p_xcd=NULL;
     Complex *p_xfdhat=NULL,*p_xcdhat=NULL;
     MPI_Comm mpicomm;
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -298,6 +299,8 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
 
     nalloc_c = accfft_local_size_dft_r2c(_nx_c,_isize_c,_istart_c,_osize_c,_ostart_c,mpicomm);
     nalloc_f = accfft_local_size_dft_r2c(_nx_f,_isize_f,_istart_f,_osize_f,_ostart_f,mpicomm);
+    ierr=Assert(nalloc_c>0,"alloc problems"); CHKERRQ(ierr);
+    ierr=Assert(nalloc_f>0,"alloc problems"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i){
         this->m_osizeC[i] = static_cast<IntType>(_osize_c[i]);
@@ -306,26 +309,29 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
         this->m_ostartF[i] = static_cast<IntType>(_ostart_f[i]);
     }
 
+    ierr=DbgMsg("allocating coarse grid"); CHKERRQ(ierr);
     if (this->m_XHatCoarse == NULL){
         this->m_XHatCoarse = (ScalarTypeFD*)accfft_alloc(nalloc_c);
     }
-    ierr=Assert(this->m_XHatCoarse!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_XHatCoarse!=NULL,"allocation failed"); CHKERRQ(ierr);
 
-    if (this->m_XHatFine == NULL){
+    ierr=DbgMsg("allocating fine grid"); CHKERRQ(ierr);
+    if (this->m_XHatFine==NULL){
         this->m_XHatFine = (ScalarTypeFD*)accfft_alloc(nalloc_f);
     }
-    ierr=Assert(this->m_XHatFine!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_XHatFine!=NULL,"allocation failed"); CHKERRQ(ierr);
 
     // allocate plan for fine grid
-    if (this->m_FFTFinePlan == NULL){
+    if (this->m_FFTFinePlan==NULL){
 
         p_xfd = (ScalarType*)accfft_alloc(nalloc_f);
-        ierr=Assert(p_xfd!=NULL,"null pointer"); CHKERRQ(ierr);
+        ierr=Assert(p_xfd!=NULL,"allocation failed"); CHKERRQ(ierr);
 
-        p_xfdhat = (Complex*)accfft_alloc(nalloc_f);
-        ierr=Assert(p_xfdhat!=NULL,"null pointer"); CHKERRQ(ierr);
+        p_xfdhat=(Complex*)accfft_alloc(nalloc_f);
+        ierr=Assert(p_xfdhat!=NULL,"malloc failed"); CHKERRQ(ierr);
 
         this->m_FFTFinePlan=accfft_plan_dft_3d_r2c(_nx_f,p_xfd,(double*)p_xfdhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
+        ierr=Assert(this->m_FFTFinePlan!=NULL,"malloc failed"); CHKERRQ(ierr);
 
         accfft_free(p_xfd); p_xfd=NULL;
         accfft_free(p_xfdhat); p_xfdhat=NULL;
@@ -335,11 +341,13 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
     if (this->m_FFTCoarsePlan == NULL){
 
         p_xcd = (ScalarType*)accfft_alloc(nalloc_c);
-        ierr=Assert(p_xcd!=NULL,"null pointer"); CHKERRQ(ierr);
+        ierr=Assert(p_xcd!=NULL,"malloc failed"); CHKERRQ(ierr);
+
         p_xcdhat = (Complex*)accfft_alloc(nalloc_c);
-        ierr=Assert(p_xcdhat!=NULL,"null pointer"); CHKERRQ(ierr);
+        ierr=Assert(p_xcdhat!=NULL,"malloc failed"); CHKERRQ(ierr);
 
         this->m_FFTCoarsePlan=accfft_plan_dft_3d_r2c(_nx_c,p_xcd,(double*)p_xcdhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
+        ierr=Assert(this->m_FFTCoarsePlan!=NULL,"malloc failed"); CHKERRQ(ierr);
 
         accfft_free(p_xcd); p_xcd=NULL;
         accfft_free(p_xcdhat); p_xcdhat=NULL;
@@ -404,6 +412,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     PetscErrorCode ierr=0;
     ScalarType *p_xf=NULL,*p_xc=NULL,scale,coeff[2];//,value
     IntType n,l,k_c[3],i_c[3],nr,os_recv;//,k_f[3],nxhalf_c[3];
+    std::stringstream ss;
     int rank,nprocs;
     double timer[5]={0,0,0,0,0};
 
@@ -412,7 +421,9 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2){
-        ierr=DbgMsg("applying restriction operator"); CHKERRQ(ierr);
+        ss << "applying restriction operator [" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]"
+           << "-> [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]";
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -1153,10 +1164,10 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong()
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
-    ierr=Assert(this->m_OffsetSend!=NULL,"error in setup"); CHKERRQ(ierr);
-    ierr=Assert(this->m_OffsetRecv!=NULL,"error in setup"); CHKERRQ(ierr);
     ierr=Assert(this->m_NumSend!=NULL,"error in setup"); CHKERRQ(ierr);
     ierr=Assert(this->m_NumRecv!=NULL,"error in setup"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OffsetSend!=NULL,"error in setup"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OffsetRecv!=NULL,"error in setup"); CHKERRQ(ierr);
 
     if (this->m_SendRequest==NULL){
         try{this->m_SendRequest = new MPI_Request[nprocs];}
@@ -1212,8 +1223,8 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong()
                     l = GetLinearIndex(i_c[0],i_c[1],i_c[2],this->m_osizeC);
 
                     // assign values to coarse grid
-                    this->m_FourierCoeffSendC[2*j + 0 + 2*os_recv] = this->m_XHatCoarse[l][0];
-                    this->m_FourierCoeffSendC[2*j + 1 + 2*os_recv] = this->m_XHatCoarse[l][1];
+                    this->m_FourierCoeffSendC[2*j+0+2*os_recv] = this->m_XHatCoarse[l][0];
+                    this->m_FourierCoeffSendC[2*j+1+2*os_recv] = this->m_XHatCoarse[l][1];
 
                 } // for all points
             } // if indices are not empty
@@ -1322,6 +1333,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     int rank,nprocs;
     IntType l,n,ns,os_send,k_f[3],i_f[3];
     ScalarType *p_xf=NULL,*p_xc=NULL,scale,coeff[2];
+    std::stringstream ss;
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
@@ -1337,6 +1349,12 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 
     ierr=Assert(x_c!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(x_f!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ss << "applying prolongation operator [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]"
+           << "-> [" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]";
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+    }
 
     if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ){
         ierr=VecCopy(x_c,*x_f); CHKERRQ(ierr);

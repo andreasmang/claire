@@ -635,8 +635,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    ierr=DbgMsg("allocating memory"); CHKERRQ(ierr);
-
     if (this->m_iVecField==NULL){
         try{ this->m_iVecField = new double [3*nl]; }
         catch (std::bad_alloc&){
@@ -649,21 +647,17 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    ierr=DbgMsg("allocating memory done"); CHKERRQ(ierr);
 
-    ierr=DbgMsg("parsing values"); CHKERRQ(ierr);
     for (IntType i = 0; i < nl; ++i){
         this->m_iVecField[0*nl + i] = vx1[i];
         this->m_iVecField[1*nl + i] = vx2[i];
         this->m_iVecField[2*nl + i] = vx3[i];
     }
-    ierr=DbgMsg("parsing values done"); CHKERRQ(ierr);
 
     // get ghost sizes
-    ierr=DbgMsg("computing ghost points"); CHKERRQ(ierr);
     plan = this->m_Opt->GetFFT().plan;
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
-    ierr=DbgMsg("computing ghost points done"); CHKERRQ(ierr);
+    ierr=Assert(g_alloc_max!=0,"alloc problem"); CHKERRQ(ierr);
 
     // get nlocal for ghosts
     nlghost = 1;
@@ -678,25 +672,20 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
 
     // do the communication for the ghost points
-    ierr=DbgMsg("communicate ghost points"); CHKERRQ(ierr);
     for (int i = 0; i < 3; i++){
-        std::cout<< i << " " << isize_g[i] <<std::endl;
         accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,
                                  &this->m_iVecField[i*nl],
                                  &this->m_VecFieldGhost[i*nlghost]);
     }
-    ierr=DbgMsg("communication done"); CHKERRQ(ierr);
 
     if (strcmp(flag.c_str(),"state")==0){
 
         ierr=Assert(this->m_XS!=NULL,"state X null pointer"); CHKERRQ(ierr);
         ierr=Assert(this->m_StatePlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
 
-
         this->m_StatePlanVec->interpolate(this->m_VecFieldGhost,3,nx,isize,istart,
-                                        nl,this->m_GhostSize,this->m_xVecField,c_dims,
-                                        this->m_Opt->GetFFT().mpicomm,timers);
-
+                                            nl,this->m_GhostSize,this->m_xVecField,c_dims,
+                                            this->m_Opt->GetFFT().mpicomm,timers);
 
     }
     else if (strcmp(flag.c_str(),"adjoint")==0){
@@ -705,8 +694,8 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
         ierr=Assert(this->m_AdjointPlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
 
         this->m_AdjointPlanVec->interpolate(this->m_VecFieldGhost,3,nx,isize,istart,
-                                        nl,this->m_GhostSize,this->m_xVecField,c_dims,
-                                        this->m_Opt->GetFFT().mpicomm,timers);
+                                            nl,this->m_GhostSize,this->m_xVecField,c_dims,
+                                            this->m_Opt->GetFFT().mpicomm,timers);
 
     }
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
