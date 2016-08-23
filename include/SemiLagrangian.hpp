@@ -71,7 +71,6 @@ public:
                                        ScalarType*,ScalarType*,ScalarType*,
                                        ScalarType*,ScalarType*,ScalarType*);
 
-    PetscErrorCode ComputeDeformationMap(VecField*,VecField*,bool inverse=false);
     PetscErrorCode SetReadWrite(ReadWriteReg*);
 
 protected:

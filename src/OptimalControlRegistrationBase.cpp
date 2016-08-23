@@ -1870,6 +1870,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A()
 PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
 {
     PetscErrorCode ierr=0;
+    std::stringstream ss;
+    IntType nl,nt;
+    ScalarType hx[3],ht,hthalf;
+    ScalarType *p_y1=NULL,*p_y2=NULL,*p_y3=NULL,
+                *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
+                *p_vy1=NULL,*p_vy2=NULL,*p_vy3=NULL,
+                *p_vytilde1=NULL,*p_vytilde2=NULL,*p_vytilde3=NULL,
+                *p_ytilde1=NULL,*p_ytilde2=NULL,*p_ytilde3=NULL;
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -1879,6 +1888,24 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
     // allocate vector fields
     if (this->m_WorkVecField1 == NULL){
        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2==NULL){
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField3==NULL){
+        try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField4==NULL){
+        try{this->m_WorkVecField4 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1893,9 +1920,141 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
     }
     ierr=this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
-    // compute deformation map y using an SL time integrator
-    ierr=this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);
-    ierr=this->m_SemiLagrangianMethod->ComputeDeformationMap(this->m_WorkVecField1,this->m_VelocityField); CHKERRQ(ierr);
+    for (int i = 0; i < 3; ++i){
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+    }
+
+    // compute initial condition
+    ierr=this->m_WorkVecField1->GetArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+    IntType l,i1,i2,i3;
+#pragma omp for
+    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1){  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2){ // x2
+            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3){ // x3
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
+
+                // compute coordinates (nodal grid)
+                p_y1[l] = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
+                p_y2[l] = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
+                p_y3[l] = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+
+            } // i1
+        } // i2
+    } // i3
+}// pragma omp for
+
+    ierr=this->m_WorkVecField1->RestoreArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
+
+
+    // store time series
+    if (this->m_Opt->GetRegFlags().storetimeseries ){
+
+        ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
+
+        // write out y1
+        ss.str(std::string()); ss.clear();
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1.nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
+
+        ss.str(std::string()); ss.clear();
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2.nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
+
+        ss.str(std::string()); ss.clear();
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3.nii.gz";
+        ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
+
+    }
+
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ht = this->m_Opt->GetTimeStepSize();
+//    if (inverse){ ht *= -1.0; }
+    hthalf = 0.5*ht;
+
+    ierr=this->m_VelocityField->GetArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
+
+    ierr=this->m_WorkVecField1->GetArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->GetArrays(p_ytilde1,p_ytilde2,p_ytilde3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField3->GetArrays(p_vy1,p_vy2,p_vy3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField4->GetArrays(p_vytilde1,p_vytilde2,p_vytilde3); CHKERRQ(ierr);
+
+    // compute numerical time integration
+    for (IntType j = 0; j < nt; ++j){
+
+        // evaluate v(y)
+        ierr=this->m_SemiLagrangianMethod->Interpolate( p_vy1,p_vy2,p_vy3,
+                                                        p_v1,p_v2,p_v3,
+                                                        p_y1,p_y2,p_y3 ); CHKERRQ(ierr);
+
+        // compute intermediate variable (fist stage of RK2)
+#pragma omp parallel
+{
+#pragma omp for
+        for (IntType i = 0; i < nl; ++i){
+
+            p_ytilde1[i] = p_y1[i] - ht*p_vy1[i];
+            p_ytilde2[i] = p_y2[i] - ht*p_vy2[i];
+            p_ytilde3[i] = p_y3[i] - ht*p_vy3[i];
+
+        }
+}// end of pragma omp parallel
+
+        // evaluate v(ytilde)
+        ierr=this->m_SemiLagrangianMethod->Interpolate( p_vytilde1,p_vytilde2,p_vytilde3,
+                                                        p_v1,p_v2,p_v3,
+                                                        p_ytilde1,p_ytilde2,p_ytilde3 ); CHKERRQ(ierr);
+
+        // update deformation map (second stage of RK2)
+#pragma omp parallel
+{
+#pragma omp for
+        for (IntType i = 0; i < nl; ++i){
+            p_y1[i] = p_y1[i] - hthalf*(p_vytilde1[i] + p_vy1[i]);
+            p_y2[i] = p_y2[i] - hthalf*(p_vytilde2[i] + p_vy2[i]);
+            p_y3[i] = p_y3[i] - hthalf*(p_vytilde3[i] + p_vy3[i]);
+        }
+}// end of pragma omp parallel
+
+
+        // store time series
+        if (this->m_Opt->GetRegFlags().storetimeseries ){
+
+            ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
+
+            ierr=this->m_WorkVecField1->RestoreArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
+
+            // write out y1
+            ss.str(std::string()); ss.clear();
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1.nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
+
+            ss.str(std::string()); ss.clear();
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2.nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
+
+            ss.str(std::string()); ss.clear();
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3.nii.gz";
+            ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
+
+            ierr=this->m_WorkVecField1->GetArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
+
+        }
+
+    } // for all time points
+
+    ierr=this->m_VelocityField->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
+
+    ierr=this->m_WorkVecField1->RestoreArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField2->RestoreArrays(p_ytilde1,p_ytilde2,p_ytilde3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField3->RestoreArrays(p_vy1,p_vy2,p_vy3); CHKERRQ(ierr);
+    ierr=this->m_WorkVecField4->RestoreArrays(p_vytilde1,p_vytilde2,p_vytilde3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -2036,7 +2195,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL()
 
     ierr=this->m_VelocityField->GetArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
     ierr=this->m_WorkVecField2->GetArrays(p_vX1,p_vX2,p_vX3); CHKERRQ(ierr);
-
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j){
