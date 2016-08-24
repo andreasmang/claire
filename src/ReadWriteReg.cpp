@@ -64,6 +64,13 @@ PetscErrorCode ReadWriteReg::Initialize()
 
     this->m_Opt = NULL;
     this->m_Data = NULL;
+
+    this->m_iSizeC = NULL;
+    this->m_iStartC = NULL;
+
+    this->m_nSend = NULL;
+    this->m_nOffset = NULL;
+
     this->m_nx[0] = -1;
     this->m_nx[1] = -1;
     this->m_nx[2] = -1;
@@ -81,7 +88,27 @@ PetscErrorCode ReadWriteReg::Initialize()
 #define __FUNCT__ "ClearMemory"
 PetscErrorCode ReadWriteReg::ClearMemory()
 {
-    PetscFunctionReturn(0);
+    PetscErrorCode ierr=0;
+    PetscFunctionBegin;
+
+    if (this->m_Data!=NULL){
+        delete [] this->m_Data; this->m_Data=NULL;
+    }
+    if (this->m_iSizeC!=NULL){
+        delete [] this->m_iSizeC; this->m_iSizeC=NULL;
+    }
+    if (this->m_iStartC!=NULL){
+        delete [] this->m_iStartC; this->m_iStartC=NULL;
+    }
+    if (this->m_nOffset!=NULL){
+        delete [] this->m_nOffset; this->m_nOffset=NULL;
+    }
+    if (this->m_nSend!=NULL){
+        delete [] this->m_nSend; this->m_nSend=NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+
 }
 
 
@@ -100,14 +127,15 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
 
     this->m_Opt->Enter(__FUNCT__);
 
-    // has to be allocated elsewhere (TODO: needs to be fixed)
-//    if (*x != NULL){ ierr=VecDestroy(x); CHKERRQ(ierr); }
-
     // get file name without path
     ierr=GetFileName(file,filename); CHKERRQ(ierr);
 
+    // check if file exists
+    msg = "file " + file + " does not exist";
+    ierr=Assert(FileExists(filename),msg); CHKERRQ(ierr);
+
     // display what we are doing
-    if (this->m_Opt->GetVerbosity() > 1){
+    if (this->m_Opt->GetVerbosity() > 2){
         msg = "reading " + file;
         ierr=DbgMsg(msg); CHKERRQ(ierr);
     }
@@ -121,6 +149,14 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
     else if (filename.find(".hdr") != std::string::npos){
         ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
     }
+    else if (filename.find(".bin") != std::string::npos){
+        ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
+    }
+#if defined(PETSC_HAVE_HDF5)
+    else if (filename.find(".hdf5") != std::string::npos){
+        ierr=this->ReadHDF5(x,filename); CHKERRQ(ierr);
+    }
+#endif
     else{ ierr=ThrowError("could not read: data type not supported"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -146,7 +182,7 @@ PetscErrorCode ReadWriteReg::Read(VecField* v,
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
 
     ierr=this->Read(&v->m_X1,fnx1); CHKERRQ(ierr);
     ierr=this->Read(&v->m_X1,fnx2); CHKERRQ(ierr);
@@ -174,7 +210,7 @@ PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename)
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    filename = this->m_Opt->GetXFolder() + filename;
+    filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -242,7 +278,7 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
 
     ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
 
-    filename = this->m_Opt->GetXFolder() + filename;
+    filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -276,7 +312,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
         ierr=DbgMsg(msg); CHKERRQ(ierr);
     }
 
-    filename = this->m_Opt->GetXFolder() + filename;
+    filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
     if (filename.find(".nii") != std::string::npos){
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
     }
@@ -286,6 +322,14 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
     else if (filename.find(".hdr") != std::string::npos){
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
     }
+    else if (filename.find(".bin") != std::string::npos){
+        ierr=this->WriteBIN(x,filename); CHKERRQ(ierr);
+    }
+#if defined(PETSC_HAVE_HDF5)
+    else if (filename.find(".hdf5") != std::string::npos){
+        ierr=this->WriteHDF5(x,filename); CHKERRQ(ierr);
+    }
+#endif
     else{ ierr=ThrowError("could not write: data type not supported"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -404,8 +448,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     std::string msg,file;
     std::stringstream ss;
     int nprocs,rank,rval;
-    IntType nx[3],isize[3],istart[3],*isize_c=NULL,*istart_c=NULL;
-    IntType ng,ngx,nl,i1,i2,i3,j1,j2,j3,j,k;
+    IntType nx[3],isize[3],istart[3];
+    IntType ng,ngx,nl,i1,i2,i3,j1,j2,j3,l,k;
     ScalarType *p_x=NULL;
     ScalarType *comdata=NULL;
     nifti_image *image=NULL;
@@ -419,10 +463,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
     // get file name without path
     ierr=GetFileName(file,filename); CHKERRQ(ierr);
-
-    // check if file exists
-    msg = "file " + file + "does not exist";
-    ierr=Assert(FileExists(filename),msg); CHKERRQ(ierr);
 
     // read header file
     image = nifti_image_read(filename.c_str(),false);
@@ -502,14 +542,14 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
         ierr=this->ReadNII(image,filename); CHKERRQ(ierr);
 
         // get all the sizes to read and assign data correctly
-        if (isize_c==NULL){
-            try{ isize_c = new IntType[3*nprocs]; }
+        if (this->m_iSizeC==NULL){
+            try{ this->m_iSizeC = new IntType[3*nprocs]; }
             catch(std::bad_alloc&){
                 ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
-        if (istart_c==NULL){
-            try{ istart_c = new IntType[3*nprocs]; }
+        if (this->m_iStartC==NULL){
+            try{ this->m_iStartC = new IntType[3*nprocs]; }
             catch(std::bad_alloc&){
                 ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -517,20 +557,23 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
     }
 
-    int *numsend=NULL,*numoffset=NULL;
-    try{ numsend = new int[3*nprocs]; }
-    catch(std::bad_alloc&){
-         ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+    if (this->m_nSend==NULL){
+        try{ this->m_nSend = new int[3*nprocs]; }
+        catch(std::bad_alloc&){
+             ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
     }
-    try{ numoffset = new int[3*nprocs]; }
-    catch(std::bad_alloc&){
-         ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+    if (this->m_nOffset==NULL){
+        try{ this->m_nOffset = new int[3*nprocs]; }
+        catch(std::bad_alloc&){
+             ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
     }
 
     // gather isize and istart on master rank
-    rval=MPI_Gather(isize,3,MPIU_INT,isize_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+    rval=MPI_Gather(isize,3,MPIU_INT,this->m_iSizeC,3,MPIU_INT,0,PETSC_COMM_WORLD);
     ierr=MPIERRQ(rval); CHKERRQ(ierr);
-    rval=MPI_Gather(istart,3,MPIU_INT,istart_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+    rval=MPI_Gather(istart,3,MPIU_INT,this->m_iStartC,3,MPIU_INT,0,PETSC_COMM_WORLD);
     ierr=MPIERRQ(rval); CHKERRQ(ierr);
 
 
@@ -541,10 +584,10 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
         for (int p = 0; p < nprocs; ++p){
             IntType nsend = 1;
             for (int i = 0; i < 3; ++i){
-               nsend *= isize_c[p*3+i];
+               nsend *= this->m_iSizeC[p*3+i];
             }
-            numsend[p] = static_cast<int>(nsend);
-            numoffset[p] = offset;
+            this->m_nSend[p] = static_cast<int>(nsend);
+            this->m_nOffset[p] = offset;
             offset += nsend;
         }
 
@@ -557,16 +600,16 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
         k=0;
         for(int p = 0; p < nprocs; ++p){
 
-            for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
-                for (i2 = 0; i2 < isize_c[3*p+1]; ++i2){ // x2
-                    for (i3 = 0; i3 < isize_c[3*p+2]; ++i3){ // x3
+            for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1){ // x1
+                for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2){ // x2
+                    for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3){ // x3
 
-                        j1 = i1 + istart_c[3*p+0];
-                        j2 = i2 + istart_c[3*p+1];
-                        j3 = i3 + istart_c[3*p+2];
+                        j1 = i1 + this->m_iStartC[3*p+0];
+                        j2 = i2 + this->m_iStartC[3*p+1];
+                        j3 = i3 + this->m_iStartC[3*p+2];
 
-                        j = GetLinearIndex(j1,j2,j3,nx);
-                        comdata[k++] = this->m_Data[j];
+                        l = GetLinearIndex(j1,j2,j3,nx);
+                        comdata[k++] = this->m_Data[l];
 
                     } // for i1
                 } // for i2
@@ -579,14 +622,12 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     int nrecv = static_cast<int>(nl);
 
     ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
-    rval=MPI_Scatterv(comdata,numsend,numoffset,
+    rval=MPI_Scatterv(comdata,this->m_nSend,this->m_nOffset,
                         MPI_DOUBLE,p_x,nrecv,MPI_DOUBLE,0,PETSC_COMM_WORLD);
     ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
 
     if (comdata != NULL){ delete [] comdata; comdata=NULL; }
     if (image!=NULL){ nifti_image_free(image); image=NULL; }
-    if (isize_c!=NULL){ delete [] isize_c; isize_c=NULL; }
-    if (istart_c!=NULL){ delete [] istart_c; istart_c=NULL; }
     if (this->m_Data != NULL){ delete [] this->m_Data; this->m_Data=NULL; }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -681,6 +722,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
 
 
 
+
 /********************************************************************
  * @brief get component type of NII images
  *******************************************************************/
@@ -730,6 +772,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 
 
 
+
 /********************************************************************
  * @brief write buffer to nii files
  *******************************************************************/
@@ -764,7 +807,6 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
 
     PetscFunctionReturn(0);
 }
-
 
 
 
@@ -822,7 +864,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
             break;
         }
         case NIFTI_TYPE_FLOAT32:
-       {
+        {
             ierr=this->WriteNII<float>(niiimage,x,filename); CHKERRQ(ierr);
             break;
         }
@@ -845,20 +887,22 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 
 
 
+
 /********************************************************************
  * @brief write buffer to nii files
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
-template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
+template <typename T>
+PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image,Vec x,std::string filename)
 {
     PetscErrorCode ierr;
     IntType ng;
     T* data=NULL;
     ScalarType *p_xc=NULL;
     int nprocs,rank,rval;
-    IntType *istart_c=NULL,*isize_c=NULL,istart[3],isize[3],nx[3];
-    IntType i1,i2,i3,j1,j2,j3,j;
+    IntType istart[3],isize[3],nx[3];
+    IntType i1,i2,i3,j1,j2,j3,l;
     Vec xcollect=NULL;
     VecScatter scatterctx=NULL;
     std::string msg;
@@ -880,16 +924,16 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         // we need to allocate the image if it's a zero pointer; this
         // will also create a standard header file; not tested (might need
         // to parse the dimensions of the data)
-        if( (*niiimage) == NULL){
+        if( (*image) == NULL){
             if (this->m_Opt->GetVerbosity() >= 4){
                 msg="allocating buffer for nifti image";
                 ierr=DbgMsg(msg); CHKERRQ(ierr);
             }
-            ierr=this->AllocateNII(niiimage,x); CHKERRQ(ierr);
+            ierr=this->AllocateNII(image,x); CHKERRQ(ierr);
         }
 
         msg="nifty image is null pointer";
-        ierr=Assert((*niiimage)!=NULL,msg); CHKERRQ(ierr);
+        ierr=Assert((*image)!=NULL,msg); CHKERRQ(ierr);
 
         // construct file name
         std::string file(filename);
@@ -911,22 +955,22 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         const bool iscompressed = (sep == std::string::npos) ? false : true;
 
         if ( ext==".nii" || ext==".nii.gz" ){
-            (*niiimage)->nifti_type = NIFTI_FTYPE_NIFTI1_1;
+            (*image)->nifti_type = NIFTI_FTYPE_NIFTI1_1;
         }
         else if ( ext==".nia" ){
-            (*niiimage)->nifti_type = NIFTI_FTYPE_ASCII;
+            (*image)->nifti_type = NIFTI_FTYPE_ASCII;
         }
         else if ( ext==".hdr" || ext==".img" || ext==".hdr.gz" || ext==".img.gz" ){
-            (*niiimage)->nifti_type = NIFTI_FTYPE_NIFTI1_2;
+            (*image)->nifti_type = NIFTI_FTYPE_NIFTI1_2;
         }
         else{ ierr=ThrowError("file extension not supported"); CHKERRQ(ierr); }
 
-        (*niiimage)->fname = nifti_makehdrname(bname.c_str(),
-                                            (*niiimage)->nifti_type,
+        (*image)->fname = nifti_makehdrname(bname.c_str(),
+                                            (*image)->nifti_type,
                                             false, iscompressed);
 
-        (*niiimage)->iname = nifti_makeimgname(bname.c_str(),
-                                            (*niiimage)->nifti_type,
+        (*image)->iname = nifti_makeimgname(bname.c_str(),
+                                            (*image)->nifti_type,
                                             false, iscompressed);
     }
 
@@ -936,7 +980,7 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         ierr=VecGetArray(x,&p_xc); CHKERRQ(ierr);
 
         // cast pointer of nifti image data
-        data = static_cast<T*>((*niiimage)->data);
+        data = static_cast<T*>((*image)->data);
 
 #pragma omp parallel
 {
@@ -954,14 +998,18 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         // allocate the index buffers on master rank
         if (rank == 0){
 
-            try{ istart_c = new IntType[3*nprocs]; }
-            catch(std::bad_alloc&){
-                ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+            // get all the sizes to read and assign data correctly
+            if (this->m_iSizeC==NULL){
+                try{ this->m_iSizeC = new IntType[3*nprocs]; }
+                catch(std::bad_alloc&){
+                    ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+                }
             }
-
-            try{ isize_c = new IntType[3*nprocs]; }
-            catch(std::bad_alloc&){
-                ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+            if (this->m_iStartC==NULL){
+                try{ this->m_iStartC = new IntType[3*nprocs]; }
+                catch(std::bad_alloc&){
+                    ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
+                }
             }
 
         }
@@ -975,10 +1023,10 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         istart[2] = this->m_Opt->GetDomainPara().istart[2];
 
         // gather the indices
-        rval=MPI_Gather(istart,3,MPIU_INT,istart_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+        rval=MPI_Gather(istart,3,MPIU_INT,this->m_iStartC,3,MPIU_INT,0,PETSC_COMM_WORLD);
         ierr=MPIERRQ(rval); CHKERRQ(ierr);
 
-        rval=MPI_Gather(isize,3,MPIU_INT,isize_c,3,MPIU_INT,0,PETSC_COMM_WORLD);
+        rval=MPI_Gather(isize,3,MPIU_INT,this->m_iSizeC,3,MPIU_INT,0,PETSC_COMM_WORLD);
         ierr=MPIERRQ(rval); CHKERRQ(ierr);
 
         // create scatter object
@@ -995,22 +1043,22 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
         // if we are on master rank
         if (rank == 0){
 
-            data = static_cast<T*>( (*niiimage)->data);
+            data = static_cast<T*>( (*image)->data);
             ierr=VecGetArray(xcollect,&p_xc); CHKERRQ(ierr);
 
             IntType k = 0;
             for(int p = 0; p < nprocs; ++p){
 
-                for (i1 = 0; i1 < isize_c[3*p+0]; ++i1){ // x1
-                    for (i2 = 0; i2 < isize_c[3*p+1]; ++i2){ // x2
-                        for (i3 = 0; i3 < isize_c[3*p+2]; ++i3){ // x3
+                for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1){ // x1
+                    for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2){ // x2
+                        for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3){ // x3
 
-                            j1 = i1 + istart_c[3*p+0];
-                            j2 = i2 + istart_c[3*p+1];
-                            j3 = i3 + istart_c[3*p+2];
+                            j1 = i1 + this->m_iStartC[3*p+0];
+                            j2 = i2 + this->m_iStartC[3*p+1];
+                            j3 = i3 + this->m_iStartC[3*p+2];
 
-                            j = GetLinearIndex(j1,j2,j3,nx);
-                            data[j] = static_cast<T>(p_xc[k++]);
+                            l = GetLinearIndex(j1,j2,j3,nx);
+                            data[l] = static_cast<T>(p_xc[k++]);
 
                         } // for i1
                     } // for i2
@@ -1027,8 +1075,6 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
 
     // clear memory
     if (xcollect !=NULL){ ierr=VecDestroy(&xcollect); CHKERRQ(ierr); }
-    if (isize_c!=NULL){ delete [] isize_c; isize_c=NULL; }
-    if (istart_c!=NULL){ delete [] istart_c; istart_c=NULL; }
     if (scatterctx!=NULL){ ierr=VecScatterDestroy(&scatterctx); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1044,7 +1090,7 @@ template <typename T> PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiima
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "AllocateNII"
-PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
+PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x)
 {
     PetscErrorCode ierr;
     PetscInt n;
@@ -1058,73 +1104,73 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
     // init nifty image
-    *niiimage = nifti_simple_init_nim();
+    *image = nifti_simple_init_nim();
 
     // dimensionalty of data: default is 5 (space, time, components)
-    (*niiimage)->dim[0] = (*niiimage)->ndim = 5;
+    (*image)->dim[0] = (*image)->ndim = 5;
 
     ierr=VecGetLocalSize(x,&n); CHKERRQ(ierr);
-    (*niiimage)->dim[1] = (*niiimage)->nx = this->m_Opt->GetNumGridPoints(0);
-    (*niiimage)->dim[2] = (*niiimage)->ny = this->m_Opt->GetNumGridPoints(1);
-    (*niiimage)->dim[3] = (*niiimage)->nz = this->m_Opt->GetNumGridPoints(2);
+    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetNumGridPoints(0);
+    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetNumGridPoints(1);
+    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetNumGridPoints(2);
 
-    (*niiimage)->pixdim[1] = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]); // x direction
-    (*niiimage)->pixdim[2] = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]); // y direction
-    (*niiimage)->pixdim[3] = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]); // z direction
+    (*image)->pixdim[1] = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]); // x direction
+    (*image)->pixdim[2] = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]); // y direction
+    (*image)->pixdim[3] = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]); // z direction
 
     // TODO: add temporal support
     if (n == this->m_Opt->GetDomainPara().nlocal){ // scalar field
 
-        (*niiimage)->dim[4] = (*niiimage)->nt = 1;
-        (*niiimage)->dim[5] = (*niiimage)->nu = 1;
+        (*image)->dim[4] = (*image)->nt = 1;
+        (*image)->dim[5] = (*image)->nu = 1;
 
         // temporal step size
-        (*niiimage)->pixdim[4] = 1.0;
+        (*image)->pixdim[4] = 1.0;
 
     }
     else if (n == 2*this->m_Opt->GetDomainPara().nlocal){ // 2D vector field
 
-        (*niiimage)->dim[4] = (*niiimage)->nt = 1;
-        (*niiimage)->dim[5] = (*niiimage)->nu = 2;
+        (*image)->dim[4] = (*image)->nt = 1;
+        (*image)->dim[5] = (*image)->nu = 2;
 
         // temporal step size
-        (*niiimage)->pixdim[4] = 1.0;
+        (*image)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
-        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
+        (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
+        (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
 
     }
     else if (n == 3*this->m_Opt->GetDomainPara().nlocal){ // 3D vector field
 
-        (*niiimage)->dim[4] = (*niiimage)->nt = 1;
-        (*niiimage)->dim[5] = (*niiimage)->nu = 3;
+        (*image)->dim[4] = (*image)->nt = 1;
+        (*image)->dim[5] = (*image)->nu = 3;
 
         // temporal step size
-        (*niiimage)->pixdim[4] = 1.0;
+        (*image)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*niiimage)->pixdim[5] = (*niiimage)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
-        (*niiimage)->pixdim[6] = (*niiimage)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
-        (*niiimage)->pixdim[7] = (*niiimage)->dw = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);
+        (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
+        (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
+        (*image)->pixdim[7] = (*image)->dw = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);
     }
 
     // currently fixed to double precision: TODO flexible...
-    (*niiimage)->datatype=NIFTI_TYPE_FLOAT64;
-    (*niiimage)->nbyper=sizeof(ScalarType);
+    (*image)->datatype=NIFTI_TYPE_FLOAT64;
+    (*image)->nbyper=sizeof(ScalarType);
 
-    (*niiimage)->nvox = 1;
+    (*image)->nvox = 1;
 
     // compute number of voxels (space and time)
     for(int i = 1; i <= 4; ++i){
-        (*niiimage)->nvox *= (*niiimage)->dim[i];
+        (*image)->nvox *= (*image)->dim[i];
     }
     // add components
-    (*niiimage)->nvox *= (*niiimage)->nu;
+    (*image)->nvox *= (*image)->nu;
 
     // only allocate image buffer on root
     if (rank == 0){
-        try { (*niiimage)->data = new ScalarType[(*niiimage)->nvox]; }
+        try { (*image)->data = new ScalarType[(*image)->nvox]; }
         catch (std::bad_alloc&){
             ierr=ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1134,6 +1180,120 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** niiimage, Vec x)
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * @brief write binary data set to file
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ReadBIN"
+PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename)
+{
+    PetscErrorCode ierr = 0;
+    PetscViewer viewer=NULL;
+    PetscFunctionBegin;
+
+    ierr=PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename.c_str(),FILE_MODE_READ,&viewer); CHKERRQ(ierr);
+    ierr=Assert(viewer!=NULL,"could not read binary file"); CHKERRQ(ierr);
+    ierr=PetscViewerBinarySetFlowControl(viewer,2); CHKERRQ(ierr);
+    ierr=VecLoad(*x,viewer); CHKERRQ(ierr);
+
+    // clean up
+    if (viewer!=NULL){
+        ierr=PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+        viewer=NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief write bin to file
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "WriteBIN"
+PetscErrorCode ReadWriteReg::WriteBIN(Vec x, std::string filename)
+{
+    PetscErrorCode ierr = 0;
+    PetscViewer viewer=NULL;
+    PetscFunctionBegin;
+
+    ierr=PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename.c_str(),FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+    ierr=Assert(viewer!=NULL,"could not write binary file"); CHKERRQ(ierr);
+    ierr=VecView(x,viewer); CHKERRQ(ierr);
+
+    // clean up
+    if (viewer!=NULL){
+        ierr=PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+        viewer=NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief read hdf5 image
+ *******************************************************************/
+#if defined(PETSC_HAVE_HDF5)
+#undef __FUNCT__
+#define __FUNCT__ "ReadHDF5"
+PetscErrorCode ReadWriteReg::ReadHDF5(Vec* x, std::string filename)
+{
+    PetscErrorCode ierr = 0;
+    PetscViewer viewer=NULL;
+    PetscFunctionBegin;
+
+    ierr=PetscViewerHDF5Open(PETSC_COMM_WORLD,filename.c_str(),FILE_MODE_READ,&viewer); CHKERRQ(ierr);
+    ierr=Assert(viewer!=NULL,"could not read hdf5 file"); CHKERRQ(ierr);
+    ierr=VecLoad(*x,viewer); CHKERRQ(ierr);
+
+    // clean up
+    if (viewer!=NULL){
+        ierr=PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+        viewer=NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+}
+#endif
+
+
+
+
+/********************************************************************
+ * @brief read hdf5 image
+ *******************************************************************/
+#if defined(PETSC_HAVE_HDF5)
+#undef __FUNCT__
+#define __FUNCT__ "WriteHDF5"
+PetscErrorCode ReadWriteReg::WriteHDF5(Vec x, std::string filename)
+{
+    PetscErrorCode ierr = 0;
+    PetscViewer viewer=NULL;
+    PetscFunctionBegin;
+
+    ierr=PetscViewerHDF5Open(PETSC_COMM_WORLD,filename.c_str(),FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+    ierr=Assert(viewer!=NULL,"could not write hdf5 file"); CHKERRQ(ierr);
+//    ierr=PetscViewerHDF5PushGroup(viewer, "/"); CHKERRQ(ierr);
+    ierr=VecView(x,viewer); CHKERRQ(ierr);
+
+    // clean up
+    if (viewer!=NULL){
+        ierr=PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+        viewer=NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+}
+#endif
 
 
 

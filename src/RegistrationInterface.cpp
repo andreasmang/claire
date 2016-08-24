@@ -138,7 +138,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
 
     // if we did not read the images, we can
     // destroy the containers here
-    if (!this->m_Opt->GetRegFlags().readimages){
+    if (!this->m_Opt->GetReadWriteFlags().readfiles){
 
         // delete reference image
         if (this->m_ReferenceImage != NULL){
@@ -153,7 +153,6 @@ PetscErrorCode RegistrationInterface::ClearMemory(void)
         }
 
     }
-
 
     PetscFunctionReturn(ierr);
 }
@@ -491,7 +490,7 @@ PetscErrorCode RegistrationInterface::RunSolver()
     ierr=Assert(this->m_Optimizer!= NULL, "optimizer is null"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
-    if (this->m_Opt->GetRegFlags().readimages){
+    if (this->m_Opt->GetReadWriteFlags().readfiles){
 
         ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
         ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
@@ -590,7 +589,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont()
     ierr=Assert(this->m_Optimizer!= NULL, "optimizer is null"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
-    if (this->m_Opt->GetRegFlags().readimages){
+    if (this->m_Opt->GetReadWriteFlags().readfiles){
 
         ierr=Assert(this->m_TemplateImage!=NULL,"template image is null"); CHKERRQ(ierr);
         ierr=Assert(this->m_ReferenceImage!=NULL,"reference image is null"); CHKERRQ(ierr);
@@ -875,7 +874,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
 
 
     if (rank == 0){
-        filename  = this->m_Opt->GetXFolder();
+        filename  = this->m_Opt->GetReadWriteFlags().xfolder;
         filename += "parameter-continuation-estimated-beta.log";
         // create output file or append to output file
         logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
@@ -1132,7 +1131,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     ierr=Assert(this->m_RegProblem!= NULL,"registration problem is null"); CHKERRQ(ierr);
 
     // set up synthetic problem if we did not read images
-    if (!this->m_Opt->GetRegFlags().readimages){
+    if (!this->m_Opt->GetReadWriteFlags().readfiles){
         ierr=this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage,this->m_TemplateImage); CHKERRQ(ierr);
     }
 
@@ -1259,7 +1258,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     }
     this->m_PreProc->ResetGridChangeOps(true);
 
-    if (!this->m_Opt->GetRegFlags().readimages){
+    if (!this->m_Opt->GetReadWriteFlags().readfiles){
 
         // do the setup
         ierr=this->SetupSolver(); CHKERRQ(ierr);
@@ -1373,7 +1372,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         ierr=this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
         // store intermediate results
-        if (this->m_Opt->GetRegFlags().storeinterresults){
+        if (this->m_Opt->GetReadWriteFlags().iterates){
 
             ss << "reference-image-level=" << level << ".nii.gz";
             ierr=this->m_ReadWrite->Write(mR,ss.str()); CHKERRQ(ierr);
@@ -1636,10 +1635,10 @@ PetscErrorCode RegistrationInterface::ComputeDefFields()
     // compute stuff
     ierr=this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetRegFlags().storedefgrad){
+    if (this->m_Opt->GetReadWriteFlags().defgrad){
         ierr=this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
     }
-    if (this->m_Opt->GetRegFlags().storedefmap){
+    if (this->m_Opt->GetReadWriteFlags().defmap){
         ierr=this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
 

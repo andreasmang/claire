@@ -202,8 +202,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR)
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=Assert(mR != NULL, "input reference image is null pointer"); CHKERRQ(ierr);
-    this->m_ReferenceImage = mR;
+    ierr=Assert(mR!=NULL, "input reference image is null pointer"); CHKERRQ(ierr);
+    this->m_ReferenceImage=mR;
 
     PetscFunctionReturn(0);
 
@@ -1537,7 +1537,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
 
     // store time series
-    if ( this->m_Opt->GetRegFlags().storetimeseries ){
+    if ( this->m_Opt->GetReadWriteFlags().timeseries ){
         ss.str(std::string()); ss.clear();
         ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ".nii.gz";
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
@@ -1580,7 +1580,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 } // pragma omp
 
         // store time series
-        if (this->m_Opt->GetRegFlags().storetimeseries ){
+        if (this->m_Opt->GetReadWriteFlags().timeseries ){
 
             ierr=VecRestoreArray(this->m_WorkScaField1,&p_j); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
@@ -1952,7 +1952,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
 
 
     // store time series
-    if (this->m_Opt->GetRegFlags().storetimeseries ){
+    if (this->m_Opt->GetReadWriteFlags().timeseries ){
 
         ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -2024,7 +2024,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL()
 
 
         // store time series
-        if (this->m_Opt->GetRegFlags().storetimeseries ){
+        if (this->m_Opt->GetReadWriteFlags().timeseries ){
 
             ierr=Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
 

@@ -66,12 +66,12 @@ int main(int argc,char **argv)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    if(regopt->GetRegFlags().readimages){
+    if(regopt->GetReadWriteFlags().readfiles){
 
-        ierr=readwrite->Read(&mR,regopt->GetReferenceFN()); CHKERRQ(ierr);
+        ierr=readwrite->Read(&mR,regopt->GetReadWriteFlags().mr); CHKERRQ(ierr);
         ierr=reg::Assert(mR!=NULL, "input reference image is null pointer"); CHKERRQ(ierr);
 
-        ierr=readwrite->Read(&mT,regopt->GetTemplateFN()); CHKERRQ(ierr);
+        ierr=readwrite->Read(&mT,regopt->GetReadWriteFlags().mt); CHKERRQ(ierr);
         ierr=reg::Assert(mT!=NULL, "input template image is null pointer"); CHKERRQ(ierr);
 
         // pass to registration
@@ -85,11 +85,11 @@ int main(int argc,char **argv)
     ierr=registration->Run(); CHKERRQ(ierr);
 
     // clean up
-    if (regopt != NULL){ delete regopt; regopt = NULL; }
     if (readwrite != NULL){ delete readwrite; readwrite = NULL; }
     if (registration != NULL){ delete registration; registration = NULL; }
     if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
     if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
+    if (regopt != NULL){ delete regopt; regopt = NULL; }
 
     ierr=reg::Finalize(); CHKERRQ(ierr);
 

@@ -26,6 +26,10 @@
 // library includes
 #include "nifti1_io.h"
 
+#if defined(PETSC_HAVE_HDF5)
+#include "petscviewerhdf5.h"
+#endif
+
 #include "RegOpt.hpp"
 #include "VecField.hpp"
 
@@ -61,6 +65,12 @@ private:
 
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+#if defined(PETSC_HAVE_HDF5)
+    PetscErrorCode ReadHDF5(Vec*,std::string);
+    PetscErrorCode WriteHDF5(Vec,std::string);
+#endif
+    PetscErrorCode ReadBIN(Vec*,std::string);
+    PetscErrorCode WriteBIN(Vec,std::string);
 
     PetscErrorCode ReadNetCDF(Vec,std::string);
     PetscErrorCode ReadTimeSeriesNetCDF(Vec,std::string);
@@ -86,6 +96,10 @@ private:
     VoxelType m_ComponentType;
 
     RegOpt* m_Opt;
+    IntType* m_iSizeC;
+    IntType* m_iStartC;
+    int* m_nOffset;
+    int* m_nSend;
 
     ScalarType* m_Data;
     IntType m_nx[3];

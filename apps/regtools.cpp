@@ -108,7 +108,7 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ifolder=regopt->GetIFolder();
+    ifolder=regopt->GetReadWriteFlags().ifolder;
     ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
 
     // read template image
@@ -201,7 +201,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ifolder=regopt->GetIFolder();
+    ifolder=regopt->GetReadWriteFlags().ifolder;
     ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
 
     // read velocity components

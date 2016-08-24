@@ -35,8 +35,6 @@ namespace reg
 {
 
 
-
-
 // flags for hyperbolic PDE solvers
 enum PDESolver
 {
@@ -167,8 +165,26 @@ enum RegModel
 
 
 
+struct ReadWriteFlags
+{
+    bool readfiles;
+    bool timeseries;
+    bool iterates;
+    bool defgrad;
+    bool defmap;
+    bool deffield;
+    bool results;
+    std::string extension;
 
+    std::string xfolder; ///< identifier for folder to write results to
+    std::string ifolder; ///< identifier for folder to read in results from
+    std::string mt; ///< template image file name
+    std::string mr; ///< reference image file name
+    std::string vx1; ///< x1-velocity field file name
+    std::string vx2; ///< x2-velocity field file name
+    std::string vx3; ///< x3-velocity field file name
 
+};
 
 
 /* parameters for domain */
@@ -280,18 +296,12 @@ struct FourierTransform{
 
 
 struct RegFlags{
-    bool readimages;
     bool smoothingenabled;
-    bool storetimeseries;
-    bool storeiterates;
-    bool storedefgrad;
-    bool storedefmap;
-    bool storedeffield;
-    bool storeresults;
-    bool storeinterresults;
     bool loggingenabled;
     bool detdefgradfromdeffield;
 };
+
+
 
 
 
@@ -345,15 +355,7 @@ public:
                /static_cast<ScalarType>(this->m_Domain.nt);
     };
 
-    // control input and output
-    inline std::string GetXFolder(void){return this->m_XFolder;};
-    inline std::string GetIFolder(void){return this->m_IFolder;};
-    inline std::string GetXExtension(void){return this->m_XExtension;};
-
-    inline std::string GetTemplateFN(void){return this->m_TemplateFN;};
-    inline std::string GetReferenceFN(void){return this->m_ReferenceFN;};
-
-    // registration model
+    inline ReadWriteFlags GetReadWriteFlags(){return this->m_ReadWriteFlags;};
     inline RegModel GetRegModel(void){return this->m_RegModel;};
 
     /* do setup for grid continuation */
@@ -462,8 +464,8 @@ protected:
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
 
-    Optimization m_OptPara; ///< optimization parameters
     PDESolver m_PDESolver; ///< flag for PDE solver
+    Optimization m_OptPara; ///< optimization parameters
     KrylovSolver m_KrylovSolverPara; ///< parameters for krylov solver
     RegMonitor m_RegMonitor; ///< monitor for registration
     RegNorm m_RegNorm; ///< parameters for regularization model
@@ -475,15 +477,7 @@ protected:
     FourierTransform m_FFT; ///< parameters for FFT/accfft
     RegFlags m_RegFlags; ///< flags for registration
     HessianMatVecType m_HessianMatVecType;
-
-    std::string m_XFolder; ///< identifier for folder to write results to
-    std::string m_IFolder; ///< identifier for folder to read in results from
-    std::string m_XExtension; ///< identifier for extension of files to be written to file
-    std::string m_TemplateFN; ///< template image file name
-    std::string m_ReferenceFN; ///< reference image file name
-    std::string m_VelocityX1FN; ///< x1-velocity field file name
-    std::string m_VelocityX2FN; ///< x2-velocity field file name
-    std::string m_VelocityX3FN; ///< x3-velocity field file name
+    ReadWriteFlags m_ReadWriteFlags;
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];

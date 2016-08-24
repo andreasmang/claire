@@ -76,22 +76,14 @@ public:
 protected:
 
     PetscErrorCode Initialize();
-    PetscErrorCode ComputeInitialCondition();
     virtual PetscErrorCode MapCoordinateVector(std::string);
     PetscErrorCode ClearMemory();
 
-    VecField* m_TrajectoryS;
-    VecField* m_TrajectoryA;
-    VecField* m_InitialTrajectory;
-    VecField* m_WorkVecField1;
-    VecField* m_WorkVecField2;
-    VecField* m_WorkVecField3;
-    VecField* m_WorkVecField4;
+    VecField* m_WorkVecField;
 
     ScalarType* m_XA;
     ScalarType* m_XS;
-    ScalarType* m_iVecField;
-    ScalarType* m_xVecField;
+    ScalarType* m_X;
 
     Interp3_Plan* m_AdjointPlan;
     Interp3_Plan* m_StatePlan;

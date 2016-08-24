@@ -38,6 +38,8 @@ RegOpt::RegOpt(int argc, char** argv)
 }
 
 
+
+
 /********************************************************************
  * @brief constructor
  *******************************************************************/
@@ -130,13 +132,14 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_HessianMatVecType = opt.m_HessianMatVecType;
 
     // flags
-    this->m_RegFlags.readimages = opt.m_RegFlags.readimages;
-    this->m_RegFlags.storetimeseries = opt.m_RegFlags.storetimeseries;
-    this->m_RegFlags.storeiterates = opt.m_RegFlags.storeiterates;
-    this->m_RegFlags.storeresults = opt.m_RegFlags.storeresults;
-    this->m_RegFlags.storedefgrad = opt.m_RegFlags.storedefgrad;
-    this->m_RegFlags.storedefmap = opt.m_RegFlags.storedefmap;
-    this->m_RegFlags.storeinterresults = opt.m_RegFlags.storeinterresults;
+    this->m_ReadWriteFlags.readfiles = opt.m_ReadWriteFlags.readfiles;
+    this->m_ReadWriteFlags.timeseries = opt.m_ReadWriteFlags.timeseries;
+    this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
+    this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
+    this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
+    this->m_ReadWriteFlags.defmap = opt.m_ReadWriteFlags.defmap;
+    this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
+
     this->m_RegFlags.loggingenabled = opt.m_RegFlags.loggingenabled;
     this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
@@ -172,7 +175,6 @@ void RegOpt::Copy(const RegOpt& opt)
 
     this->m_CartGridDims[0]=opt.m_CartGridDims[0];
     this->m_CartGridDims[1]=opt.m_CartGridDims[1];
-
 
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
@@ -295,58 +297,61 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-mr") == 0){
             argc--; argv++;
-            this->m_ReferenceFN = argv[1];
+            this->m_ReadWriteFlags.mr = argv[1];
         }
         else if(strcmp(argv[1],"-mt") == 0){
             argc--; argv++;
-            this->m_TemplateFN = argv[1];
+            this->m_ReadWriteFlags.mt = argv[1];
         }
         else if(strcmp(argv[1],"-vx1") == 0){
             argc--; argv++;
-            this->m_VelocityX1FN = argv[1];
+            this->m_ReadWriteFlags.vx1 = argv[1];
         }
         else if(strcmp(argv[1],"-vx2") == 0){
             argc--; argv++;
-            this->m_VelocityX2FN = argv[1];
+            this->m_ReadWriteFlags.vx2 = argv[1];
         }
         else if(strcmp(argv[1],"-vx3") == 0){
             argc--; argv++;
-            this->m_VelocityX3FN = argv[1];
+            this->m_ReadWriteFlags.vx3 = argv[1];
         }
         else if(strcmp(argv[1],"-x") == 0){
             argc--; argv++;
-            this->m_XFolder = argv[1];
+            this->m_ReadWriteFlags.xfolder = argv[1];
+        }
+        else if(strcmp(argv[1],"-i") == 0){
+            argc--; argv++;
+            this->m_ReadWriteFlags.ifolder = argv[1];
+        }
+        else if(strcmp(argv[1],"-usebin") == 0){
+            this->m_ReadWriteFlags.extension = ".bin";
+        }
+        else if(strcmp(argv[1],"-usehdf5") == 0){
+            this->m_ReadWriteFlags.extension = ".hdf5";
         }
         else if(strcmp(argv[1],"-xresults") == 0){
-            this->m_RegFlags.storeresults=true;
-        }
-        else if(strcmp(argv[1],"-xiresults") == 0){
-            this->m_RegFlags.storeinterresults=true;
+            this->m_ReadWriteFlags.results=true;
         }
         else if(strcmp(argv[1],"-xdefgrad") == 0){
-            this->m_RegFlags.storedefgrad = true;
+            this->m_ReadWriteFlags.defgrad = true;
         }
         else if(strcmp(argv[1],"-xdeffield") == 0){
-            this->m_RegFlags.storedeffield = true;
+            this->m_ReadWriteFlags.deffield = true;
         }
         else if(strcmp(argv[1],"-xdefmap") == 0){
-            this->m_RegFlags.storedefmap = true;
+            this->m_ReadWriteFlags.defmap = true;
         }
         else if(strcmp(argv[1],"-xiterates") == 0){
-            this->m_RegFlags.storeiterates = true;
+            this->m_ReadWriteFlags.iterates = true;
         }
         else if(strcmp(argv[1],"-xtimeseries") == 0){
-            this->m_RegFlags.storetimeseries = true;
+            this->m_ReadWriteFlags.timeseries = true;
         }
         else if(strcmp(argv[1],"-xlog") == 0){
             this->m_RegFlags.loggingenabled = true;
         }
         else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
             this->m_RegFlags.detdefgradfromdeffield = true;
-        }
-        else if(strcmp(argv[1],"-i") == 0){
-            argc--; argv++;
-            this->m_IFolder = argv[1];
         }
         else if(strcmp(argv[1],"-preset") == 0){
             argc--; argv++;
@@ -750,14 +755,15 @@ PetscErrorCode RegOpt::Initialize()
     //this->m_HessianMatVecType = PRECONDMATVECSYM;
 
     // flags
-    this->m_RegFlags.readimages = false; ///< read images
-    this->m_RegFlags.storetimeseries = false; ///< write out time series
-    this->m_RegFlags.storeiterates = false; ///< write out iterates
-    this->m_RegFlags.storeresults = false; ///< write out results (deformed template; velocity)
-    this->m_RegFlags.storedefgrad = false; ///< write out deformation gradient
-    this->m_RegFlags.storedefmap = false; ///< write out deformation map
-    this->m_RegFlags.storedeffield = false; ///< write out deformation field / displacement field
-    this->m_RegFlags.storeinterresults = false; ///< write out intermediate results
+    this->m_ReadWriteFlags.readfiles = false; ///< read images
+    this->m_ReadWriteFlags.timeseries = false; ///< write out time series
+    this->m_ReadWriteFlags.iterates = false; ///< write out iterates
+    this->m_ReadWriteFlags.results = false; ///< write out results (deformed template; velocity)
+    this->m_ReadWriteFlags.defgrad = false; ///< write out deformation gradient
+    this->m_ReadWriteFlags.defmap = false; ///< write out deformation map
+    this->m_ReadWriteFlags.deffield = false; ///< write out deformation field / displacement field
+    this->m_ReadWriteFlags.extension = ".nii.gz"; ///< file extension for output
+
     this->m_RegFlags.loggingenabled = false; ///< switch on/off logging
     this->m_RegFlags.smoothingenabled = true; ///< switch on/off image smoothing
     this->m_RegFlags.detdefgradfromdeffield = false; ///< flag for computing determinant of deformation field from displacement field u
@@ -962,6 +968,8 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
+        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
+//        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)"<<std::endl;
         std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 2; default: 0)"<<std::endl;
         }
         // ####################### advanced options #######################
@@ -997,19 +1005,20 @@ PetscErrorCode RegOpt::CheckArguments()
     std::string msg;
     PetscFunctionBegin;
 
-    if(!this->m_TemplateFN.empty()){ readmT=true; }
-    if(!this->m_ReferenceFN.empty()){ readmR=true; }
+    if(!this->m_ReadWriteFlags.mt.empty()){ readmT=true; }
+    if(!this->m_ReadWriteFlags.mr.empty()){ readmR=true; }
 
     if (readmT && readmR){
 
         // check if files exist
-        msg = "file " + this->m_TemplateFN + "does not exist";
-        ierr=Assert(FileExists(this->m_TemplateFN),msg); CHKERRQ(ierr);
+        msg = "file " + this->m_ReadWriteFlags.mt + "does not exist";
+        ierr=Assert(FileExists(this->m_ReadWriteFlags.mt),msg); CHKERRQ(ierr);
 
-        msg = "file " + this->m_ReferenceFN + "does not exist";
-        ierr=Assert(FileExists(this->m_ReferenceFN),msg); CHKERRQ(ierr);
+        msg = "file " + this->m_ReadWriteFlags.mr + "does not exist";
+        ierr=Assert(FileExists(this->m_ReadWriteFlags.mr),msg); CHKERRQ(ierr);
 
-        this->m_RegFlags.readimages=true;
+        this->m_ReadWriteFlags.readfiles=true;
+
     }
     else if( (readmT == false) && readmR ) {
         msg="\x1b[31m you need to also assign a template image\x1b[0m\n";
@@ -1022,10 +1031,8 @@ PetscErrorCode RegOpt::CheckArguments()
         ierr=this->Usage(); CHKERRQ(ierr);
     }
     else if( (readmT == false) && (readmR == false) ){
-        this->m_RegFlags.readimages=false;
+        this->m_ReadWriteFlags.readfiles=false;
     }
-
-    this->m_XExtension = ".nii.gz";
 
     if (this->m_ParaCont.strategy==PCONTINUATION){
         betav=this->m_ParaCont.targetbeta;
@@ -1050,14 +1057,14 @@ PetscErrorCode RegOpt::CheckArguments()
     }
 
     // check output arguments
-    if (   this->m_RegFlags.storeresults
-        || this->m_RegFlags.storedefgrad
-        || this->m_RegFlags.storedefmap
-        || this->m_RegFlags.storetimeseries
-        || this->m_RegFlags.storeinterresults
+    if (   this->m_ReadWriteFlags.results
+        || this->m_ReadWriteFlags.defgrad
+        || this->m_ReadWriteFlags.defmap
+        || this->m_ReadWriteFlags.timeseries
+        || this->m_ReadWriteFlags.iterates
         || this->m_RegFlags.loggingenabled ){
 
-        if ( this->m_XFolder.empty() ){
+        if ( this->m_ReadWriteFlags.xfolder.empty() ){
             msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->Usage(); CHKERRQ(ierr);
@@ -2176,7 +2183,7 @@ PetscErrorCode RegOpt::WriteLogFile()
     if (rank == 0){
 
         nnum = 20; nstr = 20;
-        filename = this->m_XFolder + "registration-performance";
+        filename = this->m_ReadWriteFlags.xfolder + "registration-performance";
         fn = filename + ".log";
 
 

@@ -1547,7 +1547,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
 
     // store time series
-    if ( this->m_Opt->GetRegFlags().storetimeseries ){
+    if ( this->m_Opt->GetReadWriteFlags().timeseries ){
 
         if (this->m_WorkScaField1 == NULL){
             ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
@@ -3319,7 +3319,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     ierr=this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // store iterates
-    if ( this->m_Opt->GetRegFlags().storeiterates ){
+    if ( this->m_Opt->GetReadWriteFlags().iterates ){
 
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr=Assert(iter>=0,"problem in counter"); CHKERRQ(ierr);
@@ -3366,7 +3366,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 
             if (rank == 0){
 
-                filename  = this->m_Opt->GetXFolder();
+                filename  = this->m_Opt->GetReadWriteFlags().xfolder;
                 filename += "registration-performance-detdefgrad.log";
 
                 // create output file or append to output file
@@ -3462,13 +3462,13 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
     // parse extension
-    ext = ".nii.gz";//this->m_Opt->GetXExtension();
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     ierr=VecWAXPY(this->m_WorkScaField1,-1.0,this->m_TemplateImage,this->m_ReferenceImage); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField1,NORM_2,&mRmT_2); CHKERRQ(ierr);
     ierr=VecNorm(this->m_WorkScaField1,NORM_INFINITY,&mRmT_infty); CHKERRQ(ierr);
 
-    if(this->m_Opt->GetRegFlags().storeresults){
+    if(this->m_Opt->GetReadWriteFlags().results){
 
         ierr=Assert(this->m_ReadWrite != NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -3481,7 +3481,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
     }
 
-    if (this->m_Opt->GetRegFlags().loggingenabled || this->m_Opt->GetRegFlags().storeresults){
+    if (this->m_Opt->GetRegFlags().loggingenabled || this->m_Opt->GetReadWriteFlags().results){
 
         // deformed template out (compute solution of state equation)
         ierr=this->SolveStateEquation(); CHKERRQ(ierr);
@@ -3503,7 +3503,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
     }
 
-    if(this->m_Opt->GetRegFlags().storeresults){
+    if(this->m_Opt->GetReadWriteFlags().results){
 
         // rescale thescalar field
         //ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
@@ -3524,18 +3524,18 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
 
     // write determinant of deformation gradient to file
-    if(this->m_Opt->GetRegFlags().storedefgrad){
+    if(this->m_Opt->GetReadWriteFlags().defgrad){
         ierr=this->ComputeDetDefGrad(true); CHKERRQ(ierr);
 
     }
 
     // write deformation map to file
-    if(this->m_Opt->GetRegFlags().storedefmap){
+    if(this->m_Opt->GetReadWriteFlags().defmap){
         ierr=this->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
 
     // write deformation field to file
-    if(this->m_Opt->GetRegFlags().storedeffield){
+    if(this->m_Opt->GetReadWriteFlags().deffield){
         ierr=this->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
@@ -3553,7 +3553,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         if (rank == 0){
 
             nnum = 20; nstr = 20;
-            filename = this->m_Opt->GetXFolder() + "registration-performance-residuals";
+            filename = this->m_Opt->GetReadWriteFlags().xfolder + "registration-performance-residuals";
             fn = filename + ".log";
 
             // create output file

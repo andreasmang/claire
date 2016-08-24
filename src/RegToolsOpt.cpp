@@ -158,22 +158,26 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-x") == 0){
             argc--; argv++;
-            this->m_XFolder = argv[1];
+            this->m_ReadWriteFlags.xfolder = argv[1];
+        }
+        else if(strcmp(argv[1],"-i") == 0){
+            argc--; argv++;
+            this->m_ReadWriteFlags.ifolder = argv[1];
         }
         else if(strcmp(argv[1],"-xresults") == 0){
-            this->m_RegFlags.storeresults=true;
+            this->m_ReadWriteFlags.results=true;
         }
         else if(strcmp(argv[1],"-xdefgrad") == 0){
-            this->m_RegFlags.storedefgrad = true;
+            this->m_ReadWriteFlags.defgrad = true;
         }
         else if(strcmp(argv[1],"-xdefmap") == 0){
-            this->m_RegFlags.storedefmap = true;
+            this->m_ReadWriteFlags.defmap = true;
         }
         else if(strcmp(argv[1],"-xdeffield") == 0){
-            this->m_RegFlags.storedeffield = true;
+            this->m_ReadWriteFlags.deffield = true;
         }
         else if(strcmp(argv[1],"-xtimeseries") == 0){
-            this->m_RegFlags.storetimeseries = true;
+            this->m_ReadWriteFlags.timeseries = true;
         }
         else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
             this->m_RegFlags.detdefgradfromdeffield = true;
@@ -197,10 +201,6 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-rscale") == 0){
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
-        }
-        else if(strcmp(argv[1],"-i") == 0){
-            argc--; argv++;
-            this->m_IFolder = argv[1];
         }
         else if(strcmp(argv[1],"-resample") == 0){
             this->m_ResamplingPara.enabled = true;
@@ -449,20 +449,19 @@ PetscErrorCode RegToolsOpt::CheckArguments()
     size_t sep;
     PetscFunctionBegin;
 
-    this->m_XExtension = ".nii.gz";
 
     // check output arguments
-    if (   this->m_RegFlags.storedefgrad
-        || this->m_RegFlags.storedefmap
-        || this->m_RegFlags.storedeffield ){
+    if (   this->m_ReadWriteFlags.defgrad
+        || this->m_ReadWriteFlags.defmap
+        || this->m_ReadWriteFlags.deffield ){
 
-        if ( this->m_XFolder.empty() ){
+        if ( this->m_ReadWriteFlags.xfolder.empty() ){
             msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->Usage(); CHKERRQ(ierr);
         }
 
-        if ( this->m_IFolder.empty() ){
+        if ( this->m_ReadWriteFlags.ifolder.empty() ){
             msg="\x1b[31m input folder needs to be set (-i option) \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->Usage(); CHKERRQ(ierr);
@@ -472,7 +471,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
         // set this flag to true, so that containers for reference and
         // template image are not to be deleted in registration class
-        this->m_RegFlags.readimages = true;
+        this->m_ReadWriteFlags.readfiles = true;
 
     }
 
