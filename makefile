@@ -69,7 +69,7 @@ ifeq ($(USEINTELMPI),yes)
 endif
 LDFLAGS+= -lm
 
-#BIN+=$(BINDIR)/runcoldreg
+BIN+=$(BINDIR)/runcoldreg
 BIN+=$(BINDIR)/regtools
 ifeq ($(BUILDTOOLS),yes)
 #	BIN+=$(BINDIR)/regtools

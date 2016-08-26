@@ -107,6 +107,7 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
+    ierr=reg::Msg("processing results"); CHKERRQ(ierr);
 
     ifolder=regopt->GetReadWriteFlags().ifolder;
     ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
@@ -305,10 +306,11 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
             nxl[i] = static_cast<IntType>(ceil(value));
         }
         ierr=regopt->GetSizes(nxl,nl,ng); CHKERRQ(ierr);
-        if (regopt->GetVerbosity() > 2){
-            ss << "new grid size ("<<nxl[0]<<","<<nx[1]<<","<<nx[2]<<")";
-            ierr=reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-        }
+
+        ss <<"resampling scalar field  ("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<")"
+            <<" -> ("<<nxl[0]<<","<<nxl[1]<<","<<nxl[2]<<")";
+        ierr=reg::Msg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
 
         // allocate array
         ierr=reg::VecCreate(ml,nl,ng); CHKERRQ(ierr);
@@ -335,19 +337,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
 
     }
     else{
-        if (readwrite!=NULL){ delete readwrite; readwrite = NULL; }
-        for (int i=0; i<3; ++i){
-            nx[i] = regopt->GetDomainPara().nx[i];
-            std::cout<< nx[i] <<" " <<std::endl;
-            regopt->SetNumGridPoints(i,nx[i]);
-        }
-        ierr=regopt->DoSetup(false); CHKERRQ(ierr);
-
-        try{ readwrite = new reg::ReadWriteReg(regopt); }
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        // read velocity components
+        // simply write field to file
         filename = regopt->GetScaFieldFN(1);
         ierr=readwrite->Write(m,filename); CHKERRQ(ierr);
     }
@@ -375,6 +365,7 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
     std::string filename,fnx1,fnx2,fnx3;
+    std::stringstream ss;
     IntType nl,ng,nx[3],nxl[3];
     ScalarType scale;
     Vec vx1=NULL,vx2=NULL,vx3=NULL;
@@ -425,6 +416,11 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt)
         nxl[i] = scale*regopt->GetDomainPara().nx[i];
     }
     ierr=regopt->GetSizes(nxl,nl,ng); CHKERRQ(ierr);
+
+    ss <<"resampling vector field  ("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<")"
+        <<" -> ("<<nxl[0]<<","<<nxl[1]<<","<<nxl[2]<<")";
+    ierr=reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
 
     // allocate container for velocity field
     try{ vl = new reg::VecField(nl,ng); }
