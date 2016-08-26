@@ -2,9 +2,9 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=yes
-DBGCODE=yes
-PEDANTIC=yes
+BUILDTOOLS=no
+DBGCODE=no
+PEDANTIC=no
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -65,15 +65,13 @@ endif
 
 
 ifeq ($(USEINTELMPI),yes)
-#	LDFLAGS+= -lmpi_mt
+	LDFLAGS+= -lmpi_mt
 endif
 LDFLAGS+= -lm
 
 BIN+=$(BINDIR)/runcoldreg
-BIN+=$(BINDIR)/regtools
 ifeq ($(BUILDTOOLS),yes)
-#	BIN+=$(BINDIR)/regtools
-#	BIN+= $(BINDIR)/par_interp3_driver
+	BIN+=$(BINDIR)/regtools
 endif
 
 
