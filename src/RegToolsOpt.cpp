@@ -85,13 +85,13 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if (strcmp(argv[1],"-pdesolver") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"rk2") == 0){
-                this->m_PDESolver = RK2;
+                this->m_PDESolver.type = RK2;
             }
             if (strcmp(argv[1],"rk2a") == 0){
-                this->m_PDESolver = RK2A;
+                this->m_PDESolver.type = RK2A;
             }
             else if (strcmp(argv[1],"sl") == 0){
-                this->m_PDESolver = SL;
+                this->m_PDESolver.type = SL;
             }
             else{
                 msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
@@ -393,6 +393,65 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
 
 }
 
+
+
+
+/********************************************************************
+ * @brief display options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "DisplayOptions"
+PetscErrorCode RegToolsOpt::DisplayOptions()
+{
+    PetscErrorCode ierr=0;
+    int rank,indent;
+    std::string msg,line;
+
+    PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    indent = 40;
+    line = std::string(this->m_LineLength,'-');
+
+    // display the parameters (only on rank 0)
+    if (rank == 0){
+
+        std::cout<<std::endl;
+
+        std::cout<< line << std::endl;
+        std::cout<< " Constrained Large Deformation Diffeomorphic Registration"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " Parallel Algorithms for Data Analysis and Simulation Group"<<std::endl;
+        std::cout<< " The Institute of Computational Engineering and Sciences"<<std::endl;
+        std::cout<< " The University of Texas at Austin"<<std::endl;
+        std::cout<< line << std::endl;
+        std::cout<< " problem setup"<<std::endl;
+        std::cout<< line << std::endl;
+
+        std::cout<< std::left << std::setw(indent) <<" problem dimensions"
+                    << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] <<","
+                    <<  this->m_Domain.nx[1] <<","
+                    <<  this->m_Domain.nx[2] <<","
+                    <<  this->m_Domain.nt <<")" <<std::endl;
+        std::cout<< std::left << std::setw(indent) <<" network dimensions"
+                    << this->m_CartGridDims[0] <<"x"
+                    << this->m_CartGridDims[1]<<std::endl;
+        std::cout<< std::left << std::setw(indent) <<" threads"
+                    << this->m_NumThreads<<std::endl;
+        std::cout<< std::left << std::setw(indent) <<" (ng,nl)"
+                    << "(" << this->m_Domain.nglobal <<","
+                    <<  this->m_Domain.nlocal <<")" <<std::endl;
+        std::cout << line << std::endl;
+
+    } // rank
+
+    this->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

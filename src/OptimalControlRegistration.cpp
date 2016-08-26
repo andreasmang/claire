@@ -339,7 +339,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m)
 
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
-    if (this->m_Opt->GetPDESolver() == SL){
+    if (this->m_Opt->GetPDESolver().type == SL){
 
         ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -426,7 +426,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda)
 
     ierr=VecCopy(lambda,this->m_AdjointVariable); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetPDESolver() == SL){
+    if (this->m_Opt->GetPDESolver().type == SL){
 
         ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -1523,7 +1523,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
         ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
         // call the solver
-        switch (this->m_Opt->GetPDESolver()){
+        switch (this->m_Opt->GetPDESolver().type){
             case RK2:
             {
                 ierr=this->SolveStateEquationRK2(); CHKERRQ(ierr);
@@ -1888,7 +1888,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void)
         ierr=VecRestoreArray(this->m_WorkScaField2,&p_l0); CHKERRQ(ierr);
 
         // call the solver
-        switch (this->m_Opt->GetPDESolver()){
+        switch (this->m_Opt->GetPDESolver().type){
             case RK2:
             {
                 ierr=this->SolveAdjointEquationRK2(); CHKERRQ(ierr);
@@ -2232,7 +2232,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void)
     ierr=VecSet(this->m_IncStateVariable,0.0); CHKERRQ(ierr);
 
     // call the solver
-    switch (this->m_Opt->GetPDESolver()){
+    switch (this->m_Opt->GetPDESolver().type){
         case RK2:
         {
             ierr=this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
@@ -2747,7 +2747,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
         else{
 
             // call the solver
-            switch (this->m_Opt->GetPDESolver()){
+            switch (this->m_Opt->GetPDESolver().type){
                 case RK2:
                 {
                     ierr=this->SolveIncAdjointEquationGNRK2(); CHKERRQ(ierr);
@@ -2770,7 +2770,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void)
     else if(this->m_Opt->GetOptPara().method == FULLNEWTON){
 
         // call the solver
-        switch (this->m_Opt->GetPDESolver()){
+        switch (this->m_Opt->GetPDESolver().type){
             case RK2:
             {
                 ierr=ThrowError("not tested"); CHKERRQ(ierr);

@@ -1636,9 +1636,11 @@ PetscErrorCode RegistrationInterface::ComputeDefFields()
     ierr=this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
 
     if (this->m_Opt->GetReadWriteFlags().defgrad){
+        ierr=Msg("computing determinant of deformation gradient"); CHKERRQ(ierr);
         ierr=this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
     }
     if (this->m_Opt->GetReadWriteFlags().defmap){
+        ierr=Msg("computing deformation map"); CHKERRQ(ierr);
         ierr=this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
 

@@ -36,7 +36,7 @@ namespace reg
 
 
 // flags for hyperbolic PDE solvers
-enum PDESolver
+enum PDESolverType
 {
     RK2,  ///< flag for RK2 solver
     RK2A, ///< flag for stabilized RK2 solver
@@ -302,7 +302,11 @@ struct RegFlags{
 };
 
 
-
+struct PDESolver{
+    PDESolverType type;
+    int order;
+    int cflnumber;
+};
 
 
 
@@ -428,7 +432,7 @@ public:
     PetscErrorCode ResetCounter(CounterType);
     PetscErrorCode ProcessTimers(void);
 
-    PetscErrorCode DisplayOptions(void);
+    virtual PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
     PetscErrorCode DoSetup(bool dispteaser=true);
@@ -455,11 +459,11 @@ public:
 
 protected:
 
-    PetscErrorCode Initialize(void);
-    PetscErrorCode ClearMemory(void);
-    PetscErrorCode ParseArguments(int,char**);
-    PetscErrorCode Usage(bool advanced=false);
-    PetscErrorCode CheckArguments(void);
+    virtual PetscErrorCode Initialize(void);
+    virtual PetscErrorCode ClearMemory(void);
+    virtual PetscErrorCode ParseArguments(int,char**);
+    virtual PetscErrorCode Usage(bool advanced=false);
+    virtual PetscErrorCode CheckArguments(void);
     PetscErrorCode SetPresetParameters();
 
     enum TimerValue{LOG=0,MIN,MAX,AVG,NVALTYPES};
@@ -500,7 +504,12 @@ protected:
 
 };
 
+
+
+
 } // end of namespace
+
+
 
 
 #endif

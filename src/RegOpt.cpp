@@ -506,10 +506,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if (strcmp(argv[1],"-pdesolver") == 0){
             argc--; argv++;
             if (strcmp(argv[1],"rk2") == 0){
-                this->m_PDESolver = RK2;
+                this->m_PDESolver.type = RK2;
             }
             else if (strcmp(argv[1],"sl") == 0){
-                this->m_PDESolver = SL;
+                this->m_PDESolver.type = SL;
             }
             else {
                 msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
@@ -705,14 +705,19 @@ PetscErrorCode RegOpt::Initialize()
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
+    this->m_RegModel = COMPRESSIBLE;
+
     this->m_RegNorm.type = H2SN;
     this->m_RegNorm.beta[0] = 1E-2;
     this->m_RegNorm.beta[1] = 1E-2;
     this->m_RegNorm.beta[2] = 1E-4;
 
     this->m_Verbosity = 0;
-    this->m_PDESolver = SL;
-    this->m_RegModel = COMPRESSIBLE;
+
+    this->m_PDESolver.type = SL;
+    this->m_PDESolver.cflnumber = 0;
+    this->m_PDESolver.order = 2;
+
 
     // smoothing
     this->m_Sigma[0] = 1.0;
@@ -1147,13 +1152,9 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
         this->m_FFT.plan = NULL;
     }
 
-    ierr=DbgMsg("allocating fft plan"); CHKERRQ(ierr);
-
     fftsetuptime=-MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx,u,(double*)uk,this->m_FFT.mpicomm,ACCFFT_MEASURE);
     fftsetuptime+=MPI_Wtime();
-
-    ierr=DbgMsg("allocating fft plan done"); CHKERRQ(ierr);
 
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
@@ -1584,7 +1585,7 @@ PetscErrorCode RegOpt::DisplayOptions()
 
         // display regularization model
         std::cout<< std::left << std::setw(indent) <<" pde solver (hyperbolic)";
-        switch(this->m_PDESolver){
+        switch(this->m_PDESolver.type){
             case RK2:
             {
                 std::cout<<"second order rk method"<<std::endl;

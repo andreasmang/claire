@@ -61,17 +61,18 @@ public:
 
     std::string GetVecFieldFN(int,int);
     std::string GetScaFieldFN(int);
+    virtual PetscErrorCode DisplayOptions(void);
     inline RegToolsFlags GetFlags(){return this->m_RegToolsFlags;};
     inline ResamplingPara GetResamplingPara(){return this->m_ResamplingPara;};
     inline PostProcPara GetPostProcPara(){return this->m_PostProcPara;};
 
 protected:
 
-    PetscErrorCode Initialize(void);
-    PetscErrorCode ClearMemory(void);
-    PetscErrorCode ParseArguments(int,char**);
-    PetscErrorCode Usage(bool advanced=false);
-    PetscErrorCode CheckArguments(void);
+    virtual PetscErrorCode Initialize(void);
+    virtual PetscErrorCode ClearMemory(void);
+    virtual PetscErrorCode ParseArguments(int,char**);
+    virtual PetscErrorCode Usage(bool advanced=false);
+    virtual PetscErrorCode CheckArguments(void);
 
     RegToolsFlags m_RegToolsFlags;
     ResamplingPara m_ResamplingPara;
