@@ -3526,7 +3526,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     // write determinant of deformation gradient to file
     if(this->m_Opt->GetReadWriteFlags().defgrad){
         ierr=this->ComputeDetDefGrad(true); CHKERRQ(ierr);
-
     }
 
     // write deformation map to file

@@ -287,9 +287,9 @@ struct RegNorm{
 
 
 struct FourierTransform{
-    accfft_plan* plan;
-    MPI_Comm mpicomm;
-    IntType nalloc;
+    accfft_plan* plan; ///< accfft plan
+    MPI_Comm mpicomm; ///< communicator for accfft
+    IntType nalloc; ///< size for allocation in fourier domain
     IntType osize[3]; ///< size of grid in fourier domain for mpi proc
     IntType ostart[3]; ///< start index in fourier domain for mpi proc
 };
@@ -299,6 +299,7 @@ struct RegFlags{
     bool smoothingenabled;
     bool loggingenabled;
     bool detdefgradfromdeffield;
+    bool invdefgrad;
 };
 
 

@@ -143,6 +143,7 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_RegFlags.loggingenabled = opt.m_RegFlags.loggingenabled;
     this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
+    this->m_RegFlags.invdefgrad = opt.m_RegFlags.invdefgrad;
 
     // parameter continuation
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
@@ -248,12 +249,12 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             sigma = String2Vec( sigmainput );
 
             if (sigma.size() == 1){
-                for(unsigned int i=0; i < 3; ++i){
+                for(int i=0; i < 3; ++i){
                     this->m_Sigma[i] = static_cast<ScalarType>(sigma[0]);
                 }
             }
             else if(sigma.size() == 3){
-                for(unsigned int i=0; i < 3; ++i){
+                for(int i=0; i < 3; ++i){
                     this->m_Sigma[i] = static_cast<IntType>(sigma[i]);
                 }
             }
@@ -280,13 +281,13 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             np = String2Vec( npinput );
 
             if (np.size() == 1){
-                for(unsigned int i=0; i < 2; ++i){
-                    this->m_CartGridDims[i] = static_cast<unsigned int>(np[0]);
+                for(int i=0; i < 2; ++i){
+                    this->m_CartGridDims[i] = static_cast<int>(np[0]);
                 }
             }
             else if (np.size() == 2){
-                for(unsigned int i=0; i < 2; ++i){
-                    this->m_CartGridDims[i] = static_cast<unsigned int>(np[i]);
+                for(int i=0; i < 2; ++i){
+                    this->m_CartGridDims[i] = static_cast<int>(np[i]);
                 }
             }
             else{
@@ -603,8 +604,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_Verbosity = atoi(argv[1]);
         }
-        else if(strcmp(argv[1],"-jmonitor") == 0){
+        else if(strcmp(argv[1],"-mdefgrad") == 0){
             this->m_RegMonitor.JAC = true;
+        }
+        else if(strcmp(argv[1],"-invdefgrad") == 0){
+            this->m_RegFlags.invdefgrad = true;
         }
         else {
             msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
@@ -772,6 +776,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_RegFlags.loggingenabled = false; ///< switch on/off logging
     this->m_RegFlags.smoothingenabled = true; ///< switch on/off image smoothing
     this->m_RegFlags.detdefgradfromdeffield = false; ///< flag for computing determinant of deformation field from displacement field u
+    this->m_RegFlags.invdefgrad = false;
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;
@@ -950,7 +955,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         // ####################### advanced options #######################
         if (advanced)
         {
-        std::cout << " -jmonitor                 enable monitor for det(grad(y))"<<std::endl;
+        std::cout << " -mdefgrad                 enable monitor for det(grad(y))"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " solver specific parameters (numerics)"<<std::endl;
         std::cout << line << std::endl;
@@ -1172,6 +1177,7 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
 
         this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
         this->m_Domain.nglobal *= this->m_Domain.nx[i];
+
     }
 
     // check if sizes are ok

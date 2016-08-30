@@ -1033,7 +1033,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
     if(this->m_VelocityIsZero == false){
 
-
         // call the solver
         if (this->m_Opt->GetRegFlags().detdefgradfromdeffield){
             ierr=this->ComputeDetDefGradViaDispField(); CHKERRQ(ierr);
@@ -1107,7 +1106,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,*p_jbar=NULL,
                 *p_gx1=NULL,*p_gx2=NULL,*p_gx3=NULL,*p_divv=NULL,
                 *p_jac=NULL, *p_rhs0=NULL;
-    ScalarType ht,hthalf;
+    ScalarType ht,hthalf,velsign;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
 
@@ -1120,6 +1119,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
     ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
+
+    if (this->m_Opt->GetRegFlags().invdefgrad){
+        velsign = -1.0;
+    }
+    else velsign = 1.0;
 
     if (this->m_WorkVecField1 == NULL){
        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1163,10 +1167,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
         for (IntType i=0; i < nl; ++i){ // for all grid points
 
             // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            p_rhs0[i] = -( p_vx1[i]*p_gx1[i]
-                         + p_vx2[i]*p_gx2[i]
-                         + p_vx3[i]*p_gx3[i] )
-                         + p_jac[i]*p_divv[i];
+            p_rhs0[i] = -( velsign*p_vx1[i]*p_gx1[i]
+                         + velsign*p_vx2[i]*p_gx2[i]
+                         + velsign*p_vx3[i]*p_gx3[i] )
+                         + p_jac[i]*velsign*p_divv[i];
 
             p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
 
@@ -1181,10 +1185,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2()
         for (IntType i=0; i < nl; ++i){ // for all grid points
 
             // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            ScalarType rhs1 = -( p_vx1[i]*p_gx1[i]
-                               + p_vx2[i]*p_gx2[i]
-                               + p_vx3[i]*p_gx3[i] )
-                               + p_jbar[i]*p_divv[i];
+            ScalarType rhs1 = -( velsign*p_vx1[i]*p_gx1[i]
+                               + velsign*p_vx2[i]*p_gx2[i]
+                               + velsign*p_vx3[i]*p_gx3[i] )
+                               + p_jbar[i]*velsign*p_divv[i];
 
             p_jac[i] = p_jac[i] + hthalf*(p_rhs0[i] + rhs1);
 
@@ -1490,7 +1494,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     PetscErrorCode ierr;
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_divv=NULL,*p_divvX=NULL,*p_j=NULL,*p_jX=NULL;
-    ScalarType ht,hthalf;
+    ScalarType ht,hthalf,velsign;
     IntType nl,ng,nt;
     std::stringstream ss;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
@@ -1505,6 +1509,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
+
+    if (this->m_Opt->GetRegFlags().invdefgrad){
+        velsign = -1.0;
+    }
+    else velsign = 1.0;
 
     if (this->m_SemiLagrangianMethod == NULL){
         try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -1571,8 +1580,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 
             jX = p_jX[i];
 
-            rhs0 = jX*p_divvX[i];
-            rhs1 = (jX + ht*rhs0)*p_divv[i];
+            rhs0 = jX*velsign*p_divvX[i];
+            rhs1 = (jX + ht*rhs0)*velsign*p_divv[i];
 
             p_j[i] = jX + hthalf*(rhs0+rhs1);
 
@@ -2462,6 +2471,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL()
 
     this->m_Opt->Enter(__FUNCT__);
 
+    ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+
     if (this->m_WorkVecField1==NULL){
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -2480,6 +2491,18 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+
+    // allocate semi-lagrangian solver
+    if(this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    ierr=this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
+
+    ierr=this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
+    ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;

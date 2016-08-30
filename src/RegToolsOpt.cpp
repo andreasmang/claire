@@ -182,6 +182,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
             this->m_RegFlags.detdefgradfromdeffield = true;
         }
+        else if(strcmp(argv[1],"-invdefgrad") == 0){
+            this->m_RegFlags.invdefgrad = true;
+        }
         else if(strcmp(argv[1],"-ifile") == 0){
             argc--; argv++;
             this->m_iScaFieldFN = argv[1];
@@ -328,8 +331,10 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " -x <path>                 output path (by default only deformed template image and velocity"<<std::endl;
         std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
         std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
-        std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
+        std::cout << " -xdefgrad                 flag: compute deformation gradient and write to file"<<std::endl;
+        std::cout << " -xdefmap                  flag: compute deformation map and write to file"<<std::endl;
+        std::cout << " -xdeffield                flag: compute displacement field and write to file"<<std::endl;
+        std::cout << " -invdefgrad               flag: compute inverse deformation gradient"<<std::endl;
 
 
         // ####################### advanced options #######################

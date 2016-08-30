@@ -1643,6 +1643,10 @@ PetscErrorCode RegistrationInterface::ComputeDefFields()
         ierr=Msg("computing deformation map"); CHKERRQ(ierr);
         ierr=this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
+    if (this->m_Opt->GetReadWriteFlags().deffield){
+        ierr=Msg("computing displacement field"); CHKERRQ(ierr);
+        ierr=this->m_RegProblem->ComputeDisplacementField(true); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__FUNCT__);
 
