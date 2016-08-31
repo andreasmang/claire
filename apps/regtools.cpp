@@ -93,7 +93,7 @@ int main(int argc,char **argv)
 PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
-    std::string ifolder,xfolder,filename;
+    std::string ifolder,xfolder,filename,ext;
     Vec mT=NULL,mR=NULL,vx1=NULL,vx2=NULL,vx3=NULL;
     reg::VecField *v=NULL;
 
@@ -109,18 +109,19 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
     }
     ierr=reg::Msg("processing results"); CHKERRQ(ierr);
 
-    ifolder=regopt->GetReadWriteFlags().ifolder;
+    ext     = regopt->GetReadWriteFlags().extension;
+    ifolder = regopt->GetReadWriteFlags().ifolder;
     ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
 
     // read template image
-    filename = ifolder + "template-image.nii.gz";
+    filename = ifolder + "template-image" + ext;
     ierr=readwrite->Read(&mT,filename); CHKERRQ(ierr);
     ierr=reg::Assert(mT!=NULL,"null pointer"); CHKERRQ(ierr);
 
     if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
 
     // read reference image
-    filename = ifolder + "reference-image.nii.gz";
+    filename = ifolder + "reference-image" + ext;
     ierr=readwrite->Read(&mR,filename); CHKERRQ(ierr);
     ierr=reg::Assert(mR!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -133,15 +134,15 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
     }
 
     // read velocity components
-    filename = ifolder + "velocity-field-x1.nii.gz";
+    filename = ifolder + "velocity-field-x1" + ext;
     ierr=readwrite->Read(&vx1,filename); CHKERRQ(ierr);
     ierr=VecCopy(vx1,v->m_X1); CHKERRQ(ierr);
 
-    filename = ifolder + "velocity-field-x2.nii.gz";
+    filename = ifolder + "velocity-field-x2" + ext;
     ierr=readwrite->Read(&vx2,filename); CHKERRQ(ierr);
     ierr=VecCopy(vx2,v->m_X2); CHKERRQ(ierr);
 
-    filename = ifolder + "velocity-field-x3.nii.gz";
+    filename = ifolder + "velocity-field-x3" + ext;
     ierr=readwrite->Read(&vx3,filename); CHKERRQ(ierr);
     ierr=VecCopy(vx3,v->m_X3); CHKERRQ(ierr);
 
@@ -187,7 +188,7 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
-    std::string ifolder,xfolder,filename;
+    std::string ifolder,xfolder,filename,ext;
     Vec vxi=NULL;
     reg::VecField *v=NULL;
 
@@ -202,11 +203,12 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ifolder=regopt->GetReadWriteFlags().ifolder;
+    ext     = regopt->GetReadWriteFlags().extension;
+    ifolder = regopt->GetReadWriteFlags().ifolder;
     ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
 
     // read velocity components
-    filename = ifolder + "velocity-field-x1.nii.gz";
+    filename = ifolder + "velocity-field-x1" + ext;
     ierr=readwrite->Read(&vxi,filename); CHKERRQ(ierr);
     if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
 
@@ -219,12 +221,12 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt)
     ierr=VecCopy(vxi,v->m_X1); CHKERRQ(ierr);
     if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
 
-    filename = ifolder + "velocity-field-x2.nii.gz";
+    filename = ifolder + "velocity-field-x2" + ext;
     ierr=readwrite->Read(&vxi,filename); CHKERRQ(ierr);
     ierr=VecCopy(vxi,v->m_X2); CHKERRQ(ierr);
     if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
 
-    filename = ifolder + "velocity-field-x3.nii.gz";
+    filename = ifolder + "velocity-field-x3" + ext;
     ierr=readwrite->Read(&vxi,filename); CHKERRQ(ierr);
     ierr=VecCopy(vxi,v->m_X3); CHKERRQ(ierr);
     if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }

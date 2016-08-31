@@ -41,6 +41,7 @@ PetscErrorCode Assert(bool condition,std::string msg)
 #define __FUNCT__ "GetFileName"
 PetscErrorCode GetFileName(std::string& filename, std::string file)
 {
+    PetscErrorCode ierr=0;
     std::string path;
     size_t sep;
 
@@ -55,7 +56,57 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
 
     if (filename == ""){ filename = file; }
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief get the filename, path, and extension
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetFileName"
+PetscErrorCode GetFileName( std::string& path,
+                            std::string& filename,
+                            std::string& extension,
+                            std::string file)
+{
+
+    PetscErrorCode ierr = 0;
+    std::string::size_type idx;
+
+    PetscFunctionBegin;
+
+    // get path
+    idx = file.find_last_of("\\/");
+    if (idx != std::string::npos){
+        path = file.substr(0,idx);
+        filename = file.substr(idx + 1);
+    }
+    if (filename == ""){ filename = file; }
+
+    // get extension
+    idx = filename.rfind(".");
+    if(idx != std::string::npos) {
+
+        extension = filename.substr(idx+1);
+
+        // handle zipped files
+        if (strcmp(extension.c_str(),"gz") == 0){
+
+            filename = filename.substr(0,idx);
+            idx = filename.rfind(".");
+            if(idx != std::string::npos) {
+                extension = filename.substr(idx+1);
+                extension = extension + ".gz";
+            }
+        }
+        extension = "." + extension;
+        filename  = filename.substr(0,idx);
+
+    }
+    else{ ierr=ThrowError("no extension found"); CHKERRQ(ierr); }
+
+    PetscFunctionReturn(ierr);
 }
 
 

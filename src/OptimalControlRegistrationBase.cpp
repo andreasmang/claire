@@ -1497,12 +1497,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     ScalarType ht,hthalf,velsign;
     IntType nl,ng,nt;
     std::stringstream ss;
+    std::string ext;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
     double timings[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
+
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1548,7 +1551,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
     // store time series
     if ( this->m_Opt->GetReadWriteFlags().timeseries ){
         ss.str(std::string()); ss.clear();
-        ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ".nii.gz";
+        ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
     }
 
@@ -1593,7 +1596,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL()
 
             ierr=VecRestoreArray(this->m_WorkScaField1,&p_j); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
-            ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ".nii.gz";
+            ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
             ierr=VecGetArray(this->m_WorkScaField1,&p_j); CHKERRQ(ierr);
 
@@ -1663,7 +1666,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
     }
 
     if (write2file){
-        ext = ".nii.gz";
+        ext = this->m_Opt->GetReadWriteFlags().extension;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"deformation-map-x1"+ext,
                                                             "deformation-map-x2"+ext,
                                                             "deformation-map-x3"+ext); CHKERRQ(ierr);
@@ -1921,6 +1924,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2()
 {
     PetscErrorCode ierr=0;
     std::stringstream ss;
+    std::string ext;
     IntType nl,nt;
     ScalarType hx[3],ht,hthalf;
     ScalarType *p_y1=NULL,*p_y2=NULL,*p_y3=NULL,
@@ -1932,6 +1936,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2()
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
+
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -2008,15 +2014,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2()
 
         // write out y1
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1.nii.gz";
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1" << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
 
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2.nii.gz";
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2" << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
 
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3.nii.gz";
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3" << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
 
     }
@@ -2082,15 +2088,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2()
 
             // write out y1
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1.nii.gz";
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1" << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
 
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2.nii.gz";
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2" << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
 
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3.nii.gz";
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3" << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
 
             ierr=this->m_WorkVecField1->GetArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
@@ -2125,6 +2131,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4()
 {
     PetscErrorCode ierr=0;
     std::stringstream ss;
+    std::string ext;
     IntType nl,nt;
     ScalarType hx[3],ht,hthalf,htby6;
     ScalarType *p_y1=NULL,*p_y2=NULL,*p_y3=NULL,
@@ -2136,6 +2143,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4()
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
+
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -2210,15 +2219,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4()
 
         // write out y1
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1.nii.gz";
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1" << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
 
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2.nii.gz";
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2" << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
 
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3.nii.gz";
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3" << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
 
     }
@@ -2340,15 +2349,15 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4()
 
             // write out y1
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1.nii.gz";
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1" << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
 
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2.nii.gz";
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2" << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
 
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3.nii.gz";
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3" << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
 
             ierr=this->m_WorkVecField1->GetArrays(p_y1,p_y2,p_y3); CHKERRQ(ierr);
@@ -2380,7 +2389,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4()
 PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool write2file)
 {
     PetscErrorCode ierr=0;
-
+    std::string ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -2420,7 +2429,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
     }
 
     if (write2file){
-        std::string ext=".nii.gz";
+        ext = this->m_Opt->GetReadWriteFlags().extension;
         ierr=this->m_ReadWrite->Write(this->m_WorkVecField1,"displacement-field-x1"+ext,
                                                             "displacement-field-x2"+ext,
                                                             "displacement-field-x3"+ext); CHKERRQ(ierr);

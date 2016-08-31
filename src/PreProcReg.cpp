@@ -309,13 +309,11 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
         this->m_ostartF[i] = static_cast<IntType>(_ostart_f[i]);
     }
 
-    ierr=DbgMsg("allocating coarse grid"); CHKERRQ(ierr);
     if (this->m_XHatCoarse == NULL){
         this->m_XHatCoarse = (ScalarTypeFD*)accfft_alloc(nalloc_c);
     }
     ierr=Assert(this->m_XHatCoarse!=NULL,"allocation failed"); CHKERRQ(ierr);
 
-    ierr=DbgMsg("allocating fine grid"); CHKERRQ(ierr);
     if (this->m_XHatFine==NULL){
         this->m_XHatFine = (ScalarTypeFD*)accfft_alloc(nalloc_f);
     }

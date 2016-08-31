@@ -62,6 +62,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
 {
     PetscErrorCode ierr=0;
     std::string msg;
+    std::vector<unsigned int> nx;
     std::vector<unsigned int> np;
     std::vector<unsigned int> sigma;
     PetscFunctionBegin;
@@ -81,6 +82,32 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-nt") == 0){
             argc--; argv++;
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
+        }
+        else if(strcmp(argv[1],"-nx") == 0){
+
+            argc--; argv++;
+
+            const std::string nxinput = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            nx = String2Vec( nxinput );
+
+            if (nx.size() == 1){
+                for(unsigned int i=0; i < 3; ++i){
+                    this->m_Domain.nx[i] = static_cast<IntType>(nx[0]);
+                }
+            }
+            else if(nx.size() == 3){
+                for(unsigned int i=0; i < 3; ++i){
+                    this->m_Domain.nx[i] = static_cast<IntType>(nx[i]);
+                }
+            }
+            else{
+                msg="\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
+                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr=this->Usage(true); CHKERRQ(ierr);
+            }
+
         }
         else if (strcmp(argv[1],"-pdesolver") == 0){
             argc--; argv++;
@@ -164,6 +191,12 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_ReadWriteFlags.ifolder = argv[1];
         }
+        else if(strcmp(argv[1],"-usebin") == 0){
+            this->m_ReadWriteFlags.extension = ".bin";
+        }
+        else if(strcmp(argv[1],"-usehdf5") == 0){
+            this->m_ReadWriteFlags.extension = ".hdf5";
+        }
         else if(strcmp(argv[1],"-xresults") == 0){
             this->m_ReadWriteFlags.results=true;
         }
@@ -182,8 +215,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
             this->m_RegFlags.detdefgradfromdeffield = true;
         }
-        else if(strcmp(argv[1],"-invdefgrad") == 0){
+        else if(strcmp(argv[1],"-xinvdefgrad") == 0){
             this->m_RegFlags.invdefgrad = true;
+            this->m_ReadWriteFlags.defgrad = true;
         }
         else if(strcmp(argv[1],"-ifile") == 0){
             argc--; argv++;
@@ -332,9 +366,9 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
         std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
         std::cout << " -xdefgrad                 flag: compute deformation gradient and write to file"<<std::endl;
+        std::cout << " -xinvdefgrad              flag: compute inverse deformation gradient and write to file"<<std::endl;
         std::cout << " -xdefmap                  flag: compute deformation map and write to file"<<std::endl;
         std::cout << " -xdeffield                flag: compute displacement field and write to file"<<std::endl;
-        std::cout << " -invdefgrad               flag: compute inverse deformation gradient"<<std::endl;
 
 
         // ####################### advanced options #######################
@@ -371,6 +405,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
+        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
+//        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)"<<std::endl;
         }
         // ####################### advanced options #######################
 
@@ -509,7 +545,7 @@ std::string RegToolsOpt::GetScaFieldFN(int flag)
 PetscErrorCode RegToolsOpt::CheckArguments()
 {
     PetscErrorCode ierr;
-    std::string msg,path,filename;
+    std::string msg,path,filename,extension;
     size_t sep;
     PetscFunctionBegin;
 
@@ -565,32 +601,33 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
         if ( this->m_RegToolsFlags.readvecfield ){
 
-            sep = this->m_iVecFieldX1FN.find_last_of("\\/");
-            if (sep != std::string::npos){
-                path=this->m_iVecFieldX1FN.substr(0,sep);
-                this->m_xVecFieldX1FN = path + "/resampled_" + this->m_iVecFieldX1FN.substr(sep + 1);
+            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
             }
+            this->m_xVecFieldX1FN = path + "/resampled_" + filename + extension;
 
-            sep = this->m_iVecFieldX2FN.find_last_of("\\/");
-            if (sep != std::string::npos){
-                path=this->m_iVecFieldX2FN.substr(0,sep);
-                this->m_xVecFieldX2FN = path + "/resampled_" + this->m_iVecFieldX2FN.substr(sep + 1);
+            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
             }
+            this->m_xVecFieldX2FN = path + "/resampled_" + filename + extension;
 
-            sep = this->m_iVecFieldX3FN.find_last_of("\\/");
-            if (sep != std::string::npos){
-                path=this->m_iVecFieldX3FN.substr(0,sep);
-                this->m_xVecFieldX3FN = path + "/resampled_" + this->m_iVecFieldX3FN.substr(sep + 1);
+            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
             }
+            this->m_xVecFieldX3FN = path + "/resampled_" + filename + extension;
+
 
         }
 
         if ( this->m_RegToolsFlags.readscafield ){
-            sep = this->m_iScaFieldFN.find_last_of("\\/");
-            if (sep != std::string::npos){
-                path=this->m_iScaFieldFN.substr(0,sep);
-                this->m_xScaFieldFN = path + "/resampled_" + this->m_iScaFieldFN.substr(sep + 1);
+            ierr=GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
             }
+            this->m_xScaFieldFN = path + "/resampled_" + filename + extension;
         }
 
     }

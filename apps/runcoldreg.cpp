@@ -69,10 +69,10 @@ int main(int argc,char **argv)
     if(regopt->GetReadWriteFlags().readfiles){
 
         ierr=readwrite->Read(&mR,regopt->GetReadWriteFlags().mr); CHKERRQ(ierr);
-        ierr=reg::Assert(mR!=NULL, "input reference image is null pointer"); CHKERRQ(ierr);
+        ierr=reg::Assert(mR!=NULL,"null pointer"); CHKERRQ(ierr);
 
         ierr=readwrite->Read(&mT,regopt->GetReadWriteFlags().mt); CHKERRQ(ierr);
-        ierr=reg::Assert(mT!=NULL, "input template image is null pointer"); CHKERRQ(ierr);
+        ierr=reg::Assert(mT!=NULL,"null pointer"); CHKERRQ(ierr);
 
         // pass to registration
         ierr=registration->SetReferenceImage(mR); CHKERRQ(ierr);

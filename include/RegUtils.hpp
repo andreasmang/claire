@@ -79,6 +79,7 @@ PetscErrorCode VecView(Vec);
 
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType);
 PetscErrorCode GetFileName(std::string&,std::string);
+PetscErrorCode GetFileName(std::string&,std::string&,std::string&,std::string);
 std::vector<unsigned int> String2Vec( const std::string & );
 
 

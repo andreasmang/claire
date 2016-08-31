@@ -150,7 +150,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
         ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
     }
     else if (filename.find(".bin") != std::string::npos){
-        ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
+        ierr=this->ReadBIN(x,filename); CHKERRQ(ierr);
     }
 #if defined(PETSC_HAVE_HDF5)
     else if (filename.find(".hdf5") != std::string::npos){
@@ -1192,8 +1192,22 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x)
 PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename)
 {
     PetscErrorCode ierr = 0;
+    IntType nl,ng;
     PetscViewer viewer=NULL;
     PetscFunctionBegin;
+
+    if ( !this->m_Opt->SetupDone() ){
+        ierr=this->m_Opt->DoSetup(); CHKERRQ(ierr);
+    }
+
+    if(*x!=NULL){
+        ierr=VecDestroy(x); CHKERRQ(ierr);
+        *x=NULL;
+    }
+
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ierr=VecCreate(*x,nl,ng); CHKERRQ(ierr);
 
     ierr=PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename.c_str(),FILE_MODE_READ,&viewer); CHKERRQ(ierr);
     ierr=Assert(viewer!=NULL,"could not read binary file"); CHKERRQ(ierr);

@@ -1314,7 +1314,7 @@ PetscErrorCode RegOpt::SetupGridCont()
         nxmin = nxmin < nxi ? nxmin : nxi;
     }
 
-    nlevels  = static_cast<int>(std::ceil(std::log2(static_cast<ScalarType>(nxmin))));
+    nlevels  = static_cast<int>(std::ceil(PetscLog2Real(static_cast<ScalarType>(nxmin))));
     nlevels -= static_cast<int>(this->m_GridCont.minlevels);
     ierr=Assert(nlevels > 0,"error in size"); CHKERRQ(ierr);
     this->m_GridCont.nlevels = nlevels;
