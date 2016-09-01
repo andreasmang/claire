@@ -258,11 +258,11 @@ struct GridCont{
     bool enabled;
     static const int minlevels=3;
     int nlevels;
-    std::vector<std::vector<IntType>> nx;
-    std::vector<std::vector<IntType>> isize;
-    std::vector<std::vector<IntType>> istart;
-    std::vector<std::vector<IntType>> osize;
-    std::vector<std::vector<IntType>> ostart;
+    std::vector< std::vector<IntType> > nx;
+    std::vector< std::vector<IntType> > isize;
+    std::vector< std::vector<IntType> > istart;
+    std::vector< std::vector<IntType> > osize;
+    std::vector< std::vector<IntType> > ostart;
     std::vector<IntType> nlocal;
     std::vector<IntType> nglobal;
     std::vector<IntType> nalloc;
