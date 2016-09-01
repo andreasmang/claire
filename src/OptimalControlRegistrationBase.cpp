@@ -1082,7 +1082,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     }
 
     if (write2file){
-        std::string ext = ".nii.gz";
+        ext = this->m_Opt->GetReadWriteFlags().extension;
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"det-deformation-grad"+ext); CHKERRQ(ierr);
     }
 
