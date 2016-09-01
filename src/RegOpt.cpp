@@ -324,6 +324,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
             argc--; argv++;
             this->m_ReadWriteFlags.ifolder = argv[1];
         }
+        else if(strcmp(argv[1],"-usenc") == 0){
+            this->m_ReadWriteFlags.extension = ".nc";
+        }
         else if(strcmp(argv[1],"-usebin") == 0){
             this->m_ReadWriteFlags.extension = ".bin";
         }
@@ -978,7 +981,8 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
-        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
+        std::cout << " -usenc                    use netcdf as output format (*.nc); default is NIFTI (*.nii.gz)"<<std::endl;
+//        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
 //        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)"<<std::endl;
         std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 2; default: 0)"<<std::endl;
         }

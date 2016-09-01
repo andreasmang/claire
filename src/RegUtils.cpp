@@ -5,7 +5,9 @@
 #include "RegUtils.hpp"
 #include <time.h>
 
-
+#ifdef REG_HAS_PNETCDF
+#include "pnetcdf.h"
+#endif
 namespace reg
 {
 
@@ -58,6 +60,8 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
 
     PetscFunctionReturn(ierr);
 }
+
+
 
 
 /********************************************************************
@@ -245,6 +249,36 @@ PetscErrorCode MPIERRQ(int cerr)
     PetscFunctionReturn(ierr);
 
 }
+
+
+
+
+/********************************************************************
+ * @brief mpi error handling
+ *******************************************************************/
+#ifdef REG_HAS_PNETCDF
+#undef __FUNCT__
+#define __FUNCT__ "NCERRQ"
+PetscErrorCode NCERRQ(int cerr)
+{
+    int rank;
+    PetscErrorCode ierr=0;
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    if (cerr != NC_NOERR) {
+        ss << ncmpi_strerror(cerr);
+        ierr=ThrowError(ss.str()); CHKERRQ(ierr);
+    }
+
+    PetscFunctionReturn(ierr);
+
+}
+#endif
+
+
 
 
 /********************************************************************

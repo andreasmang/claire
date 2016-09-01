@@ -194,6 +194,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-usebin") == 0){
             this->m_ReadWriteFlags.extension = ".bin";
         }
+        else if(strcmp(argv[1],"-usenc") == 0){
+            this->m_ReadWriteFlags.extension = ".nc";
+        }
         else if(strcmp(argv[1],"-usehdf5") == 0){
             this->m_ReadWriteFlags.extension = ".hdf5";
         }
@@ -405,7 +408,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
-        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
+//        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
 //        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)"<<std::endl;
         }
         // ####################### advanced options #######################
@@ -618,7 +621,6 @@ PetscErrorCode RegToolsOpt::CheckArguments()
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX3FN = path + "/resampled_" + filename + extension;
-
 
         }
 

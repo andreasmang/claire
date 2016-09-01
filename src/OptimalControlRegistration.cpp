@@ -1130,7 +1130,8 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
 PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec lambda)
 {
     PetscErrorCode ierr;
-    IntType nt, nl,ng;
+    IntType nt,nl,ng;
+    std::string ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -1140,6 +1141,8 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
+
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     // allocate container for incremental velocity field
     if (this->m_VelocityField == NULL){
@@ -1186,9 +1189,9 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     ierr=VecSet(this->m_AdjointVariable,0.0); CHKERRQ(ierr);
 
     ierr=this->m_ReadWrite->Write(this->m_VelocityField,
-                            "initial-condition-x1.nii.gz",
-                            "initial-condition-x2.nii.gz",
-                            "initial-condition-x3.nii.gz"); CHKERRQ(ierr);
+                            "initial-condition-x1" + ext,
+                            "initial-condition-x2" + ext,
+                            "initial-condition-x3" + ext); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1473,6 +1476,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
     IntType nl,ng,nt;
     ScalarType *p_m=NULL,*p_m0=NULL,*p_mj=NULL;
     std::stringstream ss;
+    std::string ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -1483,8 +1487,9 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
-
     ierr=Assert(nt > 0, "number of time points <= 0"); CHKERRQ(ierr);
+
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     if (this->m_Opt->GetVerbosity() > 2){
         ss << "solving state equation (nt="<<nt<<")";
@@ -1569,7 +1574,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
             // write out
             ss.str(std::string()); ss.clear();
-            ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ".nii.gz";
+            ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ext;
             ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
 
         } // for number of time points
@@ -3285,7 +3290,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     PetscErrorCode ierr;
     int rank;
     IntType nl,ng,nt,iter;
-    std::string filename,fnx1,fnx2,fnx3;
+    std::string filename,fnx1,fnx2,fnx3,ext;
     std::stringstream ss;
     std::ofstream logwriter;
     ScalarType *p_m1=NULL,*p_m=NULL;
@@ -3302,6 +3307,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
+
+    // parse extension
+    ext = this->m_Opt->GetReadWriteFlags().extension;
 
     // allocate
     if (this->m_WorkScaField1 == NULL){
@@ -3334,20 +3342,20 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
         ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
         ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
 
-        ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter  << ".nii.gz";
+        ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 
         // construct file names for velocity field components
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x1.nii.gz";
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << "-x1" << ext;
         fnx1 = ss.str();
         ss.str( std::string() ); ss.clear();
 
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x2.nii.gz";
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << "-x2" << ext;
         fnx2 = ss.str();
         ss.str( std::string() ); ss.clear();
 
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x3.nii.gz";
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x3" << ext;
         fnx3 = ss.str();
         ss.str( std::string() ); ss.clear();
 

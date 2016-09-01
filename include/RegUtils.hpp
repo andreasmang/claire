@@ -55,6 +55,9 @@ PetscErrorCode ThrowError(std::string);
 
 /*! mpi error handling */
 PetscErrorCode MPIERRQ(int);
+#ifdef REG_HAS_PNETCDF
+PetscErrorCode NCERRQ(int);
+#endif
 
 /*! check if file exists */
 void isleep(unsigned int);

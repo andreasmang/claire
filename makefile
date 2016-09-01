@@ -2,9 +2,10 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=no
-DBGCODE=no
-PEDANTIC=no
+BUILDTOOLS=yes
+DBGCODE=yes
+PEDANTIC=yes
+USEPNETCDF=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -32,6 +33,9 @@ ifeq ($(PEDANTIC),yes)
 	CXXFLAGS+= -Wunused-but-set-variable -Wunused-variable -Wwrite-strings
 endif
 
+ifeq ($(USEPNETCDF),yes)
+	CXXFLAGS+= -DREG_HAS_PNETCDF
+endif
 
 BINDIR = ./bin
 SRCDIR = ./src
@@ -48,16 +52,26 @@ endif
 COLD_INC+= -I$(ACCFFT_DIR)/include
 COLD_INC+= -I$(FFTW_DIR)/include
 COLD_INC+= -I$(NIFTI_DIR)/include/nifti
+ifeq ($(USEPNETCDF),yes)
+	COLD_INC+= -I$(PNETCDF_DIR)/include
+endif
+
+
 
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 ifeq ($(DBGCODE),yes)
-	LDFLAGS+= -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
+	LDFLAGS+= -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib 
 else
-	LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lf2clapack -lf2cblas
+	LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
 endif
-LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
+LDFLAGS+= -lpetsc -lf2clapack -lf2cblas -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
 LDFLAGS+= -L$(ZLIB_DIR)/lib -lz
+ifeq ($(USEPNETCDF),yes)
+	LDFLAGS+= -L$(PNETCDF_DIR)/lib -lpnetcdf
+endif
+
+
 #LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS+= -limf
@@ -65,7 +79,7 @@ endif
 
 
 ifeq ($(USEINTELMPI),yes)
-	LDFLAGS+= -lmpi_mt
+#	LDFLAGS+= -lmpi_mt
 endif
 LDFLAGS+= -lm
 

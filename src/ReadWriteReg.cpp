@@ -157,6 +157,11 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
         ierr=this->ReadHDF5(x,filename); CHKERRQ(ierr);
     }
 #endif
+#ifdef REG_HAS_PNETCDF
+    else if (filename.find(".nc") != std::string::npos){
+        ierr=this->ReadNC(x,filename); CHKERRQ(ierr);
+    }
+#endif
     else{ ierr=ThrowError("could not read: data type not supported"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -328,6 +333,11 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
 #if defined(PETSC_HAVE_HDF5)
     else if (filename.find(".hdf5") != std::string::npos){
         ierr=this->WriteHDF5(x,filename); CHKERRQ(ierr);
+    }
+#endif
+#ifdef REG_HAS_PNETCDF
+    else if (filename.find(".nc") != std::string::npos){
+        ierr=this->WriteNC(x,filename); CHKERRQ(ierr);
     }
 #endif
     else{ ierr=ThrowError("could not write: data type not supported"); CHKERRQ(ierr); }
@@ -1196,15 +1206,11 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename)
     PetscViewer viewer=NULL;
     PetscFunctionBegin;
 
+    if(*x!=NULL){ ierr=VecDestroy(x); CHKERRQ(ierr);*x=NULL;}
+
     if ( !this->m_Opt->SetupDone() ){
         ierr=this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
-
-    if(*x!=NULL){
-        ierr=VecDestroy(x); CHKERRQ(ierr);
-        *x=NULL;
-    }
-
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
     ierr=VecCreate(*x,nl,ng); CHKERRQ(ierr);
@@ -1308,6 +1314,155 @@ PetscErrorCode ReadWriteReg::WriteHDF5(Vec x, std::string filename)
     PetscFunctionReturn(ierr);
 }
 #endif
+
+
+
+
+/********************************************************************
+ * @brief write netcdf to file
+ *******************************************************************/
+#ifdef REG_HAS_PNETCDF
+#undef __FUNCT__
+#define __FUNCT__ "ReadNC"
+PetscErrorCode ReadWriteReg::ReadNC(Vec* x, std::string filename)
+{
+    PetscErrorCode ierr = 0;
+    int rank,ncerr,fileid,ndims,nvars,ngatts,unlimited,varid[1];
+    IntType nl,ng;
+    ScalarType *p_x=NULL;
+//    double *data=NULL;
+    MPI_Offset istart[3],isize[3];
+    PetscFunctionBegin;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    if(*x!=NULL){ ierr=VecDestroy(x); CHKERRQ(ierr); *x=NULL; }
+
+    if ( !this->m_Opt->SetupDone() ){
+        ierr=this->m_Opt->DoSetup(); CHKERRQ(ierr);
+    }
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ierr=VecCreate(*x,nl,ng); CHKERRQ(ierr);
+
+    // open file
+    ncerr=ncmpi_open(PETSC_COMM_WORLD,filename.c_str(),NC_NOWRITE,MPI_INFO_NULL,&fileid);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    // query info about field named "data"
+    ncerr=ncmpi_inq(fileid,&ndims,&nvars,&ngatts,&unlimited);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+    ncerr=ncmpi_inq_varid(fileid,"data",&varid[0]);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    istart[0] = this->m_Opt->GetDomainPara().istart[0];
+    istart[1] = this->m_Opt->GetDomainPara().istart[1];
+    istart[2] = this->m_Opt->GetDomainPara().istart[2];
+
+    isize[0] = this->m_Opt->GetDomainPara().isize[0];
+    isize[1] = this->m_Opt->GetDomainPara().isize[1];
+    isize[2] = this->m_Opt->GetDomainPara().isize[2];
+
+    ierr=VecGetArray(*x,&p_x); CHKERRQ(ierr);
+    //data=static_cast<double*>(p_x);
+    //ncerr=ncmpi_get_vara_all(fileid,varid[0],istart,isize,data,nl,MPI_DOUBLE);
+    ncerr=ncmpi_get_vara_all(fileid,varid[0],istart,isize,p_x,nl,MPI_DOUBLE);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+    ierr=VecRestoreArray(*x,&p_x); CHKERRQ(ierr);
+
+
+    ncerr=ncmpi_close(fileid);
+
+    PetscFunctionReturn(ierr);
+}
+#endif
+
+
+
+
+/********************************************************************
+ * @brief write netcdf to file
+ *******************************************************************/
+#ifdef REG_HAS_PNETCDF
+#undef __FUNCT__
+#define __FUNCT__ "WriteNC"
+PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename)
+{
+    PetscErrorCode ierr = 0;
+    int ncerr,mode,dims[3],varid[1],nx[3],iscdf5,fileid;
+    int nl;
+    MPI_Offset istart[3],isize[3];
+    MPI_Comm c_comm;
+    ScalarType *p_x=NULL;
+    bool usecdf5=false;// CDF-5 is mandatory for large files (>= 2x10^9 cells)
+    PetscFunctionBegin;
+
+    ierr=Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // file creation mode
+    mode=NC_CLOBBER;
+    if (usecdf5) mode = NC_CLOBBER | NC_64BIT_DATA;
+    else         mode = NC_CLOBBER | NC_64BIT_OFFSET;
+
+    c_comm = this->m_Opt->GetFFT().mpicomm;
+
+    // create netcdf file
+    ncerr=ncmpi_create(c_comm,filename.c_str(),mode,MPI_INFO_NULL,&fileid);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    nx[0] = static_cast<int>(this->m_Opt->GetDomainPara().nx[0]);
+    nx[1] = static_cast<int>(this->m_Opt->GetDomainPara().nx[1]);
+    nx[2] = static_cast<int>(this->m_Opt->GetDomainPara().nx[2]);
+    nl = static_cast<int>(this->m_Opt->GetDomainPara().nlocal);
+
+    // set size
+    ncerr=ncmpi_def_dim(fileid,"x",nx[0],&dims[0]);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+    ncerr=ncmpi_def_dim(fileid,"y",nx[1],&dims[1]);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+    ncerr=ncmpi_def_dim(fileid,"z",nx[2],&dims[2]);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    // define name for output field
+    ncerr=ncmpi_def_var(fileid,"data",NC_DOUBLE,3,dims,&varid[0]);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    iscdf5 = usecdf5 ? 1 : 0;
+    ncerr=ncmpi_put_att_int(fileid,NC_GLOBAL,"CDF-5 mode",NC_INT,1,&iscdf5);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+    ncerr=ncmpi_enddef(fileid);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    // get local sizes
+    istart[0] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().istart[0] );
+    istart[1] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().istart[1] );
+    istart[2] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().istart[2] );
+
+//    std::cout<< istart[0] << " " << istart[1] << " " << istart[2] << std::endl;
+
+
+    isize[0] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().isize[0] );
+    isize[1] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().isize[1] );
+    isize[2] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().isize[2] );
+//    std::cout<< isize[0] << " " << isize[1] << " " << isize[2] << std::endl;
+    ierr=Assert(nl=isize[0]*isize[1]*isize[2],"size error"); CHKERRQ(ierr);
+
+    // write data to file
+    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ncerr=ncmpi_put_vara_all(fileid,varid[0],istart,isize,p_x,nl,MPI_DOUBLE);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+
+    // close file
+    ncerr=ncmpi_close(fileid);
+    ierr=NCERRQ(ncerr); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+#endif
+
+
+
 
 
 

@@ -30,6 +30,11 @@
 #include "petscviewerhdf5.h"
 #endif
 
+#ifdef REG_HAS_PNETCDF
+#include "pnetcdf.h"
+#endif
+
+
 #include "RegOpt.hpp"
 #include "VecField.hpp"
 
@@ -65,10 +70,17 @@ private:
 
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+
 #if defined(PETSC_HAVE_HDF5)
     PetscErrorCode ReadHDF5(Vec*,std::string);
     PetscErrorCode WriteHDF5(Vec,std::string);
 #endif
+
+#ifdef REG_HAS_PNETCDF
+    PetscErrorCode ReadNC(Vec*,std::string);
+    PetscErrorCode WriteNC(Vec,std::string);
+#endif
+
     PetscErrorCode ReadBIN(Vec*,std::string);
     PetscErrorCode WriteBIN(Vec,std::string);
 

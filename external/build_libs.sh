@@ -18,6 +18,7 @@ buildfftw=0
 buildaccfft=0
 buildnifticlib=0
 buildpetsc=0
+buildpnetcdf=0
 buildpetscdgb=0
 buildzlib=0
 cleanup=0
@@ -57,6 +58,10 @@ case $i in
     ;;
     --bzlib)
     buildzlib=1
+    shift # past argument=value
+    ;;
+    --bpnetcdf)
+    buildpnetcdf=1
     shift # past argument=value
     ;;
     --bpetsc)
@@ -106,9 +111,10 @@ case $i in
     echo " build libraries"
     echo "----------------------------------------------------------------------------------"
     echo "     --bfftw         build FFTW library"
-    echo "     --baccfft       build ACCFFT library (depends on FFTW & PNETCDF)"
+    echo "     --baccfft       build ACCFFT library (depends on FFTW)"
     echo "     --bnifti        build NIFTI library"
     echo "     --bpetsc        build PETSc library"
+    echo "     --bpnetcdf      build pnetCDF library"
     echo "----------------------------------------------------------------------------------"
     echo " clean libraries"
     echo "----------------------------------------------------------------------------------"
@@ -147,11 +153,10 @@ COPTFLAGS='-O3'
 --download-f2cblaslapack
 CXXOPTFLAGS='-O3'
 --with-debugging=0
+--with-64-bit-indices
 --with-shared=0
 --with-x=0
 --with-fc=0"
-
-
 
 PETSC_DBG_OPTIONS="
 --with-cc=${MPI_C}
@@ -160,11 +165,14 @@ PETSC_DBG_OPTIONS="
 --CXXFLAGS=${CXXFLAGS}
 --download-f2cblaslapack
 --with-debugging=1
+--with-64-bit-indices
 --with-shared=0
 --with-x=0
 --with-fc=0"
 
 
+#--download-hdf5
+#--with-hdf5
 
 
 #### FFTW OPTIONS
@@ -352,7 +360,8 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo "----------------------------------------------------------------------------------"
 		echo extracting PETSC lib...
 		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		#tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/petsc-lite-3.7.3.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
@@ -411,7 +420,8 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo "----------------------------------------------------------------------------------"
 		echo extracting PETSC lib...
 		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		#tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/petsc-lite-3.7.3.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
@@ -558,6 +568,61 @@ if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
 fi
 
 echo "export NIFTI_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+
+if [ ${cleanup} -eq 1 ]; then
+	rm -f ${BUILD_DIR}/environment_vars.sh
+fi
+
+
+
+
+
+################################
+# PNETCDF
+################################
+PNETCDF_LIB_DIR=${BUILD_DIR}/pnetcdflib
+SRC_DIR=${PNETCDF_LIB_DIR}/src
+BLD_DIR=${PNETCDF_LIB_DIR}/build
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${PNETCDF_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting PNETCDF lib...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/parallel-netcdf-1.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		#tar -xzf ${LIB_DIR}/parallel-netcdf-1.6.1.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [ ${cleanup} -eq 1 -a ! ${PNETCDF_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PNETCDF_LIB_DIR}
+	fi
+fi
+
+#if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
+if [ ${buildpnetcdf} -eq 1 ]; then
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "configuring PNETCDF lib..."
+	echo "----------------------------------------------------------------------------------"
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}
+	fi
+	mkdir ${BLD_DIR}
+	cd ${SRC_DIR}
+
+	echo ./configure --prefix=${BLD_DIR}
+	./configure --prefix=${BLD_DIR} FFLAGS='-O3' CFLAGS='-O3'
+
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "building PNETCDF lib"
+	echo "----------------------------------------------------------------------------------"
+	make
+	make install
+	echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+fi
+
 
 if [ ${cleanup} -eq 1 ]; then
 	rm -f ${BUILD_DIR}/environment_vars.sh
