@@ -1002,6 +1002,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     PetscErrorCode ierr;
     ScalarType minddg,maxddg,meanddg;
     IntType nl,ng;
+    std::string ext;
     std::stringstream ss, ssnum;
 
     PetscFunctionBegin;
