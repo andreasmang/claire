@@ -34,6 +34,7 @@ struct ResamplingPara{
 struct PostProcPara{
     bool enabled;
     bool computedeffields;
+    bool computegrad;
 };
 
 

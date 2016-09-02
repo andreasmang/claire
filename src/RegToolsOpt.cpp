@@ -93,12 +93,12 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             nx = String2Vec( nxinput );
 
             if (nx.size() == 1){
-                for(unsigned int i=0; i < 3; ++i){
+                for(int i=0; i < 3; ++i){
                     this->m_Domain.nx[i] = static_cast<IntType>(nx[0]);
                 }
             }
             else if(nx.size() == 3){
-                for(unsigned int i=0; i < 3; ++i){
+                for(int i=0; i < 3; ++i){
                     this->m_Domain.nx[i] = static_cast<IntType>(nx[i]);
                 }
             }
@@ -168,12 +168,12 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             np = String2Vec( npinput );
 
             if (np.size() == 1){
-                for(unsigned int i=0; i < 2; ++i){
+                for(int i=0; i < 2; ++i){
                     this->m_CartGridDims[i] = static_cast<unsigned int>(np[0]);
                 }
             }
             else if (np.size() == 2){
-                for(unsigned int i=0; i < 2; ++i){
+                for(int i=0; i < 2; ++i){
                     this->m_CartGridDims[i] = static_cast<unsigned int>(np[i]);
                 }
             }
@@ -217,6 +217,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
             this->m_RegFlags.detdefgradfromdeffield = true;
+        }
+        else if(strcmp(argv[1],"-grad") == 0){
+            this->m_PostProcPara.computegrad = true;
         }
         else if(strcmp(argv[1],"-xinvdefgrad") == 0){
             this->m_RegFlags.invdefgrad = true;
@@ -325,6 +328,7 @@ PetscErrorCode RegToolsOpt::Initialize()
 
     this->m_PostProcPara.enabled = false;
     this->m_PostProcPara.computedeffields = false;
+    this->m_PostProcPara.computegrad = false;
 
     this->m_ResamplingPara.enabled = false;
     this->m_ResamplingPara.gridscale = -1.0;
@@ -372,6 +376,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " -xinvdefgrad              flag: compute inverse deformation gradient and write to file"<<std::endl;
         std::cout << " -xdefmap                  flag: compute deformation map and write to file"<<std::endl;
         std::cout << " -xdeffield                flag: compute displacement field and write to file"<<std::endl;
+        std::cout << " -grad                     flag: compute gradient of input field"<<std::endl;
 
 
         // ####################### advanced options #######################
@@ -549,7 +554,6 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 {
     PetscErrorCode ierr;
     std::string msg,path,filename,extension;
-    size_t sep;
     PetscFunctionBegin;
 
 
@@ -633,6 +637,52 @@ PetscErrorCode RegToolsOpt::CheckArguments()
         }
 
     }
+
+
+    if ( this->m_PostProcPara.computegrad ){
+
+        if ( !this->m_RegToolsFlags.readvecfield && this->m_iScaFieldFN.empty() ){
+            msg="\x1b[31m computation of gradient requires input vector or scalar field \x1b[0m\n";
+            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr=this->Usage(true); CHKERRQ(ierr);
+        }
+
+        if ( this->m_RegToolsFlags.readvecfield ){
+/*
+            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
+            }
+            this->m_xVecFieldX1FN = path + "/" + filename + "-gradx1" + extension;
+
+            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
+            }
+            this->m_xVecFieldX2FN = path + "/" + filename + "-gradx2" + extension;
+
+            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
+            }
+            this->m_xVecFieldX3FN = path + "/" + filename + "-gradx3" + extension;
+*/
+        }
+
+        if ( this->m_RegToolsFlags.readscafield ){
+            ierr=GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
+            if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+                extension = this->m_ReadWriteFlags.extension;
+            }
+            this->m_xVecFieldX1FN = path + "/" + filename + "-gradx1" + extension;
+            this->m_xVecFieldX2FN = path + "/" + filename + "-gradx2" + extension;
+            this->m_xVecFieldX3FN = path + "/" + filename + "-gradx3" + extension;
+       }
+
+    }
+
+
+
 
     ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
 
