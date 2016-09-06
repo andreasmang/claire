@@ -987,7 +987,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
                 ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.str( std::string() ); ss.clear();
             }
+
             break;
+
         }
 
         ++level;
@@ -1049,9 +1051,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
         this->m_Opt->SetRegularizationWeight(1,beta);
 
         // display message to user
-        ss << std::scientific << std::setw(3)
-            << "level " << level <<" (beta="<<beta
-            <<"; beta*="<<betastar<<")";
+        ss << std::scientific<<std::setw(3)<<"level "<<level<<" (beta="<<beta<<"; beta*="<<betastar<<")";
         ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
         ss.str( std::string() ); ss.clear();
 

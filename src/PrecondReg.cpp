@@ -904,8 +904,8 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
     Vec b=NULL,x=NULL;
     ScalarType *re=NULL,*im=NULL,eigmin,eigmax,emin,emax;
     PetscFunctionBegin;
-
-    itermax = 3;
+/*
+    itermax = 20;
 
     // get iteration number; if we need to many iterations, we
     // might want to reestimate the eigenvalues
@@ -920,7 +920,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
         this->m_Opt->SetKrylovIterations(0);
 
     }
-
+*/
     // if we detect a divergence, we'll have to restimate
     // the eigenvalues
     ierr=KSPGetConvergedReason(this->m_KrylovMethod,&reason); CHKERRQ(ierr);
@@ -981,8 +981,6 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
             // clear memory
             ierr=PetscFree2(re,im); CHKERRQ(ierr);
             ierr=this->m_OptProbCoarse->EstimateExtremalHessEigVals(emin,emax); CHKERRQ(ierr);
-            std::cout<<eigmin << " " << eigmax << std::endl;
-            std::cout<<emin << " " << emax << std::endl;
 
             ierr=KSPChebyshevSetEigenvalues(this->m_KrylovMethod,eigmax,eigmin); CHKERRQ(ierr);
 
@@ -1063,7 +1061,6 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst()
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
-
 }
 
 
