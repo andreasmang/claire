@@ -25,6 +25,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
+#include "TenField.hpp"
 #include "PreProcReg.hpp"
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
@@ -95,6 +96,9 @@ public:
     /*! set velocity field to zero */
     PetscErrorCode SetVelocity2Zero();
 
+    /*! compute deformation gradient, i.e. jacobian of deformation map */
+    PetscErrorCode ComputeDefGrad(bool write2file=false);
+
     /*! compute determinant of deformation gradient, i.e.
         the jacobian of the deformation map */
     PetscErrorCode ComputeDetDefGrad(bool write2file=false);
@@ -158,6 +162,8 @@ protected:
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();
 
+    PetscErrorCode ComputeDefGradSL(); ///< implemented via SL time integrator
+
     PetscErrorCode ComputeDetDefGradSL(); ///< implemented via SL time integrator
     PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
     PetscErrorCode ComputeDetDefGradRK2A(); ///< implemented via RK2 time integrator (assymetric form)
@@ -193,6 +199,11 @@ protected:
     VecField* m_WorkVecField3; ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField4; ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField5; ///< data container for vector field (temporary variable)
+
+    TenField* m_WorkTenField1;
+    TenField* m_WorkTenField2;
+    TenField* m_WorkTenField3;
+    TenField* m_WorkTenField4;
 
     // regularization model
     ReadWriteType* m_ReadWrite;

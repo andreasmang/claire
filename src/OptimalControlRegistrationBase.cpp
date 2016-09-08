@@ -85,6 +85,11 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void)
     this->m_WorkVecField4 = NULL;
     this->m_WorkVecField5 = NULL;
 
+    this->m_WorkTenField1 = NULL;
+    this->m_WorkTenField2 = NULL;
+    this->m_WorkTenField3 = NULL;
+    this->m_WorkTenField4 = NULL;
+
     this->m_VelocityIsZero = false; // flag for velocity field
 
     this->m_Regularization = NULL; // pointer for regularization class
@@ -125,17 +130,14 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
         ierr=VecDestroy(&this->m_WorkScaField1); CHKERRQ(ierr);
         this->m_WorkScaField1 = NULL;
     }
-
     if (this->m_WorkScaField2 != NULL){
         ierr=VecDestroy(&this->m_WorkScaField2); CHKERRQ(ierr);
         this->m_WorkScaField2 = NULL;
     }
-
     if (this->m_WorkScaField3 != NULL){
         ierr=VecDestroy(&this->m_WorkScaField3); CHKERRQ(ierr);
         this->m_WorkScaField3 = NULL;
     }
-
     if (this->m_WorkScaField4 != NULL){
         ierr=VecDestroy(&this->m_WorkScaField4); CHKERRQ(ierr);
         this->m_WorkScaField4 = NULL;
@@ -145,12 +147,10 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
         delete this->m_WorkVecField1;
         this->m_WorkVecField1 = NULL;
     }
-
     if (this->m_WorkVecField2 != NULL){
         delete this->m_WorkVecField2;
         this->m_WorkVecField2 = NULL;
     }
-
     if (this->m_WorkVecField3 != NULL){
         delete this->m_WorkVecField3;
         this->m_WorkVecField3 = NULL;
@@ -163,6 +163,23 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
     if (this->m_WorkVecField5 != NULL){
         delete this->m_WorkVecField5;
         this->m_WorkVecField5 = NULL;
+    }
+
+    if (this->m_WorkTenField1 != NULL){
+        delete this->m_WorkTenField1;
+        this->m_WorkTenField1 = NULL;
+    }
+    if (this->m_WorkTenField2 != NULL){
+        delete this->m_WorkTenField2;
+        this->m_WorkTenField2 = NULL;
+    }
+    if (this->m_WorkTenField3 != NULL){
+        delete this->m_WorkTenField3;
+        this->m_WorkTenField3 = NULL;
+    }
+    if (this->m_WorkTenField4 != NULL){
+        delete this->m_WorkTenField4;
+        this->m_WorkTenField4 = NULL;
     }
 
 
@@ -1090,6 +1107,193 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief compute deformation gradient
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeDefGrad"
+PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
+{
+    PetscErrorCode ierr;
+   // IntType nl,ng;
+    std::string ext;
+    std::stringstream ss, ssnum;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    if (this->m_Opt->GetVerbosity() > 2){
+        ierr=DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
+    }
+
+    //nl = this->m_Opt->GetDomainPara().nlocal;
+    //ng = this->m_Opt->GetDomainPara().nglobal;
+
+    if (this->m_VelocityField == NULL){
+       try{this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    }
+
+    // allocate tensor field and set initial condition
+    if (this->m_WorkTenField1 == NULL){
+       try{this->m_WorkTenField1 = new TenField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    ierr=this->m_WorkTenField1->SetIdentity(); CHKERRQ(ierr);
+
+    // check if velocity field is zero
+    ierr=this->IsVelocityZero(); CHKERRQ(ierr);
+    if(this->m_VelocityIsZero == false){
+
+        // call the solver
+        if (this->m_Opt->GetRegFlags().detdefgradfromdeffield){
+            ierr=this->ComputeDetDefGradViaDispField(); CHKERRQ(ierr);
+        }
+        else{
+            switch (this->m_Opt->GetPDESolver().type){
+                case RK2:
+                {
+                    ierr=ThrowError("not implemented");CHKERRQ(ierr);
+                    //ierr=this->ComputeDefGradRK2(); CHKERRQ(ierr);
+                    break;
+                }
+                case RK2A:
+                {
+                    ierr=ThrowError("not implemented");CHKERRQ(ierr);
+                    //ierr=this->ComputeDefGradRK2A(); CHKERRQ(ierr);
+                    break;
+                }
+                case SL:
+                {
+                    ierr=this->ComputeDefGradSL(); CHKERRQ(ierr);
+                    break;
+                }
+                default:
+                {
+                    ierr=ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
+                    break;
+                }
+            }
+        }
+    }
+
+
+    if (write2file){
+        ext = this->m_Opt->GetReadWriteFlags().extension;
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X11,"deformation-grad-x11"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X12,"deformation-grad-x12"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X13,"deformation-grad-x13"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X21,"deformation-grad-x21"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X22,"deformation-grad-x22"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X23,"deformation-grad-x23"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X31,"deformation-grad-x21"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X32,"deformation-grad-x22"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X33,"deformation-grad-x22"+ext); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+
+/********************************************************************
+ * @brief compute deformation gradient
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeDefGrad"
+PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL()
+{
+    PetscErrorCode ierr=0;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    IntType nt,nl,ng;
+    ScalarType ht,hthalf;
+    ScalarType  *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
+                *p_f11=NULL,*p_f12=NULL,*p_f13=NULL,
+                *p_f21=NULL,*p_f22=NULL,*p_f23=NULL,
+                *p_f31=NULL,*p_f32=NULL,*p_f33=NULL,
+                *p_gv11=NULL,*p_gv12=NULL,*p_gv13=NULL,
+                *p_gv21=NULL,*p_gv22=NULL,*p_gv23=NULL,
+                *p_gv31=NULL,*p_gv32=NULL,*p_gv33=NULL,
+                *p_f11X=NULL,*p_f12X=NULL,*p_f13X=NULL,
+                *p_f21X=NULL,*p_f22X=NULL,*p_f23X=NULL,
+                *p_f31X=NULL,*p_f32X=NULL,*p_f33X=NULL,
+                *p_gv11X=NULL,*p_gv12X=NULL,*p_gv13X=NULL,
+                *p_gv21X=NULL,*p_gv22X=NULL,*p_gv23X=NULL,
+                *p_gv31X=NULL,*p_gv32X=NULL,*p_gv33X=NULL;
+    double timer[5]={0,0,0,0,0};
+    PetscFunctionBegin;
+
+    ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    if (this->m_SemiLagrangianMethod == NULL){
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr=this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField,"state"); CHKERRQ(ierr);
+    }
+    if (this->m_WorkTenField2 == NULL){
+       try{this->m_WorkTenField2 = new TenField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkTenField3 == NULL){
+       try{this->m_WorkTenField3 = new TenField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    ierr=this->m_VelocityField->GetArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField2->GetArrays(p_gv11,p_gv12,p_gv13,p_gv21,p_gv22,p_gv23,p_gv31,p_gv32,p_gv33); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField3->GetArrays(p_gv11X,p_gv12X,p_gv13X,p_gv21X,p_gv22X,p_gv23X,p_gv31X,p_gv32X,p_gv33X); CHKERRQ(ierr);
+
+    // X1 gradient
+    accfft_grad(p_gv11,p_gv12,p_gv13,p_v1,this->m_Opt->GetFFT().plan,&XYZ,timer);
+
+    // X2 gradient
+    accfft_grad(p_gv21,p_gv22,p_gv23,p_v2,this->m_Opt->GetFFT().plan,&XYZ,timer);
+
+    // X3 gradient
+    accfft_grad(p_gv31,p_gv32,p_gv33,p_v3,this->m_Opt->GetFFT().plan,&XYZ,timer);
+
+    ierr=this->m_VelocityField->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
+
+    // interpolate gradient of velocity field
+    // (TODO: write interpolation for tensor field)
+    ierr=this->m_SemiLagrangianMethod->Interpolate(p_gv11X,p_gv12X,p_gv13X,p_gv11,p_gv12,p_gv13,"state");
+    ierr=this->m_SemiLagrangianMethod->Interpolate(p_gv21X,p_gv22X,p_gv23X,p_gv21,p_gv22,p_gv23,"state");
+    ierr=this->m_SemiLagrangianMethod->Interpolate(p_gv31X,p_gv32X,p_gv33X,p_gv31,p_gv32,p_gv33,"state");
+
+
+    for (IntType j = 0; j < nt; ++j){
+
+    }
+
+
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -2558,6 +2762,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL()
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 
