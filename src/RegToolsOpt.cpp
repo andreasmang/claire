@@ -206,6 +206,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-xdefgrad") == 0){
             this->m_ReadWriteFlags.defgrad = true;
         }
+        else if(strcmp(argv[1],"-xdetdefgrad") == 0){
+            this->m_ReadWriteFlags.detdefgrad = true;
+        }
         else if(strcmp(argv[1],"-xdefmap") == 0){
             this->m_ReadWriteFlags.defmap = true;
         }
@@ -373,6 +376,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
         std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
         std::cout << " -xdefgrad                 flag: compute deformation gradient and write to file"<<std::endl;
+        std::cout << " -xdetdefgrad              flag: compute determinant of deformation gradient and write to file"<<std::endl;
         std::cout << " -xinvdefgrad              flag: compute inverse deformation gradient and write to file"<<std::endl;
         std::cout << " -xdefmap                  flag: compute deformation map and write to file"<<std::endl;
         std::cout << " -xdeffield                flag: compute displacement field and write to file"<<std::endl;
@@ -559,6 +563,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
     // check output arguments
     if (   this->m_ReadWriteFlags.defgrad
+        || this->m_ReadWriteFlags.detdefgrad
         || this->m_ReadWriteFlags.defmap
         || this->m_ReadWriteFlags.deffield ){
 

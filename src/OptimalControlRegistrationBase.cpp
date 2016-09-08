@@ -1120,20 +1120,24 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
 {
     PetscErrorCode ierr;
-   // IntType nl,ng;
+    IntType nl,ng;
     std::string ext;
+    ScalarType *p_phi=NULL,*p_j11=NULL,*p_j12=NULL,*p_j13=NULL,
+                *p_j21=NULL,*p_j22=NULL,*p_j23=NULL,
+                *p_j31=NULL,*p_j32=NULL,*p_j33=NULL;
+    ScalarType minj,meanj,maxj;
     std::stringstream ss, ssnum;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
     if (this->m_Opt->GetVerbosity() > 2){
         ierr=DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
     }
-
-    //nl = this->m_Opt->GetDomainPara().nlocal;
-    //ng = this->m_Opt->GetDomainPara().nglobal;
 
     if (this->m_VelocityField == NULL){
        try{this->m_VelocityField = new VecField(this->m_Opt);}
@@ -1151,6 +1155,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
         }
     }
     ierr=this->m_WorkTenField1->SetIdentity(); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField1 == NULL){
+        ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+    }
 
     // check if velocity field is zero
     ierr=this->IsVelocityZero(); CHKERRQ(ierr);
@@ -1188,6 +1196,46 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
         }
     }
 
+    ierr=VecGetArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField1->GetArrays(p_j11,p_j12,p_j13,p_j21,p_j22,p_j23,p_j31,p_j32,p_j33); CHKERRQ(ierr);
+#pragma omp parallel
+{
+#pragma omp  for
+    for (IntType i=0; i < nl; ++i){ // for all grid points
+
+        // compute determinant of deformation gradient
+        p_phi[i] = p_j11[i]*p_j22[i]*p_j33[i]
+                 + p_j12[i]*p_j23[i]*p_j31[i]
+                 + p_j13[i]*p_j21[i]*p_j32[i]
+                 - p_j13[i]*p_j22[i]*p_j31[i]
+                 - p_j12[i]*p_j21[i]*p_j33[i]
+                 - p_j11[i]*p_j23[i]*p_j32[i];
+
+    }
+
+} // pragma omp
+
+    ierr=this->m_WorkTenField1->RestoreArrays(p_j11,p_j12,p_j13,p_j21,p_j22,p_j23,p_j31,p_j32,p_j33); CHKERRQ(ierr);
+    ierr=VecRestoreArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
+
+    ierr=VecMin(this->m_WorkScaField1,NULL,&minj); CHKERRQ(ierr);
+    ierr=VecMax(this->m_WorkScaField1,NULL,&maxj); CHKERRQ(ierr);
+    ierr=VecSum(this->m_WorkScaField1,&meanj); CHKERRQ(ierr);
+    meanj /= static_cast<ScalarType>(ng);
+
+    // remember
+    this->m_Opt->SetJacMin(minj);
+    this->m_Opt->SetJacMax(maxj);
+    this->m_Opt->SetJacMean(meanj);
+
+
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().JAC){
+        ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
+            << "(" << minj << ", " << meanj << ", " << maxj<<")";
+        ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str( std::string() ); ss.clear();
+    }
+
 
     if (write2file){
         ext = this->m_Opt->GetReadWriteFlags().extension;
@@ -1200,6 +1248,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
         ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X31,"deformation-grad-x21"+ext); CHKERRQ(ierr);
         ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X32,"deformation-grad-x22"+ext); CHKERRQ(ierr);
         ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X33,"deformation-grad-x22"+ext); CHKERRQ(ierr);
+
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"det-deformation-grad"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1215,23 +1265,23 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
  * @brief compute deformation gradient
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ComputeDefGrad"
+#define __FUNCT__ "ComputeDefGradSL"
 PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL()
 {
     PetscErrorCode ierr=0;
     std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
-    IntType nt,nl,ng;
+    IntType nt,nl;
     ScalarType ht,hthalf;
     ScalarType  *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
-                *p_f11=NULL,*p_f12=NULL,*p_f13=NULL,
-                *p_f21=NULL,*p_f22=NULL,*p_f23=NULL,
-                *p_f31=NULL,*p_f32=NULL,*p_f33=NULL,
+                *p_j11=NULL,*p_j12=NULL,*p_j13=NULL,
+                *p_j21=NULL,*p_j22=NULL,*p_j23=NULL,
+                *p_j31=NULL,*p_j32=NULL,*p_j33=NULL,
                 *p_gv11=NULL,*p_gv12=NULL,*p_gv13=NULL,
                 *p_gv21=NULL,*p_gv22=NULL,*p_gv23=NULL,
                 *p_gv31=NULL,*p_gv32=NULL,*p_gv33=NULL,
-                *p_f11X=NULL,*p_f12X=NULL,*p_f13X=NULL,
-                *p_f21X=NULL,*p_f22X=NULL,*p_f23X=NULL,
-                *p_f31X=NULL,*p_f32X=NULL,*p_f33X=NULL,
+                *p_j11X=NULL,*p_j12X=NULL,*p_j13X=NULL,
+                *p_j21X=NULL,*p_j22X=NULL,*p_j23X=NULL,
+                *p_j31X=NULL,*p_j32X=NULL,*p_j33X=NULL,
                 *p_gv11X=NULL,*p_gv12X=NULL,*p_gv13X=NULL,
                 *p_gv21X=NULL,*p_gv22X=NULL,*p_gv23X=NULL,
                 *p_gv31X=NULL,*p_gv32X=NULL,*p_gv33X=NULL;
@@ -1239,6 +1289,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL()
     PetscFunctionBegin;
 
     ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_WorkTenField1!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
 
     if (this->m_SemiLagrangianMethod == NULL){
         try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -1259,16 +1315,18 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
+    if (this->m_WorkTenField4 == NULL){
+       try{this->m_WorkTenField4 = new TenField(this->m_Opt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
 
     ierr=this->m_VelocityField->GetArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
-    ierr=this->m_WorkTenField2->GetArrays(p_gv11,p_gv12,p_gv13,p_gv21,p_gv22,p_gv23,p_gv31,p_gv32,p_gv33); CHKERRQ(ierr);
-    ierr=this->m_WorkTenField3->GetArrays(p_gv11X,p_gv12X,p_gv13X,p_gv21X,p_gv22X,p_gv23X,p_gv31X,p_gv32X,p_gv33X); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField1->GetArrays(p_j11,p_j12,p_j13,p_j21,p_j22,p_j23,p_j31,p_j32,p_j33); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField2->GetArrays(p_j11X,p_j12X,p_j13X,p_j21X,p_j22X,p_j23X,p_j31X,p_j32X,p_j33X); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField3->GetArrays(p_gv11,p_gv12,p_gv13,p_gv21,p_gv22,p_gv23,p_gv31,p_gv32,p_gv33); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField4->GetArrays(p_gv11X,p_gv12X,p_gv13X,p_gv21X,p_gv22X,p_gv23X,p_gv31X,p_gv32X,p_gv33X); CHKERRQ(ierr);
 
     // X1 gradient
     accfft_grad(p_gv11,p_gv12,p_gv13,p_v1,this->m_Opt->GetFFT().plan,&XYZ,timer);
@@ -1287,13 +1345,59 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL()
     ierr=this->m_SemiLagrangianMethod->Interpolate(p_gv21X,p_gv22X,p_gv23X,p_gv21,p_gv22,p_gv23,"state");
     ierr=this->m_SemiLagrangianMethod->Interpolate(p_gv31X,p_gv32X,p_gv33X,p_gv31,p_gv32,p_gv33,"state");
 
-
+    // for all time points
     for (IntType j = 0; j < nt; ++j){
 
-    }
+        // evaluate j at X
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_j11X,p_j12X,p_j13X,p_j11,p_j12,p_j13,"state");
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_j21X,p_j22X,p_j23X,p_j21,p_j22,p_j23,"state");
+        ierr=this->m_SemiLagrangianMethod->Interpolate(p_j31X,p_j32X,p_j33X,p_j31,p_j32,p_j33,"state");
 
+#pragma omp parallel
+{
+        ScalarType rhs11,rhs12,rhs13,rhs21,rhs22,rhs23,rhs31,rhs32,rhs33;
+#pragma omp for
+        for (IntType i=0; i < nl; ++i){
+
+            // evaluate right hand side at t^j
+            rhs11 = p_gv11X[i]*p_j11X[i] + p_gv21X[i]*p_j21X[i] + p_gv31X[i]*p_j31X[i];
+            rhs12 = p_gv11X[i]*p_j12X[i] + p_gv21X[i]*p_j22X[i] + p_gv31X[i]*p_j32X[i];
+            rhs13 = p_gv11X[i]*p_j13X[i] + p_gv21X[i]*p_j23X[i] + p_gv31X[i]*p_j33X[i];
+
+            rhs21 = p_gv12X[i]*p_j11X[i] + p_gv22X[i]*p_j21X[i] + p_gv32X[i]*p_j31X[i];
+            rhs22 = p_gv12X[i]*p_j12X[i] + p_gv22X[i]*p_j22X[i] + p_gv32X[i]*p_j32X[i];
+            rhs23 = p_gv12X[i]*p_j13X[i] + p_gv22X[i]*p_j23X[i] + p_gv32X[i]*p_j33X[i];
+
+            rhs31 = p_gv13X[i]*p_j11X[i] + p_gv23X[i]*p_j21X[i] + p_gv33X[i]*p_j31X[i];
+            rhs32 = p_gv13X[i]*p_j12X[i] + p_gv23X[i]*p_j22X[i] + p_gv33X[i]*p_j32X[i];
+            rhs33 = p_gv13X[i]*p_j13X[i] + p_gv23X[i]*p_j23X[i] + p_gv33X[i]*p_j33X[i];
+
+            // second stage of rk2 scheme
+            p_j11[i] = p_j11X[i] + hthalf*( rhs11 + ( p_gv11X[i] + ht*(p_gv11[i]*rhs11 + p_gv21[i]*rhs21 + p_gv31[i]*rhs31) ) );
+            p_j12[i] = p_j12X[i] + hthalf*( rhs12 + ( p_gv12X[i] + ht*(p_gv11[i]*rhs12 + p_gv21[i]*rhs22 + p_gv31[i]*rhs32) ) );
+            p_j13[i] = p_j13X[i] + hthalf*( rhs13 + ( p_gv13X[i] + ht*(p_gv11[i]*rhs13 + p_gv21[i]*rhs23 + p_gv31[i]*rhs33) ) );
+
+            p_j21[i] = p_j21X[i] + hthalf*( rhs21 + ( p_gv21X[i] + ht*(p_gv12[i]*rhs11 + p_gv22[i]*rhs21 + p_gv32[i]*rhs31) ) );
+            p_j22[i] = p_j22X[i] + hthalf*( rhs22 + ( p_gv22X[i] + ht*(p_gv12[i]*rhs12 + p_gv22[i]*rhs22 + p_gv32[i]*rhs32) ) );
+            p_j23[i] = p_j23X[i] + hthalf*( rhs23 + ( p_gv23X[i] + ht*(p_gv12[i]*rhs13 + p_gv22[i]*rhs23 + p_gv32[i]*rhs33) ) );
+
+            p_j31[i] = p_j31X[i] + hthalf*( rhs31 + ( p_gv31X[i] + ht*(p_gv13[i]*rhs11 + p_gv23[i]*rhs21 + p_gv33[i]*rhs31) ) );
+            p_j32[i] = p_j32X[i] + hthalf*( rhs32 + ( p_gv32X[i] + ht*(p_gv13[i]*rhs12 + p_gv23[i]*rhs22 + p_gv33[i]*rhs32) ) );
+            p_j33[i] = p_j33X[i] + hthalf*( rhs33 + ( p_gv33X[i] + ht*(p_gv13[i]*rhs13 + p_gv23[i]*rhs23 + p_gv33[i]*rhs33) ) );
+
+        }// for all grid points
+
+} // pragma omp parallel
+
+    } // for all time points
+
+    ierr=this->m_WorkTenField4->RestoreArrays(p_gv11X,p_gv12X,p_gv13X,p_gv21X,p_gv22X,p_gv23X,p_gv31X,p_gv32X,p_gv33X); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField3->RestoreArrays(p_gv11,p_gv12,p_gv13,p_gv21,p_gv22,p_gv23,p_gv31,p_gv32,p_gv33); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField2->RestoreArrays(p_j11X,p_j12X,p_j13X,p_j21X,p_j22X,p_j23X,p_j31X,p_j32X,p_j33X); CHKERRQ(ierr);
+    ierr=this->m_WorkTenField1->RestoreArrays(p_j11,p_j12,p_j13,p_j21,p_j22,p_j23,p_j31,p_j32,p_j33); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
+
 }
 
 

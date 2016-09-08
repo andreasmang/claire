@@ -171,6 +171,7 @@ struct ReadWriteFlags
     bool timeseries;
     bool iterates;
     bool defgrad;
+    bool detdefgrad;
     bool defmap;
     bool deffield;
     bool results;

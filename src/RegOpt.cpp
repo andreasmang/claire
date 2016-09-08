@@ -137,6 +137,7 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
     this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
     this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
+    this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
     this->m_ReadWriteFlags.defmap = opt.m_ReadWriteFlags.defmap;
     this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
 
@@ -338,6 +339,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-xdefgrad") == 0){
             this->m_ReadWriteFlags.defgrad = true;
+        }
+        else if(strcmp(argv[1],"-xdetdefgrad") == 0){
+            this->m_ReadWriteFlags.detdefgrad = true;
         }
         else if(strcmp(argv[1],"-xdeffield") == 0){
             this->m_ReadWriteFlags.deffield = true;
@@ -772,6 +776,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_ReadWriteFlags.iterates = false; ///< write out iterates
     this->m_ReadWriteFlags.results = false; ///< write out results (deformed template; velocity)
     this->m_ReadWriteFlags.defgrad = false; ///< write out deformation gradient
+    this->m_ReadWriteFlags.detdefgrad = false; ///< write out deformation gradient
     this->m_ReadWriteFlags.defmap = false; ///< write out deformation map
     this->m_ReadWriteFlags.deffield = false; ///< write out deformation field / displacement field
     this->m_ReadWriteFlags.extension = ".nii.gz"; ///< file extension for output
@@ -874,6 +879,7 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         if (advanced)
         {
         std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
+        std::cout << " -xdetdefgrad              flag: write determinant of deformation gradient to file"<<std::endl;
         std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
         std::cout << " -xdeffield                flag: write deformation field/displacement field to file"<<std::endl;
         std::cout << " -xlog                     flag: write log files (requires -x option); logging includes"<<std::endl;
@@ -1073,6 +1079,7 @@ PetscErrorCode RegOpt::CheckArguments()
     // check output arguments
     if (   this->m_ReadWriteFlags.results
         || this->m_ReadWriteFlags.defgrad
+        || this->m_ReadWriteFlags.detdefgrad
         || this->m_ReadWriteFlags.defmap
         || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates

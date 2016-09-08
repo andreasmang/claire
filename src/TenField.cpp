@@ -607,7 +607,7 @@ PetscErrorCode TenField::Scale(ScalarType value)
  * @brief pointwise scale of vector field
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "Scale"
+#define __FUNCT__ "SetIdentity"
 PetscErrorCode TenField::SetIdentity()
 {
     PetscErrorCode ierr;
