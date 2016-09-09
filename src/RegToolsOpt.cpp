@@ -226,7 +226,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         }
         else if(strcmp(argv[1],"-xinvdefgrad") == 0){
             this->m_RegFlags.invdefgrad = true;
-            this->m_ReadWriteFlags.defgrad = true;
+            this->m_ReadWriteFlags.detdefgrad = true;
         }
         else if(strcmp(argv[1],"-ifile") == 0){
             argc--; argv++;

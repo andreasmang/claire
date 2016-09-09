@@ -107,12 +107,10 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_KrylovSolverPara.tol[2] = opt.m_KrylovSolverPara.tol[2];
     this->m_KrylovSolverPara.maxit = opt.m_KrylovSolverPara.maxit;
     this->m_KrylovSolverPara.reltol = opt.m_KrylovSolverPara.reltol;
-    this->m_KrylovSolverPara.fseqtype = opt.m_KrylovSolverPara.fseqtype;
     this->m_KrylovSolverPara.solver = opt.m_KrylovSolverPara.solver;
-
-    this->m_KrylovSolverPara.g0normset = opt.m_KrylovSolverPara.g0normset;
     this->m_KrylovSolverPara.g0norm = opt.m_KrylovSolverPara.g0norm;
-
+    this->m_KrylovSolverPara.g0normset = opt.m_KrylovSolverPara.g0normset;
+    this->m_KrylovSolverPara.fseqtype = opt.m_KrylovSolverPara.fseqtype;
     this->m_KrylovSolverPara.pctype = opt.m_KrylovSolverPara.pctype;
     this->m_KrylovSolverPara.pcsolver = opt.m_KrylovSolverPara.pcsolver;
     this->m_KrylovSolverPara.pctolscale = opt.m_KrylovSolverPara.pctolscale;
