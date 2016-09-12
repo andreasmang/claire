@@ -256,8 +256,6 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng)
 
 
 
-
-
 /********************************************************************
  * @brief Copy
  *******************************************************************/
@@ -616,6 +614,44 @@ PetscErrorCode VecField::WAXPY(ScalarType s,VecField* v,VecField* w)
 
     PetscFunctionReturn(0);
 }
+
+
+
+/********************************************************************
+ * @brief compute norm of vector field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "Scale"
+PetscErrorCode VecField::Norm(Vec xnorm)
+{
+    PetscErrorCode ierr;
+    IntType nl;
+    ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL,*p_x=NULL;
+
+    PetscFunctionBegin;
+
+    // get local size of vector field
+    ierr=VecGetLocalSize(xnorm,&nl); CHKERRQ(ierr);
+
+    ierr=this->GetArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
+    ierr=VecGetArray(xnorm,&p_x); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType i = 0; i < nl; ++i){
+        p_x[i] = PetscSqrtReal( p_x1[i]*p_x1[i]
+                              + p_x2[i]*p_x2[i]
+                              + p_x3[i]*p_x3[i] );
+    }
+} // pragma omp parallel
+
+    ierr=VecRestoreArray(xnorm,&p_x); CHKERRQ(ierr);
+    this->RestoreArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
 
 
 

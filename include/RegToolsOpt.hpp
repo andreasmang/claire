@@ -32,15 +32,17 @@ struct ResamplingPara{
 
 
 struct PostProcPara{
-    bool enabled;
-    bool computedeffields;
-    bool computegrad;
+    bool enabled; ///< run post processing
+    bool computedeffields; ///< compute deformation fields (deformation gradient, displacement field, ...)
+    bool computegrad; ///< compute gradient of scalr field
+    bool tscafield; ///< transport scalar field (forward problem)
+    bool tlabelmap; ///< transport label map (solve forward problem)
 };
 
 
 struct RegToolsFlags{
-    bool readvecfield;
-    bool readscafield;
+    bool readvecfield; ///< read vector field
+    bool readscafield; ///< read scalar field
 };
 
 
@@ -79,6 +81,9 @@ protected:
     ResamplingPara m_ResamplingPara;
     PostProcPara m_PostProcPara;
 
+    std::string m_RFN;
+    std::string m_TFN;
+
     std::string m_iVecFieldX1FN; ///< x1 vector field file name
     std::string m_iVecFieldX2FN; ///< x2 vector field file name
     std::string m_iVecFieldX3FN; ///< x3 vector field file name
@@ -88,6 +93,7 @@ protected:
     std::string m_xVecFieldX2FN; ///< x2 vector field file name
     std::string m_xVecFieldX3FN; ///< x3 vector field file name
     std::string m_xScaFieldFN; ///< input file name
+
 
 };
 

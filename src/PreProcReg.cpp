@@ -97,6 +97,8 @@ PetscErrorCode PreProcReg::Initialize()
     this->m_SendRequest=NULL;
     this->m_RecvRequest=NULL;
 
+    this->m_OverlapMeasures=NULL;
+
     this->m_xhat = NULL;
     this->m_yhat = NULL;
 
@@ -207,6 +209,11 @@ PetscErrorCode PreProcReg::ClearMemory()
     if (this->m_RecvRequest!=NULL){
         delete [] this->m_RecvRequest;
         this->m_RecvRequest=NULL;
+    }
+
+    if (this->m_OverlapMeasures!=NULL){
+        delete [] this->m_OverlapMeasures;
+        this->m_OverlapMeasures=NULL;
     }
 
     PetscFunctionReturn(0);
@@ -1758,6 +1765,127 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+
+}
+
+
+
+/********************************************************************
+ * @brief compute overlap between label maps
+ * @param mRl label map for reference image
+ * @param mTl label map for template image
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeOverlapMeasures"
+PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
+{
+    PetscErrorCode ierr;
+    int nlabels,lR,lT;
+    IntType *icommon,*iunion,*nlR,*nlT;
+    IntType nl;
+    ScalarType *p_mrl=NULL,*p_mtl=NULL;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    ierr=Assert(mRl!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(mTl!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    nl = this->m_Opt->GetDomainPara().nlocal;
+
+    nlabels=32;
+
+    if (this->m_OverlapMeasures==NULL){
+        try{this->m_OverlapMeasures = new double [nlabels*4];}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    try{icommon = new IntType[nlabels];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{iunion = new IntType[nlabels];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{nlR = new IntType[nlabels];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try{nlT = new IntType[nlabels];}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    for(int i = 0; i < nlabels; ++i){
+        iunion[i]=0;
+        icommon[i]=0;
+        nlR[i]=0;
+        nlT[i]=0;
+    }
+
+    ierr=VecGetArray(mRl,&p_mrl); CHKERRQ(ierr);
+    ierr=VecGetArray(mTl,&p_mtl); CHKERRQ(ierr);
+
+    for (IntType i = 0; i < nl; ++i){
+        lR = static_cast<int>(p_mrl[i]);
+        lT = static_cast<int>(p_mtl[i]);
+
+        // compute intersection
+        if (lR==lT){ icommon[lR]++; }
+        nlR[lR]++;
+        nlT[lT]++;
+
+        // compute union
+        for (int lj = 0; lj < nlabels; ++lj){
+            if ((lR == lj) || (lT == lj)) iunion[lj]++;
+        }
+    }
+
+
+    ierr=VecRestoreArray(mRl,&p_mrl); CHKERRQ(ierr);
+    ierr=VecRestoreArray(mTl,&p_mtl); CHKERRQ(ierr);
+
+
+    for (int lj = 0; lj < nlabels; ++lj){
+
+        double cj = static_cast<double>(icommon[lj]);
+        double uj = static_cast<double>(iunion[lj]);
+        double nr = static_cast<double>(nlR[lj]);
+        double nt = static_cast<double>(nlT[lj]);
+        double n  = nt + nr;
+
+        // compute jaccard per label
+        if (uj!=0.0) this->m_OverlapMeasures[(lj*nlabels)+0] = cj/uj;
+        else         this->m_OverlapMeasures[(lj*nlabels)+0] = 0;
+
+        // compute dice per label
+        if (n!=0.0) this->m_OverlapMeasures[(lj*nlabels)+1] = 2.0*cj/n;
+        else        this->m_OverlapMeasures[(lj*nlabels)+1] = 0.0;
+
+        // compute false positive and false negative per label
+        if (nr!=0.0){
+            this->m_OverlapMeasures[(lj*nlabels)+2] = (nt-cj)/nr;
+            this->m_OverlapMeasures[(lj*nlabels)+3] = (nr-cj)/nr;
+        }
+        else{
+            this->m_OverlapMeasures[(lj*nlabels)+2] = 0.0;
+            this->m_OverlapMeasures[(lj*nlabels)+3] = 0.0;
+        }
+    }
+
+
+    delete [] icommon; icommon=NULL;
+    delete [] iunion; iunion=NULL;
+    delete [] nlR; nlR=NULL;
+    delete [] nlT; nlT=NULL;
+
 
     this->m_Opt->Exit(__FUNCT__);
 

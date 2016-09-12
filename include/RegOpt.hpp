@@ -164,7 +164,6 @@ enum RegModel
 };
 
 
-
 struct ReadWriteFlags
 {
     bool readfiles;
@@ -172,7 +171,10 @@ struct ReadWriteFlags
     bool iterates;
     bool defgrad;
     bool detdefgrad;
+    bool velnorm;
+    bool residual;
     bool defmap;
+    bool deftemplate;
     bool deffield;
     bool results;
     std::string extension;

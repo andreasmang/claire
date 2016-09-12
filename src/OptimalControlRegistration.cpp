@@ -3419,8 +3419,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     ScalarType mRmT_2,mRmT_infty,mRm1_2,
                 mRm1_infty,mR_2,mR_infty,
                 drrel_infty,drrel_2;
-
-    ScalarType *p_m1=NULL, *p_m=NULL;
+    ScalarType *p_m1=NULL,*p_mt=NULL,*p_mr=NULL,*p_m=NULL;
 
     PetscFunctionBegin;
 
@@ -3472,24 +3471,19 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
-    ierr=VecWAXPY(this->m_WorkScaField1,-1.0,this->m_TemplateImage,this->m_ReferenceImage); CHKERRQ(ierr);
-    ierr=VecNorm(this->m_WorkScaField1,NORM_2,&mRmT_2); CHKERRQ(ierr);
-    ierr=VecNorm(this->m_WorkScaField1,NORM_INFINITY,&mRmT_infty); CHKERRQ(ierr);
-
-    if(this->m_Opt->GetReadWriteFlags().results){
-
-        ierr=Assert(this->m_ReadWrite != NULL,"null pointer"); CHKERRQ(ierr);
-
-        //  write reference and template image
-        ierr=this->m_ReadWrite->Write(this->m_ReferenceImage,"reference-image"+ext); CHKERRQ(ierr);
-        ierr=this->m_ReadWrite->Write(this->m_TemplateImage,"template-image"+ext); CHKERRQ(ierr);
-
-        //ierr=VecAbs(this->m_WorkScaField1); CHKERRQ(ierr);
-        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"residual-before"+ext); CHKERRQ(ierr);
-
+    // residual before registration
+    if(this->m_Opt->GetReadWriteFlags().residual){
     }
 
-    if (this->m_Opt->GetRegFlags().loggingenabled || this->m_Opt->GetReadWriteFlags().results){
+    // compute residual after registration and deformed
+    // template image
+    if (   this->m_Opt->GetRegFlags().loggingenabled
+        || this->m_Opt->GetReadWriteFlags().residual
+        || this->m_Opt->GetReadWriteFlags().deftemplate ){
+
+        ierr=VecWAXPY(this->m_WorkScaField1,-1.0,this->m_TemplateImage,this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr=VecNorm(this->m_WorkScaField1,NORM_2,&mRmT_2); CHKERRQ(ierr);
+        ierr=VecNorm(this->m_WorkScaField1,NORM_INFINITY,&mRmT_infty); CHKERRQ(ierr);
 
         // deformed template out (compute solution of state equation)
         ierr=this->SolveStateEquation(); CHKERRQ(ierr);
@@ -3503,31 +3497,62 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         }
         ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
         ierr=VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+        // rescale scalar field
+        //ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
 
-        // ||m_R - m_1 ||
+        // ||m_R - m_1||
         ierr=VecWAXPY(this->m_WorkScaField2,-1.0,this->m_WorkScaField1,this->m_ReferenceImage); CHKERRQ(ierr);
         ierr=VecNorm(this->m_WorkScaField2,NORM_2,&mRm1_2); CHKERRQ(ierr);
         ierr=VecNorm(this->m_WorkScaField2,NORM_INFINITY,&mRm1_infty); CHKERRQ(ierr);
 
     }
 
-    if(this->m_Opt->GetReadWriteFlags().results){
-
-        // rescale thescalar field
-        //ierr=Rescale(this->m_WorkScaField1,0,1); CHKERRQ(ierr);
-
+    // write deformed template image to file
+    if(this->m_Opt->GetReadWriteFlags().deftemplate){
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"deformed-template-image"+ext); CHKERRQ(ierr);
-        ierr=this->m_ReadWrite->Write(this->m_WorkScaField2,"residual-after"+ext); CHKERRQ(ierr);
+    }
 
-        // velocity field out
+    // write residual images to file
+    if(this->m_Opt->GetReadWriteFlags().residual){
+
+        ierr=VecGetArray(this->m_ReferenceImage,&p_mr); CHKERRQ(ierr);
+
+        ierr=VecGetArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
+        ierr=VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
+        for (IntType i=0; i < nl; ++i){
+            p_m[i] = 1.0 - PetscAbs(p_m1[i] - p_mr[i]);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
+        ierr=VecRestoreArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
+
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField2,"residual-t=0"+ext); CHKERRQ(ierr);
+
+
+
+        ierr=VecGetArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
+        ierr=VecGetArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
+        for (IntType i=0; i < nl; ++i){
+            p_m[i] = 1.0 - PetscAbs(p_mt[i] - p_mr[i]);
+        }
+        ierr=VecRestoreArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
+        ierr=VecRestoreArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
+
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField2,"residual-t=1"+ext); CHKERRQ(ierr);
+
+        ierr=VecRestoreArray(this->m_ReferenceImage,&p_mr); CHKERRQ(ierr);
+    }
+
+    // write velocity field to file
+    if(this->m_Opt->GetReadWriteFlags().results){
         ierr=this->m_ReadWrite->Write(this->m_VelocityField,"velocity-field-x1"+ext,
                                                             "velocity-field-x2"+ext,
                                                             "velocity-field-x3"+ext); CHKERRQ(ierr);
+    }
 
-        ierr=VecPointwiseMult(this->m_WorkScaField1,this->m_VelocityField->m_X1,this->m_VelocityField->m_X1); CHKERRQ(ierr);
-        ierr=VecPointwiseMult(this->m_WorkScaField2,this->m_VelocityField->m_X2,this->m_VelocityField->m_X2); CHKERRQ(ierr);
-        ierr=VecPointwiseMult(this->m_WorkScaField3,this->m_VelocityField->m_X3,this->m_VelocityField->m_X3); CHKERRQ(ierr);
-
+    // write norm of velocity field to file
+    if(this->m_Opt->GetReadWriteFlags().velnorm){
+        ierr=this->m_VelocityField->Norm(this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"velocity-field-norm"+ext); CHKERRQ(ierr);
     }
 
 

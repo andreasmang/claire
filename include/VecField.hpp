@@ -51,19 +51,35 @@ public:
         flat PETSc vector as an input */
     PetscErrorCode GetComponents(Vec);
 
+    /*! set all components to a given value*/
     PetscErrorCode SetValue(ScalarType);
 
-    PetscErrorCode Scale(Vec);
+    /*! pointwise scaling of individual components of
+        vector field by scalar */
     PetscErrorCode Scale(ScalarType);
+
+    /*! pointwise scaling of individual components of
+        vector field by scalar field; overwrites vector field */
+    PetscErrorCode Scale(Vec);
+
+    /*! pointwise scaling of individual components of
+        vector field by scalar field; assigned to input
+        vector field */
     PetscErrorCode Scale(VecField*,Vec);
 
     PetscErrorCode Copy(VecField*);
+
     PetscErrorCode GetArrays(ScalarType*&,ScalarType*&,ScalarType*&);
     PetscErrorCode RestoreArrays(ScalarType*&,ScalarType*&,ScalarType*&);
+
     PetscErrorCode GetArraysRead(const ScalarType*&,const ScalarType*&,const ScalarType*&);
     PetscErrorCode RestoreArraysRead(const ScalarType*&,const ScalarType*&,const ScalarType*&);
+
     PetscErrorCode WAXPY(ScalarType,VecField*,VecField*);
     PetscErrorCode AXPY(ScalarType,VecField*);
+
+    /*! compute norm of vector field */
+    PetscErrorCode Norm(Vec);
 
     // individual components
     Vec m_X1;

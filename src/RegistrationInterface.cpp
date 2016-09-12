@@ -1575,18 +1575,20 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
     ierr=VecDuplicate(this->m_ReferenceImage,&mR); CHKERRQ(ierr);
     ierr=VecDuplicate(this->m_TemplateImage,&mT); CHKERRQ(ierr);
 
-    // allocate preprocessing class
-    if(this->m_PreProc==NULL){
-        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
 
     if (this->m_Opt->GetRegFlags().smoothingenabled){
+
+        // allocate preprocessing class
+        if(this->m_PreProc==NULL){
+            try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
         // apply smoothing
         ierr=this->m_PreProc->ApplySmoothing(mR,this->m_ReferenceImage); CHKERRQ(ierr);
         ierr=this->m_PreProc->ApplySmoothing(mT,this->m_TemplateImage); CHKERRQ(ierr);
+
     }
     else{
         // copy input images
@@ -1610,6 +1612,57 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
     PetscFunctionReturn(0);
 
 }
+
+
+
+
+/********************************************************************
+ * @brief compute deformation map or deformation gradient
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SolveForwardProblem"
+PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0)
+{
+    PetscErrorCode ierr;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    ierr=Assert(m0!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(m1!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    ierr=this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr=Assert(this->m_RegProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // user needs to set template and reference image and the solution
+    ierr=Assert(this->m_Solution!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetRegFlags().smoothingenabled){
+        // allocate preprocessing class
+        if(this->m_PreProc==NULL){
+            try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+            catch (std::bad_alloc&){
+                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        // apply smoothing
+        ierr=this->m_PreProc->ApplySmoothing(m1,m0); CHKERRQ(ierr);
+        ierr=VecCopy(m1,m0); CHKERRQ(ierr);
+        ierr=VecSet(m1,0.0); CHKERRQ(ierr);
+    }
+
+    // set the control variable
+    ierr=this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+    ierr=this->m_RegProblem->SolveForwardProblem(m1,m0); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+
+}
+
+
 
 
 

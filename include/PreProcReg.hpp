@@ -53,6 +53,8 @@ public:
     PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*);
     PetscErrorCode Restrict(VecField*,VecField*,IntType*,IntType*);
 
+    PetscErrorCode ComputeOverlapMeasures(Vec,Vec);
+
     inline void ResetGridChangeOps(bool flag){this->m_ResetGridChangeOps=flag;};
     PetscErrorCode ComputeGridChangeIndices(IntType*,IntType*);
 
@@ -117,6 +119,10 @@ private:
     bool m_ResetGridChangeOps;
     bool m_IndicesCommunicated;
     bool m_GridChangeIndicesComputed;
+
+
+    double *m_OverlapMeasures;
+
 };
 
 

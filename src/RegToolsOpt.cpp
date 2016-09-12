@@ -79,6 +79,38 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if (strcmp(argv[1],"-advanced") == 0){
             ierr=this->Usage(true); CHKERRQ(ierr);
         }
+        else if(strcmp(argv[1],"-mr") == 0){
+            argc--; argv++;
+            this->m_RFN = argv[1];
+        }
+        else if(strcmp(argv[1],"-mt") == 0){
+            argc--; argv++;
+            this->m_TFN = argv[1];
+        }
+        else if(strcmp(argv[1],"-ifile") == 0){
+            argc--; argv++;
+            this->m_iScaFieldFN = argv[1];
+        }
+        else if(strcmp(argv[1],"-ivecx1") == 0){
+            argc--; argv++;
+            this->m_iVecFieldX1FN = argv[1];
+        }
+        else if(strcmp(argv[1],"-ivecx2") == 0){
+            argc--; argv++;
+            this->m_iVecFieldX2FN = argv[1];
+        }
+        else if(strcmp(argv[1],"-ivecx3") == 0){
+            argc--; argv++;
+            this->m_iVecFieldX3FN = argv[1];
+        }
+        else if(strcmp(argv[1],"-x") == 0){
+            argc--; argv++;
+            this->m_ReadWriteFlags.xfolder = argv[1];
+        }
+        else if(strcmp(argv[1],"-i") == 0){
+            argc--; argv++;
+            this->m_ReadWriteFlags.ifolder = argv[1];
+        }
         else if(strcmp(argv[1],"-nt") == 0){
             argc--; argv++;
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
@@ -183,39 +215,38 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
                 ierr=this->Usage(); CHKERRQ(ierr);
             }
         }
-        else if(strcmp(argv[1],"-x") == 0){
-            argc--; argv++;
-            this->m_ReadWriteFlags.xfolder = argv[1];
-        }
-        else if(strcmp(argv[1],"-i") == 0){
-            argc--; argv++;
-            this->m_ReadWriteFlags.ifolder = argv[1];
-        }
-        else if(strcmp(argv[1],"-usebin") == 0){
-            this->m_ReadWriteFlags.extension = ".bin";
-        }
+//        else if(strcmp(argv[1],"-usebin") == 0){
+//            this->m_ReadWriteFlags.extension = ".bin";
+//        }
+//        else if(strcmp(argv[1],"-usehdf5") == 0){
+//            this->m_ReadWriteFlags.extension = ".hdf5";
+//        }
         else if(strcmp(argv[1],"-usenc") == 0){
             this->m_ReadWriteFlags.extension = ".nc";
-        }
-        else if(strcmp(argv[1],"-usehdf5") == 0){
-            this->m_ReadWriteFlags.extension = ".hdf5";
         }
         else if(strcmp(argv[1],"-xresults") == 0){
             this->m_ReadWriteFlags.results=true;
         }
-        else if(strcmp(argv[1],"-xdefgrad") == 0){
+        else if(strcmp(argv[1],"-defgrad") == 0){
             this->m_ReadWriteFlags.defgrad = true;
         }
-        else if(strcmp(argv[1],"-xdetdefgrad") == 0){
+        else if(strcmp(argv[1],"-residual") == 0){
+            this->m_ReadWriteFlags.residual = true;
+        }
+        else if(strcmp(argv[1],"-detdefgrad") == 0){
             this->m_ReadWriteFlags.detdefgrad = true;
         }
-        else if(strcmp(argv[1],"-xdefmap") == 0){
+        else if(strcmp(argv[1],"-invdefgrad") == 0){
+            this->m_RegFlags.invdefgrad = true;
+            this->m_ReadWriteFlags.detdefgrad = true;
+        }
+        else if(strcmp(argv[1],"-defmap") == 0){
             this->m_ReadWriteFlags.defmap = true;
         }
-        else if(strcmp(argv[1],"-xdeffield") == 0){
+        else if(strcmp(argv[1],"-deffield") == 0){
             this->m_ReadWriteFlags.deffield = true;
         }
-        else if(strcmp(argv[1],"-xtimeseries") == 0){
+        else if(strcmp(argv[1],"-timeseries") == 0){
             this->m_ReadWriteFlags.timeseries = true;
         }
         else if(strcmp(argv[1],"-detdefgradfromdeffield") == 0){
@@ -224,25 +255,11 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-grad") == 0){
             this->m_PostProcPara.computegrad = true;
         }
-        else if(strcmp(argv[1],"-xinvdefgrad") == 0){
-            this->m_RegFlags.invdefgrad = true;
-            this->m_ReadWriteFlags.detdefgrad = true;
+        else if(strcmp(argv[1],"-tscafield") == 0){
+            this->m_PostProcPara.tscafield = true;
         }
-        else if(strcmp(argv[1],"-ifile") == 0){
-            argc--; argv++;
-            this->m_iScaFieldFN = argv[1];
-        }
-        else if(strcmp(argv[1],"-ivecx1") == 0){
-            argc--; argv++;
-            this->m_iVecFieldX1FN = argv[1];
-        }
-        else if(strcmp(argv[1],"-ivecx2") == 0){
-            argc--; argv++;
-            this->m_iVecFieldX2FN = argv[1];
-        }
-        else if(strcmp(argv[1],"-ivecx3") == 0){
-            argc--; argv++;
-            this->m_iVecFieldX3FN = argv[1];
+        else if(strcmp(argv[1],"-tlabelmap") == 0){
+            this->m_PostProcPara.tlabelmap = true;
         }
         else if(strcmp(argv[1],"-rscale") == 0){
             argc--; argv++;
@@ -332,6 +349,8 @@ PetscErrorCode RegToolsOpt::Initialize()
     this->m_PostProcPara.enabled = false;
     this->m_PostProcPara.computedeffields = false;
     this->m_PostProcPara.computegrad = false;
+    this->m_PostProcPara.tlabelmap = false;
+    this->m_PostProcPara.tscafield = false;
 
     this->m_ResamplingPara.enabled = false;
     this->m_ResamplingPara.gridscale = -1.0;
@@ -366,23 +385,49 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " usage: regtools [options] " <<std::endl;
         std::cout << line << std::endl;
         std::cout << " where [options] is one or more of the following"<<std::endl;
+        // ####################### advanced options #######################
+        if (advanced)
+        {
+        std::cout << line << std::endl;
+        std::cout << " memory distribution and parallelism"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -nthreads <int>           number of threads (default: 1)"<<std::endl;
+        std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
+        std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
+        }
+        // ####################### advanced options #######################
         std::cout << line << std::endl;
         std::cout << " ### compute measures from velocity field"<<std::endl;
         std::cout << line << std::endl;
+        std::cout << " -mr <file>                reference image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -mt <file>                template image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ivecx1 <file>            x1 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ivecx2 <file>            x2 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ivecx3 <file>            x3 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ifile <filename>         input file (scalar field/image)"<<std::endl;
         std::cout << " -i <path>                 input path (defines where registration results (i.e., velocity field,"<<std::endl;
         std::cout << "                           template image, and reference image) are stored; a prefix can be"<<std::endl;
-        std::cout << "                           added by doing '-x </out/put/path/prefix_>"<<std::endl;
+        std::cout << "                           added by, e.g., doing '-i </path/prefix_>"<<std::endl;
         std::cout << " -x <path>                 output path (by default only deformed template image and velocity"<<std::endl;
         std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
-        std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
-        std::cout << " -xdefgrad                 flag: compute deformation gradient and write to file"<<std::endl;
-        std::cout << " -xdetdefgrad              flag: compute determinant of deformation gradient and write to file"<<std::endl;
-        std::cout << " -xinvdefgrad              flag: compute inverse deformation gradient and write to file"<<std::endl;
-        std::cout << " -xdefmap                  flag: compute deformation map and write to file"<<std::endl;
-        std::cout << " -xdeffield                flag: compute displacement field and write to file"<<std::endl;
-        std::cout << " -grad                     flag: compute gradient of input field"<<std::endl;
-
-
+        std::cout << "                           a prefix can be added by, e.g., doing '-x </path/prefix_>"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " ### postprocessing for registration (requires input fields and/or an input folder)"<<std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -defgrad                  compute deformation gradient F = grad(inv(y)) (input: velocity field)"<<std::endl;
+        std::cout << " -detdefgrad               compute determinant of deformation gradient (input: velocity field)"<<std::endl;
+        std::cout << " -invdefgrad               compute inverse of determinant of deformation gradient (input: velocity field)"<<std::endl;
+        std::cout << " -deffield                 compute displacement field u (input: velocity field)"<<std::endl;
+        std::cout << " -defmap                   compute deformation map y (input: velocity field)"<<std::endl;
+        std::cout << " -grad                     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
+        std::cout << " -residual                 compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
+        // ####################### advanced options #######################
+        if (advanced)
+        {
+        std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
+        std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
+        }
+        // ####################### advanced options #######################
         // ####################### advanced options #######################
         if (advanced)
         {
@@ -390,13 +435,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;"<<std::endl;
         std::cout << "                           units: voxel size; if only one parameter is set"<<std::endl;
         std::cout << "                           uniform smoothing is assumed: default: 1x1x1)"<<std::endl;
-        std::cout << " -disablesmoothing         flag: disable smoothing"<<std::endl;
-        }
-        // ####################### advanced options #######################
-
-        // ####################### advanced options #######################
-        if (advanced)
-        {
+        std::cout << " -disablesmoothing         disable smoothing"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " solver specific parameters (numerics)"<<std::endl;
         std::cout << line << std::endl;
@@ -405,33 +444,26 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << "                               sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
         std::cout << "                               rk2          rk2 time integrator (conditionally stable)"<<std::endl;
         std::cout << " -nt <int>                 number of time points (for time integration; default: 4)"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " memory distribution and parallelism"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -nthreads <int>           number of threads (default: 1)"<<std::endl;
-        std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
-        std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " other parameters/debugging"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
-        std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
-        std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
-//        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
-//        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)"<<std::endl;
         }
         // ####################### advanced options #######################
-
         std::cout << line << std::endl;
         std::cout << " ### resampling"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -resample                 flag: resample data"<<std::endl;
+        std::cout << " -resample                 resample data (requires input scalar or vector field;"<<std::endl;
+        std::cout << "                           output is input_resampled.ext)"<<std::endl;
         std::cout << " -rscale                   scale for resampling (multiplier applied to number of grid points)"<<std::endl;
-        std::cout << " -ivecx1 <file>            x1 component of vector field (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout << " -ivecx2 <file>            x2 component of vector field (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout << " -ivecx3 <file>            x3 component of vector field (*.nii, *.nii.gz, *.hdr)"<<std::endl;
-        std::cout << " -ifile <filename>         input file (image)"<<std::endl;
         std::cout << line << std::endl;
+        std::cout << " other parameters/debugging"<<std::endl;
+        std::cout << line << std::endl;
+        // ####################### advanced options #######################
+        if (advanced)
+        {
+        std::cout << " -usenc                    use netcdf format os output (*.nc; default is *.nii.gz)"<<std::endl;
+//        std::cout << " -usebin                   use binary files as output format (*.bin)"<<std::endl;
+//        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)"<<std::endl;
+        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        }
+        // ####################### advanced options #######################
         std::cout << " -help                     display a brief version of the user message"<<std::endl;
         std::cout << " -advanced                 display this message"<<std::endl;
         std::cout << line << std::endl;
@@ -543,6 +575,8 @@ std::string RegToolsOpt::GetScaFieldFN(int flag)
 {
     if      (flag == 0){ return this->m_iScaFieldFN; }
     else if (flag == 1){ return this->m_xScaFieldFN; }
+    else if (flag == 2){ return this->m_RFN; }
+    else if (flag == 3){ return this->m_TFN; }
     return "";
 }
 
@@ -605,7 +639,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
             ierr=this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( !this->m_RegToolsFlags.readvecfield && this->m_iScaFieldFN.empty() ){
+        if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ){
             msg="\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->Usage(true); CHKERRQ(ierr);
@@ -646,7 +680,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
     if ( this->m_PostProcPara.computegrad ){
 
-        if ( !this->m_RegToolsFlags.readvecfield && this->m_iScaFieldFN.empty() ){
+        if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ){
             msg="\x1b[31m computation of gradient requires input vector or scalar field \x1b[0m\n";
             ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr=this->Usage(true); CHKERRQ(ierr);
@@ -686,7 +720,38 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
     }
 
+    if ( this->m_PostProcPara.tscafield || this->m_PostProcPara.tlabelmap ){
 
+        // transport scalar field
+        if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ){
+            msg="\x1b[31m solution of forward problem requires a velocity field and a scalar field \x1b[0m\n";
+            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr=this->Usage(true); CHKERRQ(ierr);
+        }
+
+        ierr=GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
+        if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+            extension = this->m_ReadWriteFlags.extension;
+        }
+        this->m_xScaFieldFN = path + "/" + filename + "-transported" + extension;
+
+    }
+
+    if ( this->m_ReadWriteFlags.residual ){
+
+        // transport scalar field
+        if ( this->m_TFN.empty() || this->m_RFN.empty() ){
+            msg="\x1b[31m reference and template images need to be set\x1b[0m\n";
+            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr=this->Usage(true); CHKERRQ(ierr);
+        }
+
+        ierr=GetFileName(path,filename,extension,this->m_RFN); CHKERRQ(ierr);
+        if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+            extension = this->m_ReadWriteFlags.extension;
+        }
+        this->m_xScaFieldFN = path + "/residual" + extension;
+    }
 
 
     ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);

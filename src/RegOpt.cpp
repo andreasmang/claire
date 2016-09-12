@@ -134,10 +134,13 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_ReadWriteFlags.timeseries = opt.m_ReadWriteFlags.timeseries;
     this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
     this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
-    this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
-    this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
     this->m_ReadWriteFlags.defmap = opt.m_ReadWriteFlags.defmap;
     this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
+    this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
+    this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
+    this->m_ReadWriteFlags.residual = opt.m_ReadWriteFlags.residual;
+    this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
+    this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
 
     this->m_RegFlags.loggingenabled = opt.m_RegFlags.loggingenabled;
     this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
@@ -332,8 +335,17 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv)
         else if(strcmp(argv[1],"-usehdf5") == 0){
             this->m_ReadWriteFlags.extension = ".hdf5";
         }
-        else if(strcmp(argv[1],"-xresults") == 0){
+        else if(strcmp(argv[1],"-xresult") == 0){
             this->m_ReadWriteFlags.results=true;
+        }
+        else if(strcmp(argv[1],"-xdeftemplate") == 0){
+            this->m_ReadWriteFlags.deftemplate=true;
+        }
+        else if(strcmp(argv[1],"-xresidual") == 0){
+            this->m_ReadWriteFlags.residual=true;
+        }
+        else if(strcmp(argv[1],"-xvelnorm") == 0){
+            this->m_ReadWriteFlags.velnorm=true;
         }
         else if(strcmp(argv[1],"-xdefgrad") == 0){
             this->m_ReadWriteFlags.defgrad = true;
@@ -775,6 +787,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_ReadWriteFlags.results = false; ///< write out results (deformed template; velocity)
     this->m_ReadWriteFlags.defgrad = false; ///< write out deformation gradient
     this->m_ReadWriteFlags.detdefgrad = false; ///< write out deformation gradient
+    this->m_ReadWriteFlags.residual = false; ///< write out residual images
     this->m_ReadWriteFlags.defmap = false; ///< write out deformation map
     this->m_ReadWriteFlags.deffield = false; ///< write out deformation field / displacement field
     this->m_ReadWriteFlags.extension = ".nii.gz"; ///< file extension for output
@@ -869,18 +882,21 @@ PetscErrorCode RegOpt::Usage(bool advanced)
         // ####################### advanced options #######################
 
         std::cout << line << std::endl;
-        std::cout << " -x <path>                 output path (by default only deformed template image and velocity"<<std::endl;
-        std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
-        std::cout << "                           a prefix can be added by doing '-x </out/put/path/prefix_>"<<std::endl;
+        std::cout << " -xresult                  output inversion variable (by default only velocity field will"<<std::endl;
+        std::cout << "                           be written to file; for more output options, see flags)"<<std::endl;
+        std::cout << " -x <path>                 output path (a prefix can be added by doing"<<std::endl;
+        std::cout << "                           '-x /output/path/prefix_')"<<std::endl;
 
         // ####################### advanced options #######################
         if (advanced)
         {
-        std::cout << " -xdefgrad                 flag: write deformation gradient to file"<<std::endl;
-        std::cout << " -xdetdefgrad              flag: write determinant of deformation gradient to file"<<std::endl;
-        std::cout << " -xdefmap                  flag: write deformation map to file"<<std::endl;
-        std::cout << " -xdeffield                flag: write deformation field/displacement field to file"<<std::endl;
-        std::cout << " -xlog                     flag: write log files (requires -x option); logging includes"<<std::endl;
+        std::cout << " -xdefgrad                 write deformation gradient to file"<<std::endl;
+        std::cout << " -xdetdefgrad              write determinant of deformation gradient to file"<<std::endl;
+        std::cout << " -xdefmap                  write deformation map to file"<<std::endl;
+        std::cout << " -xdeffield                write deformation field/displacement field to file"<<std::endl;
+        std::cout << " -xdeftemplate             write deformed/transported template image to file"<<std::endl;
+        std::cout << " -xresidual                write pointwise residual (before and after registration) to file"<<std::endl;
+        std::cout << " -xlog                     write log files (requires -x option); logging includes"<<std::endl;
         std::cout << "                           timers and counters; if monitor for determinant of deformation"<<std::endl;
         std::cout << "                           gradient is enabled, an additional log file with jacobian values"<<std::endl;
         std::cout << "                           will be created"<<std::endl;
@@ -1078,6 +1094,7 @@ PetscErrorCode RegOpt::CheckArguments()
     if (   this->m_ReadWriteFlags.results
         || this->m_ReadWriteFlags.defgrad
         || this->m_ReadWriteFlags.detdefgrad
+        || this->m_ReadWriteFlags.residual
         || this->m_ReadWriteFlags.defmap
         || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates

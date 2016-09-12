@@ -34,6 +34,8 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt*);
 PetscErrorCode ResampleScaField(reg::RegToolsOpt*);
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt*);
 PetscErrorCode ComputeGrad(reg::RegToolsOpt*);
+PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
+PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
 
 
 /********************************************************************
@@ -76,6 +78,15 @@ int main(int argc,char **argv)
         }
 
     }
+    else if ( regopt->GetPostProcPara().tscafield ){
+        ierr=SolveForwardProblem(regopt); CHKERRQ(ierr);
+    }
+    else if ( regopt->GetPostProcPara().tlabelmap ){
+        ierr=SolveForwardProblem(regopt); CHKERRQ(ierr);
+    }
+    else if ( regopt->GetReadWriteFlags().residual ){
+        ierr=ComputeResidual(regopt); CHKERRQ(ierr);
+    }
 
     // clean up
     if (regopt != NULL){ delete regopt; regopt = NULL; }
@@ -87,6 +98,79 @@ int main(int argc,char **argv)
 }
 
 
+
+
+/********************************************************************
+ * @brief compute gradient of scalar field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeGrad"
+PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt)
+{
+    PetscErrorCode ierr=0;
+    std::string filename,fnx1,fnx2,fnx3;
+    std::stringstream ss;
+    int rank;
+    double timers[5]={0,0,0,0,0};
+    ScalarType *p_m=NULL,*p_gm1=NULL,*p_gm2=NULL,*p_gm3=NULL;
+    Vec m=NULL;
+    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    reg::VecField* grad=NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+
+    PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
+
+    // allocate class for io
+    try{ readwrite = new reg::ReadWriteReg(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    if ( regopt->GetFlags().readscafield ){
+
+        // read velocity components
+        filename = regopt->GetScaFieldFN(0);
+        ierr=readwrite->Read(&m,filename); CHKERRQ(ierr);
+        ierr=reg::Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
+
+        if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
+
+        try{grad = new reg::VecField(regopt);}
+        catch (std::bad_alloc&){
+            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+
+        // computing gradient of m
+        ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
+        ierr=grad->GetArrays(p_gm1,p_gm2,p_gm3); CHKERRQ(ierr);
+        accfft_grad(p_gm1,p_gm2,p_gm3,p_m,regopt->GetFFT().plan,&XYZ,timers);
+        ierr=grad->RestoreArrays(p_gm1,p_gm2,p_gm3); CHKERRQ(ierr);
+        ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
+
+        fnx1 = regopt->GetVecFieldFN(0,1);
+        fnx2 = regopt->GetVecFieldFN(1,1);
+        fnx3 = regopt->GetVecFieldFN(2,1);
+        // write to file
+        ierr=readwrite->Write(grad,fnx1,fnx2,fnx3); CHKERRQ(ierr);
+
+    }
+    else if ( regopt->GetFlags().readvecfield ){
+
+    }
+
+
+    if (m!=NULL){ ierr=VecDestroy(&m); CHKERRQ(ierr); }
+    if (grad!=NULL){ delete grad; grad=NULL; }
+    if (readwrite != NULL) { delete readwrite; readwrite=NULL; }
+
+    regopt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -181,9 +265,6 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt)
 }
 
 
-
-
-
 /********************************************************************
  * @brief post process image registration results
  *******************************************************************/
@@ -207,7 +288,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt)
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ext     = regopt->GetReadWriteFlags().extension;
+    ext = regopt->GetReadWriteFlags().extension;
     ifolder = regopt->GetReadWriteFlags().ifolder;
     ierr=reg::Assert(ifolder.empty()!=true,"input folder needs to be provided"); CHKERRQ(ierr);
 
@@ -337,7 +418,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt)
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        // read velocity components
+        // write resampled scalar field to file
         filename = regopt->GetScaFieldFN(1);
         ierr=readwrite->Write(ml,filename); CHKERRQ(ierr);
 
@@ -475,23 +556,22 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt)
 
 
 /********************************************************************
- * @brief compute gradient of scalar field
+ * @brief solve forward problem
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "ComputeGrad"
-PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt)
+#define __FUNCT__ "SolveForwardProblem"
+PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt)
 {
     PetscErrorCode ierr=0;
-    std::string filename,fnx1,fnx2,fnx3;
+    IntType nl;
+    std::string fn;
     std::stringstream ss;
     int rank;
-    double timers[5]={0,0,0,0,0};
-    ScalarType *p_m=NULL,*p_gm1=NULL,*p_gm2=NULL,*p_gm3=NULL;
-    Vec m=NULL;
-    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
-    reg::VecField* grad=NULL;
+    reg::VecField* v=NULL;
+    Vec m0=NULL,m1=NULL,vxi=NULL;
+    ScalarType *p_m1=NULL;
     reg::ReadWriteReg* readwrite = NULL;
-
+    reg::RegistrationInterface* registration=NULL;
     PetscFunctionBegin;
 
     regopt->Enter(__FUNCT__);
@@ -504,47 +584,156 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt)
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
 
-    if ( regopt->GetFlags().readscafield ){
+    // read velocity components
+    fn = regopt->GetScaFieldFN(0);
+    ierr=readwrite->Read(&m0,fn); CHKERRQ(ierr);
+    ierr=reg::Assert(m0!=NULL,"null pointer"); CHKERRQ(ierr);
 
-        // read velocity components
-        filename = regopt->GetScaFieldFN(0);
-        ierr=readwrite->Read(&m,filename); CHKERRQ(ierr);
-        ierr=reg::Assert(m!=NULL,"null pointer"); CHKERRQ(ierr);
+    if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
 
-        if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
+    nl = regopt->GetDomainPara().nlocal;
 
-        try{grad = new reg::VecField(regopt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    // do allocation
+    ierr=VecDuplicate(m0,&m1); CHKERRQ(ierr);
+    try{v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read the individual components of the vector fields
+    fn = regopt->GetVecFieldFN(0,0);
+    ierr=readwrite->Read(&vxi,fn); CHKERRQ(ierr);
+    ierr=VecCopy(vxi,v->m_X1); CHKERRQ(ierr);
+    if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
+
+    fn = regopt->GetVecFieldFN(1,0);
+    ierr=readwrite->Read(&vxi,fn); CHKERRQ(ierr);
+    ierr=VecCopy(vxi,v->m_X2); CHKERRQ(ierr);
+    if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
+
+    fn = regopt->GetVecFieldFN(2,0);
+    ierr=readwrite->Read(&vxi,fn); CHKERRQ(ierr);
+    ierr=VecCopy(vxi,v->m_X3); CHKERRQ(ierr);
+    if (vxi!=NULL){ ierr=VecDestroy(&vxi); CHKERRQ(ierr); vxi=NULL; }
+
+    // allocate class for registration interface
+    try{ registration = new reg::RegistrationInterface(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // set all we need
+    ierr=registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+    ierr=registration->SetInitialGuess(v); CHKERRQ(ierr);
+
+    // run post processing
+    ierr=registration->SolveForwardProblem(m1,m0); CHKERRQ(ierr);
+
+    // if we consider a lable map, we want to truncate the values
+    if (regopt->GetPostProcPara().tlabelmap){
+
+        // map to integer
+        ierr=VecGetArray(m1,&p_m1); CHKERRQ(ierr);
+        for (IntType i = 0; i < nl; ++i){
+            p_m1[i] = round(p_m1[i]);
         }
-
-        // computing gradient of m
-        ierr=VecGetArray(m,&p_m); CHKERRQ(ierr);
-        ierr=grad->GetArrays(p_gm1,p_gm2,p_gm3); CHKERRQ(ierr);
-        accfft_grad(p_gm1,p_gm2,p_gm3,p_m,regopt->GetFFT().plan,&XYZ,timers);
-        ierr=grad->RestoreArrays(p_gm1,p_gm2,p_gm3); CHKERRQ(ierr);
-        ierr=VecRestoreArray(m,&p_m); CHKERRQ(ierr);
-
-        fnx1 = regopt->GetVecFieldFN(0,1);
-        fnx2 = regopt->GetVecFieldFN(1,1);
-        fnx3 = regopt->GetVecFieldFN(2,1);
-        // write to file
-        ierr=readwrite->Write(grad,fnx1,fnx2,fnx3); CHKERRQ(ierr);
-
-    }
-    else if ( regopt->GetFlags().readvecfield ){
+        ierr=VecGetArray(m1,&p_m1); CHKERRQ(ierr);
 
     }
 
 
-    if (m!=NULL){ ierr=VecDestroy(&m); CHKERRQ(ierr); }
-    if (grad!=NULL){ delete grad; grad=NULL; }
+    // write resampled scalar field to file
+    fn = regopt->GetScaFieldFN(1);
+    ierr=readwrite->Write(m1,fn); CHKERRQ(ierr);
+
+    if (v!=NULL){ delete v; v=NULL; }
+    if (m0!=NULL){ ierr=VecDestroy(&m0); CHKERRQ(ierr); m0=NULL; }
+    if (m1!=NULL){ ierr=VecDestroy(&m1); CHKERRQ(ierr); m1=NULL; }
     if (readwrite != NULL) { delete readwrite; readwrite=NULL; }
+    if (registration != NULL) { delete registration; registration=NULL; }
 
     regopt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief compute residual
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeResidual"
+PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt)
+{
+    PetscErrorCode ierr=0;
+    IntType nl;
+    std::string fn;
+    std::stringstream ss;
+    int rank;
+    Vec mR=NULL,mT=NULL;
+    ScalarType *p_mr=NULL,*p_mt=NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
+
+    // allocate class for io
+    try{ readwrite = new reg::ReadWriteReg(regopt); }
+    catch (std::bad_alloc&){
+        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    // read velocity components
+    fn = regopt->GetScaFieldFN(2);
+    ierr=readwrite->Read(&mR,fn); CHKERRQ(ierr);
+    ierr=reg::Assert(mR!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    if ( !regopt->SetupDone() ){ ierr=regopt->DoSetup(); CHKERRQ(ierr); }
+
+    // read velocity components
+    fn = regopt->GetScaFieldFN(3);
+    ierr=readwrite->Read(&mT,fn); CHKERRQ(ierr);
+    ierr=reg::Assert(mT!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    ierr=reg::Rescale(mR,0,1); CHKERRQ(ierr);
+    ierr=reg::Rescale(mT,0,1); CHKERRQ(ierr);
+
+    nl = regopt->GetDomainPara().nlocal;
+
+    ierr=VecGetArray(mR,&p_mr); CHKERRQ(ierr);
+    ierr=VecGetArray(mT,&p_mt); CHKERRQ(ierr);
+#pragma omp parallel
+{
+#pragma omp for
+
+    // for all grid points
+    for (IntType i = 0; i < nl; ++i){
+        p_mt[i] = 1.0 - PetscAbs(p_mt[i] - p_mr[i]);
+    }
+
+}// pragma omp
+    ierr=VecRestoreArray(mR,&p_mr); CHKERRQ(ierr);
+    ierr=VecRestoreArray(mT,&p_mt); CHKERRQ(ierr);
+
+    // write resampled scalar field to file
+    fn = regopt->GetScaFieldFN(1);
+    ierr=readwrite->Write(mT,fn); CHKERRQ(ierr);
+
+    if (readwrite != NULL) { delete readwrite; readwrite=NULL; }
+    if (mT!=NULL){ ierr=VecDestroy(&mT); CHKERRQ(ierr); mT=NULL; }
+    if (mR!=NULL){ ierr=VecDestroy(&mR); CHKERRQ(ierr); mR=NULL; }
+
+    regopt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
 
 
 

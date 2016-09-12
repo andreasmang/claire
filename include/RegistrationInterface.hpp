@@ -65,6 +65,7 @@ public:
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetReferenceImage(Vec);
+    PetscErrorCode SolveForwardProblem(Vec,Vec);
     PetscErrorCode SetInitialGuess(VecField*);
 
     PetscErrorCode RunPostProcessing();
