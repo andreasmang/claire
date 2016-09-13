@@ -55,11 +55,15 @@ public:
 
     PetscErrorCode SetProblem(OptProbType*);
 
-    PetscErrorCode Run();
-    PetscErrorCode GetSolution(Vec&);
+    PetscErrorCode Run(bool presolve=false);
     PetscErrorCode SetInitialGuess(VecField*);
     PetscErrorCode SetPreconditioner(PrecondReg*);
+
+    PetscErrorCode SetGradTolerance(ScalarType);
+
+    PetscErrorCode GetSolution(Vec&);
     PetscErrorCode GetSolutionStatus(bool&);
+
     PetscErrorCode Finalize();
 
 private:

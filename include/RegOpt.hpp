@@ -186,7 +186,6 @@ struct ReadWriteFlags
     std::string vx1; ///< x1-velocity field file name
     std::string vx2; ///< x2-velocity field file name
     std::string vx3; ///< x3-velocity field file name
-
 };
 
 
@@ -208,6 +207,7 @@ struct Optimization{
     int maxit; ///< maximal number of (outer) iterations
     ScalarType tol[3]; ///< tolerances for optimization
     OptMeth method; ///< optimization method
+    bool fastpresolve;
 };
 
 
@@ -217,11 +217,11 @@ struct KrylovSolver{
     IntType iter; ///< max number of iterations for krylov solver
     ScalarType tol[3]; ///< tolerances for krylov method
     FSeqType fseqtype; ///<forcing sequence type
-    KrylovSolverType solver; ///< flag for krylov solver
     std::string name; ///< name of krylov solver
     ScalarType reltol; ///< relative tolerance for krylov solver
     ScalarType g0norm; ///< initial norm of gradient (to normalize stopping condition)
     bool g0normset; ///< flag to identify if initial norm of gradient has been set
+    KrylovSolverType solver; ///< flag for krylov solver
 
     ScalarType pctol[3]; ///< tolerances for krylov method (preconditioner)
     IntType pcmaxit; ///< tolerances for krylov method (preconditioner)
@@ -350,8 +350,8 @@ public:
     inline Optimization GetOptPara(){return this->m_OptPara;};
     inline void SetOptTol(int i,ScalarType value){this->m_OptPara.tol[i] = value;};
 
-    inline void DisableSmoothing(){ this->m_RegFlags.smoothingenabled=false; };
-    inline void EnableSmoothing(){ this->m_RegFlags.smoothingenabled=true; };
+    inline void DisableSmoothing(){this->m_RegFlags.smoothingenabled=false;};
+    inline void EnableSmoothing(){this->m_RegFlags.smoothingenabled=true;};
 
     PetscErrorCode GetSizes(IntType*,IntType&,IntType&);
     PetscErrorCode GetSizes(IntType*,IntType*,IntType*);
@@ -419,8 +419,6 @@ public:
     inline void IncreaseInterpTimers(double timers[4]){
         for(int i=0; i < 4; ++i) this->m_InterpTimers[i][LOG]+=timers[i];
     };
-
-
 
     inline int GetVerbosity(){return this->m_Verbosity;};
 

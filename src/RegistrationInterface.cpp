@@ -1022,8 +1022,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 {
     PetscErrorCode ierr;
     std::stringstream ss;
-    ScalarType beta,betastar;
+    ScalarType beta,betastar,gtol;
     Vec x;
+    bool quicksolve;
     int level,rank;
 
     PetscFunctionBegin;
@@ -1031,6 +1032,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     this->m_Opt->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+    gtol=this->m_Opt->GetOptPara().tol[2]; // ||g(x)||/||g(x0)|| <= gttol
 
     // get target regularization weight
     betastar=this->m_Opt->GetRegNorm().beta[0];
@@ -1041,6 +1044,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 
     // set initial guess for current level
     ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
+
+    // get tolerance
+    quicksolve = this->m_Opt->GetOptPara().fastpresolve;
 
     // reduce regularization parameter
     level = 0; beta=1.0;
@@ -1056,8 +1062,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
         ss.str( std::string() ); ss.clear();
 
         // run the optimization
-        ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
+        ierr=this->m_Optimizer->Run(true); CHKERRQ(ierr);
 
+        // reduce by one order of magnitude
         beta /= static_cast<ScalarType>(10); // reduce beta
         ++level;
 
@@ -1075,6 +1082,12 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
         <<beta<<"; beta*="<<betastar<<")";
     ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
     ss.str( std::string() ); ss.clear();
+
+    // reset accuracy for solver
+    if (quicksolve){
+        ierr=this->m_Optimizer->SetGradTolerance(gtol); CHKERRQ(ierr);
+    }
+
 
     // solve optimization problem for user defined regularization parameter
     ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
@@ -1460,7 +1473,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int level)
 {
     PetscErrorCode ierr;
-    IntType nx_f[3],nx_c[3],nl_f,ng_f;
+    IntType nx_f[3],nx_c[3],nl,ng;
     VecField *v_f=NULL;
 
     PetscFunctionBegin;
@@ -1489,10 +1502,10 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
     }
 
     // get number of points to allocate
-    ierr=this->m_Opt->GetSizes(nx_f,nl_f,ng_f); CHKERRQ(ierr);
+    ierr=this->m_Opt->GetSizes(nx_f,nl,ng); CHKERRQ(ierr);
 
     // allocate container for velocity field
-    try{ v_f = new reg::VecField(nl_f,ng_f); }
+    try{ v_f = new reg::VecField(nl,ng); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -1502,7 +1515,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     // allocate container for velocity field
     delete v; v = NULL;
-    try{ v = new reg::VecField(nl_f,ng_f); }
+    try{ v = new reg::VecField(nl,ng); }
     catch (std::bad_alloc&){
         ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -1617,7 +1630,10 @@ PetscErrorCode RegistrationInterface::RunPostProcessing()
 
 
 /********************************************************************
- * @brief compute deformation map or deformation gradient
+ * @brief solve the forward problem, given some trial velocity
+ * field v and a template image m0
+ * @param[in] m0 initial condition/template image
+ * @param[out] m1 transported template image
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SolveForwardProblem"
@@ -1661,7 +1677,6 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0)
     PetscFunctionReturn(0);
 
 }
-
 
 
 

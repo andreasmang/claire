@@ -532,7 +532,6 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag)
 
     }
 
-
     PetscFunctionReturn(0);
 }
 

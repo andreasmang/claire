@@ -206,6 +206,7 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob)
 
 /********************************************************************
  * @brief set the preconditioner
+ * @param[in] precond interface to preconditioner
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetPreconditioner"
@@ -216,6 +217,30 @@ PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond)
 
     ierr=Assert(precond!=NULL,"null pointer"); CHKERRQ(ierr);
     this->m_Precond = precond;
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief set the preconditioner
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SetGradTolerance"
+PetscErrorCode Optimizer::SetGradTolerance(ScalarType gttol)
+{
+    PetscErrorCode ierr;
+//    ScalarType gatol,grtol;
+    PetscFunctionBegin;
+
+    ierr=Assert(this->m_Tao!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    // do not touch the tolerances that have already been set
+//    ierr=TaoGetTolerances(this->m_Tao,&gatol,&grtol,NULL); CHKERRQ(ierr);
+
+    // parse tolerances
 
     PetscFunctionReturn(0);
 }
@@ -346,10 +371,10 @@ PetscErrorCode Optimizer::SetupTao()
     ierr=TaoGetLineSearch(this->m_Tao,&linesearch); CHKERRQ(ierr);
     ierr=TaoLineSearchSetType(linesearch,"armijo"); CHKERRQ(ierr);
 
-    // set tolearances for optimizer
-    gatol = this->m_Opt->GetOptPara().tol[0];  // ||g(x)||              <= gatol
-    grtol = this->m_Opt->GetOptPara().tol[1];  // ||g(x)|| / |J(x)|     <= grtol
-    gttol = this->m_Opt->GetOptPara().tol[2];  // ||g(x)|| / ||g(x0)||  <= gttol
+    // set tolerances for optimizer
+    gatol = this->m_Opt->GetOptPara().tol[0]; // ||g(x)||             <= gatol
+    grtol = this->m_Opt->GetOptPara().tol[1]; // ||g(x)|| / |J(x)|    <= grtol
+    gttol = this->m_Opt->GetOptPara().tol[2]; // ||g(x)|| / ||g(x0)|| <= gttol
 
     ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
     ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptPara().maxit - 1); CHKERRQ(ierr);
@@ -373,31 +398,41 @@ PetscErrorCode Optimizer::SetupTao()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Run"
-PetscErrorCode Optimizer::Run()
+PetscErrorCode Optimizer::Run(bool presolve)
 {
     PetscErrorCode ierr;
-    int rank;
     Vec x;
+    ScalarType gttol;
+    std::stringstream ss;
     PetscFunctionBegin;
 
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-
     // check if optimization problem has been set
-    ierr=Assert(this->m_OptimizationProblem !=NULL,"optimization problem not set"); CHKERRQ(ierr);
+    ierr=Assert(this->m_OptimizationProblem!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // do setup
-    if (this->m_Tao == NULL){
-        ierr=this->SetupTao(); CHKERRQ(ierr);
+    if (this->m_Tao==NULL){ ierr=this->SetupTao(); CHKERRQ(ierr); }
+    ierr=Assert(this->m_Tao!=NULL,"null pointer"); CHKERRQ(ierr);
+
+    gttol = this->m_Opt->GetOptPara().tol[2]; // ||g(x)|| / ||g(x0)|| <= gttol
+    if (presolve){
+
+        if (this->m_Opt->GetVerbosity() > 1){
+            ss << "presolve: relative gradient tolerance: " << std::scientific << 0.5;
+            ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
+
+        ierr=TaoSetTolerances(this->m_Tao,PETSC_DEFAULT,PETSC_DEFAULT,0.5); CHKERRQ(ierr);
+
     }
-    ierr=Assert(this->m_Tao !=NULL,"problem in tao setup"); CHKERRQ(ierr);
+    else{ ierr=TaoSetTolerances(this->m_Tao,PETSC_DEFAULT,PETSC_DEFAULT,gttol); CHKERRQ(ierr); }
 
     // set initial guess
     ierr=this->SetInitialGuess(); CHKERRQ(ierr);
     ierr=TaoSetUp(this->m_Tao); CHKERRQ(ierr);
 
     // in case we call the optimizer/solver several times
-    // we have to make sure that the preconditioner is
-    // reset
+    // we have to make sure that the preconditioner is reset
     ierr=this->m_Precond->Reset(); CHKERRQ(ierr);
 
     // solve optimization problem

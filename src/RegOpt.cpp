@@ -124,6 +124,7 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
     this->m_OptPara.tol[2] = opt.m_OptPara.tol[2];
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
+    this->m_OptPara.fastpresolve = opt.m_OptPara.fastpresolve;
     this->m_OptPara.method = opt.m_OptPara.method;
 
     this->m_SolveType = opt.m_SolveType;
@@ -774,6 +775,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_OptPara.tol[2] = 1E-2;  // grad rel tol
     this->m_OptPara.maxit = 1000; // max number of iterations
     this->m_OptPara.method = GAUSSNEWTON;
+    this->m_OptPara.fastpresolve = true;
 
     this->m_SolveType = NOTSET;
     this->m_HessianMatVecType = DEFAULTMATVEC;
@@ -1094,8 +1096,8 @@ PetscErrorCode RegOpt::CheckArguments()
     if (   this->m_ReadWriteFlags.results
         || this->m_ReadWriteFlags.defgrad
         || this->m_ReadWriteFlags.detdefgrad
-        || this->m_ReadWriteFlags.residual
         || this->m_ReadWriteFlags.defmap
+        || this->m_ReadWriteFlags.residual
         || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates
         || this->m_RegFlags.loggingenabled ){
