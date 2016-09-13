@@ -3440,13 +3440,15 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         ierr=DbgMsg("finalizing registration"); CHKERRQ(ierr);
     }
 
-    // if not yet allocted, do so
+    // if not yet allocted, do so and copy input
     if (this->m_VelocityField == NULL){
         try{this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+
     if (this->m_WorkScaField1 == NULL){
         ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
@@ -3464,9 +3466,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     if (this->m_Opt->GetRegFlags().loggingenabled){
         ierr=this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
     }
-
-    // set components of velocity field
-    ierr=this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
@@ -3526,8 +3525,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         ierr=VecRestoreArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
 
         ierr=this->m_ReadWrite->Write(this->m_WorkScaField2,"residual-t=0"+ext); CHKERRQ(ierr);
-
-
 
         ierr=VecGetArray(this->m_TemplateImage,&p_mt); CHKERRQ(ierr);
         ierr=VecGetArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);

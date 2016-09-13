@@ -1021,19 +1021,16 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch()
 PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 {
     PetscErrorCode ierr;
-    std::stringstream ss;
-    ScalarType beta,betastar,gtol;
-    Vec x;
-    bool quicksolve;
     int level,rank;
+    std::stringstream ss;
+    ScalarType beta,betastar;
+    Vec x;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-
-    gtol=this->m_Opt->GetOptPara().tol[2]; // ||g(x)||/||g(x0)|| <= gttol
 
     // get target regularization weight
     betastar=this->m_Opt->GetRegNorm().beta[0];
@@ -1044,9 +1041,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
 
     // set initial guess for current level
     ierr=this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
-
-    // get tolerance
-    quicksolve = this->m_Opt->GetOptPara().fastpresolve;
 
     // reduce regularization parameter
     level = 0; beta=1.0;

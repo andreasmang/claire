@@ -770,12 +770,19 @@ PetscErrorCode RegOpt::Initialize()
     //this->m_KrylovSolverPara.usepetsceigest = false;
     this->m_KrylovSolverPara.usepetsceigest = true;
 
-    this->m_OptPara.tol[0] = 1E-6;  // grad abs tol
-    this->m_OptPara.tol[1] = 1E-16; // grad rel tol
-    this->m_OptPara.tol[2] = 1E-2;  // grad rel tol
+    // tolerances for optimization
+    this->m_OptPara.tol[0] = 1E-6;  // grad abs tol ||g(x)|| < tol
+    this->m_OptPara.tol[1] = 1E-16; // grad rel tol ||g(x)||/J(x) < tol
+    this->m_OptPara.tol[2] = 1E-2;  // grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.maxit = 1000; // max number of iterations
-    this->m_OptPara.method = GAUSSNEWTON;
-    this->m_OptPara.fastpresolve = true;
+    this->m_OptPara.method = GAUSSNEWTON; // optmization method
+    this->m_OptPara.fastpresolve = true; // enable fast (inaccurate) solve for first steps
+
+    // tolerances for presolve
+    this->m_OptPara.presolvetol[0]=this->m_OptPara.tol[0]; // grad abs tol ||g(x)|| < tol
+    this->m_OptPara.presolvetol[1]=this->m_OptPara.tol[1]; // grad rel tol ||g(x)||/J(x) < tol
+    this->m_OptPara.presolvetol[1]=1E-1; // grad rel tol ||g(x)||/||g(x0)|| < tol
+
 
     this->m_SolveType = NOTSET;
     this->m_HessianMatVecType = DEFAULTMATVEC;

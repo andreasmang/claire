@@ -756,18 +756,20 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
 #pragma omp parallel
 {
+    ScalarType x1,x2,x3;
+    IntType i1,i2,i3,i;
 #pragma omp for
-    for (IntType i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1){  // x1
-        for (IntType i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3){ // x3
+    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1){  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2){ // x2
+            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
-                ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                ScalarType x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                ScalarType x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
 
                 // compute linear / flat index
-                IntType i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
+                i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
                 p_mt[i] = (sin(x1)*sin(x1) + sin(x2)*sin(x2) + sin(x3)*sin(x3))/3.0;
 
                 if (problem == 0){
@@ -1249,7 +1251,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file)
         ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X32,"deformation-grad-x22"+ext); CHKERRQ(ierr);
         ierr=this->m_ReadWrite->Write(this->m_WorkTenField1->m_X33,"deformation-grad-x22"+ext); CHKERRQ(ierr);
 
-        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"det-deformation-grad"+ext); CHKERRQ(ierr);
+        ierr=this->m_ReadWrite->Write(this->m_WorkScaField1,"det-deformation-grad-fulltensor"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__FUNCT__);

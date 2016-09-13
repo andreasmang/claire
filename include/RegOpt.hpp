@@ -207,7 +207,8 @@ struct Optimization{
     int maxit; ///< maximal number of (outer) iterations
     ScalarType tol[3]; ///< tolerances for optimization
     OptMeth method; ///< optimization method
-    bool fastpresolve;
+    bool fastpresolve; ///< flag to switch on fast presolve
+    ScalarType presolvetol[3]; ///< tolerances for presolve
 };
 
 
