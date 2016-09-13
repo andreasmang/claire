@@ -225,30 +225,6 @@ PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond)
 
 
 /********************************************************************
- * @brief set the preconditioner
- *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetGradTolerance"
-PetscErrorCode Optimizer::SetGradTolerance(ScalarType gttol)
-{
-    PetscErrorCode ierr;
-//    ScalarType gatol,grtol;
-    PetscFunctionBegin;
-
-    ierr=Assert(this->m_Tao!=NULL,"null pointer"); CHKERRQ(ierr);
-
-    // do not touch the tolerances that have already been set
-//    ierr=TaoGetTolerances(this->m_Tao,&gatol,&grtol,NULL); CHKERRQ(ierr);
-
-    // parse tolerances
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
  * @brief set up optimization problem (this function sets up
  * and parses the default parameters to TAO)
  *******************************************************************/

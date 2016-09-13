@@ -1083,12 +1083,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction()
     ierr=this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
     ss.str( std::string() ); ss.clear();
 
-    // reset accuracy for solver
-    if (quicksolve){
-        ierr=this->m_Optimizer->SetGradTolerance(gtol); CHKERRQ(ierr);
-    }
-
-
     // solve optimization problem for user defined regularization parameter
     ierr=this->m_Optimizer->Run(); CHKERRQ(ierr);
 
