@@ -126,6 +126,9 @@ void RegOpt::Copy(const RegOpt& opt)
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
     this->m_OptPara.fastpresolve = opt.m_OptPara.fastpresolve;
     this->m_OptPara.method = opt.m_OptPara.method;
+    this->m_OptPara.presolvetol[0]=opt.m_OptPara.presolvetol[0];
+    this->m_OptPara.presolvetol[1]=opt.m_OptPara.presolvetol[1];
+    this->m_OptPara.presolvetol[2]=opt.m_OptPara.presolvetol[2];
 
     this->m_SolveType = opt.m_SolveType;
     this->m_HessianMatVecType = opt.m_HessianMatVecType;
@@ -781,8 +784,7 @@ PetscErrorCode RegOpt::Initialize()
     // tolerances for presolve
     this->m_OptPara.presolvetol[0]=this->m_OptPara.tol[0]; // grad abs tol ||g(x)|| < tol
     this->m_OptPara.presolvetol[1]=this->m_OptPara.tol[1]; // grad rel tol ||g(x)||/J(x) < tol
-    this->m_OptPara.presolvetol[1]=1E-1; // grad rel tol ||g(x)||/||g(x0)|| < tol
-
+    this->m_OptPara.presolvetol[2]=1E-1; // grad rel tol ||g(x)||/||g(x0)|| < tol
 
     this->m_SolveType = NOTSET;
     this->m_HessianMatVecType = DEFAULTMATVEC;
