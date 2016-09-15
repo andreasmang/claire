@@ -680,7 +680,9 @@ PetscErrorCode PrecondReg::SetupKrylovMethod()
         {
             // chebyshev iteration
             ierr=KSPSetType(this->m_KrylovMethod,KSPCHEBYSHEV); CHKERRQ(ierr);
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
             ierr=KSPChebyshevEstEigSetUseRandom(this->m_KrylovMethod,PETSC_TRUE); CHKERRQ(ierr);
+#endif
             break;
         }
         case PCG:
@@ -898,7 +900,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x)
 PetscErrorCode PrecondReg::EstimateEigenValues()
 {
     PetscErrorCode ierr=0;
-    IntType n,neig,nl,ng,itermax;
+    IntType n,neig,nl,ng;
     KSPConvergedReason reason;
     std::stringstream ss;
     Vec b=NULL,x=NULL;

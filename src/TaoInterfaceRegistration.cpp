@@ -203,7 +203,12 @@ PetscErrorCode CheckConvergence(Tao tao, void* ptr)
     g0norm = optprob->GetInitialGradNorm();
     g0norm = (g0norm > 0.0) ? g0norm : 1.0;
 
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr=TaoGetTolerances(tao,&gatol,&grtol,&gttol); CHKERRQ(ierr);
+#else
+    ierr=TaoGetTolerances(tao,NULL,NULL,&gatol,&grtol,&gttol); CHKERRQ(ierr);
+#endif
+
     ierr=TaoGetMaximumIterations(tao,&maxiter); CHKERRQ(ierr);
     ierr=TaoGetSolutionStatus(tao,&iter,&J,&gnorm,NULL,&step,NULL); CHKERRQ(ierr);
 

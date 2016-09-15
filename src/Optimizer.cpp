@@ -519,7 +519,11 @@ PetscErrorCode Optimizer::Finalize()
 
     ierr=Assert(this->m_Tao !=NULL,"tao not set up"); CHKERRQ(ierr);
 
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr=TaoGetTolerances(this->m_Tao,&gatol,&grtol,&gttol); CHKERRQ(ierr);
+#else
+    ierr=TaoGetTolerances(this->m_Tao,NULL,NULL,&gatol,&grtol,&gttol); CHKERRQ(ierr);
+#endif
     g0norm = this->m_OptimizationProblem->GetInitialGradNorm();
 
     ierr=TaoGetMaximumIterations(this->m_Tao,&maxiter); CHKERRQ(ierr);
