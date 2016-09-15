@@ -363,7 +363,11 @@ PetscErrorCode Optimizer::SetupTao()
     grtol = this->m_Opt->GetOptPara().tol[1]; // ||g(x)|| / |J(x)|    <= grtol
     gttol = this->m_Opt->GetOptPara().tol[2]; // ||g(x)|| / ||g(x0)|| <= gttol
 
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr=TaoSetTolerances(this->m_Tao,gatol,grtol,gttol); CHKERRQ(ierr);
+#else
+    ierr=TaoSetTolerances(this->m_Tao,1E-12,1E-12,gatol,grtol,gttol); CHKERRQ(ierr);
+#endif
     ierr=TaoSetMaximumIterations(this->m_Tao,this->m_Opt->GetOptPara().maxit - 1); CHKERRQ(ierr);
     ierr=TaoSetFunctionLowerBound(this->m_Tao,1E-6); CHKERRQ(ierr);
 
