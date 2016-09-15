@@ -718,8 +718,8 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag)
     nlocal = static_cast<int>(this->m_Opt->GetDomainPara().nlocal);
 
     for (int i = 0; i < 3; ++i){
-        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 

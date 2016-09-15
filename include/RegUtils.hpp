@@ -38,13 +38,13 @@
 #define IntType PetscInt
 #define ScalarType PetscScalar
 
-//#define IntType int
-//#define ScalarType double
 
 
 
 namespace reg
 {
+
+
 
 
 /*! assert (PETSc interface) */

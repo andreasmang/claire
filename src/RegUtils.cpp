@@ -8,6 +8,8 @@
 #ifdef REG_HAS_PNETCDF
 #include "pnetcdf.h"
 #endif
+
+
 namespace reg
 {
 
@@ -22,15 +24,14 @@ namespace reg
 #define __FUNCT__ "Assert"
 PetscErrorCode Assert(bool condition,std::string msg)
 {
-    PetscErrorCode ierr;
-
+    PetscErrorCode ierr=0;
     PetscFunctionBegin;
 
     if(condition == false){
         ierr=ThrowError(msg); CHKERRQ(ierr);
     }
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -46,7 +47,6 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
     PetscErrorCode ierr=0;
     std::string path;
     size_t sep;
-
     PetscFunctionBegin;
 
     sep = file.find_last_of("\\/");
@@ -137,7 +137,7 @@ bool FileExists(const std::string& filename)
 #define __FUNCT__ "Msg"
 PetscErrorCode Msg(std::string msg)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -148,7 +148,7 @@ PetscErrorCode Msg(std::string msg)
     // display message
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -162,7 +162,7 @@ PetscErrorCode Msg(std::string msg)
 #define __FUNCT__ "DbgMsg"
 PetscErrorCode DbgMsg(std::string msg)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -173,7 +173,7 @@ PetscErrorCode DbgMsg(std::string msg)
     // display message
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -186,7 +186,7 @@ PetscErrorCode DbgMsg(std::string msg)
 #define __FUNCT__ "WrngMsg"
 PetscErrorCode WrngMsg(std::string msg)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr=0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -197,7 +197,7 @@ PetscErrorCode WrngMsg(std::string msg)
     // display error
     ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

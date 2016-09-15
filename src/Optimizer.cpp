@@ -265,13 +265,24 @@ PetscErrorCode Optimizer::SetupTao()
 
         // switch of the standard preconditioner
         if (strcmp(method.c_str(),"nls") == 0){
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
             ierr=PetscOptionsSetValue(NULL,"-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
             ierr=PetscOptionsSetValue(NULL,"-tao_nls_ksp_type","petsc"); CHKERRQ(ierr);
+#else
+            ierr=PetscOptionsSetValue("-tao_nls_pc_type","petsc"); CHKERRQ(ierr);
+            ierr=PetscOptionsSetValue("-tao_nls_ksp_type","petsc"); CHKERRQ(ierr);
+#endif
+
             ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
         }
         else if (strcmp(method.c_str(),"ntr") == 0){
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
             ierr=PetscOptionsSetValue(NULL,"-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
             ierr=PetscOptionsSetValue(NULL,"-tao_ntr_ksp_type","petsc"); CHKERRQ(ierr);
+#else
+            ierr=PetscOptionsSetValue("-tao_ntr_pc_type","petsc"); CHKERRQ(ierr);
+            ierr=PetscOptionsSetValue("-tao_ntr_ksp_type","petsc"); CHKERRQ(ierr);
+#endif
             ierr=TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
         }
 
@@ -391,14 +402,16 @@ PetscErrorCode Optimizer::Run(bool presolve)
 
     // modify tolerance if requestged ||g(x)|| / ||g(x0)|| <= gttol
     if (presolve){
-        gtol = this->m_Opt->GetOptPara().presolvetol[2];
+        gtol=this->m_Opt->GetOptPara().presolvetol[2];
+
         if (this->m_Opt->GetVerbosity() > 1){
             ss << "presolve: relative gradient tolerance: " << std::scientific << gtol;
             ierr=DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
+
     }
-    else{ gtol = this->m_Opt->GetOptPara().tol[2]; }
+    else{ gtol=this->m_Opt->GetOptPara().tol[2]; }
 
     // set tolerance
     ierr=TaoSetTolerances(this->m_Tao,PETSC_DEFAULT,PETSC_DEFAULT,gtol); CHKERRQ(ierr);

@@ -102,79 +102,78 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void)
     PetscFunctionBegin;
 
     // delete all variables
-    if (this->m_StateVariable != NULL){
+    if (this->m_StateVariable!=NULL){
         ierr=VecDestroy(&this->m_StateVariable); CHKERRQ(ierr);
         this->m_StateVariable=NULL;
     }
-    if (this->m_AdjointVariable != NULL){
+    if (this->m_AdjointVariable!=NULL){
         ierr=VecDestroy(&this->m_AdjointVariable); CHKERRQ(ierr);
         this->m_AdjointVariable=NULL;
     }
-    if (this->m_IncStateVariable != NULL){
+    if (this->m_IncStateVariable!=NULL){
         ierr=VecDestroy(&this->m_IncStateVariable); CHKERRQ(ierr);
         this->m_IncStateVariable=NULL;
     }
-    if (this->m_IncAdjointVariable != NULL){
+    if (this->m_IncAdjointVariable!=NULL){
         ierr=VecDestroy(&this->m_IncAdjointVariable); CHKERRQ(ierr);
         this->m_IncAdjointVariable=NULL;
     }
-    if (this->m_VelocityField != NULL){
+    if (this->m_VelocityField!=NULL){
         delete this->m_VelocityField;
-        this->m_VelocityField = NULL;
+        this->m_VelocityField=NULL;
     }
-    if (this->m_IncVelocityField != NULL){
+    if (this->m_IncVelocityField!=NULL){
         delete this->m_IncVelocityField;
-        this->m_IncVelocityField = NULL;
+        this->m_IncVelocityField=NULL;
     }
 
-    if (this->m_WorkScaField1 != NULL){
+    if (this->m_WorkScaField1!=NULL){
         ierr=VecDestroy(&this->m_WorkScaField1); CHKERRQ(ierr);
         this->m_WorkScaField1=NULL;
     }
-    if (this->m_WorkScaField2 != NULL){
+    if (this->m_WorkScaField2!=NULL){
         ierr=VecDestroy(&this->m_WorkScaField2); CHKERRQ(ierr);
         this->m_WorkScaField2=NULL;
     }
-    if (this->m_WorkScaField3 != NULL){
+    if (this->m_WorkScaField3!=NULL){
         ierr=VecDestroy(&this->m_WorkScaField3); CHKERRQ(ierr);
         this->m_WorkScaField3=NULL;
     }
-    if (this->m_WorkScaField4 != NULL){
+    if (this->m_WorkScaField4!=NULL){
         ierr=VecDestroy(&this->m_WorkScaField4); CHKERRQ(ierr);
         this->m_WorkScaField4=NULL;
     }
 
-    if (this->m_WorkVecField1 != NULL){
+    if (this->m_WorkVecField1!=NULL){
         delete this->m_WorkVecField1;
-        this->m_WorkVecField1 = NULL;
+        this->m_WorkVecField1=NULL;
     }
-    if (this->m_WorkVecField2 != NULL){
+    if (this->m_WorkVecField2!=NULL){
         delete this->m_WorkVecField2;
-        this->m_WorkVecField2 = NULL;
+        this->m_WorkVecField2=NULL;
     }
-    if (this->m_WorkVecField3 != NULL){
+    if (this->m_WorkVecField3!=NULL){
         delete this->m_WorkVecField3;
-        this->m_WorkVecField3 = NULL;
+        this->m_WorkVecField3=NULL;
     }
-    if (this->m_WorkVecField4 != NULL){
+    if (this->m_WorkVecField4!=NULL){
         delete this->m_WorkVecField4;
-        this->m_WorkVecField4 = NULL;
+        this->m_WorkVecField4=NULL;
     }
-    if (this->m_WorkVecField5 != NULL){
+    if (this->m_WorkVecField5!=NULL){
         delete this->m_WorkVecField5;
-        this->m_WorkVecField5 = NULL;
+        this->m_WorkVecField5=NULL;
     }
 
-
-    if (this->m_SemiLagrangianMethod != NULL){
+    if (this->m_SemiLagrangianMethod!=NULL){
         delete this->m_SemiLagrangianMethod;
-        this->m_SemiLagrangianMethod = NULL;
+        this->m_SemiLagrangianMethod=NULL;
     }
 
     // delete class for regularization model
-    if (this->m_Regularization != NULL){
+    if (this->m_Regularization!=NULL){
         delete this->m_Regularization;
-        this->m_Regularization = NULL;
+        this->m_Regularization=NULL;
     }
 
     PetscFunctionReturn(0);
@@ -201,13 +200,6 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization()
 
     this->m_Opt->Enter(__FUNCT__);
 
-    // allocate
-    if (this->m_WorkVecField2 == NULL){
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
     if (this->m_VelocityField == NULL){
         try{this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&){
@@ -731,6 +723,9 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
     ng = this->m_Opt->GetDomainPara().nglobal;
     ht = this->m_Opt->GetTimeStepSize();
 
+    ierr=Assert(nt > 0,"nt<=0"); CHKERRQ(ierr);
+    ierr=Assert(ht > 0,"ht<=0"); CHKERRQ(ierr);
+
     if(this->m_WorkScaField1 == NULL){
         ierr=VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
     }
@@ -746,9 +741,6 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce()
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
-    ierr=Assert(nt > 0,"number of time points < 0"); CHKERRQ(ierr);
-    ierr=Assert(ht > 0,"time step size <= 0"); CHKERRQ(ierr);
 
     // init body force for numerical integration
     ierr=this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
@@ -1481,8 +1473,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr=Assert(this->m_VelocityField!=NULL,"velocity is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(this->m_TemplateImage!=NULL,"template image is null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(this->m_TemplateImage!=NULL,"null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1503,7 +1495,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void)
     ierr=this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // allocate state and adjoint variables
-    if (this->m_StateVariable == NULL){
+    if (this->m_StateVariable==NULL){
         ierr=VecCreate(this->m_StateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
     }
 

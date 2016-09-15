@@ -155,7 +155,6 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void)
         delete this->m_WorkVecField3;
         this->m_WorkVecField3 = NULL;
     }
-
     if (this->m_WorkVecField4 != NULL){
         delete this->m_WorkVecField4;
         this->m_WorkVecField4 = NULL;

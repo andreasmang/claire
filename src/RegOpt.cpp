@@ -841,6 +841,7 @@ PetscErrorCode RegOpt::Initialize()
     this->m_CartGridDims[1]=1;
 
     this->m_Indent = 0;
+    this->m_LineLength = 101;
 
     ierr=this->ResetTimers(); CHKERRQ(ierr);
     ierr=this->ResetCounters(); CHKERRQ(ierr);
@@ -1218,8 +1219,8 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser)
     }
 
     // check if sizes are ok
-    ierr=reg::Assert(this->m_Domain.nlocal > 0,"bug in setup"); CHKERRQ(ierr);
-    ierr=reg::Assert(this->m_Domain.nglobal > 0,"bug in setup"); CHKERRQ(ierr);
+    ierr=reg::Assert(this->m_Domain.nlocal>0,"bug in setup"); CHKERRQ(ierr);
+    ierr=reg::Assert(this->m_Domain.nglobal>0,"bug in setup"); CHKERRQ(ierr);
 
 
     // display the options to the user

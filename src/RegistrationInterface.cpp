@@ -328,13 +328,11 @@ PetscErrorCode RegistrationInterface::SetupSolver()
 
     // set up initial condition
     if (this->m_Solution==NULL){
-
         try{ this->m_Solution = new VecField(this->m_Opt); }
         catch (std::bad_alloc&){
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
-
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -853,13 +851,16 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch()
         dbeta = (betastar - betahat)/2.0;
         beta  = betastar - dbeta;
         if (fabs(dbeta) < dbetamin){
+
             stop = true;
+
             if (this->m_Opt->GetVerbosity() > 0){
-                ss  << std::setw(3)<<"update for beta to small ( "
-                    << fabs(dbeta) << " < " << dbetamin << " )";
+                ss  << std::setw(3)<<"update for beta too small ( dbeta="
+                    << fabs(dbeta) << " < " << dbetamin << "=dbetamin )";
                 ierr=DbgMsg(ss.str());
                 ss.str( std::string() ); ss.clear();
             }
+
         }
 
         ++level;
@@ -1242,6 +1243,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     PetscErrorCode ierr;
     int rank,level,nlevels;
     std::stringstream ss;
+    std::string ext;
     IntType nx[3],nl,ng;
     Vec mT=NULL,mR=NULL,xstar=NULL;
     VecField *v=NULL;
@@ -1375,11 +1377,12 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
         // store intermediate results
         if (this->m_Opt->GetReadWriteFlags().iterates){
 
-            ss << "reference-image-level=" << level << ".nii.gz";
+            ext = this->m_Opt->GetReadWriteFlags().extension;
+            ss << "reference-image-level=" << level << ext;
             ierr=this->m_ReadWrite->Write(mR,ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
 
-            ss << "template-image-level=" << level << ".nii.gz";
+            ss << "template-image-level=" << level << ext;
             ierr=this->m_ReadWrite->Write(mT,ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
 

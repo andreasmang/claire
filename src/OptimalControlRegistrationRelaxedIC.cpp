@@ -1,7 +1,8 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
 #define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
 
-#include <math.h>
+
+
 #include "OptimalControlRegistrationRelaxedIC.hpp"
 
 

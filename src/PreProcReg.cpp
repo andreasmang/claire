@@ -1789,7 +1789,7 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
     IntType nl;
     ScalarType *p_mrl=NULL,*p_mtl=NULL;
     PetscFunctionBegin;
-
+    double cj,uj,nlabelsR,nlabelsT,n;
     this->m_Opt->Enter(__FUNCT__);
 
     ierr=Assert(mRl!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -1855,11 +1855,11 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
 
     for (int lj = 0; lj < nlabels; ++lj){
 
-        double cj = static_cast<double>(icommon[lj]);
-        double uj = static_cast<double>(iunion[lj]);
-        double nr = static_cast<double>(nlR[lj]);
-        double nt = static_cast<double>(nlT[lj]);
-        double n  = nt + nr;
+        cj = static_cast<double>(icommon[lj]);
+        uj = static_cast<double>(iunion[lj]);
+        nlabelsR = static_cast<double>(nlR[lj]);
+        nlabelsT = static_cast<double>(nlT[lj]);
+        n = nlabelsT + nlabelsR;
 
         // compute jaccard per label
         if (uj!=0.0) this->m_OverlapMeasures[(lj*nlabels)+0] = cj/uj;
@@ -1870,9 +1870,9 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
         else        this->m_OverlapMeasures[(lj*nlabels)+1] = 0.0;
 
         // compute false positive and false negative per label
-        if (nr!=0.0){
-            this->m_OverlapMeasures[(lj*nlabels)+2] = (nt-cj)/nr;
-            this->m_OverlapMeasures[(lj*nlabels)+3] = (nr-cj)/nr;
+        if (nlabelsR!=0.0){
+            this->m_OverlapMeasures[(lj*nlabels)+2] = (nlabelsT-cj)/nlabelsR;
+            this->m_OverlapMeasures[(lj*nlabels)+3] = (nlabelsR-cj)/nlabelsR;
         }
         else{
             this->m_OverlapMeasures[(lj*nlabels)+2] = 0.0;

@@ -22,7 +22,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-//#define _REG_DEBUG_
+#define _REG_DEBUG_
 
 //global includes
 #include <fstream>
@@ -495,7 +495,8 @@ protected:
 
     int m_CartGridDims[2];
     unsigned int m_NumThreads;
-    const unsigned int m_LineLength = 101;
+//    const unsigned int m_LineLength = 101; //C++ 11 feature
+    unsigned int m_LineLength;
 
     bool m_SetupDone;
 
