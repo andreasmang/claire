@@ -418,8 +418,11 @@ PetscErrorCode Optimizer::Run(bool presolve)
     else{ gtol=this->m_Opt->GetOptPara().tol[2]; }
 
     // set tolerance
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr=TaoSetTolerances(this->m_Tao,PETSC_DEFAULT,PETSC_DEFAULT,gtol); CHKERRQ(ierr);
-
+#else
+    ierr=TaoSetTolerances(this->m_Tao,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,gtol); CHKERRQ(ierr);
+#endif
     // set initial guess
     ierr=this->SetInitialGuess(); CHKERRQ(ierr);
     ierr=TaoSetUp(this->m_Tao); CHKERRQ(ierr);
