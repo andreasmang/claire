@@ -3,9 +3,10 @@ CXX=mpicxx
 USEINTEL=yes
 USEINTELMPI=yes
 BUILDTOOLS=yes
-DBGCODE=yes
+DBGCODE=no
 PEDANTIC=yes
-USEPNETCDF=yes
+USEPNETCDF=no
+USENIFTI=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -37,6 +38,10 @@ ifeq ($(USEPNETCDF),yes)
 	CXXFLAGS+= -DREG_HAS_PNETCDF
 endif
 
+ifeq ($(USENIFTI),yes)
+	CXXFLAGS+= -DREG_HAS_NIFTI
+endif
+
 BINDIR = ./bin
 SRCDIR = ./src
 OBJDIR = ./obj
@@ -51,7 +56,9 @@ else
 endif
 COLD_INC+= -I$(ACCFFT_DIR)/include
 COLD_INC+= -I$(FFTW_DIR)/include
-COLD_INC+= -I$(NIFTI_DIR)/include/nifti
+ifeq ($(USENIFTI),yes)
+	COLD_INC+= -I$(NIFTI_DIR)/include/nifti
+endif
 ifeq ($(USEPNETCDF),yes)
 	COLD_INC+= -I$(PNETCDF_DIR)/include
 endif
@@ -65,8 +72,12 @@ ifeq ($(DBGCODE),yes)
 else
 	LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
 endif
-LDFLAGS+= -lpetsc -lf2clapack -lf2cblas -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz
-LDFLAGS+= -L$(ZLIB_DIR)/lib -lz
+LDFLAGS+= -lpetsc -lf2clapack -lf2cblas 
+
+ifeq ($(USENIFTI),yes)
+	LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
+endif
+
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS+= -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif
@@ -96,6 +107,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
 		$(SRCDIR)/VecField.cpp \
+		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \

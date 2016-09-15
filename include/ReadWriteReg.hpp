@@ -24,7 +24,9 @@
 #define _READWRITEREG_H_
 
 // library includes
+#ifdef REG_HAS_NIFTI
 #include "nifti1_io.h"
+#endif
 
 #if defined(PETSC_HAVE_HDF5)
 #include "petscviewerhdf5.h"
@@ -33,7 +35,6 @@
 #ifdef REG_HAS_PNETCDF
 #include "pnetcdf.h"
 #endif
-
 
 #include "RegOpt.hpp"
 #include "VecField.hpp"
@@ -92,6 +93,7 @@ private:
     PetscErrorCode WriteTimeSeriesNetCDF(Vec,std::string);
     PetscErrorCode WriteBlockNetCDF(Vec,int*,std::string);
 
+#ifdef REG_HAS_NIFTI
     PetscErrorCode ReadNII(Vec*,std::string);
     PetscErrorCode ReadNII(VecField*,std::string,std::string,std::string);
     PetscErrorCode ReadNII(nifti_image*,std::string);
@@ -103,6 +105,7 @@ private:
 
     PetscErrorCode GetComponentTypeNII(nifti_image*);;
     PetscErrorCode AllocateNII(nifti_image**,Vec);
+#endif
 
     enum VoxelType{CHAR,UCHAR,SHORT,USHORT,INT,UINT,FLOAT,DOUBLE,UNDEF};
     VoxelType m_ComponentType;

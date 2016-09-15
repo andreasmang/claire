@@ -3,6 +3,7 @@
 
 
 
+
 #include "ReadWriteReg.hpp"
 
 
@@ -141,27 +142,45 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
     }
 
     if (filename.find(".nii") != std::string::npos){
+#ifdef REG_HAS_NIFTI
         ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
+#else
+        ierr=ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
+#endif
     }
     else if (filename.find(".nii.gz") != std::string::npos){
+#ifdef REG_HAS_NIFTI
         ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
+#else
+        ierr=ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
+#endif
     }
     else if (filename.find(".hdr") != std::string::npos){
+#ifdef REG_HAS_NIFTI
         ierr=this->ReadNII(x,filename); CHKERRQ(ierr);
+#else
+        ierr=ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
+#endif
     }
     else if (filename.find(".bin") != std::string::npos){
         ierr=this->ReadBIN(x,filename); CHKERRQ(ierr);
     }
-#if defined(PETSC_HAVE_HDF5)
     else if (filename.find(".hdf5") != std::string::npos){
+#if defined(PETSC_HAVE_HDF5)
         ierr=this->ReadHDF5(x,filename); CHKERRQ(ierr);
-    }
+#else
+        ierr=ThrowError("install hdf5 library (petsc)/enable hdf5 support"); CHKERRQ(ierr);
 #endif
-#ifdef REG_HAS_PNETCDF
+
+
+    }
     else if (filename.find(".nc") != std::string::npos){
+#ifdef REG_HAS_PNETCDF
         ierr=this->ReadNC(x,filename); CHKERRQ(ierr);
-    }
+#else
+        ierr=ThrowError("install pnetcdf library/enable pnetcdf support"); CHKERRQ(ierr);
 #endif
+    }
     else{ ierr=ThrowError("could not read: data type not supported"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -319,27 +338,43 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename)
 
     filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
     if (filename.find(".nii") != std::string::npos){
+#ifdef REG_HAS_NIFTI
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
+#else
+        ierr=ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
+#endif
     }
     else if (filename.find(".nii.gz") != std::string::npos){
+#ifdef REG_HAS_NIFTI
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
+#else
+        ierr=ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
+#endif
     }
     else if (filename.find(".hdr") != std::string::npos){
+#ifdef REG_HAS_NIFTI
         ierr=this->WriteNII(x,filename); CHKERRQ(ierr);
+#else
+        ierr=ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
+#endif
     }
     else if (filename.find(".bin") != std::string::npos){
         ierr=this->WriteBIN(x,filename); CHKERRQ(ierr);
     }
-#if defined(PETSC_HAVE_HDF5)
     else if (filename.find(".hdf5") != std::string::npos){
+#if defined(PETSC_HAVE_HDF5)
         ierr=this->WriteHDF5(x,filename); CHKERRQ(ierr);
-    }
+#else
+        ierr=ThrowError("install hdf library/enable hdf5 support"); CHKERRQ(ierr);
 #endif
-#ifdef REG_HAS_PNETCDF
+    }
     else if (filename.find(".nc") != std::string::npos){
+#ifdef REG_HAS_PNETCDF
         ierr=this->WriteNC(x,filename); CHKERRQ(ierr);
-    }
+#else
+        ierr=ThrowError("install pnetcdf library/enable pnetcdf support"); CHKERRQ(ierr);
 #endif
+    }
     else{ ierr=ThrowError("could not write: data type not supported"); CHKERRQ(ierr); }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -382,6 +417,7 @@ PetscErrorCode ReadWriteReg::Write(VecField* v,
 /********************************************************************
  * @brief get component type of NII images
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "GetComponentTypeNII"
 PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage)
@@ -444,12 +480,13 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage)
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 /********************************************************************
  * @brief read nifty image
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
 PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
@@ -644,7 +681,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 
@@ -653,6 +690,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 /********************************************************************
  * @brief read nifty image with right component type
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
 PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
@@ -729,13 +767,14 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 
 /********************************************************************
  * @brief get component type of NII images
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
 template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
@@ -779,13 +818,14 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
     PetscFunctionReturn(0);
 
 }
-
+#endif
 
 
 
 /********************************************************************
  * @brief write buffer to nii files
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
 PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
@@ -817,13 +857,14 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x,std::string filename)
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 
 /********************************************************************
  * @brief write buffer to nii files
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
 PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string filename)
@@ -894,13 +935,14 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage,Vec x,std::string f
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 
 /********************************************************************
  * @brief write buffer to nii files
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
 template <typename T>
@@ -1091,13 +1133,14 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image,Vec x,std::string file
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 
 /********************************************************************
  * @brief allocate buffer for nifty image
  *******************************************************************/
+#ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "AllocateNII"
 PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x)
@@ -1190,7 +1233,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x)
 
     PetscFunctionReturn(0);
 }
-
+#endif
 
 
 
