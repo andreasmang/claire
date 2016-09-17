@@ -41,15 +41,14 @@
 
 
 
-namespace reg
-{
+
+namespace reg {
 
 
-class RegistrationInterface
-{
 
-public:
 
+class RegistrationInterface {
+ public:
     typedef Optimizer OptimizerType;
     typedef ReadWriteReg ReadWriteType;
     typedef PreProcReg PreProcType;
@@ -65,14 +64,13 @@ public:
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetReferenceImage(Vec);
-    PetscErrorCode SolveForwardProblem(Vec,Vec);
+    PetscErrorCode SolveForwardProblem(Vec, Vec);
     PetscErrorCode SetInitialGuess(VecField*);
 
     PetscErrorCode RunPostProcessing();
     PetscErrorCode ComputeDefFields();
 
-private:
-
+ private:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode SetupSolver(void);
@@ -100,14 +98,18 @@ private:
     MultiLevelPyramid *m_TemplatePyramid;
     MultiLevelPyramid *m_ReferencePyramid;
 
-    Vec m_TemplateImage; ///< original template image (not overwritten)
-    Vec m_ReferenceImage; ///< original reference image (not overwritten)
-    VecField* m_Solution; ///< initial guess
+    Vec m_TemplateImage;    ///< original template image (not overwritten)
+    Vec m_ReferenceImage;   ///< original reference image (not overwritten)
+    VecField* m_Solution;   ///< initial guess
 };
 
 
 
-} // end of name space
+
+}  // namespace reg
+
+
+
 
 #endif // _REGISTRATIONINTERFACE_H_
 

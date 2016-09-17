@@ -1,5 +1,4 @@
-/**
- *  Copyright (c) 2015-2016.
+/** *  Copyright (c) 2015-2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -98,14 +97,18 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Domain.istart[0] = opt.m_Domain.istart[0];
     this->m_Domain.istart[1] = opt.m_Domain.istart[1];
     this->m_Domain.istart[2] = opt.m_Domain.istart[2];
-    this->m_Domain.nt = opt.m_Domain.nt;
+
     this->m_Domain.nx[0] = opt.m_Domain.nx[0];
     this->m_Domain.nx[1] = opt.m_Domain.nx[0];
     this->m_Domain.nx[2] = opt.m_Domain.nx[0];
+
+    this->m_Domain.nt = opt.m_Domain.nt;
+
     this->m_Domain.timehorizon[0] = opt.m_Domain.timehorizon[0];
     this->m_Domain.timehorizon[1] = opt.m_Domain.timehorizon[1];
 
     this->m_RegNorm.type = opt.m_RegNorm.type;
+
     this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];
@@ -151,6 +154,8 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     // flags
     this->m_ReadWriteFlags.readfiles = opt.m_ReadWriteFlags.readfiles;
+    this->m_ReadWriteFlags.readvelocity = opt.m_ReadWriteFlags.readvelocity;
+
     this->m_ReadWriteFlags.timeseries = opt.m_ReadWriteFlags.timeseries;
     this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
     this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
@@ -193,7 +198,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegMonitor.jacbound = opt.m_RegMonitor.jacbound;
 
     this->m_NumThreads = opt.m_NumThreads;
-
     this->m_FFT.mpicomm = opt.m_FFT.mpicomm;
 
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
@@ -212,7 +216,7 @@ void RegOpt::Copy(const RegOpt& opt) {
 #undef __FUNCT__
 #define __FUNCT__ "ParseArguments"
 PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<unsigned int> nx;
     std::vector<unsigned int> np;
@@ -522,7 +526,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
-
         } else if (strcmp(argv[1], "-betavcont") == 0) {
            if (this->m_ParaCont.enabled) {
                 msg = "\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
@@ -564,7 +567,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     // set number of threads
     ierr = Init(this->m_NumThreads, this->m_CartGridDims, this->m_FFT.mpicomm); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -654,17 +657,16 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_PDESolver.cflnumber = 0;
     this->m_PDESolver.order = 2;
 
-
     // smoothing
     this->m_Sigma[0] = 1.0;
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
-    this->m_KrylovSolverPara.tol[0] = 1E-12;     // relative tolerance
-    this->m_KrylovSolverPara.tol[1] = 1E-12;     // absolute tolerance
-    this->m_KrylovSolverPara.tol[2] = 1E+06;     // divergence tolerance
-    this->m_KrylovSolverPara.maxit = 1000;       // maximal iterations
-    this->m_KrylovSolverPara.reltol = 1E-12;     // relative tolerance (actually computed in solver)
+    this->m_KrylovSolverPara.tol[0] = 1E-12;     ///< relative tolerance
+    this->m_KrylovSolverPara.tol[1] = 1E-12;     ///< absolute tolerance
+    this->m_KrylovSolverPara.tol[2] = 1E+06;     ///< divergence tolerance
+    this->m_KrylovSolverPara.maxit = 1000;       ///< maximal iterations
+    this->m_KrylovSolverPara.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
     this->m_KrylovSolverPara.fseqtype = QDFS;
     this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.solver = PCG;
@@ -673,34 +675,34 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.g0norm = 0;
     this->m_KrylovSolverPara.g0normset = false;
 
-    this->m_KrylovSolverPara.iter = 0;           // divergence tolerance
+    this->m_KrylovSolverPara.iter = 0;           ///< divergence tolerance
     this->m_KrylovSolverPara.pcsolver = PCG;
     this->m_KrylovSolverPara.pctolscale = 1E-1;
     this->m_KrylovSolverPara.pcmaxit = 10;
     this->m_KrylovSolverPara.pcgridscale = 2;
-    this->m_KrylovSolverPara.pctol[0] = 1E-12;   // relative tolerance
-    this->m_KrylovSolverPara.pctol[1] = 1E-12;   // absolute tolerance
-    this->m_KrylovSolverPara.pctol[2] = 1E+06;   // divergence tolerance
-    // this->m_KrylovSolverPara.usepetsceigest = false;
+    this->m_KrylovSolverPara.pctol[0] = 1E-12;   ///< relative tolerance
+    this->m_KrylovSolverPara.pctol[1] = 1E-12;   ///< absolute tolerance
+    this->m_KrylovSolverPara.pctol[2] = 1E+06;   ///< divergence tolerance
+//    this->m_KrylovSolverPara.usepetsceigest = false;
     this->m_KrylovSolverPara.usepetsceigest = true;
 
     // tolerances for optimization
-    this->m_OptPara.tol[0] = 1E-6;          // grad abs tol ||g(x)|| < tol
-    this->m_OptPara.tol[1] = 1E-16;         // grad rel tol ||g(x)||/J(x) < tol
-    this->m_OptPara.tol[2] = 1E-2;          // grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxit = 1000;           // max number of iterations
-    this->m_OptPara.method = GAUSSNEWTON;   // optmization method
-    this->m_OptPara.fastpresolve = true;    // enable fast (inaccurate) solve for first steps
+    this->m_OptPara.tol[0] = 1E-6;          ///< grad abs tol ||g(x)|| < tol
+    this->m_OptPara.tol[1] = 1E-16;         ///< grad rel tol ||g(x)||/J(x) < tol
+    this->m_OptPara.tol[2] = 1E-2;          ///< grad rel tol ||g(x)||/||g(x0)|| < tol
+    this->m_OptPara.maxit = 1000;           ///< max number of iterations
+    this->m_OptPara.method = GAUSSNEWTON;   ///< optmization method
+    this->m_OptPara.fastpresolve = true;    ///< enable fast (inaccurate) solve for first steps
 
     // tolerances for presolve
-    this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    // grad abs tol ||g(x)|| < tol
-    this->m_OptPara.presolvetol[1] = this->m_OptPara.tol[1];    // grad rel tol ||g(x)||/J(x) < tol
-    this->m_OptPara.presolvetol[2] = 1E-1;                      // grad rel tol ||g(x)||/||g(x0)|| < tol
+    this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
+    this->m_OptPara.presolvetol[1] = this->m_OptPara.tol[1];    ///< grad rel tol ||g(x)||/J(x) < tol
+    this->m_OptPara.presolvetol[2] = 1E-1;                      ///< grad rel tol ||g(x)||/||g(x0)|| < tol
 
     this->m_SolveType = NOTSET;
     this->m_HessianMatVecType = DEFAULTMATVEC;
-    // this->m_HessianMatVecType = PRECONDMATVEC;
-    // this->m_HessianMatVecType = PRECONDMATVECSYM;
+//    this->m_HessianMatVecType = PRECONDMATVEC;
+//    this->m_HessianMatVecType = PRECONDMATVECSYM;
 
     // flags
     this->m_ReadWriteFlags.readfiles = false;       ///< read images
@@ -790,11 +792,11 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -vx1 <file>               x1 component of velocity field (*.nii, *.nii.gz, *.hdr)" << std::endl;
-        std::cout << " -vx2 <file>               x2 component of velocity field (*.nii, *.nii.gz, *.hdr)" << std::endl;
-        std::cout << " -vx3 <file>               x3 component of velocity field (*.nii, *.nii.gz, *.hdr)" << std::endl;
-        std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;" << std::endl;
-        std::cout << "                           units: voxel size; if only one parameter is set" << std::endl;
+        std::cout << " -vx1 <file>               x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -vx2 <file>               x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -vx3 <file>               x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images" << std::endl;
+        std::cout << "                           (e.g., 1x2x1; units: voxel size; if only one parameter is set" << std::endl;
         std::cout << "                           uniform smoothing is assumed: default: 1x1x1)" << std::endl;
         std::cout << " -disablesmoothing         flag: disable smoothing" << std::endl;
         }
@@ -947,8 +949,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 #undef __FUNCT__
 #define __FUNCT__ "CheckArguments"
 PetscErrorCode RegOpt::CheckArguments() {
-    PetscErrorCode ierr;
-    bool readmR = false, readmT = false;
+    PetscErrorCode ierr = 0;
+    bool readmR = false, readmT = false,
+         readvx1 = false, readvx2 = false, readvx3 = false;
     ScalarType betav;
 
     std::string msg;
@@ -957,11 +960,15 @@ PetscErrorCode RegOpt::CheckArguments() {
     if (!this->m_ReadWriteFlags.mt.empty()) { readmT = true; }
     if (!this->m_ReadWriteFlags.mr.empty()) { readmR = true; }
 
+    if (!this->m_ReadWriteFlags.vx1.empty()) { readvx1 = true; }
+    if (!this->m_ReadWriteFlags.vx2.empty()) { readvx2 = true; }
+    if (!this->m_ReadWriteFlags.vx3.empty()) { readvx3 = true; }
+
     if (readmT && readmR) {
         // check if files exist
-        msg = "file " + this->m_ReadWriteFlags.mt + "does not exist";
+        msg = "file " + this->m_ReadWriteFlags.mt + " does not exist";
         ierr = Assert(FileExists(this->m_ReadWriteFlags.mt), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_ReadWriteFlags.mr + "does not exist";
+        msg = "file " + this->m_ReadWriteFlags.mr + " does not exist";
         ierr = Assert(FileExists(this->m_ReadWriteFlags.mr), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readfiles = true;
     } else if ( (readmT == false) && readmR ) {
@@ -974,6 +981,17 @@ PetscErrorCode RegOpt::CheckArguments() {
         ierr = this->Usage(); CHKERRQ(ierr);
     } else if ( (readmT == false) && (readmR == false) ) {
         this->m_ReadWriteFlags.readfiles = false;
+    }
+
+    if (readvx1 && readvx2 && readvx3) {
+        // check if files exist
+        msg = "file " + this->m_ReadWriteFlags.vx1 + " does not exist";
+        ierr = Assert(FileExists(this->m_ReadWriteFlags.vx1), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_ReadWriteFlags.vx2 + " does not exist";
+        ierr = Assert(FileExists(this->m_ReadWriteFlags.vx2), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_ReadWriteFlags.vx3 + " does not exist";
+        ierr = Assert(FileExists(this->m_ReadWriteFlags.vx3), msg); CHKERRQ(ierr);
+        this->m_ReadWriteFlags.readvelocity = true;
     }
 
     if (this->m_ParaCont.strategy == PCONTINUATION) {
@@ -1023,7 +1041,7 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1698,7 +1716,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
 #define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     PetscErrorCode ierr;
-    int _nx[3], _isize[3], _istart[3], _osize[3], _ostart[3];
+    int nxi[3], isize[3], istart[3], osize[3], ostart[3];
 
     PetscFunctionBegin;
 
@@ -1708,16 +1726,16 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     ierr = Assert(nx[1] > 0, "error in size"); CHKERRQ(ierr);
     ierr = Assert(nx[2] > 0, "error in size"); CHKERRQ(ierr);
 
-    _nx[0] = static_cast<int>(nx[0]);
-    _nx[1] = static_cast<int>(nx[1]);
-    _nx[2] = static_cast<int>(nx[2]);
+    nxi[0] = static_cast<int>(nx[0]);
+    nxi[1] = static_cast<int>(nx[1]);
+    nxi[2] = static_cast<int>(nx[2]);
 
-    accfft_local_size_dft_r2c(_nx, _isize, _istart, _osize, _ostart, this->m_FFT.mpicomm);
+    accfft_local_size_dft_r2c(nxi, isize, istart, osize, ostart, this->m_FFT.mpicomm);
 
     nl = 1; ng = 1;
     for (int i = 0; i < 3; ++i) {
-        nl *= static_cast<IntType>(_isize[i]);
-        ng *= static_cast<IntType>(_nx[i]);
+        ng *= static_cast<IntType>(nx[i]);
+        nl *= static_cast<IntType>(isize[i]);
     }
 
     this->Exit(__FUNCT__);
@@ -1735,7 +1753,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
 #define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     PetscErrorCode ierr;
-    int _nx[3], _isize[3], _istart[3], _osize[3], _ostart[3];
+    int nxi[3], isizei[3], istarti[3], osize[3], ostart[3];
 
     PetscFunctionBegin;
 
@@ -1745,15 +1763,15 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     ierr = Assert(nx[1] > 0, "error in size"); CHKERRQ(ierr);
     ierr = Assert(nx[2] > 0, "error in size"); CHKERRQ(ierr);
 
-    _nx[0] = static_cast<int>(nx[0]);
-    _nx[1] = static_cast<int>(nx[1]);
-    _nx[2] = static_cast<int>(nx[2]);
+    nxi[0] = static_cast<int>(nx[0]);
+    nxi[1] = static_cast<int>(nx[1]);
+    nxi[2] = static_cast<int>(nx[2]);
 
-    accfft_local_size_dft_r2c(_nx, _isize, _istart, _osize, _ostart, this->m_FFT.mpicomm);
+    accfft_local_size_dft_r2c(nxi, isizei, istarti, osize, ostart, this->m_FFT.mpicomm);
 
     for (int i = 0; i < 3; ++i) {
-        isize[i] = static_cast<IntType>(_isize[i]);
-        istart[i] = static_cast<IntType>(_nx[i]);
+        isize[i] = static_cast<IntType>(isizei[i]);
+        istart[i] = static_cast<IntType>(istarti[i]);
     }
 
     this->Exit(__FUNCT__);
@@ -1850,7 +1868,7 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id) {
 #undef __FUNCT__
 #define __FUNCT__ "StartTimer"
 PetscErrorCode RegOpt::StartTimer(TimerType id) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::string msg;
 
     PetscFunctionBegin;
@@ -1865,7 +1883,7 @@ PetscErrorCode RegOpt::StartTimer(TimerType id) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1877,7 +1895,7 @@ PetscErrorCode RegOpt::StartTimer(TimerType id) {
 #undef __FUNCT__
 #define __FUNCT__ "StopTimer"
 PetscErrorCode RegOpt::StopTimer(TimerType id) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::string msg;
 
     PetscFunctionBegin;
@@ -1895,7 +1913,7 @@ PetscErrorCode RegOpt::StopTimer(TimerType id) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1908,7 +1926,7 @@ PetscErrorCode RegOpt::StopTimer(TimerType id) {
 #undef __FUNCT__
 #define __FUNCT__ "ProcessTimers"
 PetscErrorCode RegOpt::ProcessTimers() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     int rval, rank, nproc;
     double ival = 0.0, xval = 0.0;
 
@@ -1987,7 +2005,7 @@ PetscErrorCode RegOpt::ProcessTimers() {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1999,15 +2017,16 @@ PetscErrorCode RegOpt::ProcessTimers() {
 #undef __FUNCT__
 #define __FUNCT__ "ResetCounters"
 PetscErrorCode RegOpt::ResetCounters() {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
 
-    for (int i = 0; i < NCOUNTERS; ++i) this->m_Counter[i] = 0;
+    for (int i = 0; i < NCOUNTERS; ++i) {this->m_Counter[i] = 0;}
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -2019,6 +2038,7 @@ PetscErrorCode RegOpt::ResetCounters() {
 #undef __FUNCT__
 #define __FUNCT__ "ResetCounter"
 PetscErrorCode RegOpt::ResetCounter(CounterType id) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
@@ -2027,7 +2047,7 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -2039,7 +2059,7 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id) {
 #undef __FUNCT__
 #define __FUNCT__ "WriteLogFile"
 PetscErrorCode RegOpt::WriteLogFile() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::string filename, fn, line;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
@@ -2393,7 +2413,7 @@ PetscErrorCode RegOpt::WriteLogFile() {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -2405,7 +2425,7 @@ PetscErrorCode RegOpt::WriteLogFile() {
 #undef __FUNCT__
 #define __FUNCT__ "DisplayTimeToSolution"
 PetscErrorCode RegOpt::DisplayTimeToSolution() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     double hours, minutes, seconds, millisec, time;
     int rank;
     std::stringstream ss;
@@ -2439,7 +2459,7 @@ PetscErrorCode RegOpt::DisplayTimeToSolution() {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

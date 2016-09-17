@@ -237,9 +237,7 @@ PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
-
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
@@ -259,9 +257,7 @@ PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
-
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
@@ -280,11 +276,8 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
-
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-
     filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
-
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
@@ -371,13 +364,10 @@ PetscErrorCode ReadWriteReg::Write(VecField* v, std::string fnx1, std::string fn
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
-
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
-
     ierr = this->Write(v->m_X1, fnx1); CHKERRQ(ierr);
     ierr = this->Write(v->m_X2, fnx2); CHKERRQ(ierr);
     ierr = this->Write(v->m_X3, fnx3); CHKERRQ(ierr);
-
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
@@ -402,42 +392,42 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
     switch (niiimage->datatype){
         case NIFTI_TYPE_UINT8:
         {
-            this->m_ComponentType=UCHAR;
+            this->m_ComponentType = UCHAR;
             break;
         }
         case NIFTI_TYPE_INT8:
         {
-            this->m_ComponentType=CHAR;
+            this->m_ComponentType = CHAR;
             break;
         }
         case NIFTI_TYPE_UINT16:
         {
-            this->m_ComponentType=USHORT;
+            this->m_ComponentType = USHORT;
             break;
         }
         case NIFTI_TYPE_INT16:
         {
-            this->m_ComponentType=SHORT;
+            this->m_ComponentType = SHORT;
             break;
         }
         case NIFTI_TYPE_UINT32:
         {
-            this->m_ComponentType=UINT;
+            this->m_ComponentType = UINT;
             break;
         }
         case NIFTI_TYPE_INT32:
         {
-            this->m_ComponentType=INT;
+            this->m_ComponentType = INT;
             break;
         }
         case NIFTI_TYPE_FLOAT32:
         {
-            this->m_ComponentType=FLOAT;
+            this->m_ComponentType = FLOAT;
             break;
         }
         case NIFTI_TYPE_FLOAT64:
         {
-            this->m_ComponentType=DOUBLE;
+            this->m_ComponentType = DOUBLE;
             break;
         }
         default:
@@ -483,7 +473,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     ierr = GetFileName(file, filename); CHKERRQ(ierr);
 
     // read header file
-    image = nifti_image_read(filename.c_str(),false);
+    image = nifti_image_read(filename.c_str(), false);
     msg="could not read nifti image " + file;
     ierr = Assert(image != NULL,msg); CHKERRQ(ierr);
 
@@ -495,23 +485,20 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     // if we read images, we want to make sure that they have the same size
     if (   (this->m_nx[0] == -1)
         && (this->m_nx[1] == -1)
-        && (this->m_nx[2] == -1) ){
+        && (this->m_nx[2] == -1) ) {
 
         for (int i = 0; i < 3; ++i){ this->m_nx[i] = nx[i]; }
 
-        if(this->m_Opt->GetVerbosity() > 2){
+        if(this->m_Opt->GetVerbosity() > 2) {
             ss << "grid size ("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         }
 
-    }
-    else{
-
+    } else {
         msg="grid size of images varies: perform affine registration first";
         for (int i = 0; i < 3; ++i){
             ierr = Assert(this->m_nx[i] == nx[i],msg); CHKERRQ(ierr);
         }
-
     }
 
     // pass number of grid points to options
@@ -526,13 +513,13 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     // get local size
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
-    for (int i = 0; i < 3; ++i){
+    for (int i = 0; i < 3; ++i) {
         isize[i] = this->m_Opt->GetDomainPara().isize[i];
         istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
     //check global size
-    ngx=1; for(int i = 0; i < 3; ++i){ ngx*=nx[i]; }
+    ngx=1; for (int i = 0; i < 3; ++i){ ngx*=nx[i]; }
     ierr = Assert(ng==ngx,"global size mismatch"); CHKERRQ(ierr);
 
     // allocate vector
@@ -543,7 +530,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
 
     // read data only on master rank
-    if(rank==0){
+    if(rank == 0) {
 
         // allocate data buffer
         if (this->m_Data != NULL){
@@ -557,16 +544,16 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        ierr = this->ReadNII(image,filename); CHKERRQ(ierr);
+        ierr = this->ReadNII(image, filename); CHKERRQ(ierr);
 
         // get all the sizes to read and assign data correctly
-        if (this->m_iSizeC==NULL){
+        if (this->m_iSizeC == NULL) {
             try{ this->m_iSizeC = new IntType[3*nprocs]; }
             catch(std::bad_alloc&){
                 ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
-        if (this->m_iStartC==NULL){
+        if (this->m_iStartC == NULL) {
             try{ this->m_iStartC = new IntType[3*nprocs]; }
             catch(std::bad_alloc&){
                 ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -575,13 +562,13 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
 
     }
 
-    if (this->m_nSend==NULL){
+    if (this->m_nSend == NULL) {
         try{ this->m_nSend = new int[3*nprocs]; }
         catch(std::bad_alloc&){
              ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_nOffset==NULL){
+    if (this->m_nOffset == NULL) {
         try{ this->m_nOffset = new int[3*nprocs]; }
         catch(std::bad_alloc&){
              ierr = ThrowError("allocation failed"); CHKERRQ(ierr);

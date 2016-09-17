@@ -22,6 +22,9 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONBASE_H_
 #define _OPTIMALCONTROLREGISTRATIONBASE_H_
 
+
+
+
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
@@ -41,13 +44,14 @@
 //#include "SemiLagrangianGPU.hpp"
 
 
-namespace reg
-{
+namespace reg {
 
-class OptimalControlRegistrationBase : public OptimizationProblem
-{
 
-public:
+
+
+class OptimalControlRegistrationBase : public OptimizationProblem {
+
+ public:
 
     typedef ReadWriteReg ReadWriteType;
     typedef OptimalControlRegistrationBase Self;
@@ -97,20 +101,20 @@ public:
     PetscErrorCode SetVelocity2Zero();
 
     /*! compute deformation gradient, i.e. jacobian of deformation map */
-    PetscErrorCode ComputeDefGrad(bool write2file=false);
+    PetscErrorCode ComputeDefGrad(bool write2file = false);
 
     /*! compute determinant of deformation gradient, i.e.
         the jacobian of the deformation map */
-    PetscErrorCode ComputeDetDefGrad(bool write2file=false);
+    PetscErrorCode ComputeDetDefGrad(bool write2file = false);
 
     /*! compute deformation map */
-    PetscErrorCode ComputeDeformationMap(bool write2file=false);
+    PetscErrorCode ComputeDeformationMap(bool write2file = false);
 
     /*! compute displacement field */
-    PetscErrorCode ComputeDisplacementField(bool write2file=false);
+    PetscErrorCode ComputeDisplacementField(bool write2file = false);
 
     /*! compute synthetic test problem */
-    PetscErrorCode SetupSyntheticProb(Vec&,Vec&);
+    PetscErrorCode SetupSyntheticProb(Vec&, Vec&);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;
@@ -119,28 +123,28 @@ public:
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
 
     /*! evaluate objective functional J(v) */
-    virtual PetscErrorCode EvaluateObjective(ScalarType*,Vec) = 0;
+    virtual PetscErrorCode EvaluateObjective(ScalarType*, Vec) = 0;
 
     /*! evaluate gradient of Lagrangian L(v) */
-    virtual PetscErrorCode EvaluateGradient(Vec,Vec) = 0;
+    virtual PetscErrorCode EvaluateGradient(Vec, Vec) = 0;
 
     /*! apply Hessian matvec H\tilde{\vect{v}} */
-    virtual PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true) = 0;
+    virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale=true) = 0;
 
     /*! compute estimate of extremal eigenvalues of hessian */
-    PetscErrorCode EstimateExtremalHessEigVals(ScalarType&,ScalarType&);
+    PetscErrorCode EstimateExtremalHessEigVals(ScalarType&, ScalarType&);
 
     /*! pre processing before krylov solve */
-    PetscErrorCode PreKrylovSolve(Vec,Vec);
+    PetscErrorCode PreKrylovSolve(Vec, Vec);
 
     /*! post processing after krylov solve */
-    PetscErrorCode PostKrylovSolve(Vec,Vec);
+    PetscErrorCode PostKrylovSolve(Vec, Vec);
 
     /*! apply inverse regularization operator */
     PetscErrorCode ApplyInvRegOp(Vec, Vec);
 
     /*! solve forward problem */
-    virtual PetscErrorCode SolveForwardProblem(Vec,Vec) = 0;
+    virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
 
     /*! solve the current iteration */
     virtual PetscErrorCode FinalizeIteration(Vec) = 0;
@@ -149,56 +153,56 @@ public:
     virtual PetscErrorCode Finalize(VecField*) = 0;
 
     /*! function that checks bounds in parameter continuation */
-    virtual PetscErrorCode CheckBounds(Vec,bool&);
+    virtual PetscErrorCode CheckBounds(Vec, bool&);
 
 
-protected:
+ protected:
 
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-    PetscErrorCode CopyToAllTimePoints(Vec,Vec);
+    PetscErrorCode CopyToAllTimePoints(Vec, Vec);
     PetscErrorCode IsVelocityZero(void);
 
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();
 
-    PetscErrorCode ComputeDefGradSL(); ///< implemented via SL time integrator
+    PetscErrorCode ComputeDefGradSL();  ///< implemented via SL time integrator
 
-    PetscErrorCode ComputeDetDefGradSL(); ///< implemented via SL time integrator
-    PetscErrorCode ComputeDetDefGradRK2(); ///< implemented via RK2 time integrator
-    PetscErrorCode ComputeDetDefGradRK2A(); ///< implemented via RK2 time integrator (assymetric form)
-    PetscErrorCode ComputeDetDefGradViaDispField(); ///< implemented via RK2 time integrator (asymetric form)
+    PetscErrorCode ComputeDetDefGradSL();               ///< implemented via SL time integrator
+    PetscErrorCode ComputeDetDefGradRK2();              ///< implemented via RK2 time integrator
+    PetscErrorCode ComputeDetDefGradRK2A();             ///< implemented via RK2 time integrator (assymetric form)
+    PetscErrorCode ComputeDetDefGradViaDispField();     ///< implemented via RK2 time integrator (asymetric form)
 
-    PetscErrorCode ComputeDeformationMapSL(); ///< implementation via SL time integrator (full lagrangian)
-    PetscErrorCode ComputeDeformationMapSLRK2(); ///< implementation via SL time integrator using RK2
-    PetscErrorCode ComputeDeformationMapSLRK4(); ///< implementation via SL time integrator using RK4
-    PetscErrorCode ComputeDeformationMapRK2(); ///< implementation via RK2 time integrator
-    PetscErrorCode ComputeDeformationMapRK2A(); ///< implementation via RK2A time integrator
+    PetscErrorCode ComputeDeformationMapSL();       ///< implementation via SL time integrator (full lagrangian)
+    PetscErrorCode ComputeDeformationMapSLRK2();    ///< implementation via SL time integrator using RK2
+    PetscErrorCode ComputeDeformationMapSLRK4();    ///< implementation via SL time integrator using RK4
+    PetscErrorCode ComputeDeformationMapRK2();      ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDeformationMapRK2A();     ///< implementation via RK2A time integrator
 
-    PetscErrorCode ComputeDefMapFromDisplacement(); ///< compute deformation map from displacement
+    PetscErrorCode ComputeDefMapFromDisplacement();     ///< compute deformation map from displacement
 
-    PetscErrorCode ComputeDisplacementFieldSL(); ///< implementation via SL time integrator
-    PetscErrorCode ComputeDisplacementFieldRK2(); ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDisplacementFieldSL();    ///< implementation via SL time integrator
+    PetscErrorCode ComputeDisplacementFieldRK2();   ///< implementation via RK2 time integrator
 
     PetscErrorCode ApplyInvRegOpSqrt(Vec);
 
-    /* ! compute cfl condition */
+    /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
-    Vec m_TemplateImage; ///< data container for reference image mR
-    Vec m_ReferenceImage; ///< data container for template image mT
+    Vec m_TemplateImage;    ///< data container for reference image mR
+    Vec m_ReferenceImage;   ///< data container for template image mT
 
-    Vec m_WorkScaField1; ///< work scalar field
-    Vec m_WorkScaField2; ///< work scalar field
-    Vec m_WorkScaField3; ///< work scalar field
-    Vec m_WorkScaField4; ///< work scalar field
-    Vec m_WorkScaField5; ///< work scalar field
+    Vec m_WorkScaField1;    ///< work scalar field
+    Vec m_WorkScaField2;    ///< work scalar field
+    Vec m_WorkScaField3;    ///< work scalar field
+    Vec m_WorkScaField4;    ///< work scalar field
+    Vec m_WorkScaField5;    ///< work scalar field
 
-    VecField* m_WorkVecField1; ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField2; ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField3; ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField4; ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField5; ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField1;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField2;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField3;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField4;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField5;  ///< data container for vector field (temporary variable)
 
     TenField* m_WorkTenField1;
     TenField* m_WorkTenField2;
@@ -209,14 +213,14 @@ protected:
     ReadWriteType* m_ReadWrite;
     RegularizationType* m_Regularization;
 
-    VecField* m_VelocityField; ///< data container for velocity field (control variable)
-    VecField* m_IncVelocityField; ///< data container for incremental velocity field (incremental control variable)
+    VecField* m_VelocityField;      ///< data container for velocity field (control variable)
+    VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)
 
     bool m_VelocityIsZero;
 
     SemiLagrangianType* m_SemiLagrangianMethod;
 
-private:
+ private:
 
 
 

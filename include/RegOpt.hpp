@@ -155,6 +155,7 @@ enum RegModel{
 
 struct ReadWriteFlags{
     bool readfiles;
+    bool readvelocity;
     bool timeseries;
     bool iterates;
     bool defgrad;

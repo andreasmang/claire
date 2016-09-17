@@ -60,24 +60,24 @@ RegToolsOpt::RegToolsOpt(const RegToolsOpt& opt)
 #define __FUNCT__ "ParseArguments"
 PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
 {
-    PetscErrorCode ierr=0;
+    PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<unsigned int> nx;
     std::vector<unsigned int> np;
     std::vector<unsigned int> sigma;
     PetscFunctionBegin;
 
-    if (argc == 1){ ierr=this->Usage(); CHKERRQ(ierr); }
+    if (argc == 1){ ierr = this->Usage(); CHKERRQ(ierr); }
 
     while(argc > 1){
 
         if ( (strcmp(argv[1],"-help") == 0)
             || (strcmp(argv[1],"-h") == 0)
             || (strcmp(argv[1],"-HELP") == 0) ){
-            ierr=this->Usage(); CHKERRQ(ierr);
+            ierr = this->Usage(); CHKERRQ(ierr);
         }
         else if (strcmp(argv[1],"-advanced") == 0){
-            ierr=this->Usage(true); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
         else if(strcmp(argv[1],"-mr") == 0){
             argc--; argv++;
@@ -136,8 +136,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             }
             else{
                 msg="\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(true); CHKERRQ(ierr);
+                ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
             }
 
         }
@@ -154,8 +154,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             }
             else{
                 msg="\n\x1b[31m pde solver not implemented: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(true); CHKERRQ(ierr);
+                ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
             }
         }
         else if(strcmp(argv[1],"-sigma") == 0){
@@ -179,8 +179,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             }
             else{
                 msg="\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(); CHKERRQ(ierr);
+                ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(); CHKERRQ(ierr);
             }
 
         }
@@ -211,8 +211,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
             }
             else{
                 msg="\n\x1b[31m error in number of procs: %s\x1b[0m\n";
-                ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-                ierr=this->Usage(); CHKERRQ(ierr);
+                ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(); CHKERRQ(ierr);
             }
         }
 //        else if(strcmp(argv[1],"-usebin") == 0){
@@ -274,17 +274,17 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv)
         }
         else{
             msg="\n\x1b[31m argument not valid: %s\x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
-            ierr=this->Usage(); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str(),argv[1]); CHKERRQ(ierr);
+            ierr = this->Usage(); CHKERRQ(ierr);
         }
         argc--; argv++;
     }
 
     // check the arguments/parameters set by the user
-    ierr=this->CheckArguments(); CHKERRQ(ierr);
+    ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-    ierr=Init(this->m_NumThreads,this->m_CartGridDims,this->m_FFT.mpicomm); CHKERRQ(ierr);
+    ierr = Init(this->m_NumThreads,this->m_CartGridDims,this->m_FFT.mpicomm); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -341,7 +341,7 @@ PetscErrorCode RegToolsOpt::Initialize()
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
-    ierr=this->SuperClass::Initialize(); CHKERRQ(ierr);
+    ierr = this->SuperClass::Initialize(); CHKERRQ(ierr);
 
     this->m_RegToolsFlags.readvecfield = false;
     this->m_RegToolsFlags.readscafield = false;
@@ -471,7 +471,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
 
     }
 
-    ierr=PetscFinalize(); CHKERRQ(ierr);
+    ierr = PetscFinalize(); CHKERRQ(ierr);
     exit(0);
 
     PetscFunctionReturn(0);
@@ -488,7 +488,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
 #define __FUNCT__ "DisplayOptions"
 PetscErrorCode RegToolsOpt::DisplayOptions()
 {
-    PetscErrorCode ierr=0;
+    PetscErrorCode ierr = 0;
     int rank,indent;
     std::string msg,line;
 
@@ -548,16 +548,15 @@ PetscErrorCode RegToolsOpt::DisplayOptions()
 std::string RegToolsOpt::GetVecFieldFN(int i, int flag)
 {
 
-    if (flag == 0){
-        if      (i == 0){ return this->m_iVecFieldX1FN; }
-        else if (i == 1){ return this->m_iVecFieldX2FN; }
-        else if (i == 2){ return this->m_iVecFieldX3FN; }
+    if (flag == 0) {
+        if      (i == 0) { return this->m_iVecFieldX1FN; }
+        else if (i == 1) { return this->m_iVecFieldX2FN; }
+        else if (i == 2) { return this->m_iVecFieldX3FN; }
         else return "";
-    }
-    else if (flag == 1){
-        if      (i == 0){ return this->m_xVecFieldX1FN; }
-        else if (i == 1){ return this->m_xVecFieldX2FN; }
-        else if (i == 2){ return this->m_xVecFieldX3FN; }
+    } else if (flag == 1) {
+        if      (i == 0) { return this->m_xVecFieldX1FN; }
+        else if (i == 1) { return this->m_xVecFieldX2FN; }
+        else if (i == 2) { return this->m_xVecFieldX3FN; }
         else return "";
     }
     return "";
@@ -573,10 +572,10 @@ std::string RegToolsOpt::GetVecFieldFN(int i, int flag)
 #define __FUNCT__ "GetScaFieldFN"
 std::string RegToolsOpt::GetScaFieldFN(int flag)
 {
-    if      (flag == 0){ return this->m_iScaFieldFN; }
-    else if (flag == 1){ return this->m_xScaFieldFN; }
-    else if (flag == 2){ return this->m_RFN; }
-    else if (flag == 3){ return this->m_TFN; }
+    if      (flag == 0) { return this->m_iScaFieldFN; }
+    else if (flag == 1) { return this->m_xScaFieldFN; }
+    else if (flag == 2) { return this->m_RFN; }
+    else if (flag == 3) { return this->m_TFN; }
     return "";
 }
 
@@ -599,18 +598,18 @@ PetscErrorCode RegToolsOpt::CheckArguments()
     if (   this->m_ReadWriteFlags.defgrad
         || this->m_ReadWriteFlags.detdefgrad
         || this->m_ReadWriteFlags.defmap
-        || this->m_ReadWriteFlags.deffield ){
+        || this->m_ReadWriteFlags.deffield ) {
 
-        if ( this->m_ReadWriteFlags.xfolder.empty() ){
+        if (this->m_ReadWriteFlags.xfolder.empty()) {
             msg="\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(); CHKERRQ(ierr);
         }
 
-        if ( this->m_ReadWriteFlags.ifolder.empty() ){
+        if (this->m_ReadWriteFlags.ifolder.empty()) {
             msg="\x1b[31m input folder needs to be set (-i option) \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(); CHKERRQ(ierr);
         }
 
         this->m_PostProcPara.computedeffields = true;
@@ -623,43 +622,43 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
     if (    !this->m_iVecFieldX1FN.empty()
          && !this->m_iVecFieldX2FN.empty()
-         && !this->m_iVecFieldX3FN.empty() ){
+         && !this->m_iVecFieldX3FN.empty() ) {
         this->m_RegToolsFlags.readvecfield = true;
     }
 
-    if ( !this->m_iScaFieldFN.empty() ){
+    if (!this->m_iScaFieldFN.empty()) {
         this->m_RegToolsFlags.readscafield = true;
     }
 
-    if ( this->m_ResamplingPara.enabled ){
+    if (this->m_ResamplingPara.enabled) {
 
         if ( this->m_ResamplingPara.gridscale == -1.0 ){
             msg="\x1b[31m scale for rescaling needs to be set \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(true); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
         if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ){
             msg="\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(true); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
         if ( this->m_RegToolsFlags.readvecfield ){
 
-            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX1FN = path + "/resampled_" + filename + extension;
 
-            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX2FN = path + "/resampled_" + filename + extension;
 
-            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
@@ -668,7 +667,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
         }
 
         if ( this->m_RegToolsFlags.readscafield ){
-            ierr=GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
@@ -682,25 +681,25 @@ PetscErrorCode RegToolsOpt::CheckArguments()
 
         if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ){
             msg="\x1b[31m computation of gradient requires input vector or scalar field \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(true); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
         if ( this->m_RegToolsFlags.readvecfield ){
 /*
-            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX1FN = path + "/" + filename + "-gradx1" + extension;
 
-            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX2FN = path + "/" + filename + "-gradx2" + extension;
 
-            ierr=GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
@@ -709,7 +708,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
         }
 
         if ( this->m_RegToolsFlags.readscafield ){
-            ierr=GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
+            ierr = GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz"){
                 extension = this->m_ReadWriteFlags.extension;
             }
@@ -723,30 +722,30 @@ PetscErrorCode RegToolsOpt::CheckArguments()
     if ( this->m_PostProcPara.tscafield || this->m_PostProcPara.tlabelmap ){
 
         // transport scalar field
-        if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ){
+        if (!this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield) {
             msg="\x1b[31m solution of forward problem requires a velocity field and a scalar field \x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(true); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        ierr=GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
-        if (this->m_ReadWriteFlags.extension != ".nii.gz"){
+        ierr = GetFileName(path, filename, extension, this->m_iScaFieldFN); CHKERRQ(ierr);
+        if (this->m_ReadWriteFlags.extension != ".nii.gz") {
             extension = this->m_ReadWriteFlags.extension;
         }
         this->m_xScaFieldFN = path + "/" + filename + "-transported" + extension;
 
     }
 
-    if ( this->m_ReadWriteFlags.residual ){
+    if (this->m_ReadWriteFlags.residual) {
 
         // transport scalar field
         if ( this->m_TFN.empty() || this->m_RFN.empty() ){
             msg="\x1b[31m reference and template images need to be set\x1b[0m\n";
-            ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr=this->Usage(true); CHKERRQ(ierr);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        ierr=GetFileName(path,filename,extension,this->m_RFN); CHKERRQ(ierr);
+        ierr = GetFileName(path,filename,extension,this->m_RFN); CHKERRQ(ierr);
         if (this->m_ReadWriteFlags.extension != ".nii.gz"){
             extension = this->m_ReadWriteFlags.extension;
         }
@@ -754,7 +753,7 @@ PetscErrorCode RegToolsOpt::CheckArguments()
     }
 
 
-    ierr=Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumThreads > 0,"omp threads < 0"); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
