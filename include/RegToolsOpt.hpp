@@ -25,80 +25,83 @@
 
 #include "RegOpt.hpp"
 
-struct ResamplingPara{
+struct ResamplingPara {
     ScalarType gridscale;
     bool enabled;
 };
 
 
-struct PostProcPara{
-    bool enabled; ///< run post processing
-    bool computedeffields; ///< compute deformation fields (deformation gradient, displacement field, ...)
-    bool computegrad; ///< compute gradient of scalr field
-    bool tscafield; ///< transport scalar field (forward problem)
-    bool tlabelmap; ///< transport label map (solve forward problem)
+struct PostProcPara {
+    bool enabled;           ///< run post processing
+    bool computedeffields;  ///< compute deformation fields (deformation gradient, displacement field, ...)
+    bool computegrad;       ///< compute gradient of scalar field
+    bool computesynvel;     ///< compute synthetic velocity field
+    bool tscafield;         ///< transport scalar field (forward problem)
+    bool tlabelmap;         ///< transport label map (solve forward problem)
 };
 
 
-struct RegToolsFlags{
-    bool readvecfield; ///< read vector field
-    bool readscafield; ///< read scalar field
+struct RegToolsFlags {
+    bool readvecfield;  ///< read vector field
+    bool readscafield;  ///< read scalar field
 };
 
 
-namespace reg
-{
 
-class RegToolsOpt : public RegOpt
-{
 
-public:
+namespace reg {
 
+
+
+
+class RegToolsOpt : public RegOpt {
+ public:
     typedef RegToolsOpt Self;
     typedef RegOpt SuperClass;
 
     RegToolsOpt();
-    RegToolsOpt(int,char**);
+    RegToolsOpt(int, char**);
     RegToolsOpt(const RegToolsOpt&);
     ~RegToolsOpt();
 
-    std::string GetVecFieldFN(int,int);
+    std::string GetVecFieldFN(int, int);
     std::string GetScaFieldFN(int);
     virtual PetscErrorCode DisplayOptions(void);
-    inline RegToolsFlags GetFlags(){return this->m_RegToolsFlags;};
-    inline ResamplingPara GetResamplingPara(){return this->m_ResamplingPara;};
-    inline PostProcPara GetPostProcPara(){return this->m_PostProcPara;};
+    inline RegToolsFlags GetFlags() {return this->m_RegToolsFlags;}
+    inline ResamplingPara GetResamplingPara() {return this->m_ResamplingPara;}
+    inline PostProcPara GetPostProcPara() {return this->m_PostProcPara;}
 
-protected:
-
+ protected:
     virtual PetscErrorCode Initialize(void);
     virtual PetscErrorCode ClearMemory(void);
-    virtual PetscErrorCode ParseArguments(int,char**);
-    virtual PetscErrorCode Usage(bool advanced=false);
+    virtual PetscErrorCode ParseArguments(int, char**);
+    virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);
 
+    PostProcPara m_PostProcPara;
     RegToolsFlags m_RegToolsFlags;
     ResamplingPara m_ResamplingPara;
-    PostProcPara m_PostProcPara;
 
     std::string m_RFN;
     std::string m_TFN;
 
-    std::string m_iVecFieldX1FN; ///< x1 vector field file name
-    std::string m_iVecFieldX2FN; ///< x2 vector field file name
-    std::string m_iVecFieldX3FN; ///< x3 vector field file name
-    std::string m_iScaFieldFN; ///< input file name
+    std::string m_iVecFieldX1FN;    ///< x1 vector field file name
+    std::string m_iVecFieldX2FN;    ///< x2 vector field file name
+    std::string m_iVecFieldX3FN;    ///< x3 vector field file name
+    std::string m_iScaFieldFN;      ///< input file name
 
-    std::string m_xVecFieldX1FN; ///< x1 vector field file name
-    std::string m_xVecFieldX2FN; ///< x2 vector field file name
-    std::string m_xVecFieldX3FN; ///< x3 vector field file name
-    std::string m_xScaFieldFN; ///< input file name
-
-
+    std::string m_xVecFieldX1FN;    ///< x1 vector field file name
+    std::string m_xVecFieldX2FN;    ///< x2 vector field file name
+    std::string m_xVecFieldX3FN;    ///< x3 vector field file name
+    std::string m_xScaFieldFN;      ///< input file name
 };
 
 
-}
 
 
-#endif // _REGTOOLSOPT_H_
+}  // namespace reg
+
+
+
+
+#endif  // _REGTOOLSOPT_H_

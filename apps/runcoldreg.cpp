@@ -107,13 +107,13 @@ int main(int argc, char **argv) {
     ierr = registration->Run(); CHKERRQ(ierr);
 
     // clean up
-    if (readwrite != NULL) { delete readwrite; readwrite = NULL; }
-    if (registration != NULL) { delete registration; registration = NULL; }
-    if (mT != NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL; }
-    if (mR != NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL; }
-    if (vxi != NULL) { ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL; }
-    if (regopt != NULL) { delete regopt; regopt = NULL; }
-    if (v != NULL) { delete v; v = NULL; }
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+    if (regopt != NULL) {delete regopt; regopt = NULL;}
+    if (v != NULL) {delete v; v = NULL;}
 
     ierr = reg::Finalize(); CHKERRQ(ierr);
 
