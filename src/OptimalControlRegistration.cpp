@@ -3528,7 +3528,9 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write log file
-    ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
+    if (this->m_Opt->GetRegFlags().loggingenabled) {
+        ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__FUNCT__);
 
