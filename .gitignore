@@ -2,6 +2,7 @@
 *.tar.gz
 *.nii.gz
 *.nii
+*.log
 bin/
 obj/
 test/

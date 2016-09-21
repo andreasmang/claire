@@ -10,8 +10,7 @@
 #endif
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -22,13 +21,12 @@ namespace reg
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Assert"
-PetscErrorCode Assert(bool condition,std::string msg)
-{
-    PetscErrorCode ierr=0;
+PetscErrorCode Assert(bool condition,std::string msg) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if(condition == false){
-        ierr=ThrowError(msg); CHKERRQ(ierr);
+    if(condition == false) {
+        ierr = ThrowError(msg); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(ierr);
@@ -42,21 +40,20 @@ PetscErrorCode Assert(bool condition,std::string msg)
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetFileName"
-PetscErrorCode GetFileName(std::string& filename, std::string file)
-{
-    PetscErrorCode ierr=0;
+PetscErrorCode GetFileName(std::string& filename, std::string file) {
+    PetscErrorCode ierr = 0;
     std::string path;
     size_t sep;
     PetscFunctionBegin;
 
     sep = file.find_last_of("\\/");
 
-    if (sep != std::string::npos){
+    if (sep != std::string::npos) {
         path=file.substr(0,sep);
         filename=file.substr(sep + 1);
     }
 
-    if (filename == ""){ filename = file; }
+    if (filename == "") { filename = file; }
 
     PetscFunctionReturn(ierr);
 }
@@ -69,12 +66,8 @@ PetscErrorCode GetFileName(std::string& filename, std::string file)
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetFileName"
-PetscErrorCode GetFileName( std::string& path,
-                            std::string& filename,
-                            std::string& extension,
-                            std::string file)
-{
-
+PetscErrorCode GetFileName(std::string& path, std::string& filename,
+                           std::string& extension, std::string file) {
     PetscErrorCode ierr = 0;
     std::string::size_type idx;
 
@@ -82,11 +75,11 @@ PetscErrorCode GetFileName( std::string& path,
 
     // get path
     idx = file.find_last_of("\\/");
-    if (idx != std::string::npos){
+    if (idx != std::string::npos) {
         path = file.substr(0,idx);
         filename = file.substr(idx + 1);
     }
-    if (filename == ""){ filename = file; }
+    if (filename == "") { filename = file; }
 
     // get extension
     idx = filename.rfind(".");
@@ -95,7 +88,7 @@ PetscErrorCode GetFileName( std::string& path,
         extension = filename.substr(idx+1);
 
         // handle zipped files
-        if (strcmp(extension.c_str(),"gz") == 0){
+        if (strcmp(extension.c_str(),"gz") == 0) {
 
             filename = filename.substr(0,idx);
             idx = filename.rfind(".");
@@ -108,7 +101,7 @@ PetscErrorCode GetFileName( std::string& path,
         filename  = filename.substr(0,idx);
 
     }
-    else{ ierr=ThrowError("no extension found"); CHKERRQ(ierr); }
+    else{ ierr = ThrowError("no extension found"); CHKERRQ(ierr); }
 
     PetscFunctionReturn(ierr);
 }
@@ -121,8 +114,7 @@ PetscErrorCode GetFileName( std::string& path,
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "FileExists"
-bool FileExists(const std::string& filename)
-{
+bool FileExists(const std::string& filename) {
     struct stat buffer;
     return (stat(filename.c_str(), &buffer) == 0);
 }
@@ -135,9 +127,8 @@ bool FileExists(const std::string& filename)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Msg"
-PetscErrorCode Msg(std::string msg)
-{
-    PetscErrorCode ierr=0;
+PetscErrorCode Msg(std::string msg) {
+    PetscErrorCode ierr = 0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -146,7 +137,7 @@ PetscErrorCode Msg(std::string msg)
     msg = " "  + ss.str() + "\n";
 
     // display message
-    ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -160,9 +151,8 @@ PetscErrorCode Msg(std::string msg)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DbgMsg"
-PetscErrorCode DbgMsg(std::string msg)
-{
-    PetscErrorCode ierr=0;
+PetscErrorCode DbgMsg(std::string msg) {
+    PetscErrorCode ierr = 0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -171,7 +161,7 @@ PetscErrorCode DbgMsg(std::string msg)
     msg = "\x001b[90m[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
-    ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -184,9 +174,8 @@ PetscErrorCode DbgMsg(std::string msg)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "WrngMsg"
-PetscErrorCode WrngMsg(std::string msg)
-{
-    PetscErrorCode ierr=0;
+PetscErrorCode WrngMsg(std::string msg) {
+    PetscErrorCode ierr = 0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -195,7 +184,7 @@ PetscErrorCode WrngMsg(std::string msg)
     msg = "\x1b[33m[ " + ss.str() + "]\x1b[0m\n";
 
     // display error
-    ierr=PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -208,14 +197,13 @@ PetscErrorCode WrngMsg(std::string msg)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ThrowError"
-PetscErrorCode ThrowError(std::string msg)
-{
-    PetscErrorCode ierr=0;
+PetscErrorCode ThrowError(std::string msg) {
+    PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
     std::string errmsg = "\x1b[31mERROR: " + msg + "\x1b[0m";
-    ierr=PetscError(PETSC_COMM_WORLD,__LINE__,PETSC_FUNCTION_NAME,__FILE__,1,PETSC_ERROR_INITIAL,errmsg.c_str());
+    ierr = PetscError(PETSC_COMM_WORLD,__LINE__,PETSC_FUNCTION_NAME,__FILE__,1,PETSC_ERROR_INITIAL,errmsg.c_str());
 
     PetscFunctionReturn(ierr);
 }
@@ -228,10 +216,9 @@ PetscErrorCode ThrowError(std::string msg)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "MPIERRQ"
-PetscErrorCode MPIERRQ(int cerr)
-{
+PetscErrorCode MPIERRQ(int cerr) {
     int rank;
-    PetscErrorCode ierr=0;
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -242,12 +229,11 @@ PetscErrorCode MPIERRQ(int cerr)
 
         MPI_Error_class(cerr, &error_class);
         MPI_Error_string(error_class, error_string, &length_of_error_string);
-        ierr=ThrowError(error_string); CHKERRQ(ierr);
+        ierr = ThrowError(error_string); CHKERRQ(ierr);
 
     }
 
     PetscFunctionReturn(ierr);
-
 }
 
 
@@ -259,22 +245,20 @@ PetscErrorCode MPIERRQ(int cerr)
 #ifdef REG_HAS_PNETCDF
 #undef __FUNCT__
 #define __FUNCT__ "NCERRQ"
-PetscErrorCode NCERRQ(int cerr)
-{
+PetscErrorCode NCERRQ(int cerr) {
     int rank;
-    PetscErrorCode ierr=0;
+    PetscErrorCode ierr = 0;
     std::stringstream ss;
     PetscFunctionBegin;
 
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     if (cerr != NC_NOERR) {
         ss << ncmpi_strerror(cerr);
-        ierr=ThrowError(ss.str()); CHKERRQ(ierr);
+        ierr = ThrowError(ss.str()); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(ierr);
-
 }
 #endif
 
@@ -286,12 +270,10 @@ PetscErrorCode NCERRQ(int cerr)
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "isleep"
-void isleep( unsigned int nanosec )
-{
+void isleep( unsigned int nanosec ) {
     clock_t wait = (clock_t) nanosec;
     clock_t start_time = clock();
-    while( clock() != start_time + wait ){};
-
+    while( clock() != start_time + wait ) {};
     return;
 }
 
@@ -303,8 +285,7 @@ void isleep( unsigned int nanosec )
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Init"
-PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
-{
+PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm) {
     PetscErrorCode ierr;
     int nprocs,ompthreads,np;
     std::stringstream ss;
@@ -318,7 +299,7 @@ PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
     ompthreads=omp_get_max_threads();
     ss << "max number of openmp threads is not a match (user,set)=("
        << nthreads <<"," << ompthreads <<")\n";
-    ierr=Assert(ompthreads == nthreads,ss.str().c_str()); CHKERRQ(ierr);
+    ierr = Assert(ompthreads == nthreads,ss.str().c_str()); CHKERRQ(ierr);
     ss.str( std::string() );
     ss.clear();
 
@@ -327,7 +308,7 @@ PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
     np = c_grid[0]*c_grid[1];
 
     // check number of procs
-    if(np!=nprocs){
+    if(np!=nprocs) {
 
         // update cartesian grid layout
         c_grid[0]=0;
@@ -336,7 +317,7 @@ PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
 
     }
 
-    if (c_comm != NULL){ MPI_Comm_free(&c_comm); c_comm=NULL; }
+    if (c_comm != NULL) { MPI_Comm_free(&c_comm); c_comm=NULL; }
 
     // initialize accft
     accfft_create_comm(PETSC_COMM_WORLD,c_grid,&c_comm);
@@ -353,14 +334,13 @@ PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"
-PetscErrorCode Finalize()
-{
+PetscErrorCode Finalize() {
     PetscErrorCode ierr;
 
     accfft_cleanup();
 
     // clean up petsc
-    ierr=PetscFinalize(); CHKERRQ(ierr);
+    ierr = PetscFinalize(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -373,29 +353,28 @@ PetscErrorCode Finalize()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "VecView"
-PetscErrorCode VecView(Vec x)
-{
+PetscErrorCode VecView(Vec x) {
     PetscErrorCode ierr;
-    ScalarType *p_x=NULL;
+    ScalarType *p_x = NULL;
     IntType nl;
     int procid;
     PetscFunctionBegin;
 
-    ierr=VecGetLocalSize(x,&nl); CHKERRQ(ierr);
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(x,&nl); CHKERRQ(ierr);
+    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&procid);
 
-    if (procid == 0){
+    if (procid == 0) {
         std::cout<< " VEC VIEW"<<std::endl;
         std::cout<< " ";
-        for (IntType i = 0; i < nl; ++i){
+        for (IntType i = 0; i < nl; ++i) {
             std::cout<< p_x[i] <<" ";
         }
         std::cout<<std::endl;
     }
 
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -408,15 +387,14 @@ PetscErrorCode VecView(Vec x)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "VecCreate"
-PetscErrorCode VecCreate(Vec& x,IntType nl, IntType ng)
-{
-    PetscErrorCode ierr;
+PetscErrorCode VecCreate(Vec& x,IntType nl, IntType ng) {
+    PetscErrorCode ierr = 0;
 
-    if(x!=NULL){ ierr=VecDestroy(&x); CHKERRQ(ierr); x=NULL; }
+    if( x!= NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
 
-    ierr=VecCreate(PETSC_COMM_WORLD,&x); CHKERRQ(ierr);
-    ierr=VecSetSizes(x,nl,ng); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(x); CHKERRQ(ierr);
+    ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
+    ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
+    ierr = VecSetFromOptions(x); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -429,8 +407,7 @@ PetscErrorCode VecCreate(Vec& x,IntType nl, IntType ng)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Rescale"
-PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout)
-{
+PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout) {
     PetscErrorCode ierr;
     ScalarType xmin,xmax,xshift,xscale;
     std::stringstream ss;
@@ -438,16 +415,16 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout)
     PetscFunctionBegin;
 
     // get max and min values
-    ierr=VecMin(x,NULL,&xmin); CHKERRQ(ierr);
-    ierr=VecMax(x,NULL,&xmax); CHKERRQ(ierr);
+    ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
+    ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
 
     xshift = xminout - xmin;
-    ierr=VecShift(x,xshift); CHKERRQ(ierr);
+    ierr = VecShift(x,xshift); CHKERRQ(ierr);
 
     xmax = (xmax != 0.0) ? xmax : 1.0;
     xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax;
 
-    ierr=VecScale(x,xscale); CHKERRQ(ierr);
+    ierr = VecScale(x,xscale); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -458,13 +435,12 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout)
 /********************************************************************
  * @brief parse string of NUMxNUMxNUM into a vector
  *******************************************************************/
-std::vector<unsigned int> String2Vec( const std::string & str )
-{
+std::vector<unsigned int> String2Vec(const std::string & str) {
     std::vector<unsigned int> vect;
     int ival;
     std::string::size_type xpos = str.find('x',0);
 
-    if (xpos == std::string::npos){
+    if (xpos == std::string::npos) {
         // only one uint
         vect.push_back( static_cast<unsigned int>( atoi(str.c_str()) ));
         return vect;
@@ -474,16 +450,15 @@ std::vector<unsigned int> String2Vec( const std::string & str )
     ival = atoi((str.substr(0,xpos)).c_str());
     vect.push_back( static_cast<unsigned int>(ival) );
 
-    while(true){
+    while (true) {
         std::string::size_type newxpos = xpos;
         xpos = str.find('x',newxpos+1);
 
-        if (xpos == std::string::npos){
+        if (xpos == std::string::npos) {
             ival = atoi((str.substr(newxpos+1,str.length()-newxpos-1)).c_str());
             vect.push_back( static_cast<unsigned int>(ival) );
             return vect;
         }
-
         ival = atoi( (str.substr(newxpos+1,xpos-newxpos-1)).c_str() );
         vect.push_back( static_cast<unsigned int>(ival));
     }

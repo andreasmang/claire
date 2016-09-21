@@ -96,6 +96,7 @@ int main(int argc, char **argv) {
 
 /********************************************************************
  * @brief compute gradient of scalar field
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeGrad"
@@ -162,8 +163,11 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
 }
 
 
+
+
 /********************************************************************
  * @brief post process image registration results
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RunPostProcessing"
@@ -252,8 +256,11 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
 }
 
 
+
+
 /********************************************************************
  * @brief post process image registration results
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeDefFields"
@@ -325,6 +332,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
 
 /********************************************************************
  * @brief resample scalar field
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResampleScaField"
@@ -429,6 +437,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
 /********************************************************************
  * @brief resample vector field
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResampleVecField"
@@ -542,6 +551,7 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
 
 /********************************************************************
  * @brief solve forward problem
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SolveForwardProblem"
@@ -550,7 +560,6 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     IntType nl;
     std::string fn;
     std::stringstream ss;
-    int rank;
     reg::VecField* v = NULL;
     Vec m0 = NULL, m1 = NULL, vxi = NULL;
     ScalarType *p_m1 = NULL;
@@ -566,15 +575,12 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
     // read velocity components
     fn = regopt->GetScaFieldFN(0);
     ierr = readwrite->Read(&m0, fn); CHKERRQ(ierr);
     ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
 
     if ( !regopt->SetupDone() ) { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
-
     nl = regopt->GetDomainPara().nlocal;
 
     // do allocation
@@ -623,7 +629,6 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
         ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
     }
 
-
     // write resampled scalar field to file
     fn = regopt->GetScaFieldFN(1);
     ierr = readwrite->Write(m1, fn); CHKERRQ(ierr);
@@ -644,6 +649,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
 
 /********************************************************************
  * @brief compute residual
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeResidual"
@@ -715,6 +721,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
 
 /********************************************************************
  * @brief compute synthetic velocity field
+ * @param[in] regopt container for user defined options
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeSynVel"
@@ -730,12 +737,13 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
 
     regopt->Enter(__FUNCT__);
 
+    ierr = regopt->DoSetup(); CHKERRQ(ierr);
+
     // allocate class for io
     try { readwrite = new reg::ReadWriteReg(regopt); }
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
-    ierr = regopt->DoSetup(); CHKERRQ(ierr);
 
     // allocate class for io
     try { v = new reg::VecField(regopt); }
@@ -764,25 +772,21 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
 
                 // compute linear / flat index
                 i = reg::GetLinearIndex(i1, i2, i3, regopt->GetDomainPara().isize);
+                // compute the velocity field
                 if (problem == 0) {
                     ScalarType v0 = 0.5;
-                    // compute the velocity field
                     p_vx1[i] = v0*sin(x3)*cos(x2)*sin(x2);
                     p_vx2[i] = v0*sin(x1)*cos(x3)*sin(x3);
                     p_vx3[i] = v0*sin(x2)*cos(x1)*sin(x1);
-                }
-                else if (problem == 1) {
-                    // compute the velocity field
+                } else if (problem == 1) {
                     p_vx1[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
                     p_vx2[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
                     p_vx3[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
-                }
-                else if (problem == 3) {
+                } else if (problem == 3) {
                     p_vx1[i] = cos(x1)*sin(x2);
                     p_vx2[i] = cos(x2)*sin(x1);
                     p_vx3[i] = cos(x1)*sin(x3);
-                }
-                else if (problem == 4) {
+                } else if (problem == 4) {
                     p_vx1[i] = cos(x2)*cos(x3);
                     p_vx2[i] = sin(x3)*sin(x1);
                     p_vx3[i] = cos(x1)*cos(x2);

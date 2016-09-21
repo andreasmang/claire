@@ -238,7 +238,9 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
     // per default we always use an initial velocity field that is zero
     // to compute the initial gradient and velocity field
-    if (!this->m_Opt->GetOptPara().nonzerog0) {
+    if (this->m_Opt->GetOptPara().nonzerog0) {
+        ierr = WrngMsg("using non-zero initial guess to compute gradient"); CHKERRQ(ierr);
+    } else {
         // set components of velocity field to zero (the initial objective
         // value and gradient norm is evaluated for a zero velocity field)
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
@@ -302,7 +304,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 #undef __FUNCT__
 #define __FUNCT__ "SolveForwardProblem"
 PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     ScalarType *p_m1 = NULL, *p_m = NULL;
     IntType nt, nl;
     PetscFunctionBegin;
@@ -322,7 +324,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     // copy memory for m_1
     ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1);}
+    try {std::copy(p_m+nt*nl, p_m+(nt+1)*nl, p_m1);}
     catch(std::exception&) {
         ierr = ThrowError("copy failed"); CHKERRQ(ierr);
     }
@@ -331,7 +333,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -572,10 +574,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjective"
-PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec v)
-{
-    PetscErrorCode ierr;
-    ScalarType D,R,hd;
+PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec v) {
+    PetscErrorCode ierr = 0;
+    ScalarType D = 0.0, R = 0.0, hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -605,10 +606,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // evaluate the regularization model
     ierr = this->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
 
-    R=0.0;
-    // evaluate the regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (!this->m_VelocityIsZero) {
+        // evaluate the regularization model
         ierr = this->m_Regularization->EvaluateFunctional(&R, this->m_VelocityField); CHKERRQ(ierr);
     }
 
@@ -623,7 +623,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -688,7 +688,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
         // \vect{g}_v = \D{K}[\vect{b}]
         ierr = this->m_WorkVecField2->GetComponents(dvJ); CHKERRQ(ierr);
     } else {
-
         // evaluate / apply gradient operator for regularization
         ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
 
@@ -811,7 +810,6 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
         // compute numerical integration (trapezoidal rule)
         for (IntType j = 0; j <= nt; ++j) {
-
             IntType k     = j*nl;
             IntType knext = (j+1)*nl;
 
