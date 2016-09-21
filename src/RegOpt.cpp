@@ -28,7 +28,6 @@
 
 
 
-
 namespace reg {
 
 
@@ -203,6 +202,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
     this->m_CartGridDims[1] = opt.m_CartGridDims[1];
 
+    //this->m_Log = new RegLogger();
+
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
 }
@@ -350,6 +351,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.timeseries = true;
         } else if (strcmp(argv[1], "-xlog") == 0) {
             this->m_RegFlags.loggingenabled = true;
+        } else if (strcmp(argv[1], "-logkrylovres") == 0) {
+//            this->m_Log->Enable(LOGKSPRES);
+        } else if (strcmp(argv[1], "-logresidual") == 0) {
+//            this->m_Log->Enable(LOGRES);
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
             this->m_RegFlags.detdefgradfromdeffield = true;
         } else if (strcmp(argv[1], "-preset") == 0) {
@@ -603,6 +608,12 @@ PetscErrorCode RegOpt::ClearMemory() {
         MPI_Comm_free(&this->m_FFT.mpicomm);
     }
 
+/*
+    if (this->m_Log != NULL){
+        delete this->m_Log;
+        this->m_Log = NULL;
+    }
+*/
     PetscFunctionReturn(0);
 }
 
@@ -716,9 +727,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.deffield = false;        ///< write out deformation field / displacement field
     this->m_ReadWriteFlags.extension = ".nii.gz";   ///< file extension for output
 
-    this->m_RegFlags.loggingenabled = false;            ///< switch on/off logging
-    this->m_RegFlags.smoothingenabled = true;           ///< switch on/off image smoothing
-    this->m_RegFlags.detdefgradfromdeffield = false;    ///< flag for computing determinant of deformation field from displacement field u
+    this->m_RegFlags.loggingenabled = false;            ///< enable/disable logging
+    this->m_RegFlags.smoothingenabled = true;           ///< enable/disable image smoothing
+    this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
     this->m_RegFlags.invdefgrad = false;
 
     // parameter continuation
@@ -753,6 +764,12 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
 
+/*    if (this->m_Log != NULL) {
+        delete this->m_Log;
+        this->m_Log = NULL;
+    }
+    this->m_Log = new RegLogger();
+*/
     this->m_Indent = 0;
     this->m_LineLength = 101;
 
@@ -912,6 +929,12 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -nthreads <int>           number of threads (default: 1)" << std::endl;
         std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results" << std::endl;
         std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " logging" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -logresidual              log residual (user needs to set '-x' option)" << std::endl;
+        std::cout << " -logkrylovres             log residual of krylov subpsace method (user needs to set '-x' option)" << std::endl;
+        std::cout << " -logworkload              log cpu time and counters (user needs to set '-x' option)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
@@ -1715,7 +1738,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
 #undef __FUNCT__
 #define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     int nxi[3], isize[3], istart[3], osize[3], ostart[3];
 
     PetscFunctionBegin;
@@ -1740,7 +1763,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1752,7 +1775,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
 #undef __FUNCT__
 #define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     int nxi[3], isizei[3], istarti[3], osize[3], ostart[3];
 
     PetscFunctionBegin;
@@ -1776,7 +1799,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1804,6 +1827,7 @@ ScalarType RegOpt::ComputeFFTScale() {
 #undef __FUNCT__
 #define __FUNCT__ "ResetTimers"
 PetscErrorCode RegOpt::ResetTimers() {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
@@ -1832,7 +1856,7 @@ PetscErrorCode RegOpt::ResetTimers() {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1844,6 +1868,7 @@ PetscErrorCode RegOpt::ResetTimers() {
 #undef __FUNCT__
 #define __FUNCT__ "ResetTimer"
 PetscErrorCode RegOpt::ResetTimer(TimerType id) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
@@ -1856,7 +1881,7 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -2060,7 +2085,7 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id) {
 #define __FUNCT__ "WriteLogFile"
 PetscErrorCode RegOpt::WriteLogFile() {
     PetscErrorCode ierr = 0;
-    std::string filename, fn, line;
+    std::string fn, line, path;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
     int rank, nnum, nstr, nproc;
@@ -2069,19 +2094,20 @@ PetscErrorCode RegOpt::WriteLogFile() {
 
     this->Enter(__FUNCT__);
 
+    //ierr = Assert(this->m_Log != NULL, "null pointer"); CHKERRQ(ierr);
+    //path = this->m_ReadWriteFlags.xfolder;
+    //ierr = this->m_Log->Write(path); CHKERRQ(ierr);
+
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
-
 
     line = std::string(this->m_LineLength, '-');
 
     // write out logfile
     if (rank == 0) {
         nnum = 20; nstr = 20;
-        filename = this->m_ReadWriteFlags.xfolder + "registration-performance";
-        fn = filename + ".log";
-
+        fn = path + "registration-performance.log";
 
         // create output file
         logwriter.open(fn.c_str());
@@ -2465,5 +2491,8 @@ PetscErrorCode RegOpt::DisplayTimeToSolution() {
 
 
 }  // namespace reg
+
+
+
 
 #endif  // _REGOPT_CPP_

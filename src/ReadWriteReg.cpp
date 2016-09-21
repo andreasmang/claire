@@ -9,8 +9,7 @@
 
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -116,8 +115,7 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Read"
-PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename)
-{
+PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     std::string file, msg;
     PetscFunctionBegin;

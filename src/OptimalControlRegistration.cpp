@@ -54,6 +54,7 @@ OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
 PetscErrorCode OptimalControlRegistration::Initialize(void) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_TemplateImage = NULL;       ///< reference iamge
@@ -82,7 +83,7 @@ PetscErrorCode OptimalControlRegistration::Initialize(void) {
 
     this->m_Regularization = NULL;
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -216,7 +217,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
     // set components of velocity field to zero (the initial objective
     // value and gradient norm is evaluated for a zero velocity field)
-    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+//    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     // get global and local sizes
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -317,7 +318,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 #undef __FUNCT__
 #define __FUNCT__ "SetStateVariable"
 PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     IntType nl, ng, nt;
 
     PetscFunctionBegin;
@@ -344,16 +345,13 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
     if (this->m_Opt->GetPDESolver().type == SL) {
-
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
-
         if (this->m_WorkVecField1 == NULL) {
             try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
             catch (std::bad_alloc&) {
@@ -368,7 +366,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -379,10 +377,8 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetStateVariable"
-PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m)
-{
-    PetscErrorCode ierr;
-
+PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -394,7 +390,7 @@ PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m)
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -3392,26 +3388,24 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
 #define __FUNCT__ "Finalize"
 PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 {
-    PetscErrorCode ierr;
-    std::string filename,fn,ext;
-    IntType nl,ng,nt;
-    int rank,nproc,nstr,nnum;
+    PetscErrorCode ierr = 0;
+    std::string filename, fn, ext;
+    IntType nl, ng, nt, i;
+    int rank, nproc;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
-    ScalarType mRmT_2,mRmT_infty,mRm1_2,
-                mRm1_infty,mR_2,mR_infty,
-                drrel_infty,drrel_2;
-    ScalarType *p_m1=NULL,*p_mt=NULL,*p_mr=NULL,*p_m=NULL;
+    ScalarType value;
+    ScalarType *p_m1 = NULL, *p_mt = NULL, *p_mr = NULL, *p_m = NULL;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get rank
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-    MPI_Comm_size(PETSC_COMM_WORLD,&nproc);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
 
     // get sizes
     nt = this->m_Opt->GetDomainPara().nt;
@@ -3444,11 +3438,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     // process timers
     ierr = this->m_Opt->ProcessTimers(); CHKERRQ(ierr);
 
-    // write log file
-    if (this->m_Opt->GetRegFlags().loggingenabled) {
-        ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
-    }
-
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
@@ -3463,8 +3452,12 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         || this->m_Opt->GetReadWriteFlags().deftemplate ) {
 
         ierr = VecWAXPY(this->m_WorkScaField1, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_WorkScaField1, NORM_2, &mRmT_2); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_WorkScaField1, NORM_INFINITY, &mRmT_infty); CHKERRQ(ierr);
+
+        ierr = VecNorm(this->m_WorkScaField1, NORM_2, &value); CHKERRQ(ierr);
+        //this->m_Opt->GetLogger()->SetResidual(0,value); CHKERRQ(ierr);
+
+        ierr = VecNorm(this->m_WorkScaField1, NORM_INFINITY, &value); CHKERRQ(ierr);
+        //this->m_Opt->GetLogger()->SetResidual(1,value); CHKERRQ(ierr);
 
         // deformed template out (compute solution of state equation)
         ierr = this->SolveStateEquation(); CHKERRQ(ierr);
@@ -3483,8 +3476,12 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
         // ||m_R - m_1||
         ierr = VecWAXPY(this->m_WorkScaField2, -1.0, this->m_WorkScaField1, this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_WorkScaField2, NORM_2, &mRm1_2); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_WorkScaField2, NORM_INFINITY, &mRm1_infty); CHKERRQ(ierr);
+
+        ierr = VecNorm(this->m_WorkScaField2, NORM_2, &value); CHKERRQ(ierr);
+        //this->m_Opt->GetLogger()->SetResidual(2,value); CHKERRQ(ierr);
+
+        ierr = VecNorm(this->m_WorkScaField2, NORM_INFINITY, &value); CHKERRQ(ierr);
+        //this->m_Opt->GetLogger()->SetResidual(3,value); CHKERRQ(ierr);
     }
 
     // write deformed template image to file
@@ -3495,21 +3492,21 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
     // write residual images to file
     if (this->m_Opt->GetReadWriteFlags().residual) {
 
-        ierr = VecGetArray(this->m_ReferenceImage,&p_mr); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
-        ierr = VecGetArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-        for (IntType i=0; i < nl; ++i) {
+        ierr = VecGetArray(this->m_WorkScaField2, &p_m); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);
+        for (i = 0; i < nl; ++i) {
             p_m[i] = 1.0 - PetscAbs(p_m1[i] - p_mr[i]);
         }
-        ierr = VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-        ierr = VecRestoreArray(this->m_WorkScaField2,&p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_WorkScaField2, &p_m); CHKERRQ(ierr);
 
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField2,"residual-t=0"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaField2, "residual-t=0"+ext); CHKERRQ(ierr);
 
         ierr = VecGetArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
         ierr = VecGetArray(this->m_WorkScaField2, &p_m); CHKERRQ(ierr);
-        for (IntType i=0; i < nl; ++i) {
+        for (i = 0; i < nl; ++i) {
             p_m[i] = 1.0 - PetscAbs(p_mt[i] - p_mr[i]);
         }
         ierr = VecRestoreArray(this->m_WorkScaField2, &p_m); CHKERRQ(ierr);
@@ -3554,65 +3551,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
         ierr = this->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetRegFlags().loggingenabled) {
-
-        ierr = VecNorm(this->m_ReferenceImage, NORM_2, &mR_2); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_ReferenceImage, NORM_INFINITY, &mR_infty); CHKERRQ(ierr);
-
-        mRmT_infty = (mRmT_infty > 0.0) ? mRmT_infty : 1.0;
-        mRmT_2     = (mRmT_2     > 0.0) ? mRmT_2     : 1.0;
-
-        drrel_infty = mRm1_infty/mRmT_infty;
-        drrel_2 = mRm1_2/mRmT_2;
-
-        if (rank == 0) {
-
-            nnum = 20; nstr = 20;
-            filename = this->m_Opt->GetReadWriteFlags().xfolder + "registration-performance-residuals";
-            fn = filename + ".log";
-
-            // create output file
-            logwriter.open(fn.c_str());
-            ierr = Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
-
-            ss  << std::scientific << std::left
-                << std::setw(nstr) << "||mR-mT||_2" << std::right
-                << std::setw(nnum) << mRmT_2;
-            logwriter << ss.str() << std::endl;
-            ss.clear(); ss.str(std::string());
-
-            ss  << std::scientific << std::left
-                << std::setw(nstr) << "||mR-mT||_infty" << std::right
-                << std::setw(nnum) << mRmT_infty;
-            logwriter << ss.str() << std::endl;
-            ss.clear(); ss.str(std::string());
-
-            ss  << std::scientific << std::left
-                << std::setw(nstr) << "||mR-m1||_2" << std::right
-                << std::setw(nnum) << mRm1_2;
-            logwriter << ss.str() << std::endl;
-            ss.clear(); ss.str(std::string());
-
-            ss  << std::scientific << std::left
-                << std::setw(nstr) << "||mR-m1||_infty" << std::right
-                << std::setw(nnum) << mRm1_infty;
-            logwriter << ss.str() << std::endl;
-            ss.clear(); ss.str(std::string());
-
-            ss  << std::scientific << std::left
-                << std::setw(nstr) << "||mR-m1||_2,rel" << std::right
-                << std::setw(nnum) << drrel_2;
-            logwriter << ss.str() << std::endl;
-            ss.clear(); ss.str(std::string());
-
-            ss  << std::scientific << std::left
-                << std::setw(nstr) << "||mR-m1||_infty,rel" << std::right
-                << std::setw(nnum) << drrel_infty;
-            logwriter << ss.str() << std::endl;
-            ss.clear(); ss.str(std::string());
-
-        }
-    }
+    // write log file
+    ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -3624,6 +3564,9 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v)
 
 
 } // end of name space
+
+
+
 
 #endif // _OPTIMALCONTROLREGISTRATION_CPP_
 

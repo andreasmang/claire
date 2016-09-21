@@ -22,7 +22,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-// #define _REG_DEBUG_
+//  #define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -32,8 +32,14 @@
 
 // local includes
 #include "RegUtils.hpp"
+#include "RegLogger.hpp"
+
+
+
 
 namespace reg {
+
+
 
 
 // flags for hyperbolic PDE solvers
@@ -304,6 +310,7 @@ struct PDESolver{
 
 
 
+
 class RegOpt {
  public:
     typedef RegOpt Self;
@@ -324,6 +331,7 @@ class RegOpt {
                *this->m_Domain.hx[2];
     }
 
+//    inline RegLogger* GetLogger() {return this->m_Log;}
     inline Domain GetDomainPara() {return this->m_Domain;}
     inline GridCont GetGridContPara() {return this->m_GridCont;}
     inline ScaleCont GetScaleContPara() {return this->m_ScaleCont;}
@@ -467,6 +475,7 @@ class RegOpt {
     RegFlags m_RegFlags;                ///< flags for registration
     HessianMatVecType m_HessianMatVecType;
     ReadWriteFlags m_ReadWriteFlags;
+//    RegLogger* m_Log;
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];

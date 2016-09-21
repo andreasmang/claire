@@ -360,10 +360,11 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced)
         std::cout << " -invdefgrad               compute inverse of determinant of deformation gradient (input: velocity field)"<<std::endl;
         std::cout << " -deffield                 compute displacement field u (input: velocity field)"<<std::endl;
         std::cout << " -defmap                   compute deformation map y (input: velocity field)"<<std::endl;
-        std::cout << " -grad                     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
+        std::cout << " -tscafield                transport scalar field (input: velocity field and scalar field)"<<std::endl;
         std::cout << " -residual                 compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
         // ####################### advanced options #######################
         if (advanced) {
+        std::cout << " -grad                     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
         }
