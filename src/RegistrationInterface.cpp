@@ -193,7 +193,6 @@ PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw) {
     this->m_ReadWrite = rw;
 
     PetscFunctionReturn(ierr);
-
 }
 
 
@@ -277,7 +276,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     }
 
     // allocate class for io
-    try{ this->m_Optimizer = new OptimizerType(this->m_Opt); }
+    try {this->m_Optimizer = new OptimizerType(this->m_Opt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -285,8 +284,9 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     // set up optimization problem
     ierr = this->SetupRegProblem(); CHKERRQ(ierr);
 
+    // reset/setup preprocessing
     if (this->m_PreProc != NULL) {
-        delete this->m_PreProc; this->m_PreProc=NULL;
+        delete this->m_PreProc; this->m_PreProc = NULL;
     }
     try{this->m_PreProc = new PreProcReg(this->m_Opt);}
     catch (std::bad_alloc&) {
@@ -294,10 +294,10 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     }
 
     if (this->m_Opt->GetKrylovSolverPara().pctype != NOPC) {
+        // reset/setup preconditioner
         if (this->m_Precond != NULL) {
             delete this->m_Precond; this->m_Precond = NULL;
         }
-        // allocate preconditioner
         try {this->m_Precond = new PrecondReg(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -397,7 +397,6 @@ PetscErrorCode RegistrationInterface::Run() {
                                     "||gradient||_2,rel","||gradient||_2","step"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(),'-') << std::endl;
 
-
     // switch between solvers we have to solve optimization problem
     if ( this->m_Opt->GetParaCont().enabled ) {
         ierr = this->RunSolverRegParaCont(); CHKERRQ(ierr);
@@ -424,7 +423,6 @@ PetscErrorCode RegistrationInterface::Run() {
     }
 
     ierr = this->DispLevelMsg("optimization done",rank); CHKERRQ(ierr);
-
     ierr = this->Finalize(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
@@ -479,8 +477,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         }
 
         // rescale images
-        ierr = Rescale(mR,0.0,1.0); CHKERRQ(ierr);
-        ierr = Rescale(mT,0.0,1.0); CHKERRQ(ierr);
+        ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+        ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
         ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
@@ -515,8 +513,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
     // destroy vectors
-    if (mR!=NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); }
-    if (mT!=NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); }
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -532,7 +530,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 #undef __FUNCT__
 #define __FUNCT__ "RunSolverRegParaCont"
 PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL;
 
     PetscFunctionBegin;
@@ -548,7 +546,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
 
     // presmoothing, if necessary
     if (this->m_Opt->GetReadWriteFlags().readfiles) {
-
         ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -620,8 +617,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
     }
 
     // destroy vector
-    if (mR!=NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); }
-    if (mT!=NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); }
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
     this->m_Opt->Exit(__FUNCT__);
 

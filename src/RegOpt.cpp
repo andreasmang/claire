@@ -203,7 +203,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
     this->m_CartGridDims[1] = opt.m_CartGridDims[1];
 
-    //this->m_Log = new RegLogger();
+//    this->m_Log = new RegLogger();
 
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
@@ -2112,9 +2112,9 @@ PetscErrorCode RegOpt::WriteLogFile() {
 
     this->Enter(__FUNCT__);
 
-    //ierr = Assert(this->m_Log != NULL, "null pointer"); CHKERRQ(ierr);
-    //path = this->m_ReadWriteFlags.xfolder;
-    //ierr = this->m_Log->Write(path); CHKERRQ(ierr);
+//    ierr = Assert(this->m_Log != NULL, "null pointer"); CHKERRQ(ierr);
+//    path = this->m_ReadWriteFlags.xfolder;
+//    ierr = this->m_Log->Write(path); CHKERRQ(ierr);
 
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);

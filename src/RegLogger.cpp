@@ -20,9 +20,12 @@
 #ifndef _REGLOGGER_CPP_
 #define _REGLOGGER_CPP_
 
+// global includes
+#include <string>
+#include <vector>
+
 // local includes
 #include "RegLogger.hpp"
-
 
 
 
