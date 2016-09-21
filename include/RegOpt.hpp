@@ -199,11 +199,12 @@ struct Domain{
 
 /* parameters for optimization */
 struct Optimization{
-    int maxit;           ///< maximal number of (outer) iterations
-    ScalarType tol[3];   ///< tolerances for optimization
-    OptMeth method;      ///< optimization method
-    bool fastpresolve;   ///< flag to switch on fast presolve
+    int maxit;                  ///< maximal number of (outer) iterations
+    ScalarType tol[3];          ///< tolerances for optimization
+    OptMeth method;             ///< optimization method
+    bool fastpresolve;          ///< flag to switch on fast presolve
     ScalarType presolvetol[3];  ///< tolerances for presolve
+    bool nonzerog0;             ///< initialize with a non-zero gradient
 };
 
 
@@ -393,6 +394,7 @@ class RegOpt {
 
     // flag for setup
     inline bool SetupDone() {return this->m_SetupDone;}
+    inline bool StoreCheckPoints() {return this->m_StoreCheckPoints;}
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id) {return this->m_Counter[id];}
@@ -475,6 +477,7 @@ class RegOpt {
     RegFlags m_RegFlags;                ///< flags for registration
     HessianMatVecType m_HessianMatVecType;
     ReadWriteFlags m_ReadWriteFlags;
+    SolveType m_SolveType;
 //    RegLogger* m_Log;
 
     double m_Timer[NTIMERS][NVALTYPES];
@@ -490,9 +493,8 @@ class RegOpt {
     unsigned int m_LineLength;
 
     bool m_SetupDone;
-
+    bool m_StoreCheckPoints;
     ScalarType m_Sigma[3];
-    SolveType m_SolveType;
 
     int m_Indent;
     int m_Verbosity;

@@ -204,6 +204,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+        ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     } else {
         warmstart = true;
         if (this->m_WorkVecField1 == NULL) {
@@ -215,9 +216,13 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
         ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
     }
 
-    // set components of velocity field to zero (the initial objective
-    // value and gradient norm is evaluated for a zero velocity field)
-//    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    // per default we always use an initial velocity field that is zero
+    // to compute the initial gradient and velocity field
+    if (!this->m_Opt->GetOptPara().nonzerog0){
+        // set components of velocity field to zero (the initial objective
+        // value and gradient norm is evaluated for a zero velocity field)
+        ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    }
 
     // get global and local sizes
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -3305,53 +3310,61 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // store iterates
-    if ( this->m_Opt->GetReadWriteFlags().iterates ) {
+    if (this->m_Opt->GetReadWriteFlags().iterates) {
 
         iter = this->m_Opt->GetCounter(ITERATIONS);
-        ierr = Assert(iter>=0,"problem in counter"); CHKERRQ(ierr);
+        ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
 
         // copy memory for m_1
-        ierr = VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-        try{ std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1); }
+        ierr = VecGetArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        try{ std::copy(p_m+nt*nl, p_m+(nt+1)*nl, p_m1); }
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-        ierr = VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
         ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
-        ss.str( std::string() ); ss.clear();
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
 
         // construct file names for velocity field components
         ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << "-x1" << ext;
         fnx1 = ss.str();
-        ss.str( std::string() ); ss.clear();
+        ss.str(std::string()); ss.clear();
 
         ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << "-x2" << ext;
         fnx2 = ss.str();
-        ss.str( std::string() ); ss.clear();
+        ss.str(std::string()); ss.clear();
 
         ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x3" << ext;
         fnx3 = ss.str();
-        ss.str( std::string() ); ss.clear();
+        ss.str(std::string()); ss.clear();
 
         // velocity field out
-        ierr = this->m_ReadWrite->Write(this->m_VelocityField,fnx1,fnx2,fnx3); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_VelocityField, fnx1, fnx2, fnx3); CHKERRQ(ierr);
 
     } // store iterates
 
+
+    if (this->m_Opt->StoreCheckPoints()) {
+        // construct file names for velocity field components
+        fnx1 = "velocity-field-checkpoint-x1" + ext;
+        fnx2 = "velocity-field-checkpoint-x2" + ext;
+        fnx3 = "velocity-field-checkpoint-x3" + ext;
+        // velocity field out
+        ierr = this->m_ReadWrite->Write(this->m_VelocityField, fnx1, fnx2, fnx3); CHKERRQ(ierr);
+    }
+
+
     // compute determinant of deformation gradient and write it to file
     if ( this->m_Opt->GetRegMonitor().JAC ) {
-
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
-        // only if user enabled the logger
+        // if user enabled the logger
         if (this->m_Opt->GetRegFlags().loggingenabled) {
-
             if (rank == 0) {
-
                 filename  = this->m_Opt->GetReadWriteFlags().xfolder;
                 filename += "registration-performance-detdefgrad.log";
 
@@ -3366,10 +3379,8 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v)
                     << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
                     << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
                 logwriter << ss.str() << std::endl;
-                ss.str( std::string() ); ss.clear();
-
-            } // if on master rank
-
+                ss.str(std::string()); ss.clear();
+            }   // if on master rank
         }
     }
 

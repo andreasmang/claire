@@ -90,6 +90,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
         ierr = VecNorm(b,NORM_2,&gnorm); CHKERRQ(ierr);
     }
 
+    // use default tolreance
+    reltol = optprob->GetOptions()->GetKrylovSolverPara().tol[0];
+
     // apply pre processing to right hand side and initial condition
     ierr = optprob->PreKrylovSolve(b,x); CHKERRQ(ierr);
 

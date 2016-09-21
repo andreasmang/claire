@@ -78,6 +78,7 @@ RegOpt::RegOpt(const RegOpt& opt) {
 #define __FUNCT__ "Copy"
 void RegOpt::Copy(const RegOpt& opt) {
     this->m_SetupDone = false;
+    this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = NULL;
 
@@ -349,6 +350,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.iterates = true;
         } else if (strcmp(argv[1], "-xtimeseries") == 0) {
             this->m_ReadWriteFlags.timeseries = true;
+        } else if (strcmp(argv[1], "-storecheckpoints") == 0) {
+            this->m_StoreCheckPoints = true;
         } else if (strcmp(argv[1], "-xlog") == 0) {
             this->m_RegFlags.loggingenabled = true;
         } else if (strcmp(argv[1], "-logkrylovres") == 0) {
@@ -396,6 +399,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-grel") == 0) {
             argc--; argv++;
             this->m_OptPara.tol[2] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-nonzeroinitgrad") == 0) {
+            this->m_OptPara.nonzerog0 = true;
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
             this->m_RegMonitor.jacbound = atof(argv[1]);
@@ -415,6 +420,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-krylovmaxit") == 0) {
             argc--; argv++;
             this->m_KrylovSolverPara.maxit = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-krylovtol") == 0) {
+            argc--; argv++;
+            this->m_KrylovSolverPara.tol[0] = atof(argv[1]);
         } else if (strcmp(argv[1], "-krylovfseq") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "none") == 0) {
@@ -704,6 +712,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.maxit = 1000;           ///< max number of iterations
     this->m_OptPara.method = GAUSSNEWTON;   ///< optmization method
     this->m_OptPara.fastpresolve = true;    ///< enable fast (inaccurate) solve for first steps
+    this->m_OptPara.nonzerog0 = false;      ///< use a non-zero initial velocity field to estimate gradient
+                                            ///< (only of interest if a warm start is used)
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
@@ -772,6 +782,7 @@ PetscErrorCode RegOpt::Initialize() {
 */
     this->m_Indent = 0;
     this->m_LineLength = 101;
+    this->m_StoreCheckPoints = false;
 
     ierr = this->ResetTimers(); CHKERRQ(ierr);
     ierr = this->ResetCounters(); CHKERRQ(ierr);
@@ -862,6 +873,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                               quadratic     quadratic (default)" << std::endl;
         std::cout << "                               suplinear     super-linear" << std::endl;
         std::cout << "                               none          exact solve (expensive)" << std::endl;
+        std::cout << " -krylovtol <dbl>          relative tolerance for krylov method (default: 1E-12); forcing sequence" << std::endl;
+        std::cout << "                           needs to be switched off (i.g., use with '-krylovfseq none')" << std::endl;
         std::cout << " -precond <type>           preconditioner" << std::endl;
         std::cout << "                           <type> is one of the following" << std::endl;
         std::cout << "                               none         no preconditioner (not recommended)" << std::endl;
@@ -879,6 +892,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                           used for cheb, fgmres and fpcg; default: 10" << std::endl;
         std::cout << " -pcsolvertol <dbl>        scale for tolerance (preconditioner needs to be solver more" << std::endl;
         std::cout << "                           accurately; used for gmres and pcg; default: 1E-1" << std::endl;
+        std::cout << " -nonzeroinitgrad          use a non-zero velocity field to compute the initial gradient" << std::endl;
+        std::cout << "                           this is only recommended in case one want to solve more accurately" << std::endl;
+        std::cout << "                           after a warm start (in general for debugging purposes only)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " regularization/constraints" << std::endl;
         std::cout << line << std::endl;
@@ -935,6 +951,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -logresidual              log residual (user needs to set '-x' option)" << std::endl;
         std::cout << " -logkrylovres             log residual of krylov subpsace method (user needs to set '-x' option)" << std::endl;
         std::cout << " -logworkload              log cpu time and counters (user needs to set '-x' option)" << std::endl;
+        std::cout << " -storecheckpoints         store iterates after each iteration (files will be overwritten); this is" << std::endl;
+        std::cout << "                           a safeguard for large scale runs in case the code crashes" << std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
