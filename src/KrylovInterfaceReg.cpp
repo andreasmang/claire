@@ -42,7 +42,6 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it, ScalarType rnorm, voi
     }
 
     if (optprob->GetOptions()->GetLogger().enabled[LOGKSPRES]) {
-        std::cout << " log " << std::endl;
         optprob->GetOptions()->LogKSPResidual(it,rnorm);
     }
 
