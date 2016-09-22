@@ -3329,7 +3329,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
         // if user enabled the logger
-        if (this->m_Opt->GetRegFlags().loggingenabled) {
+        if (this->m_Opt->GetLogger().enabled[LOGJAC]) {
             if (rank == 0) {
                 filename  = this->m_Opt->GetReadWriteFlags().xfolder;
                 filename += "registration-performance-detdefgrad.log";
@@ -3423,17 +3423,17 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
 
     // compute residual after registration and deformed
     // template image
-    if (   this->m_Opt->GetRegFlags().loggingenabled
+    if (   this->m_Opt->GetLogger().enabled[LOGRES]
         || this->m_Opt->GetReadWriteFlags().residual
         || this->m_Opt->GetReadWriteFlags().deftemplate ) {
 
         ierr = VecWAXPY(this->m_WorkScaField1, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(this->m_WorkScaField1, NORM_2, &value); CHKERRQ(ierr);
-        //this->m_Opt->GetLogger()->SetResidual(0,value); CHKERRQ(ierr);
+        this->m_Opt->LogResidual(0,value);
 
         ierr = VecNorm(this->m_WorkScaField1, NORM_INFINITY, &value); CHKERRQ(ierr);
-        //this->m_Opt->GetLogger()->SetResidual(1,value); CHKERRQ(ierr);
+        this->m_Opt->LogResidual(1,value);
 
         // deformed template out (compute solution of state equation)
         ierr = this->SolveStateEquation(); CHKERRQ(ierr);
@@ -3454,10 +3454,10 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         ierr = VecWAXPY(this->m_WorkScaField2, -1.0, this->m_WorkScaField1, this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(this->m_WorkScaField2, NORM_2, &value); CHKERRQ(ierr);
-        //this->m_Opt->GetLogger()->SetResidual(2,value); CHKERRQ(ierr);
+        this->m_Opt->LogResidual(2,value);
 
         ierr = VecNorm(this->m_WorkScaField2, NORM_INFINITY, &value); CHKERRQ(ierr);
-        //this->m_Opt->GetLogger()->SetResidual(3,value); CHKERRQ(ierr);
+        this->m_Opt->LogResidual(3,value);
     }
 
     // write deformed template image to file
@@ -3528,9 +3528,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write log file
-    if (this->m_Opt->GetRegFlags().loggingenabled) {
-        ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
-    }
+    ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 

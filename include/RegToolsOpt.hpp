@@ -18,12 +18,18 @@
  *
 */
 
-
 #ifndef _REGTOOLSOPT_H_
 #define _REGTOOLSOPT_H_
 
-
 #include "RegOpt.hpp"
+
+
+
+
+namespace reg {
+
+
+
 
 struct ResamplingPara {
     ScalarType gridscale;
@@ -45,11 +51,6 @@ struct RegToolsFlags {
     bool readvecfield;  ///< read vector field
     bool readscafield;  ///< read scalar field
 };
-
-
-
-
-namespace reg {
 
 
 

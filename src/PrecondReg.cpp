@@ -5,8 +5,7 @@
 
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -16,8 +15,7 @@ namespace reg
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PrecondReg"
-PrecondReg::PrecondReg()
-{
+PrecondReg::PrecondReg() {
     this->Initialize();
 }
 
@@ -29,8 +27,7 @@ PrecondReg::PrecondReg()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~PrecondReg"
-PrecondReg::~PrecondReg()
-{
+PrecondReg::~PrecondReg() {
     this->ClearMemory();
 }
 
@@ -42,8 +39,7 @@ PrecondReg::~PrecondReg()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "OptimalControlRegistration"
-PrecondReg::PrecondReg(RegOpt* opt)
-{
+PrecondReg::PrecondReg(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
@@ -56,42 +52,42 @@ PrecondReg::PrecondReg(RegOpt* opt)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode PrecondReg::Initialize()
-{
+PetscErrorCode PrecondReg::Initialize() {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt = NULL; ///< options (default; on grid we solve)
-    this->m_OptCoarse = NULL; ///< options for coarse grid
+    this->m_Opt = NULL;         ///< options (default; on grid we solve)
+    this->m_OptCoarse = NULL;   ///< options for coarse grid
 
-    this->m_MatVec = NULL; ///< pointer to matvec in krylov method
-    this->m_MatVecEigEst = NULL; ///< pointer to matvec in krylov method
-    this->m_KrylovMethod = NULL; ///< pointer to krylov method
-    this->m_KrylovMethodEigEst = NULL; ///< pointer to krylov method
-    this->m_RandomNumGen = NULL; ///< pointer to krylov method
+    this->m_MatVec = NULL;              ///< pointer to matvec in krylov method
+    this->m_MatVecEigEst = NULL;        ///< pointer to matvec in krylov method
+    this->m_KrylovMethod = NULL;        ///< pointer to krylov method
+    this->m_KrylovMethodEigEst = NULL;  ///< pointer to krylov method
+    this->m_RandomNumGen = NULL;        ///< pointer to krylov method
 
-    this->m_xCoarse = NULL; ///< container for input to hessian matvec on coarse grid
-    this->m_HxCoarse = NULL; ///< container for hessian matvec on coarse grid
+    this->m_xCoarse = NULL;     ///< container for input to hessian matvec on coarse grid
+    this->m_HxCoarse = NULL;    ///< container for hessian matvec on coarse grid
 
-    this->m_PreProc = NULL; ///< pointer to preprocessing operator
-    this->m_OptProbCoarse = NULL; ///< optimization problem on coarse grid
+    this->m_PreProc = NULL;         ///< pointer to preprocessing operator
+    this->m_OptProbCoarse = NULL;   ///< optimization problem on coarse grid
 
-    this->m_ControlVariable = NULL; ///< control variable on fine grid
-    this->m_IncControlVariable = NULL; ///< incremental control variable on fine grid
+    this->m_ControlVariable = NULL;     ///< control variable on fine grid
+    this->m_IncControlVariable = NULL;  ///< incremental control variable on fine grid
 
-    this->m_StateVariableCoarse = NULL; ///< state variable on coarse grid
-    this->m_AdjointVariableCoarse = NULL; ///< adjoint variable on coarse grid
-    this->m_ControlVariableCoarse = NULL; ///< control variable on coarse grid
-    this->m_IncControlVariableCoarse = NULL; ///< incremental control variable on coarse grid
+    this->m_StateVariableCoarse = NULL;         ///< state variable on coarse grid
+    this->m_AdjointVariableCoarse = NULL;       ///< adjoint variable on coarse grid
+    this->m_ControlVariableCoarse = NULL;       ///< control variable on coarse grid
+    this->m_IncControlVariableCoarse = NULL;    ///< incremental control variable on coarse grid
 
-    this->m_WorkVecField = NULL; ///< temporary vector field
-    this->m_WorkScaField1 = NULL; ///< temporary scalar field
-    this->m_WorkScaField2 = NULL; ///< temporary scalar field
-    this->m_WorkScaFieldCoarse1 = NULL; ///< temporary scalar field (coarse level)
-    this->m_WorkScaFieldCoarse2 = NULL; ///< temporary scalar field (coarse level)
+    this->m_WorkVecField = NULL;            ///< temporary vector field
+    this->m_WorkScaField1 = NULL;           ///< temporary scalar field
+    this->m_WorkScaField2 = NULL;           ///< temporary scalar field
+    this->m_WorkScaFieldCoarse1 = NULL;     ///< temporary scalar field (coarse level)
+    this->m_WorkScaFieldCoarse2 = NULL;     ///< temporary scalar field (coarse level)
 
-    this->m_EigenValuesEstimated=false;
+    this->m_EigenValuesEstimated = false;
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -209,12 +205,12 @@ PetscErrorCode PrecondReg::ClearMemory()
 #undef __FUNCT__
 #define __FUNCT__ "SetProblem"
 PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_OptProb = optprob;
 
     this->m_Opt->Exit(__FUNCT__);
@@ -446,13 +442,13 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
 #undef __FUNCT__
 #define __FUNCT__ "Setup2LevelPrecond"
 PetscErrorCode PrecondReg::Setup2LevelPrecond() {
-    PetscErrorCode ierr;
-    IntType nl_f,ng_f,nl_c,ng_c,nt,nx_c[3],nx_f[3];
-    ScalarType scale,value;
+    PetscErrorCode ierr = 0;
+    IntType nl_f, ng_f, nl_c, ng_c, nt, nx_c[3], nx_f[3];
+    ScalarType scale, value;
     std::stringstream ss;
-    Vec m=NULL,lambda=NULL;
-    ScalarType *p_mj=NULL,*p_m=NULL,*p_mjcoarse=NULL,*p_mcoarse=NULL,
-                *p_lj=NULL,*p_l=NULL,*p_ljcoarse=NULL,*p_lcoarse=NULL;
+    Vec m = NULL, lambda = NULL;
+    ScalarType *p_mj = NULL, *p_m = NULL, *p_mjcoarse = NULL, *p_mcoarse = NULL,
+                *p_lj = NULL, *p_l = NULL, *p_ljcoarse = NULL, *p_lcoarse = NULL;
 
     PetscFunctionBegin;
 
@@ -460,16 +456,16 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 
 
     // check if optimization problem is set up
-    ierr = Assert(this->m_OptProb!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_PreProc!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt   = this->m_Opt->GetDomainPara().nt;
+    nt  = this->m_Opt->GetDomainPara().nt;
     nl_f = this->m_Opt->GetDomainPara().nlocal;
     ng_f = this->m_Opt->GetDomainPara().nglobal;
 
     scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
 
-    for (int i=0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         nx_f[i] = this->m_Opt->GetDomainPara().nx[i];
         value = static_cast<ScalarType>(nx_f[i])/scale;
         nx_c[i] = static_cast<IntType>( std::ceil(value) );
@@ -477,19 +473,17 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 
     if (this->m_Opt->GetVerbosity() > 1) {
         ss  << "initializing two-level preconditioner; "
-            << "fine level: ("<<nx_f[0]<< ","<<nx_f[1]<< ","<<nx_f[2] << "); "
-            << "coarse level: ("<<nx_c[0]<< ","<<nx_c[1]<< ","<<nx_c[2]<< ")";
+            << "fine level: (" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "); "
+            << "coarse level: (" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
-    if (this->m_OptProbCoarse==NULL) {
-
-        if (this->m_OptCoarse!=NULL) {
+    if (this->m_OptProbCoarse == NULL) {
+        if (this->m_OptCoarse != NULL) {
             delete this->m_OptCoarse;
             this->m_OptCoarse=NULL;
         }
-
         try{ this->m_OptCoarse = new RegOpt(*this->m_Opt); }
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1052,9 +1046,9 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst()
 
 
 
-} // end of namespace
+} // namespace reg
 
 
 
 
-#endif // _PRECONDREG_CPP_
+#endif   // _PRECONDREG_CPP_

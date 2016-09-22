@@ -167,7 +167,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
     this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
 
-    this->m_RegFlags.loggingenabled = opt.m_RegFlags.loggingenabled;
     this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
     this->m_RegFlags.invdefgrad = opt.m_RegFlags.invdefgrad;
@@ -197,13 +196,19 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegMonitor.jacmean = opt.m_RegMonitor.jacmean;
     this->m_RegMonitor.jacbound = opt.m_RegMonitor.jacbound;
 
+    for (int i = 0; i < NLOGFLAGS; ++i) {
+        this->m_Log.enabled[i] = opt.m_Log.enabled[i];
+    }
+    this->m_Log.residual[0] = 0;
+    this->m_Log.residual[1] = 0;
+    this->m_Log.residual[2] = 0;
+    this->m_Log.residual[3] = 0;
+
     this->m_NumThreads = opt.m_NumThreads;
     this->m_FFT.mpicomm = opt.m_FFT.mpicomm;
 
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
     this->m_CartGridDims[1] = opt.m_CartGridDims[1];
-
-//    this->m_Log = new RegLogger();
 
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
@@ -241,11 +246,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             nx = String2Vec(nxinput);
 
             if (nx.size() == 1) {
-                for (unsigned int i = 0; i < 3; ++i) {
+                for (int i = 0; i < 3; ++i) {
                     this->m_Domain.nx[i] = static_cast<IntType>(nx[0]);
                 }
             } else if (nx.size() == 3) {
-                for (unsigned int i = 0; i < 3; ++i) {
+                for (int i = 0; i < 3; ++i) {
                     this->m_Domain.nx[i] = static_cast<IntType>(nx[i]);
                 }
             } else {
@@ -352,12 +357,14 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.timeseries = true;
         } else if (strcmp(argv[1], "-storecheckpoints") == 0) {
             this->m_StoreCheckPoints = true;
-        } else if (strcmp(argv[1], "-xlog") == 0) {
-            this->m_RegFlags.loggingenabled = true;
+        } else if (strcmp(argv[1], "-logjacobian") == 0) {
+            this->m_Log.enabled[LOGJAC] = true;
         } else if (strcmp(argv[1], "-logkrylovres") == 0) {
-//            this->m_Log->Enable(LOGKSPRES);
+            this->m_Log.enabled[LOGKSPRES] = true;
+        } else if (strcmp(argv[1], "-logworkload") == 0) {
+            this->m_Log.enabled[LOGLOAD] = true;
         } else if (strcmp(argv[1], "-logresidual") == 0) {
-//            this->m_Log->Enable(LOGRES);
+            this->m_Log.enabled[LOGRES] = true;
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
             this->m_RegFlags.detdefgradfromdeffield = true;
         } else if (strcmp(argv[1], "-preset") == 0) {
@@ -604,6 +611,7 @@ RegOpt::~RegOpt() {
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
 PetscErrorCode RegOpt::ClearMemory() {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     if (this->m_FFT.plan != NULL) {
@@ -616,13 +624,7 @@ PetscErrorCode RegOpt::ClearMemory() {
         MPI_Comm_free(&this->m_FFT.mpicomm);
     }
 
-/*
-    if (this->m_Log != NULL){
-        delete this->m_Log;
-        this->m_Log = NULL;
-    }
-*/
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -634,11 +636,10 @@ PetscErrorCode RegOpt::ClearMemory() {
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
 PetscErrorCode RegOpt::Initialize() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_SetupDone = false;
-
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = NULL;
     this->m_FFT.osize[0] = 0;
@@ -737,7 +738,6 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.deffield = false;        ///< write out deformation field / displacement field
     this->m_ReadWriteFlags.extension = ".nii.gz";   ///< file extension for output
 
-    this->m_RegFlags.loggingenabled = false;            ///< enable/disable logging
     this->m_RegFlags.smoothingenabled = true;           ///< enable/disable image smoothing
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
     this->m_RegFlags.invdefgrad = false;
@@ -770,16 +770,14 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegMonitor.jacmean = 0.0;
     this->m_RegMonitor.jacbound = 2E-1;
 
+    for (int i = 0; i < NLOGFLAGS; ++i) {
+        this->m_Log.enabled[i] = false;
+    }
+
     this->m_NumThreads = 1;
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
 
-/*    if (this->m_Log != NULL) {
-        delete this->m_Log;
-        this->m_Log = NULL;
-    }
-    this->m_Log = new RegLogger();
-*/
     this->m_Indent = 0;
     this->m_LineLength = 101;
     this->m_StoreCheckPoints = false;
@@ -787,7 +785,7 @@ PetscErrorCode RegOpt::Initialize() {
     ierr = this->ResetTimers(); CHKERRQ(ierr);
     ierr = this->ResetCounters(); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -844,10 +842,6 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -xdeffield                write deformation field/displacement field to file" << std::endl;
         std::cout << " -xdeftemplate             write deformed/transported template image to file" << std::endl;
         std::cout << " -xresidual                write pointwise residual (before and after registration) to file" << std::endl;
-        std::cout << " -xlog                     write log files (requires -x option); logging includes" << std::endl;
-        std::cout << "                           timers and counters; if monitor for determinant of deformation" << std::endl;
-        std::cout << "                           gradient is enabled, an additional log file with jacobian values" << std::endl;
-        std::cout << "                           will be created" << std::endl;
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters" << std::endl;
         std::cout << line << std::endl;
@@ -991,7 +985,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 #define __FUNCT__ "CheckArguments"
 PetscErrorCode RegOpt::CheckArguments() {
     PetscErrorCode ierr = 0;
-    bool readmR = false, readmT = false,
+    bool readmR = false, readmT = false, loggingenabled = false,
          readvx1 = false, readvx2 = false, readvx3 = false;
     ScalarType betav;
 
@@ -1064,9 +1058,23 @@ PetscErrorCode RegOpt::CheckArguments() {
         || this->m_ReadWriteFlags.defmap
         || this->m_ReadWriteFlags.residual
         || this->m_ReadWriteFlags.timeseries
-        || this->m_ReadWriteFlags.iterates
-        || this->m_RegFlags.loggingenabled ) {
+        || this->m_ReadWriteFlags.iterates ) {
         if ( this->m_ReadWriteFlags.xfolder.empty() ) {
+            msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(); CHKERRQ(ierr);
+        }
+    }
+
+    for (int i = 0; i < NLOGFLAGS; ++i) {
+        if (this->m_Log.enabled[i]) {
+            loggingenabled = true;
+        }
+    }
+
+    // check output arguments
+    if (loggingenabled) {
+        if (this->m_ReadWriteFlags.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
@@ -2103,6 +2111,32 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id) {
 #define __FUNCT__ "WriteLogFile"
 PetscErrorCode RegOpt::WriteLogFile() {
     PetscErrorCode ierr = 0;
+
+    if (this->m_Log.enabled[LOGLOAD]) {
+        ierr = this->WriteWorkLoadLog(); CHKERRQ(ierr);
+    }
+
+    if (this->m_Log.enabled[LOGKSPRES]) {
+        ierr = this->WriteKSPLog(); CHKERRQ(ierr);
+    }
+
+    if (this->m_Log.enabled[LOGRES]) {
+        ierr = this->WriteResidualLog(); CHKERRQ(ierr);
+    }
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief displays the global exection time
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "WriteWorkLoadLog"
+PetscErrorCode RegOpt::WriteWorkLoadLog() {
+    PetscErrorCode ierr = 0;
     std::string fn, line, path;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
@@ -2112,15 +2146,12 @@ PetscErrorCode RegOpt::WriteLogFile() {
 
     this->Enter(__FUNCT__);
 
-//    ierr = Assert(this->m_Log != NULL, "null pointer"); CHKERRQ(ierr);
-//    path = this->m_ReadWriteFlags.xfolder;
-//    ierr = this->m_Log->Write(path); CHKERRQ(ierr);
-
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
 
     line = std::string(this->m_LineLength, '-');
+    path = this->m_ReadWriteFlags.xfolder;
 
     // write out logfile
     if (rank == 0) {
@@ -2453,6 +2484,127 @@ PetscErrorCode RegOpt::WriteLogFile() {
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
+    }
+
+    this->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief write residual to file
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "WriteResidualLog"
+PetscErrorCode RegOpt::WriteResidualLog() {
+    PetscErrorCode ierr = 0;
+    int rank, nnum;
+    std::ofstream logwriter;
+    std::stringstream ss;
+    std::string path, fn;
+    PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    nnum = 20;
+    path = this->m_ReadWriteFlags.xfolder;
+
+    if (rank == 0) {
+        // create output file
+        fn = path + "cold-residual.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+
+        ss  << std::scientific << std::left
+            << std::setw(20) << "||mR-mT||_2" << std::right
+            << std::setw(nnum) << this->m_Log.residual[0];
+        logwriter << ss.str() << std::endl;
+        ss.clear(); ss.str(std::string());
+
+        ss  << std::scientific << std::left
+            << std::setw(20) << "||mR-mT||_infty" << std::right
+            << std::setw(nnum) << this->m_Log.residual[1];
+        logwriter << ss.str() << std::endl;
+        ss.clear(); ss.str(std::string());
+
+        ss  << std::scientific << std::left
+            << std::setw(20) << "||mR-m1||_2" << std::right
+            << std::setw(nnum) << this->m_Log.residual[2];
+        logwriter << ss.str() << std::endl;
+        ss.clear(); ss.str(std::string());
+
+        ss  << std::scientific << std::left
+            << std::setw(20) << "||mR-m1||_infty" << std::right
+            << std::setw(nnum) << this->m_Log.residual[3];
+        logwriter << ss.str() << std::endl;
+        ss.clear(); ss.str(std::string());
+
+        this->m_Log.residual[0] = (this->m_Log.residual[0] > 0.0) ? this->m_Log.residual[0] : 1.0;
+        this->m_Log.residual[1] = (this->m_Log.residual[1] > 0.0) ? this->m_Log.residual[1] : 1.0;
+
+        ss  << std::scientific << std::left
+            << std::setw(20) << "||mR-m1||_2,rel" << std::right
+            << std::setw(nnum) <<  this->m_Log.residual[2]/this->m_Log.residual[0];
+        logwriter << ss.str() << std::endl;
+        ss.clear(); ss.str(std::string());
+
+        ss  << std::scientific << std::left
+            << std::setw(20) << "||mR-m1||_infty,rel" << std::right
+            << std::setw(nnum) <<  this->m_Log.residual[3]/this->m_Log.residual[1];
+        logwriter << ss.str() << std::endl;
+        ss.clear(); ss.str(std::string());
+
+        // close logger
+        logwriter.close();
+    }
+
+    this->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief write out logging information for krylov method
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "WriteKSPLog"
+PetscErrorCode RegOpt::WriteKSPLog() {
+    PetscErrorCode ierr = 0;
+    int rank, n;
+    std::ofstream logwriter;
+    std::stringstream ss;
+    std::string path, fn;
+    PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    path = this->m_ReadWriteFlags.xfolder;
+
+    if (rank == 0) {
+        // create output file
+        fn = path + "cold-krylov-method-residual.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+
+        n = static_cast<int>(this->m_Log.kspresidual.size());
+        for (int i = 0; i < n; ++i) {
+            ss << std::scientific << std::right
+               << std::setw(2) << this->m_Log.kspiterations[i]
+               << std::setw(20) << this->m_Log.kspresidual[i];
+            logwriter << ss.str() << std::endl;
+            ss.str(std::string()); ss.clear();
+        }
+        logwriter.close();  // close logger
     }
 
     this->Exit(__FUNCT__);

@@ -32,7 +32,6 @@
 
 // local includes
 #include "RegUtils.hpp"
-#include "RegLogger.hpp"
 
 
 
@@ -297,7 +296,6 @@ struct FourierTransform{
 
 struct RegFlags{
     bool smoothingenabled;
-    bool loggingenabled;
     bool detdefgradfromdeffield;
     bool invdefgrad;
 };
@@ -307,6 +305,33 @@ struct PDESolver{
     PDESolverType type;
     int order;
     int cflnumber;
+};
+
+
+// flags for timers
+enum LogType{
+    LOGRES,
+    LOGKSPRES,
+    LOGJAC,
+    LOGLOAD,
+    NLOGFLAGS
+};
+
+
+/* parameter for grid continuation */
+struct Logger{
+    enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
+    std::vector<ScalarType> kspresidual;    ///< residual of krylov method
+    std::vector<int> kspiterations;         ///< iterations of krylov method
+    ScalarType residual[4];
+    bool enabled[NLOGFLAGS];
+
+    double timer[NTIMERS][NVALTYPES];
+    double temptimer[NTIMERS];
+    bool timerruns[NTIMERS];
+    unsigned int counter[NCOUNTERS];
+    double ffttimers[5][NVALTYPES];
+    double iptimers[4][NVALTYPES];
 };
 
 
@@ -332,7 +357,6 @@ class RegOpt {
                *this->m_Domain.hx[2];
     }
 
-//    inline RegLogger* GetLogger() {return this->m_Log;}
     inline Domain GetDomainPara() {return this->m_Domain;}
     inline GridCont GetGridContPara() {return this->m_GridCont;}
     inline ScaleCont GetScaleContPara() {return this->m_ScaleCont;}
@@ -416,6 +440,15 @@ class RegOpt {
         for (int i=0; i < 4; ++i) this->m_InterpTimers[i][LOG] += timers[i];
     }
 
+    inline Logger GetLogger() {return this->m_Log;}
+    inline void LogKSPResidual(int i, ScalarType value){
+        this->m_Log.kspresidual.push_back(value);
+        this->m_Log.kspiterations.push_back(i);
+    }
+    inline void LogResidual(int i, ScalarType value){
+        this->m_Log.residual[i] = value;
+    }
+
     inline int GetVerbosity() {return this->m_Verbosity;}
 
     int GetLineLength() {return this->m_LineLength;}
@@ -460,6 +493,9 @@ class RegOpt {
     virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);
     PetscErrorCode SetPresetParameters();
+    PetscErrorCode WriteWorkLoadLog();
+    PetscErrorCode WriteKSPLog();
+    PetscErrorCode WriteResidualLog();
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
 
@@ -478,7 +514,7 @@ class RegOpt {
     HessianMatVecType m_HessianMatVecType;
     ReadWriteFlags m_ReadWriteFlags;
     SolveType m_SolveType;
-//    RegLogger* m_Log;
+    Logger m_Log;
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];
