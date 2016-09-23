@@ -150,9 +150,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     }
 
     // check symmetry of hessian
-    #ifdef _REG_DEBUG_
+#ifdef _REG_DEBUG_
     ierr = optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
-    #endif// _REG_DEBUG_
+#endif
 
     PetscFunctionReturn(ierr);
 }
@@ -366,7 +366,7 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it, ScalarTy
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
     ierr = DbgMsg(msg); CHKERRQ(ierr);
 
-    ierr = KSPGetConvergedReason(krylovmethod,&reason); CHKERRQ(ierr);
+    ierr = KSPGetConvergedReason(krylovmethod, &reason); CHKERRQ(ierr);
     ierr = DispKSPConvReason(reason); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);

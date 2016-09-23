@@ -451,12 +451,12 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             } else if (strcmp(argv[1], "invreg") == 0) {
                 this->m_KrylovSolverPara.pctype = INVREG;
                 this->m_HessianMatVecType = DEFAULTMATVEC;
-                // this->m_KrylovSolverPara.pctype = NOPC;
-                // this->m_HessianMatVecType = PRECONDMATVECSYM;
+//                this->m_KrylovSolverPara.pctype = NOPC;
+//                this->m_HessianMatVecType = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "2level") == 0) {
                 this->m_KrylovSolverPara.pctype = TWOLEVEL;
-                this->m_HessianMatVecType = PRECONDMATVECSYM;
-                // this->m_HessianMatVecType = PRECONDMATVEC;
+                 this->m_HessianMatVecType = PRECONDMATVECSYM;
+//                 this->m_HessianMatVecType = PRECONDMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -466,14 +466,18 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
                 this->m_KrylovSolverPara.pcsolver = PCG;
+                this->m_HessianMatVecType = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "fpcg") == 0) {
                 this->m_KrylovSolverPara.pcsolver = FCG;
+                this->m_HessianMatVecType = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "gmres") == 0) {
                 this->m_KrylovSolverPara.pcsolver = GMRES;
                 this->m_KrylovSolverPara.name = "GMRES";
+                this->m_HessianMatVecType = PRECONDMATVEC;
             } else if (strcmp(argv[1], "fgmres") == 0) {
                 this->m_KrylovSolverPara.pcsolver = FGMRES;
                 this->m_KrylovSolverPara.name = "FGMRES";
+                this->m_HessianMatVecType = PRECONDMATVEC;
             } else if (strcmp(argv[1], "cheb") == 0) {
                 this->m_KrylovSolverPara.pcsolver = CHEB;
                 this->m_KrylovSolverPara.name = "CHEB";
@@ -485,9 +489,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-pctolscale") == 0) {
             argc--; argv++;
             this->m_KrylovSolverPara.pctolscale = atof(argv[1]);
-        } else if (strcmp(argv[1], "-pcmaxit") == 0) {
+        } else if (strcmp(argv[1], "-pcsolvermaxit") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.pcmaxit = atof(argv[1]);
+            this->m_KrylovSolverPara.pcmaxit = atoi(argv[1]);
         } else if (strcmp(argv[1], "-pdesolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
@@ -884,8 +888,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                               fgmres       flexible gmres" << std::endl;
         std::cout << " -pcsolvermaxit <int>      maximum number of iterations for inverting preconditioner; is" << std::endl;
         std::cout << "                           used for cheb, fgmres and fpcg; default: 10" << std::endl;
-        std::cout << " -pcsolvertol <dbl>        scale for tolerance (preconditioner needs to be solver more" << std::endl;
-        std::cout << "                           accurately; used for gmres and pcg; default: 1E-1" << std::endl;
+        std::cout << " -pctolscale <dbl>         scale for tolerance (preconditioner needs to be inverted more" << std::endl;
+        std::cout << "                           accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
         std::cout << " -nonzeroinitgrad          use a non-zero velocity field to compute the initial gradient" << std::endl;
         std::cout << "                           this is only recommended in case one want to solve more accurately" << std::endl;
         std::cout << "                           after a warm start (in general for debugging purposes only)" << std::endl;
