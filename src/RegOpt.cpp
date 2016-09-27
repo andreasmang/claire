@@ -1,4 +1,5 @@
-/** *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2015-2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,8 +15,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ ************************************************************************/
 
 #ifndef _REGOPT_CPP_
 #define _REGOPT_CPP_
@@ -135,9 +135,13 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovSolverPara.pctolscale = opt.m_KrylovSolverPara.pctolscale;
     this->m_KrylovSolverPara.pcgridscale = opt.m_KrylovSolverPara.pcgridscale;
     this->m_KrylovSolverPara.pcmaxit = opt.m_KrylovSolverPara.pcmaxit;
+    this->m_KrylovSolverPara.reesteigvals = opt.m_KrylovSolverPara.reesteigvals;
+    this->m_KrylovSolverPara.usepetsceigest = opt.m_KrylovSolverPara.usepetsceigest;
     this->m_KrylovSolverPara.pctol[0] = opt.m_KrylovSolverPara.pctol[0];
     this->m_KrylovSolverPara.pctol[1] = opt.m_KrylovSolverPara.pctol[1];
     this->m_KrylovSolverPara.pctol[2] = opt.m_KrylovSolverPara.pctol[2];
+    this->m_KrylovSolverPara.matvectype = opt.m_KrylovSolverPara.matvectype;
+    this->m_KrylovSolverPara.checkhesssymmetry = opt.m_KrylovSolverPara.checkhesssymmetry;
 
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
@@ -150,7 +154,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_OptPara.presolvetol[2] = opt.m_OptPara.presolvetol[2];
 
     this->m_SolveType = opt.m_SolveType;
-    this->m_HessianMatVecType = opt.m_HessianMatVecType;
 
     // flags
     this->m_ReadWriteFlags.readfiles = opt.m_ReadWriteFlags.readfiles;
@@ -235,8 +238,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             || (strcmp(argv[1], "-h")    == 0)
             || (strcmp(argv[1], "-HELP") == 0) ) {
             ierr = this->Usage(); CHKERRQ(ierr);
-        }
-        if (strcmp(argv[1], "-advanced") == 0) {
+        } else if (strcmp(argv[1], "-advanced") == 0) {
             ierr = this->Usage(true); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-nx") == 0) {
             argc--; argv++;
@@ -282,7 +284,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
-
         } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
             this->m_RegFlags.smoothingenabled = false;
         } else if (strcmp(argv[1], "-nthreads") == 0) {
@@ -447,16 +448,16 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             if (strcmp(argv[1], "none") == 0) {
                 this->m_KrylovSolverPara.pctype = NOPC;
-                this->m_HessianMatVecType = DEFAULTMATVEC;
+                this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
             } else if (strcmp(argv[1], "invreg") == 0) {
                 this->m_KrylovSolverPara.pctype = INVREG;
-                this->m_HessianMatVecType = DEFAULTMATVEC;
+                this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
 //                this->m_KrylovSolverPara.pctype = NOPC;
-//                this->m_HessianMatVecType = PRECONDMATVECSYM;
+//                this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "2level") == 0) {
                 this->m_KrylovSolverPara.pctype = TWOLEVEL;
-                 this->m_HessianMatVecType = PRECONDMATVECSYM;
-//                 this->m_HessianMatVecType = PRECONDMATVEC;
+                this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+//                 this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -466,32 +467,37 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
                 this->m_KrylovSolverPara.pcsolver = PCG;
-                this->m_HessianMatVecType = PRECONDMATVECSYM;
+                //this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "fpcg") == 0) {
                 this->m_KrylovSolverPara.pcsolver = FCG;
-                this->m_HessianMatVecType = PRECONDMATVECSYM;
+                //this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "gmres") == 0) {
                 this->m_KrylovSolverPara.pcsolver = GMRES;
                 this->m_KrylovSolverPara.name = "GMRES";
-                this->m_HessianMatVecType = PRECONDMATVEC;
+                //this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
             } else if (strcmp(argv[1], "fgmres") == 0) {
                 this->m_KrylovSolverPara.pcsolver = FGMRES;
                 this->m_KrylovSolverPara.name = "FGMRES";
-                this->m_HessianMatVecType = PRECONDMATVEC;
+                //this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
             } else if (strcmp(argv[1], "cheb") == 0) {
                 this->m_KrylovSolverPara.pcsolver = CHEB;
                 this->m_KrylovSolverPara.name = "CHEB";
+                //this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
             } else {
                 msg = "\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-reesteigvals") == 0) {
+            this->m_KrylovSolverPara.reesteigvals = true;
         } else if (strcmp(argv[1], "-pctolscale") == 0) {
             argc--; argv++;
             this->m_KrylovSolverPara.pctolscale = atof(argv[1]);
         } else if (strcmp(argv[1], "-pcsolvermaxit") == 0) {
             argc--; argv++;
             this->m_KrylovSolverPara.pcmaxit = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-checksymmetry") == 0) {
+            this->m_KrylovSolverPara.checkhesssymmetry = true;
         } else if (strcmp(argv[1], "-pdesolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
@@ -695,10 +701,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.solver = PCG;
     this->m_KrylovSolverPara.pcsetupdone = false;
-
     this->m_KrylovSolverPara.g0norm = 0;
     this->m_KrylovSolverPara.g0normset = false;
-
     this->m_KrylovSolverPara.iter = 0;           ///< divergence tolerance
     this->m_KrylovSolverPara.pcsolver = PCG;
     this->m_KrylovSolverPara.pctolscale = 1E-1;
@@ -707,8 +711,13 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.pctol[0] = 1E-12;   ///< relative tolerance
     this->m_KrylovSolverPara.pctol[1] = 1E-12;   ///< absolute tolerance
     this->m_KrylovSolverPara.pctol[2] = 1E+06;   ///< divergence tolerance
-//    this->m_KrylovSolverPara.usepetsceigest = false;
     this->m_KrylovSolverPara.usepetsceigest = true;
+    this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
+//    this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
+//    this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+    this->m_KrylovSolverPara.reesteigvals = false;
+    this->m_KrylovSolverPara.eigvalsestimated = false;
+    this->m_KrylovSolverPara.checkhesssymmetry = false;
 
     // tolerances for optimization
     this->m_OptPara.tol[0] = 1E-6;          ///< grad abs tol ||g(x)|| < tol
@@ -726,9 +735,6 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.presolvetol[2] = 1E-1;                      ///< grad rel tol ||g(x)||/||g(x0)|| < tol
 
     this->m_SolveType = NOTSET;
-    this->m_HessianMatVecType = DEFAULTMATVEC;
-//    this->m_HessianMatVecType = PRECONDMATVEC;
-//    this->m_HessianMatVecType = PRECONDMATVECSYM;
 
     // flags
     this->m_ReadWriteFlags.readfiles = false;       ///< read images
@@ -801,7 +807,7 @@ PetscErrorCode RegOpt::Initialize() {
 #undef __FUNCT__
 #define __FUNCT__ "Usage"
 PetscErrorCode RegOpt::Usage(bool advanced) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     int rank;
     std::string line;
     PetscFunctionBegin;
@@ -888,6 +894,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                               fgmres       flexible gmres" << std::endl;
         std::cout << " -pcsolvermaxit <int>      maximum number of iterations for inverting preconditioner; is" << std::endl;
         std::cout << "                           used for cheb, fgmres and fpcg; default: 10" << std::endl;
+        std::cout << " -checksymmetry            check symmetry of hessian operator" << std::endl;
+        std::cout << " -reesteigvals             re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
+        std::cout << "                           (in case a chebyshev method is used to invert preconditioner)" << std::endl;
         std::cout << " -pctolscale <dbl>         scale for tolerance (preconditioner needs to be inverted more" << std::endl;
         std::cout << "                           accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
         std::cout << " -nonzeroinitgrad          use a non-zero velocity field to compute the initial gradient" << std::endl;
@@ -976,7 +985,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
     ierr = PetscFinalize(); CHKERRQ(ierr);
     exit(0);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

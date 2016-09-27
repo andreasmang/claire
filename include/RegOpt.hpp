@@ -18,7 +18,6 @@
  *
 */
 
-
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
@@ -210,7 +209,7 @@ struct Optimization{
 /* parameters for krylov solver */
 struct KrylovSolver{
     int maxit;                ///< max number of iterations for krylov solver
-    IntType iter;             ///< max number of iterations for krylov solver
+    IntType iter;             ///< current number of iterations for krylov solver
     ScalarType tol[3];        ///< tolerances for krylov method
     FSeqType fseqtype;        ///< forcing sequence type
     std::string name;         ///< name of krylov solver
@@ -219,15 +218,19 @@ struct KrylovSolver{
     bool g0normset;           ///< flag to identify if initial norm of gradient has been set
     KrylovSolverType solver;  ///< flag for krylov solver
 
-    ScalarType pctol[3];        ///< tolerances for krylov method (preconditioner)
-    IntType pcmaxit;            ///< tolerances for krylov method (preconditioner)
-    PrecondMeth pctype;         ///< flag for type of preconditioner
-    std::string pcname;         ///< name of preconditioner
-    KrylovSolverType pcsolver;  ///< solver for preconditioner
-    bool pcsetupdone;           ///< flag to indicate if setup of preconditioner is done
-    ScalarType pctolscale;      ///< tolerance scaling for preconditioner; default: 1E-1
-    ScalarType pcgridscale;     ///< this is for the two level preconditioner; defines scale for grid size change; default: 2
-    bool usepetsceigest;        ///< in cheb method we need to estimate eigenvalues; we can use the petsc implementation or our own implementation
+    ScalarType pctol[3];            ///< tolerances for krylov method (preconditioner)
+    IntType pcmaxit;                ///< tolerances for krylov method (preconditioner)
+    PrecondMeth pctype;             ///< flag for type of preconditioner
+    HessianMatVecType matvectype;   ///< flag for the type of hessian matvec
+    std::string pcname;             ///< name of preconditioner
+    KrylovSolverType pcsolver;      ///< solver for preconditioner
+    bool pcsetupdone;               ///< flag to indicate if setup of preconditioner is done
+    ScalarType pctolscale;          ///< tolerance scaling for preconditioner; default: 1E-1
+    ScalarType pcgridscale;         ///< this is for the two level preconditioner; defines scale for grid size change; default: 2
+    bool usepetsceigest;            ///< in cheb method we need to estimate eigenvalues; use petsc implementation
+    bool reesteigvals;              ///< flag to reestimate eigenvalues every iteration
+    bool eigvalsestimated;          ///< flag if eigenvalues have already been estimated
+    bool checkhesssymmetry;         ///< check symmetry of hessian operator
 };
 
 
@@ -400,16 +403,16 @@ class RegOpt {
 
     // solver flags
     inline PDESolver GetPDESolver(void) {return this->m_PDESolver;}
-    inline HessianMatVecType GetHessianMatVecType() {return this->m_HessianMatVecType;}
     inline KrylovSolver GetKrylovSolverPara() {return this->m_KrylovSolverPara;}
     inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
     inline void SetRelTolKrylovMethod(ScalarType value) {this->m_KrylovSolverPara.reltol = value;}
-    inline void SetKrylovIterations(IntType value) {this->m_KrylovSolverPara.iter = value;}
+    inline void SetKrylovIter(IntType value) {this->m_KrylovSolverPara.iter = value;}
     inline void SetInitialGradNormKrylovMethod(ScalarType value) {
         this->m_KrylovSolverPara.g0norm = value;
         this->m_KrylovSolverPara.g0normset = true;
     }
     inline void InitialGradNormSet(bool flag) {this->m_KrylovSolverPara.g0normset = flag;}
+    inline void KrylovMethodEigValsEstimated(bool flag) {this->m_KrylovSolverPara.eigvalsestimated = flag;}
 
     // jacobians
     inline void SetJacMin(ScalarType value) {this->m_RegMonitor.jacmin = value;}
@@ -511,10 +514,9 @@ class RegOpt {
     RegModel m_RegModel;                ///< flag for particular registration model
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
     RegFlags m_RegFlags;                ///< flags for registration
-    HessianMatVecType m_HessianMatVecType;
-    ReadWriteFlags m_ReadWriteFlags;
-    SolveType m_SolveType;
-    Logger m_Log;
+    ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
+    SolveType m_SolveType;              ///< solver
+    Logger m_Log;                       ///< log
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];

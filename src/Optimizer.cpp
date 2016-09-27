@@ -362,10 +362,12 @@ PetscErrorCode Optimizer::SetupTao() {
     ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->GetOptPara().maxit-1); CHKERRQ(ierr);
     ierr = TaoSetFunctionLowerBound(this->m_Tao, 1E-6); CHKERRQ(ierr);
 
-    ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu, reinterpret_cast<void*>(this->m_OptimizationProblem), &matvec); CHKERRQ(ierr);
+    ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu,
+                            reinterpret_cast<void*>(this->m_OptimizationProblem), &matvec); CHKERRQ(ierr);
     ierr = MatShellSetOperation(matvec, MATOP_MULT, (void(*)(void))HessianMatVec); CHKERRQ(ierr);
     ierr = MatSetOption(matvec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
-    ierr = TaoSetHessianRoutine(this->m_Tao, matvec, matvec, EvaluateHessian, reinterpret_cast<void*>(&this->m_OptimizationProblem)); CHKERRQ(ierr);
+    ierr = TaoSetHessianRoutine(this->m_Tao, matvec, matvec, EvaluateHessian,
+                                reinterpret_cast<void*>(&this->m_OptimizationProblem)); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -498,7 +500,7 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"
 PetscErrorCode Optimizer::Finalize() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     int rank, indent, numindent, linelength;
     IntType maxiter, iter;
     ScalarType gatol, grtol, gttol, gnorm, J, g0norm;
@@ -525,9 +527,9 @@ PetscErrorCode Optimizer::Finalize() {
     linelength = this->m_Opt->GetLineLength();
     line = std::string(linelength, '-');
 
-    stop[0] = (gnorm < gttol*g0norm);   // relative change of gradient
-    stop[1] = (gnorm < gatol);          // absolute norm of gradient
-    stop[2] = (iter  > maxiter);        // max number of iterations
+    stop[0] = (gnorm < gttol*g0norm);   ///< relative change of gradient
+    stop[1] = (gnorm < gatol);          ///< absolute norm of gradient
+    stop[2] = (iter  > maxiter);        ///< max number of iterations
 
     // check if we converged
     converged = false;
@@ -611,29 +613,25 @@ PetscErrorCode Optimizer::Finalize() {
     if (this->m_Opt->GetVerbosity() > 1) {
         if (converged && !rank) std::cout<< line <<std::endl;
         ss << std::left << std::setw(indent)
-           << "outer iterations"
-           << std::right << std::setw(numindent)
+           << "outer iterations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(ITERATIONS) - 1;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
-           << "objective evals"
-           << std::right << std::setw(numindent)
+           << "objective evals" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(OBJEVAL);
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
-           << "hessian matvecs"
-           << std::right << std::setw(numindent)
+           << "hessian matvecs" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(HESSMATVEC);
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
-           << "pde solves"
-           << std::right << std::setw(numindent)
+           << "pde solves" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(PDESOLVE);
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -642,7 +640,7 @@ PetscErrorCode Optimizer::Finalize() {
     // display info to user, once we're done
 //    ierr = TaoView(this->m_Tao, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

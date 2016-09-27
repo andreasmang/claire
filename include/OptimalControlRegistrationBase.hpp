@@ -18,12 +18,8 @@
  *
 */
 
-
 #ifndef _OPTIMALCONTROLREGISTRATIONBASE_H_
 #define _OPTIMALCONTROLREGISTRATIONBASE_H_
-
-
-
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -44,15 +40,15 @@
 //#include "SemiLagrangianGPU.hpp"
 
 
+
+
 namespace reg {
 
 
 
 
 class OptimalControlRegistrationBase : public OptimizationProblem {
-
  public:
-
     typedef ReadWriteReg ReadWriteType;
     typedef OptimalControlRegistrationBase Self;
     typedef OptimizationProblem SuperClass;
@@ -157,7 +153,6 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
 
  protected:
-
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode CopyToAllTimePoints(Vec, Vec);

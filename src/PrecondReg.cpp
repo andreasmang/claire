@@ -1,7 +1,27 @@
+/*************************************************************************
+ *  Copyright (c) 2015-2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _PRECONDREG_CPP_
 #define _PRECONDREG_CPP_
 
 #include "PrecondReg.hpp"
+
 
 
 
@@ -85,8 +105,6 @@ PetscErrorCode PrecondReg::Initialize() {
     this->m_WorkScaFieldCoarse1 = NULL;     ///< temporary scalar field (coarse level)
     this->m_WorkScaFieldCoarse2 = NULL;     ///< temporary scalar field (coarse level)
 
-    this->m_EigenValuesEstimated = false;
-
     PetscFunctionReturn(ierr);
 }
 
@@ -98,9 +116,8 @@ PetscErrorCode PrecondReg::Initialize() {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode PrecondReg::ClearMemory()
-{
-    PetscErrorCode ierr;
+PetscErrorCode PrecondReg::ClearMemory() {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     if (this->m_KrylovMethod != NULL) {
@@ -186,12 +203,12 @@ PetscErrorCode PrecondReg::ClearMemory()
         this->m_OptCoarse = NULL;
     }
 
-    if (this->m_RandomNumGen!=NULL) {
+    if (this->m_RandomNumGen != NULL) {
         ierr = PetscRandomDestroy(&this->m_RandomNumGen); CHKERRQ(ierr);
         this->m_RandomNumGen=NULL;
     }
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -234,7 +251,7 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc) {
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(preproc!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(preproc != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_PreProc = preproc;
 
     this->m_Opt->Exit(__FUNCT__);
@@ -254,7 +271,6 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc) {
 #define __FUNCT__ "Reset"
 PetscErrorCode PrecondReg::Reset() {
     PetscErrorCode ierr = 0;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -277,7 +293,7 @@ PetscErrorCode PrecondReg::Reset() {
             // instance when we do parameter continuation) without
             // destroying the preconditioner, it is necessary to
             // recompute eigenvalues
-            this->m_EigenValuesEstimated = false;
+            this->m_Opt->KrylovMethodEigValsEstimated(false);
             break;
         }
         default:
@@ -484,10 +500,12 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
             delete this->m_OptCoarse;
             this->m_OptCoarse=NULL;
         }
+
         try{ this->m_OptCoarse = new RegOpt(*this->m_Opt); }
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+
         for (int i=0; i < 3; ++i) {
             this->m_OptCoarse->SetNumGridPoints(i,nx_c[i]);
         }
@@ -496,32 +514,29 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
         nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
         ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
 
-
         // allocate class for registration
         if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
             try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse); }
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-        }
-        else if (this->m_Opt->GetRegModel() == STOKES) {
+        } else if (this->m_Opt->GetRegModel() == STOKES) {
             try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse); }
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-        }
-        else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
+        } else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
             try{ this->m_OptProbCoarse = new OptimalControlRegistrationRelaxedIC(this->m_OptCoarse); }
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
+        } else{
+            ierr = ThrowError("registration model not defined"); CHKERRQ(ierr);
         }
-        else{ ierr = ThrowError("registration model not defined"); CHKERRQ(ierr); }
-
 
         // create vector fields
-        ierr = VecCreate(this->m_WorkScaField1,nl_f,ng_f); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_WorkScaField2,nl_f,ng_f); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField1, nl_f, ng_f); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField2, nl_f, ng_f); CHKERRQ(ierr);
 
         try{ this->m_ControlVariable = new VecField(this->m_Opt); }
         catch (std::bad_alloc&) {
@@ -532,11 +547,11 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        ierr = VecCreate(this->m_StateVariableCoarse,(nt+1)*nl_c,(nt+1)*ng_c); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_AdjointVariableCoarse,(nt+1)*nl_c,(nt+1)*ng_c); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_StateVariableCoarse, (nt+1)*nl_c, (nt+1)*ng_c); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_AdjointVariableCoarse, (nt+1)*nl_c, (nt+1)*ng_c); CHKERRQ(ierr);
 
-        ierr = VecCreate(this->m_WorkScaFieldCoarse1,nl_c,ng_c); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_WorkScaFieldCoarse2,nl_c,ng_c); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaFieldCoarse1, nl_c, ng_c); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaFieldCoarse2, nl_c, ng_c); CHKERRQ(ierr);
 
         try{ this->m_ControlVariableCoarse = new VecField(this->m_OptCoarse); }
         catch (std::bad_alloc&) {
@@ -547,16 +562,15 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        ierr = VecCreate(this->m_xCoarse,3*nl_c,3*ng_c); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_HxCoarse,3*nl_c,3*ng_c); CHKERRQ(ierr);
-
+        ierr = VecCreate(this->m_xCoarse, 3*nl_c, 3*ng_c); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_HxCoarse, 3*nl_c, 3*ng_c); CHKERRQ(ierr);
     }
 
 
     // if parameter continuatoin is enabled, parse regularization weight
     if (this->m_Opt->GetParaCont().enabled) {
-        this->m_OptCoarse->SetRegularizationWeight(0,this->m_Opt->GetRegNorm().beta[0]);
-        this->m_OptCoarse->SetRegularizationWeight(1,this->m_Opt->GetRegNorm().beta[1]);
+        this->m_OptCoarse->SetRegularizationWeight(0, this->m_Opt->GetRegNorm().beta[0]);
+        this->m_OptCoarse->SetRegularizationWeight(1, this->m_Opt->GetRegNorm().beta[1]);
     }
 
     // get variables from optimization problem on fine level
@@ -565,29 +579,28 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     ierr = this->m_OptProb->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
     // restrict control variable
-    ierr = this->m_PreProc->Restrict(this->m_ControlVariableCoarse,this->m_ControlVariable,nx_c,nx_f); CHKERRQ(ierr);
+    ierr = this->m_PreProc->Restrict(this->m_ControlVariableCoarse, this->m_ControlVariable, nx_c, nx_f); CHKERRQ(ierr);
 
-    ierr = VecGetArray(m,&p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(lambda,&p_l); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariableCoarse,&p_mcoarse); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariableCoarse,&p_lcoarse); CHKERRQ(ierr);
+    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariableCoarse, &p_mcoarse); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariableCoarse, &p_lcoarse); CHKERRQ(ierr);
 
     nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
     ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
 
     // apply restriction operator to time series of images
     for (IntType j = 0; j <= nt; ++j) {
-
         // get time point of state variable on fine grid
-        ierr = VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
         try{ std::copy(p_m+j*nl_f, p_m+(j+1)*nl_f, p_mj); }
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
 
         // apply restriction operator to m_j
-        ierr = this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse1,this->m_WorkScaField1,nx_c,nx_f); CHKERRQ(ierr);
+        ierr = this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse1, this->m_WorkScaField1, nx_c, nx_f); CHKERRQ(ierr);
 
         // store restricted state variable
         ierr = VecGetArray(this->m_WorkScaFieldCoarse1, &p_mjcoarse); CHKERRQ(ierr);
@@ -598,32 +611,32 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
         ierr = VecRestoreArray(this->m_WorkScaFieldCoarse1, &p_mjcoarse); CHKERRQ(ierr);
 
         // get time point of adjoint variable on fine grid
-        ierr = VecGetArray(this->m_WorkScaField2,&p_lj); CHKERRQ(ierr);
-        try{ std::copy(p_l+j*nl_f,p_l+(j+1)*nl_f,p_lj); }
+        ierr = VecGetArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
+        try{ std::copy(p_l+j*nl_f, p_l+(j+1)*nl_f, p_lj); }
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_WorkScaField2,&p_lj); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
 
         // apply restriction operator
-        ierr = this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse2,this->m_WorkScaField2,nx_c,nx_f); CHKERRQ(ierr);
+        ierr = this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse2, this->m_WorkScaField2, nx_c, nx_f); CHKERRQ(ierr);
 
         // store restricted adjoint variable
-        ierr = VecGetArray(this->m_WorkScaFieldCoarse2,&p_ljcoarse); CHKERRQ(ierr);
-        try{ std::copy(p_ljcoarse,p_ljcoarse+nl_c,p_lcoarse+j*nl_c); }
+        ierr = VecGetArray(this->m_WorkScaFieldCoarse2, &p_ljcoarse); CHKERRQ(ierr);
+        try{ std::copy(p_ljcoarse, p_ljcoarse+nl_c, p_lcoarse+j*nl_c); }
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_WorkScaFieldCoarse2,&p_ljcoarse); CHKERRQ(ierr);
-
+        ierr = VecRestoreArray(this->m_WorkScaFieldCoarse2, &p_ljcoarse); CHKERRQ(ierr);
     }
 
-    ierr = VecRestoreArray(this->m_AdjointVariableCoarse,&p_lcoarse); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariableCoarse,&p_mcoarse); CHKERRQ(ierr);
-    ierr = VecRestoreArray(lambda,&p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m,&p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_AdjointVariableCoarse, &p_lcoarse); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariableCoarse, &p_mcoarse); CHKERRQ(ierr);
+    ierr = VecRestoreArray(lambda, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
-    // parse variables to optimization problem on coarse level
+    // parse variables to optimization problem on coarse level (we have to set the control
+    // variable first)
     ierr = this->m_OptProbCoarse->SetControlVariable(this->m_ControlVariableCoarse); CHKERRQ(ierr);
     ierr = this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
     ierr = this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
@@ -660,34 +673,34 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         case CHEB:
         {
             // chebyshev iteration
-            ierr = KSPSetType(this->m_KrylovMethod,KSPCHEBYSHEV); CHKERRQ(ierr);
+            ierr = KSPSetType(this->m_KrylovMethod, KSPCHEBYSHEV); CHKERRQ(ierr);
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
-            ierr = KSPChebyshevEstEigSetUseRandom(this->m_KrylovMethod,PETSC_TRUE); CHKERRQ(ierr);
+            ierr = KSPChebyshevEstEigSetUseRandom(this->m_KrylovMethod, PETSC_TRUE); CHKERRQ(ierr);
 #endif
             break;
         }
         case PCG:
         {
             // preconditioned conjugate gradient
-            ierr = KSPSetType(this->m_KrylovMethod,KSPCG); CHKERRQ(ierr);
+            ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
             break;
         }
         case FCG:
         {
             // flexible conjugate gradient
-            ierr = KSPSetType(this->m_KrylovMethod,KSPFCG); CHKERRQ(ierr);
+            ierr = KSPSetType(this->m_KrylovMethod, KSPFCG); CHKERRQ(ierr);
             break;
         }
         case GMRES:
         {
             // generalized minimal residual method
-            ierr = KSPSetType(this->m_KrylovMethod,KSPGMRES); CHKERRQ(ierr);
+            ierr = KSPSetType(this->m_KrylovMethod, KSPGMRES); CHKERRQ(ierr);
             break;
         }
         case FGMRES:
         {
             // flexible generalized minimal residual method
-            ierr = KSPSetType(this->m_KrylovMethod,KSPFGMRES); CHKERRQ(ierr);
+            ierr = KSPSetType(this->m_KrylovMethod, KSPFGMRES); CHKERRQ(ierr);
             break;
         }
         default:
@@ -700,12 +713,12 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
     //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
     //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
     //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
-    ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+    ierr = KSPSetNormType(this->m_KrylovMethod, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
     //ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
-    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
 
     //ierr = KSPSetPostSolve(this->m_KrylovMethod,PostKrylovSolve,this);
-    ierr = KSPSetPreSolve(this->m_KrylovMethod,InvertPrecondPreKrylovSolve,this);
+    ierr = KSPSetPreSolve(this->m_KrylovMethod, InvertPrecondPreKrylovSolve, this); CHKERRQ(ierr);
 
     // set up matvec for preconditioner
     if (this->m_MatVec != NULL) {
@@ -713,19 +726,27 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         this->m_MatVec = NULL;
     }
 
-    ierr = MatCreateShell(PETSC_COMM_WORLD,3*nl,3*nl,3*ng,3*ng,this,&this->m_MatVec); CHKERRQ(ierr);
-    ierr = MatShellSetOperation(this->m_MatVec,MATOP_MULT,(void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
-    ierr = KSPSetOperators(this->m_KrylovMethod,this->m_MatVec,this->m_MatVec);CHKERRQ(ierr);
-    ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatCreateShell(PETSC_COMM_WORLD, 3*nl, 3*nl, 3*ng, 3*ng, this, &this->m_MatVec); CHKERRQ(ierr);
+    ierr = MatShellSetOperation(this->m_MatVec, MATOP_MULT, (void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
+    ierr = KSPSetOperators(this->m_KrylovMethod, this->m_MatVec, this->m_MatVec);CHKERRQ(ierr);
+
+    // TODO: make sure this make sense; we will have to switch the hessian
+    // operator, which currently is not done
+//   if (     (this->m_Opt->GetKrylovSolverPara().pcsolver == GMRES)
+//        ||  (this->m_Opt->GetKrylovSolverPara().pcsolver == FGMRES) ) {
+//        ierr = MatSetOption(this->m_MatVec, MAT_SYMMETRIC, PETSC_FALSE); CHKERRQ(ierr);
+//    }
+
+    ierr = MatSetOption(this->m_MatVec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
     //ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 1) {
-        ierr = KSPMonitorSet(this->m_KrylovMethod,InvertPrecondKrylovMonitor,this,NULL); CHKERRQ(ierr);
+        ierr = KSPMonitorSet(this->m_KrylovMethod, InvertPrecondKrylovMonitor, this, NULL); CHKERRQ(ierr);
     }
 
     // remove preconditioner
     ierr = KSPGetPC(this->m_KrylovMethod,&pc); CHKERRQ(ierr);
-    ierr = PCSetType(pc,PCNONE); CHKERRQ(ierr); ///< set no preconditioner
+    ierr = PCSetType(pc,PCNONE); CHKERRQ(ierr);  ///< set no preconditioner
 
     // finish
     ierr = KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
@@ -858,8 +879,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -873,11 +893,9 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EstimateEigenValues"
-PetscErrorCode PrecondReg::EstimateEigenValues()
-{
+PetscErrorCode PrecondReg::EstimateEigenValues() {
     PetscErrorCode ierr = 0;
-    IntType n, neig, nl, ng;
-    KSPConvergedReason reason;
+    IntType i, n, neig, nl, ng;
     std::stringstream ss;
     Vec b = NULL, x = NULL;
     ScalarType *re = NULL, *im = NULL, eigmin, eigmax, emin, emax;
@@ -901,29 +919,18 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
 
     }
 */
-    // if we detect a divergence, we'll have to restimate
-    // the eigenvalues
-    ierr = KSPGetConvergedReason(this->m_KrylovMethod, &reason); CHKERRQ(ierr);
-    if (reason !=  KSP_DIVERGED_ITS) {
-        this->m_EigenValuesEstimated = false;
-    }
-
-    if (!this->m_EigenValuesEstimated) {
-
+    if (!this->m_Opt->GetKrylovSolverPara().eigvalsestimated) {
         if (this->m_Opt->GetVerbosity() > 1) {
             ierr = DbgMsg("estimating eigenvalues of hessian"); CHKERRQ(ierr);
         }
 
         if (this->m_Opt->GetKrylovSolverPara().usepetsceigest) {
-            // default interface for chebyshev method; this interface
-            // we have to compute the eigenvalues at every iteration
-            // using this interface (at least it seems to be like that)
-            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod,PETSC_DECIDE,
-                                                              PETSC_DECIDE,
-                                                              PETSC_DECIDE,
-                                                              PETSC_DECIDE); CHKERRQ(ierr);
+            // default interface for chebyshev method to estimate eigenvalues
+            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE,
+                                                               PETSC_DECIDE,
+                                                               PETSC_DECIDE,
+                                                               PETSC_DECIDE); CHKERRQ(ierr);
         } else {
-
             // get sizes
             nl = this->m_Opt->GetDomainPara().nlocal;
             ng = this->m_Opt->GetDomainPara().nglobal;
@@ -933,7 +940,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
 
             // use random right hand side
             if (this->m_RandomNumGen == NULL) {
-                ierr = PetscRandomCreate(PetscObjectComm((PetscObject)b),&this->m_RandomNumGen); CHKERRQ(ierr);
+                ierr = PetscRandomCreate(PetscObjectComm((PetscObject)b), &this->m_RandomNumGen); CHKERRQ(ierr);
             }
             ierr = VecSetRandom(b, this->m_RandomNumGen); CHKERRQ(ierr);
 
@@ -953,9 +960,9 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
             eigmin = PETSC_MAX_REAL;
             eigmax = PETSC_MIN_REAL;
 
-            for (IntType i=0; i < neig; ++i) {
-                eigmin = PetscMin(eigmin,re[i]);
-                eigmax = PetscMax(eigmax,re[i]);
+            for (i = 0; i < neig; ++i) {
+                eigmin = PetscMin(eigmin, re[i]);
+                eigmax = PetscMax(eigmax, re[i]);
             }
 
             // clear memory
@@ -963,10 +970,11 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
             ierr = this->m_OptProbCoarse->EstimateExtremalHessEigVals(emin, emax); CHKERRQ(ierr);
 
             ierr = KSPChebyshevSetEigenvalues(this->m_KrylovMethod, eigmax, eigmin); CHKERRQ(ierr);
+        }   // switch between eigenvalue estimators
 
-        }// switch between eigenvalue estimators
+        // set flag
+        this->m_Opt->KrylovMethodEigValsEstimated(true);
     }
-    this->m_EigenValuesEstimated = true;
 
     if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr);}
     if (b != NULL) {ierr = VecDestroy(&b); CHKERRQ(ierr);}
@@ -982,11 +990,10 @@ PetscErrorCode PrecondReg::EstimateEigenValues()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupKrylovMethodEigEst"
-PetscErrorCode PrecondReg::SetupKrylovMethodEigEst()
-{
-    PetscErrorCode ierr;
-    PC pc=NULL;
-    IntType nl,ng;
+PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
+    PetscErrorCode ierr = 0;
+    PC pc = NULL;
+    IntType nl, ng;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -1008,9 +1015,9 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst()
     //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
     //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
     //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
-    ierr = KSPSetNormType(this->m_KrylovMethodEigEst,KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+    ierr = KSPSetNormType(this->m_KrylovMethodEigEst, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
     //ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
-    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst, PETSC_FALSE); CHKERRQ(ierr);
 
     // set up matvec for preconditioner
     if (this->m_MatVecEigEst != NULL) {
@@ -1018,35 +1025,35 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst()
         this->m_MatVec = NULL;
     }
 
-    ierr = MatCreateShell(PETSC_COMM_WORLD,3*nl,3*nl,3*ng,3*ng,this,&this->m_MatVecEigEst); CHKERRQ(ierr);
-    ierr = MatShellSetOperation(this->m_MatVecEigEst,MATOP_MULT,(void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
-    ierr = KSPSetOperators(this->m_KrylovMethodEigEst,this->m_MatVecEigEst,this->m_MatVecEigEst);CHKERRQ(ierr);
-    ierr = MatSetOption(this->m_MatVecEigEst,MAT_SYMMETRIC,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatCreateShell(PETSC_COMM_WORLD, 3*nl, 3*nl, 3*ng, 3*ng, this, &this->m_MatVecEigEst); CHKERRQ(ierr);
+    ierr = MatShellSetOperation(this->m_MatVecEigEst, MATOP_MULT, (void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
+    ierr = KSPSetOperators(this->m_KrylovMethodEigEst, this->m_MatVecEigEst, this->m_MatVecEigEst);CHKERRQ(ierr);
+    ierr = MatSetOption(this->m_MatVecEigEst, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
     //ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
 
     // remove preconditioner
-    ierr = KSPGetPC(this->m_KrylovMethodEigEst,&pc); CHKERRQ(ierr);
+    ierr = KSPGetPC(this->m_KrylovMethodEigEst, &pc); CHKERRQ(ierr);
     ierr = PCSetType(pc,PCNONE); CHKERRQ(ierr); ///< set no preconditioner
 
-    ierr = KSPSetTolerances(this->m_KrylovMethodEigEst,1E-12,1E-12,1E+6,10); CHKERRQ(ierr);
-    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = KSPAppendOptionsPrefix(this->m_KrylovMethodEigEst,"esteig_"); CHKERRQ(ierr);
+    ierr = KSPSetTolerances(this->m_KrylovMethodEigEst, 1E-12, 1E-12, 1E+6, 10); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst, PETSC_FALSE); CHKERRQ(ierr);
+    ierr = KSPAppendOptionsPrefix(this->m_KrylovMethodEigEst, "esteig_"); CHKERRQ(ierr);
 
     // we are going to estimate eigenvalues with this
-    ierr = KSPSetComputeEigenvalues(this->m_KrylovMethodEigEst,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = KSPSetComputeEigenvalues(this->m_KrylovMethodEigEst, PETSC_TRUE); CHKERRQ(ierr);
 
     // finish
     ierr = KSPSetUp(this->m_KrylovMethodEigEst); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
-} // namespace reg
+}   // namespace reg
 
 
 

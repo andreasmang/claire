@@ -916,7 +916,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
     ierr = this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
 
     // switch between hessian operators
-    switch (this->m_Opt->GetHessianMatVecType()) {
+    switch (this->m_Opt->GetKrylovSolverPara().matvectype) {
         case DEFAULTMATVEC:
         {
             // apply hessian H to \tilde{v}
@@ -1041,9 +1041,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1} \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
-    ierr = VecWAXPY(this->m_WorkVecField2->m_X1, 1.0, this->m_IncVelocityField->m_X1, this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_WorkVecField2->m_X2, 1.0, this->m_IncVelocityField->m_X2, this->m_WorkVecField1->m_X2); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_WorkVecField2->m_X3, 1.0, this->m_IncVelocityField->m_X3, this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->WAXPY(1.0, this->m_IncVelocityField, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
     ierr = this->m_WorkVecField2->GetComponents(Hvtilde); CHKERRQ(ierr);

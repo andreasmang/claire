@@ -15,9 +15,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
-
+ **/
 
 #ifndef _PREPROCREG_H_
 #define _PREPROCREG_H_
@@ -26,14 +24,16 @@
 #include "RegUtils.hpp"
 #include "ReadWriteReg.hpp"
 
-namespace reg
-{
 
-class PreProcReg
-{
 
-public:
 
+namespace reg {
+
+
+
+
+class PreProcReg {
+ public:
     typedef PreProcReg Self;
     typedef ScalarType ScalarTypeFD[2];
     typedef ReadWriteReg ReadWriteType;
@@ -43,30 +43,29 @@ public:
     ~PreProcReg();
 
     PetscErrorCode SetReadWrite(ReadWriteType*);
-    PetscErrorCode ApplySmoothing(Vec,Vec);
-    PetscErrorCode ApplyRectFreqFilter(Vec,Vec,ScalarType,bool flag=true);
-    PetscErrorCode ApplyRectFreqFilter(VecField*,VecField*,ScalarType,bool flag=true);
+    PetscErrorCode ApplySmoothing(Vec, Vec);
+    PetscErrorCode ApplyRectFreqFilter(Vec, Vec, ScalarType, bool flag = true);
+    PetscErrorCode ApplyRectFreqFilter(VecField*, VecField*, ScalarType, bool flag = true);
 
-    PetscErrorCode Prolong(Vec*,Vec,IntType*,IntType*);
-    PetscErrorCode Prolong(VecField*,VecField*,IntType*,IntType*);
+    PetscErrorCode Prolong(Vec*, Vec, IntType*, IntType*);
+    PetscErrorCode Prolong(VecField*, VecField*, IntType*, IntType*);
 
-    PetscErrorCode Restrict(Vec*,Vec,IntType*,IntType*);
-    PetscErrorCode Restrict(VecField*,VecField*,IntType*,IntType*);
+    PetscErrorCode Restrict(Vec*, Vec, IntType*, IntType*);
+    PetscErrorCode Restrict(VecField*, VecField*, IntType*, IntType*);
 
-    PetscErrorCode ComputeOverlapMeasures(Vec,Vec);
+    PetscErrorCode ComputeOverlapMeasures(Vec, Vec);
 
-    inline void ResetGridChangeOps(bool flag){this->m_ResetGridChangeOps=flag;};
-    PetscErrorCode ComputeGridChangeIndices(IntType*,IntType*);
+    inline void ResetGridChangeOps(bool flag){this->m_ResetGridChangeOps = flag;};
+    PetscErrorCode ComputeGridChangeIndices(IntType*, IntType*);
 
-private:
-
+ private:
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
 
     PetscErrorCode GridChangeCommDataRestrict();
     PetscErrorCode GridChangeCommDataProlong();
     PetscErrorCode GridChangeCommIndices();
-    PetscErrorCode SetupGridChangeOps(IntType*,IntType*);
+    PetscErrorCode SetupGridChangeOps(IntType*, IntType*);
 
     RegOpt* m_Opt;
     ScalarTypeFD* m_xhat;
@@ -99,10 +98,8 @@ private:
     IntType m_ostartC[3];
     IntType m_ostartF[3];
 
-/*
-    IntType *m_NumSend;
-    IntType *m_NumRecv;
-*/
+/*  IntType *m_NumSend;
+    IntType *m_NumRecv; */
     IntType *m_NumSend;
     IntType *m_NumRecv;
     IntType *m_OffsetSend;
@@ -120,13 +117,15 @@ private:
     bool m_IndicesCommunicated;
     bool m_GridChangeIndicesComputed;
 
-
     double *m_OverlapMeasures;
-
 };
 
 
-} // end of name space
 
 
-#endif // _PREPROCREG_H_
+}   // namespace reg
+
+
+
+
+#endif  // _PREPROCREG_H_

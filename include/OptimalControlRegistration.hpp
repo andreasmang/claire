@@ -18,8 +18,6 @@
  *
  */
 
-
-
 #ifndef _OPTIMALCONTROLREGISTRATION_H_
 #define _OPTIMALCONTROLREGISTRATION_H_
 
@@ -29,13 +27,16 @@
 #include "RegUtils.hpp"
 #include "OptimalControlRegistrationBase.hpp"
 
-namespace reg
-{
 
 
-class OptimalControlRegistration : public OptimalControlRegistrationBase
-{
-public:
+
+namespace reg {
+
+
+
+
+class OptimalControlRegistration : public OptimalControlRegistrationBase {
+ public:
     typedef OptimalControlRegistrationBase SuperClass;
     typedef OptimalControlRegistration Self;
 
@@ -87,8 +88,7 @@ public:
     /*! compute initial condition via piccard iteration */
     PetscErrorCode ComputeInitialCondition(Vec,Vec);
 
-protected:
-
+ protected:
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 
@@ -144,13 +144,12 @@ protected:
     /*! sl solver for inc adjoint equation */
     PetscErrorCode SolveIncAdjointEquationFNSL();
 
-    Vec m_StateVariable; ///< time dependent state variable m(x,t)
-    Vec m_AdjointVariable; ///< time dependent adjoint variable \lambda(x,t)
-    Vec m_IncStateVariable; ///< time dependent incremental state variable \tilde{m}(x,t)
-    Vec m_IncAdjointVariable; ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    Vec m_StateVariable;        ///< time dependent state variable m(x,t)
+    Vec m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
+    Vec m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
+    Vec m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
 
-private:
-
+ private:
     PetscErrorCode HessMatVec(Vec,Vec);
     PetscErrorCode PrecondHessMatVec(Vec,Vec);
     PetscErrorCode PrecondHessMatVecSym(Vec,Vec);

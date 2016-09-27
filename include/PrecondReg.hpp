@@ -30,15 +30,15 @@
 #include "OptimalControlRegistrationRelaxedIC.hpp"
 
 
-namespace reg
-{
 
 
-class PrecondReg
-{
+namespace reg {
 
-public:
 
+
+
+class PrecondReg {
+ public:
     typedef OptimizationProblem OptProbType;
 
     PrecondReg();
@@ -61,7 +61,7 @@ public:
     PetscErrorCode Reset();
 
     /*! apply preconditioner */
-    PetscErrorCode MatVec(Vec,Vec);
+    PetscErrorCode MatVec(Vec, Vec);
 
     /*! apply hessian (for inversion) */
     PetscErrorCode HessianMatVec(Vec,Vec);
@@ -69,19 +69,17 @@ public:
     /*! estimate eigenvalues */
     PetscErrorCode EstimateEigenValues();
 
-protected:
-
+ protected:
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
 
-private:
-
+ private:
     /*! setup two level preconditioner */
     PetscErrorCode Setup2LevelPrecond();
-    PetscErrorCode HessianMatVecRestrict(Vec,Vec);
+    PetscErrorCode HessianMatVecRestrict(Vec, Vec);
 
     /*! setup krylov method */
     PetscErrorCode SetupKrylovMethod();
@@ -90,47 +88,49 @@ private:
     PetscErrorCode SetupKrylovMethodEigEst();
 
     /*! apply inverse regularization operator as preconditioner */
-    PetscErrorCode ApplyInvRegPC(Vec,Vec);
+    PetscErrorCode ApplyInvRegPC(Vec, Vec);
 
     /*! apply 2Level PC as preconditioner */
-    PetscErrorCode Apply2LevelPC(Vec,Vec);
+    PetscErrorCode Apply2LevelPC(Vec, Vec);
 
+    RegOpt* m_Opt;                      ///< registration options
+    RegOpt* m_OptCoarse;                ///< registration options (on coarse grid)
+    OptProbType* m_OptProb;             ///< pointer to optimization problem
+    OptProbType* m_OptProbCoarse;       ///< pointer to optimization problem (coarse level)
 
-    RegOpt* m_Opt; ///< registration options
-    RegOpt* m_OptCoarse; ///< registration options
-    OptProbType* m_OptProb; ///< pointer to optimization problem
-    OptProbType* m_OptProbCoarse; ///< pointer to optimization problem (coarse level)
+    VecField* m_ControlVariable;        ///< pointer to velocity field
+    VecField* m_IncControlVariable;     ///< pointer to velocity field
 
-    VecField* m_ControlVariable; ///< pointer to velocity field
-    VecField* m_IncControlVariable; ///< pointer to velocity field
+    Vec m_WorkScaField1;                ///< temporary scalar field
+    Vec m_WorkScaField2;                ///< temprary scalar field
+    VecField* m_WorkVecField;           ///< temporary vector field
+    Vec m_WorkScaFieldCoarse1;          ///< temporary scalar field (coarse level)
+    Vec m_WorkScaFieldCoarse2;          ///< temporary scalar field (coarse level)
 
-    Vec m_WorkScaField1; ///< temporary scalar field
-    Vec m_WorkScaField2; ///< temprary scalar field
-    VecField* m_WorkVecField; ///< temporary vector field
-    Vec m_WorkScaFieldCoarse1; ///< temporary scalar field (coarse level)
-    Vec m_WorkScaFieldCoarse2; ///< temporary scalar field (coarse level)
+    Vec m_xCoarse;      ///< array for input to hessian mat vec (on coarse level)
+    Vec m_HxCoarse;     ///< array for hessian mat vec (on coarse level)
 
-    Vec m_xCoarse; // array for input to hessian mat vec (on coarse level)
-    Vec m_HxCoarse; // array for hessian mat vec (on coarse level)
+    Vec m_StateVariableCoarse;              ///< pointer to state variable (coarse level)
+    Vec m_AdjointVariableCoarse;            ///< pointer to adjoint variable (coarse level)
+    VecField* m_ControlVariableCoarse;      ///< pointer to velocity field (coarse level)
+    VecField* m_IncControlVariableCoarse;   ///< pointer to velocity field (coarse level)
 
-    Vec m_StateVariableCoarse; ///< pointer to state variable (coarse level)
-    Vec m_AdjointVariableCoarse; ///< pointer to adjoint variable (coarse level)
-    VecField* m_ControlVariableCoarse; ///< pointer to velocity field (coarse level)
-    VecField* m_IncControlVariableCoarse; ///< pointer to velocity field (coarse level)
+    Mat m_MatVec;           ///< mat vec object (PETSc)
+    Mat m_MatVecEigEst;     ///< mat vec object (PETSc)
 
-    Mat m_MatVec; ///< mat vec object (PETSc)
-    Mat m_MatVecEigEst; ///< mat vec object (PETSc)
+    PreProcReg* m_PreProc;  ///< pointer to preprocessing
+    KSP m_KrylovMethod;     ///< pointer for krylov subspace method method (PETSc)
 
-    PreProcReg* m_PreProc; ///< pointer to preprocessing
-    KSP m_KrylovMethod; ///< pointer for krylov subspace method method (PETSc)
-
-    PetscRandom m_RandomNumGen; //< random number generated
+    PetscRandom m_RandomNumGen;     ///< random number generated
     KSP m_KrylovMethodEigEst;
-    bool m_EigenValuesEstimated;
-
 };
 
-} // end of namespace
+
+
+
+}   // namespace reg
+
+
 
 
 #endif  //_PRECONDREG_H_

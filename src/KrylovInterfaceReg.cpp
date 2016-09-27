@@ -1,7 +1,27 @@
+/*************************************************************************
+ *  Copyright (c) 2015-2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _KRYLOVINTERFACEREG_CPP_
 #define _KRYLOVINTERFACEREG_CPP_
 
 #include "KrylovInterfaceReg.hpp"
+
 
 
 
@@ -12,7 +32,7 @@ namespace reg {
 
 /****************************************************************************
  * @brief monitor evolution of krylov subspace method
- *****************************************************************************/
+ ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "KrylovMonitor"
 PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it, ScalarType rnorm, void* ptr) {
@@ -37,13 +57,13 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it, ScalarType rnorm, voi
 
         ierr = KSPGetConvergedReason(krylovmethod, &reason); CHKERRQ(ierr);
         ierr = DispKSPConvReason(reason); CHKERRQ(ierr);
-
-        optprob->GetOptions()->SetKrylovIterations(it);
     }
 
     if (optprob->GetOptions()->GetLogger().enabled[LOGKSPRES]) {
-        optprob->GetOptions()->LogKSPResidual(it,rnorm);
+        optprob->GetOptions()->LogKSPResidual(it, rnorm);
     }
+
+    optprob->GetOptions()->SetKrylovIter(it);
 
     PetscFunctionReturn(ierr);
 }
@@ -55,9 +75,9 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it, ScalarType rnorm, voi
  * @brief preprocess right hand side and initial condition before entering
  * the krylov subspace method; in the context of numerical optimization this
  * means we preprocess the gradient and the incremental control variable
- * @para krylovmethod pointer to krylov method
- * @para b right hand side of equation
- * @para x solution vector
+ * @para[in] krylovmethod pointer to krylov method
+ * @para[in] b right hand side of equation
+ * @para[in] x solution vector
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PreKrylovSolve"
@@ -81,20 +101,20 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set the iteration count to zero
-    optprob->GetOptions()->SetKrylovIterations(0);
+    optprob->GetOptions()->SetKrylovIter(0);
 
-    if (optprob->GetOptions()->GetHessianMatVecType() == PRECONDMATVEC) {
+    if (optprob->GetOptions()->GetKrylovSolverPara().matvectype == PRECONDMATVEC) {
         // get current gradient and compute norm
         // before we apply the preconditioner to
         // the right hand side
-        ierr = VecNorm(b,NORM_2,&gnorm); CHKERRQ(ierr);
+        ierr = VecNorm(b, NORM_2, &gnorm); CHKERRQ(ierr);
     }
 
     // use default tolreance
     reltol = optprob->GetOptions()->GetKrylovSolverPara().tol[0];
 
-    // apply pre processing to right hand side and initial condition
-    ierr = optprob->PreKrylovSolve(b,x); CHKERRQ(ierr);
+    // apply preprocessing to right hand side and initial condition
+    ierr = optprob->PreKrylovSolve(b, x); CHKERRQ(ierr);
 
     // user forcing sequence to estimate adequate tolerance
     // for solution of KKT system (Eisenstat-Walker)
@@ -123,7 +143,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
         gnorm /= g0norm;
 
         // get current tolerances
-        ierr = KSPGetTolerances(krylovmethod,&reltol,&abstol,&divtol,&maxit); CHKERRQ(ierr);
+        ierr = KSPGetTolerances(krylovmethod, &reltol, &abstol, &divtol, &maxit); CHKERRQ(ierr);
 
         if (optprob->GetOptions()->GetKrylovSolverPara().fseqtype == QDFS) {
             // assuming quadratic convergence (we do not solver more
@@ -140,7 +160,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     }
 
     // pass tolerance to optimization problem (for preconditioner)
-    optprob->SetRelTolKrylovMethod(reltol);
+    optprob->GetOptions()->SetRelTolKrylovMethod(reltol);
 
     if (optprob->GetOptions()->GetVerbosity() > 0) {
         ss << std::fixed << std::scientific << reltol;
@@ -149,10 +169,15 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
 
+    // we might want to recompute eigenvalues at every iteration
+    if (optprob->GetOptions()->GetKrylovSolverPara().reesteigvals) {
+        optprob->GetOptions()->KrylovMethodEigValsEstimated(false);
+    }
+
     // check symmetry of hessian
-#ifdef _REG_DEBUG_
-    ierr = optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
-#endif
+    if (optprob->GetOptions()->GetKrylovSolverPara().checkhesssymmetry) {
+        ierr = optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -164,13 +189,13 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
  * @brief postprocess right hand side and initial condition before entering
  * the krylov subspace method; in the context of numerical optimization this
  * means we postprocess the gradient and the incremental control variable
- * @para krylovmethod pointer to krylov method
- * @para b right hand side of equation
- * @para x solution vector
+ * @para[in] krylovmethod pointer to krylov method
+ * @para[in] b right hand side of equation
+ * @para[in] x solution vector
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "PostKrylovSolve"
-PetscErrorCode PostKrylovSolve(KSP krylovmethod,Vec b, Vec x, void* ptr) {
+PetscErrorCode PostKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     PetscErrorCode ierr = 0;
     OptimizationProblem* optprob = NULL;
     KSPConvergedReason reason;
@@ -184,10 +209,10 @@ PetscErrorCode PostKrylovSolve(KSP krylovmethod,Vec b, Vec x, void* ptr) {
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     // apply hessian
-    ierr = optprob->PostKrylovSolve(b,x); CHKERRQ(ierr);
+    ierr = optprob->PostKrylovSolve(b, x); CHKERRQ(ierr);
 
     if (optprob->GetOptions()->GetVerbosity() > 0) {
-        ierr = KSPGetConvergedReason(krylovmethod,&reason);
+        ierr = KSPGetConvergedReason(krylovmethod, &reason);
         ierr = DispKSPConvReason(reason); CHKERRQ(ierr);
     }
 
@@ -334,7 +359,6 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
         }
 
     }
-
     PetscFunctionReturn(ierr);
 }
 
@@ -342,8 +366,12 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
 
 
 /********************************************************************
- * @brief monitor for evolution of krylov subspace method for the
- * inversion of the preconditioner
+ * @brief monitor for evolution of krylov subspace method for
+ * inversion of preconditioner
+ * @para[in] krylovmethod pointer to krylov method
+ * @para[in] current iteration index
+ * @para[in] current norm of residual
+ * @para[in] pointer to preconditioner object
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "InvertPrecondKrylovMonitor"
@@ -351,7 +379,7 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it, ScalarTy
     PetscErrorCode ierr = 0;
     (void)krylovmethod;
     KSPConvergedReason reason;
-    PrecondReg *precond = NULL;
+    PrecondReg* precond = NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
@@ -369,7 +397,7 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it, ScalarTy
     ierr = KSPGetConvergedReason(krylovmethod, &reason); CHKERRQ(ierr);
     ierr = DispKSPConvReason(reason); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -383,7 +411,7 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it, ScalarTy
 PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
     PetscErrorCode ierr = 0;
     void* ptr;
-    PrecondReg *precond = NULL;
+    PrecondReg* precond = NULL;
     PetscFunctionBegin;
 
     ierr = MatShellGetContext(P, reinterpret_cast<void**>(&ptr)); CHKERRQ(ierr);
@@ -400,7 +428,7 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
 
 
 /****************************************************************************
- * @brief
+ * @brief initialization before applying the preconditioner
  * @para[in] krylovmethod pointer to krylov method
  * @para[in] b right hand side of equation
  * @para[in] x solution vector
@@ -408,7 +436,7 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
 #undef __FUNCT__
 #define __FUNCT__ "InvertPrecondPreKrylovSolve"
 PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     PrecondReg* precond = NULL;
     IntType maxits;
     ScalarType reltol, abstol, divtol, scale;
@@ -477,7 +505,6 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void*
     // set tolerances
     ierr = KSPSetTolerances(krylovmethod, reltol, abstol, divtol, maxits); CHKERRQ(ierr);
 
-
     if (precond->GetOptions()->GetVerbosity() > 1) {
         rnss << std::fixed << std::scientific << reltol;
         itss << maxits;
@@ -487,7 +514,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void*
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

@@ -26,17 +26,16 @@
 #include "VecField.hpp"
 
 
-namespace reg
-{
 
 
-class OptimizationProblem
-{
+namespace reg {
 
-public:
 
+
+
+class OptimizationProblem {
+ public:
     typedef OptimizationProblem Self;
-
     OptimizationProblem(void);
     OptimizationProblem(RegOpt*);
     ~OptimizationProblem(void);
@@ -48,7 +47,6 @@ public:
     inline ScalarType GetInitialDistanceVal(){return this->m_InitDistanceVal;};
     inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
 
-    inline void SetRelTolKrylovMethod(ScalarType tol){this->m_Opt->SetRelTolKrylovMethod(tol);};
     inline void IncrementIterations(){this->m_Opt->IncrementCounter(ITERATIONS);};
 
     /*! evaluate objective, gradient and distance measure for initial guess */

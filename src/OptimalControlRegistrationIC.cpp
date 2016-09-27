@@ -193,13 +193,13 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
 
-    ierr = Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_WorkScaField1 == NULL) {
-        ierr = VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr = VecDuplicate(this->m_ReferenceImage, &this->m_WorkScaField1); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL) {
-        ierr = VecDuplicate(this->m_ReferenceImage,&this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr = VecDuplicate(this->m_ReferenceImage, &this->m_WorkScaField2); CHKERRQ(ierr);
     }
     if (this->m_WorkVecField1==NULL) {
         this->m_WorkVecField1 = new VecField(this->m_Opt);
@@ -210,40 +210,38 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     ierr = this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
 
     // compute trajectory
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"adjoint"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "adjoint"); CHKERRQ(ierr);
 
-    ierr = VecGetArray(this->m_WorkScaField1,&p_lj); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2,&p_ljX); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_lj); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_ljX); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     // copy initial condition \lambda = (m_R - m) at t=1
-    try{ std::copy(p_l+nt*nl,p_l+(nt+1)*nl,p_lj); }
+    try {std::copy(p_l+nt*nl, p_l+(nt+1)*nl, p_lj);}
     catch(std::exception&) {
         ierr = ThrowError("copy failed"); CHKERRQ(ierr);
     }
 
-
     for (IntType j = 0; j < nt; ++j) {
-
         // compute lambda(t^j,X)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_ljX,p_lj,"adjoint"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_ljX, p_lj,"adjoint"); CHKERRQ(ierr);
 
         // store \lambda(X,t^{j+1})
-        try{ std::copy(p_ljX,p_ljX+nl,p_lj); }
+        try{ std::copy(p_ljX, p_ljX+nl, p_lj); }
         catch(std::exception&) {
             ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
         }
         // store time history
-        try{ std::copy(p_lj,p_lj+nl,p_l+(nt-(j+1))*nl); }
+        try{ std::copy(p_lj, p_lj+nl, p_l+(nt-(j+1))*nl);}
         catch(std::exception&) {
             ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
         }
 
     }
 
-    ierr = VecRestoreArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2,&p_ljX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1,&p_lj); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_ljX); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_lj); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 
@@ -263,7 +261,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 #undef __FUNCT__
 #define __FUNCT__ "SolveIncAdjointEquationGNSL"
 PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     IntType nl, nt;
     ScalarType *p_ltilde = NULL, *p_ltildej = NULL, *p_ltildejX = NULL;
 
@@ -279,13 +277,13 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
 
-    ierr = VecGetArray(this->m_WorkScaField1,&p_ltildej); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2,&p_ltildejX); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_IncAdjointVariable,&p_ltilde); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_ltildej); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_ltildejX); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
 
     // remember time history (i.e. copy final condition
     // $\tilde{\lambda}_1 = -\tilde{m}_1$ into buffer for $\tilde{\lambda}
-    try{ std::copy(p_ltilde+nt*nl,p_ltilde+(nt+1)*nl,p_ltildej); }
+    try {std::copy(p_ltilde+nt*nl, p_ltilde+(nt+1)*nl, p_ltildej);}
     catch(std::exception&) {
         ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
     }
@@ -295,23 +293,23 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildejX, p_ltildej, "adjoint"); CHKERRQ(ierr);
 
         // store time history (necessary for optimization)
-        try{ std::copy(p_ltildejX,p_ltildejX+nl,p_ltildej); }
+        try {std::copy(p_ltildejX, p_ltildejX+nl, p_ltildej);}
         catch(std::exception&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
         // store time history (necessary for optimization)
-        try{ std::copy(p_ltildej,p_ltildej+nl,p_ltilde+(nt-(j+1))*nl); }
+        try {std::copy(p_ltildej, p_ltildej+nl, p_ltilde+(nt-(j+1))*nl);}
         catch(std::exception&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
 
-    ierr = VecRestoreArray(this->m_IncAdjointVariable,&p_ltilde); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2,&p_ltildejX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1,&p_ltildej); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_ltildejX); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_ltildej); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -328,14 +326,13 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
     IntType nalloc;
-    double ffttimers[5] = {0, 0, 0, 0, 0};
+    double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
     nx[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
     nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
     nx[2] = static_cast<long int>(this->m_Opt->GetNumGridPoints(2));
-
 
     nalloc = this->m_Opt->GetFFT().nalloc;
     scale = this->m_Opt->ComputeFFTScale();
@@ -360,22 +357,19 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
         this->m_Kx3hat=(FFTScaType*)accfft_alloc(nalloc);
     }
 
-    ierr = VecGetArray(x->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecGetArray(x->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecGetArray(x->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, ffttimers);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, ffttimers);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->IncrementCounter(FFT,3);
-
 
 #pragma omp parallel
 {
-    long int x1,x2,x3,wx1,wx2,wx3;
-    ScalarType lapinvik,gradik1,gradik2,gradik3;
-    IntType i,i1,i2,i3;
+    long int x1, x2, x3, wx1, wx2, wx3;
+    ScalarType lapinvik, gradik1, gradik2, gradik3;
+    IntType i, i1, i2, i3;
 #pragma omp for
     for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
         for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
@@ -408,7 +402,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
                 gradik2 = static_cast<ScalarType>(wx2);
                 gradik3 = static_cast<ScalarType>(wx3);
 
-                i=GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                 // compute div(b)
                 this->m_Kx1hat[i][0] = -scale*(gradik1*this->m_x1hat[i][0]
@@ -434,30 +428,30 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
                 // compute x1 gradient of lab^{-1} div(b)
                 this->m_Kx1hat[i][0] *= -gradik1;
                 this->m_Kx1hat[i][1] *=  gradik1;
-
             }
         }
     }
-}// pragma omp parallel
-
+}  // pragma omp parallel
 
     // compute inverse fft
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx1hat,p_x1,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx2hat,p_x2,ffttimers);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Kx3hat,p_x3,ffttimers);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
     this->m_Opt->IncrementCounter(FFT,3);
 
-    ierr = VecRestoreArray(x->m_X1,&p_x1); CHKERRQ(ierr);
-    ierr = VecRestoreArray(x->m_X2,&p_x2); CHKERRQ(ierr);
-    ierr = VecRestoreArray(x->m_X3,&p_x3); CHKERRQ(ierr);
+    ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timer);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
-} // end of namespace
+
+
+}  // namespace reg
+
+
 
 
 #endif // _OPTIMALCONTROLREGISTRATIONIC_CPP_
