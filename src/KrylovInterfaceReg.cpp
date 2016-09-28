@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2015-2016.
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -35,7 +35,8 @@ namespace reg {
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "KrylovMonitor"
-PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it, ScalarType rnorm, void* ptr) {
+PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
+                             ScalarType rnorm, void* ptr) {
     PetscErrorCode ierr = 0;
     (void)krylovmethod;
     KSPConvergedReason reason;
@@ -375,7 +376,8 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "InvertPrecondKrylovMonitor"
-PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it, ScalarType rnorm, void* ptr) {
+PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
+                                          ScalarType rnorm, void* ptr) {
     PetscErrorCode ierr = 0;
     (void)krylovmethod;
     KSPConvergedReason reason;
@@ -435,7 +437,8 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "InvertPrecondPreKrylovSolve"
-PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
+PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
+                                           Vec x, void* ptr) {
     PetscErrorCode ierr = 0;
     PrecondReg* precond = NULL;
     IntType maxits;

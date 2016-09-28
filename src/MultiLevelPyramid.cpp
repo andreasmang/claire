@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _MULTILEVELPYRAMID_CPP_
 #define _MULTILEVELPYRAMID_CPP_
@@ -222,11 +221,11 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
 
         if (this->m_Opt->GetVerbosity() > 2) {
             ss << std::scientific << "allocating ML data: level " << std::setw(3) << level + 1
-               <<" of " << nlevels
-               <<" nx=("<< this->m_Opt->GetGridContPara().nx[level][0]
-               <<","    << this->m_Opt->GetGridContPara().nx[level][1]
-               <<","    << this->m_Opt->GetGridContPara().nx[level][2]
-               << "); (nl,ng)=("<< nl << "," << ng << ")";
+               << " of "  << nlevels
+               << " nx=(" << this->m_Opt->GetGridContPara().nx[level][0]
+               << ","     << this->m_Opt->GetGridContPara().nx[level][1]
+               << ","     << this->m_Opt->GetGridContPara().nx[level][2]
+               << "); (nl,ng)=(" << nl << "," << ng << ")";
 
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str( std::string() ); ss.clear();
@@ -234,49 +233,49 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
 
         if (level == 0) {
             ierr = this->Allocate(&this->m_DataL01, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL01,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL01, 0.0); CHKERRQ(ierr);
         } else if (level == 1) {
             ierr = this->Allocate(&this->m_DataL02, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL02,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL02, 0.0); CHKERRQ(ierr);
         } else if (level == 2) {
             ierr = this->Allocate(&this->m_DataL03, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL03,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL03, 0.0); CHKERRQ(ierr);
         } else if (level == 3) {
             ierr = this->Allocate(&this->m_DataL04, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL04,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL04, 0.0); CHKERRQ(ierr);
         } else if (level == 4) {
             ierr = this->Allocate(&this->m_DataL05, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL05,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL05, 0.0); CHKERRQ(ierr);
         } else if (level == 5) {
             ierr = this->Allocate(&this->m_DataL06, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL06,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL06, 0.0); CHKERRQ(ierr);
         } else if (level == 6) {
             ierr = this->Allocate(&this->m_DataL07, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL07,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL07, 0.0); CHKERRQ(ierr);
         } else if (level == 7) {
             ierr = this->Allocate(&this->m_DataL08, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL08,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL08, 0.0); CHKERRQ(ierr);
         } else if (level == 8) {
             ierr = this->Allocate(&this->m_DataL09, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL09,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL09, 0.0); CHKERRQ(ierr);
         } else if (level == 9) {
             ierr = this->Allocate(&this->m_DataL10, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL10,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL10, 0.0); CHKERRQ(ierr);
         } else if (level == 10) {
             ierr = this->Allocate(&this->m_DataL11, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL11,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL11, 0.0); CHKERRQ(ierr);
         } else if (level == 11) {
             ierr = this->Allocate(&this->m_DataL12, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL12,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL12, 0.0); CHKERRQ(ierr);
         } else if (level == 12) {
             ierr = this->Allocate(&this->m_DataL13, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL13,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL13, 0.0); CHKERRQ(ierr);
         } else if (level == 13) {
             ierr = this->Allocate(&this->m_DataL14, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL14,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL14, 0.0); CHKERRQ(ierr);
         } else if (level == 14) {
             ierr = this->Allocate(&this->m_DataL15, nl, ng); CHKERRQ(ierr);
-            ierr = VecSet(this->m_DataL15,0.0); CHKERRQ(ierr);
+            ierr = VecSet(this->m_DataL15, 0.0); CHKERRQ(ierr);
         } else {
             ierr = ThrowError("level not accessible"); CHKERRQ(ierr);
         }
@@ -520,9 +519,9 @@ PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level) {
 
 
 
-} // end of namespace
+}   // namespace reg
 
 
 
 
-#endif // _MULTILEVELPYRAMID_CPP_
+#endif  // _MULTILEVELPYRAMID_CPP_

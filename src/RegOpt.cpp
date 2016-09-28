@@ -1212,12 +1212,13 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
 
 
 /********************************************************************
- * @brief set preset parameters
+ * @brief set preset parameters (maybe reduce number of krylov
+ * iterations)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetPresetParameters"
 PetscErrorCode RegOpt::SetPresetParameters() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
@@ -1229,8 +1230,7 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         this->m_KrylovSolverPara.maxit = 5;
         this->m_RegNorm.type = H1SN;
         this->m_OptPara.maxit = 20;
-        this->m_OptPara.tol[2] = 1E-2;
-
+        this->m_OptPara.tol[2] = 1E-2;  // perhaps 5E-2
     } else if (this->m_SolveType == ACC_AGG) {
         // use slow and aggressive method
         this->m_RegNorm.type = H1SN;
@@ -1238,7 +1238,6 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
         this->m_OptPara.tol[2] = 1E-2;
-
     } else if (this->m_SolveType == FAST_SMOOTH) {
         // use fast and smooth method
         this->m_RegNorm.type = H2SN;
@@ -1246,7 +1245,6 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         this->m_KrylovSolverPara.maxit = 10;
         this->m_OptPara.maxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
-
     } else if (this->m_SolveType == ACC_SMOOTH) {
         // use slow and smooth method
         this->m_RegNorm.type = H2SN;
@@ -1254,12 +1252,11 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
         this->m_OptPara.tol[2] = 1E-2;
-
     } else { ierr = ThrowError("flag not defined"); CHKERRQ(ierr); }
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
