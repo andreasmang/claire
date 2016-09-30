@@ -225,26 +225,27 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
         }
     }
     if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
 
     // get regularization weight
     betaw = this->m_Opt->GetRegNorm().beta[2];
 
+    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
 
     // compute \idiv(\vect{v})
-    ierr = VecGetArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    accfft_divergence(p_divv,p_v1,p_v2,p_v3,this->m_Opt->GetFFT().plan,timer);
+    accfft_divergence(p_divv, p_v1, p_v2, p_v3, this->m_Opt->GetFFT().plan, timer);
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT,4);
 
 
-    // compute gradient
+    // compute gradient of div(v)
     ierr = this->m_WorkVecField1->GetArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
-    accfft_grad(p_gdv3,p_gdv2,p_gdv1,p_divv,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad(p_gdv3,p_gdv2, p_gdv1, p_divv, this->m_Opt->GetFFT().plan, &XYZ, timer);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
+
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT,4);
 
 
@@ -253,8 +254,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ierr = VecTDot(this->m_WorkVecField1->m_X1, this->m_WorkVecField1->m_X1, &value); CHKERRQ(ierr); regvalue += value;
     ierr = VecTDot(this->m_WorkVecField1->m_X2, this->m_WorkVecField1->m_X2, &value); CHKERRQ(ierr); regvalue += value;
     ierr = VecTDot(this->m_WorkVecField1->m_X3, this->m_WorkVecField1->m_X3, &value); CHKERRQ(ierr); regvalue += value;
-
-    ierr = VecTDot(this->m_WorkScaField1,this->m_WorkScaField1,&value); CHKERRQ(ierr); regvalue += value;
+    ierr = VecTDot(this->m_WorkScaField1, this->m_WorkScaField1, &value); CHKERRQ(ierr); regvalue += value;
 
     // add up contributions
     *Rw = 0.5*betaw*regvalue;
