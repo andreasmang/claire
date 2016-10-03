@@ -178,6 +178,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
     this->m_ParaCont.enabled = opt.m_ParaCont.enabled;
     this->m_ParaCont.targetbeta = opt.m_ParaCont.targetbeta;
+    this->m_ParaCont.beta0 = opt.m_ParaCont.beta0;
 
     // grid continuation
     this->m_GridCont.enabled = opt.m_GridCont.enabled;
@@ -568,6 +569,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
 
             argc--; argv++;
             this->m_ParaCont.targetbeta = atof(argv[1]);
+        } else if (strcmp(argv[1], "-betavinit") == 0) {
+            argc--; argv++;
+            this->m_ParaCont.beta0 = atof(argv[1]);
         } else if (strcmp(argv[1], "-scalecont") == 0) {
             this->m_ScaleCont.enabled = true;
         } else if (strcmp(argv[1], "-gridcont") == 0) {
@@ -753,9 +757,10 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.invdefgrad = false;
 
     // parameter continuation
-    this->m_ParaCont.strategy = PCONTOFF;
-    this->m_ParaCont.enabled = false;
-    this->m_ParaCont.targetbeta = 0.0;
+    this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation
+    this->m_ParaCont.enabled = false;           ///< flag for parameter continuation
+    this->m_ParaCont.targetbeta = 0.0;          ///< has to be set by user
+    this->m_ParaCont.beta0 = 1.0;               ///< default initial parameter for parameter continuation
 
     // grid continuation
     this->m_GridCont.enabled = false;
@@ -934,6 +939,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -jbound <dbl>             lower bound on determinant of deformation gradient (default: 2E-1)" << std::endl;
         std::cout << " -betavcont <dbl>          do parameter continuation in betav until target regularization" << std::endl;
         std::cout << "                           parameter betav=<dbl> is reached (betav must be in (0,1))" << std::endl;
+        std::cout << " -betavinit <dbl>          initial regularization weight for continuation" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {
@@ -1044,18 +1050,17 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     if (this->m_ParaCont.strategy == PCONTINUATION) {
         betav = this->m_ParaCont.targetbeta;
-        if (betav <= 0.0) {
-            msg = "\x1b[31m target betav <= 0.0 \x1b[0m\n";
+        if (betav <= 0.0 || betav > 1.0) {
+            msg = "\x1b[31m target betav not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
         }
-        if (betav > 1.0) {
-            msg = "\x1b[31m target betav >= 1.0 \x1b[0m\n";
+        betav = this->m_ParaCont.beta0;
+        if (betav <= 0.0 || betav > 1.0) {
+            msg = "\x1b[31m initial guess for betav not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
         }
-        this->m_RegNorm.beta[0] = betav;
-        this->m_RegNorm.beta[1] = betav;
     }
 
     if (this->m_ScaleCont.enabled && this->m_ParaCont.enabled) {

@@ -427,8 +427,7 @@ PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetAdjointVariable"
-PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda)
-{
+PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nt;
 
@@ -512,8 +511,7 @@ PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateDistanceMeasure"
-PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D)
-{
+PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m1 = NULL, *p_m = NULL;
     IntType nt, nl, ng;
@@ -562,7 +560,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -830,8 +828,6 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
             IntType i;
             ScalarType l;
 #pragma omp for
-
-            // for all grid points at tj
             // \vect{b}_i += h_d*ht*\lambda^j (\grad m^j)_i
             for (i = 0; i < nl; ++i) {
                 l = p_l[k+i];  // get \lambda(x_i,t^j)
@@ -856,7 +852,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -881,7 +877,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
-        try{this->m_IncVelocityField = new VecField(this->m_Opt);}
+        try {this->m_IncVelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -889,7 +885,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     // allocate work vec field 1
     if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -897,7 +893,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     // allocate work vec field 2
     if (this->m_WorkVecField2 == NULL) {
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1133,7 +1129,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1143,7 +1139,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     // allocate container for incremental velocity field
     if (this->m_VelocityField == NULL) {
-        try{this->m_VelocityField = new VecField(this->m_Opt);}
+        try {this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1186,14 +1182,13 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     ierr = VecSet(this->m_AdjointVariable, 0.0); CHKERRQ(ierr);
 
     ierr = this->m_ReadWrite->Write(this->m_VelocityField,
-                            "initial-condition-x1" + ext,
-                            "initial-condition-x2" + ext,
-                            "initial-condition-x3" + ext); CHKERRQ(ierr);
+                                    "initial-condition-x1" + ext,
+                                    "initial-condition-x2" + ext,
+                                    "initial-condition-x3" + ext); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1265,10 +1260,8 @@ PetscErrorCode OptimalControlRegistration::PiccardIteration(Vec v) {
 PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, ng;
-    ScalarType *p_m = NULL, *p_mj = NULL,
-                *p_mt = NULL, *p_mtj = NULL,
-                *p_l = NULL, *p_lt = NULL,
-                *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
+    ScalarType *p_m = NULL, *p_mj = NULL, *p_mt = NULL, *p_mtj = NULL,
+                *p_l = NULL, *p_lt = NULL, *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                 *p_gradmt1 = NULL, *p_gradmt2 = NULL, *p_gradmt3 = NULL;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
@@ -1291,19 +1284,19 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField3 == NULL) {
-        try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
+        try {this->m_WorkVecField3 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1400,12 +1393,12 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     } else if (this->m_Opt->GetOptPara().method == GAUSSNEWTON) {  // full newton
         // compute numerical integration (trapezoidal rule)
         for (IntType j = 0; j <= nt; ++j) { // for all time points
-            IntType k     = j*nl;
+            IntType k = j*nl;
             IntType knext = (j+1)*nl;
 
             // copy memory for m^j
-            try{ std::copy(p_m+k,p_m+knext,p_mj); }
-            catch(std::exception&) {
+            try {std::copy(p_m+k, p_m+knext, p_mj);}
+            catch (std::exception&) {
                 ierr = ThrowError("copy failed"); CHKERRQ(ierr);
             }
 
@@ -1420,11 +1413,13 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
 #pragma omp parallel
 {
+            IntType i;
+            ScalarType ltj;
 #pragma omp for
             // compute \vect{\tilde{b}}^k_i += h_d*ht*(\tilde{\lambda}^j (\grad m^j)^k
-            for (IntType i=0; i < nl; ++i) { // for all grid points
+            for (i = 0; i < nl; ++i) { // for all grid points
                 // get \tilde{\lambda}(x_i,t^j)
-                ScalarType ltj = p_lt[k+i];
+                ltj = p_lt[k+i];
 
                 p_bt1[i] = p_bt1[i] + scale*p_gradm1[i]*ltj;
                 p_bt2[i] = p_bt2[i] + scale*p_gradm2[i]*ltj;
@@ -1455,7 +1450,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1471,16 +1466,16 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 #define __FUNCT__ "SolveStateEquation"
 PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     PetscErrorCode ierr = 0;
-    IntType nl,ng,nt;
-    ScalarType *p_m=NULL,*p_m0=NULL,*p_mj=NULL;
+    IntType nl, ng, nt;
+    ScalarType *p_m = NULL, *p_m0 = NULL, *p_mj = NULL;
     std::stringstream ss;
     std::string ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(this->m_VelocityField!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_TemplateImage!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1490,7 +1485,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving state equation (nt="<<nt<<")";
+        ss << "solving state equation (nt=" << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
@@ -1502,26 +1497,24 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     // allocate state and adjoint variables
     if (this->m_StateVariable==NULL) {
-        ierr = VecCreate(this->m_StateVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl, (nt+1)*ng); CHKERRQ(ierr);
     }
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
-
         // we copy m_0 to all t for v=0
-        ierr = this->CopyToAllTimePoints(this->m_StateVariable,this->m_TemplateImage); CHKERRQ(ierr);
-
+        ierr = this->CopyToAllTimePoints(this->m_StateVariable, this->m_TemplateImage); CHKERRQ(ierr);
     } else {
         // copy initial condition m_0 = m_T
-        ierr = VecGetArray(this->m_TemplateImage,&p_m0); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-        try{ std::copy(p_m0,p_m0+nl,p_m); }
+        ierr = VecGetArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        try {std::copy(p_m0, p_m0+nl, p_m);}
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_TemplateImage,&p_m0); CHKERRQ(ierr);
-        ierr = VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
         // call the solver
         switch (this->m_Opt->GetPDESolver().type) {
@@ -1546,38 +1539,30 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
-
     // store time series
-    if ( this->m_Opt->GetReadWriteFlags().timeseries ) {
-
+    if (this->m_Opt->GetReadWriteFlags().timeseries) {
         if (this->m_WorkScaField1 == NULL) {
-            ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+            ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
         }
-        ierr = Assert(this->m_ReadWrite!=NULL,"null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
         // store time history
-        ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-
+        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         // store individual time points
         for (IntType j = 0; j <= nt; ++j) {
-
-            ierr = VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
-            try{ std::copy(p_m+j*nl,p_m+(j+1)*nl,p_mj); }
+            ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+            try{ std::copy(p_m+j*nl, p_m+(j+1)*nl, p_mj); }
             catch(std::exception&) {
                 ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
             }
-            ierr = VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
+            ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
 
             // write out
             ss.str(std::string()); ss.clear();
             ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
-
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
         } // for number of time points
-
-        ierr = VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-
-
+        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     }
 
     // increment counter
@@ -1585,7 +1570,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1601,13 +1586,13 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 #define __FUNCT__ "SolveStateEquationRK2"
 PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
-    IntType nl,ng,nt;
-    ScalarType *p_mj=NULL,*p_m=NULL,*p_mbar=NULL,*p_rhs0=NULL,
-                *p_gmx1=NULL,*p_gmx2=NULL,*p_gmx3=NULL,
-                *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL;
-    ScalarType ht=0.0,hthalf=0.0;
-    double timers[5]={0,0,0,0,0};
-    std::bitset<3> XYZ; XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
+    IntType nl, ng, nt;
+    ScalarType *p_mj = NULL, *p_m = NULL, *p_mbar = NULL, *p_rhs0 = NULL,
+                *p_gmx1 = NULL, *p_gmx2 = NULL, *p_gmx3 = NULL,
+                *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
+    ScalarType ht = 0.0, hthalf = 0.0;
+    double timers[5] = {0, 0, 0, 0, 0};
+    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
 
     PetscFunctionBegin;
 
@@ -1626,60 +1611,56 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
         }
     }
     if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
     }
 
-    ierr = this->m_VelocityField->GetArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_gmx1,p_gmx2,p_gmx3); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
 
     // copy initial condition to buffer
-    ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2,&p_mj); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField1,&p_mbar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_mj); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_mbar); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_rhs0); CHKERRQ(ierr);
 
     // copy memory (m_0 to m_j)
-    try{ std::copy(p_m,p_m+nl,p_mj); }
-    catch(std::exception&) {
+    try {std::copy(p_m, p_m+nl, p_mj);}
+    catch (std::exception&) {
         ierr = ThrowError("copy failed"); CHKERRQ(ierr);
     }
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
-
         // compute gradient of m_j
         accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
-
 #pragma omp parallel
 {
 #pragma omp for
         for (IntType i=0; i < nl; ++i) {
-
              p_rhs0[i] = -p_gmx1[i]*p_vx1[i]
                          -p_gmx2[i]*p_vx2[i]
                          -p_gmx3[i]*p_vx3[i];
 
              // compute intermediate result
              p_mbar[i] = p_mj[i] + ht*p_rhs0[i];
-
         }
 } // pragma omp parallel
 
         // compute gradient of \bar{m}
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mbar,this->m_Opt->GetFFT().plan,&XYZ,timers);
-        this->m_Opt->IncrementCounter(FFT,4);
+        accfft_grad(p_gmx1, p_gmx2, p_gmx3, p_mbar, this->m_Opt->GetFFT().plan, &XYZ, timers);
+        this->m_Opt->IncrementCounter(FFT, 4);
 
 #pragma omp parallel
 {
 #pragma omp for
-        for (IntType i=0; i < nl; ++i) {
+        for (IntType i = 0; i < nl; ++i) {
 
             ScalarType rhs1 = -p_gmx1[i]*p_vx1[i]
                               -p_gmx2[i]*p_vx2[i]
@@ -1692,21 +1673,20 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 } // parallel
 
         // copy to buffer
-        try{ std::copy(p_mj,p_mj+nl,p_m+(j+1)*nl); }
-        catch(std::exception&) {
+        try {std::copy(p_mj, p_mj+nl, p_m+(j+1)*nl);}
+        catch (std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-
-    } // for all time points
+    }  // for all time points
 
     // copy initial condition to buffer
-    ierr = VecRestoreArray(this->m_WorkScaField1,&p_mbar); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2,&p_mj); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_mbar); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField3, &p_rhs0); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_mj); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gmx1,p_gmx2,p_gmx3); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1,p_vx2,p_vx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
@@ -1727,9 +1707,9 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 #undef __FUNCT__
 #define __FUNCT__ "SolveStateEquationSL"
 PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
-    PetscErrorCode ierr;
-    IntType nl,ng,nt;
-    ScalarType *p_m=NULL,*p_mj=NULL,*p_mjX=NULL;
+    PetscErrorCode ierr = 0;
+    IntType nl, ng, nt;
+    ScalarType *p_m = NULL, *p_mj = NULL, *p_mjX = NULL;
     std::stringstream ss;
     std::string filename;
 
@@ -1741,10 +1721,10 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     ng = this->m_Opt->GetDomainPara().nglobal;
 
     if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkVecField1 == NULL) {
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1753,7 +1733,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
         }
     }
     if (this->m_SemiLagrangianMethod == NULL) {
-        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1761,44 +1741,42 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
 
     // compute trajectory
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1,"state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
 
     // copy memory (m_0 to m_j)
-    ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2,&p_mjX); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_mjX); CHKERRQ(ierr);
 
-    try{ std::copy(p_m,p_m+nl,p_mj); }
+    try{ std::copy(p_m, p_m+nl, p_mj); }
     catch(std::exception&) {
         ierr = ThrowError("copy failed"); CHKERRQ(ierr);
     }
 
-    for( IntType j = 0; j < nt; ++j ) { // for all time points
-
+    for (IntType j = 0; j < nt; ++j) {  // for all time points
         // compute m(X,t^{j+1}) (interpolate state variable)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_mjX,p_mj,"state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_mjX, p_mj, "state"); CHKERRQ(ierr);
 
         // store m(X,t^{j+1})
-        try{ std::copy(p_mjX,p_mjX+nl,p_mj); }
-        catch(std::exception&) {
+        try {std::copy(p_mjX, p_mjX+nl, p_mj);}
+        catch (std::exception&) {
             ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
         }
 
         // store time history
-        try{ std::copy(p_mj,p_mj+nl,p_m+(j+1)*nl); }
-        catch(std::exception&) {
+        try {std::copy(p_mj, p_mj+nl, p_m+(j+1)*nl);}
+        catch (std::exception&) {
             ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
         }
-
     }// for all time points
 
-    ierr = VecRestoreArray(this->m_WorkScaField2,&p_mjX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1,&p_mj); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_mjX); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1814,8 +1792,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
 #define __FUNCT__ "SolveAdjointEquation"
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     PetscErrorCode ierr = 0;
-    IntType nl,ng,nt;
-    ScalarType *p_m=NULL,*p_m1=NULL,*p_l=NULL,*p_l0=NULL;
+    IntType nl, ng, nt;
+    ScalarType *p_m = NULL, *p_m1 = NULL, *p_l = NULL, *p_l0 = NULL;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -1839,47 +1817,47 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     // allocate variables
     if (this->m_WorkScaField1==NULL) {
-        ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaField2==NULL) {
-        ierr = VecCreate(this->m_WorkScaField2,nl,ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_AdjointVariable == NULL) {
-        ierr = VecCreate(this->m_AdjointVariable,(nt+1)*nl,(nt+1)*ng); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nl, (nt+1)*ng); CHKERRQ(ierr);
     }
 
 
     // copy memory for m_1
-    ierr = VecGetArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-    try{ std::copy(p_m+nt*nl,p_m+(nt+1)*nl,p_m1); }
+    ierr = VecGetArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    try{ std::copy(p_m+nt*nl, p_m+(nt+1)*nl, p_m1); }
     catch(std::exception&) {
         ierr = ThrowError("copy failed"); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_WorkScaField1,&p_m1); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
 
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
-    ierr = VecWAXPY(this->m_WorkScaField2,-1.0,this->m_WorkScaField1,this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_WorkScaField2, -1.0, this->m_WorkScaField1, this->m_ReferenceImage); CHKERRQ(ierr);
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // we copy \lambda_1 to all t for v=0
-        ierr = this->CopyToAllTimePoints(this->m_AdjointVariable,this->m_WorkScaField2); CHKERRQ(ierr);
+        ierr = this->CopyToAllTimePoints(this->m_AdjointVariable, this->m_WorkScaField2); CHKERRQ(ierr);
     } else {
         // copy final condition \lambda = (m_R - m) at t=1
-        ierr = VecGetArray(this->m_WorkScaField2,&p_l0); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_WorkScaField2, &p_l0); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
-        try{ std::copy(p_l0,p_l0+nl,p_l+nt*nl); }
+        try {std::copy(p_l0, p_l0+nl, p_l+nt*nl);}
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
 
-        ierr = VecRestoreArray(this->m_AdjointVariable,&p_l); CHKERRQ(ierr);
-        ierr = VecRestoreArray(this->m_WorkScaField2,&p_l0); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+        ierr = VecRestoreArray(this->m_WorkScaField2, &p_l0); CHKERRQ(ierr);
 
         // call the solver
         switch (this->m_Opt->GetPDESolver().type) {
@@ -1909,7 +1887,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1925,12 +1903,12 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 #define __FUNCT__ "SolveAdjointEquationRK2"
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     PetscErrorCode ierr;
-    IntType nl,ng,nt;
-    ScalarType *p_l=NULL,*p_rhs0=NULL,*p_rhs1=NULL,*p_lj=NULL,
-                *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
-                *p_ljvx1=NULL,*p_ljvx2=NULL,*p_ljvx3=NULL;
-    ScalarType hthalf,ht;
-    double timers[5]={0,0,0,0,0};
+    IntType nl, ng, nt;
+    ScalarType *p_l = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL, *p_lj = NULL,
+                *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
+                *p_ljvx1 = NULL, *p_ljvx2 = NULL, *p_ljvx3 = NULL;
+    ScalarType hthalf, ht;
+    double timers[5] = {0, 0, 0, 0, 0};
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);

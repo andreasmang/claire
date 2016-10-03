@@ -1,24 +1,41 @@
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _DOMAINDECOMPOSITION_CPP_
 #define _DOMAINDECOMPOSITION_CPP_
-
 
 #include "DomainDecomposition.hpp"
 
 
-namespace reg
-{
+
+
+namespace reg {
 
 
 
 
 /********************************************************************
- * Name: DomainDecomposition
- * Description: default constructor
+ * @brief DomainDecomposition
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DomainDecomposition"
-DomainDecomposition::DomainDecomposition()
-{
+DomainDecomposition::DomainDecomposition() {
     this->Initialize();
 }
 
@@ -26,13 +43,11 @@ DomainDecomposition::DomainDecomposition()
 
 
 /********************************************************************
- * Name: DomainDecomposition
- * Description: constructor
+ * @brief DomainDecomposition
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DomainDecomposition"
-DomainDecomposition::DomainDecomposition(RegOpt* opt)
-{
+DomainDecomposition::DomainDecomposition(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
@@ -41,119 +56,108 @@ DomainDecomposition::DomainDecomposition(RegOpt* opt)
 
 
 /********************************************************************
- * Name: DomainDecomposition
- * Description: default deconstructor
+ * @brief DomainDecomposition
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~DomainDecomposition"
-DomainDecomposition::~DomainDecomposition()
-{
+DomainDecomposition::~DomainDecomposition() {
     this->ClearMemory();
 }
 
 
 
 /********************************************************************
- * Name: Initialize
- * Description: initialize
+ * @brief Initialize
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode DomainDecomposition::Initialize()
-{
+PetscErrorCode DomainDecomposition::Initialize() {
+    PetscErrorCode ierr = 0;
+
     this->m_Opt = NULL;
     this->m_IO = NULL;
     this->m_xhat = NULL;
     this->m_Kxhat = NULL;
 
-    this->m_DDPara.nglobal=0;
-    this->m_DDPara.nsubdom=0;
-    this->m_DDPara.nshared=0;
-    this->m_DDPara.nzeropad=0;
+    this->m_DDPara.nglobal = 0;
+    this->m_DDPara.nsubdom = 0;
+    this->m_DDPara.nshared = 0;
+    this->m_DDPara.nzeropad = 0;
 
-    this->m_DDPara.nlocal=NULL;
-    this->m_DDPara.isize=NULL;
-    this->m_DDPara.istart=NULL;
-    this->m_DDPara.iend=NULL;
+    this->m_DDPara.nlocal = NULL;
+    this->m_DDPara.isize = NULL;
+    this->m_DDPara.istart = NULL;
+    this->m_DDPara.iend = NULL;
 
-
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: ClearMemory
- * Description: clear memory
+ * @brief ClearMemory
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode DomainDecomposition::ClearMemory()
-{
+PetscErrorCode DomainDecomposition::ClearMemory() {
     //PetscErrorCode ierr;
-    if(this->m_xhat!=NULL){
+    if(this->m_xhat != NULL){
         accfft_free(this->m_xhat);
         this->m_xhat = NULL;
     }
-    if(this->m_Kxhat!=NULL){
+    if(this->m_Kxhat != NULL){
         accfft_free(this->m_Kxhat);
         this->m_Kxhat = NULL;
     }
 
-    if(this->m_DDPara.nlocal!=NULL){
+    if(this->m_DDPara.nlocal != NULL){
         delete this->m_DDPara.nlocal;
         this->m_DDPara.nlocal = NULL;
     }
-    if(this->m_DDPara.isize!=NULL){
+    if(this->m_DDPara.isize != NULL){
         delete this->m_DDPara.isize;
         this->m_DDPara.isize = NULL;
     }
-    if(this->m_DDPara.istart!=NULL){
+    if(this->m_DDPara.istart != NULL){
         delete this->m_DDPara.istart;
         this->m_DDPara.istart = NULL;
     }
-    if(this->m_DDPara.iend!=NULL){
+    if(this->m_DDPara.iend != NULL){
         delete this->m_DDPara.iend;
         this->m_DDPara.iend = NULL;
     }
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: SetIO
- * Description: set io interface for data
+ * @brief SetIO
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetIO"
-PetscErrorCode DomainDecomposition::SetIO(DomainDecomposition::ReadWriteType* io)
-{
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::SetIO(DomainDecomposition::ReadWriteType* io) {
+    PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-    ierr=Assert(io != NULL,"null pointer"); CHKERRQ(ierr);
-    this->m_IO=io;
+    ierr = Assert(io != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_IO = io;
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 /********************************************************************
- * Name: ResetDDData
- * Description: clear domain decomposition data
+ * @brief ResetDDData
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ResetDDData"
-PetscErrorCode DomainDecomposition::ResetDDData(int np)
-{
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::ResetDDData(int np) {
+    PetscErrorCode ierr = 0;
 
     if(this->m_DDPara.nlocal!=NULL){
         delete this->m_DDPara.nlocal;
@@ -174,46 +178,43 @@ PetscErrorCode DomainDecomposition::ResetDDData(int np)
 
     try{this->m_DDPara.nlocal = new unsigned long[np];}
     catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
     try{this->m_DDPara.isize = new unsigned int[3*np];}
     catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
     try{this->m_DDPara.istart = new int[3*np];}
     catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
     try{this->m_DDPara.iend = new unsigned int[3*np];}
     catch (std::bad_alloc&){
-        ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: ApplyGaussianSmoothing
- * Description: apply gaussian smoothing operator to input data
+ * @brief ApplyGaussianSmoothing
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplyGaussianSmoothing"
-PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x)
-{
-    PetscErrorCode ierr;
-    int isize[3],osize[3],istart[3],ostart[3],n[3];
+PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x) {
+    PetscErrorCode ierr = 0;
+    int isize[3], osize[3], istart[3], ostart[3], n[3];
     IntType iosize[3];
     size_t alloc_max;
-    ScalarType hx[3],nx[3],c[3],scale;
-    ScalarType *p_x=NULL, *p_y=NULL;
-    double ffttimers[5]={0,0,0,0,0};
+    ScalarType hx[3], nx[3], c[3], scale;
+    ScalarType *p_x = NULL, *p_y = NULL;
+    double timer[5] = {0, 0, 0, 0, 0};
     PetscFunctionBegin;
 
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
 
     n[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
     n[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -227,7 +228,6 @@ PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x)
     }
 
     for (int i = 0; i < 3; ++i){
-
         hx[i] = this->m_Opt->GetSpatialStepSize(i);
         nx[i] = static_cast<ScalarType>(n[i]);
 
@@ -241,38 +241,39 @@ PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x)
     scale = this->m_Opt->ComputeFFTScale();
 
     // compute fft
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(),p_x,this->m_xhat,ffttimers);
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFTPlan(), p_x, this->m_xhat, timer);
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 
-
-#pragma omp parallel
-{
+#pragma omp parallel {
+    IntType i1, i2, i3, li;
+    ScalarType k1, k2, k3, sik;
+    bool flagx1, flagx2, flagx3;
 #pragma omp for
-    for (IntType i1 = 0; i1 < iosize[0]; ++i1){ // x1
-        for (IntType i2 = 0; i2 < iosize[1]; ++i2){ // x2
-            for (IntType i3 = 0; i3 < iosize[2]; ++i3){ // x3
+    for (i1 = 0; i1 < iosize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < iosize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < iosize[2]; ++i3) {  // x3
 
                 // compute coordinates (nodal grid)
-                ScalarType k1 = static_cast<ScalarType>(i1 + ostart[0]);
-                ScalarType k2 = static_cast<ScalarType>(i2 + ostart[1]);
-                ScalarType k3 = static_cast<ScalarType>(i3 + ostart[2]);
+                k1 = static_cast<ScalarType>(i1 + ostart[0]);
+                k2 = static_cast<ScalarType>(i2 + ostart[1]);
+                k3 = static_cast<ScalarType>(i3 + ostart[2]);
 
                 // check if grid index is larger or smaller then
                 // half of the total grid size
-                bool flagx1 = (k1 <= nx[0]*0.5);
-                bool flagx2 = (k2 <= nx[1]*0.5);
-                bool flagx3 = (k3 <= nx[2]*0.5);
+                flagx1 = (k1 <= nx[0]*0.5);
+                flagx2 = (k2 <= nx[1]*0.5);
+                flagx3 = (k3 <= nx[2]*0.5);
 
                 k1 = flagx1 ? k1 : -nx[0] + k1;
                 k2 = flagx2 ? k2 : -nx[1] + k2;
                 k3 = flagx3 ? k3 : -nx[2] + k3;
 
-                ScalarType sik = 0.5*((k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]));
+                sik = 0.5*((k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]));
                 sik = exp(-sik);
 
                 // compute linear / flat index
-                IntType li = GetLinearIndex(i1,i2,i3,iosize);
+                li = GetLinearIndex(i1, i2, i3, iosize);
 
                 this->m_xhat[li][0] *= scale*sik;
                 this->m_xhat[li][1] *= scale*sik;
@@ -284,32 +285,28 @@ PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x)
 } // pragma omp parallel
 
     // compute inverse fft
-    ierr=VecGetArray(y,&p_y); CHKERRQ(ierr);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(),this->m_xhat,p_y,ffttimers);
-    ierr=VecRestoreArray(y,&p_y); CHKERRQ(ierr);
+    ierr = VecGetArray(y, &p_y); CHKERRQ(ierr);
+    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFTPlan(), this->m_xhat, p_y, timer);
+    ierr = VecRestoreArray(y, &p_y); CHKERRQ(ierr);
 
     // increment fft timer
-    this->m_Opt->IncreaseFFTTimers(ffttimers);
+    this->m_Opt->IncreaseFFTTimers(timer);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: SetupDomainComposition
- * Description: set up the domain composition
+ * @brief SetupDomainComposition
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupDomainComposition"
-PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n)
-{
-
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n) {
+    PetscErrorCode ierr = 0;
     ScalarType nx[3],nd;
-    IntType isize[3],nsub[3],np;
+    IntType isize[3], nsub[3], np, p1, p2, p3, j;
     PetscFunctionBegin;
 
     this->m_DDPara.nglobal = this->m_Opt->GetNGlobal();
@@ -320,7 +317,7 @@ PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n)
     np = static_cast<IntType>(pow(n,3));
     nd = static_cast<ScalarType>(n);
 
-    ierr=this->ResetDDData(np); CHKERRQ(ierr);
+    ierr = this->ResetDDData(np); CHKERRQ(ierr);
 
     // compute identifiers for domain decomposition
     for (int i = 0; i < 3; ++i){
@@ -329,11 +326,10 @@ PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n)
         nsub[i]  = n;
     }
 
-    for (IntType p1 = 0; p1 < nsub[0]; ++p1){
-        for (IntType p2 = 0; p2 < nsub[1]; ++p2){
-            for (IntType p3 = 0; p3 < nsub[2]; ++p3){
-
-                IntType j = GetLinearIndex(p1,p2,p3,nsub);
+    for (p1 = 0; p1 < nsub[0]; ++p1) {
+        for (p2 = 0; p2 < nsub[1]; ++p2) {
+            for (p3 = 0; p3 < nsub[2]; ++p3) {
+                j = GetLinearIndex(p1, p2, p3, nsub);
 
                 this->m_DDPara.isize[j*3+0] = isize[0];
                 this->m_DDPara.isize[j*3+1] = isize[1];
@@ -354,24 +350,19 @@ PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n)
         }
     }
 
-
-
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: SetupDomainDecomposition
- * Description: set up the domain decomposition
+ * @brief SetupDomainDecomposition
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupDomainDecomposition"
-PetscErrorCode DomainDecomposition::SetupDomainDecomposition(unsigned int n)
-{
-
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::SetupDomainDecomposition(unsigned int n) {
+    PetscErrorCode ierr = 0;
     ScalarType nx[3],nd;
     IntType isize[3],nsub[3],np;
     PetscFunctionBegin;
@@ -384,7 +375,7 @@ PetscErrorCode DomainDecomposition::SetupDomainDecomposition(unsigned int n)
     np = static_cast<IntType>(pow(n,3));
     nd = static_cast<ScalarType>(n);
 
-    ierr=this->ResetDDData(np); CHKERRQ(ierr);
+    ierr = this->ResetDDData(np); CHKERRQ(ierr);
 
     // compute identifiers for domain decomposition
     for (int i = 0; i < 3; ++i){
@@ -420,23 +411,19 @@ PetscErrorCode DomainDecomposition::SetupDomainDecomposition(unsigned int n)
         }
     }
 
-
-
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: DecompositionData
- * Description: decomposition data into blocks
+ * @brief DecompositionData
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DecompositionData"
-PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std::string filename)
-{
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std::string filename) {
+    PetscErrorCode ierr = 0;
     Vec yj;
     ScalarType *p_yj=NULL,*p_x=NULL;
     std::string::size_type pos;
@@ -448,14 +435,14 @@ PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std
 
     PetscFunctionBegin;
 
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
 
     // remove extension from file
     pos = filename.find_last_of(".");
     filename = (std::string::npos == pos) ? filename : filename.substr(0, pos);
 
-    ierr=this->SetupDomainDecomposition(n); CHKERRQ(ierr);
+    ierr = this->SetupDomainDecomposition(n); CHKERRQ(ierr);
 
     for(int i=0; i < 3; ++i){
         this->m_nx[i] = this->m_Opt->GetNumGridPoints(i);
@@ -464,7 +451,7 @@ PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std
 
     nzeropad = this->m_DDPara.nzeropad;
 
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
 
     // for all domains
     for (IntType p1 = 0; p1 < nsub[0]; ++p1){
@@ -486,11 +473,11 @@ PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std
                     nlj *= nxblock[i];
                 }
 
-                ierr=VecCreate(PETSC_COMM_WORLD,&yj); CHKERRQ(ierr);
-                ierr=VecSetSizes(yj,nlj,nlj); CHKERRQ(ierr);
-                ierr=VecSetFromOptions(yj); CHKERRQ(ierr);
-                ierr=VecSet(yj,0.0); CHKERRQ(ierr);
-                ierr=VecGetArray(yj,&p_yj); CHKERRQ(ierr);
+                ierr = VecCreate(PETSC_COMM_WORLD,&yj); CHKERRQ(ierr);
+                ierr = VecSetSizes(yj,nlj,nlj); CHKERRQ(ierr);
+                ierr = VecSetFromOptions(yj); CHKERRQ(ierr);
+                ierr = VecSet(yj,0.0); CHKERRQ(ierr);
+                ierr = VecGetArray(yj,&p_yj); CHKERRQ(ierr);
 
                 unsigned int k1 = nzeropad;
                 for (int i1=is[0]; i1 < ie[0]; ++i1){
@@ -511,34 +498,31 @@ PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std
                     ++k1;
                 }
 
-                ierr=VecRestoreArray(yj,&p_yj); CHKERRQ(ierr);
+                ierr = VecRestoreArray(yj,&p_yj); CHKERRQ(ierr);
 
                 ss << j;
                 fn = filename + "-dd-" + ss.str() + ".nc";
-                ierr=this->m_IO->WriteBlock(yj,nxj,fn); CHKERRQ(ierr);
+                ierr = this->m_IO->WriteBlock(yj,nxj,fn); CHKERRQ(ierr);
                 ss.str("");
-                ierr=VecDestroy(&yj); CHKERRQ(ierr);
+                ierr = VecDestroy(&yj); CHKERRQ(ierr);
             }
         }
     } // for all domains
 
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 /********************************************************************
- * Name: DecompositionData
- * Description: decomposition data into blocks
+ * @brief DecompositionData
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CompositionData"
-PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::string filename)
-{
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::string filename) {
+    PetscErrorCode ierr = 0;
     Vec yj;
     ScalarType *p_yj=NULL,*p_x=NULL;
     std::string::size_type pos;
@@ -549,10 +533,10 @@ PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::
 
     PetscFunctionBegin;
 
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IO != NULL,"null pointer"); CHKERRQ(ierr);
 
-    ierr=this->SetupDomainComposition(n); CHKERRQ(ierr);
+    ierr = this->SetupDomainComposition(n); CHKERRQ(ierr);
 
     for(unsigned int i=0; i < 3; ++i){
         this->m_nx[i] = this->m_Opt->GetNumGridPoints(i);
@@ -565,7 +549,7 @@ PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::
 
     unsigned int nshared = this->m_DDPara.nshared;
 
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
 
     // for all domains
     for (IntType p1 = 0; p1 < nsub[0]; ++p1){
@@ -583,17 +567,17 @@ PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::
                     nlj *= nxj[i];
                 }
 
-                ierr=VecCreate(PETSC_COMM_WORLD,&yj); CHKERRQ(ierr);
-                ierr=VecSetSizes(yj,nlj,nlj); CHKERRQ(ierr);
-                ierr=VecSetFromOptions(yj); CHKERRQ(ierr);
-                ierr=VecSet(yj,0.0); CHKERRQ(ierr);
+                ierr = VecCreate(PETSC_COMM_WORLD,&yj); CHKERRQ(ierr);
+                ierr = VecSetSizes(yj,nlj,nlj); CHKERRQ(ierr);
+                ierr = VecSetFromOptions(yj); CHKERRQ(ierr);
+                ierr = VecSet(yj,0.0); CHKERRQ(ierr);
 
                 ss << j;
                 fn = this->m_Opt->GetIFolder() + filename + "-dd-" + ss.str() + ".nc";
-                ierr=this->m_IO->ReadBlock(yj,nxj,fn); CHKERRQ(ierr);
+                ierr = this->m_IO->ReadBlock(yj,nxj,fn); CHKERRQ(ierr);
                 ss.str("");
 
-                ierr=VecGetArray(yj,&p_yj); CHKERRQ(ierr);
+                ierr = VecGetArray(yj,&p_yj); CHKERRQ(ierr);
 
                 IntType j1 = nshared;
                 for (IntType i1=is[0]; i1 < ie[0]; ++i1){
@@ -616,30 +600,27 @@ PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::
                     ++j1;
                 }
 
-                ierr=VecRestoreArray(yj,&p_yj); CHKERRQ(ierr);
-                ierr=VecDestroy(&yj); CHKERRQ(ierr);
+                ierr = VecRestoreArray(yj,&p_yj); CHKERRQ(ierr);
+                ierr = VecDestroy(&yj); CHKERRQ(ierr);
 
             }
         }
     } // for all domains
 
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
 /********************************************************************
- * Name: CompositionTimeDependentData
- * Description: composition time dependent data from blocks
+ * @brief CompositionTimeDependentData
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "CompositionTimeDependentData"
-PetscErrorCode DomainDecomposition::CompositionTimeDependentData(Vec x, unsigned int n, std::string filename)
-{
+PetscErrorCode DomainDecomposition::CompositionTimeDependentData(Vec x, unsigned int n, std::string filename) {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL, *p_xj=NULL;
     std::string::size_type pos;
@@ -654,15 +635,15 @@ PetscErrorCode DomainDecomposition::CompositionTimeDependentData(Vec x, unsigned
     nl = this->m_Opt->GetNLocal();
     ng = this->m_Opt->GetNGlobal();
 
-    ierr=VecCreate(PETSC_COMM_WORLD,&xj); CHKERRQ(ierr);
-    ierr=VecSetSizes(xj,nl,ng); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(xj); CHKERRQ(ierr);
+    ierr = VecCreate(PETSC_COMM_WORLD,&xj); CHKERRQ(ierr);
+    ierr = VecSetSizes(xj,nl,ng); CHKERRQ(ierr);
+    ierr = VecSetFromOptions(xj); CHKERRQ(ierr);
 
     // remove extension from file
     pos = filename.find_last_of(".");
     filename = (std::string::npos == pos) ? filename : filename.substr(0, pos);
 
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
 
     for (IntType j = 0; j <= nt; ++j){
 
@@ -670,34 +651,30 @@ PetscErrorCode DomainDecomposition::CompositionTimeDependentData(Vec x, unsigned
         ss << std::setw(3) << std::setfill('0') << j;
         fn = filename + "-j-" + ss.str() + ".nc"; ss.str("");
 
-        ierr=this->CompositionData(xj,n,fn); CHKERRQ(ierr);
+        ierr = this->CompositionData(xj,n,fn); CHKERRQ(ierr);
 
-        ierr=VecGetArray(xj,&p_xj); CHKERRQ(ierr);
+        ierr = VecGetArray(xj,&p_xj); CHKERRQ(ierr);
         try{ std::copy(p_xj,p_xj+nl,p_x+j*nl); }
         catch(std::exception&){
-            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+            ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr=VecRestoreArray(xj,&p_xj); CHKERRQ(ierr);
+        ierr = VecRestoreArray(xj,&p_xj); CHKERRQ(ierr);
 
     }
 
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 
-
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 /********************************************************************
- * Name: DecompositionTimeDependentData
- * Description: composition time dependent data from blocks
+ * @brief DecompositionTimeDependentData
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DecompositionTimeDependentData"
-PetscErrorCode DomainDecomposition::DecompositionTimeDependentData(Vec x, unsigned int n, std::string filename)
-{
-    PetscErrorCode ierr;
+PetscErrorCode DomainDecomposition::DecompositionTimeDependentData(Vec x, unsigned int n, std::string filename) {
+    PetscErrorCode ierr = 0;
     ScalarType *p_x=NULL, *p_xj=NULL;
     std::string::size_type pos;
     std::ostringstream ss;
@@ -711,15 +688,15 @@ PetscErrorCode DomainDecomposition::DecompositionTimeDependentData(Vec x, unsign
     nl = this->m_Opt->GetNLocal();
     ng = this->m_Opt->GetNGlobal();
 
-    ierr=VecCreate(PETSC_COMM_WORLD,&xj); CHKERRQ(ierr);
-    ierr=VecSetSizes(xj,nl,ng); CHKERRQ(ierr);
-    ierr=VecSetFromOptions(xj); CHKERRQ(ierr);
+    ierr = VecCreate(PETSC_COMM_WORLD,&xj); CHKERRQ(ierr);
+    ierr = VecSetSizes(xj,nl,ng); CHKERRQ(ierr);
+    ierr = VecSetFromOptions(xj); CHKERRQ(ierr);
 
     // remove extension from file
     pos = filename.find_last_of(".");
     filename = (std::string::npos == pos) ? filename : filename.substr(0, pos);
 
-    ierr=VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
 
     for (IntType j = 0; j <= nt; ++j){
 
@@ -727,28 +704,28 @@ PetscErrorCode DomainDecomposition::DecompositionTimeDependentData(Vec x, unsign
         ss << std::setw(3) << std::setfill('0') << j;
         fn = filename + "-j-" + ss.str() + ".nc"; ss.str("");
 
-        ierr=VecGetArray(xj,&p_xj); CHKERRQ(ierr);
+        ierr = VecGetArray(xj,&p_xj); CHKERRQ(ierr);
         try{ std::copy(p_x+j*nl,p_x+(j+1)*nl,p_xj); }
         catch(std::exception&){
-            ierr=ThrowError("copy failed"); CHKERRQ(ierr);
+            ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
-        ierr=VecRestoreArray(xj,&p_xj); CHKERRQ(ierr);
+        ierr = VecRestoreArray(xj,&p_xj); CHKERRQ(ierr);
 
-        ierr=this->DecompositionData(xj,n,fn); CHKERRQ(ierr);
+        ierr = this->DecompositionData(xj,n,fn); CHKERRQ(ierr);
     }
 
-    ierr=VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-    ierr=VecDestroy(&xj); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecDestroy(&xj); CHKERRQ(ierr);
 
-
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
+}  // namespace reg
 
-} // end of namespace
 
-#endif // _PREPROCESSINGREGISTRATION_CPP_
+
+
+#endif  // _DOMAINDECOMPOSITION_CPP_

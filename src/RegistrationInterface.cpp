@@ -1,9 +1,21 @@
-/*
- * @file RegistrationInterface.cpp
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
  *
- * @author Andreas Mang
- */
-
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _REGISTRATIONINTERFACE_CPP_
 #define _REGISTRATIONINTERFACE_CPP_
@@ -517,7 +529,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -569,14 +581,11 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
         // rescale images
         ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
         ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
-
         ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
-
     } else {
         // set up synthetic test problem
         ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
-
         ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
@@ -617,7 +626,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -653,9 +662,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // get parameters
-    betamin   = this->m_Opt->GetBetaMinParaCont();
+    betamin = this->m_Opt->GetBetaMinParaCont();
     betascale = this->m_Opt->GetParaCont().betascale;
-    maxsteps  = this->m_Opt->GetParaCont().maxsteps;
+    maxsteps = this->m_Opt->GetParaCont().maxsteps;
 
     ierr = Assert(betascale < 1.0 && betascale > 0.0, "scale for beta not in (0,1)"); CHKERRQ(ierr);
     ierr = Assert(betamin > 0.0 && betamin < 1.0, "lower bound for beta in (0,1)"); CHKERRQ(ierr);
@@ -667,7 +676,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // initialize parameters
-    beta = 1.0;
+    beta = this->m_Opt->GetParaCont().beta0;
     betastar = beta;
 
     // initialize registration problem (evaluate objective and gradient
@@ -679,56 +688,58 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // reduce regularization parameter by one order of magnitude until
     // we hit tolerance
     stop = false; level = 0;
-    while(level < maxsteps) {
-        this->m_Opt->SetRegularizationWeight(0, beta);
-        this->m_Opt->SetRegularizationWeight(1, beta);
-        //this->m_Opt->InitialGradNormSet(false);
+    if (beta == 1.0) {
+        while(level < maxsteps) {
+            this->m_Opt->SetRegularizationWeight(0, beta);
+            this->m_Opt->SetRegularizationWeight(1, beta);
+            //this->m_Opt->InitialGradNormSet(false);
 
-        ss << std::scientific << std::setw(3)
-            << "level " << level << " ( betav=" << beta
-            << "; betav*=" << betastar << " )";
-        ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
+            ss << std::scientific << std::setw(3)
+                << "level " << level << " ( betav=" << beta
+                << "; betav*=" << betastar << " )";
+            ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
 
-        // set initial guess for current level
-        ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
+            // set initial guess for current level
+            ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
-        // run the optimization
-        ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
-        ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
-        if (!converged) break;
+            // run the optimization
+            ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+            ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
+            if (!converged) break;
 
-        // get the solution
-        ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+            // get the solution
+            ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
 
-        // check bounds on jacobian
-        ierr = this->m_RegProblem->CheckBounds(x, stop); CHKERRQ(ierr);
+            // check bounds on jacobian
+            ierr = this->m_RegProblem->CheckBounds(x, stop); CHKERRQ(ierr);
 
-        if (stop) break;  // if bound reached go home
+            if (stop) break;  // if bound reached go home
 
-        // remember regularization parameter
-        betastar = beta;
+            // remember regularization parameter
+            betastar = beta;
 
-        // if we got here, the solution is valid
-        ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
+            // if we got here, the solution is valid
+            ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
-        // reduce beta
-        beta *= betascale;
+            // reduce beta
+            beta *= betascale;
 
-        // if regularization parameter is smaller than
-        // lower bound, let's stop this
-        if (beta < betamin) {
-            if (this->m_Opt->GetVerbosity() > 0) {
-                ss << std::scientific
-                   << "regularization parameter smaller than lower bound (betav="
-                   << beta << " < " << betamin << "=betavmin)";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.str(std::string()); ss.clear();
+            // if regularization parameter is smaller than
+            // lower bound, let's stop this
+            if (beta < betamin) {
+                if (this->m_Opt->GetVerbosity() > 0) {
+                    ss << std::scientific
+                       << "regularization parameter smaller than lower bound (betav="
+                       << beta << " < " << betamin << "=betavmin)";
+                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ss.str(std::string()); ss.clear();
+                }
+                break;
             }
-            break;
-        }
-        ++level;
-    }  // until we hit the tolerance
+            ++level;
+        }  ///< until we hit the tolerance
+    }  ///< beta == 1.0
 
     stop = false;  // now start binary search
 
@@ -827,7 +838,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -844,7 +855,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
 #undef __FUNCT__
 #define __FUNCT__ "RunSolverRegParaContReductSearch"
 PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType beta, betamin, betastar, betascale;
     Vec x;
@@ -872,7 +883,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // set initial regularization weight
-    beta = 1.0;
+    beta = this->m_Opt->GetParaCont().beta0;
     betastar = beta;
 
     // initialize registration problem (evaluate objective and gradient
@@ -887,7 +898,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     // determinant of the deformation gradient)
     level = 0;
     while (level < maxsteps) {
-
         // set regularization weight
         this->m_Opt->SetRegularizationWeight(0, beta);
         this->m_Opt->SetRegularizationWeight(1, beta);
@@ -924,18 +934,18 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
         // the lower bound, we're done
         if (beta < betamin) {
             if (this->m_Opt->GetVerbosity() > 0) {
-                ss <<"regularization parameter smaller than lower bound (betav="
-                   <<beta<<" < " << betamin <<"=betavmin)";
+                ss << "regularization parameter smaller than lower bound (betav="
+                   << beta << " < " << betamin << "=betavmin)";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
             break;
         }
         ++level;
-    }  // parameter reduction
+    }  ///< parameter reduction
 
-    ss<<std::scientific<<"estimated regularization parameter betav="<<betastar;
-    ierr = this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
+    ss << std::scientific << "estimated regularization parameter betav=" << betastar;
+    ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
     // wrap up
@@ -943,7 +953,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -970,7 +980,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // get target regularization weight
-    betastar=this->m_Opt->GetRegNorm().beta[0];
+    betastar = this->m_Opt->GetParaCont().targetbeta;
     ierr = Assert(betastar > 0.0 && betastar < 1.0, "target beta not in (0,1)"); CHKERRQ(ierr);
 
     // set optimization problem
@@ -1046,9 +1056,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RunSolverScaleCont"
-PetscErrorCode RegistrationInterface::RunSolverScaleCont()
-{
-    PetscErrorCode ierr;
+PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
+    PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
     std::stringstream ss;
     int level, maxlevel = 6, rank;
@@ -1138,10 +1147,10 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
             ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
         } else {
             ss << std::scientific << std::setw(3)
-                << "skipping level "<< level <<" sigma=("
-                <<sigma[0]<<","<<sigma[1]<<","<<sigma[2]<<")";
-            ierr = this->DispLevelMsg(ss.str(),rank); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+                << "skipping level " << level << " sigma=("
+                << sigma[0] << "," << sigma[1] << "," << sigma[2] << ")";
+            ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
         }
         ++level;  // increment counter
     }
@@ -1154,10 +1163,10 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
     // destroy vector
-    if (mR!=NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); }
-    if (mT!=NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); }
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1170,8 +1179,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont()
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RunSolverGridCont"
-PetscErrorCode RegistrationInterface::RunSolverGridCont()
-{
+PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     PetscErrorCode ierr = 0;
     int rank, level, nlevels;
     std::stringstream ss;
@@ -1194,7 +1202,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     this->m_PreProc->ResetGridChangeOps(true);
 
     if (!this->m_Opt->GetReadWriteFlags().readfiles) {
-
         // do the setup
         ierr = this->SetupSolver(); CHKERRQ(ierr);
 
@@ -1204,7 +1211,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
 
         // set up synthetic test problem
         ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
-
     }
 
     // make sure images have not been set
@@ -1364,12 +1370,11 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
     // wrap up
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
-    if (v != NULL) { delete v; v = NULL;};
-    if (mR != NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL; }
-    if (mT != NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL; }
+    if (v != NULL) {delete v; v = NULL;};
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1380,11 +1385,10 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont()
  ********************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ProlongVelocityField"
-PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int level)
-{
-    PetscErrorCode ierr;
-    IntType nx_f[3],nx_c[3],nl,ng;
-    VecField *v_f=NULL;
+PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int level) {
+    PetscErrorCode ierr = 0;
+    IntType nx_f[3], nx_c[3], nl, ng;
+    VecField *v_f = NULL;
 
     PetscFunctionBegin;
 
@@ -1424,21 +1428,20 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
     ierr = this->m_PreProc->Prolong(v_f,v,nx_f,nx_c); CHKERRQ(ierr);
 
     // allocate container for velocity field
-    if (v != NULL) { delete v; v = NULL; }
+    if (v != NULL) {delete v; v = NULL;}
     try{ v = new reg::VecField(nl, ng); }
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
     ierr = v->Copy(v_f); CHKERRQ(ierr);
 
-
     this->m_PreProc->ResetGridChangeOps(false);
 
-    if (v_f!=NULL) { delete v_f; v_f=NULL; }
+    if (v_f != NULL) {delete v_f; v_f = NULL;}
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1623,9 +1626,9 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
 
 
 
-} // end of name space
+}  //  namespace reg
 
 
 
 
-#endif // _REGISTRATIONINTERFACE_CPP_
+#endif  // _REGISTRATIONINTERFACE_CPP_

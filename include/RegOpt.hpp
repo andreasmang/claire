@@ -21,7 +21,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-//  #define _REG_DEBUG_
+//#define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -244,6 +244,7 @@ struct ParCont{
     ParaContType strategy;                      ///< flag for parameter continuation strategy
     bool enabled;                               ///< flag: parameter continuation using different strategies
     ScalarType targetbeta;                      ///< target regularization parameter
+    ScalarType beta0;                           ///< initial regularization parameter
 };
 
 
@@ -311,7 +312,7 @@ struct PDESolver{
 };
 
 
-// flags for timers
+/*! flags for timers */
 enum LogType{
     LOGRES,
     LOGKSPRES,
@@ -321,7 +322,7 @@ enum LogType{
 };
 
 
-/* parameter for grid continuation */
+/*! parameter for grid continuation */
 struct Logger{
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
     std::vector<ScalarType> kspresidual;    ///< residual of krylov method

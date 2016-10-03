@@ -1,6 +1,24 @@
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _PREPROCREG_CPP_
 #define _PREPROCREG_CPP_
-
 
 #include "PreProcReg.hpp"
 #include <time.h>
@@ -226,16 +244,14 @@ PetscErrorCode PreProcReg::ClearMemory() {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetReadWrite"
-PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite)
-{
-    PetscErrorCode ierr;
+PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     ierr = Assert(readwrite !=  NULL,"null pointer"); CHKERRQ(ierr);
     this->m_ReadWrite=readwrite;
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -249,9 +265,8 @@ PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetupGridChangeOps"
-PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
-{
-    PetscErrorCode ierr;
+PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
+    PetscErrorCode ierr = 0;
     IntType nalloc_c,nalloc_f;
     int _nx_f[3],_ostart_f[3],_osize_f[3],_isize_f[3],_istart_f[3],
         _nx_c[3],_ostart_c[3],_osize_c[3],_isize_c[3],_istart_c[3];
@@ -361,7 +376,7 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -374,9 +389,8 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f,IntType* nx_c)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
-PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType* nx_c, IntType* nx_f)
-{
-    PetscErrorCode ierr;
+PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType* nx_c, IntType* nx_f) {
+    PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
@@ -391,8 +405,7 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -410,8 +423,7 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Restrict"
-PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f)
-{
+PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
     ScalarType *p_xf=NULL,*p_xc=NULL,scale,coeff[2];//,value
     IntType n,l,k_c[3],i_c[3],nr,os_recv;//,k_f[3],nxhalf_c[3];
@@ -593,8 +605,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeGridChangeIndices"
-PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f,IntType* nx_c)
-{
+PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank,nprocs,nowned,ncommunicate,nprocessed,xrank,cart_grid[2],p1,p2;
     IntType oend_c[3],osc_x2,osc_x3,i_f[3],k_f[3],k_c[3],nxhalf_c[3];
@@ -732,7 +743,7 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f,IntType* nx_c)
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -743,11 +754,10 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f,IntType* nx_c)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GridChangeCommIndices"
-PetscErrorCode PreProcReg::GridChangeCommIndices()
-{
+PetscErrorCode PreProcReg::GridChangeCommIndices() {
     PetscErrorCode ierr = 0;
-    int merr,nprocs,rank,i_recv,i_send;
-    IntType n,k_c[3],k_f[3],os_send,os_recv,nr,ns,n_c,n_f;
+    int merr, nprocs, rank, i_recv, i_send;
+    IntType n, k_c[3], k_f[3], os_send, os_recv, nr, ns, n_c, n_f;
     MPI_Status status;
     std::stringstream ss;
 
@@ -755,41 +765,41 @@ PetscErrorCode PreProcReg::GridChangeCommIndices()
 
     this->m_Opt->Enter(__FUNCT__);
 
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-    MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
-    if (this->m_OffsetSend==NULL) {
+    if (this->m_OffsetSend == NULL) {
         try{this->m_OffsetSend = new IntType[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
 
-    if (this->m_OffsetRecv==NULL) {
+    if (this->m_OffsetRecv == NULL) {
         try{this->m_OffsetRecv = new IntType[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_NumSend==NULL) {
+    if (this->m_NumSend == NULL) {
         try{this->m_NumSend = new IntType[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_NumRecv==NULL) {
+    if (this->m_NumRecv == NULL) {
         try{this->m_NumRecv = new IntType[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_SendRequest==NULL) {
+    if (this->m_SendRequest == NULL) {
         try{this->m_SendRequest = new MPI_Request[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_RecvRequest==NULL) {
+    if (this->m_RecvRequest == NULL) {
         try{this->m_RecvRequest = new MPI_Request[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1435,9 +1445,6 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     }
 
 
-
-
-
 /*
     // get number of entries we are going to assign
     n = this->m_IndicesC[rank].size()/3;
@@ -1490,7 +1497,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1647,7 +1654,6 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
-
 }
 
 
@@ -1658,12 +1664,11 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplySmoothing"
-PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
-{
-    PetscErrorCode ierr;
+PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
+    PetscErrorCode ierr = 0;
     IntType nalloc;
-    ScalarType *p_x=NULL,*p_xsmooth=NULL,nx[3],c[3],scale;
-    double timer[5]={0,0,0,0,0};
+    ScalarType *p_x = NULL, *p_xsmooth = NULL, nx[3], c[3], scale;
+    double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
@@ -1693,7 +1698,6 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
     accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
 
 #pragma omp parallel
 {
@@ -1735,7 +1739,6 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 
 } // pragma omp parallel
 
-
     // compute inverse fft
     ierr = VecGetArray(xsmooth, &p_xsmooth); CHKERRQ(ierr);
     accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan, this->m_xhat, p_xsmooth, timer);
@@ -1746,8 +1749,7 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1759,23 +1761,23 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeOverlapMeasures"
-PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
-{
-    PetscErrorCode ierr;
-    int nlabels,lR,lT;
-    IntType *icommon,*iunion,*nlR,*nlT;
+PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
+    PetscErrorCode ierr = 0;
+    int nlabels, lR, lT;
+    double cj, uj, nlabelsR, nlabelsT, n;
+    IntType *icommon = NULL, *iunion = NULL, *nlR = NULL, *nlT = NULL;
     IntType nl;
-    ScalarType *p_mrl=NULL,*p_mtl=NULL;
+    ScalarType *p_mrl = NULL, *p_mtl = NULL;
     PetscFunctionBegin;
-    double cj,uj,nlabelsR,nlabelsT,n;
+
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(mRl!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr = Assert(mTl!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mRl != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mTl != NULL, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetDomainPara().nlocal;
 
-    nlabels=32;
+    nlabels = 32;
 
     if (this->m_OverlapMeasures == NULL) {
         try{this->m_OverlapMeasures = new double [nlabels*4];}
@@ -1802,10 +1804,10 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
     }
 
     for (int i = 0; i < nlabels; ++i) {
-        iunion[i]=0;
-        icommon[i]=0;
-        nlR[i]=0;
-        nlT[i]=0;
+        iunion[i] = 0;
+        icommon[i] = 0;
+        nlR[i] = 0;
+        nlT[i] = 0;
     }
 
     ierr = VecGetArray(mRl, &p_mrl); CHKERRQ(ierr);
@@ -1816,7 +1818,7 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
         lT = static_cast<int>(p_mtl[i]);
 
         // compute intersection
-        if (lR == lT) { icommon[lR]++; }
+        if (lR == lT) {icommon[lR]++;}
         nlR[lR]++;
         nlT[lT]++;
 
@@ -1837,12 +1839,18 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
         n = nlabelsT + nlabelsR;
 
         // compute jaccard per label
-        if (uj != 0.0) this->m_OverlapMeasures[(lj*nlabels)+0] = cj/uj;
-        else           this->m_OverlapMeasures[(lj*nlabels)+0] = 0;
+        if (uj != 0.0) {
+            this->m_OverlapMeasures[(lj*nlabels)+0] = cj/uj;
+        } else {
+            this->m_OverlapMeasures[(lj*nlabels)+0] = 0;
+        }
 
         // compute dice per label
-        if (n != 0.0) this->m_OverlapMeasures[(lj*nlabels)+1] = 2.0*cj/n;
-        else          this->m_OverlapMeasures[(lj*nlabels)+1] = 0.0;
+        if (n != 0.0) {
+            this->m_OverlapMeasures[(lj*nlabels)+1] = 2.0*cj/n;
+        } else {
+            this->m_OverlapMeasures[(lj*nlabels)+1] = 0.0;
+        }
 
         // compute false positive and false negative per label
         if (nlabelsR != 0.0) {
@@ -1854,23 +1862,22 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl)
         }
     }
 
-    delete [] icommon; icommon = NULL;
-    delete [] iunion; iunion = NULL;
-    delete [] nlR; nlR = NULL;
-    delete [] nlT; nlT = NULL;
+    if (icommon != NULL) {delete [] icommon; icommon = NULL;}
+    if (iunion != NULL) {delete [] iunion; iunion = NULL;}
+    if (nlR != NULL) {delete [] nlR; nlR = NULL;}
+    if (nlT != NULL) {delete [] nlT; nlT = NULL;}
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
 
 
-} // end of namespace
+}  // namespace reg
 
 
 
 
-#endif // _PREPROCREG_CPP_
+#endif   // _PREPROCREG_CPP_
