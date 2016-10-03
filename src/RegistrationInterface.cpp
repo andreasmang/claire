@@ -685,63 +685,82 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     this->m_Opt->SetRegularizationWeight(1, beta);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
+
+    if (this->m_Opt->GetVerbosity() > 0) {
+        ierr = DbgMsg("starting coarse search for regularization weight"); CHKERRQ(ierr);
+    }
+
     // reduce regularization parameter by one order of magnitude until
     // we hit tolerance
     stop = false; level = 0;
-    if (beta == 1.0) {
-        while(level < maxsteps) {
-            this->m_Opt->SetRegularizationWeight(0, beta);
-            this->m_Opt->SetRegularizationWeight(1, beta);
-            //this->m_Opt->InitialGradNormSet(false);
+    while(level < maxsteps) {
+        this->m_Opt->SetRegularizationWeight(0, beta);
+        this->m_Opt->SetRegularizationWeight(1, beta);
+        //this->m_Opt->InitialGradNormSet(false);
 
-            ss << std::scientific << std::setw(3)
-                << "level " << level << " ( betav=" << beta
-                << "; betav*=" << betastar << " )";
-            ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
-            ss.str(std::string()); ss.clear();
+        ss << std::scientific << std::setw(3)
+            << "level " << level << " ( betav=" << beta
+            << "; betav*=" << betastar << " )";
+        ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
 
-            // set initial guess for current level
-            ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
+        // set initial guess for current level
+        ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
-            // run the optimization
-            ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
-            ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
-            if (!converged) break;
+        // run the optimization
+        ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+        ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
+        if (!converged && level > 0) break;
 
-            // get the solution
-            ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+        // get the solution
+        ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
 
-            // check bounds on jacobian
-            ierr = this->m_RegProblem->CheckBounds(x, stop); CHKERRQ(ierr);
+        // check bounds on jacobian
+        ierr = this->m_RegProblem->CheckBounds(x, stop); CHKERRQ(ierr);
 
-            if (stop) break;  // if bound reached go home
-
+        if (stop) {
+            if (level > 0) {
+                break;  // if bound reached go home
+            } else {
+                ///< we reached bound in first step -> increase beta
+                beta /= betascale;
+                level = -1; // reset level to 0
+            }
+        } else {
             // remember regularization parameter
             betastar = beta;
-
             // if we got here, the solution is valid
             ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
-
             // reduce beta
             beta *= betascale;
+        }
 
-            // if regularization parameter is smaller than
-            // lower bound, let's stop this
-            if (beta < betamin) {
-                if (this->m_Opt->GetVerbosity() > 0) {
-                    ss << std::scientific
-                       << "regularization parameter smaller than lower bound (betav="
-                       << beta << " < " << betamin << "=betavmin)";
-                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                    ss.str(std::string()); ss.clear();
-                }
-                break;
+        // if regularization parameter is smaller than
+        // lower bound, let's stop this
+        if (beta < betamin) {
+            if (this->m_Opt->GetVerbosity() > 0) {
+                ss << std::scientific
+                   << "regularization parameter smaller than lower bound (betav="
+                   << beta << " < " << betamin << "=betavmin)";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.str(std::string()); ss.clear();
             }
-            ++level;
-        }  ///< until we hit the tolerance
-    }  ///< beta == 1.0
+            break;
+        }
+        ++level;
+    }  ///< until we hit the tolerance
 
-    stop = false;  // now start binary search
+    if (this->m_Opt->GetVerbosity() > 0) {
+        ierr = DbgMsg("starting fine search for regularization weight"); CHKERRQ(ierr);
+    }
+
+    stop = false;  ///< reset search
+
+    // compute new trial beta
+    betahat = betascale*betastar;
+    dbeta = (betastar-betahat)/2.0;
+    beta = betastar-dbeta;
+    ++level;
 
     // get scale for delta beta; this parameter determines how
     // accurate we solve (how many digits) with respect to the
@@ -750,14 +769,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     dbetascale = this->m_Opt->GetParaCont().dbetascale;
     msg = "scale for delta betav not in (0,1)";
     ierr = Assert(dbetascale < 1.0 && dbetascale > 0.0, msg); CHKERRQ(ierr);
-
-    //update beta
     dbetamin = dbetascale*betastar;
-    betahat = betascale*betastar;
-    dbeta = (betastar-betahat)/2.0;
-    beta = betastar-dbeta;
-
-    ++level;
 
     while (!stop) {
         // set regularization parameter

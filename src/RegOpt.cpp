@@ -1055,6 +1055,9 @@ PetscErrorCode RegOpt::CheckArguments() {
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
         }
+    }
+    if (   this->m_ParaCont.strategy == PCONTBINSEARCH
+        || this->m_ParaCont.strategy == PCONTINUATION  ) {
         betav = this->m_ParaCont.beta0;
         if (betav <= 0.0 || betav > 1.0) {
             msg = "\x1b[31m initial guess for betav not in (0.0,1.0]\x1b[0m\n";
@@ -1077,7 +1080,7 @@ PetscErrorCode RegOpt::CheckArguments() {
         || this->m_ReadWriteFlags.residual
         || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates ) {
-        if ( this->m_ReadWriteFlags.xfolder.empty() ) {
+        if (this->m_ReadWriteFlags.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
