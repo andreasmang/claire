@@ -1237,6 +1237,9 @@ PetscErrorCode RegOpt::DoSetup(IntType nx[3]) {
         this->m_Domain.nx[i] = nx[i];
     }
 
+    // set number of threads
+    ierr = Init(this->m_NumThreads, this->m_CartGridDims, this->m_FFT.mpicomm); CHKERRQ(ierr);
+
     ierr = this->DoSetup(false); CHKERRQ(ierr);
 
     this->Exit(__FUNCT__);
