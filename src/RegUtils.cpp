@@ -1,4 +1,5 @@
-#ifndef _REGUTILS_CPP_#define _REGUTILS_CPP_
+#ifndef _REGUTILS_CPP_
+#define _REGUTILS_CPP_
 
 
 #include "RegUtils.hpp"
