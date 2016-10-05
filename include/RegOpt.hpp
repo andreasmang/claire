@@ -471,7 +471,7 @@ class RegOpt {
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
     PetscErrorCode DoSetup(bool dispteaser = true);
-    PetscErrorCode DoSetup(IntType[3], accfft_plan*, MPI_Comm);
+    PetscErrorCode DoSetup(IntType[3]);
 
 
     inline void Enter(std::string fname) {

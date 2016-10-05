@@ -1,5 +1,4 @@
-#ifndef _REGUTILS_CPP_
-#define _REGUTILS_CPP_
+#ifndef _REGUTILS_CPP_#define _REGUTILS_CPP_
 
 
 #include "RegUtils.hpp"
@@ -8,6 +7,8 @@
 #ifdef REG_HAS_PNETCDF
 #include "pnetcdf.h"
 #endif
+
+
 
 
 namespace reg {
@@ -285,9 +286,9 @@ void isleep( unsigned int nanosec ) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Init"
-PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm) {
-    PetscErrorCode ierr;
-    int nprocs,ompthreads,np;
+PetscErrorCode Init(int nthreads, int *c_grid, MPI_Comm& c_comm) {
+    PetscErrorCode ierr = 0;
+    int nprocs, ompthreads, np;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -308,19 +309,17 @@ PetscErrorCode Init(int nthreads,int *c_grid, MPI_Comm& c_comm) {
     np = c_grid[0]*c_grid[1];
 
     // check number of procs
-    if(np!=nprocs) {
-
+    if (np != nprocs) {
         // update cartesian grid layout
         c_grid[0]=0;
         c_grid[1]=0;
-        MPI_Dims_create(nprocs,2,c_grid);
-
+        MPI_Dims_create(nprocs, 2, c_grid);
     }
 
-    if (c_comm != NULL) { MPI_Comm_free(&c_comm); c_comm=NULL; }
+    if (c_comm != NULL) {MPI_Comm_free(&c_comm); c_comm = NULL;}
 
     // initialize accft
-    accfft_create_comm(PETSC_COMM_WORLD,c_grid,&c_comm);
+    accfft_create_comm(PETSC_COMM_WORLD, c_grid, &c_comm);
     accfft_init(nthreads);
 
     PetscFunctionReturn(0);

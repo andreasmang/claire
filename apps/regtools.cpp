@@ -580,7 +580,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     ierr = readwrite->Read(&m0, fn); CHKERRQ(ierr);
     ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if ( !regopt->SetupDone() ) { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
+    if ( !regopt->SetupDone() ) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
     nl = regopt->GetDomainPara().nlocal;
 
     // do allocation
@@ -764,7 +764,6 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     for (i1 = 0; i1 < regopt->GetDomainPara().isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < regopt->GetDomainPara().isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < regopt->GetDomainPara().isize[2]; ++i3) {  // x3
-
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + regopt->GetDomainPara().istart[0]);
                 x2 = hx[1]*static_cast<ScalarType>(i2 + regopt->GetDomainPara().istart[1]);

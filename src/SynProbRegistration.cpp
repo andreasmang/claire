@@ -59,11 +59,8 @@ SynProbRegistration::~SynProbRegistration()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode SynProbRegistration::Initialize()
-{
-
+PetscErrorCode SynProbRegistration::Initialize() {
     this->m_Opt = NULL;
-
     PetscFunctionReturn(0);
 }
 
@@ -91,8 +88,7 @@ PetscErrorCode SynProbRegistration::ClearMemory()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeSmoothScalarField"
-PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigned int id)
-{
+PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, const unsigned int id) {
     PetscErrorCode ierr;
     IntType isize[3],istart[3];
     ScalarType *p_m=NULL;
@@ -210,8 +206,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m,const unsigne
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeSquare"
-PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
-{
+PetscErrorCode SynProbRegistration::ComputeSquare(Vec m) {
     PetscErrorCode ierr;
     IntType isize[3],istart[3];
     ScalarType *p_m=NULL,hx[3];
@@ -266,8 +261,7 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeSphere"
-PetscErrorCode SynProbRegistration::ComputeSphere(Vec m)
-{
+PetscErrorCode SynProbRegistration::ComputeSphere(Vec m) {
     PetscErrorCode ierr;
     IntType isize[3],istart[3];
     ScalarType *p_m=NULL,hx[3];

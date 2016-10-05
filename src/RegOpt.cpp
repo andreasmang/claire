@@ -1011,12 +1011,12 @@ PetscErrorCode RegOpt::CheckArguments() {
     std::string msg;
     PetscFunctionBegin;
 
-    if (!this->m_ReadWriteFlags.mt.empty()) { readmT = true; }
-    if (!this->m_ReadWriteFlags.mr.empty()) { readmR = true; }
+    if (!this->m_ReadWriteFlags.mt.empty()) {readmT = true;}
+    if (!this->m_ReadWriteFlags.mr.empty()) {readmR = true;}
 
-    if (!this->m_ReadWriteFlags.vx1.empty()) { readvx1 = true; }
-    if (!this->m_ReadWriteFlags.vx2.empty()) { readvx2 = true; }
-    if (!this->m_ReadWriteFlags.vx3.empty()) { readvx3 = true; }
+    if (!this->m_ReadWriteFlags.vx1.empty()) {readvx1 = true;}
+    if (!this->m_ReadWriteFlags.vx2.empty()) {readvx2 = true;}
+    if (!this->m_ReadWriteFlags.vx3.empty()) {readvx3 = true;}
 
     if (readmT && readmR) {
         // check if files exist
@@ -1226,63 +1226,22 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DoSetup"
-PetscErrorCode RegOpt::DoSetup(IntType nx[3], accfft_plan* plan, MPI_Comm comm) {
-    PetscErrorCode ierr;
-    int inx[3], isize[3], istart[3], osize[3], ostart[3];
-    int nalloc, rank, nproc;
-
+PetscErrorCode RegOpt::DoSetup(IntType nx[3]) {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
 
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
-
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
         this->m_Domain.nx[i] = nx[i];
-        inx[i] = static_cast<int>(this->m_Domain.nx[i]);
-        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
 
-    // parse communicator
-    this->m_FFT.mpicomm = comm;
-
-    // get sizes
-    nalloc = accfft_local_size_dft_r2c(inx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
-    ierr = Assert(nalloc != 0, "alloc problem"); CHKERRQ(ierr);
-    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
-
-    // assign fft planer
-    if (this->m_FFT.plan != NULL) {
-        accfft_destroy_plan(this->m_FFT.plan);
-        this->m_FFT.plan = NULL;
-    }
-    this->m_FFT.plan = plan;
-
-    // compute global and local size
-    this->m_Domain.nlocal = 1;
-    this->m_Domain.nglobal = 1;
-    for (int i = 0; i < 3; ++i) {
-        this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
-        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
-
-        this->m_FFT.osize[i] = static_cast<IntType>(osize[i]);
-        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
-
-        this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
-        this->m_Domain.nglobal *= this->m_Domain.nx[i];
-    }
-
-    // check if sizes are ok
-    ierr = reg::Assert(this->m_Domain.nlocal > 0, "bug in setup"); CHKERRQ(ierr);
-    ierr = reg::Assert(this->m_Domain.nglobal > 0, "bug in setup"); CHKERRQ(ierr);
-
-    this->m_SetupDone = true;
+    ierr = this->DoSetup(false); CHKERRQ(ierr);
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1366,7 +1325,7 @@ ScalarType RegOpt::GetBetaMinParaCont() {
 #undef __FUNCT__
 #define __FUNCT__ "SetupGridCont"
 PetscErrorCode RegOpt::SetupGridCont() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     IntType nxmin, nxi, nl, ng, nalloc;
     int nx[3], isize[3], istart[3], ostart[3], osize[3];
     int nlevels, level, j;
@@ -1454,7 +1413,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -1515,41 +1474,41 @@ PetscErrorCode RegOpt::DisplayOptions() {
         // display regularization model
         std::cout << std::left << std::setw(indent) <<" regularization model v";
 
-        if ( (this->m_ParaCont.strategy == PCONTBINSEARCH) || (this->m_ParaCont.strategy == PCONTREDUCESEARCH) ) {
+        if ((this->m_ParaCont.strategy == PCONTBINSEARCH) || (this->m_ParaCont.strategy == PCONTREDUCESEARCH)) {
             switch (this->m_RegNorm.type) {
                 case L2:
                 {
-                    std::cout <<"l2-norm (betav estimated)" << std::endl;
+                    std::cout << "l2-norm (betav estimated)" << std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout <<"h1-norm (betav estimated)" << std::endl;
+                    std::cout << "h1-norm (betav estimated)" << std::endl;
                     break;
                 }
                 case H2:
                 {
-                    std::cout <<"h2-norm (betav estimated)" << std::endl;
+                    std::cout << "h2-norm (betav estimated)" << std::endl;
                     break;
                 }
                 case H3:
                 {
-                    std::cout <<"h3-norm (betav estimated)" << std::endl;
+                    std::cout << "h3-norm (betav estimated)" << std::endl;
                     break;
                 }
                 case H1SN:
                 {
-                    std::cout <<"h1-seminorm (betav estimated)" << std::endl;
+                    std::cout << "h1-seminorm (betav estimated)" << std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout <<"h2-seminorm (betav estimated)" << std::endl;
+                    std::cout << "h2-seminorm (betav estimated)" << std::endl;
                     break;
                 }
                 case H3SN:
                 {
-                    std::cout <<"h3-seminorm (betav estimated)" << std::endl;
+                    std::cout << "h3-seminorm (betav estimated)" << std::endl;
                     break;
                 }
                 default:
@@ -1560,14 +1519,14 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
 
             // display parameters and tolerances
-            std::cout << std::left << std::setw(indent) <<" parameter continuation";
+            std::cout << std::left << std::setw(indent) << " parameter continuation";
             if (this->m_ParaCont.strategy == PCONTBINSEARCH) {
                 std::cout << "binary search" << std::endl;
             } else if (this->m_ParaCont.strategy == PCONTREDUCESEARCH) {
                 std::cout << "search by reduction" << std::endl;
             }
-            std::cout << std::left << std::setw(indent) <<" "
-                      << std::setw(align) <<"bound det(grad(y))"
+            std::cout << std::left << std::setw(indent) << " "
+                      << std::setw(align) << "bound det(grad(y))"
                       << this->m_RegMonitor.jacbound << std::endl;
         } else {
             switch (this->m_RegNorm.type) {
@@ -1623,7 +1582,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
                                 << ")" << std::endl;
                     break;
                 }
-                default: { ierr = ThrowError("regularization model not implemented"); CHKERRQ(ierr); break; }
+                default: {ierr = ThrowError("regularization model not implemented"); CHKERRQ(ierr); break;}
             }
 
             // display parameters and tolerances
@@ -1637,27 +1596,27 @@ PetscErrorCode RegOpt::DisplayOptions() {
 
         if (this->m_RegModel == reg::RELAXEDSTOKES) {
             // display regularization model
-            std::cout << std::left << std::setw(indent) <<" regularization model w";
-            std::cout   <<  "h1-seminorm (betaw="
-                        <<  this->m_RegNorm.beta[2]<< ")" << std::endl;
+            std::cout << std::left << std::setw(indent) << " regularization model w";
+            std::cout << "h1-seminorm (betaw="
+                      << this->m_RegNorm.beta[2]<< ")" << std::endl;
         }
 
         // display regularization model
-        std::cout << std::left << std::setw(indent) <<" pde solver (hyperbolic)";
+        std::cout << std::left << std::setw(indent) << " pde solver (hyperbolic)";
         switch (this->m_PDESolver.type) {
             case RK2:
             {
-                std::cout <<"second order rk method" << std::endl;
+                std::cout << "second order rk method" << std::endl;
                 break;
             }
             case RK2A:
             {
-                std::cout <<"antisymmetric rk2" << std::endl;
+                std::cout << "antisymmetric rk2" << std::endl;
                 break;
             }
             case SL:
             {
-                std::cout <<"semi-lagrangian method" << std::endl;
+                std::cout << "semi-lagrangian method" << std::endl;
                 break;
             }
             default:
@@ -1669,7 +1628,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
 
         // display type of optimization method
         newtontype = false;
-        std::cout << std::left << std::setw(indent) <<" optimization method";
+        std::cout << std::left << std::setw(indent) << " optimization method";
         switch (this->m_OptPara.method) {
             case GRADDESCENT:
             {
@@ -1695,24 +1654,24 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
         }
 
-        std::cout << std::left << std::setw(indent) <<" maximal # iterations"
+        std::cout << std::left << std::setw(indent) << " maximal # iterations"
                   << this->m_OptPara.maxit << std::endl;
 
         // display optimization tolerances
-        std::cout << std::left << std::setw(indent) <<" convergence tolerances"
-                  << std::setw(align) <<"||g(v)|| <= tol"
+        std::cout << std::left << std::setw(indent) << " convergence tolerances"
+                  << std::setw(align) << "||g(v)|| <= tol"
                   << this->m_OptPara.tol[0] << std::endl;
 //        std::cout << std::left << std::setw(indent) <<" "
 //                  << std::setw(align) <<"||g(v)||/|J(v)| <= tol"
 //                  << this->m_OptPara.tol[1] << std::endl;
-        std::cout << std::left << std::setw(indent) <<" "
-                  << std::setw(align) <<"||g(v)||/||g(v0)|| <= tol"
+        std::cout << std::left << std::setw(indent) << " "
+                  << std::setw(align) << "||g(v)||/||g(v0)|| <= tol"
                   << this->m_OptPara.tol[2] << std::endl;
 
         // display parameters for newton type optimization methods
         if ( newtontype ) {
             std::cout << std::left << std::setw(indent)
-                      <<" hessian sytem"
+                      << " hessian sytem"
                       << std::setw(align) << "solver";
 
             switch (this->m_KrylovSolverPara.solver) {
@@ -1736,11 +1695,11 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 case NOFS:
                 {
                     std::cout << std::setw(align) << "disabled" << std::endl;
-                    std::cout << std::left << std::setw(indent) <<" "
-                              << std::setw(align) <<"absolute"
+                    std::cout << std::left << std::setw(indent) << " "
+                              << std::setw(align) << "absolute"
                               << this->m_KrylovSolverPara.tol[0] << std::endl;
-                    std::cout << std::left << std::setw(indent) <<" "
-                              << std::setw(align) <<"relative"
+                    std::cout << std::left << std::setw(indent) << " "
+                              << std::setw(align) << "relative"
                               << this->m_KrylovSolverPara.tol[1] << std::endl;
                     break;
                 }
@@ -1761,12 +1720,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 }
             }
 
-            std::cout << std::left << std::setw(indent) <<" "
-                      << std::setw(align) <<"maxit"
+            std::cout << std::left << std::setw(indent) << " "
+                      << std::setw(align) << "maxit"
                       << this->m_KrylovSolverPara.maxit << std::endl;
 
             bool twolevel = false;
-            std::cout << std::left << std::setw(indent) <<" "
+            std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "preconditioner";
 
             switch (this->m_KrylovSolverPara.pctype) {
@@ -1794,7 +1753,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
 
             if (twolevel) {
-                std::cout << std::left << std::setw(indent) <<" "
+                std::cout << std::left << std::setw(indent) << " "
                           << std::setw(align) << "solver (preconditioner)";
 
                 switch (this->m_KrylovSolverPara.pcsolver) {
@@ -2745,6 +2704,7 @@ PetscErrorCode RegOpt::DisplayTimeToSolution() {
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 

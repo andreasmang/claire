@@ -43,7 +43,6 @@ int main(int argc, char **argv) {
     ierr = PetscInitialize(0, reinterpret_cast<char***>(NULL),
                               reinterpret_cast<char*>(NULL),
                               reinterpret_cast<char*>(NULL)); CHKERRQ(ierr);
-
     PetscFunctionBegin;
 
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);

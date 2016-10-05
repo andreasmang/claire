@@ -362,7 +362,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external
     // pointer
-    if ( this->m_StateVariable == NULL ) {
+    if (this->m_StateVariable == NULL) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nl, (nt+1)*ng); CHKERRQ(ierr);
     }
 
@@ -521,7 +521,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(this->m_ReferenceImage!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
     nt = this->m_Opt->GetDomainPara().nt;
@@ -1424,16 +1424,14 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
                 p_bt1[i] = p_bt1[i] + scale*p_gradm1[i]*ltj;
                 p_bt2[i] = p_bt2[i] + scale*p_gradm2[i]*ltj;
                 p_bt3[i] = p_bt3[i] + scale*p_gradm3[i]*ltj;
-            } // for all grid points
-} // pragma omp parallel
+            }  // for all grid points
+}  // pragma omp parallel
 
             // trapezoidal rule (revert scaling)
             if ((j == 0) || (j == nt)) {
                 scale*=2.0;
             }
-
-        } // for all time points
-
+        }   // for all time points
     } else {
         ierr = ThrowError("hessian approximation not implemented"); CHKERRQ(ierr);
     }
@@ -1638,8 +1636,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         // compute gradient of m_j
-        accfft_grad(p_gmx1,p_gmx2,p_gmx3,p_mj,this->m_Opt->GetFFT().plan,&XYZ,timers);
-        this->m_Opt->IncrementCounter(FFT,4);
+        accfft_grad(p_gmx1, p_gmx2, p_gmx3, p_mj, this->m_Opt->GetFFT().plan, &XYZ, timers);
+        this->m_Opt->IncrementCounter(FFT, 4);
 #pragma omp parallel
 {
 #pragma omp for
