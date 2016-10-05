@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2015-2016.
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -1215,6 +1215,76 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * @brief setup of accfft has been done externally; this function
+ * uses the fft class to and communcation layout as an input
+ * and sets the associated parameters
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "DoSetup"
+PetscErrorCode RegOpt::DoSetup(IntType nx[3], accfft_plan* plan, MPI_Comm comm) {
+    PetscErrorCode ierr;
+    int inx[3], isize[3], istart[3], osize[3], ostart[3];
+    int nalloc, rank, nproc;
+
+    PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
+
+    // parse grid size for setup
+    for (int i = 0; i < 3; ++i) {
+        this->m_Domain.nx[i] = nx[i];
+        inx[i] = static_cast<int>(this->m_Domain.nx[i]);
+        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
+    }
+
+    // parse communicator
+    this->m_FFT.mpicomm = comm;
+
+    // get sizes
+    nalloc = accfft_local_size_dft_r2c(inx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    ierr = Assert(nalloc != 0, "alloc problem"); CHKERRQ(ierr);
+    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+
+    // assign fft planer
+    if (this->m_FFT.plan != NULL) {
+        accfft_destroy_plan(this->m_FFT.plan);
+        this->m_FFT.plan = NULL;
+    }
+    this->m_FFT.plan = plan;
+
+    // compute global and local size
+    this->m_Domain.nlocal = 1;
+    this->m_Domain.nglobal = 1;
+    for (int i = 0; i < 3; ++i) {
+        this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
+        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
+
+        this->m_FFT.osize[i] = static_cast<IntType>(osize[i]);
+        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
+
+        this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
+        this->m_Domain.nglobal *= this->m_Domain.nx[i];
+    }
+
+    // check if sizes are ok
+    ierr = reg::Assert(this->m_Domain.nlocal > 0, "bug in setup"); CHKERRQ(ierr);
+    ierr = reg::Assert(this->m_Domain.nglobal > 0, "bug in setup"); CHKERRQ(ierr);
+
+    this->m_SetupDone = true;
+
+    this->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+}
+
 
 
 

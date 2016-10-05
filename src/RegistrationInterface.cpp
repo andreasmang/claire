@@ -675,7 +675,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // set initial guess for current level
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
-    // initialize parameters
+    // initialize parameters (can be user defined)
     beta = this->m_Opt->GetParaCont().beta0;
     betastar = beta;
 
@@ -718,13 +718,15 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         // check bounds on jacobian
         ierr = this->m_RegProblem->CheckBounds(x, stop); CHKERRQ(ierr);
 
+        // we have to make sure that the initial parameter was
+        // not too small
         if (stop) {
             if (level > 0) {
-                break;  // if bound reached go home
+                break;  ///< if bound reached go home
             } else {
-                ///< we reached bound in first step -> increase beta
+                // we reached bound in first step -> increase beta
                 beta /= betascale;
-                level = -1; // reset level to 0
+                level = -1;  ///< reset level to 0
             }
         } else {
             // remember regularization parameter
@@ -834,15 +836,18 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
     ss.str( std::string() ); ss.clear();
 
-    if (rank == 0) {
-        filename = this->m_Opt->GetReadWriteFlags().xfolder;
-        filename += "parameter-continuation-estimated-beta.log";
-        // create output file or append to output file
-        logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
-        ierr = Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
-        ss << std::scientific << "betav " << std::setw(3) << std::right << betastar;
-        logwriter << ss.str() << std::endl;
-        ss.str( std::string() ); ss.clear();
+    // if output folder is set
+    if (!this->m_Opt->GetReadWriteFlags().xfolder.empty()) {
+        if (rank == 0) {
+            filename = this->m_Opt->GetReadWriteFlags().xfolder;
+            filename += "parameter-continuation-estimated-beta.log";
+            // create output file or append to output file
+            logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
+            ierr = Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
+            ss << std::scientific << "betav " << std::setw(3) << std::right << betastar;
+            logwriter << ss.str() << std::endl;
+            ss.str(std::string()); ss.clear();
+        }
     }
 
     // wrap up

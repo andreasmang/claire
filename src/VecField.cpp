@@ -292,6 +292,7 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
                                    ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
 
+
     ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
