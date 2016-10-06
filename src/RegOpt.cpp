@@ -654,6 +654,7 @@ PetscErrorCode RegOpt::DestroyFFT() {
 
     if (this->m_FFT.mpicomm != NULL) {
         MPI_Comm_free(&this->m_FFT.mpicomm);
+        this->m_FFT.mpicomm = NULL;
     }
 
     PetscFunctionReturn(ierr);
