@@ -286,8 +286,10 @@ void isleep( unsigned int nanosec ) {
  * @brief setup library
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "Init"
-PetscErrorCode Init(int nthreads, int *c_grid, MPI_Comm& c_comm) {
+#define __FUNCT__ "InitializeDataDistribution"
+PetscErrorCode InitializeDataDistribution(int nthreads,
+                                          int *c_grid,
+                                          MPI_Comm& c_comm) {
     PetscErrorCode ierr = 0;
     int nprocs, ompthreads, np;
     std::stringstream ss;
@@ -323,7 +325,7 @@ PetscErrorCode Init(int nthreads, int *c_grid, MPI_Comm& c_comm) {
     accfft_create_comm(PETSC_COMM_WORLD, c_grid, &c_comm);
     accfft_init(nthreads);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -335,14 +337,14 @@ PetscErrorCode Init(int nthreads, int *c_grid, MPI_Comm& c_comm) {
 #undef __FUNCT__
 #define __FUNCT__ "Finalize"
 PetscErrorCode Finalize() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
 
     accfft_cleanup();
 
     // clean up petsc
     ierr = PetscFinalize(); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -354,7 +356,7 @@ PetscErrorCode Finalize() {
 #undef __FUNCT__
 #define __FUNCT__ "VecView"
 PetscErrorCode VecView(Vec x) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     ScalarType *p_x = NULL;
     IntType nl;
     int procid;
@@ -366,17 +368,17 @@ PetscErrorCode VecView(Vec x) {
     MPI_Comm_rank(PETSC_COMM_WORLD,&procid);
 
     if (procid == 0) {
-        std::cout<< " VEC VIEW"<<std::endl;
-        std::cout<< " ";
+        std::cout << " VEC VIEW" << std::endl;
+        std::cout << " ";
         for (IntType i = 0; i < nl; ++i) {
-            std::cout<< p_x[i] <<" ";
+            std::cout << p_x[i] << " ";
         }
         std::cout<<std::endl;
     }
 
-    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -387,16 +389,16 @@ PetscErrorCode VecView(Vec x) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "VecCreate"
-PetscErrorCode VecCreate(Vec& x,IntType nl, IntType ng) {
+PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
 
-    if(x!= NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
+    if(x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
 
     ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
     ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
     ierr = VecSetFromOptions(x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -408,8 +410,8 @@ PetscErrorCode VecCreate(Vec& x,IntType nl, IntType ng) {
 #undef __FUNCT__
 #define __FUNCT__ "Rescale"
 PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout) {
-    PetscErrorCode ierr;
-    ScalarType xmin,xmax,xshift,xscale;
+    PetscErrorCode ierr = 0;
+    ScalarType xmin, xmax, xshift, xscale;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -419,14 +421,14 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout) {
     ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
 
     xshift = xminout - xmin;
-    ierr = VecShift(x,xshift); CHKERRQ(ierr);
+    ierr = VecShift(x, xshift); CHKERRQ(ierr);
 
     xmax = (xmax != 0.0) ? xmax : 1.0;
     xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax;
 
-    ierr = VecScale(x,xscale); CHKERRQ(ierr);
+    ierr = VecScale(x, xscale); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -447,26 +449,29 @@ std::vector<unsigned int> String2Vec(const std::string & str) {
     }
 
     // first uint$
-    ival = atoi((str.substr(0,xpos)).c_str());
-    vect.push_back( static_cast<unsigned int>(ival) );
+    ival = atoi((str.substr(0, xpos)).c_str());
+    vect.push_back(static_cast<unsigned int>(ival));
 
     while (true) {
         std::string::size_type newxpos = xpos;
-        xpos = str.find('x',newxpos+1);
+        xpos = str.find('x', newxpos+1);
 
         if (xpos == std::string::npos) {
-            ival = atoi((str.substr(newxpos+1,str.length()-newxpos-1)).c_str());
-            vect.push_back( static_cast<unsigned int>(ival) );
+            ival = atoi((str.substr(newxpos+1, str.length()-newxpos-1)).c_str());
+            vect.push_back(static_cast<unsigned int>(ival));
             return vect;
         }
-        ival = atoi( (str.substr(newxpos+1,xpos-newxpos-1)).c_str() );
-        vect.push_back( static_cast<unsigned int>(ival));
+        ival = atoi((str.substr(newxpos+1, xpos-newxpos-1)).c_str() );
+        vect.push_back(static_cast<unsigned int>(ival));
     }
 }
 
 
 
 
-} //  namespace reg
+}  //  namespace reg
 
-#endif
+
+
+
+#endif  // _REGUTILS_CPP_

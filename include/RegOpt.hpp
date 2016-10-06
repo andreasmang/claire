@@ -236,11 +236,11 @@ struct KrylovSolver{
 
 /* parameter for parameter continuation (regularization parameter) */
 struct ParCont{
-    static const ScalarType betavminh1 = 1E-4;  ///< minimal regularization parameter for h1 type norm
-    static const ScalarType betavminh2 = 1E-7;  ///< minimal regularization parameter for h2 type norm
+    static constexpr ScalarType betavminh1 = 1E-4;  ///< minimal regularization parameter for h1 type norm
+    static constexpr ScalarType betavminh2 = 1E-7;  ///< minimal regularization parameter for h2 type norm
     static const int maxsteps = 10;             ///< max number of steps
-    static const ScalarType betascale = 1E-1;   ///< default reduction factor (one order of magnitude)
-    static const ScalarType dbetascale = 1E-2;  ///< default reduction factor (one order of magnitude)
+    static constexpr ScalarType betascale = 1E-1;   ///< default reduction factor (one order of magnitude)
+    static constexpr ScalarType dbetascale = 1E-2;  ///< default reduction factor (one order of magnitude)
     ParaContType strategy;                      ///< flag for parameter continuation strategy
     bool enabled;                               ///< flag: parameter continuation using different strategies
     ScalarType targetbeta;                      ///< target regularization parameter
@@ -349,8 +349,9 @@ class RegOpt {
     RegOpt(int, char**);
     RegOpt(const RegOpt&);
     ~RegOpt();
-
     void Copy(const RegOpt&);
+
+    PetscErrorCode DestroyFFT();
 
     // spatial grid
     inline void SetNumGridPoints(int i, IntType nx) {this->m_Domain.nx[i] = nx;}
@@ -493,6 +494,7 @@ class RegOpt {
 
  protected:
     virtual PetscErrorCode Initialize(void);
+    PetscErrorCode InitializeFFT();
     virtual PetscErrorCode ClearMemory(void);
     virtual PetscErrorCode ParseArguments(int, char**);
     virtual PetscErrorCode Usage(bool advanced = false);

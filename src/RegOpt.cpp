@@ -599,8 +599,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     }
 
     // set number of threads
-    ierr = Init(this->m_NumThreads, this->m_CartGridDims, this->m_FFT.mpicomm); CHKERRQ(ierr);
-
+    ierr = InitializeDataDistribution(this->m_NumThreads,
+                                      this->m_CartGridDims,
+                                      this->m_FFT.mpicomm); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
 
@@ -628,6 +629,23 @@ PetscErrorCode RegOpt::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+    ierr = this->DestroyFFT(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief clean up fourier transform and mpi communicator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "DestroyFFT"
+PetscErrorCode RegOpt::DestroyFFT() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
     if (this->m_FFT.plan != NULL) {
         accfft_destroy_plan(this->m_FFT.plan);
         accfft_cleanup();
@@ -641,6 +659,88 @@ PetscErrorCode RegOpt::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
+
+
+
+/********************************************************************
+ * @brief setup fourier transform and mpi communicator
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "InitializeFFT"
+PetscErrorCode RegOpt::InitializeFFT() {
+    PetscErrorCode ierr = 0;
+    int nx[3], isize[3], istart[3], osize[3], ostart[3];
+    int nalloc;
+    ScalarType *u = NULL, fftsetuptime;
+    Complex *uk = NULL;
+    PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    // if communicator is not set up
+    if (this->m_FFT.mpicomm == NULL) {
+        ierr = InitializeDataDistribution(this->m_NumThreads,
+                                          this->m_CartGridDims,
+                                          this->m_FFT.mpicomm); CHKERRQ(ierr);
+    }
+
+    // parse grid size for setup
+    for (int i = 0; i < 3; ++i) {
+        nx[i] = static_cast<int>(this->m_Domain.nx[i]);
+        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
+    }
+
+    // get sizes
+    nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    ierr = Assert(nalloc != 0, "alloc problem"); CHKERRQ(ierr);
+    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+
+    // set up the fft
+    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
+    ierr = Assert(u != NULL, "alloc failed"); CHKERRQ(ierr);
+
+    uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
+    ierr = Assert(uk != NULL, "alloc failed"); CHKERRQ(ierr);
+
+    if (this->m_FFT.plan != NULL) {
+        accfft_destroy_plan(this->m_FFT.plan);
+        this->m_FFT.plan = NULL;
+    }
+
+    fftsetuptime = -MPI_Wtime();
+    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<double*>(uk),
+                                              this->m_FFT.mpicomm, ACCFFT_MEASURE);
+    fftsetuptime += MPI_Wtime();
+
+    // set the fft setup time
+    this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
+
+    // compute global and local size
+    this->m_Domain.nlocal = 1;
+    this->m_Domain.nglobal = 1;
+    for (int i = 0; i < 3; ++i) {
+        this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
+        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
+
+        this->m_FFT.osize[i] = static_cast<IntType>(osize[i]);
+        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
+
+        this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
+        this->m_Domain.nglobal *= this->m_Domain.nx[i];
+    }
+
+    // check if sizes are ok
+    ierr = reg::Assert(this->m_Domain.nlocal > 0, "bug in setup"); CHKERRQ(ierr);
+    ierr = reg::Assert(this->m_Domain.nglobal > 0, "bug in setup"); CHKERRQ(ierr);
+
+    // clean up
+    if (u != NULL) { accfft_free(u); u = NULL; }
+    if (uk != NULL) { accfft_free(uk); uk = NULL; }
+
+    this->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 
@@ -1124,92 +1224,20 @@ PetscErrorCode RegOpt::CheckArguments() {
 #define __FUNCT__ "DoSetup"
 PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
     PetscErrorCode ierr;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3];
-    int nalloc, rank, nproc;
-    ScalarType *u = NULL, fftsetuptime;
-    Complex *uk = NULL;
     std::stringstream ss;
 
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
 
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
-
-    // parse grid size for setup
-    for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Domain.nx[i]);
-        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
-    }
-
-    if (this->GetVerbosity() > 2) {
-        ss << "setup of memory distribution/accfft";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-    }
-
-    // get sizes
-    nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
-
-    if (this->GetVerbosity() > 2) {
-        ss << "np=" << nproc << "; nx=(" << nx[0] << "," << nx[1] << "," << nx[2] << "); "
-           << "isize=(" << isize[0] << "," << isize[1] << "," << isize[2] << "); "
-           << "istart=(" << istart[0] << "," << istart[1] << "," << istart[2] << "); "
-           << "(nl,ng)=(" << isize[0]*isize[1]*isize[2] << "," << nx[0]*nx[1]*nx[2] << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-    }
-
-    ierr = Assert(nalloc != 0, "alloc problem"); CHKERRQ(ierr);
-    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
-
-    // set up the fft
-    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
-    ierr = Assert(u != NULL, "alloc failed"); CHKERRQ(ierr);
-
-    uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
-    ierr = Assert(uk != NULL, "alloc failed"); CHKERRQ(ierr);
-
-    if (this->m_FFT.plan != NULL) {
-        accfft_destroy_plan(this->m_FFT.plan);
-        this->m_FFT.plan = NULL;
-    }
-
-    fftsetuptime = -MPI_Wtime();
-    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<double*>(uk), this->m_FFT.mpicomm, ACCFFT_MEASURE);
-    fftsetuptime += MPI_Wtime();
-
-    // set the fft setup time
-    this->m_Timer[FFTSETUP][LOG] = fftsetuptime;
-
-    // compute global and local size
-    this->m_Domain.nlocal = 1;
-    this->m_Domain.nglobal = 1;
-    for (int i = 0; i < 3; ++i) {
-        this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
-        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
-
-        this->m_FFT.osize[i] = static_cast<IntType>(osize[i]);
-        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
-
-        this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
-        this->m_Domain.nglobal *= this->m_Domain.nx[i];
-    }
-
-    // check if sizes are ok
-    ierr = reg::Assert(this->m_Domain.nlocal > 0, "bug in setup"); CHKERRQ(ierr);
-    ierr = reg::Assert(this->m_Domain.nglobal > 0, "bug in setup"); CHKERRQ(ierr);
-
+    ierr = this->InitializeFFT(); CHKERRQ(ierr);
 
     // display the options to the user
-    if (dispteaser) { ierr = this->DisplayOptions(); CHKERRQ(ierr); }
+    if (dispteaser) {
+        ierr = this->DisplayOptions(); CHKERRQ(ierr);
+    }
 
     this->m_SetupDone = true;
-
-    // clean up
-    if (u != NULL) { accfft_free(u); u = NULL; }
-    if (uk != NULL) { accfft_free(uk); uk = NULL; }
 
     this->Exit(__FUNCT__);
 
@@ -1236,9 +1264,6 @@ PetscErrorCode RegOpt::DoSetup(IntType nx[3]) {
     for (int i = 0; i < 3; ++i) {
         this->m_Domain.nx[i] = nx[i];
     }
-
-    // set number of threads
-    ierr = Init(this->m_NumThreads, this->m_CartGridDims, this->m_FFT.mpicomm); CHKERRQ(ierr);
 
     ierr = this->DoSetup(false); CHKERRQ(ierr);
 

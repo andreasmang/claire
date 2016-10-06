@@ -226,7 +226,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-    ierr = Init(this->m_NumThreads, this->m_CartGridDims, this->m_FFT.mpicomm); CHKERRQ(ierr);
+    ierr = InitializeDataDistribution(this->m_NumThreads,
+                                      this->m_CartGridDims,
+                                      this->m_FFT.mpicomm); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -276,8 +278,7 @@ PetscErrorCode RegToolsOpt::ClearMemory() {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
-PetscErrorCode RegToolsOpt::Initialize()
-{
+PetscErrorCode RegToolsOpt::Initialize() {
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
@@ -307,9 +308,7 @@ PetscErrorCode RegToolsOpt::Initialize()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Usage"
-PetscErrorCode RegToolsOpt::Usage(bool advanced)
-{
-
+PetscErrorCode RegToolsOpt::Usage(bool advanced) {
     PetscErrorCode ierr;
     int rank;
     std::string line;
@@ -486,19 +485,23 @@ PetscErrorCode RegToolsOpt::DisplayOptions()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetVecFieldFN"
-std::string RegToolsOpt::GetVecFieldFN(int i, int flag)
-{
-
+std::string RegToolsOpt::GetVecFieldFN(int i, int flag) {
     if (flag == 0) {
-        if      (i == 0) { return this->m_iVecFieldX1FN; }
-        else if (i == 1) { return this->m_iVecFieldX2FN; }
-        else if (i == 2) { return this->m_iVecFieldX3FN; }
-        else return "";
+        if (i == 0) {
+            return this->m_iVecFieldX1FN;
+        } else if (i == 1) {
+            return this->m_iVecFieldX2FN;
+        } else if (i == 2) {
+            return this->m_iVecFieldX3FN;
+        } else return "";
     } else if (flag == 1) {
-        if      (i == 0) { return this->m_xVecFieldX1FN; }
-        else if (i == 1) { return this->m_xVecFieldX2FN; }
-        else if (i == 2) { return this->m_xVecFieldX3FN; }
-        else return "";
+        if (i == 0) {
+            return this->m_xVecFieldX1FN;
+        } else if (i == 1) {
+            return this->m_xVecFieldX2FN;
+        } else if (i == 2) {
+            return this->m_xVecFieldX3FN;
+        } else return "";
     }
     return "";
 }
@@ -511,12 +514,16 @@ std::string RegToolsOpt::GetVecFieldFN(int i, int flag)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetScaFieldFN"
-std::string RegToolsOpt::GetScaFieldFN(int flag)
-{
-    if      (flag == 0) { return this->m_iScaFieldFN; }
-    else if (flag == 1) { return this->m_xScaFieldFN; }
-    else if (flag == 2) { return this->m_RFN; }
-    else if (flag == 3) { return this->m_TFN; }
+std::string RegToolsOpt::GetScaFieldFN(int flag) {
+    if (flag == 0) {
+        return this->m_iScaFieldFN;
+    } else if (flag == 1) {
+        return this->m_xScaFieldFN;
+    } else if (flag == 2) {
+        return this->m_RFN;
+    } else if (flag == 3) {
+        return this->m_TFN;
+    }
     return "";
 }
 
@@ -617,8 +624,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
     }
 
 
-    if ( this->m_PostProcPara.computegrad ) {
-
+    if (this->m_PostProcPara.computegrad) {
         if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ) {
             msg = "\x1b[31m computation of gradient requires input vector or scalar field \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
@@ -660,7 +666,6 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
     }
 
     if (this->m_PostProcPara.tscafield || this->m_PostProcPara.tlabelmap) {
-
         // transport scalar field
         if (!this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield) {
             msg = "\x1b[31m solution of forward problem requires a velocity field and a scalar field \x1b[0m\n";
@@ -673,11 +678,9 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             extension = this->m_ReadWriteFlags.extension;
         }
         this->m_xScaFieldFN = path + "/" + filename + "-transported" + extension;
-
     }
 
     if (this->m_ReadWriteFlags.residual) {
-
         // transport scalar field
         if ( this->m_TFN.empty() || this->m_RFN.empty() ) {
             msg = "\x1b[31m reference and template images need to be set\x1b[0m\n";
