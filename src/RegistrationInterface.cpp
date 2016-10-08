@@ -90,8 +90,8 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_DeleteTemplateImage = false;
-    this->m_DeleteReferenceImage = false;
+    this->m_DeleteTemplateImage = true;
+    this->m_DeleteReferenceImage = true;
 
     PetscFunctionReturn(ierr);
 }
