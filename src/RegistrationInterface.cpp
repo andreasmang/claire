@@ -87,8 +87,11 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
     this->m_TemplatePyramid = NULL;
 
     this->m_Solution = NULL;
-    this->m_ReferenceImage = NULL;
     this->m_TemplateImage = NULL;
+    this->m_ReferenceImage = NULL;
+
+    this->m_DeleteTemplateImage = false;
+    this->m_DeleteReferenceImage = false;
 
     PetscFunctionReturn(ierr);
 }
@@ -144,15 +147,15 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
         this->m_TemplatePyramid = NULL;
     }
 
-    // if we did not read the images, we can
-    // destroy the containers here
-    if (!this->m_Opt->GetReadWriteFlags().readfiles) {
-        // delete reference image
+    // if we did not read/set the images, we can
+    // destroy the containers
+    if (this->m_DeleteReferenceImage) {
         if (this->m_ReferenceImage != NULL) {
             ierr = VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
             this->m_ReferenceImage = NULL;
         }
-        // delete template image
+    }
+    if (this->m_DeleteTemplateImage) {
         if (this->m_TemplateImage != NULL) {
             ierr = VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
             this->m_TemplateImage = NULL;
@@ -223,6 +226,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_ReferenceImage = mR;
+    this->m_DeleteReferenceImage = false;
 
     PetscFunctionReturn(ierr);
 }
@@ -243,6 +247,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
+    this->m_DeleteTemplateImage = false;
 
     PetscFunctionReturn(ierr);
 
@@ -369,7 +374,7 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else {
-        ierr = ThrowError("registration modle not available"); CHKERRQ(ierr);
+        ierr = ThrowError("registration model not available"); CHKERRQ(ierr);
     }
 
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);

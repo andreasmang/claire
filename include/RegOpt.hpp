@@ -351,8 +351,6 @@ class RegOpt {
     ~RegOpt();
     void Copy(const RegOpt&);
 
-    PetscErrorCode DestroyFFT();
-
     // spatial grid
     inline void SetNumGridPoints(int i, IntType nx) {this->m_Domain.nx[i] = nx;}
     inline IntType GetNumGridPoints(int i) {return this->m_Domain.nx[i];}
@@ -455,7 +453,6 @@ class RegOpt {
     }
 
     inline int GetVerbosity() {return this->m_Verbosity;}
-
     int GetLineLength() {return this->m_LineLength;}
 
     ScalarType ComputeFFTScale();
@@ -495,6 +492,7 @@ class RegOpt {
  protected:
     virtual PetscErrorCode Initialize(void);
     PetscErrorCode InitializeFFT();
+    PetscErrorCode DestroyFFT();
     virtual PetscErrorCode ClearMemory(void);
     virtual PetscErrorCode ParseArguments(int, char**);
     virtual PetscErrorCode Usage(bool advanced = false);

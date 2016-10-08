@@ -194,7 +194,6 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
         this->m_WorkTenField4 = NULL;
     }
 
-
     PetscFunctionReturn(ierr);
 }
 

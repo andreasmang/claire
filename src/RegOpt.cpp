@@ -266,7 +266,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
         } else if (strcmp(argv[1], "-sigma") == 0) {
             argc--; argv++;
-
             const std::string sigmainput = argv[1];
 
             // strip the "x" in the string to get the numbers
