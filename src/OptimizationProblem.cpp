@@ -123,8 +123,7 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
     Vec v = NULL, vtilde = NULL, w = NULL, dvJ = NULL;
     PetscRandom rctx;
     IntType nl, ng;
-    ScalarType h = 0.0, htilde = 0.0, Jv = 0.0, dvJw = 0.0,
-                Jvtilde = 0.0, e[2], normv = 0.0, normw = 0.0;
+    ScalarType h, htilde, Jv, dvJw, Jvtilde, e[2], normv, normw;
     char buffer[256];
 
     PetscFunctionBegin;
@@ -220,8 +219,7 @@ PetscErrorCode OptimizationProblem::HessianSymmetryCheck() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     Vec v = NULL, Hv = NULL, HHv = NULL;
-    ScalarType HvHv = 0.0, HHvv = 0.0, symerr = 0.0,
-                relsymerr = 0.0, normHv = 0.0;
+    ScalarType HvHv, HHvv, symerr, relsymerr, normHv;
     std::string msg;
     std::stringstream sserr, ssrelerr;
     PetscRandom rctx;

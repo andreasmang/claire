@@ -255,7 +255,6 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         catch(std::exception&) {
             ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
         }
-
     }
 
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -473,4 +472,4 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
 
 
 
-#endif // _OPTIMALCONTROLREGISTRATIONIC_CPP_
+#endif  // _OPTIMALCONTROLREGISTRATIONIC_CPP_

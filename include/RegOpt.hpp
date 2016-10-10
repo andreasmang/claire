@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -15,8 +15,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ ************************************************************************/
 
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
@@ -488,6 +487,7 @@ class RegOpt {
         #endif
     }
 
+    PetscErrorCode EnableFastSolve();
 
  protected:
     virtual PetscErrorCode Initialize(void);

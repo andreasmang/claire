@@ -1275,6 +1275,28 @@ PetscErrorCode RegOpt::DoSetup(IntType nx[3]) {
 
 
 
+/********************************************************************
+ * @brief set preset parameters (maybe reduce number of krylov
+ * iterations)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EnableFastSolve"
+PetscErrorCode RegOpt::EnableFastSolve() {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    this->Enter(__FUNCT__);
+
+    this->m_SolveType = FAST_SMOOTH;
+    ierr = this->SetPresetParameters(); CHKERRQ(ierr);
+    this->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
 
 /********************************************************************
  * @brief set preset parameters (maybe reduce number of krylov
