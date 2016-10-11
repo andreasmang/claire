@@ -356,7 +356,10 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Write"
-PetscErrorCode ReadWriteReg::Write(VecField* v, std::string fnx1, std::string fnx2, std::string fnx3) {
+PetscErrorCode ReadWriteReg::Write(VecField* v,
+                                   std::string fnx1,
+                                   std::string fnx2,
+                                   std::string fnx3) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
@@ -448,8 +451,7 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
 #ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
-{
+PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     PetscErrorCode ierr;
     std::string msg, file;
     std::stringstream ss;
@@ -473,7 +475,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     // read header file
     image = nifti_image_read(filename.c_str(), false);
     msg="could not read nifti image " + file;
-    ierr = Assert(image != NULL,msg); CHKERRQ(ierr);
+    ierr = Assert(image != NULL, msg); CHKERRQ(ierr);
 
     // get number of grid points
     nx[0] = static_cast<IntType>(image->nx);
@@ -491,7 +493,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
             ss << "grid size ("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         }
-
     } else {
         msg="grid size of images varies: perform affine registration first";
         for (int i = 0; i < 3; ++i){
@@ -500,7 +501,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename)
     }
 
     // pass number of grid points to options
-    for (int i = 0; i < 3; ++i){ this->m_Opt->SetNumGridPoints(i,nx[i]); }
+    for (int i = 0; i < 3; ++i){
+        this->m_Opt->SetNumGridPoints(i,nx[i]);
+    }
 
     // do the setup before running the code (this essentially
     // concerns the memory distribution/the setup of accfft

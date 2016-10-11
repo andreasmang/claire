@@ -208,6 +208,7 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
 PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
+    std::stringstream ss;
     ScalarType value, hd;
     bool warmstart = false;
     Vec dvJ = NULL;
@@ -275,6 +276,13 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
     ierr = VecNorm(dvJ, NORM_2, &value); CHKERRQ(ierr);
     this->m_InitGradNorm = value;
+
+    if (this->m_Opt->GetVerbosity() > 0) {
+        ss << "initial gradient norm: "<< std::scientific << value;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+
 
     // overwrite velocity field
     if (warmstart) {
@@ -3250,7 +3258,6 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
     // store iterates
     if (this->m_Opt->GetReadWriteFlags().iterates) {
-
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
 
@@ -3283,7 +3290,6 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
         // velocity field out
         ierr = this->m_ReadWrite->Write(this->m_VelocityField, fnx1, fnx2, fnx3); CHKERRQ(ierr);
-
     } // store iterates
 
 
