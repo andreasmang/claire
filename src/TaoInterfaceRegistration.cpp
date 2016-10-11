@@ -1,3 +1,22 @@
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _TAOINTERFACEREGISTRATION_CPP
 #define _TAOINTERFACEREGISTRATION_CPP_
 
@@ -20,18 +39,18 @@ namespace reg {
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateObjective"
-PetscErrorCode EvaluateObjective(Tao tao,Vec x,ScalarType* Jx,void* ptr) {
+PetscErrorCode EvaluateObjective(Tao tao, Vec x, ScalarType* Jx, void* ptr) {
     PetscErrorCode ierr;
     OptimizationProblem *optprob = NULL;
 
     PetscFunctionBegin;
 
     (void)tao;
-    optprob = (OptimizationProblem*)ptr;
-    ierr = Assert(optprob!=NULL,"null pointer"); CHKERRQ(ierr);
+    optprob = reinterpret_cast<OptimizationProblem*>(ptr);
+    ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute objective value
-    ierr = optprob->EvaluateObjective(Jx,x); CHKERRQ(ierr);
+    ierr = optprob->EvaluateObjective(Jx, x); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -141,7 +160,7 @@ PetscErrorCode HessianMatVec(Mat H, Vec x, Vec Hx) {
     // apply hessian
     ierr = optprob->HessianMatVec(Hx, x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -176,14 +195,14 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex) {
 /****************************************************************************
  * @brief convergence test for optimization
  * @param tao pointer to tao solver
- * @param ptr pointer to optimziation problem (has to be implemented by user)
+ * @param optprob pointer to optimziation problem
  ****************************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "CheckConvergence"
-PetscErrorCode CheckConvergence(Tao tao, void* ptr) {
+#define __FUNCT__ "CheckConvergenceGrad"
+PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
-    OptimizationProblem* optprob = NULL;
     IntType iter, maxiter;
+    OptimizationProblem* optprob = NULL;
     ScalarType J, gnorm, step, gatol, grtol, gttol, g0norm, minstep;
 
     PetscFunctionBegin;
@@ -191,7 +210,7 @@ PetscErrorCode CheckConvergence(Tao tao, void* ptr) {
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
-    minstep = std::pow(2.0,10.0);
+    minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
 
     // get initial gradient
@@ -250,8 +269,13 @@ PetscErrorCode CheckConvergence(Tao tao, void* ptr) {
 
     // go home
     PetscFunctionReturn(ierr);
-
 }
+
+
+
+
+
+
 
 
 
@@ -332,7 +356,8 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
 
     // display progress to user
     iterdisp = static_cast<int>(iter);
-    sprintf(msg, "  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f", iterdisp, J/J0, D/D0, gnorm/gnorm0, gnorm, step);
+    sprintf(msg, "  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",
+            iterdisp, J/J0, D/D0, gnorm/gnorm0, gnorm, step);
     PetscPrintf(MPI_COMM_WORLD, "%-80s\n", msg);
 
     // go home

@@ -232,6 +232,7 @@ PetscErrorCode Optimizer::SetupTao() {
     IntType nlu, ngu;
     ScalarType gatol, grtol, gttol, reltol, abstol, divtol;
     IntType maxit;
+    void* optprob;
     Mat matvec;
     PC preconditioner;
     TaoLineSearch linesearch;
@@ -332,18 +333,17 @@ PetscErrorCode Optimizer::SetupTao() {
         }
     }
 
+    optprob = reinterpret_cast<void*>(this->m_OptimizationProblem);
+
     // set the routine to evaluate the objective and compute the gradient
-    ierr = TaoSetObjectiveRoutine(this->m_Tao, EvaluateObjective,
-                                    reinterpret_cast<void*>(this->m_OptimizationProblem)); CHKERRQ(ierr);
-    ierr = TaoSetGradientRoutine(this->m_Tao, EvaluateGradient,
-                                    reinterpret_cast<void*>(this->m_OptimizationProblem)); CHKERRQ(ierr);
-    ierr = TaoSetObjectiveAndGradientRoutine(this->m_Tao, EvaluateObjectiveGradient,
-                                    reinterpret_cast<void*>(this->m_OptimizationProblem)); CHKERRQ(ierr);
+    ierr = TaoSetObjectiveRoutine(this->m_Tao, EvaluateObjective, optprob); CHKERRQ(ierr);
+    ierr = TaoSetGradientRoutine(this->m_Tao, EvaluateGradient, optprob); CHKERRQ(ierr);
+    ierr = TaoSetObjectiveAndGradientRoutine(this->m_Tao, EvaluateObjectiveGradient, optprob); CHKERRQ(ierr);
 
     // set the monitor for the optimization process
     ierr = TaoCancelMonitors(this->m_Tao); CHKERRQ(ierr);
     ierr = TaoSetMonitor(this->m_Tao, OptimizationMonitor, this->m_OptimizationProblem, NULL); CHKERRQ(ierr);
-    ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergence, this->m_OptimizationProblem); CHKERRQ(ierr);
+    ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGrad, this->m_OptimizationProblem); CHKERRQ(ierr);
 
     ierr = TaoGetLineSearch(this->m_Tao, &linesearch); CHKERRQ(ierr);
     ierr = TaoLineSearchSetType(linesearch, "armijo"); CHKERRQ(ierr);
@@ -361,12 +361,10 @@ PetscErrorCode Optimizer::SetupTao() {
     ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->GetOptPara().maxit-1); CHKERRQ(ierr);
     ierr = TaoSetFunctionLowerBound(this->m_Tao, 1E-6); CHKERRQ(ierr);
 
-    ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu,
-                            reinterpret_cast<void*>(this->m_OptimizationProblem), &matvec); CHKERRQ(ierr);
+    ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu, optprob, &matvec); CHKERRQ(ierr);
     ierr = MatShellSetOperation(matvec, MATOP_MULT, (void(*)(void))HessianMatVec); CHKERRQ(ierr);
     ierr = MatSetOption(matvec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
-    ierr = TaoSetHessianRoutine(this->m_Tao, matvec, matvec, EvaluateHessian,
-                                reinterpret_cast<void*>(&this->m_OptimizationProblem)); CHKERRQ(ierr);
+    ierr = TaoSetHessianRoutine(this->m_Tao, matvec, matvec, EvaluateHessian, optprob); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

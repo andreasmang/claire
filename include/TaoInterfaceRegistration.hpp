@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _TAOINTERFACEREGISTRATION_H_
 #define _TAOINTERFACEREGISTRATION_H_
@@ -27,26 +26,35 @@
 #include "KrylovInterfaceReg.hpp"
 #include "OptimizationProblem.hpp"
 
-namespace reg
-{
+
+
+
+namespace reg {
+
+
+
 
 // the following functions interface the tao solver
-PetscErrorCode EvaluateObjective(Tao,Vec,ScalarType*,void*);
-PetscErrorCode EvaluateGradient(Tao,Vec,Vec,void*);
-PetscErrorCode EvaluateObjectiveGradient(Tao,Vec,ScalarType*,Vec,void*);
+PetscErrorCode EvaluateObjective(Tao, Vec, ScalarType*, void*);
+PetscErrorCode EvaluateGradient(Tao, Vec, Vec, void*);
+PetscErrorCode EvaluateObjectiveGradient(Tao, Vec, ScalarType*, Vec, void*);
 
-PetscErrorCode ConstructHessian(Tao,Vec,Mat*,Mat*,MatStructure*,void*);
-PetscErrorCode EvaluateHessian(Tao,Vec,Mat,Mat,void*);
-PetscErrorCode HessianMatVec(Mat,Vec,Vec);
-PetscErrorCode PrecondMatVec(PC,Vec,Vec);
+PetscErrorCode ConstructHessian(Tao, Vec, Mat*, Mat*, MatStructure*, void*);
+PetscErrorCode EvaluateHessian(Tao, Vec, Mat, Mat, void*);
+PetscErrorCode HessianMatVec(Mat, Vec, Vec);
+PetscErrorCode PrecondMatVec(PC, Vec, Vec);
 
-PetscErrorCode CheckConvergence(Tao,void*);
-PetscErrorCode OptimizationMonitor(Tao,void*);
+PetscErrorCode CheckConvergenceGrad(Tao, void*);
+PetscErrorCode CheckConvergenceGradObj(Tao, void*);
+PetscErrorCode CheckConvergenceGradObjHess(Tao, void*);
+
+PetscErrorCode OptimizationMonitor(Tao, void*);
 PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason);
 PetscErrorCode DispTaoConvReason(TaoConvergedReason);
 
 
 
-} // end of name space
 
-#endif // _TAOINTERFACEREGISTRATION_H_
+}  // namespace reg
+
+#endif  // _TAOINTERFACEREGISTRATION_H_

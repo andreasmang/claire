@@ -155,6 +155,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
             this->m_ReferenceImage = NULL;
         }
     }
+
     if (this->m_DeleteTemplateImage) {
         if (this->m_TemplateImage != NULL) {
             ierr = VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
@@ -409,8 +410,8 @@ PetscErrorCode RegistrationInterface::Run() {
     ierr = Msg("starting optimization"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
     ierr = PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n",
-                                    "iter","objective (rel)","mismatch (rel)",
-                                    "||gradient||_2,rel","||gradient||_2","step"); CHKERRQ(ierr);
+                       "iter", "objective (rel)", "mismatch (rel)",
+                       "||gradient||_2,rel", "||gradient||_2", "step"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
 
     // switch between solvers we have to solve optimization problem
@@ -420,7 +421,7 @@ PetscErrorCode RegistrationInterface::Run() {
         ierr = this->RunSolverScaleCont(); CHKERRQ(ierr);
     } else if ( this->m_Opt->GetGridContPara().enabled ) {
         nxmax = PETSC_MIN_INT;
-        for (int i=0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             nx = this->m_Opt->GetDomainPara().nx[i];
             nxmax = nx > nxmax ? nx : nxmax;
         }
@@ -466,8 +467,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     // do the setup
     ierr = this->SetupSolver(); CHKERRQ(ierr);
 
-    ierr = Assert(this->m_RegProblem != NULL, "registration problem is null"); CHKERRQ(ierr);
-    ierr = Assert(this->m_Optimizer != NULL, "optimizer is null"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
     if (this->m_Opt->GetReadWriteFlags().readfiles) {
@@ -479,7 +480,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
         if (this->m_Opt->GetRegFlags().smoothingenabled) {
-            if (this->m_PreProc==NULL) {
+            if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new PreProcReg(this->m_Opt);}
                 catch (std::bad_alloc&) {
                     ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -488,8 +489,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
             ierr = this->m_PreProc->ApplySmoothing(mR, this->m_ReferenceImage); CHKERRQ(ierr);
             ierr = this->m_PreProc->ApplySmoothing(mT, this->m_TemplateImage); CHKERRQ(ierr);
         } else {
-            ierr = VecCopy(this->m_ReferenceImage,mR); CHKERRQ(ierr);
-            ierr = VecCopy(this->m_TemplateImage,mT); CHKERRQ(ierr);
+            ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
+            ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
         }
 
         // rescale images
@@ -557,8 +558,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
     ierr = this->SetupSolver(); CHKERRQ(ierr);
 
     // check if setup was complete
-    ierr = Assert(this->m_RegProblem != NULL, "registration problem is null"); CHKERRQ(ierr);
-    ierr = Assert(this->m_Optimizer != NULL, "optimizer is null"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
     if (this->m_Opt->GetReadWriteFlags().readfiles) {
@@ -655,7 +656,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     std::string filename, msg;
     ScalarType beta, betamin, betascale, dbetascale,
                 betastar, betahat, dbeta, dbetamin;
-    Vec x;
+    Vec x = NULL;
 
     PetscFunctionBegin;
 
@@ -712,7 +713,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
         // run the optimization
+        // TODO: revert this or make it optional (we use a coarse solve here)
         ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+        //ierr = this->m_Optimizer->Run(true); CHKERRQ(ierr);
         ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
         if (!converged && level > 0) break;
 
@@ -879,7 +882,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType beta, betamin, betastar, betascale;
-    Vec x;
+    Vec x = NULL;
     int maxsteps, rank, level;
     bool stop;
 
@@ -1030,7 +1033,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
         ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
-        // run the optimization
+        // run the optimization (TODO: make the fast solve modular)
         ierr = this->m_Optimizer->Run(true); CHKERRQ(ierr);
 
         // reduce by one order of magnitude
@@ -1049,7 +1052,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
         <<"level "<< level <<" (beta="
         <<beta<<"; beta*="<<betastar<<")";
     ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
-    ss.str( std::string() ); ss.clear();
+    ss.str(std::string()); ss.clear();
 
     // solve optimization problem for user defined regularization parameter
     ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
@@ -1227,8 +1230,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         ierr = this->SetupSolver(); CHKERRQ(ierr);
 
         // check if everything has been set up correctly
-        ierr = Assert(this->m_Optimizer != NULL, "optimizer is not setup"); CHKERRQ(ierr);
-        ierr = Assert(this->m_RegProblem != NULL, "registration problem is not set up"); CHKERRQ(ierr);
+        ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
         // set up synthetic test problem
         ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
@@ -1242,7 +1245,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     if (this->m_Opt->GetVerbosity() > 1) {
         ierr = DbgMsg("setting up reference image multilevel pyramid"); CHKERRQ(ierr);
     }
-    if (this->m_ReferencePyramid==NULL) {
+    if (this->m_ReferencePyramid == NULL) {
         try {this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1270,10 +1273,10 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     for (int i = 0; i < 3; ++i) {
         nx[i] = this->m_Opt->GetGridContPara().nx[0][i];
     }
-    ierr = this->m_Opt->GetSizes(nx,nl,ng); CHKERRQ(ierr);
+    ierr = this->m_Opt->GetSizes(nx, nl, ng); CHKERRQ(ierr);
 
     // TODO: allow for warm start
-    try{v = new VecField(nl,ng);}
+    try{v = new VecField(nl, ng);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -1286,13 +1289,12 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
     if (greltol < 1E-2) {
         if (this->m_Opt->GetVerbosity() > 1) {
-            ss  << std::scientific
-                << "increasing tolerance for gradient: "
+            ss  << std::scientific << "increasing tolerance for gradient: "
                 << greltol << " >> " << tolscale*greltol;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+            ss.str(std::string()); ss.clear();
         }
-        this->m_Opt->SetOptTol(2,tolscale*greltol);
+        this->m_Opt->SetOptTol(2, tolscale*greltol);
     }
 
     // reset all the clocks we have used so far
@@ -1334,11 +1336,11 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             ext = this->m_Opt->GetReadWriteFlags().extension;
             ss << "reference-image-level=" << level << ext;
             ierr = this->m_ReadWrite->Write(mR, ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+            ss.str(std::string()); ss.clear();
 
             ss << "template-image-level=" << level << ext;
             ierr = this->m_ReadWrite->Write(mT, ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+            ss.str(std::string()); ss.clear();
         }
 
         // do the setup
@@ -1359,11 +1361,10 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         // reset tolerances
         if ( (level == (nlevels-1)) && (greltol < 1E-2) ) {
             if (this->m_Opt->GetVerbosity() > 1) {
-                ss  << std::scientific
-                    << "reseting tolerance for gradient: "
+                ss  << std::scientific << "reseting tolerance for gradient: "
                     << tolscale*greltol << " >> " << greltol;
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.str( std::string() ); ss.clear();
+                ss.str(std::string()); ss.clear();
             }
             this->m_Opt->SetOptTol(2, greltol);
         }
@@ -1379,13 +1380,13 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
         if (level < nlevels) {
             ierr = this->ProlongVelocityField(v, level); CHKERRQ(ierr);
-            if (mR != NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL; }
-            if (mT != NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL; }
+            if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+            if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
         }
     }
 
     // get the solution
-    ierr = Assert(this->m_Solution!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = this->m_Solution->Copy(v); CHKERRQ(ierr);
 
     // wrap up
@@ -1446,11 +1447,11 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
     }
 
     // apply prolongation operator
-    ierr = this->m_PreProc->Prolong(v_f,v,nx_f,nx_c); CHKERRQ(ierr);
+    ierr = this->m_PreProc->Prolong(v_f, v, nx_f, nx_c); CHKERRQ(ierr);
 
     // allocate container for velocity field
     if (v != NULL) {delete v; v = NULL;}
-    try{ v = new reg::VecField(nl, ng); }
+    try {v = new reg::VecField(nl, ng);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -1542,8 +1543,8 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
     // destroy vectors
-    if (mR != NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); }
-    if (mT != NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); }
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1614,10 +1615,10 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
     this->m_Opt->Enter(__FUNCT__);
 
     ierr = this->SetupRegProblem(); CHKERRQ(ierr);
-    ierr = Assert(this->m_RegProblem!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     // user needs to set template and reference image and the solution
-    ierr = Assert(this->m_Solution!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute stuff
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
