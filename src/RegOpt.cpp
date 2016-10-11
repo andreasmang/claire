@@ -859,15 +859,17 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_SolveType = NOTSET;
 
     // flags
-    this->m_ReadWriteFlags.readfiles = false;       ///< read images
-    this->m_ReadWriteFlags.timeseries = false;      ///< write out time series
-    this->m_ReadWriteFlags.iterates = false;        ///< write out iterates
-    this->m_ReadWriteFlags.results = false;         ///< write out results (deformed template; velocity)
-    this->m_ReadWriteFlags.defgrad = false;         ///< write out deformation gradient
-    this->m_ReadWriteFlags.detdefgrad = false;      ///< write out deformation gradient
-    this->m_ReadWriteFlags.residual = false;        ///< write out residual images
-    this->m_ReadWriteFlags.defmap = false;          ///< write out deformation map
-    this->m_ReadWriteFlags.deffield = false;        ///< write out deformation field / displacement field
+    this->m_ReadWriteFlags.readfiles = false;       ///< read images to file
+    this->m_ReadWriteFlags.timeseries = false;      ///< write time series to file (time dependent variables; use with caution) to file
+    this->m_ReadWriteFlags.iterates = false;        ///< write iterates (velocity field; use with caution) to file
+    this->m_ReadWriteFlags.results = false;         ///< write results (velocity field) to file
+    this->m_ReadWriteFlags.defgrad = false;         ///< write deformation gradient (entire tensor) to file
+    this->m_ReadWriteFlags.detdefgrad = false;      ///< write deformation gradient (determinant of deformation gradient) to file
+    this->m_ReadWriteFlags.residual = false;        ///< write residual images to file
+    this->m_ReadWriteFlags.defmap = false;          ///< write deformation map to file
+    this->m_ReadWriteFlags.deffield = false;        ///< write deformation field / displacement field to file
+    this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
+    this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
     this->m_ReadWriteFlags.extension = ".nii.gz";   ///< file extension for output
 
     this->m_RegFlags.smoothingenabled = true;           ///< enable/disable image smoothing
