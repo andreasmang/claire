@@ -143,15 +143,17 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovSolverPara.matvectype = opt.m_KrylovSolverPara.matvectype;
     this->m_KrylovSolverPara.checkhesssymmetry = opt.m_KrylovSolverPara.checkhesssymmetry;
 
+    this->m_OptPara.maxit = opt.m_OptPara.maxit;
+    this->m_OptPara.presolvemaxit = opt.m_OptPara.presolvemaxit;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
     this->m_OptPara.tol[2] = opt.m_OptPara.tol[2];
-    this->m_OptPara.maxit = opt.m_OptPara.maxit;
-    this->m_OptPara.fastpresolve = opt.m_OptPara.fastpresolve;
-    this->m_OptPara.method = opt.m_OptPara.method;
     this->m_OptPara.presolvetol[0] = opt.m_OptPara.presolvetol[0];
     this->m_OptPara.presolvetol[1] = opt.m_OptPara.presolvetol[1];
     this->m_OptPara.presolvetol[2] = opt.m_OptPara.presolvetol[2];
+    this->m_OptPara.fastsolve = opt.m_OptPara.fastsolve;
+    this->m_OptPara.fastpresolve = opt.m_OptPara.fastpresolve;
+    this->m_OptPara.method = opt.m_OptPara.method;
 
     this->m_SolveType = opt.m_SolveType;
 
@@ -383,6 +385,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-fastsolve") == 0) {
+            this->m_OptPara.fastsolve = true;
         } else if (strcmp(argv[1], "-ic") == 0) {
             this->m_RegModel = STOKES;
         } else if (strcmp(argv[1], "-ric") == 0) {
@@ -595,6 +599,18 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
 
     if (this->m_SolveType !=  NOTSET) {
         ierr = this->SetPresetParameters(); CHKERRQ(ierr);
+    } else {
+        if (this->m_OptPara.fastsolve) {
+            if (this->m_RegNorm.type == H2SN || this->m_RegNorm.type == H2) {
+                this->m_SolveType = FAST_SMOOTH;
+            }
+
+            if (this->m_RegNorm.type == H1SN || this->m_RegNorm.type == H1) {
+                this->m_SolveType = FAST_AGG;
+            }
+
+            ierr = this->SetPresetParameters(); CHKERRQ(ierr);
+        }
     }
 
     // set number of threads
@@ -827,8 +843,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[0] = 1E-6;          ///< grad abs tol ||g(x)|| < tol
     this->m_OptPara.tol[1] = 1E-16;         ///< grad rel tol ||g(x)||/J(x) < tol
     this->m_OptPara.tol[2] = 1E-2;          ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxit = 1000;           ///< max number of iterations
+    this->m_OptPara.maxit = 1E3;            ///< max number of iterations
     this->m_OptPara.method = GAUSSNEWTON;   ///< optmization method
+    this->m_OptPara.fastsolve = false;      ///< switch on fast solver (less accurate)
     this->m_OptPara.fastpresolve = true;    ///< enable fast (inaccurate) solve for first steps
     this->m_OptPara.nonzerog0 = false;      ///< use a non-zero initial velocity field to estimate gradient
                                             ///< (only of interest if a warm start is used)
@@ -837,6 +854,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
     this->m_OptPara.presolvetol[1] = this->m_OptPara.tol[1];    ///< grad rel tol ||g(x)||/J(x) < tol
     this->m_OptPara.presolvetol[2] = 1E-1;                      ///< grad rel tol ||g(x)||/||g(x0)|| < tol
+    this->m_OptPara.presolvemaxit = this->m_OptPara.maxit;      ///< max number of iterations (multilevel; parameter continuation)
 
     this->m_SolveType = NOTSET;
 
@@ -1031,6 +1049,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         }
         // ####################### advanced options #######################
 
+        std::cout << " -fastsolve                switch on fast solve (preset number of iterations and tolerances to" << std::endl;
+        std::cout << "                           reduce the time to solution; inaccurate solve)" << std::endl;
         std::cout << " -train <type>             estimate regularization parameter (use 'jbound' to set bound" << std::endl;
         std::cout << "                           for det(grad(y)) used during estimation)" << std::endl;
         std::cout << "                           <type> is one of the following" << std::endl;
@@ -1299,8 +1319,9 @@ PetscErrorCode RegOpt::EnableFastSolve() {
 
 
 /********************************************************************
- * @brief set preset parameters (maybe reduce number of krylov
- * iterations)
+ * @brief set preset parameters / provide a crude estimate for users
+ * either reduce the time to solution or compute high-fidelity
+ * results
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetPresetParameters"
@@ -1313,33 +1334,43 @@ PetscErrorCode RegOpt::SetPresetParameters() {
 
     if (this->m_SolveType == FAST_AGG) {
         // use fast and aggressive method
-        this->m_KrylovSolverPara.fseqtype = NOFS;
-        this->m_KrylovSolverPara.maxit = 5;
         this->m_RegNorm.type = H1SN;
+        this->m_KrylovSolverPara.fseqtype = QDFS;
+        this->m_KrylovSolverPara.maxit = 5;
         this->m_OptPara.maxit = 20;
-        this->m_OptPara.tol[2] = 1E-2;  // perhaps 5E-2
+        this->m_OptPara.presolvemaxit = 10;
+        this->m_OptPara.tol[2] = 5E-2;  // use 5E-2 if results are not acceptable reduce; 1E-1 and 2.5E-1
+        this->m_OptPara.presolvetol[2] = 5E-1;
     } else if (this->m_SolveType == ACC_AGG) {
         // use slow and aggressive method
         this->m_RegNorm.type = H1SN;
         this->m_KrylovSolverPara.fseqtype = QDFS;
         this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
+        this->m_OptPara.presolvemaxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
+        this->m_OptPara.presolvetol[2] = 1E-1;
     } else if (this->m_SolveType == FAST_SMOOTH) {
         // use fast and smooth method
         this->m_RegNorm.type = H2SN;
-        this->m_KrylovSolverPara.fseqtype = NOFS;
-        this->m_KrylovSolverPara.maxit = 10;
+        this->m_KrylovSolverPara.fseqtype = QDFS;
+        this->m_KrylovSolverPara.maxit = 5;
         this->m_OptPara.maxit = 20;
-        this->m_OptPara.tol[2] = 1E-2;
+        this->m_OptPara.presolvemaxit = 10;
+        this->m_OptPara.tol[2] = 5E-2;
+        this->m_OptPara.presolvetol[2] = 5E-1;
     } else if (this->m_SolveType == ACC_SMOOTH) {
         // use slow and smooth method
         this->m_RegNorm.type = H2SN;
         this->m_KrylovSolverPara.fseqtype = QDFS;
         this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
+        this->m_OptPara.presolvemaxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
-    } else { ierr = ThrowError("flag not defined"); CHKERRQ(ierr); }
+        this->m_OptPara.presolvetol[2] = 1E-1;
+    } else {
+        ierr = ThrowError("flag not defined"); CHKERRQ(ierr);
+    }
 
     this->Exit(__FUNCT__);
 
@@ -1721,7 +1752,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
         // display parameters for newton type optimization methods
         if ( newtontype ) {
             std::cout << std::left << std::setw(indent)
-                      << " hessian sytem"
+                      << " hessian system"
                       << std::setw(align) << "solver";
 
             switch (this->m_KrylovSolverPara.solver) {

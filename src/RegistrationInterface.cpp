@@ -182,7 +182,7 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x) {
 
     // if we have not setup initial guess, do so
     if (this->m_Solution == NULL) {
-        try{this->m_Solution = new VecField(this->m_Opt);}
+        try {this->m_Solution = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -334,7 +334,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -443,7 +443,7 @@ PetscErrorCode RegistrationInterface::Run() {
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -661,8 +661,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(this->m_Optimizer != NULL, "optimizer is null"); CHKERRQ(ierr);
-    ierr = Assert(this->m_RegProblem != NULL, "registration problem is null"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -690,7 +690,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     this->m_Opt->SetRegularizationWeight(1, beta);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
-
     if (this->m_Opt->GetVerbosity() > 0) {
         ierr = DbgMsg("starting coarse search for regularization weight"); CHKERRQ(ierr);
     }
@@ -698,7 +697,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // reduce regularization parameter by one order of magnitude until
     // we hit tolerance
     stop = false; level = 0;
-    while(level < maxsteps) {
+    while (level < maxsteps) {
         this->m_Opt->SetRegularizationWeight(0, beta);
         this->m_Opt->SetRegularizationWeight(1, beta);
         //this->m_Opt->InitialGradNormSet(false);
@@ -891,8 +890,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // get parameters
-    betamin   = this->m_Opt->GetBetaMinParaCont();
-    maxsteps  = this->m_Opt->GetParaCont().maxsteps;
+    betamin = this->m_Opt->GetBetaMinParaCont();
+    maxsteps = this->m_Opt->GetParaCont().maxsteps;
     betascale = this->m_Opt->GetParaCont().betascale;
 
     ierr = Assert(betascale < 1.0 && betascale > 0.0, "scale for beta not in (0,1)"); CHKERRQ(ierr);
@@ -1012,7 +1011,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // reduce regularization parameter
-    level = 0; beta=1.0;
+    level = 0; beta = 1.0;
 
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
@@ -1102,8 +1101,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
     ierr = this->SetupSolver(); CHKERRQ(ierr);
 
     // check if everything has been set up correctly
-    ierr = Assert(this->m_Optimizer != NULL, "optimizer is null"); CHKERRQ(ierr);
-    ierr = Assert(this->m_RegProblem != NULL, "registration problem is null"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set up synthetic problem if we did not read images
     if (!this->m_Opt->GetReadWriteFlags().readfiles) {

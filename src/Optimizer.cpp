@@ -385,6 +385,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     PetscErrorCode ierr;
     Vec x;
     ScalarType gtol;
+    IntType maxit;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -400,6 +401,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     // modify tolerance if requestged ||g(x)|| / ||g(x0)|| <= gttol
     if (presolve) {
         gtol = this->m_Opt->GetOptPara().presolvetol[2];
+        maxit = this->m_Opt->GetOptPara().presolvemaxit;
         if (this->m_Opt->GetVerbosity() > 1) {
             ss << "presolve: relative gradient tolerance: " << std::scientific << gtol;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -407,6 +409,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
         }
     } else {
         gtol = this->m_Opt->GetOptPara().tol[2];
+        maxit = this->m_Opt->GetOptPara().maxit;
     }
 
     // set tolerance
@@ -418,6 +421,8 @@ PetscErrorCode Optimizer::Run(bool presolve) {
                                          PETSC_DEFAULT,
                                          PETSC_DEFAULT, gtol); CHKERRQ(ierr);
 #endif
+    ierr = TaoSetMaximumIterations(this->m_Tao, maxit-1); CHKERRQ(ierr);
+
     // set initial guess
     ierr = this->SetInitialGuess(); CHKERRQ(ierr);
     ierr = TaoSetUp(this->m_Tao); CHKERRQ(ierr);
