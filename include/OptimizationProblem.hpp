@@ -40,14 +40,14 @@ class OptimizationProblem {
     OptimizationProblem(RegOpt*);
     ~OptimizationProblem(void);
 
-    PetscErrorCode SetOptions(RegOpt* opt);
-    inline RegOpt* GetOptions(void){return this->m_Opt;};
+    PetscErrorCode SetOptions(RegOpt*);
+    inline RegOpt* GetOptions(void) {return this->m_Opt;};
 
-    inline ScalarType GetInitialObjVal(){return this->m_InitObjectiveVal;};
-    inline ScalarType GetInitialDistanceVal(){return this->m_InitDistanceVal;};
-    inline ScalarType GetInitialGradNorm(){return this->m_InitGradNorm;};
+    inline ScalarType GetInitialObjVal() {return this->m_InitObjectiveVal;};
+    inline ScalarType GetInitialDistanceVal() {return this->m_InitDistanceVal;};
+    inline ScalarType GetInitialGradNorm() {return this->m_InitGradNorm;};
 
-    inline void IncrementIterations(){this->m_Opt->IncrementCounter(ITERATIONS);};
+    inline void IncrementIterations() {this->m_Opt->IncrementCounter(ITERATIONS);};
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;
@@ -56,7 +56,7 @@ class OptimizationProblem {
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
 
     /*! evaluate objective functional J(x) */
-    virtual PetscErrorCode EvaluateObjective(ScalarType*,Vec) = 0;
+    virtual PetscErrorCode EvaluateObjective(ScalarType*, Vec) = 0;
 
     /*! evaluate gradient of Lagrangian L(x) */
     virtual PetscErrorCode EvaluateGradient(Vec,Vec) = 0;
