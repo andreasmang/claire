@@ -716,8 +716,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         // TODO: revert this or make it optional (we use a coarse solve here)
         ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
         //ierr = this->m_Optimizer->Run(true); CHKERRQ(ierr);
-        ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
-        if (!converged && level > 0) break;
+        // TODO: fix this
+//        ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
+//        if (!converged && level > 0) break;
 
         // get the solution
         ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);

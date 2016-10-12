@@ -1,3 +1,22 @@
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _REGULARIZATIONREGISTRATIONH1_CPP_
 #define _REGULARIZATIONREGISTRATIONH1_CPP_
 
@@ -6,8 +25,7 @@
 
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -17,8 +35,7 @@ namespace reg
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistrationH1"
-RegularizationRegistrationH1::RegularizationRegistrationH1() : SuperClass()
-{
+RegularizationRegistrationH1::RegularizationRegistrationH1() : SuperClass() {
 }
 
 
@@ -29,8 +46,7 @@ RegularizationRegistrationH1::RegularizationRegistrationH1() : SuperClass()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~RegularizationRegistrationH1"
-RegularizationRegistrationH1::~RegularizationRegistrationH1(void)
-{
+RegularizationRegistrationH1::~RegularizationRegistrationH1(void) {
     this->ClearMemory();
 }
 
@@ -42,8 +58,7 @@ RegularizationRegistrationH1::~RegularizationRegistrationH1(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistrationH1"
-RegularizationRegistrationH1::RegularizationRegistrationH1(RegOpt* opt) : SuperClass(opt)
-{
+RegularizationRegistrationH1::RegularizationRegistrationH1(RegOpt* opt) : SuperClass(opt) {
 
 }
 
@@ -55,28 +70,26 @@ RegularizationRegistrationH1::RegularizationRegistrationH1(RegOpt* opt) : SuperC
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateFunctional"
-PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, VecField* v)
-{
+PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr;
-    ScalarType  *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
-                *p_gv11=NULL,*p_gv12=NULL,*p_gv13=NULL,
-                *p_gv21=NULL,*p_gv22=NULL,*p_gv23=NULL,
-                *p_gv31=NULL,*p_gv32=NULL,*p_gv33=NULL;
-    ScalarType value,beta[2],H1v,L2v;
-    std::bitset<3>XYZ=0;XYZ[0]=1;XYZ[1]=1;XYZ[2]=1;
-    double timers[5]={0,0,0,0,0};
+    ScalarType  *p_v1 = NULL,*p_v2 = NULL, *p_v3 = NULL,
+                *p_gv11 = NULL, *p_gv12 = NULL, *p_gv13 = NULL,
+                *p_gv21 = NULL, *p_gv22 = NULL, *p_gv23 = NULL,
+                *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
+    ScalarType value, beta[2], H1v, L2v;
+    std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
-    ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr=Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
     beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     *R= 0.0;
 
-    if ( (beta[0] != 0.0)  && (beta[1] != 0.0) ){
-
+    if ( (beta[0] != 0.0)  && (beta[1] != 0.0) ) {
         if (this->m_WorkVecField==NULL){
             try{this->m_WorkVecField = new VecField(this->m_Opt);}
             catch (std::bad_alloc&){
@@ -154,9 +167,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateGradient"
-PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, VecField* v)
-{
-    PetscErrorCode ierr;
+PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, VecField* v) {
+    PetscErrorCode ierr = 0;
     int nx[3];
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
@@ -264,9 +276,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "HessianMatVec"
-PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecField* vtilde)
-{
-    PetscErrorCode ierr;
+PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecField* vtilde) {
+    PetscErrorCode ierr = 0;
     ScalarType beta[2];
     PetscFunctionBegin;
 
@@ -296,9 +307,8 @@ PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecFi
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ApplyInvOp"
-PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt)
-{
-    PetscErrorCode ierr;
+PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
+    PetscErrorCode ierr = 0;
     int nx[3];
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL,
                 *p_Ainvx1=NULL,*p_Ainvx2=NULL,*p_Ainvx3=NULL;
@@ -412,8 +422,7 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetExtremeEigValsInvOp"
-PetscErrorCode RegularizationRegistrationH1::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax)
-{
+PetscErrorCode RegularizationRegistrationH1::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
     PetscErrorCode ierr=0;
     ScalarType w[3],beta1,beta2,regop;
 
