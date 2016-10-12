@@ -237,8 +237,10 @@ struct KrylovSolver{
 
 /* parameter for parameter continuation (regularization parameter) */
 struct ParCont{
-    static constexpr ScalarType betavminh1 = 1E-4;      ///< minimal regularization parameter for h1 type norm
-    static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
+    //static constexpr ScalarType betavminh1 = 1E-4;      ///< minimal regularization parameter for h1 type norm
+    //static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
+    static constexpr ScalarType betavminh1 = 1E-9;      ///< minimal regularization parameter for h1 type norm
+    static constexpr ScalarType betavminh2 = 1E-9;      ///< minimal regularization parameter for h2 type norm
     static const int maxsteps = 10;                     ///< max number of steps
     static constexpr ScalarType betascale = 1E-1;       ///< default reduction factor (one order of magnitude)
     static constexpr ScalarType dbetascale = 1E-2;      ///< default reduction factor (one order of magnitude)
