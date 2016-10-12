@@ -56,9 +56,11 @@ class RegistrationInterface {
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetReferenceImage(Vec);
+    PetscErrorCode SetSolutionVector(VecField*);
+
     PetscErrorCode SolveForwardProblem(Vec, Vec);
-    PetscErrorCode SetInitialGuess(VecField*);
-    PetscErrorCode GetSolution(VecField*);
+    PetscErrorCode SetInitialGuess(VecField*, bool copy = false);
+    PetscErrorCode GetSolution(VecField*, bool copy = false);
 
     PetscErrorCode RunPostProcessing();
     PetscErrorCode ComputeDefFields();
@@ -91,10 +93,12 @@ class RegistrationInterface {
     MultiLevelPyramid *m_TemplatePyramid;
     MultiLevelPyramid *m_ReferencePyramid;
 
+    bool m_DeleteTemplate;   ///< flag: delete the template image (allocated locally)
+    bool m_DeleteReference;  ///< flag: delete the reference image (allocated locally)
+    bool m_DeleteSolution;   ///< flag: delete the solution (allocated locally)
+
     Vec m_TemplateImage;    ///< original template image (not overwritten)
     Vec m_ReferenceImage;   ///< original reference image (not overwritten)
-    bool m_DeleteTemplateImage;
-    bool m_DeleteReferenceImage;
     VecField* m_Solution;   ///< initial guess
 };
 

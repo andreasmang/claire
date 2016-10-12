@@ -90,8 +90,9 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_DeleteTemplateImage = true;
-    this->m_DeleteReferenceImage = true;
+    this->m_DeleteTemplate = true;
+    this->m_DeleteReference = true;
+    this->m_DeleteSolution = true;
 
     PetscFunctionReturn(ierr);
 }
@@ -132,9 +133,11 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
         this->m_Precond = NULL;
     }
 
-    if (this->m_Solution != NULL) {
-        delete this->m_Solution;
-        this->m_Solution = NULL;
+    if (this->m_DeleteSolution) {
+        if (this->m_Solution != NULL) {
+            delete this->m_Solution;
+            this->m_Solution = NULL;
+        }
     }
 
     if (this->m_ReferencePyramid != NULL) {
@@ -149,14 +152,14 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
 
     // if we did not read/set the images, we can
     // destroy the containers
-    if (this->m_DeleteReferenceImage) {
+    if (this->m_DeleteReference) {
         if (this->m_ReferenceImage != NULL) {
             ierr = VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
             this->m_ReferenceImage = NULL;
         }
     }
 
-    if (this->m_DeleteTemplateImage) {
+    if (this->m_DeleteTemplate) {
         if (this->m_TemplateImage != NULL) {
             ierr = VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
             this->m_TemplateImage = NULL;
@@ -175,21 +178,28 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetInitialGuess"
-PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x) {
+PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     // the input better is not zero
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
 
-    // if we have not setup initial guess, do so
-    if (this->m_Solution == NULL) {
-        try {this->m_Solution = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    if (copy) {
+        // if we have not setup initial guess, do so
+        if (this->m_Solution == NULL) {
+            try {this->m_Solution = new VecField(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
         }
+        ierr = this->m_Solution->Copy(x); CHKERRQ(ierr);
+        this->m_DeleteSolution = true;
+    } else {
+        ierr = Assert(this->m_Solution == NULL, "expecting null pointer"); CHKERRQ(ierr);
+        this->m_Solution = x;
+        this->m_DeleteSolution = false;
     }
-    ierr = this->m_Solution->Copy(x); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -198,12 +208,13 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x) {
 
 
 /********************************************************************
- * @brief set initial guess
+ * @brief get solution of optimization problem
  * @param[out] x    vector field for solution; needs to be allocated
+ * elswhere
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "GetSolution"
-PetscErrorCode RegistrationInterface::GetSolution(VecField* x) {
+PetscErrorCode RegistrationInterface::GetSolution(VecField* x, bool copy) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -211,8 +222,11 @@ PetscErrorCode RegistrationInterface::GetSolution(VecField* x) {
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = x->Copy(this->m_Solution); CHKERRQ(ierr);
-
+    if (copy) {
+        ierr = x->Copy(this->m_Solution); CHKERRQ(ierr);
+    } else {
+        x = this->m_Solution;
+    }
     PetscFunctionReturn(ierr);
 }
 
@@ -250,7 +264,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_ReferenceImage = mR;
-    this->m_DeleteReferenceImage = false;
+    this->m_DeleteReference = false;
 
     PetscFunctionReturn(ierr);
 }
@@ -271,7 +285,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
-    this->m_DeleteTemplateImage = false;
+    this->m_DeleteTemplate = false;
 
     PetscFunctionReturn(ierr);
 
