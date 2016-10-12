@@ -58,6 +58,7 @@ class RegistrationInterface {
     PetscErrorCode SetReferenceImage(Vec);
     PetscErrorCode SolveForwardProblem(Vec, Vec);
     PetscErrorCode SetInitialGuess(VecField*);
+    PetscErrorCode GetSolution(VecField*);
 
     PetscErrorCode RunPostProcessing();
     PetscErrorCode ComputeDefFields();

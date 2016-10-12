@@ -171,6 +171,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
 
 /********************************************************************
  * @brief set initial guess
+ * @param[in] x    vector field that contains initial guess
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SetInitialGuess"
@@ -189,6 +190,28 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x) {
         }
     }
     ierr = this->m_Solution->Copy(x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set initial guess
+ * @param[out] x    vector field for solution; needs to be allocated
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "GetSolution"
+PetscErrorCode RegistrationInterface::GetSolution(VecField* x) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    // the input better is not zero
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = x->Copy(this->m_Solution); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
