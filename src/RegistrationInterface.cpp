@@ -196,7 +196,6 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
         ierr = this->m_Solution->Copy(x); CHKERRQ(ierr);
         this->m_DeleteSolution = true;
     } else {
-        ierr = Assert(this->m_Solution == NULL, "expecting null pointer"); CHKERRQ(ierr);
         this->m_Solution = x;
         this->m_DeleteSolution = false;
     }
