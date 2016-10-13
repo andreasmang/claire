@@ -285,7 +285,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
-    this->m_IsTemplateSet = false;
+    this->m_IsTemplateSet = true;
 
     PetscFunctionReturn(ierr);
 
