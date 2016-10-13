@@ -90,8 +90,9 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_DeleteTemplate = true;
-    this->m_DeleteReference = true;
+    this->m_IsTemplateSet = false;
+    this->m_IsReferenceSet = false;
+
     this->m_DeleteSolution = true;
 
     PetscFunctionReturn(ierr);
@@ -152,14 +153,14 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
 
     // if we did not read/set the images, we can
     // destroy the containers
-    if (this->m_DeleteReference) {
+    if (!this->m_IsReferenceSet) {
         if (this->m_ReferenceImage != NULL) {
             ierr = VecDestroy(&this->m_ReferenceImage); CHKERRQ(ierr);
             this->m_ReferenceImage = NULL;
         }
     }
 
-    if (this->m_DeleteTemplate) {
+    if (this->m_IsTemplateSet) {
         if (this->m_TemplateImage != NULL) {
             ierr = VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
             this->m_TemplateImage = NULL;
@@ -263,7 +264,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_ReferenceImage = mR;
-    this->m_DeleteReference = false;
+    this->m_IsReferenceSet = true;
 
     PetscFunctionReturn(ierr);
 }
@@ -284,7 +285,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
-    this->m_DeleteTemplate = false;
+    this->m_IsTemplateSet = false;
 
     PetscFunctionReturn(ierr);
 
@@ -507,7 +508,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
-    if (this->m_Opt->GetReadWriteFlags().readfiles) {
+    if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
         ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -598,7 +599,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
-    if (this->m_Opt->GetReadWriteFlags().readfiles) {
+    if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
         ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -1145,7 +1146,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set up synthetic problem if we did not read images
-    if (!this->m_Opt->GetReadWriteFlags().readfiles) {
+    if (!this->m_IsTemplateSet && !this->m_IsReferenceSet) {
         ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
     }
 
@@ -1262,7 +1263,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     }
     this->m_PreProc->ResetGridChangeOps(true);
 
-    if (!this->m_Opt->GetReadWriteFlags().readfiles) {
+    if (!this->m_IsTemplateSet && !this->m_IsReferenceSet) {
         // do the setup
         ierr = this->SetupSolver(); CHKERRQ(ierr);
 
