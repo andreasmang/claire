@@ -160,7 +160,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
         }
     }
 
-    if (this->m_IsTemplateSet) {
+    if (!this->m_IsTemplateSet) {
         if (this->m_TemplateImage != NULL) {
             ierr = VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
             this->m_TemplateImage = NULL;

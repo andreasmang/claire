@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
 #define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
@@ -349,7 +348,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ScalarType beta[3], scale;
     long int nx[3];
     IntType nalloc;
-    double timer[5]={0, 0, 0, 0, 0};
+    double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__FUNCT__);

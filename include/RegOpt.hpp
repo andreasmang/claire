@@ -197,6 +197,7 @@ struct Domain{
 /* parameters for optimization */
 struct Optimization{
     int maxit;                  ///< maximal number of (outer) iterations
+    int minit;                  ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];          ///< tolerances for optimization
     OptMeth method;             ///< optimization method
     bool fastpresolve;          ///< flag to switch on fast presolve
@@ -279,6 +280,7 @@ struct GridCont{
 struct RegMonitor{
     bool JAC;               ///< flag to monitor jacobian during iterations
     bool CFL;               ///< flag to monitor CFL condition during iterations
+
     ScalarType jacmin;      ///< min value of jacobian
     ScalarType jacmax;      ///< max value of jacobian
     ScalarType jacmean;     ///< mean value of jacobian

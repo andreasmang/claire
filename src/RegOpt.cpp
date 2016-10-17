@@ -124,16 +124,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovSolverPara.tol[0] = opt.m_KrylovSolverPara.tol[0];
     this->m_KrylovSolverPara.tol[1] = opt.m_KrylovSolverPara.tol[1];
     this->m_KrylovSolverPara.tol[2] = opt.m_KrylovSolverPara.tol[2];
-    this->m_KrylovSolverPara.maxit = opt.m_KrylovSolverPara.maxit;
-    this->m_KrylovSolverPara.reltol = opt.m_KrylovSolverPara.reltol;
-    this->m_KrylovSolverPara.solver = opt.m_KrylovSolverPara.solver;
-    this->m_KrylovSolverPara.g0norm = opt.m_KrylovSolverPara.g0norm;
-    this->m_KrylovSolverPara.g0normset = opt.m_KrylovSolverPara.g0normset;
-    this->m_KrylovSolverPara.fseqtype = opt.m_KrylovSolverPara.fseqtype;
-    this->m_KrylovSolverPara.pctype = opt.m_KrylovSolverPara.pctype;
-    this->m_KrylovSolverPara.pcsolver = opt.m_KrylovSolverPara.pcsolver;
-    this->m_KrylovSolverPara.pctolscale = opt.m_KrylovSolverPara.pctolscale;
-    this->m_KrylovSolverPara.pcgridscale = opt.m_KrylovSolverPara.pcgridscale;
     this->m_KrylovSolverPara.pcmaxit = opt.m_KrylovSolverPara.pcmaxit;
     this->m_KrylovSolverPara.reesteigvals = opt.m_KrylovSolverPara.reesteigvals;
     this->m_KrylovSolverPara.usepetsceigest = opt.m_KrylovSolverPara.usepetsceigest;
@@ -144,6 +134,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovSolverPara.checkhesssymmetry = opt.m_KrylovSolverPara.checkhesssymmetry;
 
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
+    this->m_OptPara.minit = opt.m_OptPara.minit;
     this->m_OptPara.presolvemaxit = opt.m_OptPara.presolvemaxit;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
@@ -815,7 +806,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.tol[0] = 1E-12;     ///< relative tolerance
     this->m_KrylovSolverPara.tol[1] = 1E-12;     ///< absolute tolerance
     this->m_KrylovSolverPara.tol[2] = 1E+06;     ///< divergence tolerance
-    this->m_KrylovSolverPara.maxit = 1000;       ///< maximal iterations
+    this->m_KrylovSolverPara.maxit = 1000;       ///< max number of iterations
     this->m_KrylovSolverPara.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
     this->m_KrylovSolverPara.fseqtype = QDFS;
     this->m_KrylovSolverPara.pctype = INVREG;
@@ -844,6 +835,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[1] = 1E-16;         ///< grad rel tol ||g(x)||/J(x) < tol
     this->m_OptPara.tol[2] = 1E-2;          ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.maxit = 1E3;            ///< max number of iterations
+    this->m_OptPara.minit = 1;              ///< min number of iterations
     this->m_OptPara.method = GAUSSNEWTON;   ///< optmization method
     this->m_OptPara.fastsolve = false;      ///< switch on fast solver (less accurate)
     this->m_OptPara.fastpresolve = true;    ///< enable fast (inaccurate) solve for first steps
@@ -874,7 +866,7 @@ PetscErrorCode RegOpt::Initialize() {
 
     this->m_RegFlags.smoothingenabled = true;           ///< enable/disable image smoothing
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
-    this->m_RegFlags.invdefgrad = false;
+    this->m_RegFlags.invdefgrad = false;                ///< compute inverse of det(grad(y))^{-1}
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation
@@ -1245,7 +1237,7 @@ PetscErrorCode RegOpt::CheckArguments() {
 #undef __FUNCT__
 #define __FUNCT__ "DoSetup"
 PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -1263,7 +1255,7 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
 
     this->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

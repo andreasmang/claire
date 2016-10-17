@@ -201,7 +201,7 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex) {
 #define __FUNCT__ "CheckConvergenceGrad"
 PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
-    IntType iter, maxiter;
+    IntType iter, maxiter, miniter;
     OptimizationProblem* optprob = NULL;
     ScalarType J, gnorm, step, gatol, grtol, gttol, g0norm, minstep;
 
@@ -212,6 +212,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
+    miniter = optprob->GetOptions()->GetOptPara().minit;
 
     // get initial gradient
     g0norm = optprob->GetInitialGradNorm();
@@ -228,7 +229,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
     // check for NaN value
     if ( PetscIsInfOrNanReal(J) ) {
-        ierr = WrngMsg("objective value is NaN"); CHKERRQ(ierr);
+        ierr = WrngMsg("objective is NaN"); CHKERRQ(ierr);
         ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_NAN); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
     }
@@ -246,22 +247,23 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
         PetscFunctionReturn(ierr);
     }
 
-    // convergence criterium met
-    if ( gnorm < gatol ) {
-        ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
-        PetscFunctionReturn(ierr);
-    }
+    if (iter >= miniter) {
+        // ||g_k||_2 < tol
+        if (gnorm < gatol) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
+            PetscFunctionReturn(ierr);
+        }
 
-    // convergence criterium met
-    if ( gnorm < gttol*g0norm ) {
-        ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
-        PetscFunctionReturn(ierr);
-    }
+        // ||g_k||_2 < tol*||g_0||
+        if (gnorm < gttol*g0norm) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
+            PetscFunctionReturn(ierr);
+        }
 
-    // step size to small (essentially means, line search failed)
-    if ( step < minstep ) {
-        ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
-        PetscFunctionReturn(ierr);
+        if (step < minstep) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
+            PetscFunctionReturn(ierr);
+        }
     }
 
     // if we're here, we're good to go

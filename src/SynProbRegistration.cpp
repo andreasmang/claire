@@ -73,9 +73,7 @@ PetscErrorCode SynProbRegistration::Initialize() {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ClearMemory"
-PetscErrorCode SynProbRegistration::ClearMemory()
-{
-
+PetscErrorCode SynProbRegistration::ClearMemory() {
     PetscFunctionReturn(0);
 }
 
