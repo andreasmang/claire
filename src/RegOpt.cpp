@@ -1267,8 +1267,8 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
  * and sets the associated parameters
  *******************************************************************/
 #undef __FUNCT__
-#define __FUNCT__ "DoSetup"
-PetscErrorCode RegOpt::DoSetup(IntType nx[3]) {
+#define __FUNCT__ "CouplingSetup"
+PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1279,7 +1279,23 @@ PetscErrorCode RegOpt::DoSetup(IntType nx[3]) {
         this->m_Domain.nx[i] = nx[i];
     }
 
-    ierr = this->DoSetup(false); CHKERRQ(ierr);
+    ierr = this->DoSetup(true); CHKERRQ(ierr);
+
+
+    // compute solution faster
+
+    // optimization parameters
+    this->m_OptPara.tol[2] = 5E-2;
+    this->m_OptPara.maxit = 10;
+
+    // parameters for solver of reduced space KKT system
+    this->m_KrylovSolverPara.fseqtype = QDFS;
+    this->m_KrylovSolverPara.pctype = INVREG;
+    this->m_KrylovSolverPara.maxit = 10;
+
+    this->m_RegNorm.beta[0] = 1E-4;
+    this->m_RegNorm.beta[1] = 1E-2;
+    this->m_RegNorm.beta[2] = 1E-4;
 
     this->Exit(__FUNCT__);
 

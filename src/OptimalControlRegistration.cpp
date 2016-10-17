@@ -83,7 +83,7 @@ PetscErrorCode OptimalControlRegistration::Initialize(void) {
     this->m_IncVelocityField = NULL;    ///< incremental control variable
 
     this->m_StateVariable = NULL;       ///< state variable
-    this->m_AdjointVariable = NULL;     ///< adjoin variable
+    this->m_AdjointVariable = NULL;     ///< adjoint variable
     this->m_IncStateVariable = NULL;    ///< incremental state variable
     this->m_IncAdjointVariable = NULL;  ///< incremental adjoint variable
 

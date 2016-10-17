@@ -474,7 +474,8 @@ class RegOpt {
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
     PetscErrorCode DoSetup(bool dispteaser = true);
-    PetscErrorCode DoSetup(IntType[3]);
+
+    PetscErrorCode CouplingSetup(IntType[3]);
 
 
     inline void Enter(std::string fname) {
@@ -554,4 +555,5 @@ class RegOpt {
 
 
 
-#endif
+#endif  // _REGOPT_H_
+

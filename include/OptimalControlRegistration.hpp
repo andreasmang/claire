@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _OPTIMALCONTROLREGISTRATION_H_
 #define _OPTIMALCONTROLREGISTRATION_H_
@@ -113,7 +112,6 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! compute incremental body force */
     virtual PetscErrorCode ComputeIncBodyForce(void);
 
-    // RK2 solvers
     /*! rk2 solver for state equation */
     PetscErrorCode SolveStateEquationRK2();
 
@@ -153,10 +151,13 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     PetscErrorCode HessMatVec(Vec,Vec);
     PetscErrorCode PrecondHessMatVec(Vec,Vec);
     PetscErrorCode PrecondHessMatVecSym(Vec,Vec);
-
 };
 
-} // end of namespace
 
 
-#endif
+
+}  // namespace reg
+
+
+#endif  // _OPTIMALCONTROLREGISTRATION_H_
+
