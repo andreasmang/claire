@@ -1281,6 +1281,7 @@ PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
 
     ierr = this->DoSetup(true); CHKERRQ(ierr);
 
+    this->m_Verbosity = 2;
 
     // compute solution faster
 

@@ -248,6 +248,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     }
 
     if (iter >= miniter) {
+
         // ||g_k||_2 < tol
         if (gnorm < gatol) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
@@ -262,6 +263,12 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
         if (step < minstep) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
+            PetscFunctionReturn(ierr);
+        }
+    } else {
+        // ||g_k||_2 == 0
+        if (gnorm == 0) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
         }
     }
