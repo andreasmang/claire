@@ -879,7 +879,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation
     this->m_ParaCont.enabled = false;           ///< flag for parameter continuation
     this->m_ParaCont.targetbeta = 0.0;          ///< has to be set by user
-    this->m_ParaCont.beta0 = 1E-1;  //1.0;      ///< default initial parameter for parameter continuation
+    //this->m_ParaCont.beta0 = 1.0;               ///< default initial parameter for parameter continuation
+    this->m_ParaCont.beta0 = 1E-1;               ///< default initial parameter for parameter continuation
 
     // grid continuation
     this->m_GridCont.enabled = false;

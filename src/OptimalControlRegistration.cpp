@@ -238,15 +238,17 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
         ierr = VecCreate(vtilde, 3*nl, 3*ng); CHKERRQ(ierr);
 
         lsred = 1E-4;  // reduction rate for line search
-        for (int l = 0; l < 2; ++l) {
+        for (int l = 0; l < 1; ++l) {
+            // evaluate objective function
+            ierr = this->EvaluateObjective(&jv, v); CHKERRQ(ierr);
+
             // compute gradient
             ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
+
+            // compute search direction
             ierr = this->EvaluatePrecondGradient(dv, v); CHKERRQ(ierr);
 
             ierr = VecTDot(g, dv, &descent); CHKERRQ(ierr);
-
-            // evaluate objective function
-            ierr = this->EvaluateObjective(&jv, v); CHKERRQ(ierr);
 
             alpha = 1.0; lssuccess = false;
             for (int i = 0; i < 20; ++i) {
@@ -262,10 +264,11 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
             }
             if (lssuccess) {
                 ierr = DbgMsg("line search successful"); CHKERRQ(ierr);
+                ierr = VecCopy(vtilde, v); CHKERRQ(ierr);
             } else {
                 ierr = WrngMsg("line search not successful"); CHKERRQ(ierr);
+                break;
             }
-            ierr = VecCopy(vtilde, v); CHKERRQ(ierr);
         }
     }
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
@@ -1828,6 +1831,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     this->m_Opt->Enter(__FUNCT__);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1843,16 +1847,15 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // allocate variables
-    if (this->m_WorkScaField1==NULL) {
+    if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
-    if (this->m_WorkScaField2==NULL) {
+    if (this->m_WorkScaField2 == NULL) {
         ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_AdjointVariable == NULL) {
         ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nl, (nt+1)*ng); CHKERRQ(ierr);
     }
-
 
     // copy memory for m_1
     ierr = VecGetArray(this->m_WorkScaField1, &p_m1); CHKERRQ(ierr);

@@ -504,8 +504,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     // do the setup
     ierr = this->SetupSolver(); CHKERRQ(ierr);
 
-    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     // presmoothing, if necessary
     if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
@@ -716,6 +716,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
     // set initial guess for current level
+    //ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // initialize parameters (can be user defined)
@@ -887,10 +888,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     }
 
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
-    ss <<std::scientific<<"estimated regularization parameter betav="<<betastar;
+    ss << std::scientific << "estimated regularization parameter betav=" << betastar;
     ierr = Msg(ss.str()); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
-    ss.str( std::string() ); ss.clear();
+    ss.str(std::string()); ss.clear();
 
     // if output folder is set
     if (!this->m_Opt->GetReadWriteFlags().xfolder.empty()) {
@@ -898,7 +899,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
             filename = this->m_Opt->GetReadWriteFlags().xfolder;
             filename += "parameter-continuation-estimated-beta.log";
             // create output file or append to output file
-            logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app );
+            logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
             ierr = Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
             ss << std::scientific << "betav " << std::setw(3) << std::right << betastar;
             logwriter << ss.str() << std::endl;
