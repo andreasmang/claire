@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _VECFIELD_CPP_
 #define _VECFIELD_CPP_
@@ -291,7 +290,6 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
                                    ScalarType*& p_x2,
                                    ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
-
 
     ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);

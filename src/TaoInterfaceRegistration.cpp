@@ -80,7 +80,7 @@ PetscErrorCode EvaluateGradient(Tao tao, Vec x, Vec gx, void* ptr) {
     // compute gradient
     ierr = optprob->EvaluateGradient(gx, x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -111,7 +111,7 @@ PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx,
     ierr = optprob->EvaluateObjective(Jx, x); CHKERRQ(ierr);
     ierr = optprob->EvaluateGradient(gx, x); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -228,14 +228,14 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     ierr = TaoGetSolutionStatus(tao, &iter, &J, &gnorm, NULL, &step, NULL); CHKERRQ(ierr);
 
     // check for NaN value
-    if ( PetscIsInfOrNanReal(J) ) {
+    if (PetscIsInfOrNanReal(J)) {
         ierr = WrngMsg("objective is NaN"); CHKERRQ(ierr);
         ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_NAN); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
     }
 
     // check for NaN value
-    if ( PetscIsInfOrNanReal(gnorm) ) {
+    if (PetscIsInfOrNanReal(gnorm)) {
         ierr = WrngMsg("||g|| is NaN"); CHKERRQ(ierr);
         ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_NAN); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
@@ -247,8 +247,8 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
         PetscFunctionReturn(ierr);
     }
 
+    // only check convergence criteria after a certain number of iterations
     if (iter >= miniter) {
-
         // ||g_k||_2 < tol
         if (gnorm < gatol) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
@@ -266,7 +266,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
             PetscFunctionReturn(ierr);
         }
     } else {
-        // ||g_k||_2 == 0
+        // if the gradient is zero, we should terminate immediately
         if (gnorm == 0) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
@@ -283,12 +283,6 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
 
 
-
-
-
-
-
-
 /****************************************************************************
  * @brief monitor the optimization process
  * @param tao pointer to tao solver
@@ -298,7 +292,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 #define __FUNCT__ "OptimizationMonitor"
 PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
-    IntType iter, nl, ng;
+    IntType iter;
     int iterdisp;
     char msg[256];
     ScalarType J, gnorm, step, D, J0, D0, gnorm0;
@@ -306,7 +300,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     TaoConvergedReason convreason;
     TaoLineSearch ls = NULL;
     TaoLineSearchConvergedReason lsconvreason;
-    Vec x = NULL, g = NULL;
+    Vec x = NULL;
 
     PetscFunctionBegin;
 
@@ -317,18 +311,9 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     optprob->GetOptions()->PrecondSetupDone(false);
 
     if (optprob->GetOptions()->GetVerbosity() > 1) {
-        nl = optprob->GetOptions()->GetDomainPara().nlocal;
-        ng = optprob->GetOptions()->GetDomainPara().nglobal;
-
-        ierr = VecCreate(x, 3*nl, 3*ng); CHKERRQ(ierr);
-        ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
-
         ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
-        ierr = TaoLineSearchGetSolution(ls, x, &J, g, &step, &lsconvreason); CHKERRQ(ierr);
+        ierr = TaoLineSearchGetSolution(ls, NULL, &J, NULL, &step, &lsconvreason); CHKERRQ(ierr);
         ierr = DispLSConvReason(lsconvreason); CHKERRQ(ierr);
-
-        if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;};
-        if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); g = NULL;};
     }
 
     // get current iteration, objective value, norm of gradient, norm of
@@ -345,7 +330,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
 
     // compute l2 distance at current iteration
     ierr = optprob->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
-    D*=optprob->GetOptions()->GetLebesqueMeasure();
+    D *= optprob->GetOptions()->GetLebesqueMeasure();
 
     // get initial gradient
     gnorm0 = optprob->GetInitialGradNorm();
@@ -390,49 +375,49 @@ PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag) {
     switch(flag) {
         case TAOLINESEARCH_FAILED_INFORNAN:
         {
-            msg="line search: function evaluation gave INF or NAN";
+            msg = "line search: function evaluation gave INF or NAN";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_FAILED_BADPARAMETER:
         {
-            msg="line search: bad parameter detected";
+            msg = "line search: bad parameter detected";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_FAILED_ASCENT:
         {
-            msg="line search: search direction is not a descent direction";
+            msg = "line search: search direction is not a descent direction";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_MAXFCN:
         {
-            msg="line search: maximum number of function evaluations reached";
+            msg = "line search: maximum number of function evaluations reached";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_UPPERBOUND:
         {
-            msg="line search: step size reached upper bound";
+            msg = "line search: step size reached upper bound";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_LOWERBOUND:
         {
-            msg="line search: step size reached lower bound";
+            msg = "line search: step size reached lower bound";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_RTOL:
         {
-            msg="line search: range of uncertainty is smaller than given tolerance";
+            msg = "line search: range of uncertainty is smaller than given tolerance";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_OTHER:
         {
-            msg="line search: line search stopped (other)";
+            msg = "line search: line search stopped (other)";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -443,17 +428,16 @@ PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag) {
         }
         case TAOLINESEARCH_SUCCESS:
         {
-            msg="line search was successfull";
+            msg = "line search was successfull";
             ierr = DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         default:
         {
-            msg="LS: reason not defined";
+            msg = "LS: reason not defined";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
-
     }
 
     PetscFunctionReturn(ierr);
@@ -476,73 +460,73 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag) {
     switch (flag) {
         case TAO_CONVERGED_GATOL:
         {
-            msg="solver converged: ||g(x)|| <= tol";
+            msg = "solver converged: ||g(x)|| <= tol";
             ierr = DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_GRTOL:
         {
-            msg="solver converged: ||g(x)||/J(x) <= tol";
+            msg = "solver converged: ||g(x)||/J(x) <= tol";
             ierr = DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_GTTOL:
         {
-            msg="solver converged: ||g(x)||/||g(x0)|| <= tol";
+            msg = "solver converged: ||g(x)||/||g(x0)|| <= tol";
             ierr = DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_STEPTOL:
         {
-            msg="step size too small";
+            msg = "step size too small";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_MINF:
         {
-            msg="objective value to small";
+            msg = "objective value to small";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_CONVERGED_USER:
         {
-            msg="user defined convergence criteria met";
+            msg = "user defined convergence criteria met";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_MAXITS:
         {
-            msg="maximum number of iterations reached";
+            msg = "maximum number of iterations reached";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_NAN:
         {
-            msg="numerical problems (NAN detected)";
+            msg = "numerical problems (NAN detected)";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_MAXFCN:
         {
-            msg="maximal number of function evaluations reached";
+            msg = "maximal number of function evaluations reached";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_LS_FAILURE:
         {
-            msg="line search failed";
+            msg = "line search failed";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_TR_REDUCTION:
         {
-            msg="trust region failed";
+            msg = "trust region failed";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAO_DIVERGED_USER:
         {
-            msg="user defined divergence criterion met";
+            msg = "user defined divergence criterion met";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -553,11 +537,10 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag) {
         }
         default:
         {
-            msg="convergence reason not defined";
+            msg = "convergence reason not defined";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
-
     }
 
     PetscFunctionReturn(ierr);

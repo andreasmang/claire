@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _OPTIMALCONTROLREGISTRATIONBASE_H_
 #define _OPTIMALCONTROLREGISTRATIONBASE_H_
@@ -54,7 +53,6 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     typedef OptimizationProblem SuperClass;
     typedef RegularizationRegistration RegularizationType;
     typedef SemiLagrangian SemiLagrangianType;
-    //typedef SemiLagrangianFastPlanerGPU SemiLagrangianType;
 
     OptimalControlRegistrationBase(void);
     OptimalControlRegistrationBase(RegOpt*);
@@ -93,9 +91,6 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! set state variable */
     virtual PetscErrorCode SetAdjointVariable(Vec) = 0;
 
-    /*! set velocity field to zero */
-    PetscErrorCode SetVelocity2Zero();
-
     /*! compute deformation gradient, i.e. jacobian of deformation map */
     PetscErrorCode ComputeDefGrad(bool write2file = false);
 
@@ -113,7 +108,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode SetupSyntheticProb(Vec&, Vec&);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
-    virtual PetscErrorCode InitializeOptimization() = 0;
+    virtual PetscErrorCode InitializeOptimization(VecField* v0 = NULL) = 0;
 
     /*! evaluate l2-distance between observed and predicted state */
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
@@ -124,8 +119,11 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! evaluate gradient of Lagrangian L(v) */
     virtual PetscErrorCode EvaluateGradient(Vec, Vec) = 0;
 
+    /*! evaluate preconditined reduced gradient of Lagrangian L(v) */
+    virtual PetscErrorCode EvaluatePrecondGradient(Vec, Vec) = 0;
+
     /*! apply Hessian matvec H\tilde{\vect{v}} */
-    virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale=true) = 0;
+    virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true) = 0;
 
     /*! compute estimate of extremal eigenvalues of hessian */
     PetscErrorCode EstimateExtremalHessEigVals(ScalarType&, ScalarType&);
@@ -154,6 +152,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
  protected:
     PetscErrorCode Initialize(void);
+    PetscErrorCode ComputeInitialGuess(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode CopyToAllTimePoints(Vec, Vec);
     PetscErrorCode IsVelocityZero(void);
@@ -168,16 +167,16 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode ComputeDetDefGradRK2A();             ///< implemented via RK2 time integrator (assymetric form)
     PetscErrorCode ComputeDetDefGradViaDispField();     ///< implemented via RK2 time integrator (asymetric form)
 
-    PetscErrorCode ComputeDeformationMapSL();       ///< implementation via SL time integrator (full lagrangian)
-    PetscErrorCode ComputeDeformationMapSLRK2();    ///< implementation via SL time integrator using RK2
-    PetscErrorCode ComputeDeformationMapSLRK4();    ///< implementation via SL time integrator using RK4
-    PetscErrorCode ComputeDeformationMapRK2();      ///< implementation via RK2 time integrator
-    PetscErrorCode ComputeDeformationMapRK2A();     ///< implementation via RK2A time integrator
+    PetscErrorCode ComputeDeformationMapSL();           ///< implementation via SL time integrator (full lagrangian)
+    PetscErrorCode ComputeDeformationMapSLRK2();        ///< implementation via SL time integrator using RK2
+    PetscErrorCode ComputeDeformationMapSLRK4();        ///< implementation via SL time integrator using RK4
+    PetscErrorCode ComputeDeformationMapRK2();          ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDeformationMapRK2A();         ///< implementation via RK2A time integrator
 
     PetscErrorCode ComputeDefMapFromDisplacement();     ///< compute deformation map from displacement
 
-    PetscErrorCode ComputeDisplacementFieldSL();    ///< implementation via SL time integrator
-    PetscErrorCode ComputeDisplacementFieldRK2();   ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDisplacementFieldSL();        ///< implementation via SL time integrator
+    PetscErrorCode ComputeDisplacementFieldRK2();       ///< implementation via RK2 time integrator
 
     PetscErrorCode ApplyInvRegOpSqrt(Vec);
 

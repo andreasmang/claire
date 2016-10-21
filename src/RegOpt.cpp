@@ -145,6 +145,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_OptPara.fastsolve = opt.m_OptPara.fastsolve;
     this->m_OptPara.fastpresolve = opt.m_OptPara.fastpresolve;
     this->m_OptPara.method = opt.m_OptPara.method;
+    this->m_OptPara.usezeroinitialguess = opt.m_OptPara.usezeroinitialguess;
 
     this->m_SolveType = opt.m_SolveType;
 
@@ -152,6 +153,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.readfiles = opt.m_ReadWriteFlags.readfiles;
     this->m_ReadWriteFlags.readvelocity = opt.m_ReadWriteFlags.readvelocity;
 
+    this->m_ReadWriteFlags.templateim = opt.m_ReadWriteFlags.templateim;
+    this->m_ReadWriteFlags.referenceim = opt.m_ReadWriteFlags.referenceim;
     this->m_ReadWriteFlags.timeseries = opt.m_ReadWriteFlags.timeseries;
     this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
     this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
@@ -333,6 +336,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.results = true;
         } else if (strcmp(argv[1], "-xdeftemplate") == 0) {
             this->m_ReadWriteFlags.deftemplate = true;
+        } else if (strcmp(argv[1], "-xmt") == 0) {
+            this->m_ReadWriteFlags.templateim = true;
+        } else if (strcmp(argv[1], "-xmr") == 0) {
+            this->m_ReadWriteFlags.referenceim = true;
         } else if (strcmp(argv[1], "-xresidual") == 0) {
             this->m_ReadWriteFlags.residual = true;
         } else if (strcmp(argv[1], "-xvelnorm") == 0) {
@@ -402,8 +409,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-grel") == 0) {
             argc--; argv++;
             this->m_OptPara.tol[2] = atof(argv[1]);
-        } else if (strcmp(argv[1], "-nonzeroinitgrad") == 0) {
-            this->m_OptPara.nonzerog0 = true;
+        } else if (strcmp(argv[1], "-nonzeroinitialguess") == 0) {
+            this->m_OptPara.usezeroinitialguess = false;
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
             this->m_RegMonitor.jacbound = atof(argv[1]);
@@ -595,11 +602,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             if (this->m_RegNorm.type == H2SN || this->m_RegNorm.type == H2) {
                 this->m_SolveType = FAST_SMOOTH;
             }
-
             if (this->m_RegNorm.type == H1SN || this->m_RegNorm.type == H1) {
                 this->m_SolveType = FAST_AGG;
             }
-
             ierr = this->SetPresetParameters(); CHKERRQ(ierr);
         }
     }
@@ -751,6 +756,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
 
 
+
 /********************************************************************
  * @brief initialize class variables
  *******************************************************************/
@@ -831,16 +837,15 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.checkhesssymmetry = false;
 
     // tolerances for optimization
-    this->m_OptPara.tol[0] = 1E-6;          ///< grad abs tol ||g(x)|| < tol
-    this->m_OptPara.tol[1] = 1E-16;         ///< grad rel tol ||g(x)||/J(x) < tol
-    this->m_OptPara.tol[2] = 1E-2;          ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxit = 1E3;            ///< max number of iterations
-    this->m_OptPara.minit = 1;              ///< min number of iterations
-    this->m_OptPara.method = GAUSSNEWTON;   ///< optmization method
-    this->m_OptPara.fastsolve = false;      ///< switch on fast solver (less accurate)
-    this->m_OptPara.fastpresolve = true;    ///< enable fast (inaccurate) solve for first steps
-    this->m_OptPara.nonzerog0 = false;      ///< use a non-zero initial velocity field to estimate gradient
-                                            ///< (only of interest if a warm start is used)
+    this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
+    this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
+    this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
+    this->m_OptPara.maxit = 1E3;                    ///< max number of iterations
+    this->m_OptPara.minit = 0;                      ///< min number of iterations
+    this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
+    this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
+    this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
+    this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
@@ -851,6 +856,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_SolveType = NOTSET;
 
     // flags
+    this->m_ReadWriteFlags.templateim = false;
+    this->m_ReadWriteFlags.referenceim = false;
     this->m_ReadWriteFlags.readfiles = false;       ///< read images to file
     this->m_ReadWriteFlags.timeseries = false;      ///< write time series to file (time dependent variables; use with caution) to file
     this->m_ReadWriteFlags.iterates = false;        ///< write iterates (velocity field; use with caution) to file
@@ -872,7 +879,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation
     this->m_ParaCont.enabled = false;           ///< flag for parameter continuation
     this->m_ParaCont.targetbeta = 0.0;          ///< has to be set by user
-    this->m_ParaCont.beta0 = 1.0;               ///< default initial parameter for parameter continuation
+    this->m_ParaCont.beta0 = 1E-1;  //1.0;      ///< default initial parameter for parameter continuation
 
     // grid continuation
     this->m_GridCont.enabled = false;
@@ -1016,7 +1023,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                           (in case a chebyshev method is used to invert preconditioner)" << std::endl;
         std::cout << " -pctolscale <dbl>         scale for tolerance (preconditioner needs to be inverted more" << std::endl;
         std::cout << "                           accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
-        std::cout << " -nonzeroinitgrad          use a non-zero velocity field to compute the initial gradient" << std::endl;
+        std::cout << " -nonzeroinitialguess      use a non-zero velocity field to compute the initial gradient" << std::endl;
         std::cout << "                           this is only recommended in case one want to solve more accurately" << std::endl;
         std::cout << "                           after a warm start (in general for debugging purposes only)" << std::endl;
         std::cout << line << std::endl;
@@ -1279,8 +1286,6 @@ PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
         this->m_Domain.nx[i] = nx[i];
     }
 
-    ierr = this->DoSetup(true); CHKERRQ(ierr);
-
     this->m_Verbosity = 2;
 
     // compute solution faster
@@ -1297,6 +1302,8 @@ PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
     this->m_RegNorm.beta[0] = 1E-4;
     this->m_RegNorm.beta[1] = 1E-2;
     this->m_RegNorm.beta[2] = 1E-4;
+
+    ierr = this->DoSetup(true); CHKERRQ(ierr);
 
     this->Exit(__FUNCT__);
 
@@ -1321,6 +1328,7 @@ PetscErrorCode RegOpt::EnableFastSolve() {
 
     this->m_SolveType = FAST_SMOOTH;
     ierr = this->SetPresetParameters(); CHKERRQ(ierr);
+
     this->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
@@ -1440,11 +1448,11 @@ PetscErrorCode RegOpt::SetupGridCont() {
     this->m_GridCont.nlevels = nlevels;
 
     // allocate arrays for sizes
-    this->m_GridCont.nx.resize(nlevels);        // grid size per level
-    this->m_GridCont.isize.resize(nlevels);     // grid size per level (spatial domain)
-    this->m_GridCont.istart.resize(nlevels);    // start index per level (spatial domain)
-    this->m_GridCont.osize.resize(nlevels);     // grid size per level (spectral domain)
-    this->m_GridCont.ostart.resize(nlevels);    // start index per level (spectral domain)
+    this->m_GridCont.nx.resize(nlevels);        ///< grid size per level
+    this->m_GridCont.isize.resize(nlevels);     ///< grid size per level (spatial domain)
+    this->m_GridCont.istart.resize(nlevels);    ///< start index per level (spatial domain)
+    this->m_GridCont.osize.resize(nlevels);     ///< grid size per level (spectral domain)
+    this->m_GridCont.ostart.resize(nlevels);    ///< start index per level (spectral domain)
 
     for (int i = 0; i < nlevels; ++i) {
         this->m_GridCont.nx[i].resize(3);
@@ -1454,9 +1462,9 @@ PetscErrorCode RegOpt::SetupGridCont() {
         this->m_GridCont.osize[i].resize(3);
     }
 
-    this->m_GridCont.nlocal.resize(nlevels);    // local points (MPI task) per level
-    this->m_GridCont.nglobal.resize(nlevels);   // global points per level
-    this->m_GridCont.nalloc.resize(nlevels);    // alloc size in fourier domain
+    this->m_GridCont.nlocal.resize(nlevels);    ///< local points (MPI task) per level
+    this->m_GridCont.nglobal.resize(nlevels);   ///< global points per level
+    this->m_GridCont.nalloc.resize(nlevels);    ///< alloc size in fourier domain
 
     level = 0;
     while (level < nlevels) {
@@ -2146,7 +2154,9 @@ PetscErrorCode RegOpt::ProcessTimers() {
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_Timer[id][AVG] = xval;
 
-        if (rank == 0) { this->m_Timer[id][AVG] /= static_cast<double>(nproc); }
+        if (rank == 0) {
+            this->m_Timer[id][AVG] /= static_cast<double>(nproc);
+        }
     }
 
     for (int i = 0; i < 5; ++i) {
@@ -2168,7 +2178,9 @@ PetscErrorCode RegOpt::ProcessTimers() {
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_FFTTimers[i][AVG] = xval;
 
-        if (rank == 0) { this->m_FFTTimers[i][AVG] /= static_cast<double>(nproc); }
+        if (rank == 0) {
+            this->m_FFTTimers[i][AVG] /= static_cast<double>(nproc);
+        }
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -2190,7 +2202,9 @@ PetscErrorCode RegOpt::ProcessTimers() {
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_InterpTimers[i][AVG] = xval;
 
-        if (rank == 0) { this->m_InterpTimers[i][AVG] /= static_cast<double>(nproc); }
+        if (rank == 0) {
+            this->m_InterpTimers[i][AVG] /= static_cast<double>(nproc);
+        }
     }
 
     this->Exit(__FUNCT__);

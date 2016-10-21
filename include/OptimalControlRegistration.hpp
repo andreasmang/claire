@@ -44,21 +44,24 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     ~OptimalControlRegistration(void);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
-    PetscErrorCode InitializeOptimization();
+    PetscErrorCode InitializeOptimization(VecField* v0 = NULL);
 
     /*! evaluate distance between observed and predicted state */
     PetscErrorCode EvaluateDistanceMeasure(ScalarType*);
 
     /*! evaluate objective value */
-    PetscErrorCode EvaluateObjective(ScalarType*,Vec);
+    PetscErrorCode EvaluateObjective(ScalarType*, Vec);
 
     /*! evaluate reduced gradient (first variation
         of lagrangian with respect to control variable(s) */
-    PetscErrorCode EvaluateGradient(Vec,Vec);
+    PetscErrorCode EvaluateGradient(Vec, Vec);
+
+    /*! evaluate preconditined reduced gradient of Lagrangian L(v) */
+    PetscErrorCode EvaluatePrecondGradient(Vec, Vec);
 
     /*! compute Hessian matvec (second variation
         of lagrangian with respect to control variable(s) */
-    PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true);
+    PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true);
 
     /*! get state variable */
     PetscErrorCode GetStateVariable(Vec&);
@@ -73,7 +76,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     PetscErrorCode SetAdjointVariable(Vec);
 
     /*! solve the state equation */
-    PetscErrorCode SolveForwardProblem(Vec,Vec);
+    PetscErrorCode SolveForwardProblem(Vec, Vec);
 
     /*! finalize iteration */
     PetscErrorCode FinalizeIteration(Vec);
@@ -81,11 +84,8 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! finalize registration */
     PetscErrorCode Finalize(VecField*);
 
-    /*! piccard iteration */
-    PetscErrorCode PiccardIteration(Vec);
-
     /*! compute initial condition via piccard iteration */
-    PetscErrorCode ComputeInitialCondition(Vec,Vec);
+    PetscErrorCode ComputeInitialCondition(Vec, Vec);
 
  protected:
     /*! init class variables (called by constructor) */
@@ -148,9 +148,12 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     Vec m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
 
  private:
-    PetscErrorCode HessMatVec(Vec,Vec);
-    PetscErrorCode PrecondHessMatVec(Vec,Vec);
-    PetscErrorCode PrecondHessMatVecSym(Vec,Vec);
+    /*! compute the initial guess for the velocity field */
+    PetscErrorCode ComputeInitialVelocity(void);
+
+    PetscErrorCode HessMatVec(Vec, Vec);
+    PetscErrorCode PrecondHessMatVec(Vec, Vec);
+    PetscErrorCode PrecondHessMatVecSym(Vec, Vec);
 };
 
 
@@ -159,5 +162,6 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
 }  // namespace reg
 
 
-#endif  // _OPTIMALCONTROLREGISTRATION_H_
 
+
+#endif  // _OPTIMALCONTROLREGISTRATION_H_

@@ -381,10 +381,10 @@ PetscErrorCode Optimizer::SetupTao() {
 #define __FUNCT__ "Run"
 PetscErrorCode Optimizer::Run(bool presolve) {
     PetscErrorCode ierr;
-    Vec x;
     ScalarType gtol;
     IntType maxit;
     std::stringstream ss;
+    Vec x = NULL;
     PetscFunctionBegin;
 
     // check if optimization problem has been set
@@ -487,7 +487,9 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
 
     converged = true;
     if (reason < 0) {
-        converged = false;
+        if (reason != TAO_DIVERGED_MAXITS) {
+            converged = false;
+        }
     }
 
     PetscFunctionReturn(ierr);

@@ -40,7 +40,7 @@ namespace reg {
 
 
 // flags for hyperbolic PDE solvers
-enum PDESolverType{
+enum PDESolverType {
     RK2,   ///< flag for RK2 solver
     RK2A,  ///< flag for stabilized RK2 solver
     SL,    ///< flag for SL
@@ -48,7 +48,7 @@ enum PDESolverType{
 
 
 // flags for regularization norms
-enum RegNormType{
+enum RegNormType {
     L2,    ///< flag for L2-norm
     H1,    ///< flag for H1-norm
     H2,    ///< flag for H2-norm
@@ -59,7 +59,7 @@ enum RegNormType{
 };
 
 
-enum ParaContType{
+enum ParaContType {
     PCONTOFF,
     PCONTBINSEARCH,
     PCONTREDUCESEARCH,
@@ -68,7 +68,7 @@ enum ParaContType{
 
 
 /*! hessian mat vec type */
-enum HessianMatVecType{
+enum HessianMatVecType {
     DEFAULTMATVEC,
     PRECONDMATVEC,
     PRECONDMATVECSYM,
@@ -76,7 +76,7 @@ enum HessianMatVecType{
 
 
 // flags for optimization methods
-enum OptMeth{
+enum OptMeth {
     GAUSSNEWTON,  ///< Gauss-Newton approximation
     FULLNEWTON,   ///< full Newton
     GRADDESCENT,  ///< gradient descent (gradient in sobolev space)
@@ -84,7 +84,7 @@ enum OptMeth{
 
 
 // flags for preconditioner methods
-enum PrecondMeth{
+enum PrecondMeth {
     INVREG,    ///< inverse regularization operator
     TWOLEVEL,  ///< 2 level preconditioner
     NOPC,      ///< no preconditioner
@@ -92,7 +92,7 @@ enum PrecondMeth{
 
 
 // flags for optimization
-enum FSeqType{
+enum FSeqType {
     QDFS,  ///< quadratic forcing sequence
     SLFS,  ///< superliner forcing sequence
     NOFS,  ///< no forcing sequence
@@ -100,7 +100,7 @@ enum FSeqType{
 
 
 // flags for preconditioners
-enum KrylovSolverType{
+enum KrylovSolverType {
     PCG,     ///< pcg
     FCG,     ///< flexible cg
     CHEB,    ///< chebyshev method
@@ -110,7 +110,7 @@ enum KrylovSolverType{
 
 
 // high level flags for solver
-enum SolveType{
+enum SolveType {
     FAST_AGG,     ///< H1-regularization; few iterations; low accuracy
     FAST_SMOOTH,  ///< H2-regularization; few iterations; low accuracy
     ACC_AGG,      ///< H1-regularization; accurate solution;
@@ -120,7 +120,7 @@ enum SolveType{
 
 
 // flags for timers
-enum TimerType{
+enum TimerType {
     T2SEXEC = 0,  ///< time to solution (execution time)
     PDEEXEC,      ///< pde solves (execution time)
     HMVEXEC,      ///< hessian mat vec (execution time)
@@ -135,7 +135,7 @@ enum TimerType{
 
 
 // counters (number of operations)
-enum CounterType{
+enum CounterType {
     PDESOLVE = 0,  ///< PDE solves
     HESSMATVEC,    ///< # hessian matvecs
     PCMATVEC,      ///< preconditioner matvecs
@@ -149,14 +149,14 @@ enum CounterType{
 };
 
 
-enum RegModel{
+enum RegModel {
     COMPRESSIBLE,
     STOKES,
     RELAXEDSTOKES
 };
 
 
-struct ReadWriteFlags{
+struct ReadWriteFlags {
     bool readfiles;
     bool readvelocity;
     bool timeseries;
@@ -166,6 +166,8 @@ struct ReadWriteFlags{
     bool velnorm;
     bool residual;
     bool defmap;
+    bool templateim;
+    bool referenceim;
     bool deftemplate;
     bool deffield;
     bool results;
@@ -182,20 +184,20 @@ struct ReadWriteFlags{
 
 
 /* parameters for domain */
-struct Domain{
-    IntType isize[3];   ///< size of grid in spatial domain for mpi proc
-    IntType istart[3];  ///< start index in spatial domain for mpi proc
-    IntType nlocal;     ///< number of grid points for each mpi proc
-    IntType nglobal;    ///< number of grid points (global)
-    ScalarType hx[3];   ///< spatial grid cell size
-    IntType nx[3];      ///< spatial grid size
-    IntType nt;         ///< number of time points
+struct Domain {
+    IntType isize[3];           ///< size of grid in spatial domain for mpi proc
+    IntType istart[3];          ///< start index in spatial domain for mpi proc
+    IntType nlocal;             ///< number of grid points for each mpi proc
+    IntType nglobal;            ///< number of grid points (global)
+    ScalarType hx[3];           ///< spatial grid cell size
+    IntType nx[3];              ///< spatial grid size
+    IntType nt;                 ///< number of time points
     ScalarType timehorizon[2];  ///< time horizon
 };
 
 
 /* parameters for optimization */
-struct Optimization{
+struct Optimization {
     int maxit;                  ///< maximal number of (outer) iterations
     int minit;                  ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];          ///< tolerances for optimization
@@ -204,12 +206,12 @@ struct Optimization{
     bool fastsolve;             ///< flag to switch on fast (inaccurate) solve
     ScalarType presolvetol[3];  ///< tolerances for presolve
     int presolvemaxit;          ///< maximal iterations for presolve
-    bool nonzerog0;             ///< initialize with a non-zero gradient
+    bool usezeroinitialguess;   ///< use zero initial guess for computing the initial gradient
 };
 
 
 /* parameters for krylov solver */
-struct KrylovSolver{
+struct KrylovSolver {
     int maxit;                ///< max number of iterations for krylov solver
     IntType iter;             ///< current number of iterations for krylov solver
     ScalarType tol[3];        ///< tolerances for krylov method
@@ -237,7 +239,7 @@ struct KrylovSolver{
 
 
 /* parameter for parameter continuation (regularization parameter) */
-struct ParCont{
+struct ParCont {
     //static constexpr ScalarType betavminh1 = 1E-4;      ///< minimal regularization parameter for h1 type norm
     //static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
     static constexpr ScalarType betavminh1 = 1E-9;      ///< minimal regularization parameter for h1 type norm
@@ -556,4 +558,3 @@ class RegOpt {
 
 
 #endif  // _REGOPT_H_
-

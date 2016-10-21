@@ -397,17 +397,17 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
 
     // allocate class for registration
     if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
-        try{ this->m_RegProblem = new OptimalControlRegistration(this->m_Opt); }
+        try {this->m_RegProblem = new OptimalControlRegistration(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->GetRegModel() == STOKES) {
-        try{ this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt); }
+        try {this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
-        try{ this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt); }
+        try {this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -550,7 +550,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
-    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
     // init solver
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
@@ -726,7 +726,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
     this->m_Opt->SetRegularizationWeight(1, beta);
-    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 0) {
         ierr = DbgMsg("starting coarse search for regularization weight"); CHKERRQ(ierr);
@@ -746,16 +746,22 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
+        if (this->m_Opt->GetOptPara().fastsolve) {
+            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            //ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+        }
+
         // set initial guess for current level
         ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
         // run the optimization
         // TODO: revert this or make it optional (we use a coarse solve here)
         ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
-        //ierr = this->m_Optimizer->Run(true); CHKERRQ(ierr);
-        // TODO: fix this
-//        ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
-//        if (!converged && level > 0) break;
+
+        // if we did not converge, we do not want to decrease
+        // the regularization parameter
+        ierr = this->m_Optimizer->GetSolutionStatus(converged); CHKERRQ(ierr);
+        if (!converged && level > 0) break;
 
         // get the solution
         ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
@@ -828,6 +834,11 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
            << beta << "; betav*=" << betastar << " )";
         ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
+
+        if (this->m_Opt->GetOptPara().fastsolve) {
+            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            //ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+        }
 
         // set initial guess for current level
         ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
@@ -952,7 +963,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
     this->m_Opt->SetRegularizationWeight(1, beta);
-    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
     // reduce regularization parameter by one order of magnitude until
     // we hit user defined tolerances (which either is a lower bound
@@ -1058,7 +1069,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
     this->m_Opt->SetRegularizationWeight(1, beta);
-    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
     while (beta > betastar) {
         // set regularization weight
@@ -1203,7 +1214,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
 
             // compute gradient, distance measure, and initial objective
             // value for zero velocity field, but updated images
-            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
             // run the optimization
             ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
@@ -1390,7 +1401,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
         // compute initial gradient, objective and
         // distance mesure for zero velocity field
-        ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+        ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
         // set initial guess and registraiton problem
         ierr = this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);

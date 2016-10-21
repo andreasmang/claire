@@ -18,7 +18,7 @@
  *
  */
 
-
+#include <memory>
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "ReadWriteReg.hpp"
@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     reg::RegistrationInterface* registration = NULL;
-
 
     // initialize petsc (user is not allowed to set petsc options)
     ierr = PetscInitialize(0, reinterpret_cast<char***>(NULL),
@@ -75,8 +74,9 @@ int main(int argc, char **argv) {
         // pass to registration
         ierr = registration->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = registration->SetTemplateImage(mT); CHKERRQ(ierr);
-
-    } else { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
+    } else {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
 
     if (regopt->GetReadWriteFlags().readvelocity) {
         try {v = new reg::VecField(regopt);}
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
     if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-    if (regopt != NULL) {delete regopt; regopt = NULL;}
+    //if (regopt != NULL) {delete regopt; regopt = NULL;}
     if (v != NULL) {delete v; v = NULL;}
 
     ierr = reg::Finalize(); CHKERRQ(ierr);

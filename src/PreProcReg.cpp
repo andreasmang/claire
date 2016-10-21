@@ -357,18 +357,17 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     // allocate plan for coarse grid
     if (this->m_FFTCoarsePlan == NULL) {
-
         p_xcd = (ScalarType*)accfft_alloc(nalloc_c);
         ierr = Assert(p_xcd != NULL,"malloc failed"); CHKERRQ(ierr);
 
         p_xcdhat = (Complex*)accfft_alloc(nalloc_c);
         ierr = Assert(p_xcdhat != NULL,"malloc failed"); CHKERRQ(ierr);
 
-        this->m_FFTCoarsePlan=accfft_plan_dft_3d_r2c(_nx_c,p_xcd,(double*)p_xcdhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
+        this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c,p_xcd,(double*)p_xcdhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
         ierr = Assert(this->m_FFTCoarsePlan != NULL,"malloc failed"); CHKERRQ(ierr);
 
-        accfft_free(p_xcd); p_xcd=NULL;
-        accfft_free(p_xcdhat); p_xcdhat=NULL;
+        accfft_free(p_xcd); p_xcd = NULL;
+        accfft_free(p_xcdhat); p_xcdhat = NULL;
     }
 
     // set flag
