@@ -261,7 +261,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     PetscFunctionBegin;
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+    //ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_ReferenceImage = mR;
     this->m_IsReferenceSet = true;
@@ -282,7 +282,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     PetscFunctionBegin;
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
+    //ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
     this->m_IsTemplateSet = true;
@@ -530,10 +530,6 @@ PetscErrorCode RegistrationInterface::RunSolver() {
             ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
         }
 
-        // rescale images
-        ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
-        ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
-
         ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
     } else {
@@ -622,8 +618,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
         }
 
         // rescale images
-        ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
-        ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
     } else {
@@ -900,7 +894,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
             filename += "parameter-continuation-estimated-beta.log";
             // create output file or append to output file
             logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
-            ierr = Assert(logwriter.is_open(),"could not open file for writing"); CHKERRQ(ierr);
+            ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
             ss << std::scientific << "betav " << std::setw(3) << std::right << betastar;
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();

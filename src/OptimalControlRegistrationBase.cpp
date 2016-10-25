@@ -228,6 +228,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     PetscFunctionBegin;
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
     this->m_ReferenceImage = mR;
 
     PetscFunctionReturn(ierr);
@@ -246,6 +247,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     PetscFunctionBegin;
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
     this->m_TemplateImage = mT;
 
     PetscFunctionReturn(ierr);
