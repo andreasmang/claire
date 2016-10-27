@@ -154,7 +154,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
         } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
-            this->m_RegFlags.smoothingenabled=false;
+            this->m_RegFlags.applysmoothing = false;
         } else if (strcmp(argv[1], "-nthreads") == 0) {
             argc--; argv++;
             this->m_NumThreads = atoi(argv[1]);
