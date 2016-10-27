@@ -404,6 +404,7 @@ class RegOpt {
 
     // regularization
     inline RegNorm GetRegNorm() {return this->m_RegNorm;}
+    inline void SetRegNorm(RegNorm flag) {this->m_RegNorm = flag;}
     inline void SetRegularizationWeight(int i, ScalarType beta) {
         this->m_RegNorm.beta[i] = beta;
     }
