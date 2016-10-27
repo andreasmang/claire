@@ -228,7 +228,13 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     PetscFunctionBegin;
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+
+    // by default we rescale the intensity range to [0,1]
+    if (this->m_Opt->GetRegFlags().applyrescaling) {
+        ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+    }
+
+    // assign pointer
     this->m_ReferenceImage = mR;
 
     PetscFunctionReturn(ierr);
@@ -247,7 +253,13 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     PetscFunctionBegin;
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
+
+    // by default we rescale the intensity range to [0,1]
+    if (this->m_Opt->GetRegFlags().applyrescaling) {
+        ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
+    }
+
+    // assign pointer
     this->m_TemplateImage = mT;
 
     PetscFunctionReturn(ierr);

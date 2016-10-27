@@ -166,7 +166,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
     this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
 
-    this->m_RegFlags.smoothingenabled = opt.m_RegFlags.smoothingenabled;
+    this->m_RegFlags.applysmoothing = opt.m_RegFlags.applysmoothing;
+    this->m_RegFlags.applyrescaling = opt.m_RegFlags.applyrescaling;
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
     this->m_RegFlags.invdefgrad = opt.m_RegFlags.invdefgrad;
 
@@ -281,7 +282,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
         } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
-            this->m_RegFlags.smoothingenabled = false;
+            this->m_RegFlags.applysmoothing = false;
+        } else if (strcmp(argv[1], "-disablerescaling") == 0) {
+            this->m_RegFlags.applyrescaling = false;
         } else if (strcmp(argv[1], "-nthreads") == 0) {
             argc--; argv++;
             this->m_NumThreads = atoi(argv[1]);
@@ -871,7 +874,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
     this->m_ReadWriteFlags.extension = ".nii.gz";   ///< file extension for output
 
-    this->m_RegFlags.smoothingenabled = true;           ///< enable/disable image smoothing
+    this->m_RegFlags.applysmoothing = true;           ///< enable/disable image smoothing
+    this->m_RegFlags.applyrescaling = true;           ///< enable/disable image rescaling
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
     this->m_RegFlags.invdefgrad = false;                ///< compute inverse of det(grad(y))^{-1}
 
@@ -959,7 +963,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images" << std::endl;
         std::cout << "                           (e.g., 1x2x1; units: voxel size; if only one parameter is set" << std::endl;
         std::cout << "                           uniform smoothing is assumed: default: 1x1x1)" << std::endl;
-        std::cout << " -disablesmoothing         flag: disable smoothing" << std::endl;
+        std::cout << " -disablesmoothing         flag: switch off smoothing of image data" << std::endl;
+        std::cout << " -disablerescaling         flag: switch off rescaling of intensities of image data to [0,1]" << std::endl;
         }
         // ####################### advanced options #######################
 

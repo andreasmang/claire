@@ -306,7 +306,8 @@ struct FourierTransform{
 
 
 struct RegFlags{
-    bool smoothingenabled;
+    bool applysmoothing;  ///< apply smoothing to images
+    bool applyrescaling;  ///< apply rescaling to images (map the intensity range to [0,1])
     bool detdefgradfromdeffield;
     bool invdefgrad;
 };
@@ -379,8 +380,11 @@ class RegOpt {
     inline Optimization GetOptPara() {return this->m_OptPara;}
     inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
 
-    inline void DisableSmoothing() {this->m_RegFlags.smoothingenabled = false;}
-    inline void EnableSmoothing() {this->m_RegFlags.smoothingenabled = true;}
+    inline void EnableRescaling() {this->m_RegFlags.applyrescaling = true;}
+    inline void DisableRescaling() {this->m_RegFlags.applyrescaling = false;}
+
+    inline void EnableSmoothing() {this->m_RegFlags.applysmoothing = true;}
+    inline void DisableSmoothing() {this->m_RegFlags.applysmoothing = false;}
 
     PetscErrorCode GetSizes(IntType*, IntType&, IntType&);
     PetscErrorCode GetSizes(IntType*, IntType*, IntType*);

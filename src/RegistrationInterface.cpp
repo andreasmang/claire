@@ -261,7 +261,6 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     PetscFunctionBegin;
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-    //ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_ReferenceImage = mR;
     this->m_IsReferenceSet = true;
@@ -282,7 +281,6 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     PetscFunctionBegin;
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-    //ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
     this->m_IsTemplateSet = true;
@@ -543,7 +541,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
         ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
-        if (this->m_Opt->GetRegFlags().smoothingenabled) {
+        if (this->m_Opt->GetRegFlags().applysmoothing) {
             if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new PreProcReg(this->m_Opt);}
                 catch (std::bad_alloc&) {
@@ -630,7 +628,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
         ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
         ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
-        if (this->m_Opt->GetRegFlags().smoothingenabled) {
+        if (this->m_Opt->GetRegFlags().applysmoothing) {
             if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new PreProcReg(this->m_Opt);}
                 catch (std::bad_alloc&) {
@@ -1223,9 +1221,10 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
             ierr = this->m_PreProc->ApplySmoothing(mR, this->m_ReferenceImage); CHKERRQ(ierr);
             ierr = this->m_PreProc->ApplySmoothing(mT, this->m_TemplateImage); CHKERRQ(ierr);
 
-            // rescale images
-            ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
-            ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
+            // rescale images (TODO: has to be removed, cause gaussian should be
+            // scale invariant)
+            //ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+            //ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
 
             // display message to user
             ss << std::scientific << std::setw(3)
@@ -1589,7 +1588,7 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
     ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
     ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetRegFlags().smoothingenabled) {
+    if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try{this->m_PreProc = new PreProcReg(this->m_Opt);}
@@ -1648,7 +1647,7 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetRegFlags().smoothingenabled) {
+    if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try{this->m_PreProc = new PreProcReg(this->m_Opt);}
