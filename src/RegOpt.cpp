@@ -1305,10 +1305,6 @@ PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
     this->m_KrylovSolverPara.pctype = INVREG;
     this->m_KrylovSolverPara.maxit = 10;
 
-    this->m_RegNorm.beta[0] = 1E-4;
-    this->m_RegNorm.beta[1] = 1E-2;
-    this->m_RegNorm.beta[2] = 1E-4;
-
     ierr = this->DoSetup(true); CHKERRQ(ierr);
 
     this->Exit(__FUNCT__);
