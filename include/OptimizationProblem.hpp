@@ -59,25 +59,28 @@ class OptimizationProblem {
     virtual PetscErrorCode EvaluateObjective(ScalarType*, Vec) = 0;
 
     /*! evaluate gradient of Lagrangian L(x) */
-    virtual PetscErrorCode EvaluateGradient(Vec,Vec) = 0;
+    virtual PetscErrorCode EvaluateGradient(Vec, Vec) = 0;
 
     /*! apply Hessian matvec H\tilde{\vect{x}} */
-    virtual PetscErrorCode HessianMatVec(Vec,Vec,bool scale=true) = 0;
+    virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true) = 0;
+
+    /*! evaluate regularization functional for given control variable */
+    virtual PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*) = 0;
 
     /*! compute estimate of extremal eigenvalues of hessian */
-    virtual PetscErrorCode EstimateExtremalHessEigVals(ScalarType&,ScalarType&) = 0;
+    virtual PetscErrorCode EstimateExtremalHessEigVals(ScalarType&, ScalarType&) = 0;
 
     /*! pre processing before krylov solve */
-    virtual PetscErrorCode PreKrylovSolve(Vec,Vec) = 0;
+    virtual PetscErrorCode PreKrylovSolve(Vec, Vec) = 0;
 
     /*! post processing after krylov solve */
-    virtual PetscErrorCode PostKrylovSolve(Vec,Vec) = 0;
+    virtual PetscErrorCode PostKrylovSolve(Vec, Vec) = 0;
 
     /*! apply inverse regularization operator */
-    virtual PetscErrorCode ApplyInvRegOp(Vec,Vec) = 0;
+    virtual PetscErrorCode ApplyInvRegOp(Vec, Vec) = 0;
 
     /*! solve forward problem */
-    virtual PetscErrorCode SolveForwardProblem(Vec,Vec) = 0;
+    virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
 
     /*! set control variable */
     virtual PetscErrorCode SetControlVariable(VecField*) = 0;
@@ -104,7 +107,7 @@ class OptimizationProblem {
     virtual PetscErrorCode Finalize(VecField*) = 0;
 
     /*! apply two level preconditioner */
-    virtual PetscErrorCode CheckBounds(Vec,bool&) = 0;
+    virtual PetscErrorCode CheckBounds(Vec, bool&) = 0;
 
     /*! check gradient (derivative check via tayler expansion) */
     PetscErrorCode DerivativeCheck(void);

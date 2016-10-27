@@ -270,6 +270,9 @@ PetscErrorCode RegularizationRegistration::Deallocate(void) {
 
 
 
-} // end of name space
+}  // namespace reg
 
-#endif //_REGULARIZATIONREGISTRATION_CPP_
+
+
+
+#endif  // _REGULARIZATIONREGISTRATION_CPP_

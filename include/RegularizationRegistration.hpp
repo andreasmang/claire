@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -15,9 +15,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
-
+ ************************************************************************/
 
 #ifndef _REGULARIZATIONREGISTRATION_H_
 #define _REGULARIZATIONREGISTRATION_H_
@@ -26,13 +24,16 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 
-namespace reg
-{
 
-class RegularizationRegistration
-{
-public:
 
+
+namespace reg {
+
+
+
+
+class RegularizationRegistration {
+ public:
     typedef RegularizationRegistration Self;
     typedef ScalarType FFTScaType[2];
 
@@ -40,15 +41,14 @@ public:
     RegularizationRegistration(RegOpt*);
     ~RegularizationRegistration(void);
 
-    virtual PetscErrorCode EvaluateFunctional(ScalarType*,VecField*) = 0;
-    virtual PetscErrorCode EvaluateGradient(VecField*,VecField*) = 0;
-    virtual PetscErrorCode HessianMatVec(VecField*,VecField*) = 0;
-    virtual PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false) = 0;
-    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&,ScalarType&) = 0;
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*) = 0;
+    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*) = 0;
+    virtual PetscErrorCode HessianMatVec(VecField*, VecField*) = 0;
+    virtual PetscErrorCode ApplyInvOp(VecField*, VecField*, bool applysqrt = false) = 0;
+    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&) = 0;
 
 
-protected:
-
+ protected:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode Allocate(int);
@@ -77,7 +77,12 @@ protected:
 
 };
 
-} // end of namespace
+
+
+
+}  // namespace reg
+
+
 
 
 #endif

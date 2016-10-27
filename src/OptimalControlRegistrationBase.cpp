@@ -512,6 +512,32 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
 
 
 /********************************************************************
+ * @brief set velocity field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EvaluateRegularization"
+PetscErrorCode OptimalControlRegistrationBase
+::EvaluateRegularizationFunctional(ScalarType* value, VecField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+
+    if (this->m_Regularization == NULL) {
+        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    ierr = this->m_Regularization->EvaluateFunctional(value, v); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+
+/********************************************************************
  * @brief applies inverse regularization operator
  *******************************************************************/
 #undef __FUNCT__

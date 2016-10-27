@@ -314,6 +314,33 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
 
 
 /********************************************************************
+ * @brief evalute the regularization functional
+ * @param[in] v velocity field
+ * @param[out] value sobolev norm of velocity v
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "EvaluateRegularizationFunctional"
+PetscErrorCode RegistrationInterface
+::EvaluateRegularizationFunctional(ScalarType* value, VecField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // reset registration problem
+    if (this->m_RegProblem == NULL) {
+        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    }
+
+    ierr = this->m_RegProblem->EvaluateRegularizationFunctional(value, v); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief set up the registration problem and optimizer
  ********************************************************************/
 #undef __FUNCT__

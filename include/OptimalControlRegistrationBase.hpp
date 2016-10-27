@@ -116,6 +116,9 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! evaluate objective functional J(v) */
     virtual PetscErrorCode EvaluateObjective(ScalarType*, Vec) = 0;
 
+    /*! evaluate regularization functional R(v) */
+    PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*);
+
     /*! evaluate gradient of Lagrangian L(v) */
     virtual PetscErrorCode EvaluateGradient(Vec, Vec) = 0;
 
