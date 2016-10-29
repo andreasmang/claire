@@ -286,7 +286,6 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     this->m_IsTemplateSet = true;
 
     PetscFunctionReturn(ierr);
-
 }
 
 
@@ -767,8 +766,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ss.str(std::string()); ss.clear();
 
         if (this->m_Opt->GetOptPara().fastsolve) {
-            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
-            //ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+//            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
 
         // set initial guess for current level
@@ -856,8 +855,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ss.str(std::string()); ss.clear();
 
         if (this->m_Opt->GetOptPara().fastsolve) {
-            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
-            //ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+//            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
 
         // set initial guess for current level
@@ -1118,8 +1117,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
 
     // display message to user
     ss << std::scientific << std::setw(3)
-        <<"level "<< level <<" (beta="
-        <<beta<<"; beta*="<<betastar<<")";
+        << "level " << level << " (beta="
+        << beta << "; beta*=" << betastar << ")";
     ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
@@ -1206,14 +1205,14 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
     level=0;
     while (level < maxlevel) {
         solve = true;
-        for (int i=0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             // get and set sigma for current level
             sigma[i] = this->m_Opt->GetScaleContPara().sigma[i][level];
             this->m_Opt->SetSigma(i,sigma[i]);
 
             // if sigma is bigger than half of the grid size, don't compute
             nxhalf = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i])/2.0;
-            if ( nxhalf <= sigma[i] ) solve = false;
+            if (nxhalf <= sigma[i]) solve = false;
         }
 
         // solve problem
@@ -1375,7 +1374,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     nlevels = this->m_Opt->GetGridContPara().nlevels;
 
     // run multi-level solver
-    level=0;
+    level = 0;
     while (level < nlevels) {
         // get number of grid points for current level
         for (int i = 0; i < 3; ++i) {
@@ -1455,7 +1454,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         }
     }
 
-    // get the solution
+    // get solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = this->m_Solution->Copy(v); CHKERRQ(ierr);
 
@@ -1511,7 +1510,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
     ierr = this->m_Opt->GetSizes(nx_f, nl, ng); CHKERRQ(ierr);
 
     // allocate container for velocity field
-    try{ v_f = new reg::VecField(nl, ng); }
+    try {v_f = new reg::VecField(nl, ng);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }

@@ -506,7 +506,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        for (int i=0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             this->m_OptCoarse->SetNumGridPoints(i,nx_c[i]);
         }
         ierr = this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
