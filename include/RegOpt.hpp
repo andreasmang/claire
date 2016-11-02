@@ -287,6 +287,7 @@ struct RegMonitor{
     ScalarType jacmax;      ///< max value of jacobian
     ScalarType jacmean;     ///< mean value of jacobian
     ScalarType jacbound;    ///< lower bound for jacobian
+    bool boundreached;
 };
 
 
@@ -376,9 +377,15 @@ class RegOpt {
     inline FourierTransform GetFFT() {return this->m_FFT;}
     inline RegFlags GetRegFlags() {return this->m_RegFlags;}
     inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}
+    inline void JacBoundReached(bool flag) {this->m_RegMonitor.boundreached = flag;}
+    inline bool JacBoundReached() {return this->m_RegMonitor.boundreached;}
 
     inline Optimization GetOptPara() {return this->m_OptPara;}
     inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
+
+
+    inline void EnableJacobianBound() {this->m_RegMonitor.JAC = true;}
+    inline void DisableJacobianBound() {this->m_RegMonitor.JAC = false;}
 
     inline void EnableRescaling() {this->m_RegFlags.applyrescaling = true;}
     inline void DisableRescaling() {this->m_RegFlags.applyrescaling = false;}

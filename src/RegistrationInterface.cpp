@@ -520,7 +520,7 @@ PetscErrorCode RegistrationInterface::Run() {
 PetscErrorCode RegistrationInterface::RunSolver() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
-
+    bool boundreached;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -581,6 +581,14 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 
     // get the solution
     ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+
+    // check bounds on jacobian
+    if (this->m_Opt->GetRegMonitor().JAC) {
+        boundreached = false;
+        ierr = this->m_RegProblem->CheckBounds(x, boundreached); CHKERRQ(ierr);
+        this->m_Opt->JacBoundReached(boundreached);
+    }
+
     ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
 
     // finalize the registration
@@ -766,8 +774,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ss.str(std::string()); ss.clear();
 
         if (this->m_Opt->GetOptPara().fastsolve) {
-//            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
-            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+//            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
 
         // set initial guess for current level
@@ -855,8 +863,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ss.str(std::string()); ss.clear();
 
         if (this->m_Opt->GetOptPara().fastsolve) {
-//            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
-            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+//            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
 
         // set initial guess for current level

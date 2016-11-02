@@ -908,6 +908,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegMonitor.jacmax = 0.0;
     this->m_RegMonitor.jacmean = 0.0;
     this->m_RegMonitor.jacbound = 2E-1;
+    this->m_RegMonitor.boundreached = 2E-1;
 
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;
@@ -1373,7 +1374,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         this->m_OptPara.presolvetol[2] = 1E-1;
     } else if (this->m_SolveType == FAST_SMOOTH) {
         // use fast and smooth method
-        this->m_RegNorm.type = H2SN;
+        //this->m_RegNorm.type = H2SN;
+        this->m_RegNorm.type = H2;
         this->m_KrylovSolverPara.fseqtype = QDFS;
         this->m_KrylovSolverPara.maxit = 5;
         this->m_OptPara.maxit = 20;
@@ -1382,7 +1384,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         this->m_OptPara.presolvetol[2] = 5E-1;
     } else if (this->m_SolveType == ACC_SMOOTH) {
         // use slow and smooth method
-        this->m_RegNorm.type = H2SN;
+        //this->m_RegNorm.type = H2SN;
+        this->m_RegNorm.type = H2;
         this->m_KrylovSolverPara.fseqtype = QDFS;
         this->m_KrylovSolverPara.maxit = 50;
         this->m_OptPara.maxit = 50;
