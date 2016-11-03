@@ -1,10 +1,10 @@
 CXX=mpicxx
 
-USEINTEL=yes
-USEINTELMPI=yes
+USEINTEL=no
+USEINTELMPI=no
 BUILDTOOLS=yes
 DBGCODE=no
-PEDANTIC=yes
+PEDANTIC=no
 USEPNETCDF=no
 USENIFTI=yes
 
@@ -18,11 +18,14 @@ else
 endif
 
 ifeq ($(USEINTEL),yes)
-	CXXFLAGS+= -std=c++11 -DINVERT_RHO -xhost -parallel
-	CXXFLAGS+= -openmp
+	CXXFLAGS+= -DINVERT_RHO -xhost -parallel
+	#CXXFLAGS+= -openmp
+	CXXFLAGS+= -qopenmp
 else
 	CXXFLAGS+= -fopenmp
 endif
+CXXFLAGS+= -std=c++11
+
 
 ifeq ($(PEDANTIC),yes)
 	CXXFLAGS+= -Warray-bounds -Wchar-subscripts -Wcomment
