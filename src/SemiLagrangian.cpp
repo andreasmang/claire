@@ -216,7 +216,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
             }
         }
         X = this->m_XS;
-
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         if (this->m_XA == NULL) {
             try{ this->m_XA = new double [3*nl]; }
@@ -267,15 +266,18 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // normalize to [0,1]
-    for(IntType i = 0; i < 3*nl; ++i) X[i] /= (2.0*PETSC_PI);
+    for (IntType i = 0; i < 3*nl; ++i) {
+        X[i] /= (2.0*PETSC_PI);
+    }
 
     // interpolate velocity field v(X)
     ierr = this->MapCoordinateVector(flag); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField, v, flag); CHKERRQ(ierr);
 
     // normalize to [0,2*pi]
-    for(IntType i = 0; i < 3*nl; ++i) X[i] *= (2.0*PETSC_PI);
-
+    for (IntType i = 0; i < 3*nl; ++i) {
+        X[i] *= (2.0*PETSC_PI);
+    }
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -297,7 +299,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 X[l*3+0] = x1 - hthalf*(p_vX1[l]+p_v1[l]);
                 X[l*3+1] = x2 - hthalf*(p_vX2[l]+p_v2[l]);
                 X[l*3+2] = x3 - hthalf*(p_vX3[l]+p_v3[l]);
-
             }  // i1
         }  // i2
     }  // i3
@@ -306,7 +307,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // normalize to [0,1]
-    for(IntType i = 0; i < 3*nl; ++i) X[i] /= (2.0*PETSC_PI);
+    for (IntType i = 0; i < 3*nl; ++i) {
+        X[i] /= (2.0*PETSC_PI);
+    }
 
     ierr =this->MapCoordinateVector(flag); CHKERRQ(ierr);
 
@@ -323,24 +326,24 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
-PetscErrorCode SemiLagrangian::Interpolate(Vec* w, Vec v, std::string flag) {
+PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_w = NULL, *p_v = NULL;
+    ScalarType *p_xo = NULL, *p_xi = NULL;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(*w != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(*xo != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert( xi != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = VecGetArray(v, &p_v); CHKERRQ(ierr);
-    ierr = VecGetArray(*w, &p_w); CHKERRQ(ierr);
+    ierr = VecGetArray( xi, &p_xi); CHKERRQ(ierr);
+    ierr = VecGetArray(*xo, &p_xo); CHKERRQ(ierr);
 
-    ierr = this->Interpolate(p_w, p_v, flag); CHKERRQ(ierr);
+    ierr = this->Interpolate(p_xo, p_xi, flag); CHKERRQ(ierr);
 
-    ierr = VecRestoreArray(*w, &p_w); CHKERRQ(ierr);
-    ierr = VecRestoreArray(v, &p_v); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*xo, &p_xo); CHKERRQ(ierr);
+    ierr = VecRestoreArray( xi, &p_xi); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -355,9 +358,10 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* w, Vec v, std::string flag) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
-PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w, ScalarType* v, std::string flag) {
+PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
-    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nl;
+    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval;
+    IntType nc, nl;
     accfft_plan* plan = NULL;
     IntType g_alloc_max;
     double timers[4] = {0, 0, 0, 0};
@@ -366,8 +370,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w, ScalarType* v, std::st
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(w != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xi != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xo != NULL, "null pointer"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
@@ -378,8 +382,10 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w, ScalarType* v, std::st
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    nl = static_cast<int>(this->m_Opt->GetDomainPara().nlocal);
-    ierr =Assert(nl != 0, "size problem"); CHKERRQ(ierr);
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    neval = static_cast<int>(nl);
+    ierr = Assert(neval != 0, "size problem"); CHKERRQ(ierr);
+    nc = this->m_Opt->GetDomainPara().nc;
 
     // deal with ghost points
     plan = this->m_Opt->GetFFT().plan;
@@ -389,20 +395,23 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w, ScalarType* v, std::st
         this->m_ScaFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
     }
 
-    accfft_get_ghost_xyz(plan, this->m_GhostSize, isize_g, v, this->m_ScaFieldGhost);
+    // compute interpolation for all components of the input scalar field
+    for (IntType k = 0; k < nc; ++k) {
+        accfft_get_ghost_xyz(plan, this->m_GhostSize, isize_g, xi+k*nl, this->m_ScaFieldGhost);
 
-    if (strcmp(flag.c_str(),"state") == 0) {
-        ierr = Assert(this->m_XS != NULL, "state X is null pointer"); CHKERRQ(ierr);
-        this->m_StatePlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
-                                       nl, this->m_GhostSize, w, c_dims,
-                                       this->m_Opt->GetFFT().mpicomm, timers);
-    } else if (strcmp(flag.c_str(),"adjoint") == 0) {
-        ierr = Assert(this->m_XA != NULL, "adjoint X is null pointer"); CHKERRQ(ierr);
-        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
-                                         nl, this->m_GhostSize, w, c_dims,
-                                         this->m_Opt->GetFFT().mpicomm, timers);
-    } else {
-        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
+        if (strcmp(flag.c_str(), "state") == 0) {
+            ierr = Assert(this->m_XS != NULL, "state X is null pointer"); CHKERRQ(ierr);
+            this->m_StatePlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
+                                           neval, this->m_GhostSize, xo+k*nl, c_dims,
+                                           this->m_Opt->GetFFT().mpicomm, timers);
+        } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+            ierr = Assert(this->m_XA != NULL, "adjoint X is null pointer"); CHKERRQ(ierr);
+            this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
+                                             neval, this->m_GhostSize, xo+k*nl, c_dims,
+                                             this->m_Opt->GetFFT().mpicomm, timers);
+        } else {
+            ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
+        }
     }
 
     this->m_Opt->IncreaseInterpTimers(timers);
@@ -421,28 +430,28 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* w, ScalarType* v, std::st
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Interpolate"
-PetscErrorCode SemiLagrangian::Interpolate(VecField* w, VecField* v, std::string flag) {
+PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_wx1 = NULL, *p_wx2 = NULL, *p_wx3 = NULL;
+    ScalarType *p_vix1 = NULL, *p_vix2 = NULL, *p_vix3 = NULL,
+               *p_vox1 = NULL, *p_vox2 = NULL, *p_vox3 = NULL;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(w != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vi != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vo != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = w->GetArrays(p_wx1, p_wx2, p_wx3); CHKERRQ(ierr);
-    ierr = v->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = vi->GetArrays(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
+    ierr = vo->GetArrays(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
 
-    ierr = this->Interpolate(p_wx1, p_wx2, p_wx3, p_vx1, p_vx2, p_vx3, flag); CHKERRQ(ierr);
+    ierr = this->Interpolate(p_vox1, p_vox2, p_vox3, p_vix1, p_vix2, p_vix3, flag); CHKERRQ(ierr);
 
-    ierr = w->RestoreArrays(p_wx1, p_wx2, p_wx3); CHKERRQ(ierr);
-    ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = vi->RestoreArrays(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
+    ierr = vo->RestoreArrays(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

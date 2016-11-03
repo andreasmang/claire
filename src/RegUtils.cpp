@@ -100,17 +100,17 @@ PetscErrorCode GetFileName(std::string& path, std::string& filename,
         path = file.substr(0,idx);
         filename = file.substr(idx + 1);
     }
-    if (filename == "") { filename = file; }
+    if (filename == "") {
+        filename = file;
+    }
 
     // get extension
     idx = filename.rfind(".");
-    if(idx != std::string::npos) {
-
+    if (idx != std::string::npos) {
         extension = filename.substr(idx+1);
 
         // handle zipped files
         if (strcmp(extension.c_str(),"gz") == 0) {
-
             filename = filename.substr(0,idx);
             idx = filename.rfind(".");
             if(idx != std::string::npos) {
@@ -121,8 +121,9 @@ PetscErrorCode GetFileName(std::string& path, std::string& filename,
         extension = "." + extension;
         filename  = filename.substr(0,idx);
 
+    } else {
+        ierr = ThrowError("no extension found"); CHKERRQ(ierr);
     }
-    else{ ierr = ThrowError("no extension found"); CHKERRQ(ierr); }
 
     PetscFunctionReturn(ierr);
 }
@@ -158,7 +159,7 @@ PetscErrorCode Msg(std::string msg) {
     msg = " "  + ss.str() + "\n";
 
     // display message
-    ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -178,11 +179,11 @@ PetscErrorCode DbgMsg(std::string msg) {
 
     PetscFunctionBegin;
 
-    ss << std::left << std::setw(98)<< msg;
+    ss << std::left << std::setw(98) << msg;
     msg = "\x001b[90m[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
-    ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -201,11 +202,11 @@ PetscErrorCode WrngMsg(std::string msg) {
 
     PetscFunctionBegin;
 
-    ss << std::left << std::setw(98)<< msg;
+    ss << std::left << std::setw(98) << msg;
     msg = "\x1b[33m[ " + ss.str() + "]\x1b[0m\n";
 
     // display error
-    ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -224,7 +225,10 @@ PetscErrorCode ThrowError(std::string msg) {
     PetscFunctionBegin;
 
     std::string errmsg = "\x1b[31mERROR: " + msg + "\x1b[0m";
-    ierr = PetscError(PETSC_COMM_WORLD,__LINE__,PETSC_FUNCTION_NAME,__FILE__,1,PETSC_ERROR_INITIAL,errmsg.c_str());
+    ierr = PetscError(PETSC_COMM_WORLD,__LINE__,
+                    PETSC_FUNCTION_NAME,__FILE__,
+                    1,PETSC_ERROR_INITIAL,
+                    errmsg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -378,21 +382,21 @@ PetscErrorCode VecView(Vec x) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x = NULL;
     IntType nl;
-    int procid;
+    int rank;
     PetscFunctionBegin;
 
-    ierr = VecGetLocalSize(x,&nl); CHKERRQ(ierr);
-    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
 
-    MPI_Comm_rank(PETSC_COMM_WORLD,&procid);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    if (procid == 0) {
+    if (rank == 0) {
         std::cout << " VEC VIEW" << std::endl;
         std::cout << " ";
         for (IntType i = 0; i < nl; ++i) {
             std::cout << p_x[i] << " ";
         }
-        std::cout<<std::endl;
+        std::cout << std::endl;
     }
 
     ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
@@ -493,4 +497,4 @@ std::vector<unsigned int> String2Vec(const std::string & str) {
 
 
 
-#endif  // _REGUTILS_CPP_
+#endif   // _REGUTILS_CPP_

@@ -532,9 +532,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
     // read data only on master rank
     if(rank == 0) {
-
         // allocate data buffer
-        if (this->m_Data != NULL){
+        if (this->m_Data != NULL) {
             delete this->m_Data;
             this->m_Data=NULL;
         }
@@ -584,8 +583,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
 
     // compute offset and number of entries to send
-    if (rank == 0){
-
+    if (rank == 0) {
         IntType offset = 0;
         for (int p = 0; p < nprocs; ++p){
             IntType nsend = 1;
@@ -650,8 +648,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 #ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename)
-{
+PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename) {
     PetscErrorCode ierr;
     std::string msg;
     int rank;
@@ -903,8 +900,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage, Vec x, std::string
 #undef __FUNCT__
 #define __FUNCT__ "WriteNII"
 template <typename T>
-PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string filename)
-{
+PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string filename) {
     PetscErrorCode ierr;
     IntType ng;
     T* data = NULL;
@@ -929,12 +925,11 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
 
     // allocate the index buffers on master rank
     if (rank == 0){
-
         // we need to allocate the image if it's a zero pointer; this
         // will also create a standard header file; not tested (might need
         // to parse the dimensions of the data)
-        if( (*image) == NULL){
-            if (this->m_Opt->GetVerbosity() >= 4){
+        if ((*image) == NULL) {
+            if (this->m_Opt->GetVerbosity() >= 4) {
                 msg="allocating buffer for nifti image";
                 ierr = DbgMsg(msg); CHKERRQ(ierr);
             }

@@ -162,7 +162,6 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();
-
     PetscErrorCode ComputeDefGradSL();  ///< implemented via SL time integrator
 
     PetscErrorCode ComputeDetDefGradSL();               ///< implemented via SL time integrator

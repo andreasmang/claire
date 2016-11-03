@@ -231,6 +231,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
+        // TODO: this needs to be fixed for vector valued images
         ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
     }
 
@@ -256,6 +257,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
+        // TODO: this needs to be fixed for vector valued images
         ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
     }
 
@@ -765,7 +767,7 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOpSqrt(Vec x) {
 #define __FUNCT__ "SetupSyntheticProb"
 PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nx[3];
+    IntType nl, ng, nc, nx[3];
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                *p_mt = NULL, hx[3], xc1, xc2, xc3, x, sigma;
     int vcase = 3;
@@ -779,6 +781,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("setting up synthetic test problem"); CHKERRQ(ierr);
     }
+    nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
 
@@ -799,11 +802,11 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     if (this->m_Opt->GetRegModel() == STOKES) {vcase = 4;}
 
     // allocate reference image
-    if (mR == NULL) {ierr = VecCreate(mR, nl, ng); CHKERRQ(ierr);}
+    if (mR == NULL) {ierr = VecCreate(mR, nl*nc, ng*nc); CHKERRQ(ierr);}
     ierr = VecSet(mR, 0.0); CHKERRQ(ierr);
 
     // allocate template image
-    if (mT == NULL) {ierr = VecCreate(mT, nl, ng); CHKERRQ(ierr);}
+    if (mT == NULL) {ierr = VecCreate(mT, nl*nc, ng*nc); CHKERRQ(ierr);}
     ierr = VecSet(mT, 0.0); CHKERRQ(ierr);
 
 
@@ -829,7 +832,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
                 x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
 
                 // compute linear / flat index
-                i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
 
                 if (icase == 0) {
                     p_mt[i] = (sin(x1)*sin(x1) + sin(x2)*sin(x2) + sin(x3)*sin(x3))/3.0;
@@ -863,10 +866,21 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
                     p_vx2[i] = v0;
                     p_vx3[i] = v0;
                 }
-            } // i1
-        } // i2
-    } // i3
-} // pragma omp parallel
+            }  // i1
+        }  // i2
+    }  // i3
+}  // pragma omp parallel
+
+    // if the image has more than one component, just copy the
+    // content of first image to all other
+    if (nc != 1) {
+        for (IntType k = 1; k < nc; ++k) {
+            try {std::copy(p_mt, p_mt+nl, p_mt+k*nl);}
+            catch (std::exception&) {
+                ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+            }
+        }
+    }
 
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
@@ -897,13 +911,14 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj) {
     PetscErrorCode ierr = 0;
     ScalarType *p_u = NULL, *p_uj = NULL;
-    IntType nl, nt;
+    IntType nl, nc, nt;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
     nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
 
     // get pointers
@@ -913,8 +928,8 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
         // copy data to all time points
-        try{ std::copy(p_uj, p_uj+nl, p_u+j*nl); }
-        catch(std::exception&) {
+        try {std::copy(p_uj, p_uj+nl*nc, p_u+j*nl*nc);}
+        catch (std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
     }
@@ -925,7 +940,7 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

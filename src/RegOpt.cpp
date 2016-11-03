@@ -103,6 +103,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Domain.nx[2] = opt.m_Domain.nx[0];
 
     this->m_Domain.nt = opt.m_Domain.nt;
+    this->m_Domain.nc = opt.m_Domain.nc;
 
     this->m_Domain.timehorizon[0] = opt.m_Domain.timehorizon[0];
     this->m_Domain.timehorizon[1] = opt.m_Domain.timehorizon[1];
@@ -787,7 +788,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.istart[0] = 0;
     this->m_Domain.istart[1] = 0;
     this->m_Domain.istart[2] = 0;
-    this->m_Domain.nt = 4;
+    this->m_Domain.nt = 4;      ///< number of time points
+    this->m_Domain.nc = 1;      ///< number of components (vector valued images)
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
     this->m_Domain.nx[2] = 32;

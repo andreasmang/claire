@@ -192,6 +192,7 @@ struct Domain {
     ScalarType hx[3];           ///< spatial grid cell size
     IntType nx[3];              ///< spatial grid size
     IntType nt;                 ///< number of time points
+    IntType nc;                 ///< number of components/images to be registered
     ScalarType timehorizon[2];  ///< time horizon
 };
 
@@ -402,6 +403,7 @@ class RegOpt {
         return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
     }
+    inline void SetNumImageComponents(IntType n) {this->m_Domain.nc = n;}
 
     inline ReadWriteFlags GetReadWriteFlags() {return this->m_ReadWriteFlags;}
     inline RegModel GetRegModel(void) {return this->m_RegModel;}

@@ -426,8 +426,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DisplayOptions"
-PetscErrorCode RegToolsOpt::DisplayOptions()
-{
+PetscErrorCode RegToolsOpt::DisplayOptions() {
     PetscErrorCode ierr = 0;
     int rank,indent;
     std::string msg,line;
@@ -444,31 +443,31 @@ PetscErrorCode RegToolsOpt::DisplayOptions()
     // display the parameters (only on rank 0)
     if (rank == 0) {
 
-        std::cout<<std::endl;
+        std::cout << std::endl;
 
-        std::cout<< line << std::endl;
-        std::cout<< " Constrained Large Deformation Diffeomorphic Registration"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " Parallel Algorithms for Data Analysis and Simulation Group"<<std::endl;
-        std::cout<< " The Institute of Computational Engineering and Sciences"<<std::endl;
-        std::cout<< " The University of Texas at Austin"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " problem setup"<<std::endl;
-        std::cout<< line << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " Constrained Large Deformation Diffeomorphic Registration" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " Parallel Algorithms for Data Analysis and Simulation Group" << std::endl;
+        std::cout << " The Institute of Computational Engineering and Sciences" << std::endl;
+        std::cout << " The University of Texas at Austin" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " problem setup" << std::endl;
+        std::cout << line << std::endl;
 
-        std::cout<< std::left << std::setw(indent) <<" problem dimensions"
-                    << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] <<", "
-                    <<  this->m_Domain.nx[1] <<", "
-                    <<  this->m_Domain.nx[2] <<", "
-                    <<  this->m_Domain.nt <<")" <<std::endl;
-        std::cout<< std::left << std::setw(indent) <<" network dimensions"
-                    << this->m_CartGridDims[0] <<"x"
-                    << this->m_CartGridDims[1]<<std::endl;
-        std::cout<< std::left << std::setw(indent) <<" threads"
-                    << this->m_NumThreads<<std::endl;
-        std::cout<< std::left << std::setw(indent) <<" (ng,nl)"
-                    << "(" << this->m_Domain.nglobal <<", "
-                    <<  this->m_Domain.nlocal <<")" <<std::endl;
+        std::cout << std::left << std::setw(indent) << " problem dimensions"
+                  << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] << ", "
+                  << this->m_Domain.nx[1] << ", "
+                  << this->m_Domain.nx[2] << ", "
+                  << this->m_Domain.nt << ")" << std::endl;
+        std::cout << std::left << std::setw(indent) << " network dimensions"
+                  << this->m_CartGridDims[0] << "x"
+                  << this->m_CartGridDims[1] << std::endl;
+        std::cout << std::left << std::setw(indent) << " threads"
+                  << this->m_NumThreads << std::endl;
+        std::cout << std::left << std::setw(indent) << " (ng,nl)"
+                  << "(" << this->m_Domain.nglobal << ", "
+                  << this->m_Domain.nlocal << ")" << std::endl;
         std::cout << line << std::endl;
 
     } // rank
