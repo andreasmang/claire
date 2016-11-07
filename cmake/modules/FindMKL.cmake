@@ -20,8 +20,6 @@ else ( WIN32 )
     set(MKLROOT_PATH "/opt/apps/intel/15/composer_xe_2015.3.187" CACHE PATH "Where the MKL are stored")
 endif ( WIN32 )
 
-    set(MKLROOT_PATH "/opt/apps/intel/15/composer_xe_2015.3.187")
-    message("MKL is found at whatever ${MKLROOT_PATH}/mkl")
 if (EXISTS ${MKLROOT_PATH}/mkl)
     SET(MKL_FOUND TRUE)
     message("MKL is found at ${MKLROOT_PATH}/mkl")

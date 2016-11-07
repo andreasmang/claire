@@ -1,18 +1,17 @@
-# display version message to user
-MESSAGE(STATUS "compiling COLD v${COLD_VERSION_MAJOR}.${COLD_VERSION_MINOR}.${COLD_VERSION_PATCH}")
-MESSAGE(STATUS "source directory: ${PROJECT_SOURCE_DIR}")
-
 IF (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    SET(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/bin" CACHE PATH "install path prefix" FORCE)
+	SET(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/bin" CACHE PATH "install path prefix" FORCE)
 ENDIF (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 
-# create a configure file
+# create a configure file (used to parse variables/flags to code)
 CONFIGURE_FILE("${PROJECT_SOURCE_DIR}/ColdConfig.h.in" "${PROJECT_BINARY_DIR}/ColdConfig.h")
 INSTALL(FILES "${PROJECT_BINARY_DIR}/ColdConfig.h" DESTINATION include)
 
 # add binary tree to search path for include files
 INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR})
+
+# make sure include files can be found
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
 
 # prevent in source builds
 INCLUDE( ${PROJECT_SOURCE_DIR}/cmake/PreventInSourceBuild.cmake )
@@ -22,13 +21,14 @@ SET(COLD_EXTERNAL_LIBS)
 SET(COLD_EXTERNAL_INCS)
 
 # set warning level for compiler
-#SET( CMAKE_CXX_WARNING_LEVEL 5 )
-#SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
-#SET( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O3")
+SET( CMAKE_CXX_WARNING_LEVEL 5 )
+SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+SET( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O3")
 
+
+# find MPI (required)
 FIND_PACKAGE(MPI REQUIRED)
 IF (MPI_C_FOUND AND MPI_CXX_FOUND)
-    MESSAGE(STATUS "MPI library found")
     LIST( APPEND COLD_EXTERNAL_INCS ${MPI_INCLUDE_PATH} )
     LIST( APPEND COLD_EXTERNAL_LIBS ${MPI_LIBRARIES} )
     SET( CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER} )
@@ -38,10 +38,9 @@ ELSE( )
 ENDIF( )
 
 
-
+# find OpenMP (required by accfft) 
 FIND_PACKAGE(OpenMP REQUIRED)
 IF (OPENMP_FOUND)
-    MESSAGE(STATUS "OpenMP library found")
     SET( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} )
     SET( CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} )
     SET( CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} )
@@ -50,8 +49,8 @@ ELSE()
 ENDIF()
 
 
-
-FIND_PACKAGE( ZLIB REQUIRED )
+# search for zlib (if not found, we compile it)
+FIND_PACKAGE( ZLIB )
 IF ( ZLIB_FOUND )
     INCLUDE_DIRECTORIES( ${ZLIB_INCLUDE_DIRS} )
     LIST( APPEND COLD_EXTERNAL_LIBS ${ZLIB_LIBRARIES} )
@@ -96,7 +95,7 @@ ${PROJECT_SOURCE_DIR}/src/RegUtils.cpp
 ${PROJECT_SOURCE_DIR}/src/Optimizer.cpp
 ${PROJECT_SOURCE_DIR}/src/ReadWriteReg.cpp
 ${PROJECT_SOURCE_DIR}/src/TaoInterfaceRegistration.cpp
-${PROJECT_SOURCE_DIR}/src/OptimizationProblemRegistration.cpp
+${PROJECT_SOURCE_DIR}/src/OptProbRegistration.cpp
 ${PROJECT_SOURCE_DIR}/src/LargeDeformationRegistration.cpp
 ${PROJECT_SOURCE_DIR}/src/OptimalControlRegistration.cpp
 ${PROJECT_SOURCE_DIR}/src/OptimalControlRegistrationIC.cpp
@@ -114,13 +113,14 @@ ${PROJECT_SOURCE_DIR}/src/VecField.cpp
 
 
 SET(COLD_INCS
-${PROJECT_SOURCE_DIR}/include/interp3_common.hpp
+${PROJECT_SOURCE_DIR}/include/utils.hpp
 ${PROJECT_SOURCE_DIR}/include/interp3.hpp
+${PROJECT_SOURCE_DIR}/include/interp3_common.hpp
 ${PROJECT_SOURCE_DIR}/include/LargeDeformationRegistration.hpp
 ${PROJECT_SOURCE_DIR}/include/OptimalControlRegistration.hpp
 ${PROJECT_SOURCE_DIR}/include/OptimalControlRegistrationIC.hpp
 ${PROJECT_SOURCE_DIR}/include/OptimalControlRegistrationRIC.hpp
-${PROJECT_SOURCE_DIR}/include/OptimizationProblemRegistration.hpp
+${PROJECT_SOURCE_DIR}/include/OptProbRegistration.hpp
 ${PROJECT_SOURCE_DIR}/include/Optimizer.hpp
 ${PROJECT_SOURCE_DIR}/include/PreProcessingRegistration.hpp
 ${PROJECT_SOURCE_DIR}/include/ReadWriteReg.hpp
@@ -135,11 +135,8 @@ ${PROJECT_SOURCE_DIR}/include/SemiLagrangian.hpp
 ${PROJECT_SOURCE_DIR}/include/SemiLagrangianGPU.hpp
 ${PROJECT_SOURCE_DIR}/include/SynProbRegistration.hpp
 ${PROJECT_SOURCE_DIR}/include/TaoInterfaceRegistration.hpp
-${PROJECT_SOURCE_DIR}/include/utils.hpp
 ${PROJECT_SOURCE_DIR}/include/VecField.hpp
 )
-
-
 
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/includes)

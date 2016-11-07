@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _REGTOOLSOPT_H_
 #define _REGTOOLSOPT_H_
@@ -33,23 +32,21 @@ namespace reg {
 
 struct ResamplingPara {
     ScalarType gridscale;
-    bool enabled;
 };
 
 
-struct PostProcPara {
-    bool enabled;           ///< run post processing
-    bool computedeffields;  ///< compute deformation fields (deformation gradient, displacement field, ...)
-    bool computegrad;       ///< compute gradient of scalar field
-    bool computesynvel;     ///< compute synthetic velocity field
-    bool tscafield;         ///< transport scalar field (forward problem)
-    bool tlabelmap;         ///< transport label map (solve forward problem)
-};
-
-
-struct RegToolsFlags {
-    bool readvecfield;  ///< read vector field
-    bool readscafield;  ///< read scalar field
+struct RegToolFlags {
+    bool computesynprob;     ///< compute synthetic test problem
+    bool checkfwdsolve;      ///< perform test for forward solve
+    bool readvecfield;       ///< read vector field
+    bool resample;           ///< resample scalar / vector field
+    bool readscafield;       ///< read scalar field
+    bool computedeffields;   ///< compute deformation fields (deformation gradient, displacement field, ...)
+    bool computegrad;        ///< compute gradient of scalar field
+    bool computesynvel;      ///< compute synthetic velocity field
+    bool computeresidual;    ///< compute residual between two images
+    bool tscafield;          ///< transport scalar field (forward problem)
+    bool tlabelmap;          ///< transport label map (solve forward problem)
 };
 
 
@@ -68,9 +65,8 @@ class RegToolsOpt : public RegOpt {
     std::string GetVecFieldFN(int, int);
     std::string GetScaFieldFN(int);
     virtual PetscErrorCode DisplayOptions(void);
-    inline RegToolsFlags GetFlags() {return this->m_RegToolsFlags;}
+    inline RegToolFlags GetFlags() {return this->m_RegToolFlags;}
     inline ResamplingPara GetResamplingPara() {return this->m_ResamplingPara;}
-    inline PostProcPara GetPostProcPara() {return this->m_PostProcPara;}
 
  protected:
     virtual PetscErrorCode Initialize(void);
@@ -79,8 +75,7 @@ class RegToolsOpt : public RegOpt {
     virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);
 
-    PostProcPara m_PostProcPara;
-    RegToolsFlags m_RegToolsFlags;
+    RegToolFlags m_RegToolFlags;
     ResamplingPara m_ResamplingPara;
 
     std::string m_RFN;
