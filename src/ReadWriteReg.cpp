@@ -690,8 +690,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
         catch (std::bad_alloc&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-
-        k = 0;
+        k=0;
         for (int p = 0; p < nprocs; ++p) {
             for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
                 for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
