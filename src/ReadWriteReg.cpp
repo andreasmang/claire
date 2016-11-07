@@ -445,6 +445,8 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
 #endif
 
 
+
+
 /********************************************************************
  * @brief read nifty image
  *******************************************************************/
@@ -531,8 +533,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
 
     // read data only on master rank
-    if(rank == 0) {
-
+    if (rank == 0) {
         // allocate data buffer
         if (this->m_Data != NULL){
             delete this->m_Data;
@@ -540,7 +541,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
         }
 
         // allocate data buffer
-        try{ this->m_Data = new ScalarType[ng]; }
+        try {this->m_Data = new ScalarType[ng];}
             catch(std::bad_alloc&){
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -577,15 +578,14 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     }
 
     // gather isize and istart on master rank
-    rval=MPI_Gather(isize,3,MPIU_INT,this->m_iSizeC,3,MPIU_INT,0,PETSC_COMM_WORLD);
+    rval = MPI_Gather(isize, 3, MPIU_INT, this->m_iSizeC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
     ierr = MPIERRQ(rval); CHKERRQ(ierr);
-    rval=MPI_Gather(istart,3,MPIU_INT,this->m_iStartC,3,MPIU_INT,0,PETSC_COMM_WORLD);
+    rval = MPI_Gather(istart, 3, MPIU_INT, this->m_iStartC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
     ierr = MPIERRQ(rval); CHKERRQ(ierr);
 
 
     // compute offset and number of entries to send
-    if (rank == 0){
-
+    if (rank == 0) {
         IntType offset = 0;
         for (int p = 0; p < nprocs; ++p){
             IntType nsend = 1;
@@ -598,24 +598,22 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
         }
 
         // allocate data buffer
-        try{ comdata = new ScalarType[ng]; }
+        try {comdata = new ScalarType[ng];}
             catch(std::bad_alloc&){
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        k=0;
-        for(int p = 0; p < nprocs; ++p) {
+        k = 0;
+        for (int p = 0; p < nprocs; ++p) {
             for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
                 for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
                     for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) {  // x3
-
                         j1 = i1 + this->m_iStartC[3*p+0];
                         j2 = i2 + this->m_iStartC[3*p+1];
                         j3 = i3 + this->m_iStartC[3*p+2];
 
                         l = GetLinearIndex(j1, j2, j3, nx);
                         comdata[k++] = this->m_Data[l];
-
                     } // for i1
                 } // for i2
             } // for i3
@@ -630,9 +628,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     rval = MPI_Scatterv(comdata, this->m_nSend, this->m_nOffset, MPI_DOUBLE, p_x, nrecv, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
     ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
 
-    if (comdata != NULL){ delete [] comdata; comdata=NULL; }
-    if (image != NULL){ nifti_image_free(image); image=NULL; }
-    if (this->m_Data != NULL){ delete [] this->m_Data; this->m_Data=NULL; }
+    if (comdata != NULL){ delete [] comdata; comdata = NULL; }
+    if (image != NULL){ nifti_image_free(image); image = NULL; }
+    if (this->m_Data != NULL){ delete [] this->m_Data; this->m_Data = NULL; }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -650,8 +648,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 #ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename)
-{
+PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename) {
     PetscErrorCode ierr;
     std::string msg;
     int rank;
@@ -667,48 +664,72 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename
     switch (niiimage->datatype){
         case NIFTI_TYPE_UINT8:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type uint8 (uchar)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = UCHAR;
             ierr = this->ReadNII<unsigned char>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_INT8:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type int8 (char)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = CHAR;
             ierr = this->ReadNII<char>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_UINT16:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type uint16 (unsigned short)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = USHORT;
             ierr = this->ReadNII<unsigned short>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_INT16:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type int16 (short)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = SHORT;
             ierr = this->ReadNII<short>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_UINT32:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type uint32 (unsigned int)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = UINT;
             ierr = this->ReadNII<unsigned int>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_INT32:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type int32 (int)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = INT;
             ierr = this->ReadNII<int>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_FLOAT32:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type float32 (float)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = FLOAT;
             ierr = this->ReadNII<float>(niiimage, filename); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_FLOAT64:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("reading data of type float64 (double)"); CHKERRQ(ierr);
+            }
             this->m_ComponentType = DOUBLE;
             ierr = this->ReadNII<double>(niiimage, filename); CHKERRQ(ierr);
             break;
@@ -734,10 +755,9 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename
 #ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename)
-{
+template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename) {
     PetscErrorCode ierr;
-    T *data=NULL;
+    T *data = NULL;
     std::string msg;
     IntType ng;
     int rank;
