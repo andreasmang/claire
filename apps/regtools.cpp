@@ -37,6 +37,10 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
+PetscErrorCode ConvertData(reg::RegToolsOpt*);
+PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
+
+
 
 
 /********************************************************************
@@ -80,6 +84,10 @@ int main(int argc, char **argv) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkfwdsolve) {
         ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().convert) {
+        ierr = ConvertData(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().applysmoothing) {
+        ierr = ApplySmoothing(regopt); CHKERRQ(ierr);
     }
 
     // clean up
@@ -882,3 +890,97 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
 
 
 
+
+/********************************************************************
+ * @brief convert the data
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ConvertData"
+PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::string fn, path, filename, extension;
+    Vec m;
+    reg::ReadWriteReg* readwrite = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
+
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read reference image
+    fn = regopt->GetScaFieldFN(0);
+    ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
+    ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
+    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+
+    ierr = reg::GetFileName(path, filename, extension, fn); CHKERRQ(ierr);
+    fn = path + "/" + filename + "_converted" + regopt->GetReadWriteFlags().extension;
+    std::cout << fn << std::endl;
+    ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
+
+    regopt->Exit(__FUNCT__);
+
+    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief apply smoothing to data
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ApplySmoothing"
+PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::string fn, path, filename, extension;
+    Vec m;
+    reg::ReadWriteReg* readwrite = NULL;
+    reg::PreProcReg* preproc = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
+
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read reference image
+    fn = regopt->GetScaFieldFN(0);
+    ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
+    ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
+    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+
+
+    // allocate preprocessing class
+    if (preproc == NULL) {
+        try {preproc = new reg::PreProcReg(regopt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    // apply smoothing
+    ierr = preproc->ApplySmoothing(m, m); CHKERRQ(ierr);
+
+    ierr = reg::GetFileName(path, filename, extension, fn); CHKERRQ(ierr);
+    fn = path + "/" + filename + "_test" + regopt->GetReadWriteFlags().extension;
+    std::cout << fn << std::endl;
+    ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
+
+    regopt->Exit(__FUNCT__);
+
+    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (preproc != NULL) {delete preproc; preproc = NULL;}
+
+    PetscFunctionReturn(ierr);
+}

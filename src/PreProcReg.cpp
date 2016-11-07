@@ -284,19 +284,19 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     if (this->m_XHatCoarse  !=  NULL) {
         accfft_free(this->m_XHatCoarse);
-        this->m_XHatCoarse=NULL;
+        this->m_XHatCoarse = NULL;
     }
     if (this->m_XHatFine  !=  NULL) {
         accfft_free(this->m_XHatFine);
-        this->m_XHatFine=NULL;
+        this->m_XHatFine = NULL;
     }
     if (this->m_FFTFinePlan  !=  NULL) {
         accfft_destroy_plan(this->m_FFTFinePlan);
-        this->m_FFTFinePlan=NULL;
+        this->m_FFTFinePlan = NULL;
     }
     if (this->m_FFTCoarsePlan  !=  NULL) {
         accfft_destroy_plan(this->m_FFTCoarsePlan);
-        this->m_FFTCoarsePlan=NULL;
+        this->m_FFTCoarsePlan = NULL;
     }
 
     // parse input sizes
@@ -317,10 +317,10 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     // get communicator
     mpicomm = this->m_Opt->GetFFT().mpicomm;
 
-    nalloc_c = accfft_local_size_dft_r2c(_nx_c,_isize_c,_istart_c,_osize_c,_ostart_c,mpicomm);
-    nalloc_f = accfft_local_size_dft_r2c(_nx_f,_isize_f,_istart_f,_osize_f,_ostart_f,mpicomm);
-    ierr = Assert(nalloc_c>0,"alloc problems"); CHKERRQ(ierr);
-    ierr = Assert(nalloc_f>0,"alloc problems"); CHKERRQ(ierr);
+    nalloc_c = accfft_local_size_dft_r2c(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
+    nalloc_f = accfft_local_size_dft_r2c(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
+    ierr = Assert(nalloc_c > 0, "alloc problems"); CHKERRQ(ierr);
+    ierr = Assert(nalloc_f > 0, "alloc problems"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
         this->m_osizeC[i] = static_cast<IntType>(_osize_c[i]);
@@ -330,29 +330,31 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     }
 
     if (this->m_XHatCoarse == NULL) {
-        this->m_XHatCoarse = (ScalarTypeFD*)accfft_alloc(nalloc_c);
+        this->m_XHatCoarse = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc_c));
     }
     ierr = Assert(this->m_XHatCoarse != NULL,"allocation failed"); CHKERRQ(ierr);
 
-    if (this->m_XHatFine==NULL) {
-        this->m_XHatFine = (ScalarTypeFD*)accfft_alloc(nalloc_f);
+    if (this->m_XHatFine == NULL) {
+        this->m_XHatFine = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc_f));
     }
     ierr = Assert(this->m_XHatFine != NULL,"allocation failed"); CHKERRQ(ierr);
 
     // allocate plan for fine grid
-    if (this->m_FFTFinePlan==NULL) {
-
-        p_xfd = (ScalarType*)accfft_alloc(nalloc_f);
+    if (this->m_FFTFinePlan == NULL) {
+        p_xfd = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc_f));
         ierr = Assert(p_xfd != NULL,"allocation failed"); CHKERRQ(ierr);
 
-        p_xfdhat=(Complex*)accfft_alloc(nalloc_f);
+        p_xfdhat = reinterpret_cast<Complex*>(accfft_alloc(nalloc_f));
         ierr = Assert(p_xfdhat != NULL,"malloc failed"); CHKERRQ(ierr);
 
-        this->m_FFTFinePlan=accfft_plan_dft_3d_r2c(_nx_f,p_xfd,(double*)p_xfdhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
-        ierr = Assert(this->m_FFTFinePlan != NULL,"malloc failed"); CHKERRQ(ierr);
+        this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f, p_xfd,
+                                                    reinterpret_cast<double*>(p_xfdhat),
+                                                    this->m_Opt->GetFFT().mpicomm,
+                                                    ACCFFT_MEASURE);
+        ierr = Assert(this->m_FFTFinePlan != NULL, "malloc failed"); CHKERRQ(ierr);
 
-        accfft_free(p_xfd); p_xfd=NULL;
-        accfft_free(p_xfdhat); p_xfdhat=NULL;
+        accfft_free(p_xfd); p_xfd = NULL;
+        accfft_free(p_xfdhat); p_xfdhat = NULL;
     }
 
     // allocate plan for coarse grid
@@ -363,15 +365,18 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         p_xcdhat = (Complex*)accfft_alloc(nalloc_c);
         ierr = Assert(p_xcdhat != NULL,"malloc failed"); CHKERRQ(ierr);
 
-        this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c,p_xcd,(double*)p_xcdhat,this->m_Opt->GetFFT().mpicomm,ACCFFT_MEASURE);
-        ierr = Assert(this->m_FFTCoarsePlan != NULL,"malloc failed"); CHKERRQ(ierr);
+        this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c, p_xcd,
+                                                        reinterpret_cast<double*>(p_xcdhat),
+                                                        this->m_Opt->GetFFT().mpicomm,
+                                                        ACCFFT_MEASURE);
+        ierr = Assert(this->m_FFTCoarsePlan != NULL, "malloc failed"); CHKERRQ(ierr);
 
         accfft_free(p_xcd); p_xcd = NULL;
         accfft_free(p_xcdhat); p_xcdhat = NULL;
     }
 
     // set flag
-    this->m_GridChangeOpsSet=true;
+    this->m_GridChangeOpsSet = true;
 
     this->m_Opt->Exit(__FUNCT__);
 

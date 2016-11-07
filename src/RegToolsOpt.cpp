@@ -175,6 +175,14 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-convert") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "2nii") == 0) {
+                this->m_ReadWriteFlags.extension = ".nii.gz";
+            } else if (strcmp(argv[1], "2nc") == 0) {
+                this->m_ReadWriteFlags.extension = ".nc";
+            }
+            this->m_RegToolFlags.convert = true;
         } else if (strcmp(argv[1], "-usenc") == 0) {
             this->m_ReadWriteFlags.extension = ".nc";
         } else if (strcmp(argv[1], "-xresults") == 0) {
@@ -200,6 +208,27 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.computegrad = true;
         } else if (strcmp(argv[1], "-tscafield") == 0) {
             this->m_RegToolFlags.tscafield = true;
+        } else if (strcmp(argv[1], "-smooth") == 0) {
+            this->m_RegToolFlags.applysmoothing = true;
+            argc--; argv++;
+            const std::string sigmainput = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            sigma = String2Vec(sigmainput);
+
+            if (sigma.size() == 1) {
+                for (int i = 0; i < 3; ++i) {
+                    this->m_Sigma[i] = static_cast<ScalarType>(sigma[0]);
+                }
+            } else if (sigma.size() == 3) {
+                for (int i = 0; i < 3; ++i) {
+                    this->m_Sigma[i] = static_cast<IntType>(sigma[i]);
+                }
+            } else {
+                msg = "\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-tlabelmap") == 0) {
             this->m_RegToolFlags.tlabelmap = true;
         } else if (strcmp(argv[1], "-csynvel") == 0) {
@@ -293,6 +322,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.computesynvel = false;
     this->m_RegToolFlags.resample = false;
     this->m_RegToolFlags.checkfwdsolve = false;
+    this->m_RegToolFlags.convert = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
 

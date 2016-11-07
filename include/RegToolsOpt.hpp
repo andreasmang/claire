@@ -47,6 +47,8 @@ struct RegToolFlags {
     bool computeresidual;    ///< compute residual between two images
     bool tscafield;          ///< transport scalar field (forward problem)
     bool tlabelmap;          ///< transport label map (solve forward problem)
+    bool convert;            ///< convert image data
+    bool applysmoothing;     ///< convert image data
 };
 
 

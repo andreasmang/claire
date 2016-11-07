@@ -356,23 +356,23 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
     scale = this->m_Opt->ComputeFFTScale();
 
     if (this->m_x1hat == NULL) {
-        this->m_x1hat=(FFTScaType*)accfft_alloc(nalloc);
+        this->m_x1hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
     }
     if (this->m_x2hat == NULL) {
-        this->m_x2hat=(FFTScaType*)accfft_alloc(nalloc);
+        this->m_x2hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
     }
     if (this->m_x3hat == NULL) {
-        this->m_x3hat=(FFTScaType*)accfft_alloc(nalloc);
+        this->m_x3hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
     }
 
     if (this->m_Kx1hat == NULL) {
-        this->m_Kx1hat=(FFTScaType*)accfft_alloc(nalloc);
+        this->m_Kx1hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
     }
     if (this->m_Kx2hat == NULL) {
-        this->m_Kx2hat=(FFTScaType*)accfft_alloc(nalloc);
+        this->m_Kx2hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
     }
     if (this->m_Kx3hat == NULL) {
-        this->m_Kx3hat=(FFTScaType*)accfft_alloc(nalloc);
+        this->m_Kx3hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
     }
 
     ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
@@ -392,7 +392,6 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
     for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
         for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
             for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-
                 x1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
                 x2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
                 x3 = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
