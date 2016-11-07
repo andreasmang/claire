@@ -612,7 +612,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
         // allocate data buffer
         try {this->m_Data = new ScalarType[ng];}
-            catch (std::bad_alloc&) {
+        catch (std::bad_alloc&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
@@ -668,7 +668,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
         // allocate data buffer
         try {comdata = new ScalarType[ng];}
-            catch (std::bad_alloc&) {
+        catch (std::bad_alloc&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
