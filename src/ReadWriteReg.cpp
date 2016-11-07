@@ -1,3 +1,22 @@
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _READWRITEREG_CPP_
 #define _READWRITEREG_CPP_
 
@@ -1062,7 +1081,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
     }
 
     // get array
-    if( nprocs == 1 ) {
+    if (nprocs == 1) {
         ierr = VecGetArray(x, &p_xc); CHKERRQ(ierr);
 
         // cast pointer of nifti image data
@@ -1075,15 +1094,10 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
             data[i] = static_cast<T>(p_xc[i]);
         }
 } /// pragma omp parallel
-
         ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
-
-    }
-    else{
-
+    } else{
         // allocate the index buffers on master rank
         if (rank == 0) {
-
             // get all the sizes to read and assign data correctly
             if (this->m_iSizeC == NULL) {
                 try{ this->m_iSizeC = new IntType[3*nprocs]; }
@@ -1097,7 +1111,6 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
                     ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
                 }
             }
-
         }
 
         isize[0] = this->m_Opt->GetDomainPara().isize[0];
@@ -1128,40 +1141,32 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
 
         // if we are on master rank
         if (rank == 0) {
-
             data = static_cast<T*>((*image)->data);
             ierr = VecGetArray(xcollect, &p_xc); CHKERRQ(ierr);
 
             IntType k = 0;
             for(int p = 0; p < nprocs; ++p) {
-
-                for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) { // x1
-                    for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) { // x2
-                        for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) { // x3
-
+                for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
+                    for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
+                        for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) {  // x3
                             j1 = i1 + this->m_iStartC[3*p+0];
                             j2 = i2 + this->m_iStartC[3*p+1];
                             j3 = i3 + this->m_iStartC[3*p+2];
 
                             l = GetLinearIndex(j1, j2, j3, nx);
                             data[l] = static_cast<T>(p_xc[k++]);
-
-                        } // for i1
-                    } // for i2
-                } // for i3
-
-            } // for all procs
+                        }  // for i1
+                    }  // for i2
+                }  // for i3
+            }  // for all procs
 
             ierr = VecRestoreArray(xcollect,&p_xc); CHKERRQ(ierr);
-
-        } // if on master
-
-    }// else
-
+        }  // if on master
+    }  // else
 
     // clear memory
-    if (xcollect != NULL) { ierr = VecDestroy(&xcollect); CHKERRQ(ierr); }
-    if (scatterctx != NULL) { ierr = VecScatterDestroy(&scatterctx); CHKERRQ(ierr); }
+    if (xcollect != NULL) {ierr = VecDestroy(&xcollect); CHKERRQ(ierr);}
+    if (scatterctx != NULL) {ierr = VecScatterDestroy(&scatterctx); CHKERRQ(ierr);}
 
     this->m_Opt->Exit(__FUNCT__);
 
