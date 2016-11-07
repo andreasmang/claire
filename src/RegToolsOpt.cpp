@@ -6,8 +6,7 @@
 
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -119,7 +118,6 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
-
         } else if (strcmp(argv[1], "-pdesolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
@@ -180,14 +178,14 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-usenc") == 0) {
             this->m_ReadWriteFlags.extension = ".nc";
         } else if (strcmp(argv[1], "-xresults") == 0) {
-            this->m_ReadWriteFlags.results=true;
+            this->m_ReadWriteFlags.results = true;
         } else if (strcmp(argv[1], "-defgrad") == 0) {
             this->m_ReadWriteFlags.defgrad = true;
         } else if (strcmp(argv[1], "-residual") == 0) {
-            this->m_ReadWriteFlags.residual = true;
+            this->m_RegToolFlags.computeresidual = true;
         } else if (strcmp(argv[1], "-detdefgrad") == 0) {
             this->m_ReadWriteFlags.detdefgrad = true;
-        } else if (strcmp(argv[1], "-invdefgrad") == 0) {
+        } else if (strcmp(argv[1], "-invdetdefgrad") == 0) {
             this->m_RegFlags.invdefgrad = true;
             this->m_ReadWriteFlags.detdefgrad = true;
         } else if (strcmp(argv[1], "-defmap") == 0) {
@@ -199,18 +197,20 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
             this->m_RegFlags.detdefgradfromdeffield = true;
         } else if (strcmp(argv[1], "-grad") == 0) {
-            this->m_PostProcPara.computegrad = true;
+            this->m_RegToolFlags.computegrad = true;
         } else if (strcmp(argv[1], "-tscafield") == 0) {
-            this->m_PostProcPara.tscafield = true;
+            this->m_RegToolFlags.tscafield = true;
         } else if (strcmp(argv[1], "-tlabelmap") == 0) {
-            this->m_PostProcPara.tlabelmap = true;
+            this->m_RegToolFlags.tlabelmap = true;
         } else if (strcmp(argv[1], "-csynvel") == 0) {
-            this->m_PostProcPara.computesynvel = true;
+            this->m_RegToolFlags.computesynvel = true;
+        } else if (strcmp(argv[1], "-checkfwdsolve") == 0) {
+            this->m_RegToolFlags.checkfwdsolve = true;
         } else if (strcmp(argv[1], "-rscale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
         } else if (strcmp(argv[1], "-resample") == 0) {
-            this->m_ResamplingPara.enabled = true;
+            this->m_RegToolFlags.resample = true;
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
             this->m_Verbosity = atoi(argv[1]);
@@ -284,17 +284,16 @@ PetscErrorCode RegToolsOpt::Initialize() {
 
     ierr = this->SuperClass::Initialize(); CHKERRQ(ierr);
 
-    this->m_RegToolsFlags.readvecfield = false;
-    this->m_RegToolsFlags.readscafield = false;
+    this->m_RegToolFlags.readvecfield = false;
+    this->m_RegToolFlags.readscafield = false;
+    this->m_RegToolFlags.computedeffields = false;
+    this->m_RegToolFlags.computegrad = false;
+    this->m_RegToolFlags.tlabelmap = false;
+    this->m_RegToolFlags.tscafield = false;
+    this->m_RegToolFlags.computesynvel = false;
+    this->m_RegToolFlags.resample = false;
+    this->m_RegToolFlags.checkfwdsolve = false;
 
-    this->m_PostProcPara.enabled = false;
-    this->m_PostProcPara.computedeffields = false;
-    this->m_PostProcPara.computegrad = false;
-    this->m_PostProcPara.tlabelmap = false;
-    this->m_PostProcPara.tscafield = false;
-    this->m_PostProcPara.computesynvel = false;
-
-    this->m_ResamplingPara.enabled = false;
     this->m_ResamplingPara.gridscale = -1.0;
 
     PetscFunctionReturn(0);
@@ -309,7 +308,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
 #undef __FUNCT__
 #define __FUNCT__ "Usage"
 PetscErrorCode RegToolsOpt::Usage(bool advanced) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     int rank;
     std::string line;
     PetscFunctionBegin;
@@ -335,7 +334,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         }
         // ####################### advanced options #######################
         std::cout << line << std::endl;
-        std::cout << " ### inpute parameters"<<std::endl;
+        std::cout << " ### input parameters"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " -mr <file>                reference image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
         std::cout << " -mt <file>                template image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
@@ -356,7 +355,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " -defgrad                  compute deformation gradient F = grad(inv(y)) (input: velocity field)"<<std::endl;
         std::cout << " -detdefgrad               compute determinant of deformation gradient (input: velocity field)"<<std::endl;
-        std::cout << " -invdefgrad               compute inverse of determinant of deformation gradient (input: velocity field)"<<std::endl;
+        std::cout << " -invdetdefgrad            compute inverse of determinant of deformation gradient (input: velocity field)"<<std::endl;
         std::cout << " -deffield                 compute displacement field u (input: velocity field)"<<std::endl;
         std::cout << " -defmap                   compute deformation map y (input: velocity field)"<<std::endl;
         std::cout << " -tscafield                transport scalar field (input: velocity field and scalar field)"<<std::endl;
@@ -397,6 +396,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " ### synthetic test problems"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
+        std::cout << " -checkfwdsolve            check forward solver"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;
@@ -415,7 +415,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
     ierr = PetscFinalize(); CHKERRQ(ierr);
     exit(0);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -429,54 +429,52 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
 PetscErrorCode RegToolsOpt::DisplayOptions()
 {
     PetscErrorCode ierr = 0;
-    int rank,indent;
-    std::string msg,line;
+    int rank, indent;
+    std::string msg, line;
 
     PetscFunctionBegin;
 
     this->Enter(__FUNCT__);
 
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     indent = 40;
-    line = std::string(this->m_LineLength,'-');
+    line = std::string(this->m_LineLength, '-');
 
     // display the parameters (only on rank 0)
     if (rank == 0) {
-
-        std::cout<<std::endl;
-
-        std::cout<< line << std::endl;
-        std::cout<< " Constrained Large Deformation Diffeomorphic Registration"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " Parallel Algorithms for Data Analysis and Simulation Group"<<std::endl;
-        std::cout<< " The Institute of Computational Engineering and Sciences"<<std::endl;
-        std::cout<< " The University of Texas at Austin"<<std::endl;
-        std::cout<< line << std::endl;
-        std::cout<< " problem setup"<<std::endl;
-        std::cout<< line << std::endl;
-
-        std::cout<< std::left << std::setw(indent) <<" problem dimensions"
-                    << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] <<", "
-                    <<  this->m_Domain.nx[1] <<", "
-                    <<  this->m_Domain.nx[2] <<", "
-                    <<  this->m_Domain.nt <<")" <<std::endl;
-        std::cout<< std::left << std::setw(indent) <<" network dimensions"
-                    << this->m_CartGridDims[0] <<"x"
-                    << this->m_CartGridDims[1]<<std::endl;
-        std::cout<< std::left << std::setw(indent) <<" threads"
-                    << this->m_NumThreads<<std::endl;
-        std::cout<< std::left << std::setw(indent) <<" (ng,nl)"
-                    << "(" << this->m_Domain.nglobal <<", "
-                    <<  this->m_Domain.nlocal <<")" <<std::endl;
+        std::cout << std::endl;
         std::cout << line << std::endl;
-
-    } // rank
+        std::cout << " Constrained Large Deformation Diffeomorphic Registration" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " Parallel Algorithms for Data Analysis and Simulation Group" << std::endl;
+        std::cout << " The Institute of Computational Engineering and Sciences" << std::endl;
+        std::cout << " The University of Texas at Austin" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " problem setup" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << std::left << std::setw(indent) << " problem dimensions"
+                  << "(nx1,nx2,nx3,nt)=("
+                  << this->m_Domain.nx[0] << ", "
+                  << this->m_Domain.nx[1] << ", "
+                  << this->m_Domain.nx[2] << ", "
+                  << this->m_Domain.nt << ")" << std::endl;
+        std::cout << std::left << std::setw(indent) << " network dimensions"
+                  << this->m_CartGridDims[0] << "x"
+                  << this->m_CartGridDims[1] << std::endl;
+        std::cout << std::left << std::setw(indent) << " threads"
+                  << this->m_NumThreads << std::endl;
+        std::cout << std::left << std::setw(indent) << " (ng,nl)"
+                  << "(" << this->m_Domain.nglobal << ", "
+                  << this->m_Domain.nlocal << ")" << std::endl;
+        std::cout << line << std::endl;
+    }  // rank
 
     this->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 
@@ -540,13 +538,11 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
     std::string msg, path, filename, extension;
     PetscFunctionBegin;
 
-
     // check output arguments
     if (   this->m_ReadWriteFlags.defgrad
-        || this->m_ReadWriteFlags.detdefgrad
         || this->m_ReadWriteFlags.defmap
+        || this->m_ReadWriteFlags.detdefgrad
         || this->m_ReadWriteFlags.deffield ) {
-
         if (this->m_ReadWriteFlags.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
@@ -559,40 +555,37 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             ierr = this->Usage(); CHKERRQ(ierr);
         }
 
-        this->m_PostProcPara.computedeffields = true;
+        this->m_RegToolFlags.computedeffields = true;
 
         // set this flag to true, so that containers for reference and
         // template image are not to be deleted in registration class
         this->m_ReadWriteFlags.readfiles = true;
-
     }
 
     if (    !this->m_iVecFieldX1FN.empty()
          && !this->m_iVecFieldX2FN.empty()
          && !this->m_iVecFieldX3FN.empty() ) {
-        this->m_RegToolsFlags.readvecfield = true;
+        this->m_RegToolFlags.readvecfield = true;
     }
 
     if (!this->m_iScaFieldFN.empty()) {
-        this->m_RegToolsFlags.readscafield = true;
+        this->m_RegToolFlags.readscafield = true;
     }
 
-    if (this->m_ResamplingPara.enabled) {
-
+    if (this->m_RegToolFlags.resample) {
         if ( this->m_ResamplingPara.gridscale == -1.0 ) {
             msg = "\x1b[31m scale for rescaling needs to be set \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ) {
+        if ( !this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield ) {
             msg = "\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( this->m_RegToolsFlags.readvecfield ) {
-
+        if ( this->m_RegToolFlags.readvecfield ) {
             ierr = GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
@@ -610,28 +603,26 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX3FN = path + "/resampled_" + filename + extension;
-
         }
 
-        if ( this->m_RegToolsFlags.readscafield ) {
+        if ( this->m_RegToolFlags.readscafield ) {
             ierr = GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xScaFieldFN = path + "/resampled_" + filename + extension;
         }
-
     }
 
 
-    if (this->m_PostProcPara.computegrad) {
-        if ( !this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield ) {
+    if (this->m_RegToolFlags.computegrad) {
+        if ( !this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield ) {
             msg = "\x1b[31m computation of gradient requires input vector or scalar field \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( this->m_RegToolsFlags.readvecfield ) {
+        if ( this->m_RegToolFlags.readvecfield ) {
 /*
             ierr = GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
@@ -653,7 +644,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 */
         }
 
-        if (this->m_RegToolsFlags.readscafield) {
+        if (this->m_RegToolFlags.readscafield) {
             ierr = GetFileName(path, filename, extension, this->m_iScaFieldFN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
@@ -662,12 +653,11 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             this->m_xVecFieldX2FN = path + "/" + filename + "-gradx2" + extension;
             this->m_xVecFieldX3FN = path + "/" + filename + "-gradx3" + extension;
        }
-
     }
 
-    if (this->m_PostProcPara.tscafield || this->m_PostProcPara.tlabelmap) {
+    if (this->m_RegToolFlags.tscafield || this->m_RegToolFlags.tlabelmap) {
         // transport scalar field
-        if (!this->m_RegToolsFlags.readvecfield && !this->m_RegToolsFlags.readscafield) {
+        if (!this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield) {
             msg = "\x1b[31m solution of forward problem requires a velocity field and a scalar field \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
@@ -680,7 +670,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         this->m_xScaFieldFN = path + "/" + filename + "-transported" + extension;
     }
 
-    if (this->m_ReadWriteFlags.residual) {
+    if (this->m_RegToolFlags.computeresidual) {
         // transport scalar field
         if ( this->m_TFN.empty() || this->m_RFN.empty() ) {
             msg = "\x1b[31m reference and template images need to be set\x1b[0m\n";
@@ -703,6 +693,9 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 
 
 
-} // end of namespace
+}  // namespace reg
 
-#endif //_REGTOOLSOPT_CPP_
+
+
+
+#endif  // _REGTOOLSOPT_CPP_

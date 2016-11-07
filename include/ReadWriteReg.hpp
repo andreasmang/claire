@@ -58,6 +58,7 @@ class ReadWriteReg {
     PetscErrorCode ReadTimeSeries(Vec, std::string);
 
     PetscErrorCode Write(Vec, std::string);
+    PetscErrorCode WriteMC(Vec, std::string);
     PetscErrorCode Write(VecField*, std::string, std::string, std::string);
     PetscErrorCode WriteBlock(Vec, int*, std::string);
     PetscErrorCode WriteTimeSeries(Vec, std::string);

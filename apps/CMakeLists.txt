@@ -6,4 +6,4 @@ ADD_EXECUTABLE ( runcoldreg runcoldreg.cpp )
 
 MESSAGE(STATUS "libraries in binary ${COLD_EXTERNAL_LIBS}")
 TARGET_LINK_LIBRARIES( runcoldreg registration ${COLD_EXTERNAL_LIBS} )
-INSTALL(TARGETS runcoldreg DESTINATION bin)
+#INSTALL(TARGETS runcoldreg DESTINATION bin)

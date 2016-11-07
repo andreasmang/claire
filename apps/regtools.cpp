@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 
 #include <string>
@@ -37,6 +36,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt*);
 PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
+PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
 
 
 /********************************************************************
@@ -59,27 +59,27 @@ int main(int argc, char **argv) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    if (regopt->GetPostProcPara().enabled) {
-        ierr = RunPostProcessing(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetPostProcPara().computedeffields) {
+    if (regopt->GetFlags().computedeffields) {
         ierr = ComputeDefFields(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetPostProcPara().computegrad) {
+    } else if (regopt->GetFlags().computegrad) {
         ierr = ComputeGrad(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetResamplingPara().enabled) {
+    } else if (regopt->GetFlags().resample) {
         if (regopt->GetFlags().readvecfield) {
             ierr = ResampleVecField(regopt); CHKERRQ(ierr);
         }
         if (regopt->GetFlags().readscafield) {
             ierr = ResampleScaField(regopt); CHKERRQ(ierr);
         }
-    } else if (regopt->GetPostProcPara().tscafield) {
+    } else if (regopt->GetFlags().tscafield) {
         ierr = SolveForwardProblem(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetPostProcPara().tlabelmap) {
+    } else if (regopt->GetFlags().tlabelmap) {
         ierr = SolveForwardProblem(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetReadWriteFlags().residual) {
+    } else if (regopt->GetFlags().computeresidual) {
         ierr = ComputeResidual(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetPostProcPara().computesynvel) {
+    } else if (regopt->GetFlags().computesynvel) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().checkfwdsolve) {
+        ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
     }
 
     // clean up
@@ -240,8 +240,8 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
     // run post processing
     ierr = registration->RunPostProcessing(); CHKERRQ(ierr);
 
-    if (mT != NULL) { ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
-    if (mR != NULL) { ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
 
     if (vx1 != NULL) {ierr = VecDestroy(&vx1); CHKERRQ(ierr); vx1 = NULL;}
     if (vx2 != NULL) {ierr = VecDestroy(&vx2); CHKERRQ(ierr); vx2 = NULL;}
@@ -371,7 +371,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
     if (gridscale != 1.0) {
         // allocate container for velocity field
-        try { preproc = new reg::PreProcReg(regopt); }
+        try {preproc = new reg::PreProcReg(regopt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -607,7 +607,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
     // allocate class for registration interface
-    try { registration = new reg::RegistrationInterface(regopt); }
+    try {registration = new reg::RegistrationInterface(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -620,7 +620,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
     // if we consider a lable map, we want to truncate the values
-    if (regopt->GetPostProcPara().tlabelmap) {
+    if (regopt->GetFlags().tlabelmap) {
         // map to integer
         ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
         for (IntType i = 0; i < nl; ++i) {
@@ -740,13 +740,13 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
 
     // allocate class for io
-    try { readwrite = new reg::ReadWriteReg(regopt); }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
     // allocate class for io
-    try { v = new reg::VecField(regopt); }
+    try {v = new reg::VecField(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -811,6 +811,74 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
 }
 
 
+
+
+/********************************************************************
+ * @brief check the forward solver
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "CheckForwardSolve"
+PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    IntType nc, nl, ng;
+    Vec m0 = NULL, m1 = NULL;
+    reg::VecField *v = NULL;
+    reg::RegistrationInterface* registration = NULL;
+    reg::SynProbRegistration* synprob = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
+
+    nc = 2;
+
+    ierr = regopt->DoSetup(); CHKERRQ(ierr);
+
+    regopt->SetNumImageComponents(nc);
+
+    nc = regopt->GetDomainPara().nc;
+    nl = regopt->GetDomainPara().nlocal;
+    ng = regopt->GetDomainPara().nglobal;
+
+    // allocation
+    try {v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {registration = new reg::RegistrationInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {synprob = new reg::SynProbRegistration(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+
+    ierr = readwrite->WriteMC(m0, "initial-condition.nc"); CHKERRQ(ierr);
+    ierr = readwrite->WriteMC(m1, "final-condition.nc"); CHKERRQ(ierr);
+
+    regopt->Exit(__FUNCT__);
+
+    if (v != NULL) {delete v; v = NULL;}
+    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
+    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (synprob != NULL) {delete synprob; synprob = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

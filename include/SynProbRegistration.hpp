@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,25 +14,24 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
-
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _SYNPROBREGISTRATION_H_
 #define _SYNPROBREGISTRATION_H_
 
 #include "RegOpt.hpp"
 
-namespace reg
-{
 
 
-class SynProbRegistration
-{
 
-public:
+namespace reg {
 
+
+
+
+class SynProbRegistration {
+ public:
     typedef SynProbRegistration Self;
     SynProbRegistration();
     SynProbRegistration(RegOpt*);
@@ -42,24 +41,21 @@ public:
     PetscErrorCode ComputeExpSin(Vec);
     PetscErrorCode ComputeSphere(Vec);
     PetscErrorCode ComputeHollowSphere(Vec);
-    PetscErrorCode ComputeDiamond(Vec,const unsigned  int);
-    PetscErrorCode ComputeSmoothScalarField(Vec,const unsigned int);
+    PetscErrorCode ComputeDiamond(Vec, int);
+    PetscErrorCode ComputeSmoothScalarField(Vec, int);
 
-
-private:
+ private:
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
-
-
     RegOpt* m_Opt;
-
 };
 
 
 
-} // end of name space
+
+}  // namespace reg
 
 
 
 
-#endif// _SYNPROBREGISTRATION_H_
+#endif  // _SYNPROBREGISTRATION_H_
