@@ -248,8 +248,8 @@ PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(readwrite !=  NULL,"null pointer"); CHKERRQ(ierr);
-    this->m_ReadWrite=readwrite;
+    ierr = Assert(readwrite !=  NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
 }
@@ -268,10 +268,10 @@ PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
 PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     IntType nalloc_c,nalloc_f;
-    int _nx_f[3],_ostart_f[3],_osize_f[3],_isize_f[3],_istart_f[3],
-        _nx_c[3],_ostart_c[3],_osize_c[3],_isize_c[3],_istart_c[3];
-    ScalarType *p_xfd=NULL,*p_xcd=NULL;
-    Complex *p_xfdhat=NULL,*p_xcdhat=NULL;
+    int _nx_f[3], _ostart_f[3], _osize_f[3], _isize_f[3], _istart_f[3],
+        _nx_c[3], _ostart_c[3], _osize_c[3], _isize_c[3], _istart_c[3];
+    ScalarType *p_xfd = NULL, *p_xcd = NULL;
+    Complex *p_xfdhat = NULL, *p_xcdhat = NULL;
     MPI_Comm mpicomm;
 
     PetscFunctionBegin;
@@ -403,9 +403,9 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
     ierr = Assert(vfine != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vcoarse != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->Restrict(&vcoarse->m_X1,vfine->m_X1,nx_c,nx_f); CHKERRQ(ierr);
-    ierr = this->Restrict(&vcoarse->m_X2,vfine->m_X2,nx_c,nx_f); CHKERRQ(ierr);
-    ierr = this->Restrict(&vcoarse->m_X3,vfine->m_X3,nx_c,nx_f); CHKERRQ(ierr);
+    ierr = this->Restrict(&vcoarse->m_X1, vfine->m_X1, nx_c, nx_f); CHKERRQ(ierr);
+    ierr = this->Restrict(&vcoarse->m_X2, vfine->m_X2, nx_c, nx_f); CHKERRQ(ierr);
+    ierr = this->Restrict(&vcoarse->m_X3, vfine->m_X3, nx_c, nx_f); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -440,7 +440,8 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "applying restriction operator [" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]"
+        ss << "applying restriction operator ["
+           << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]"
            << "-> [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
     }
@@ -467,11 +468,11 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 
     // set up fft operators
     if (this->m_ResetGridChangeOps) {
-        this->m_GridChangeOpsSet=false;
-        this->m_GridChangeIndicesComputed=false;
+        this->m_GridChangeOpsSet = false;
+        this->m_GridChangeIndicesComputed = false;
     }
     if (!this->m_GridChangeOpsSet) {
-        ierr = this->SetupGridChangeOps(nx_f,nx_c); CHKERRQ(ierr);
+        ierr = this->SetupGridChangeOps(nx_f, nx_c); CHKERRQ(ierr);
     }
 
     n  = this->m_osizeC[0];
@@ -489,13 +490,13 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 } // #pragma omp parallel
 
     // compute fft of data on fine grid
-    ierr = VecGetArray(x_f,&p_xf); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTFinePlan,p_xf,this->m_XHatFine,timer);
-    ierr = VecRestoreArray(x_f,&p_xf); CHKERRQ(ierr);
+    ierr = VecGetArray(x_f, &p_xf); CHKERRQ(ierr);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTFinePlan, p_xf, this->m_XHatFine, timer);
+    ierr = VecRestoreArray(x_f, &p_xf); CHKERRQ(ierr);
 
     // compute indices
     if (!this->m_GridChangeIndicesComputed) {
-        ierr = this->ComputeGridChangeIndices(nx_f,nx_c); CHKERRQ(ierr);
+        ierr = this->ComputeGridChangeIndices(nx_f, nx_c); CHKERRQ(ierr);
     }
     ierr = this->GridChangeCommDataRestrict(); CHKERRQ(ierr);
 
@@ -504,16 +505,13 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 
     // get number of entries we are going to assign
     for (int p = 0; p < nprocs; ++p) {
-
         nr = this->m_NumRecv[p];
         os_recv = this->m_OffsetRecv[p];
 
         for (int j = 0; j < nr; ++j) {
+            bool outofbounds = false;
 
-            bool outofbounds=false;
-
-            for ( int i = 0; i < 3; ++i ) {
-
+            for (int i = 0; i < 3; ++i) {
 //                k_f[i] = this->m_FourierIndicesRecvF[3*j + i + 3*os_recv];
                 k_c[i] = this->m_FourierIndicesRecvC[3*j + i + 3*os_recv] ;
 
@@ -522,17 +520,18 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
                 i_c[i] = k_c[i] - this->m_ostartC[i];
 
                 if ( (k_c[i] < this->m_ostartC[i]) || (k_c[i] > this->m_ostartC[i] + this->m_osizeC[i]) ) {
-                    outofbounds=true;
+                    outofbounds = true;
                 }
                 if ( (i_c[i] < 0) || (i_c[i] > this->m_osizeC[i]) ) {
-                    outofbounds=true;
+                    outofbounds = true;
                 }
             }
-            if (outofbounds) std::cout << i_c[0] << " " << i_c[1] << " " << i_c[2] << std::endl;
+            if (outofbounds) {
+                std::cout << i_c[0] << " " << i_c[1] << " " << i_c[2] << std::endl;
+            }
             if (!outofbounds) {
-
                 // compute flat index
-                l = GetLinearIndex(i_c[0],i_c[1],i_c[2],this->m_osizeC);
+                l = GetLinearIndex(i_c[0], i_c[1], i_c[2], this->m_osizeC);
 
                 // get fourier coefficients
                 coeff[0] = this->m_FourierCoeffRecvF[2*j + 0 + 2*os_recv];
@@ -586,14 +585,14 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 } // pragma omp parallel
 */
     ierr = VecGetArray(*x_c,&p_xc); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTCoarsePlan,this->m_XHatCoarse,p_xc,timer);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTCoarsePlan, this->m_XHatCoarse, p_xc, timer);
     ierr = VecRestoreArray(*x_c,&p_xc); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
 
     // increment counter
-    this->m_Opt->IncrementCounter(FFT,2);
+    this->m_Opt->IncrementCounter(FFT, 2);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -611,8 +610,8 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 #define __FUNCT__ "ComputeGridChangeIndices"
 PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
-    int rank,nprocs,nowned,ncommunicate,nprocessed,xrank,cart_grid[2],p1,p2;
-    IntType oend_c[3],osc_x2,osc_x3,i_f[3],k_f[3],k_c[3],nxhalf_c[3];
+    int rank, nprocs, nowned, ncommunicate, nprocessed, xrank, cart_grid[2], p1, p2;
+    IntType oend_c[3], osc_x2, osc_x3, i_f[3], k_f[3], k_c[3], nxhalf_c[3];
     ScalarType nc[2];
     bool locallyowned,oncoarsegrid;
 
@@ -623,9 +622,9 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
-    ierr = Assert(nx_c[0] <= nx_f[0],"grid size in restriction wrong"); CHKERRQ(ierr);
-    ierr = Assert(nx_c[1] <= nx_f[1],"grid size in restriction wrong"); CHKERRQ(ierr);
-    ierr = Assert(nx_c[2] <= nx_f[2],"grid size in restriction wrong"); CHKERRQ(ierr);
+    ierr = Assert(nx_c[0] <= nx_f[0], "grid size in restriction wrong"); CHKERRQ(ierr);
+    ierr = Assert(nx_c[1] <= nx_f[1], "grid size in restriction wrong"); CHKERRQ(ierr);
+    ierr = Assert(nx_c[2] <= nx_f[2], "grid size in restriction wrong"); CHKERRQ(ierr);
 
     // allocate if necessary
     if (this->m_IndicesC.empty()) {
@@ -659,13 +658,11 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
     osc_x3 = static_cast<IntType>(std::ceil(nc[1]/static_cast<ScalarType>(cart_grid[1])));
 
     // for all points on fine grid
-    nowned=0; ncommunicate=0; nprocessed=0;
+    nowned = 0; ncommunicate = 0; nprocessed = 0;
     for (i_f[0] = 0; i_f[0] < this->m_osizeF[0]; ++i_f[0]) { // x1
         for (i_f[1] = 0; i_f[1] < this->m_osizeF[1]; ++i_f[1]) { // x2
             for (i_f[2] = 0; i_f[2] < this->m_osizeF[2]; ++i_f[2]) { // x3
-
-                oncoarsegrid=true;
-
+                oncoarsegrid = true;
                 for (int i = 0; i < 3; ++i) {
                     // compute wave number index on fine grid
                     k_f[i] = i_f[i] + this->m_ostartF[i];
@@ -673,71 +670,66 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
                     // only if current fourier entry is represented in spectral
                     // domain of coarse grid; we ignore the nyquist frequency nx_i/2
                     // because it's not informative
-                    if ( k_f[i] >= nxhalf_c[i] && k_f[i] <= (nx_f[i]-nxhalf_c[i]) ) {
-                        oncoarsegrid=false;
+                    if (k_f[i] >= nxhalf_c[i] && k_f[i] <= (nx_f[i]-nxhalf_c[i])) {
+                        oncoarsegrid = false;
                     }
                 }
 
                 if (oncoarsegrid) {
-
                     ++nprocessed;
-
-                    locallyowned=true;
-
-                    for (int i=0; i < 3; ++i) {
-
+                    locallyowned = true;
+                    for (int i = 0; i < 3; ++i) {
                         // get wave number index on coarse grid from index on fine grid
                         k_c[i] = k_f[i] <= nxhalf_c[i] ? k_f[i] : nx_c[i] - nx_f[i] + k_f[i];
 
                         // sanity checks
                         if ( (k_c[i] < 0.0) || (k_c[i] > nx_c[i]) ) {
-                            std::cout<<"index out of bounds"<<std::endl;
+                            std::cout << "index out of bounds" << std::endl;
                         }
 
                         // check if represented on current grid
                         if ( (k_c[i] < this->m_ostartC[i]) || (k_c[i] >= oend_c[i]) ) {
                             locallyowned = false;
                         }
-
                     }
 
                     // compute processor id (we do this outside, to check if
                     // we indeed land on the current processor if the points
                     // are owned; sanity check)
-                    p1=static_cast<int>(k_c[1]/osc_x2);
-                    p2=static_cast<int>(k_c[2]/osc_x3);
+                    p1 = static_cast<int>(k_c[1]/osc_x2);
+                    p2 = static_cast<int>(k_c[2]/osc_x3);
 
                     // compute rank
                     xrank = p1*cart_grid[1] + p2;
 
-                    if ( locallyowned ) { // if owned by local processor
-
+                    if (locallyowned) { // if owned by local processor
                         // assign computed indices to array (for given rank)
-                        for (int i=0; i < 3; ++i) {
+                        for (int i = 0; i < 3; ++i) {
                             this->m_IndicesC[rank].push_back(k_c[i]);
                             this->m_IndicesF[rank].push_back(k_f[i]);
                         }
 
                         // check if woned is really owned
-                        if (rank != xrank) {std::cout<<"rank not owned: "<<rank<<" "<<xrank<<std::endl;}
+                        if (rank != xrank) {
+                            std::cout << "rank not owned: " << rank << " " << xrank << std::endl;
+                        }
                         ++nowned;
-                    }
-                    else{
-
+                    } else {
                         // assign computed indices to array (for given rank)
-                        for (int i=0; i < 3; ++i) {
+                        for (int i = 0; i < 3; ++i) {
                             this->m_IndicesC[xrank].push_back(k_c[i]);
                             this->m_IndicesF[xrank].push_back(k_f[i]);
                         }
 
-                        if (rank==xrank) {std::cout<<"rank owned: "<<rank<<" "<<xrank<<std::endl;}
+                        if (rank == xrank) {
+                            std::cout << "rank owned: " << rank << " " << xrank << std::endl;
+                        }
                         ++ncommunicate;
-
                     }
                 }
-            } // i1
-        } // i2
-    } // i3
+            }  // i1
+        }  // i2
+    }  // i3
 
     MPI_Barrier(PETSC_COMM_WORLD);
     // do the communication
@@ -826,10 +818,10 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
     }
     // communicate the amount of data we will send from one
     // processor to another (all to all)
-    merr=MPI_Alltoall(&this->m_NumSend[0],1,MPIU_INT,&this->m_NumRecv[0],1,MPIU_INT,PETSC_COMM_WORLD);
+    merr = MPI_Alltoall(&this->m_NumSend[0], 1, MPIU_INT, &this->m_NumRecv[0], 1, MPIU_INT, PETSC_COMM_WORLD);
     ierr = MPIERRQ(merr); CHKERRQ(ierr);
 
-    ierr = Assert(this->m_NumSend[rank]==this->m_NumRecv[rank],"alltoall error"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumSend[rank] == this->m_NumRecv[rank], "alltoall error"); CHKERRQ(ierr);
 
     // now we compute the size of the arrays, we have to allocate locally to
     // send and recv all the data
@@ -846,7 +838,6 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
 
     // if we actually need to allocate something
     if (this->m_nAllocSend > 0) {
-
         if (this->m_ResetGridChangeOps) {
             if (this->m_FourierIndicesSendF != NULL) {
                 delete [] this->m_FourierIndicesSendF;
@@ -874,9 +865,7 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
 
         // assign indices accross all procs
         for (int p = 0; p < nprocs; ++p) {
-
             if (this->m_NumSend[p] != 0) {
-
                 // sanity check
                 n = this->m_IndicesF[p].size()/3;
 
@@ -905,28 +894,23 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
                     this->m_FourierIndicesSendC[3*j+0+3*os_send] = k_c[0];
                     this->m_FourierIndicesSendC[3*j+1+3*os_send] = k_c[1];
                     this->m_FourierIndicesSendC[3*j+2+3*os_send] = k_c[2];
-
-                } // for all points
-            } // if indices are not empty
-        } // for all procs
-
-    } // alloc
+                }  // for all points
+            }  // if indices are not empty
+        }  // for all procs
+    }  // alloc
 
     // allocate receiving array
     if (this->m_nAllocRecv > 0) {
-
         if (this->m_ResetGridChangeOps) {
-
             if (this->m_FourierIndicesRecvF != NULL) {
                 delete [] this->m_FourierIndicesRecvF;
-                this->m_FourierIndicesRecvF=NULL;
+                this->m_FourierIndicesRecvF = NULL;
             }
 
             if (this->m_FourierIndicesRecvC != NULL) {
                 delete [] this->m_FourierIndicesRecvC;
-                this->m_FourierIndicesRecvC=NULL;
+                this->m_FourierIndicesRecvC = NULL;
             }
-
         }
 
         if (this->m_FourierIndicesRecvF == NULL) {
@@ -941,13 +925,11 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
-
     } // alloc
 
     // for all procs, send indices
     for (int i = 0; i < nprocs; ++i) {
-
-        i_send=i; i_recv=i;
+        i_send = i; i_recv = i;
         this->m_SendRequest[i_send] = MPI_REQUEST_NULL;
         this->m_RecvRequest[i_recv] = MPI_REQUEST_NULL;
 
@@ -955,7 +937,7 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
         os_send = this->m_OffsetSend[i];
         if (ns > 0) {
             ierr = Assert(&this->m_FourierIndicesSendF[3*os_send] != NULL, "null pointer"); CHKERRQ(ierr);
-            merr=MPI_Isend(&this->m_FourierIndicesSendF[3*os_send],3*ns,MPIU_INT,i_send,0,PETSC_COMM_WORLD,&this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierIndicesSendF[3*os_send], 3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
@@ -963,47 +945,53 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
         os_recv = this->m_OffsetRecv[i];
         if (nr > 0) {
             ierr = Assert(&this->m_FourierIndicesRecvF[3*os_recv] != NULL, "null pointer"); CHKERRQ(ierr);
-            merr=MPI_Irecv(&this->m_FourierIndicesRecvF[3*os_recv],3*nr,MPIU_INT,i_recv,0,PETSC_COMM_WORLD,&this->m_RecvRequest[i_recv]);
+            merr=MPI_Irecv(&this->m_FourierIndicesRecvF[3*os_recv], 3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
 
     // we have to wait until all communication is
     // finished before we proceed
-    for (int i=0; i < nprocs; ++i) {
-        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_SendRequest[i], &status);}
-        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_RecvRequest[i], &status);}
+    for (int i = 0; i < nprocs; ++i) {
+        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_SendRequest[i], &status);
+        }
+        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_RecvRequest[i], &status);
+        }
     }
 
     // for all procs, send indices
     for (int i = 0; i < nprocs; ++i) {
-
-        i_send=i; i_recv=i;
+        i_send = i; i_recv = i;
         this->m_SendRequest[i_send] = MPI_REQUEST_NULL;
         this->m_RecvRequest[i_recv] = MPI_REQUEST_NULL;
 
         ns = this->m_NumSend[i];
         os_send = this->m_OffsetSend[i];
         if (ns > 0) {
-            merr=MPI_Isend(&this->m_FourierIndicesSendC[3*os_send],3*ns,MPIU_INT,i_send,0,PETSC_COMM_WORLD,&this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierIndicesSendC[3*os_send], 3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         nr = this->m_NumRecv[i];
         os_recv = this->m_OffsetRecv[i];
         if (nr > 0) {
-            merr=MPI_Irecv(&this->m_FourierIndicesRecvC[3*os_recv],3*nr,MPIU_INT,i_recv,0,PETSC_COMM_WORLD,&this->m_RecvRequest[i_recv]);
+            merr=MPI_Irecv(&this->m_FourierIndicesRecvC[3*os_recv], 3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
 
     // we have to wait until all communication is
     // finished before we proceed
-    for (int i=0; i < nprocs; ++i) {
-        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_SendRequest[i], &status);}
-        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_RecvRequest[i], &status);}
+    for (int i = 0; i < nprocs; ++i) {
+        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_SendRequest[i], &status);
+        }
+        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_RecvRequest[i], &status);
+        }
     }
-
 
     // we only have to communicate these indices once
     this->m_IndicesCommunicated = true;
@@ -1057,7 +1045,6 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
 
     // if we actually need to allocate something
     if (this->m_nAllocSend > 0) {
-
         if (this->m_ResetGridChangeOps) {
             if (this->m_FourierCoeffSendF != NULL) {
                 delete [] this->m_FourierCoeffSendF;
@@ -1074,7 +1061,6 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
 
         for (int p = 0; p < nprocs; ++p) {
             n = this->m_NumSend[p];
-
             if (n != 0) {
                 os_send = this->m_OffsetSend[p];
 
@@ -1095,7 +1081,6 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
                     // assign values to coarse grid
                     this->m_FourierCoeffSendF[2*j+0+2*os_send] = this->m_XHatFine[l][0];
                     this->m_FourierCoeffSendF[2*j+1+2*os_send] = this->m_XHatFine[l][1];
-
                 }  // for all points
             }  // if indices are not empty
         }  // for all procs
@@ -1125,21 +1110,25 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
         os_send = this->m_OffsetSend[i];
         ns = this->m_NumSend[i];
         if (ns > 0) {
-            merr=MPI_Isend(&this->m_FourierCoeffSendF[2*os_send],2*ns,MPI_DOUBLE,i_send,0,PETSC_COMM_WORLD,&this->m_SendRequest[i_send]);
+            merr=MPI_Isend(&this->m_FourierCoeffSendF[2*os_send], 2*ns, MPI_DOUBLE, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         os_recv = this->m_OffsetRecv[i];
         nr = this->m_NumRecv[i];
         if (nr > 0) {
-            merr=MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv],2*nr,MPI_DOUBLE,i_recv,0,PETSC_COMM_WORLD,&this->m_RecvRequest[i_recv]);
+            merr=MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv], 2*nr, MPI_DOUBLE, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
 
-    for (int i=0; i < nprocs; ++i) {
-        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_SendRequest[i], &status);}
-        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_RecvRequest[i], &status);}
+    for (int i = 0; i < nprocs; ++i) {
+        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_SendRequest[i], &status);
+        }
+        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_RecvRequest[i], &status);
+        }
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1200,8 +1189,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
                 this->m_FourierCoeffSendC = NULL;
             }
         }
-
-        if (this->m_FourierCoeffSendC==NULL) {
+        if (this->m_FourierCoeffSendC == NULL) {
             try{this->m_FourierCoeffSendC = new ScalarType[this->m_nAllocRecv*2];}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1212,12 +1200,9 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
             n = this->m_NumRecv[p];
 
             if (n != 0) {
-
                 os_recv = this->m_OffsetRecv[p];
-
                 for (int j = 0; j < n; ++j) {
                     for (int i = 0; i < 3; ++i) {
-
                         // get index (in local space)
                         i_c[i] = this->m_FourierIndicesRecvC[3*j + i + 3*os_recv] - this->m_ostartC[i];
 
@@ -1228,26 +1213,25 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
                     }
 
                     // compute flat index
-                    l = GetLinearIndex(i_c[0],i_c[1],i_c[2],this->m_osizeC);
+                    l = GetLinearIndex(i_c[0], i_c[1], i_c[2], this->m_osizeC);
 
                     // assign values to coarse grid
                     this->m_FourierCoeffSendC[2*j+0+2*os_recv] = this->m_XHatCoarse[l][0];
                     this->m_FourierCoeffSendC[2*j+1+2*os_recv] = this->m_XHatCoarse[l][1];
-
-                } // for all points
-            } // if indices are not empty
-        } // for all procs
+                }  // for all points
+            }  // if indices are not empty
+        }  // for all procs
     }
 
     if (this->m_nAllocSend > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierCoeffRecvC!=NULL) {
+            if (this->m_FourierCoeffRecvC != NULL) {
                 delete [] this->m_FourierCoeffRecvC;
-                this->m_FourierCoeffRecvC=NULL;
+                this->m_FourierCoeffRecvC = NULL;
             }
         }
 
-        if (this->m_FourierCoeffRecvC==NULL) {
+        if (this->m_FourierCoeffRecvC == NULL) {
             try{this->m_FourierCoeffRecvC = new ScalarType[this->m_nAllocSend*2];}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1264,21 +1248,25 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
         os_send = this->m_OffsetRecv[i];
         ns = this->m_NumRecv[i];
         if (ns > 0) {
-            merr=MPI_Isend(&this->m_FourierCoeffSendC[2*os_send],2*ns,MPI_DOUBLE,i_send,0,PETSC_COMM_WORLD,&this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierCoeffSendC[2*os_send], 2*ns, MPI_DOUBLE, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         os_recv = this->m_OffsetSend[i];
         nr = this->m_NumSend[i];
         if (nr > 0) {
-            merr=MPI_Irecv(&this->m_FourierCoeffRecvC[2*os_recv],2*nr,MPI_DOUBLE,i_recv,0,PETSC_COMM_WORLD,&this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierCoeffRecvC[2*os_recv], 2*nr, MPI_DOUBLE, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
 
     for (int i = 0; i < nprocs; ++i) {
-        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_SendRequest[i], &status);}
-        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {MPI_Wait(&this->m_RecvRequest[i], &status);}
+        if (this->m_SendRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_SendRequest[i], &status);
+        }
+        if (this->m_RecvRequest[i] != MPI_REQUEST_NULL) {
+            MPI_Wait(&this->m_RecvRequest[i], &status);
+        }
     }
 
     this->m_Opt->Exit(__FUNCT__);
@@ -1358,7 +1346,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     }
 
     if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ) {
-        ierr = VecCopy(x_c,*x_f); CHKERRQ(ierr);
+        ierr = VecCopy(x_c, *x_f); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
     }
 
@@ -1368,13 +1356,13 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     }
 
     if (this->m_ResetGridChangeOps) {
-        this->m_GridChangeOpsSet=false;
-        this->m_GridChangeIndicesComputed=false;
+        this->m_GridChangeOpsSet = false;
+        this->m_GridChangeIndicesComputed = false;
     }
 
     // set up fft operators
     if (!this->m_GridChangeOpsSet) {
-        ierr = this->SetupGridChangeOps(nx_f,nx_c); CHKERRQ(ierr);
+        ierr = this->SetupGridChangeOps(nx_f, nx_c); CHKERRQ(ierr);
     }
 
     n  = this->m_osizeF[0];
@@ -1393,13 +1381,13 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 } // pragma omp parallel
 
     // compute fft of data on fine grid
-    ierr = VecGetArray(x_c,&p_xc); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTCoarsePlan,p_xc,this->m_XHatCoarse,timer);
-    ierr = VecRestoreArray(x_c,&p_xc); CHKERRQ(ierr);
+    ierr = VecGetArray(x_c, &p_xc); CHKERRQ(ierr);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTCoarsePlan, p_xc, this->m_XHatCoarse, timer);
+    ierr = VecRestoreArray(x_c, &p_xc); CHKERRQ(ierr);
 
     // compute indices for mapping from coarse grid to fine grid
     if (!this->m_GridChangeIndicesComputed) {
-        ierr = this->ComputeGridChangeIndices(nx_f,nx_c); CHKERRQ(ierr);
+        ierr = this->ComputeGridChangeIndices(nx_f, nx_c); CHKERRQ(ierr);
     }
     ierr = this->GridChangeCommDataProlong(); CHKERRQ(ierr);
 
@@ -1408,16 +1396,12 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 
     // get number of entries we are going to assign
     for (int p = 0; p < nprocs; ++p) {
-
         ns = this->m_NumSend[p];
         os_send = this->m_OffsetSend[p];
 
         for (int j = 0; j < ns; ++j) {
-
-            bool outofbounds=false;
-
-            for ( int i = 0; i < 3; ++i ) {
-
+            bool outofbounds = false;
+            for (int i = 0; i < 3; ++i) {
                 k_f[i] = this->m_FourierIndicesSendF[3*j + i + 3*os_send] ;
 
                 // get wave number index on coarse grid from index on fine grid
@@ -1431,9 +1415,10 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
                     outofbounds=true;
                 }
             }
-            if (outofbounds) std::cout << i_f[0] << " " << i_f[1] << " " << i_f[2] << std::endl;
+            if (outofbounds) {
+                std::cout << i_f[0] << " " << i_f[1] << " " << i_f[2] << std::endl;
+            }
             if (!outofbounds) {
-
                 // compute flat index
                 l = GetLinearIndex(i_f[0],i_f[1],i_f[2],this->m_osizeF);
 
@@ -1489,15 +1474,15 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 */
 
 
-    ierr = VecGetArray(*x_f,&p_xf); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTFinePlan,this->m_XHatFine,p_xf,timer);
-    ierr = VecRestoreArray(*x_f,&p_xf); CHKERRQ(ierr);
+    ierr = VecGetArray(*x_f, &p_xf); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTFinePlan, this->m_XHatFine, p_xf, timer);
+    ierr = VecRestoreArray(*x_f, &p_xf); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
 
     // increment counter
-    this->m_Opt->IncrementCounter(FFT,2);
+    this->m_Opt->IncrementCounter(FFT, 2);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1523,9 +1508,9 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt, VecField* v, Scal
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = this->ApplyRectFreqFilter(vflt->m_X1,v->m_X1,pct,lowpass); CHKERRQ(ierr);
-    ierr = this->ApplyRectFreqFilter(vflt->m_X2,v->m_X2,pct,lowpass); CHKERRQ(ierr);
-    ierr = this->ApplyRectFreqFilter(vflt->m_X3,v->m_X3,pct,lowpass); CHKERRQ(ierr);
+    ierr = this->ApplyRectFreqFilter(vflt->m_X1, v->m_X1, pct, lowpass); CHKERRQ(ierr);
+    ierr = this->ApplyRectFreqFilter(vflt->m_X2, v->m_X2, pct, lowpass); CHKERRQ(ierr);
+    ierr = this->ApplyRectFreqFilter(vflt->m_X3, v->m_X3, pct, lowpass); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1550,22 +1535,22 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
     ScalarType *p_x = NULL, *p_xflt = NULL;
     ScalarType nxhalf[3], scale, cfreq[3][2], indicator[2], indic;
     int nx[3];
-    double timer[5]={0, 0, 0, 0, 0};
+    double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(x!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xflt!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr = Assert(pct >= 0.0 && pct <= 1.0,"parameter error"); CHKERRQ(ierr);
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xflt != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(pct >= 0.0 && pct <= 1.0, "parameter error"); CHKERRQ(ierr);
 
     if (pct == 1.0 && lowpass) {
-        ierr = VecCopy(x,xflt); CHKERRQ(ierr);
+        ierr = VecCopy(x, xflt); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
     }
     if (pct == 1.0 && !lowpass) {
-        ierr = VecSet(xflt,0.0); CHKERRQ(ierr);
+        ierr = VecSet(xflt, 0.0); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
     }
 
@@ -1578,10 +1563,12 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
     }
 
     // get local pencil size and allocation size
-    nalloc=this->m_Opt->GetFFT().nalloc;
+    nalloc = this->m_Opt->GetFFT().nalloc;
 
     // allocate
-    if (this->m_xhat==NULL) { this->m_xhat=(ScalarTypeFD*)accfft_alloc(nalloc); }
+    if (this->m_xhat == NULL) {
+        this->m_xhat = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc));
+    }
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
@@ -1592,7 +1579,7 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
 
     // compute fft
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan,p_x,this->m_xhat,timer);
+    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
     // compute cutoff frequency
@@ -1609,10 +1596,9 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
     long int w[3];
     IntType li,i1,i2,i3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) { // x1
-        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) { // x2
-            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) { // x3
-
+    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
                 w[0] = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
                 w[1] = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
@@ -1626,13 +1612,12 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
                 indic = inside ? indicator[0] : indicator[1];
 
                 // compute linear / flat index
-                li = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                li = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
-                if ( indic == 0 ) {
+                if (indic == 0) {
                     this->m_xhat[li][0] = 0.0;
                     this->m_xhat[li][1] = 0.0;
-                }
-                else{
+                } else {
                     this->m_xhat[li][0] *= scale;
                     this->m_xhat[li][1] *= scale;
                 }
@@ -1645,15 +1630,15 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
 
 
     // compute inverse fft
-    ierr = VecGetArray(xflt,&p_xflt); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan,this->m_xhat,p_xflt,timer);
-    ierr = VecRestoreArray(xflt,&p_xflt); CHKERRQ(ierr);
+    ierr = VecGetArray(xflt, &p_xflt); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan, this->m_xhat, p_xflt, timer);
+    ierr = VecRestoreArray(xflt, &p_xflt); CHKERRQ(ierr);
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
 
     // increment counter
-    this->m_Opt->IncrementCounter(FFT,2);
+    this->m_Opt->IncrementCounter(FFT, 2);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -1671,7 +1656,8 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
 PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
-    ScalarType *p_x = NULL, *p_xsmooth = NULL, nx[3], c[3], scale;
+    ScalarType *p_x = NULL, *p_xsmooth = NULL, c[3], scale; //, nx[3];
+    int nx[3];
     double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
@@ -1690,7 +1676,8 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i]);
+        //nx[i] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i]);
+        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
         // sigma is provided by user in # of grid points
         c[i] = this->m_Opt->GetSigma(i)*this->m_Opt->GetDomainPara().hx[i];
         c[i] *= c[i];
@@ -1703,30 +1690,40 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
     accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
+                std::cout<< this->m_Opt->GetFFT().osize[0] <<std::endl;
+                std::cout<< this->m_Opt->GetFFT().osize[1] <<std::endl;
+                std::cout<< this->m_Opt->GetFFT().osize[2] <<std::endl;
 #pragma omp parallel
 {
     IntType i1, i2, i3, li;
-    ScalarType sik, k1, k2, k3;
-    bool flagx1, flagx2, flagx3;
+    //ScalarType sik, k1, k2, k3;
+    ScalarType sik;
+    long int k1, k2, k3;
+//    bool flagx1, flagx2, flagx3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) { // x1
-        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) { // x2
-            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) { // x3
+    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {  // x3
 
                 // compute coordinates (nodal grid)
-                k1 = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                k2 = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                k3 = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                //k1 = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                //k2 = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                //k3 = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                k1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                k2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                k3 = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
                 // check if grid index is larger or smaller then
                 // half of the total grid size
-                flagx1 = (k1 <= nx[0]*0.5);
-                flagx2 = (k2 <= nx[1]*0.5);
-                flagx3 = (k3 <= nx[2]*0.5);
-
-                k1 = flagx1 ? k1 : -nx[0] + k1;
-                k2 = flagx2 ? k2 : -nx[1] + k2;
-                k3 = flagx3 ? k3 : -nx[2] + k3;
+                //flagx1 = (k1 <= nx[0]*0.5);
+                //flagx2 = (k2 <= nx[1]*0.5);
+                //flagx3 = (k3 <= nx[2]*0.5);
+                //k1 = flagx1 ? k1 : -nx[0] + k1;
+                //k2 = flagx2 ? k2 : -nx[1] + k2;
+                //k3 = flagx3 ? k3 : -nx[2] + k3;
+                if (k1 > nx[0]/2) k1 -= nx[0];
+                if (k2 > nx[1]/2) k2 -= nx[1];
+                if (k3 > nx[2]/2) k3 -= nx[2];
 
                 sik = 0.5*( (k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]) );
                 sik = exp(-sik);
@@ -1736,12 +1733,10 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
 
                 this->m_xhat[li][0] *= scale*sik;
                 this->m_xhat[li][1] *= scale*sik;
-
-            } // i1
-        } // i2
-    } // i3
-
-} // pragma omp parallel
+            }  // i1
+        }  // i2
+    }  // i3
+}  // pragma omp parallel
 
     // compute inverse fft
     ierr = VecGetArray(xsmooth, &p_xsmooth); CHKERRQ(ierr);
@@ -1822,7 +1817,9 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
         lT = static_cast<int>(p_mtl[i]);
 
         // compute intersection
-        if (lR == lT) {icommon[lR]++;}
+        if (lR == lT) {
+            icommon[lR]++;
+        }
         nlR[lR]++;
         nlT[lT]++;
 

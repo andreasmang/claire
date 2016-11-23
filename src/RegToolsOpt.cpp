@@ -58,6 +58,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<unsigned int> nx;
+    std::vector<unsigned int> nxr;
     std::vector<unsigned int> np;
     std::vector<unsigned int> sigma;
     PetscFunctionBegin;
@@ -238,6 +239,26 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-rscale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
+        } else if (strcmp(argv[1], "-nxr") == 0) {
+            argc--; argv++;
+            const std::string nxinput = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            nxr = String2Vec( nxinput );
+
+            if (nxr.size() == 1) {
+                for(int i = 0; i < 3; ++i) {
+                    this->m_ResamplingPara.nx[i] = static_cast<IntType>(nxr[0]);
+                }
+            } else if (nxr.size() == 3) {
+                for(int i = 0; i < 3; ++i) {
+                    this->m_ResamplingPara.nx[i] = static_cast<IntType>(nxr[i]);
+                }
+            } else {
+                msg = "\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-resample") == 0) {
             this->m_RegToolFlags.resample = true;
         } else if (strcmp(argv[1], "-verbosity") == 0) {
@@ -325,6 +346,9 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.convert = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
+    this->m_ResamplingPara.nx[0] = -1.0;
+    this->m_ResamplingPara.nx[1] = -1.0;
+    this->m_ResamplingPara.nx[2] = -1.0;
 
     PetscFunctionReturn(0);
 }
@@ -420,6 +444,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -resample                 resample data (requires input scalar or vector field;"<<std::endl;
         std::cout << "                           output is input_resampled.ext)"<<std::endl;
         std::cout << " -rscale                   scale for resampling (multiplier applied to number of grid points)"<<std::endl;
+        std::cout << " -nxr                      number of grid points for output"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;
@@ -591,9 +616,9 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         this->m_ReadWriteFlags.readfiles = true;
     }
 
-    if (    !this->m_iVecFieldX1FN.empty()
-         && !this->m_iVecFieldX2FN.empty()
-         && !this->m_iVecFieldX3FN.empty() ) {
+    if ( !this->m_iVecFieldX1FN.empty()
+      && !this->m_iVecFieldX2FN.empty()
+      && !this->m_iVecFieldX3FN.empty() ) {
         this->m_RegToolFlags.readvecfield = true;
     }
 
@@ -602,40 +627,43 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
     }
 
     if (this->m_RegToolFlags.resample) {
-        if ( this->m_ResamplingPara.gridscale == -1.0 ) {
-            msg = "\x1b[31m scale for rescaling needs to be set \x1b[0m\n";
-            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+        if ( (this->m_ResamplingPara.gridscale == -1.0)
+           && ( (this->m_ResamplingPara.nx[0] == -1.0)
+             || (this->m_ResamplingPara.nx[1] == -1.0)
+             || (this->m_ResamplingPara.nx[2] == -1.0))) {
+            msg = "\x1b[31m number of grid points/scale for grid points needs to be set \x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( !this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield ) {
+        if (!this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield) {
             msg = "\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( this->m_RegToolFlags.readvecfield ) {
-            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
+        if (this->m_RegToolFlags.readvecfield) {
+            ierr = GetFileName(path, filename, extension, this->m_iVecFieldX1FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX1FN = path + "/resampled_" + filename + extension;
 
-            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX2FN); CHKERRQ(ierr);
+            ierr = GetFileName(path, filename, extension, this->m_iVecFieldX2FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX2FN = path + "/resampled_" + filename + extension;
 
-            ierr = GetFileName(path,filename,extension,this->m_iVecFieldX3FN); CHKERRQ(ierr);
+            ierr = GetFileName(path, filename, extension, this->m_iVecFieldX3FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
             this->m_xVecFieldX3FN = path + "/resampled_" + filename + extension;
         }
 
-        if ( this->m_RegToolFlags.readscafield ) {
-            ierr = GetFileName(path,filename,extension,this->m_iScaFieldFN); CHKERRQ(ierr);
+        if (this->m_RegToolFlags.readscafield) {
+            ierr = GetFileName(path, filename, extension, this->m_iScaFieldFN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
@@ -651,7 +679,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if ( this->m_RegToolFlags.readvecfield ) {
+        if (this->m_RegToolFlags.readvecfield) {
 /*
             ierr = GetFileName(path,filename,extension,this->m_iVecFieldX1FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {

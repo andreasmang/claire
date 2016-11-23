@@ -32,6 +32,7 @@ namespace reg {
 
 struct ResamplingPara {
     ScalarType gridscale;
+    IntType nx[3];
 };
 
 

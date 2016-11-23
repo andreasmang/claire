@@ -186,7 +186,9 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
 #else
         ierr = ThrowError("install pnetcdf library/enable pnetcdf support"); CHKERRQ(ierr);
 #endif
-    } else { ierr = ThrowError("could not read: data type not supported"); CHKERRQ(ierr); }
+    } else {
+        ierr = ThrowError("could not read: data type not supported"); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -543,14 +545,13 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
 PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     std::string msg, file;
     std::stringstream ss;
     int nprocs, rank, rval;
     IntType nx[3], isize[3], istart[3];
     IntType ng, ngx, nl, i1, i2, i3, j1, j2, j3, l, k;
-    ScalarType *p_x = NULL;
-    ScalarType *comdata = NULL;
+    ScalarType *p_x = NULL, *comdata = NULL;
     nifti_image *image = NULL;
 
     PetscFunctionBegin;
@@ -565,7 +566,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
     // read header file
     image = nifti_image_read(filename.c_str(), false);
-    msg="could not read nifti image " + file;
+    msg = "could not read nifti image " + file;
     ierr = Assert(image != NULL, msg); CHKERRQ(ierr);
 
     // get number of grid points
@@ -573,27 +574,36 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     nx[1] = static_cast<IntType>(image->ny);
     nx[2] = static_cast<IntType>(image->nz);
 
+    for (int i = 0; i < 3; ++i) {
+        if (nx[i] % 2 != 0) {
+            std::cout << "grid size is not odd " << nx[i] << std::endl;
+//            nx[i]++;
+        }
+    }
+
     // if we read images, we want to make sure that they have the same size
     if (   (this->m_nx[0] == -1)
         && (this->m_nx[1] == -1)
         && (this->m_nx[2] == -1) ) {
 
-        for (int i = 0; i < 3; ++i) { this->m_nx[i] = nx[i]; }
+        for (int i = 0; i < 3; ++i) {
+            this->m_nx[i] = nx[i];
+        }
 
         if(this->m_Opt->GetVerbosity() > 2) {
-            ss << "grid size ("<<nx[0]<<","<<nx[1]<<","<<nx[2]<<")";
+            ss << "grid size (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         }
     } else {
-        msg="grid size of images varies: perform affine registration first";
+        msg = "grid size of images varies: perform affine registration first";
         for (int i = 0; i < 3; ++i) {
-            ierr = Assert(this->m_nx[i] == nx[i],msg); CHKERRQ(ierr);
+            ierr = Assert(this->m_nx[i] == nx[i], msg); CHKERRQ(ierr);
         }
     }
 
     // pass number of grid points to options
     for (int i = 0; i < 3; ++i) {
-        this->m_Opt->SetNumGridPoints(i,nx[i]);
+        this->m_Opt->SetNumGridPoints(i, nx[i]);
     }
 
     // do the setup before running the code (this essentially
@@ -611,13 +621,16 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     }
 
     //check global size
-    ngx=1; for (int i = 0; i < 3; ++i) { ngx*=nx[i]; }
-    ierr = Assert(ng==ngx,"global size mismatch"); CHKERRQ(ierr);
+    ngx = 1;
+    for (int i = 0; i < 3; ++i) {
+        ngx *= nx[i];
+    }
+    ierr = Assert(ng == ngx, "global size mismatch"); CHKERRQ(ierr);
 
     // allocate vector
-    if ( *x != NULL ) { ierr = VecDestroy(x); CHKERRQ(ierr); }
-    ierr = VecCreate(PETSC_COMM_WORLD,x); CHKERRQ(ierr);
-    ierr = VecSetSizes(*x,nl,ng); CHKERRQ(ierr);
+    if (*x != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr);}
+    ierr = VecCreate(PETSC_COMM_WORLD, x); CHKERRQ(ierr);
+    ierr = VecSetSizes(*x, nl, ng); CHKERRQ(ierr);
     ierr = VecSetFromOptions(*x); CHKERRQ(ierr);
 
 
@@ -626,7 +639,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
         // allocate data buffer
         if (this->m_Data != NULL) {
             delete this->m_Data;
-            this->m_Data=NULL;
+            this->m_Data = NULL;
         }
 
         // allocate data buffer
@@ -639,18 +652,17 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
         // get all the sizes to read and assign data correctly
         if (this->m_iSizeC == NULL) {
-            try{ this->m_iSizeC = new IntType[3*nprocs]; }
+            try {this->m_iSizeC = new IntType[3*nprocs];}
             catch(std::bad_alloc&) {
                 ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         if (this->m_iStartC == NULL) {
-            try{ this->m_iStartC = new IntType[3*nprocs]; }
+            try {this->m_iStartC = new IntType[3*nprocs];}
             catch(std::bad_alloc&) {
                 ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
-
     }
 
     if (this->m_nSend == NULL) {
@@ -690,7 +702,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
         catch (std::bad_alloc&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        k=0;
+
+        k = 0;
         for (int p = 0; p < nprocs; ++p) {
             for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
                 for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
@@ -705,7 +718,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
                 }  // for i2
             }  // for i3
         }  // for all procs
-    }
+    }  // on master rank
 
     int nrecv = static_cast<int>(nl);
 
@@ -722,7 +735,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     PetscFunctionReturn(0);
 }
 #endif
-
 
 
 
@@ -834,13 +846,14 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename
 
 
 
+
 /********************************************************************
  * @brief get component type of NII images
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
 #undef __FUNCT__
 #define __FUNCT__ "ReadNII"
-template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage,std::string filename) {
+template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename) {
     PetscErrorCode ierr;
     T *data = NULL;
     std::string msg;
@@ -852,11 +865,11 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 
     this->m_Opt->Enter(__FUNCT__);
 
-    ierr = Assert(this->m_Data != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Data != NULL, "null pointer"); CHKERRQ(ierr);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     msg = "should only be called on master/root rank";
-    ierr = Assert(rank==0, msg); CHKERRQ(ierr);
+    ierr = Assert(rank == 0, msg); CHKERRQ(ierr);
 
     if (nifti_image_load(niiimage) == -1) {
         msg="could not read image " + filename;
@@ -865,7 +878,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 
     // assign data
     data = static_cast<T*>(niiimage->data);
-    ierr = Assert(data != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(data != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get global number of points
     ng = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
@@ -878,9 +891,9 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
     this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(0);
-
 }
 #endif
+
 
 
 
@@ -919,6 +932,7 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x, std::string filename) {
     PetscFunctionReturn(0);
 }
 #endif
+
 
 
 
@@ -1036,7 +1050,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
         // to parse the dimensions of the data)
         if ((*image) == NULL) {
             if (this->m_Opt->GetVerbosity() >= 4) {
-                msg="allocating buffer for nifti image";
+                msg = "allocating buffer for nifti image";
                 ierr = DbgMsg(msg); CHKERRQ(ierr);
             }
             ierr = this->AllocateNII(image, x); CHKERRQ(ierr);
@@ -1050,7 +1064,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
 
         // get temp extension
         const char* exttemp = nifti_find_file_extension(file.c_str());
-        if (exttemp == NULL) { exttemp=".nii"; }
+        if (exttemp == NULL) {exttemp = ".nii";}
 
         // set extension
         const std::string ext(exttemp);
@@ -1064,16 +1078,15 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
         const std::string::size_type sep = ext.rfind(".gz");
         const bool iscompressed = (sep == std::string::npos) ? false : true;
 
-        if ( (ext == ".nii") || (ext == ".nii.gz") ) {
+        if ((ext == ".nii") || (ext == ".nii.gz")) {
             (*image)->nifti_type = NIFTI_FTYPE_NIFTI1_1;
-        }
-        else if ( ext == ".nia" ) {
+        } else if (ext == ".nia") {
             (*image)->nifti_type = NIFTI_FTYPE_ASCII;
-        }
-        else if ( (ext == ".hdr") || (ext == ".img") || (ext == ".hdr.gz") || (ext == ".img.gz") ) {
+        } else if ((ext == ".hdr") || (ext == ".img") || (ext == ".hdr.gz") || (ext == ".img.gz")) {
             (*image)->nifti_type = NIFTI_FTYPE_NIFTI1_2;
+        } else {
+            ierr = ThrowError("file extension not supported"); CHKERRQ(ierr);
         }
-        else{ ierr = ThrowError("file extension not supported"); CHKERRQ(ierr); }
 
         (*image)->fname = nifti_makehdrname(bname.c_str(), (*image)->nifti_type, false, iscompressed);
         (*image)->iname = nifti_makeimgname(bname.c_str(), (*image)->nifti_type, false, iscompressed);
@@ -1085,16 +1098,15 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
 
         // cast pointer of nifti image data
         data = static_cast<T*>((*image)->data);
-
 #pragma omp parallel
 {
 #pragma omp for
-        for (IntType i=0; i < ng; ++i) {
+        for (IntType i = 0; i < ng; ++i) {
             data[i] = static_cast<T>(p_xc[i]);
         }
-} /// pragma omp parallel
+}  /// pragma omp parallel
         ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
-    } else{
+    } else {
         // allocate the index buffers on master rank
         if (rank == 0) {
             // get all the sizes to read and assign data correctly
@@ -1142,7 +1154,6 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
         if (rank == 0) {
             data = static_cast<T*>((*image)->data);
             ierr = VecGetArray(xcollect, &p_xc); CHKERRQ(ierr);
-
             IntType k = 0;
             for(int p = 0; p < nprocs; ++p) {
                 for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
@@ -1158,9 +1169,8 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
                     }  // for i2
                 }  // for i3
             }  // for all procs
-
-            ierr = VecRestoreArray(xcollect,&p_xc); CHKERRQ(ierr);
-        }  // if on master
+            ierr = VecRestoreArray(xcollect, &p_xc); CHKERRQ(ierr);
+        }   // if on master
     }  // else
 
     // clear memory
@@ -1182,8 +1192,8 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
 #undef __FUNCT__
 #define __FUNCT__ "AllocateNII"
 PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
-    PetscErrorCode ierr;
-    PetscInt n;
+    PetscErrorCode ierr = 0;
+    IntType n;
     int rank;
 
     PetscFunctionBegin;
@@ -1191,7 +1201,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     this->m_Opt->Enter(__FUNCT__);
 
     // get rank
-    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // init nifty image
     *image = nifti_simple_init_nim();
@@ -1199,10 +1209,10 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     // dimensionalty of data: default is 5 (space, time, components)
     (*image)->dim[0] = (*image)->ndim = 5;
 
-    ierr = VecGetLocalSize(x,&n); CHKERRQ(ierr);
-    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetNumGridPoints(0);
-    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetNumGridPoints(1);
-    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetNumGridPoints(2);
+    ierr = VecGetLocalSize(x, &n); CHKERRQ(ierr);
+    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[0];
+    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
+    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[2];
 
     (*image)->pixdim[1] = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);  // x direction
     (*image)->pixdim[2] = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);  // y direction
@@ -1253,7 +1263,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
 
     // only allocate image buffer on root
     if (rank == 0) {
-        try { (*image)->data = new ScalarType[(*image)->nvox]; }
+        try {(*image)->data = new ScalarType[(*image)->nvox];}
         catch (std::bad_alloc&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1264,6 +1274,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     PetscFunctionReturn(0);
 }
 #endif
+
 
 
 
@@ -1278,9 +1289,9 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename) {
     PetscViewer viewer=NULL;
     PetscFunctionBegin;
 
-    if(*x!=NULL) { ierr = VecDestroy(x); CHKERRQ(ierr);*x=NULL;}
+    if (*x != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;}
 
-    if ( !this->m_Opt->SetupDone() ) {
+    if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1311,7 +1322,7 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename) {
 #define __FUNCT__ "WriteBIN"
 PetscErrorCode ReadWriteReg::WriteBIN(Vec x, std::string filename) {
     PetscErrorCode ierr = 0;
-    PetscViewer viewer=NULL;
+    PetscViewer viewer = NULL;
     PetscFunctionBegin;
 
     ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename.c_str(), FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
@@ -1404,9 +1415,9 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x, std::string filename) {
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    if((*x) != NULL) { ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL; }
+    if ((*x) != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;}
 
-    if ( !this->m_Opt->SetupDone() ) {
+    if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1469,13 +1480,16 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
 
     // file creation mode
     mode=NC_CLOBBER;
-    if (usecdf5) { mode = NC_CLOBBER | NC_64BIT_DATA; }
-    else         { mode = NC_CLOBBER | NC_64BIT_OFFSET; }
+    if (usecdf5) {
+        mode = NC_CLOBBER | NC_64BIT_DATA;
+    } else {
+        mode = NC_CLOBBER | NC_64BIT_OFFSET;
+    }
 
     c_comm = this->m_Opt->GetFFT().mpicomm;
 
     // create netcdf file
-    ncerr=ncmpi_create(c_comm,filename.c_str(),mode,MPI_INFO_NULL,&fileid);
+    ncerr = ncmpi_create(c_comm, filename.c_str(), mode, MPI_INFO_NULL, &fileid);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     nx[0] = static_cast<int>(this->m_Opt->GetDomainPara().nx[0]);
@@ -1486,13 +1500,13 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
     // set size
     ncerr = ncmpi_def_dim(fileid, "x", nx[0], &dims[0]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
-    ncerr=ncmpi_def_dim(fileid, "y", nx[1], &dims[1]);
+    ncerr = ncmpi_def_dim(fileid, "y", nx[1], &dims[1]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
     ncerr = ncmpi_def_dim(fileid, "z", nx[2], &dims[2]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     // define name for output field
-    ncerr=ncmpi_def_var(fileid, "data", NC_DOUBLE, 3, dims, &varid[0]);
+    ncerr = ncmpi_def_var(fileid, "data", NC_DOUBLE, 3, dims, &varid[0]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     iscdf5 = usecdf5 ? 1 : 0;
@@ -1517,7 +1531,7 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
 
     // write data to file
     ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-    ncerr=ncmpi_put_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPI_DOUBLE);
+    ncerr = ncmpi_put_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPI_DOUBLE);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
     ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 
@@ -1532,8 +1546,9 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
 
 
 
-} // end of name space
+}  // namespace reg
 
 
 
-#endif //  _READWRITEREG_CPP_
+
+#endif  // _READWRITEREG_CPP_

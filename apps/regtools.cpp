@@ -351,6 +351,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     int rank;
     IntType nl, ng, nx[3], nxl[3];
     ScalarType gridscale, value;
+    bool pro, res;
     Vec m = NULL, ml = NULL;
     reg::PreProcReg* preproc = NULL;
     reg::ReadWriteReg* readwrite = NULL;
@@ -372,12 +373,41 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     ierr = readwrite->Read(&m, filename); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if ( !regopt->SetupDone() ) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
     // compute grid size
     gridscale = regopt->GetResamplingPara().gridscale;
 
+    for (int i = 0; i < 3; ++i) {
+        nx[i] = regopt->GetDomainPara().nx[i];
+    }
+
+    pro = false; res = false;
     if (gridscale != 1.0) {
+        if (gridscale == -1.0) {
+            for (int i = 0; i < 3; ++i) {
+                nxl[i] = regopt->GetResamplingPara().nx[i];
+                ierr = reg::Assert(nxl[i] > 0, "input error"); CHKERRQ(ierr);
+                if (nxl[i] > nx[i]) {
+                    pro = true;
+                } else if (nxl[i] < nx[i]) {
+                    res = true;
+                }
+            }
+        } else {
+            for (int i = 0; i < 3; ++i) {
+                value = gridscale*static_cast<ScalarType>(regopt->GetDomainPara().nx[i]);
+                nxl[i] = static_cast<IntType>(ceil(value));
+            }
+            if (gridscale > 1) {
+                pro = true;
+            } else if (gridscale < 1) {
+                res = true;
+            }
+        }
+    }
+
+    if (pro || res) {
         // allocate container for velocity field
         try {preproc = new reg::PreProcReg(regopt);}
         catch (std::bad_alloc&) {
@@ -385,11 +415,6 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
         }
         preproc->ResetGridChangeOps(true);
 
-        for (int i=0; i < 3; ++i) {
-            nx[i] = regopt->GetDomainPara().nx[i];
-            value = gridscale*static_cast<ScalarType>(regopt->GetDomainPara().nx[i]);
-            nxl[i] = static_cast<IntType>(ceil(value));
-        }
         ierr = regopt->GetSizes(nxl, nl, ng); CHKERRQ(ierr);
 
         ss << "resampling scalar field  (" << nx[0] << "," << nx[1] << "," << nx[2] << ")"
@@ -401,15 +426,17 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
         ierr = reg::VecCreate(ml, nl, ng); CHKERRQ(ierr);
 
         // restrict of prolong the vector field
-        if (gridscale > 1.0) {
+        if (pro) {
             ierr = preproc->Prolong(&ml, m, nxl, nx); CHKERRQ(ierr);
-        } else {
+        } else if (res) {
             ierr = preproc->Restrict(&ml, m, nxl, nx); CHKERRQ(ierr);
+        } else {
+            ierr = reg::ThrowError("either prolong or restrict"); CHKERRQ(ierr);
         }
 
         // reset io
         if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-        for (int i=0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             regopt->SetNumGridPoints(i, nxl[i]);
         }
         ierr = regopt->DoSetup(false); CHKERRQ(ierr);
@@ -421,8 +448,8 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
         // write resampled scalar field to file
         filename = regopt->GetScaFieldFN(1);
+        std::cout << filename << std::endl;
         ierr = readwrite->Write(ml, filename); CHKERRQ(ierr);
-
     } else {
         // simply write field to file
         filename = regopt->GetScaFieldFN(1);
@@ -915,9 +942,11 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     fn = regopt->GetScaFieldFN(0);
     ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
-    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+    //if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
+    std::cout << fn << std::endl;
     ierr = reg::GetFileName(path, filename, extension, fn); CHKERRQ(ierr);
+    std::cout << fn << std::endl;
     fn = path + "/" + filename + "_converted" + regopt->GetReadWriteFlags().extension;
     std::cout << fn << std::endl;
     ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
