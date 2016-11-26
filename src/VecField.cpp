@@ -275,7 +275,7 @@ PetscErrorCode VecField::SetValue(ScalarType value) {
     ierr = VecSet(this->m_X2, value); CHKERRQ(ierr);
     ierr = VecSet(this->m_X3, value); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

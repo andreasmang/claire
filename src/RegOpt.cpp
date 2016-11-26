@@ -136,10 +136,10 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
     this->m_OptPara.minit = opt.m_OptPara.minit;
-    this->m_OptPara.presolvemaxit = opt.m_OptPara.presolvemaxit;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
     this->m_OptPara.tol[2] = opt.m_OptPara.tol[2];
+    this->m_OptPara.presolvemaxit = opt.m_OptPara.presolvemaxit;
     this->m_OptPara.presolvetol[0] = opt.m_OptPara.presolvetol[0];
     this->m_OptPara.presolvetol[1] = opt.m_OptPara.presolvetol[1];
     this->m_OptPara.presolvetol[2] = opt.m_OptPara.presolvetol[2];
@@ -1560,11 +1560,20 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " problem setup" << std::endl;
         std::cout << line << std::endl;
 
-        std::cout << std::left << std::setw(indent) << " problem dimensions"
-                    << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] << ","
-                    <<  this->m_Domain.nx[1] << ","
-                    <<  this->m_Domain.nx[2] << ","
-                    <<  this->m_Domain.nt << ")" << std::endl;
+        if (this->m_Domain.nc == 1) {
+            std::cout << std::left << std::setw(indent) << " problem dimensions"
+                        << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] << ","
+                        <<  this->m_Domain.nx[1] << ","
+                        <<  this->m_Domain.nx[2] << ","
+                        <<  this->m_Domain.nt << ")" << std::endl;
+        } else {
+            std::cout << std::left << std::setw(indent) << " problem dimensions"
+                        << "(nx1,nx2,nx3,nc,nt)=(" << this->m_Domain.nx[0] << ","
+                        <<  this->m_Domain.nx[1] << ","
+                        <<  this->m_Domain.nx[2] << ","
+                        <<  this->m_Domain.nc << ","
+                        <<  this->m_Domain.nt << ")" << std::endl;
+        }
         std::cout << std::left << std::setw(indent) <<" network dimensions"
                     << this->m_CartGridDims[0] << "x"
                     << this->m_CartGridDims[1] << std::endl;

@@ -421,7 +421,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
 #define __FUNCT__ "IsVelocityZero"
 PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero() {
     PetscErrorCode ierr = 0;
-    ScalarType normv1, normv2, normv3;
+    ScalarType normv1 = 0.0, normv2 = 0.0, normv3 = 0.0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -770,7 +770,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     IntType nl, ng, nc, nx[3];
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                *p_mt = NULL, hx[3], xc1, xc2, xc3, x, sigma;
-    int vcase = 3;
+    int vcase = 2;
     int icase = 0;
     ScalarType v0 = 0.2;
 
@@ -799,7 +799,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 4;}
+    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
 
     // allocate reference image
     if (mR == NULL) {ierr = VecCreate(mR, nl*nc, ng*nc); CHKERRQ(ierr);}
@@ -853,15 +853,15 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
                     p_vx1[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
                     p_vx2[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
                     p_vx3[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
-                } else if (vcase == 3) {
+                } else if (vcase == 2) {
                     p_vx1[i] = cos(x1)*sin(x2);
                     p_vx2[i] = cos(x2)*sin(x1);
                     p_vx3[i] = cos(x1)*sin(x3);
-                } else if (vcase == 4) {
+                } else if (vcase == 3) {
                     p_vx1[i] = cos(x2)*cos(x3);
                     p_vx2[i] = sin(x3)*sin(x1);
                     p_vx3[i] = cos(x1)*cos(x2);
-                } else if (vcase == 5) {
+                } else if (vcase == 4) {
                     p_vx1[i] = v0;
                     p_vx2[i] = v0;
                     p_vx3[i] = v0;

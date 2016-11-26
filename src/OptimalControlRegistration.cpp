@@ -652,7 +652,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
         value += dr*dr;
     }
 
-    rval = MPI_Reduce(&value, &l2distance, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&value, &l2distance, 1, MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
     // objective value
@@ -1932,8 +1932,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 /********************************************************************
  * @brief solve the adjoint problem (adjoint equation)
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
- * subject to \lambda_1 + (m_R - m_1) = 0
- * solved backward in time
+ * subject to \lambda_1 + (m_R - m_1) = 0 (solved backward in time)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "SolveAdjointEquationRK2"
