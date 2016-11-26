@@ -39,6 +39,7 @@ struct ResamplingPara {
 struct RegToolFlags {
     bool computesynprob;     ///< compute synthetic test problem
     bool checkfwdsolve;      ///< perform test for forward solve
+    bool checkadjsolve;      ///< perform test for adjoint solve
     bool readvecfield;       ///< read vector field
     bool resample;           ///< resample scalar / vector field
     bool readscafield;       ///< read scalar field

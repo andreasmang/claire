@@ -59,6 +59,7 @@ class RegistrationInterface {
     PetscErrorCode SetSolutionVector(VecField*);
 
     PetscErrorCode SolveForwardProblem(Vec, Vec);
+    PetscErrorCode SolveAdjointProblem(Vec, Vec);
     PetscErrorCode SetInitialGuess(VecField*, bool copy = false);
     PetscErrorCode GetSolution(VecField*, bool copy = false);
     //PetscErrorCode EvaluateDistance(ScalarType&, VecField*);  // TODO

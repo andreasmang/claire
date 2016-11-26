@@ -78,6 +78,9 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! solve the state equation */
     PetscErrorCode SolveForwardProblem(Vec, Vec);
 
+    /*! solve the state equation */
+    PetscErrorCode SolveAdjointProblem(Vec, Vec);
+
     /*! finalize iteration */
     PetscErrorCode FinalizeIteration(Vec);
 

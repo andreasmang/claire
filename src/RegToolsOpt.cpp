@@ -235,6 +235,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.computesynvel = true;
         } else if (strcmp(argv[1], "-checkfwdsolve") == 0) {
             this->m_RegToolFlags.checkfwdsolve = true;
+        } else if (strcmp(argv[1], "-checkadjsolve") == 0) {
+            this->m_RegToolFlags.checkadjsolve = true;
         } else if (strcmp(argv[1], "-rscale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
@@ -342,6 +344,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.computesynvel = false;
     this->m_RegToolFlags.resample = false;
     this->m_RegToolFlags.checkfwdsolve = false;
+    this->m_RegToolFlags.checkadjsolve = false;
     this->m_RegToolFlags.convert = false;
 
     this->m_ResamplingPara.gridscale = -1.0;

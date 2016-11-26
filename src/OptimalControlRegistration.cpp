@@ -336,8 +336,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
 
 /********************************************************************
  * @brief solve the forward problem (we assume the user has
- * set the template image and the velocity field using the
- * associated  set functions)
+ * set the velocity field)
  * @param[in] m0 density/image at t=0
  * @param[out] m1 density/image at t=1 (solution of transport
  * equation)
@@ -383,6 +382,67 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief solve the adjoint problem (we assume the user has
+ * set the velocity field)
+ * @param[in] m1 density/image at t=1
+ * @param[out] l0 adjoint variable at t=0 (solution of transport
+ * equation)
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SolveAdjointProblem"
+PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_m = NULL, *p_m1 = NULL, *p_l = NULL, *p_l0 = NULL;
+    IntType nt, nl, nc, ng;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->GetDomainPara().nc;
+    nl = this->m_Opt->GetDomainPara().nlocal;
+    ng = this->m_Opt->GetDomainPara().nglobal;
+
+    // allocate state variable
+    if (this->m_StateVariable == NULL) {
+        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+    }
+
+    // copy memory for m_1
+    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    try {std::copy(p_m1, p_m1+nl*nc, p_m+nt*nl*nc);}
+    catch (std::exception&) {
+        ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+    }
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+
+    // compute solution of state equation
+    ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
+
+    // copy memory for m_1
+    ierr = VecGetArray(l0, &p_l0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    try {std::copy(p_l, p_l+nl*nc, p_l0);}
+    catch (std::exception&) {
+        ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+    }
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(l0, &p_l0); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 
@@ -1792,6 +1852,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);

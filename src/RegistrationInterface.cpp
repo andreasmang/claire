@@ -1653,7 +1653,7 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
 
     // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
-/*
+
     if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
@@ -1667,7 +1667,6 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
         ierr = VecCopy(m1, m0); CHKERRQ(ierr);
         ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
     }
-*/
 
     // set the control variable
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
@@ -1677,6 +1676,42 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief solve the adjoint problem, given some trial velocity
+ * field v and a deformed template image m1
+ * @param[in] m1 deformed template image
+ * @param[out] l0 adjoint variable at t=0
+ ********************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "SolveAdjointProblem"
+PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // user needs to set template and reference image and the solution
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // set the control variable
+    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

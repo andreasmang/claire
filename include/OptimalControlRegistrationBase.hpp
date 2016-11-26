@@ -143,6 +143,9 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
 
+    /*! solve forward problem */
+    virtual PetscErrorCode SolveAdjointProblem(Vec, Vec) = 0;
+
     /*! solve the current iteration */
     virtual PetscErrorCode FinalizeIteration(Vec) = 0;
 

@@ -36,7 +36,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt*);
 PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
-//PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
+PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
@@ -85,8 +85,8 @@ int main(int argc, char **argv) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkfwdsolve) {
         ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
-//    } else if (regopt->GetFlags().checkadjsolve) {
-//        ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().checkadjsolve) {
+        ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().convert) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().applysmoothing) {
@@ -874,6 +874,7 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
 
     regopt->SetNumImageComponents(nc);
+    regopt->DisableSmoothing();
 
     nc = regopt->GetDomainPara().nc;
     nl = regopt->GetDomainPara().nlocal;
@@ -913,6 +914,85 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     if (v != NULL) {delete v; v = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (synprob != NULL) {delete synprob; synprob = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief check the adjoint solver
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "CheckAdjointSolve"
+PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    IntType nc, nl, ng;
+    Vec l0 = NULL, m1 = NULL, mR = NULL;
+    reg::VecField *v = NULL;
+    reg::RegistrationInterface* registration = NULL;
+    reg::SynProbRegistration* synprob = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__FUNCT__);
+
+    nc = 2;
+
+    ierr = regopt->DoSetup(); CHKERRQ(ierr);
+
+    regopt->SetNumImageComponents(nc);
+    regopt->DisableSmoothing();
+
+    nc = regopt->GetDomainPara().nc;
+    nl = regopt->GetDomainPara().nlocal;
+    ng = regopt->GetDomainPara().nglobal;
+
+    // allocation
+    try {v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {registration = new reg::RegistrationInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+    try {synprob = new reg::SynProbRegistration(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = reg::VecCreate(l0, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = reg::VecCreate(mR, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
+    ierr = VecSet(mR, 0.0); CHKERRQ(ierr);
+    ierr = VecSet(l0, 0.0); CHKERRQ(ierr);
+
+    ierr = synprob->ComputeSmoothScalarField(mR, 0); CHKERRQ(ierr);
+    ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+    ierr = registration->SetReferenceImage(mR); CHKERRQ(ierr);
+    ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
+    ierr = readwrite->WriteMC(l0, "initial-adjoint-variable.nc"); CHKERRQ(ierr);
+
+    regopt->Exit(__FUNCT__);
+
+    if (v != NULL) {delete v; v = NULL;}
+    if (l0 != NULL) {ierr = VecDestroy(&l0); CHKERRQ(ierr); l0 = NULL;}
+    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
     if (synprob != NULL) {delete synprob; synprob = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
