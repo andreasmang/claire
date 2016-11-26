@@ -1653,11 +1653,11 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
 
     // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
-
+/*
     if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
-            try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+            try {this->m_PreProc = new PreProcReg(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -1667,6 +1667,7 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
         ierr = VecCopy(m1, m0); CHKERRQ(ierr);
         ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
     }
+*/
 
     // set the control variable
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);

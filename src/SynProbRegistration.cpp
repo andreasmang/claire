@@ -93,7 +93,7 @@ PetscErrorCode SynProbRegistration::ClearMemory() {
 
 
 /********************************************************************
- * @brief clear memory
+ * @brief compute smooth scalar field (image)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "ComputeSmoothScalarField"
@@ -169,7 +169,6 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
                     y = - exp( -c * (s1 + s2 + s3) );
                     value = - ( -6.0*c + 4.0*c*c*(s1 + s2 + s3) )*y;
                 } else if (id == 7) {
-
                     // analytic solution for rhs of poisson problem (id 6)
                     // rhs for poisson problem
                     c = sigma/(twopi*twopi);
@@ -208,6 +207,78 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
 
     PetscFunctionReturn(0);
 }
+
+
+
+
+/********************************************************************
+ * @brief compute smooth vector field
+ *******************************************************************/
+#undef __FUNCT__
+#define __FUNCT__ "ComputeSmoothVectorField"
+PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
+    ScalarType v0 = 0.2, hx[3], x1, x2, x3;
+    IntType i;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__FUNCT__);
+
+    for (int i = 0; i < 3; ++i) {
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+    }
+
+    ierr = v->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
+        for (IntType i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
+            for (IntType i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+
+                // compute linear / flat index
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
+
+                if (id == 0) {
+                    // compute the velocity field
+                    p_vx1[i] = v0*sin(x3)*cos(x2)*sin(x2);
+                    p_vx2[i] = v0*sin(x1)*cos(x3)*sin(x3);
+                    p_vx3[i] = v0*sin(x2)*cos(x1)*sin(x1);
+                } else if (id == 1) {
+                    // compute the velocity field
+                    p_vx1[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
+                    p_vx2[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
+                    p_vx3[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
+                } else if (id == 2) {
+                    p_vx1[i] = cos(x1)*sin(x2);
+                    p_vx2[i] = cos(x2)*sin(x1);
+                    p_vx3[i] = cos(x1)*sin(x3);
+                } else if (id == 3) {
+                    p_vx1[i] = cos(x2)*cos(x3);
+                    p_vx2[i] = sin(x3)*sin(x1);
+                    p_vx3[i] = cos(x1)*cos(x2);
+                } else if (id == 4) {
+                    p_vx1[i] = v0;
+                    p_vx2[i] = v0;
+                    p_vx3[i] = v0;
+                }
+            }  // i1
+        }  // i2
+    }  // i3
+}  // pragma omp parallel
+    ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__FUNCT__);
+
+    PetscFunctionReturn(0);
+}
+
+
 
 
 

@@ -361,7 +361,7 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
 PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval;
-    IntType nc, nl;
+    IntType nl;
     accfft_plan* plan = NULL;
     IntType g_alloc_max;
     double timers[4] = {0, 0, 0, 0};
@@ -385,7 +385,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     nl = this->m_Opt->GetDomainPara().nlocal;
     neval = static_cast<int>(nl);
     ierr = Assert(neval != 0, "size problem"); CHKERRQ(ierr);
-    nc = this->m_Opt->GetDomainPara().nc;
 
     // deal with ghost points
     plan = this->m_Opt->GetFFT().plan;
@@ -396,22 +395,20 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     }
 
     // compute interpolation for all components of the input scalar field
-    for (IntType k = 0; k < nc; ++k) {
-        accfft_get_ghost_xyz(plan, this->m_GhostSize, isize_g, xi+k*nl, this->m_ScaFieldGhost);
+    accfft_get_ghost_xyz(plan, this->m_GhostSize, isize_g, xi, this->m_ScaFieldGhost);
 
-        if (strcmp(flag.c_str(), "state") == 0) {
-            ierr = Assert(this->m_XS != NULL, "state X is null pointer"); CHKERRQ(ierr);
-            this->m_StatePlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
-                                           neval, this->m_GhostSize, xo+k*nl, c_dims,
-                                           this->m_Opt->GetFFT().mpicomm, timers);
-        } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-            ierr = Assert(this->m_XA != NULL, "adjoint X is null pointer"); CHKERRQ(ierr);
-            this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
-                                             neval, this->m_GhostSize, xo+k*nl, c_dims,
-                                             this->m_Opt->GetFFT().mpicomm, timers);
-        } else {
-            ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-        }
+    if (strcmp(flag.c_str(), "state") == 0) {
+        ierr = Assert(this->m_XS != NULL, "state X is null pointer"); CHKERRQ(ierr);
+        this->m_StatePlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
+                                       neval, this->m_GhostSize, xo, c_dims,
+                                       this->m_Opt->GetFFT().mpicomm, timers);
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+        ierr = Assert(this->m_XA != NULL, "adjoint X is null pointer"); CHKERRQ(ierr);
+        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
+                                         neval, this->m_GhostSize, xo, c_dims,
+                                         this->m_Opt->GetFFT().mpicomm, timers);
+    } else {
+        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
     this->m_Opt->IncreaseInterpTimers(timers);

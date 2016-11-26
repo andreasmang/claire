@@ -123,8 +123,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
                 this->m_PDESolver.type = RK2;
-            }
-            if (strcmp(argv[1], "rk2a") == 0) {
+            } else if (strcmp(argv[1], "rk2a") == 0) {
                 this->m_PDESolver.type = RK2A;
             } else if (strcmp(argv[1], "sl") == 0) {
                 this->m_PDESolver.type = SL;

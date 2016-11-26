@@ -340,21 +340,21 @@ PetscErrorCode ReadWriteReg::WriteMC(Vec x, std::string filename) {
     // allocate data
     ierr = VecCreate(xk, nl, ng); CHKERRQ(ierr);
 
-    filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
+    filename = this->m_Opt->GetReadWriteFlags().xfolder + "/" + filename;
     ierr = GetFileName(path, file, ext, filename); CHKERRQ(ierr);
-    filename = path + file;
+    filename = file;
 
     ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
     for (IntType k = 0; k < nc; ++k) {
         ierr = VecGetArray(xk, &p_xk); CHKERRQ(ierr);
-        try{ std::copy(p_x+k*nl, p_x+(k+1)*nl, p_xk); }
+        try {std::copy(p_x+k*nl, p_x+(k+1)*nl, p_xk);}
         catch(std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
         ierr = VecRestoreArray(xk, &p_xk); CHKERRQ(ierr);
 
         // construct file names for velocity field components
-        ss  << filename << std::setw(3) << std::setfill('0') << k << ext;
+        ss  << filename << "-c=" << std::setw(3) << std::setfill('0') << k << ext;
         ierr = this->Write(xk, ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -398,7 +398,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename) {
     filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
     if (filename.find(".nii") != std::string::npos) {
 #ifdef REG_HAS_NIFTI
-        ierr = this->WriteNII(x,filename); CHKERRQ(ierr);
+        ierr = this->WriteNII(x, filename); CHKERRQ(ierr);
 #else
         ierr = ThrowError("install nifit library/enable nifti support"); CHKERRQ(ierr);
 #endif

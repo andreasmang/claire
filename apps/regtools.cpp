@@ -36,6 +36,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt*);
 PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
+//PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
@@ -84,6 +85,8 @@ int main(int argc, char **argv) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkfwdsolve) {
         ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
+//    } else if (regopt->GetFlags().checkadjsolve) {
+//        ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().convert) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().applysmoothing) {
@@ -889,6 +892,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
     try {synprob = new reg::SynProbRegistration(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -897,9 +902,9 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
     ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
-    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
-
     ierr = readwrite->WriteMC(m0, "initial-condition.nc"); CHKERRQ(ierr);
     ierr = readwrite->WriteMC(m1, "final-condition.nc"); CHKERRQ(ierr);
 

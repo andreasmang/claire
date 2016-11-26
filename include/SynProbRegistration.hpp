@@ -21,6 +21,7 @@
 #define _SYNPROBREGISTRATION_H_
 
 #include "RegOpt.hpp"
+#include "VecField.hpp"
 
 
 
@@ -43,6 +44,7 @@ class SynProbRegistration {
     PetscErrorCode ComputeHollowSphere(Vec);
     PetscErrorCode ComputeDiamond(Vec, int);
     PetscErrorCode ComputeSmoothScalarField(Vec, int);
+    PetscErrorCode ComputeSmoothVectorField(VecField*, int);
 
  private:
     PetscErrorCode ClearMemory();
