@@ -85,7 +85,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_ReadWrite = NULL;             ///< read / write object
+    this->m_ReadWrite = NULL;  ///< read / write object
     this->m_SemiLagrangianMethod = NULL;  ///< semi lagranigan
 
     this->m_WorkScaField1 = NULL;
@@ -93,6 +93,8 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
     this->m_WorkScaField3 = NULL;
     this->m_WorkScaField4 = NULL;
     this->m_WorkScaField5 = NULL;
+
+    this->m_WorkScaFieldMC = NULL;
 
     this->m_WorkVecField1 = NULL;
     this->m_WorkVecField2 = NULL;
@@ -107,7 +109,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
 
     this->m_VelocityIsZero = false;  ///< flag for velocity field
 
-    this->m_Regularization = NULL;   ///< pointer for regularization class
+    this->m_Regularization = NULL;  ///< pointer for regularization class
 
     PetscFunctionReturn(ierr);
 }

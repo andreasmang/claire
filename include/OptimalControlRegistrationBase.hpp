@@ -188,14 +188,17 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
-    Vec m_TemplateImage;    ///< data container for reference image mR
-    Vec m_ReferenceImage;   ///< data container for template image mT
+    Vec m_TemplateImage;  ///< data container for reference image mR
+    Vec m_ReferenceImage;  ///< data container for template image mT
 
-    Vec m_WorkScaField1;    ///< work scalar field
-    Vec m_WorkScaField2;    ///< work scalar field
-    Vec m_WorkScaField3;    ///< work scalar field
-    Vec m_WorkScaField4;    ///< work scalar field
-    Vec m_WorkScaField5;    ///< work scalar field
+    Vec m_WorkScaField1;  ///< work scalar field
+    Vec m_WorkScaField2;  ///< work scalar field
+    Vec m_WorkScaField3;  ///< work scalar field
+    Vec m_WorkScaField4;  ///< work scalar field
+    Vec m_WorkScaField5;  ///< work scalar field
+
+
+    Vec m_WorkScaFieldMC;  ///< work scalar field for multi-component/vector fields
 
     VecField* m_WorkVecField1;  ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField2;  ///< data container for vector field (temporary variable)
@@ -203,10 +206,10 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     VecField* m_WorkVecField4;  ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField5;  ///< data container for vector field (temporary variable)
 
-    TenField* m_WorkTenField1;
-    TenField* m_WorkTenField2;
-    TenField* m_WorkTenField3;
-    TenField* m_WorkTenField4;
+    TenField* m_WorkTenField1;  ///< data container for tensor field (temporary variable)
+    TenField* m_WorkTenField2;  ///< data container for tensor field (temporary variable)
+    TenField* m_WorkTenField3;  ///< data container for tensor field (temporary variable)
+    TenField* m_WorkTenField4;  ///< data container for tensor field (temporary variable)
 
     // regularization model
     ReadWriteType* m_ReadWrite;

@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
     if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-    //if (regopt != NULL) {delete regopt; regopt = NULL;}
+    if (regopt != NULL) {delete regopt; regopt = NULL;}
     if (v != NULL) {delete v; v = NULL;}
 
     ierr = reg::Finalize(); CHKERRQ(ierr);
