@@ -445,36 +445,54 @@ class RegOpt {
     inline bool StoreCheckPoints() {return this->m_StoreCheckPoints;}
 
     // timers and counters
-    inline unsigned int GetCounter(CounterType id) {return this->m_Counter[id];}
-    inline void IncrementCounter(CounterType id) {this->m_Counter[id]++;}
-    inline void IncrementCounter(CounterType id, unsigned int i) {this->m_Counter[id] += i;}
+    inline unsigned int GetCounter(CounterType id) {
+        return this->m_Counter[id];
+    }
+    inline void IncrementCounter(CounterType id) {
+        this->m_Counter[id]++;
+    }
+    inline void IncrementCounter(const CounterType id, const int i) {
+        this->m_Counter[id] += i;
+    }
 
-    inline void GetTimer(TimerType id, double* wtime) {
+    inline void GetTimer(const TimerType id, double* wtime) {
         wtime[0] = this->m_Timer[id][MIN];
         wtime[1] = this->m_Timer[id][MAX];
         wtime[2] = this->m_Timer[id][AVG];
     }
 
-    unsigned int GetNumThreads() {return this->m_NumThreads;}
-    inline int GetNetworkDims(int i) {return this->m_CartGridDims[i];}
-    inline void IncreaseFFTTimers(double timers[5]) {
-        for (int i=0; i < 5; ++i) this->m_FFTTimers[i][LOG] += timers[i];
+    unsigned int GetNumThreads() {
+        return this->m_NumThreads;
     }
-    inline void IncreaseInterpTimers(double timers[4]) {
-        for (int i=0; i < 4; ++i) this->m_InterpTimers[i][LOG] += timers[i];
+    inline int GetNetworkDims(const int i) {return this->m_CartGridDims[i];}
+    inline void IncreaseFFTTimers(const double timers[5]) {
+        for (int i = 0; i < 5; ++i) {
+            this->m_FFTTimers[i][LOG] += timers[i];
+        }
+    }
+    inline void IncreaseInterpTimers(const double timers[4]) {
+        for (int i = 0; i < 4; ++i) {
+            this->m_InterpTimers[i][LOG] += timers[i];
+        }
     }
 
-    inline Logger GetLogger() {return this->m_Log;}
-    inline void LogKSPResidual(int i, ScalarType value){
+    inline Logger GetLogger() {
+        return this->m_Log;
+    }
+    inline void LogKSPResidual(const int i, const ScalarType value){
         this->m_Log.kspresidual.push_back(value);
         this->m_Log.kspiterations.push_back(i);
     }
-    inline void LogResidual(int i, ScalarType value){
+    inline void LogResidual(const int i, const ScalarType value){
         this->m_Log.residual[i] = value;
     }
 
-    inline int GetVerbosity() {return this->m_Verbosity;}
-    int GetLineLength() {return this->m_LineLength;}
+    inline int GetVerbosity() {
+        return this->m_Verbosity;
+    }
+    int GetLineLength() {
+        return this->m_LineLength;
+    }
 
     ScalarType ComputeFFTScale();
 
