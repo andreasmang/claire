@@ -203,23 +203,18 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
 #undef __FUNCT__
 #define __FUNCT__ "SolveAdjointEquationSL"
 PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
-    PetscErrorCode ierr;
-    ScalarType *p_l = NULL, *p_lj = NULL, *p_ljX = NULL;
-    IntType nl, nt;
+    PetscErrorCode ierr = 0;
+    ScalarType *p_l = NULL;
+    IntType nl, nt, nc, l, lnext;
 
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecDuplicate(this->m_ReferenceImage, &this->m_WorkScaField1); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecDuplicate(this->m_ReferenceImage, &this->m_WorkScaField2); CHKERRQ(ierr);
-    }
     if (this->m_WorkVecField1==NULL) {
         this->m_WorkVecField1 = new VecField(this->m_Opt);
     }
@@ -231,38 +226,19 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "adjoint"); CHKERRQ(ierr);
 
-    ierr = VecGetArray(this->m_WorkScaField1, &p_lj); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_ljX); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    for (IntType j = 0; j < nt; ++j) {  // for all time points
+        for (IntType k = 0; k < nc; ++k) {  // for all image components
+            l = (nt-j)*nc*nl + k*nl;
+            lnext = (nt-(j+1))*nc*nl + k*nl;
 
-    // copy initial condition \lambda = (m_R - m) at t=1
-    try {std::copy(p_l+nt*nl, p_l+(nt+1)*nl, p_lj);}
-    catch(std::exception&) {
-        ierr = ThrowError("copy failed"); CHKERRQ(ierr);
-    }
-
-    for (IntType j = 0; j < nt; ++j) {
-        // compute lambda(t^j,X)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_ljX, p_lj,"adjoint"); CHKERRQ(ierr);
-
-        // store \lambda(X,t^{j+1})
-        try{ std::copy(p_ljX, p_ljX+nl, p_lj); }
-        catch(std::exception&) {
-            ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
-        }
-        // store time history
-        try{ std::copy(p_lj, p_lj+nl, p_l+(nt-(j+1))*nl);}
-        catch(std::exception&) {
-            ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
-        }
-    }
-
+            // compute lambda(t^j,X)
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_l+lnext, p_l+l, "adjoint"); CHKERRQ(ierr);
+        }  // for all image components
+    }  // for all time points
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_ljX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_lj); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
-
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -280,52 +256,25 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 #define __FUNCT__ "SolveIncAdjointEquationGNSL"
 PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, nt;
-    ScalarType *p_ltilde = NULL, *p_ltildej = NULL, *p_ltildejX = NULL;
+    IntType nl, nt, nc, l, lnext;
+    ScalarType *p_ltilde = NULL;
 
     PetscFunctionBegin;
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecDuplicate(this->m_ReferenceImage, &this->m_WorkScaField1); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecDuplicate(this->m_ReferenceImage, &this->m_WorkScaField2); CHKERRQ(ierr);
-    }
-
     nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
 
-    ierr = VecGetArray(this->m_WorkScaField1, &p_ltildej); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_ltildejX); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-
-    // remember time history (i.e. copy final condition
-    // $\tilde{\lambda}_1 = -\tilde{m}_1$ into buffer for $\tilde{\lambda}
-    try {std::copy(p_ltilde+nt*nl, p_ltilde+(nt+1)*nl, p_ltildej);}
-    catch(std::exception&) {
-        ierr = ThrowError("copying of data failed"); CHKERRQ(ierr);
-    }
-
     // for all time points
-    for (IntType j = 0; j < nt; ++j) {
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildejX, p_ltildej, "adjoint"); CHKERRQ(ierr);
-
-        // store time history (necessary for optimization)
-        try {std::copy(p_ltildejX, p_ltildejX+nl, p_ltildej);}
-        catch(std::exception&) {
-            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        // store time history (necessary for optimization)
-        try {std::copy(p_ltildej, p_ltildej+nl, p_ltilde+(nt-(j+1))*nl);}
-        catch(std::exception&) {
-            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
+    ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    for (IntType j = 0; j < nt; ++j) {  // for all time points
+        for (IntType k = 0; k < nc; ++k) {  // for all image components
+            l = (nt-j)*nc*nl + k*nl;
+            lnext = (nt-(j+1))*nc*nl + k*nl;
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltilde+lnext, p_ltilde+l, "adjoint"); CHKERRQ(ierr);
+        }  // for all image components
+    }  // for all time points
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_ltildejX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_ltildej); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

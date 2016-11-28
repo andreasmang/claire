@@ -1176,7 +1176,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().JAC) {
         ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
-            << "(" << minddg << ", " << meanddg << ", " << maxddg<<")";
+            << "(" << minddg << ", " << meanddg << ", " << maxddg << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
