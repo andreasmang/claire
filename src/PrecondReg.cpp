@@ -459,7 +459,7 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
 #define __FUNCT__ "Setup2LevelPrecond"
 PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     PetscErrorCode ierr = 0;
-    IntType nl_f, ng_f, nl_c, ng_c, nt, nc, nx_c[3], nx_f[3], l_f, l_c, lnext_f, lnext_c;
+    IntType nl_f, ng_f, nl_c, ng_c, nt, nc, nx_c[3], nx_f[3], l_f, l_c, lnext_f;
     ScalarType scale, value;
     std::stringstream ss;
     Vec m = NULL, lambda = NULL;

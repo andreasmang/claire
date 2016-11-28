@@ -158,6 +158,11 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
         this->m_WorkScaField4 = NULL;
     }
 
+    if (this->m_WorkScaFieldMC != NULL) {
+        ierr = VecDestroy(&this->m_WorkScaFieldMC); CHKERRQ(ierr);
+        this->m_WorkScaFieldMC = NULL;
+    }
+
     if (this->m_WorkVecField1 != NULL) {
         delete this->m_WorkVecField1;
         this->m_WorkVecField1 = NULL;
@@ -227,14 +232,15 @@ PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* rw) {
 #define __FUNCT__ "SetReferenceImage"
 PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     PetscErrorCode ierr = 0;
+    IntType nc;
     PetscFunctionBegin;
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+    nc = this->m_Opt->GetDomainPara().nc;
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
-        // TODO: this needs to be fixed for vector valued images
-        ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+        ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
     }
 
     // assign pointer
@@ -253,14 +259,16 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
 #define __FUNCT__ "SetTemplateImage"
 PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
+    IntType nc;
     PetscFunctionBegin;
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+    nc = this->m_Opt->GetDomainPara().nc;
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
         // TODO: this needs to be fixed for vector valued images
-        ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
+        ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
     }
 
     // assign pointer
@@ -887,12 +895,12 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
 
-    ierr = Rescale(mT, 0.0, 1.0); CHKERRQ(ierr);
+    ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
 
     // solve the forward problem using the computed
     // template image and the computed velocity field as input
     ierr = this->SolveForwardProblem(mR, mT); CHKERRQ(ierr);
-    ierr = Rescale(mR, 0.0, 1.0); CHKERRQ(ierr);
+    ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
 
     // reset velocity field
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);

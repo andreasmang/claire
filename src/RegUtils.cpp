@@ -23,6 +23,7 @@
 
 #include "RegUtils.hpp"
 #include <time.h>
+#include <limits>
 
 #ifdef REG_HAS_PNETCDF
 #include "pnetcdf.h"
@@ -432,25 +433,64 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "Rescale"
-PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout) {
+PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc) {
     PetscErrorCode ierr = 0;
-    ScalarType xmin, xmax, xshift, xscale;
+    ScalarType xmin, xmax, xmin_g, xmax_g, xshift, xscale, *p_x = NULL;
+    IntType nl, l;
+    int rval;
     std::stringstream ss;
 
     PetscFunctionBegin;
 
-    // get max and min values
-    ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
-    ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
+    if (nc == 1) {
+        // get max and min values
+        ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
+        ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
 
-    xshift = xminout - xmin;
-    ierr = VecShift(x, xshift); CHKERRQ(ierr);
+        xshift = xminout - xmin;
+        ierr = VecShift(x, xshift); CHKERRQ(ierr);
 
-    xmax = (xmax != 0.0) ? xmax : 1.0;
-    xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax;
+        xmax = (xmax != 0.0) ? xmax : 1.0;
+        xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax;
 
-    ierr = VecScale(x, xscale); CHKERRQ(ierr);
+        ierr = VecScale(x, xscale); CHKERRQ(ierr);
+    } else {
+        // compute local size from input vector
+        ierr = VecGetSize(x, &nl); CHKERRQ(ierr);
+        nl /= nc;
 
+        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        for (IntType k = 0; k < nc; ++k) {
+            xmin = std::numeric_limits<ScalarType>::max();
+            xmax = std::numeric_limits<ScalarType>::min();
+
+            // get min and max values
+            for (IntType i = 0; i < nl; ++i) {
+                l = k*nl + i;
+                if (p_x[l] < xmin) {xmin = p_x[l];}
+                if (p_x[l] > xmax) {xmax = p_x[l];}
+            }
+
+            // get min accross all procs
+            rval = MPI_Allreduce(&xmin, &xmin_g, 1, MPI_DOUBLE, MPI_MIN, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // get max accross all procs
+            rval = MPI_Allreduce(&xmax, &xmax_g, 1, MPI_DOUBLE, MPI_MAX, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // compute shift and scale
+            xshift = xminout - xmin_g;
+            xmax_g = (xmax_g != 0.0) ? xmax_g : 1.0;
+            xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax_g;
+
+            // apply shift and scale
+            for (IntType i = 0; i < nl; ++i) {
+                p_x[k*nl + i] = xscale*(p_x[k*nl + i] + xshift);
+            }
+        }  // for all components
+        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    }  // if else
     PetscFunctionReturn(ierr);
 }
 
