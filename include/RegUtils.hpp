@@ -96,7 +96,7 @@ PetscErrorCode Finalize();
  *******************************************************************/
 inline IntType GetLinearIndex(IntType i[3], IntType isize[3]) {
     // row major order (ACCFFT)$
-    return i[0]*isize[1]*isize[2]+i[1]*isize[2]+i[2];
+    return i[0]*isize[1]*isize[2] + i[1]*isize[2] + i[2];
 }
 
 
@@ -107,7 +107,7 @@ inline IntType GetLinearIndex(IntType i[3], IntType isize[3]) {
  *******************************************************************/
 inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3]) {
     // row major order (ACCFFT)$
-    return i*isize[1]*isize[2]+j*isize[2]+k;
+    return i*isize[1]*isize[2] + j*isize[2] + k;
 }
 
 
@@ -117,9 +117,9 @@ inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
  * @brief check wave numbers
  *******************************************************************/
 inline void CheckWaveNumbersInv(long int w[3],int n[3]) {
-    if (w[0] > n[0]/2) w[0]-=n[0];
-    if (w[1] > n[1]/2) w[1]-=n[1];
-    if (w[2] > n[2]/2) w[2]-=n[2];
+    if (w[0] > n[0]/2) w[0] -= n[0];
+    if (w[1] > n[1]/2) w[1] -= n[1];
+    if (w[2] > n[2]/2) w[2] -= n[2];
 }
 
 
@@ -129,14 +129,14 @@ inline void CheckWaveNumbersInv(long int w[3],int n[3]) {
  * @brief check wave numbers
  *******************************************************************/
 inline void CheckWaveNumbers(long int w[3], int n[3]) {
-    if     (w[0] >  n[0]/2) w[0]-=n[0];
-    else if(w[0] == n[0]/2) w[0] = 0;
+    if      (w[0] >  n[0]/2) w[0] -= n[0];
+    else if (w[0] == n[0]/2) w[0]  = 0;
 
-    if     (w[1] >  n[1]/2) w[1]-=n[1];
-    else if(w[1] == n[1]/2) w[1] = 0;
+    if      (w[1] >  n[1]/2) w[1] -= n[1];
+    else if (w[1] == n[1]/2) w[1]  = 0;
 
-    if     (w[2] >  n[2]/2) w[2]-=n[2];
-    else if(w[2] == n[2]/2) w[2] = 0;
+    if      (w[2] >  n[2]/2) w[2] -= n[2];
+    else if (w[2] == n[2]/2) w[2]  = 0;
 };
 
 

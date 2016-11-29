@@ -1690,9 +1690,6 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
     accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
-                std::cout<< this->m_Opt->GetFFT().osize[0] <<std::endl;
-                std::cout<< this->m_Opt->GetFFT().osize[1] <<std::endl;
-                std::cout<< this->m_Opt->GetFFT().osize[2] <<std::endl;
 #pragma omp parallel
 {
     IntType i1, i2, i3, li;

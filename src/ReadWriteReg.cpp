@@ -570,9 +570,12 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     ierr = Assert(image != NULL, msg); CHKERRQ(ierr);
 
     // get number of grid points
-    nx[0] = static_cast<IntType>(image->nx);
+//    nx[0] = static_cast<IntType>(image->nx);
+//    nx[1] = static_cast<IntType>(image->ny);
+//    nx[2] = static_cast<IntType>(image->nz);
+    nx[2] = static_cast<IntType>(image->nx);
     nx[1] = static_cast<IntType>(image->ny);
-    nx[2] = static_cast<IntType>(image->nz);
+    nx[0] = static_cast<IntType>(image->nz);
 
     for (int i = 0; i < 3; ++i) {
         if (nx[i] % 2 != 0) {
@@ -1022,12 +1025,10 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage, Vec x, std::string
 template <typename T>
 PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string filename) {
     PetscErrorCode ierr;
-    IntType ng;
     T* data = NULL;
     ScalarType *p_xc = NULL;
     int nprocs,rank,rval;
-    IntType istart[3], isize[3], nx[3];
-    IntType i1, i2, i3, j1, j2, j3, l;
+    IntType istart[3], isize[3], nx[3], i1, i2, i3, j1, j2, j3, l;
     Vec xcollect = NULL;
     VecScatter scatterctx = NULL;
     std::string msg;
@@ -1039,9 +1040,6 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
     // get number of ranks
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
-
-    // get local size
-    ng = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
 
     // allocate the index buffers on master rank
     if (rank == 0) {
@@ -1097,15 +1095,25 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
         ierr = VecGetArray(x, &p_xc); CHKERRQ(ierr);
 
         // cast pointer of nifti image data
-        data = static_cast<T*>((*image)->data);
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < ng; ++i) {
-            data[i] = static_cast<T>(p_xc[i]);
+        data = reinterpret_cast<T*>((*image)->data);
+
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+
+        for (IntType i1 = 0; i1 < nx[0]; ++i1) {
+            for (IntType i2 = 0; i2 < nx[1]; ++i2) {
+                for (IntType i3 = 0; i3 < nx[2]; ++i3) {
+                    l = GetLinearIndex(i1, i2, i3, nx);
+                    //k = i3*nx[0]*nx[1] + i2*nx[0] + i1;
+                    data[l] = static_cast<T>(p_xc[l]);
+                }
+            }
         }
-}  /// pragma omp parallel
+
         ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
+
+
     } else {
         // allocate the index buffers on master rank
         if (rank == 0) {
@@ -1146,15 +1154,14 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
         ierr = VecScatterBegin(scatterctx, x, xcollect, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
         ierr = VecScatterEnd(scatterctx, x, xcollect, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
 
-        nx[0] = this->m_Opt->GetNumGridPoints(0);
-        nx[1] = this->m_Opt->GetNumGridPoints(1);
-        nx[2] = this->m_Opt->GetNumGridPoints(2);
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         // if we are on master rank
         if (rank == 0) {
             data = static_cast<T*>((*image)->data);
             ierr = VecGetArray(xcollect, &p_xc); CHKERRQ(ierr);
-            IntType k = 0;
             for(int p = 0; p < nprocs; ++p) {
                 for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
                     for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
@@ -1162,9 +1169,9 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
                             j1 = i1 + this->m_iStartC[3*p+0];
                             j2 = i2 + this->m_iStartC[3*p+1];
                             j3 = i3 + this->m_iStartC[3*p+2];
-
                             l = GetLinearIndex(j1, j2, j3, nx);
-                            data[l] = static_cast<T>(p_xc[k++]);
+//                            k = i3*nx[0]*nx[1] + i2*nx[0] + i1;
+                            data[l] = static_cast<T>(p_xc[l]);
                         }  // for i1
                     }  // for i2
                 }  // for i3
@@ -1210,9 +1217,12 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     (*image)->dim[0] = (*image)->ndim = 5;
 
     ierr = VecGetLocalSize(x, &n); CHKERRQ(ierr);
-    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[0];
+    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[2];
     (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
-    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[2];
+    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[0];
+//    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[0];
+//    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
+//    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[2];
 
     (*image)->pixdim[1] = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);  // x direction
     (*image)->pixdim[2] = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);  // y direction
@@ -1516,16 +1526,16 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     // get local sizes
-    istart[0] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().istart[0] );
-    istart[1] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().istart[1] );
-    istart[2] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().istart[2] );
+    istart[0] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[0]);
+    istart[1] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[1]);
+    istart[2] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[2]);
 
 //    std::cout<< istart[0] << " " << istart[1] << " " << istart[2] << std::endl;
 
 
-    isize[0] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().isize[0] );
-    isize[1] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().isize[1] );
-    isize[2] = static_cast<MPI_Offset>( this->m_Opt->GetDomainPara().isize[2] );
+    isize[0] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[0]);
+    isize[1] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[1]);
+    isize[2] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[2]);
 //    std::cout<< isize[0] << " " << isize[1] << " " << isize[2] << std::endl;
     ierr = Assert(nl == isize[0]*isize[1]*isize[2], "size error"); CHKERRQ(ierr);
 

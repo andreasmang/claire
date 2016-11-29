@@ -29,6 +29,7 @@
 #include "SemiLagrangian.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistration.hpp"
+#include "RegularizationRegistrationL2.hpp"
 #include "RegularizationRegistrationH1.hpp"
 #include "RegularizationRegistrationH2.hpp"
 #include "RegularizationRegistrationH3.hpp"

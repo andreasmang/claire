@@ -906,8 +906,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
-    ierr = readwrite->WriteMC(m0, "initial-condition.nc"); CHKERRQ(ierr);
-    ierr = readwrite->WriteMC(m1, "final-condition.nc"); CHKERRQ(ierr);
+    ierr = readwrite->WriteMC(m0, "initial-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+    ierr = readwrite->WriteMC(m1, "final-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
 
     regopt->Exit(__FUNCT__);
 

@@ -473,6 +473,14 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
 
     // switch between regularization norms
     switch (this->m_Opt->GetRegNorm().type) {
+        case L2:
+        {
+            try {this->m_Regularization = new RegularizationRegistrationL2(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
         case H1:
         {
             try {this->m_Regularization = new RegularizationRegistrationH1(this->m_Opt);}
@@ -819,8 +827,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     if (mT == NULL) {ierr = VecCreate(mT, nl*nc, ng*nc); CHKERRQ(ierr);}
     ierr = VecSet(mT, 0.0); CHKERRQ(ierr);
 
-
-    // compute coordinates (nodal grid)
+    // compute center coordinates
     xc1 = hx[0]*static_cast<ScalarType>(nx[0])/2.0;
     xc2 = hx[1]*static_cast<ScalarType>(nx[1])/2.0;
     xc3 = hx[2]*static_cast<ScalarType>(nx[2])/2.0;
@@ -894,7 +901,6 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
-
     ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
 
     // solve the forward problem using the computed
@@ -1072,18 +1078,18 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
 
     // display what's going on
     if (this->m_Opt->GetVerbosity() > 1) {
-        if(minboundreached) {
+        if (minboundreached) {
             ss << std::scientific
             << "min(det(grad(y))) = "<< jmin << " <= " << jbound;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+            ss.str(std::string()); ss.clear();
         }
-        if(maxboundreached) {
+        if (maxboundreached) {
             ss << std::scientific
             << "max(det(grad(y))) = "<< jmax << " >= " << 1.0/jbound
             << " ( = 1/bound )";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+            ss.str(std::string()); ss.clear();
         }
     }
 
@@ -1860,7 +1866,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
 #pragma omp parallel
 {
 #pragma omp  for
-    for (IntType i=0; i < nl; ++i) {  // for all grid points
+    for (IntType i = 0; i < nl; ++i) {  // for all grid points
         // compute determinant of deformation gradient
         p_phi[i] = (1.0-p_gu11[i])*(1.0-p_gu22[i])*(1.0-p_gu33[i])
                  + p_gu12[i]*p_gu23[i]*p_gu31[i]
@@ -1950,10 +1956,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
 
     // store time series
-    if ( this->m_Opt->GetReadWriteFlags().timeseries ) {
+    if (this->m_Opt->GetReadWriteFlags().timeseries) {
         ss.str(std::string()); ss.clear();
         ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1,ss.str()); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
     }
 
     // get pointers
