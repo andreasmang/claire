@@ -297,10 +297,8 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     char msg[256];
     ScalarType J, gnorm, step, D, J0, D0, gnorm0;
     OptimizationProblem* optprob = NULL;
-    TaoConvergedReason convreason;
-    TaoLineSearch ls = NULL;
-    TaoLineSearchConvergedReason lsconvreason;
     Vec x = NULL;
+    TaoConvergedReason convreason;
 
     PetscFunctionBegin;
 
@@ -311,9 +309,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     optprob->GetOptions()->PrecondSetupDone(false);
 
     if (optprob->GetOptions()->GetVerbosity() > 1) {
-        ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
-        ierr = TaoLineSearchGetSolution(ls, NULL, &J, NULL, &step, &lsconvreason); CHKERRQ(ierr);
-        ierr = DispLSConvReason(lsconvreason); CHKERRQ(ierr);
+        ierr = DispLSConvReason(tao, optprob); CHKERRQ(ierr);
     }
 
     // get current iteration, objective value, norm of gradient, norm of
@@ -366,11 +362,28 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
  ****************************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "DispLSConvReason"
-PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag) {
+PetscErrorCode DispLSConvReason(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     std::string msg;
+    IntType nl, ng;
+    ScalarType J, step;
+    TaoLineSearchConvergedReason flag;
+    OptimizationProblem* optprob = NULL;
+    TaoLineSearch ls = NULL;
+    Vec x = NULL, g = NULL;
 
     PetscFunctionBegin;
+
+    optprob = reinterpret_cast<OptimizationProblem*>(ptr);
+    ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nl = optprob->GetOptions()->GetDomainPara().nlocal;
+    ng = optprob->GetOptions()->GetDomainPara().nglobal;
+
+    ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
+    ierr = VecCreate(x, nl, ng); CHKERRQ(ierr);
+    ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
+    ierr = TaoLineSearchGetSolution(ls, x, &J, g, &step, &flag); CHKERRQ(ierr);
 
     switch(flag) {
         case TAOLINESEARCH_FAILED_INFORNAN:
@@ -439,6 +452,9 @@ PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason flag) {
             break;
         }
     }
+
+    if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
+    if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); g = NULL;}
 
     PetscFunctionReturn(ierr);
 }

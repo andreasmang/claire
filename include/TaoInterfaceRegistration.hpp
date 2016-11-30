@@ -49,7 +49,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao, void*);
 PetscErrorCode CheckConvergenceGradObjHess(Tao, void*);
 
 PetscErrorCode OptimizationMonitor(Tao, void*);
-PetscErrorCode DispLSConvReason(TaoLineSearchConvergedReason);
+PetscErrorCode DispLSConvReason(Tao, void*);
 PetscErrorCode DispTaoConvReason(TaoConvergedReason);
 
 
