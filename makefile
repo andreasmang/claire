@@ -3,7 +3,7 @@ CXX=mpicxx
 USEINTEL=yes
 USEINTELMPI=yes
 BUILDTOOLS=yes
-DBGCODE=no
+DBGCODE=yes
 PEDANTIC=yes
 USEPNETCDF=yes
 USENIFTI=yes
@@ -99,7 +99,7 @@ LDFLAGS+= -lm
 
 BIN+=$(BINDIR)/runcoldreg
 ifeq ($(BUILDTOOLS),yes)
-	BIN+=$(BINDIR)/regtools
+#	BIN+=$(BINDIR)/regtools
 endif
 
 
@@ -121,6 +121,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/PrecondReg.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \
+		$(SRCDIR)/RegularizationRegistrationL2.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
 		$(SRCDIR)/RegularizationRegistrationH3.cpp \
