@@ -194,7 +194,12 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
 
     // if the image has more than one component, just copy the
     // content of first image to all other
-    if (nc != 1) {
+    if (nc == 2) {
+        for (IntType i = 0; i < nl; ++i) {
+            p_m[nl + i] = 1.0 - p_m[i];
+        }
+    }
+    if (nc > 2) {
         for (IntType k = 1; k < nc; ++k) {
             try {std::copy(p_m, p_m+nl, p_m+k*nl);}
             catch (std::exception&) {

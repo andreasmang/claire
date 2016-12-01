@@ -890,7 +890,12 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     // if the image has more than one component, just copy the
     // content of first image to all other
-    if (nc != 1) {
+    if (nc == 2) {
+        for (IntType i = 0; i < nl; ++i) {
+            p_mt[nl + i] = 1.0 - p_mt[i];
+        }
+    }
+    if (nc > 2) {
         for (IntType k = 1; k < nc; ++k) {
             try {std::copy(p_mt, p_mt+nl, p_mt+k*nl);}
             catch (std::exception&) {

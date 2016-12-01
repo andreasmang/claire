@@ -664,7 +664,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
     // objective value
-    *D = 0.5*l2distance;
+    *D = 0.5*l2distance/static_cast<ScalarType>(nc);
 
     this->m_Opt->Exit(__FUNCT__);
 
@@ -844,6 +844,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
+    scale = ht / static_cast<ScalarType>(nc);
 
     ierr = Assert(nt > 0, "nt<=0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht<=0"); CHKERRQ(ierr);
@@ -881,14 +882,13 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
             // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
             for (IntType i = 0; i < nl; ++i) {
                 lambda = p_l[k*nl+i];
-                p_b1[i] += lambda*p_gradm1[i];
-                p_b2[i] += lambda*p_gradm2[i];
-                p_b3[i] += lambda*p_gradm3[i];
+                p_b1[i] += lambda*p_gradm1[i]/static_cast<ScalarType>(nc);
+                p_b2[i] += lambda*p_gradm2[i]/static_cast<ScalarType>(nc);
+                p_b3[i] += lambda*p_gradm3[i]/static_cast<ScalarType>(nc);
             }
         }
         ierr = VecRestoreArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
     } else {  // non zero velocity field
-        scale = ht;
         ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         // compute numerical integration (trapezoidal rule)
         for (IntType j = 0; j <= nt; ++j) {
@@ -1416,7 +1416,8 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     ht = this->m_Opt->GetTimeStepSize();
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht <= 0"); CHKERRQ(ierr);
-    scale = ht;
+    ierr = Assert(nc > 0, "nc <= 0"); CHKERRQ(ierr);
+    scale = ht / static_cast<ScalarType>(nc);
 
 
     if (this->m_WorkVecField1 == NULL) {
@@ -1461,7 +1462,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
         // compute numerical integration (trapezoidal rule)
         for (IntType j = 0; j <= nt; ++j) {  // for all time points
             // trapezoidal rule (apply scaling)
-            if ((j == 0) || (j == nt)) {scale *= 0.5;}
+            if ((j == 0) || (j == nt)) scale *= 0.5;
             for (IntType k = 0; k < nc; ++k) {  // for all image components
                 l = j*nl*nc + k*nl;
 
@@ -1487,7 +1488,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
                 }  // for all grid points
             }  // for all image components
             // trapezoidal rule (revert scaling)
-            if ((j == 0) || (j == nt)) {scale *= 2.0;}
+            if ((j == 0) || (j == nt)) scale *= 2.0;
         }  // for all time points
 
         ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);  // adjoint variable for all t^j
@@ -1498,7 +1499,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
         // compute numerical integration (trapezoidal rule)
         for (IntType j = 0; j <= nt; ++j) {  // for all time points
             // trapezoidal rule (apply scaling)
-            if ((j == 0) || (j == nt)) {scale *= 0.5;}
+            if ((j == 0) || (j == nt)) scale *= 0.5;
             for (IntType k = 0; k < nc; ++k) {  // for all image components
                 l = j*nl*nc + k*nl;
 
@@ -1516,7 +1517,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
                 }  // for all grid points
             }  // for all image components
             // trapezoidal rule (revert scaling)
-            if ((j == 0) || (j == nt)) {scale *= 2.0;}
+            if ((j == 0) || (j == nt)) scale *= 2.0;
         }   // for all time points
     } else {
         ierr = ThrowError("hessian approximation not implemented"); CHKERRQ(ierr);
@@ -1634,7 +1635,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         // store individual time points
         for (IntType j = 0; j <= nt; ++j) {
             for (IntType k = 0; k < nc; ++k) {
-                // TODI: check if this is correct
+                // TODO: check if this is correct
                 ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
                 try {std::copy(p_m+j*nl*nc + k*nl, p_m+(j+1)*nl*nc + k*nl, p_mj);}
                 catch(std::exception&) {
@@ -2117,7 +2118,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
                 rhs1 = -(ljX + ht*rhs0)*p_divv[i];
 
                 // compute \lambda(x,t^{j+1})
-                p_l[i + lnext] = ljX + 0.5*ht*(rhs0 + rhs1);
+                p_l[lnext+i] = ljX + 0.5*ht*(rhs0 + rhs1);
             }
         }
     }

@@ -262,6 +262,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-nt") == 0) {
             argc--; argv++;
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
+        } else if (strcmp(argv[1], "-nc") == 0) {
+            argc--; argv++;
+            this->m_Domain.nc = static_cast<IntType>(atoi(argv[1]));
         } else if (strcmp(argv[1], "-sigma") == 0) {
             argc--; argv++;
             const std::string sigmainput = argv[1];
@@ -966,6 +969,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images" << std::endl;
         std::cout << "                           (e.g., 1x2x1; units: voxel size; if only one parameter is set" << std::endl;
         std::cout << "                           uniform smoothing is assumed: default: 1x1x1)" << std::endl;
+        std::cout << " -nc <int>                 number of image components" << std::endl;
         std::cout << " -disablesmoothing         flag: switch off smoothing of image data" << std::endl;
         std::cout << " -disablerescaling         flag: switch off rescaling of intensities of image data to [0,1]" << std::endl;
         }
