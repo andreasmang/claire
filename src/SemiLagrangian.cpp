@@ -73,6 +73,7 @@ SemiLagrangian::~SemiLagrangian() {
 #undef __FUNCT__
 #define __FUNCT__ "Initialize"
 PetscErrorCode SemiLagrangian::Initialize() {
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_ReadWrite = NULL;
@@ -95,7 +96,7 @@ PetscErrorCode SemiLagrangian::Initialize() {
 
     this->m_Opt = NULL;
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -200,9 +201,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_WorkVecField == NULL) {
-        try{this->m_WorkVecField = new VecField(this->m_Opt);}
+        try {this->m_WorkVecField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
-            ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
 
@@ -210,7 +211,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     if (strcmp(flag.c_str(),"state") == 0) {
         if (this->m_XS == NULL) {
-            try{ this->m_XS = new double [3*nl]; }
+            try {this->m_XS = new double [3*nl];}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -218,7 +219,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
         X = this->m_XS;
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         if (this->m_XA == NULL) {
-            try{ this->m_XA = new double [3*nl]; }
+            try {this->m_XA = new double [3*nl];}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
