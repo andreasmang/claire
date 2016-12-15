@@ -416,13 +416,10 @@ PetscErrorCode VecView(Vec x) {
 PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
 
-    if (x != NULL) {
-        ierr = VecDestroy(&x); CHKERRQ(ierr);
-        x = NULL;
-    }
+    if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
 
+    ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
     ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetSizes(x, PETSC_DECIDE, ng); CHKERRQ(ierr);
     ierr = VecSetFromOptions(x); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
