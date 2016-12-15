@@ -156,6 +156,22 @@ enum RegModel {
 };
 
 
+/*! flags for timers */
+enum LogType{
+    LOGRES,
+    LOGKSPRES,
+    LOGJAC,
+    LOGLOAD,
+    NLOGFLAGS
+};
+
+
+/*! flags for timers */
+enum StopCondType{
+    GRAD,
+};
+
+
 struct ReadWriteFlags {
     bool readfiles;
     bool readvelocity;
@@ -203,6 +219,7 @@ struct Optimization {
     int minit;                  ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];          ///< tolerances for optimization
     OptMeth method;             ///< optimization method
+    StopCondType stopcond;             ///< optimization method
     bool fastpresolve;          ///< flag to switch on fast presolve
     bool fastsolve;             ///< flag to switch on fast (inaccurate) solve
     ScalarType presolvetol[3];  ///< tolerances for presolve
@@ -241,8 +258,8 @@ struct KrylovSolver {
 
 /* parameter for parameter continuation (regularization parameter) */
 struct ParCont {
-    //static constexpr ScalarType betavminh1 = 1E-4;      ///< minimal regularization parameter for h1 type norm
-    //static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
+//    static constexpr ScalarType betavminh1 = 1E-4;      ///< minimal regularization parameter for h1 type norm
+//    static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
     static constexpr ScalarType betavminh1 = 1E-9;      ///< minimal regularization parameter for h1 type norm
     static constexpr ScalarType betavminh2 = 1E-9;      ///< minimal regularization parameter for h2 type norm
     static const int maxsteps = 10;                     ///< max number of steps
@@ -319,16 +336,6 @@ struct PDESolver{
     PDESolverType type;
     int order;
     int cflnumber;
-};
-
-
-/*! flags for timers */
-enum LogType{
-    LOGRES,
-    LOGKSPRES,
-    LOGJAC,
-    LOGLOAD,
-    NLOGFLAGS
 };
 
 

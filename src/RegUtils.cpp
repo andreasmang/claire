@@ -419,7 +419,8 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
     if(x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
 
     ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
-    ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
+//    ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
+    ierr = VecSetSizes(x, PETSC_DECIDE, ng); CHKERRQ(ierr);
     ierr = VecSetFromOptions(x); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
@@ -456,9 +457,8 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
         ierr = VecScale(x, xscale); CHKERRQ(ierr);
     } else {
         // compute local size from input vector
-        ierr = VecGetSize(x, &nl); CHKERRQ(ierr);
+        ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
         nl /= nc;
-
         ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {
             xmin = std::numeric_limits<ScalarType>::max();

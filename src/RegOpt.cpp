@@ -136,6 +136,7 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
     this->m_OptPara.minit = opt.m_OptPara.minit;
+    this->m_OptPara.stopcond = opt.m_OptPara.stopcond;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
     this->m_OptPara.tol[2] = opt.m_OptPara.tol[2];
@@ -586,7 +587,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_GridCont.enabled = true;
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
-            this->m_Verbosity = atoi(argv[1]);
+            this->m_Verbosity = std::min(atoi(argv[1]), 2);
         } else if (strcmp(argv[1], "-mdefgrad") == 0) {
             this->m_RegMonitor.JAC = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
@@ -845,6 +846,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.checkhesssymmetry = false;
 
     // tolerances for optimization
+    this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
     this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
