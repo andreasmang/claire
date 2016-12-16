@@ -25,8 +25,7 @@
 
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -36,9 +35,7 @@ namespace reg
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistrationH3"
-RegularizationRegistrationH3::RegularizationRegistrationH3() : SuperClass()
-{
-
+RegularizationRegistrationH3::RegularizationRegistrationH3() : SuperClass() {
 }
 
 
@@ -49,8 +46,7 @@ RegularizationRegistrationH3::RegularizationRegistrationH3() : SuperClass()
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "~RegularizationRegistrationH3"
-RegularizationRegistrationH3::~RegularizationRegistrationH3(void)
-{
+RegularizationRegistrationH3::~RegularizationRegistrationH3(void) {
     this->ClearMemory();
 }
 
@@ -62,9 +58,7 @@ RegularizationRegistrationH3::~RegularizationRegistrationH3(void)
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "RegularizationRegistrationH3"
-RegularizationRegistrationH3::RegularizationRegistrationH3(RegOpt* opt) : SuperClass(opt)
-{
-
+RegularizationRegistrationH3::RegularizationRegistrationH3(RegOpt* opt) : SuperClass(opt) {
 }
 
 
@@ -75,8 +69,7 @@ RegularizationRegistrationH3::RegularizationRegistrationH3(RegOpt* opt) : SuperC
  *******************************************************************/
 #undef __FUNCT__
 #define __FUNCT__ "EvaluateFunctional"
-PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, VecField* v)
-{
+PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr;
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
@@ -92,8 +85,7 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, V
     *R = 0.0;
 
     // if regularization weight is zero, do noting
-    if ( sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0 ){
-
+    if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0) {
         ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
 
         ierr=this->Allocate(0); CHKERRQ(ierr);

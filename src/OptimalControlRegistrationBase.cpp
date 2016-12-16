@@ -235,6 +235,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     IntType nc;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
     nc = this->m_Opt->GetDomainPara().nc;
 
@@ -245,6 +247,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
 
     // assign pointer
     this->m_ReferenceImage = mR;
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
@@ -262,6 +266,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     IntType nc;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__FUNCT__);
+
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
     nc = this->m_Opt->GetDomainPara().nc;
 
@@ -273,6 +279,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
 
     // assign pointer
     this->m_TemplateImage = mT;
+
+    this->m_Opt->Exit(__FUNCT__);
 
     PetscFunctionReturn(ierr);
 }
@@ -797,7 +805,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     this->m_Opt->Enter(__FUNCT__);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg("setting up synthetic test problem"); CHKERRQ(ierr);
+        ierr = DbgMsg("setting up synthetic problem"); CHKERRQ(ierr);
     }
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -842,7 +850,6 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
-
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
                 x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
@@ -887,38 +894,44 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         }  // i2
     }  // i3
 }  // pragma omp parallel
+    ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     // if the image has more than one component, just copy the
     // content of first image to all other
     if (nc == 2) {
+        ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
         for (IntType i = 0; i < nl; ++i) {
             p_mt[nl + i] = 1.0 - p_mt[i];
         }
+        ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     }
     if (nc > 2) {
+        ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
         for (IntType k = 1; k < nc; ++k) {
             try {std::copy(p_mt, p_mt+nl, p_mt+k*nl);}
             catch (std::exception&) {
                 ierr = ThrowError("copy failed"); CHKERRQ(ierr);
             }
         }
+        ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     }
 
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
 
     // solve the forward problem using the computed
     // template image and the computed velocity field as input
     ierr = this->SolveForwardProblem(mR, mT); CHKERRQ(ierr);
-    ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
+    ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
+    ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
     // reset velocity field
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__FUNCT__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 

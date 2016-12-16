@@ -596,8 +596,6 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
             l_f = j*nl_f*nc + k*nl_f;
             lnext_f = j*nl_f*nc + (k+1)*nl_f;
 
-            std::cout << " time point " << j << " component " << k << std::endl;
-
             // get time point of state variable on fine grid
             ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
             try {std::copy(p_m+l_f, p_m+lnext_f, p_mj); }
@@ -608,7 +606,6 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 
             // apply restriction operator to m_j
             ierr = this->m_PreProc->Restrict(&this->m_WorkScaFieldCoarse1, this->m_WorkScaField1, nx_c, nx_f); CHKERRQ(ierr);
-            std::cout << " time point " << j << " component " << k << std::endl;
 
             // store restricted state variable
             l_c = j*nl_c*nc + k*nl_c;

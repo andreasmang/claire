@@ -324,7 +324,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
     if (v0 != NULL) {
 //    ierr = VecSet(v, 0.0); CHKERRQ(ierr);
 //    ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
-        ierr = v0->Copy(this->m_VelocityField); CHKERRQ(ierr);
+//        ierr = v0->Copy(this->m_VelocityField); CHKERRQ(ierr);
 //    ierr = v0->SetValue(0.0); CHKERRQ(ierr);
     }
 
@@ -355,6 +355,8 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m1 = NULL, *p_m = NULL;
     IntType nt, nl, nc, ng;
+    std::stringstream ss;
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__FUNCT__);
@@ -370,9 +372,15 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 
     // allocate state and adjoint variables
     if (this->m_StateVariable == NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << "allocating state variable: (nt+1,nl,ng,nc) = ("
+               << nt+1 << "," << nl << "," <<  ng << "," << nc << "); "
+                << (nt+1)*nl*nc << "; " << (nt+1)*ng*nc;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
     }
-
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
 
@@ -562,8 +570,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
-    // we need to make sure that we don't delete the external
-    // pointer
+    // we need to make sure that we don't delete the external pointer
     if (this->m_AdjointVariable == NULL) {
         ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
     }
@@ -844,7 +851,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nlocal;
     ht = this->m_Opt->GetTimeStepSize();
-    scale = ht / static_cast<ScalarType>(nc);
+    scale = ht;
 
     ierr = Assert(nt > 0, "nt<=0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht<=0"); CHKERRQ(ierr);
@@ -1417,7 +1424,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht <= 0"); CHKERRQ(ierr);
     ierr = Assert(nc > 0, "nc <= 0"); CHKERRQ(ierr);
-    scale = ht / static_cast<ScalarType>(nc);
+    scale = ht;
 
 
     if (this->m_WorkVecField1 == NULL) {
@@ -1876,7 +1883,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     l = nt*nc*nl;  // index for final condition
     for (IntType i = 0; i < nc*nl; ++i) {
-        p_l[l+i] = p_mr[i] - p_m[l+i];
+        p_l[l+i] = (p_mr[i] - p_m[l+i]) / static_cast<ScalarType>(nc);
     }
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -2545,11 +2552,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
     l = nt*nl*nc;
     for (IntType i = 0; i < nl*nc; ++i) {
-        p_lt[l+i] = -p_mt[l+i];
+        p_lt[l+i] = -p_mt[l+i] / static_cast<ScalarType>(nc);
     }
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);
-
 
     // check if velocity field is zero
     if (this->m_Opt->GetOptPara().method == GAUSSNEWTON) {   // gauss newton

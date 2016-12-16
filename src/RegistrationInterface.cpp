@@ -573,8 +573,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 
     // init solver
-    ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
+    ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // run the optimization
     ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
@@ -1653,7 +1653,6 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
 
     // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
-
     if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {

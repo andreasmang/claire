@@ -133,10 +133,9 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     PetscFunctionBegin;
 
     if (this->m_Solution == NULL) {
-        // compute the number of unknowns
+        // compute number of unknowns
         nlu = 3*this->m_Opt->GetDomainPara().nlocal;
         ngu = 3*this->m_Opt->GetDomainPara().nglobal;
-
         ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
         ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
     }
@@ -343,7 +342,13 @@ PetscErrorCode Optimizer::SetupTao() {
     // set the monitor for the optimization process
     ierr = TaoCancelMonitors(this->m_Tao); CHKERRQ(ierr);
     ierr = TaoSetMonitor(this->m_Tao, OptimizationMonitor, this->m_OptimizationProblem, NULL); CHKERRQ(ierr);
-    ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGrad, this->m_OptimizationProblem); CHKERRQ(ierr);
+
+    // set function to test stopping conditions
+    if (this->m_Opt->GetOptPara().stopcond == GRAD) {
+        ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGrad, this->m_OptimizationProblem); CHKERRQ(ierr);
+    } else {
+        ierr = ThrowError("stop condition not defined"); CHKERRQ(ierr);
+    }
 
     ierr = TaoGetLineSearch(this->m_Tao, &linesearch); CHKERRQ(ierr);
     ierr = TaoLineSearchSetType(linesearch, "armijo"); CHKERRQ(ierr);
