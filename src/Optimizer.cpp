@@ -37,8 +37,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Optimizer"
 Optimizer::Optimizer() {
     this->Initialize();
 }
@@ -49,8 +47,6 @@ Optimizer::Optimizer() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~Optimizer"
 Optimizer::~Optimizer(void) {
     this->ClearMemory();
 }
@@ -62,8 +58,6 @@ Optimizer::~Optimizer(void) {
  * @brief constructor
  * @param opt base class for registration options and arguments
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Optimizer"
 Optimizer::Optimizer(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -75,8 +69,6 @@ Optimizer::Optimizer(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode Optimizer::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -97,8 +89,6 @@ PetscErrorCode Optimizer::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode Optimizer::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -124,8 +114,6 @@ PetscErrorCode Optimizer::ClearMemory(void) {
 /********************************************************************
  * @brief set the initial guess (warm start)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetInitialGuess"
 PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     PetscErrorCode ierr = 0;
     IntType nlu, ngu;
@@ -153,8 +141,6 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
 /********************************************************************
  * @brief parse initial guess to tao
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetInitialGuess"
 PetscErrorCode Optimizer::SetInitialGuess() {
     PetscErrorCode ierr = 0;
     IntType nlu, ngu;
@@ -186,8 +172,6 @@ PetscErrorCode Optimizer::SetInitialGuess() {
  * and we can solve them; currently this is only supported for
  * registration problems)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetProblem"
 PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -205,8 +189,6 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob) {
  * @brief set the preconditioner
  * @param[in] precond interface to preconditioner
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetPreconditioner"
 PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -224,8 +206,6 @@ PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond) {
  * @brief set up optimization problem (this function sets up
  * and parses the default parameters to TAO)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupTao"
 PetscErrorCode Optimizer::SetupTao() {
     PetscErrorCode ierr = 0;
     IntType nlu, ngu;
@@ -382,8 +362,6 @@ PetscErrorCode Optimizer::SetupTao() {
  * according to user settings (parameter continuation, grid
  * continuation, scale continuation, ...))
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Run"
 PetscErrorCode Optimizer::Run(bool presolve) {
     PetscErrorCode ierr;
     ScalarType gtol;
@@ -455,8 +433,6 @@ PetscErrorCode Optimizer::Run(bool presolve) {
  * @brief get the solution
  * @param x vector to hold solution
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetSolution"
 PetscErrorCode Optimizer::GetSolution(Vec &x) {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -477,8 +453,6 @@ PetscErrorCode Optimizer::GetSolution(Vec &x) {
  * @brief get the solution status (convergence reason)
  * @param get solution status
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetSolutionStatus"
 PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
     PetscErrorCode ierr = 0;
     TaoConvergedReason reason;
@@ -506,8 +480,6 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
 /********************************************************************
  * @brief finalize optimization (displays information for user)
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Finalize"
 PetscErrorCode Optimizer::Finalize() {
     PetscErrorCode ierr = 0;
     int rank, indent, numindent, linelength;

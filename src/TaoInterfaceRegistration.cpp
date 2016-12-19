@@ -37,8 +37,6 @@ namespace reg {
  * @param Jx objective value J(x)
  * @param ptr pointer to optimziation problem (has to be implemented by user)
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateObjective"
 PetscErrorCode EvaluateObjective(Tao tao, Vec x, ScalarType* Jx, void* ptr) {
     PetscErrorCode ierr;
     OptimizationProblem *optprob = NULL;
@@ -65,8 +63,6 @@ PetscErrorCode EvaluateObjective(Tao tao, Vec x, ScalarType* Jx, void* ptr) {
  * @param gx gradient of objective functional, i.e. g(x)
  * @param ptr pointer to actual optimziation problem
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateGradient"
 PetscErrorCode EvaluateGradient(Tao tao, Vec x, Vec gx, void* ptr) {
     PetscErrorCode ierr = 0;
     OptimizationProblem* optprob = NULL;
@@ -94,8 +90,6 @@ PetscErrorCode EvaluateGradient(Tao tao, Vec x, Vec gx, void* ptr) {
  * @param gx gradient of objective functional, i.e. g(x)
  * @param  ptr pointer to actual optimziation problem
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateObjectiveGradient"
 PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx, void* ptr) {
     PetscErrorCode ierr = 0;
     OptimizationProblem* optprob = NULL;
@@ -127,8 +121,6 @@ PetscErrorCode EvaluateObjectiveGradient(Tao tao, Vec x, ScalarType* Jx, Vec gx,
  * @param Hpre preconditioner (can be matrix free)
  * @param ptr pointer to optimzation problem (has to be implemented by user)
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateHessian"
 PetscErrorCode EvaluateHessian(Tao tao, Vec x, Mat H, Mat Hpre, void* ptr) {
     PetscErrorCode ierr = 0;
     (void)tao; (void)x; (void)H; (void)Hpre; (void)ptr;
@@ -142,8 +134,6 @@ PetscErrorCode EvaluateHessian(Tao tao, Vec x, Mat H, Mat Hpre, void* ptr) {
 /****************************************************************************
  * @brief computes the hessian matrix vector product Hx = H*xtilde
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
 PetscErrorCode HessianMatVec(Mat H, Vec x, Vec Hx) {
     PetscErrorCode ierr = 0;
     void* ptr;
@@ -169,8 +159,6 @@ PetscErrorCode HessianMatVec(Mat H, Vec x, Vec Hx) {
 /****************************************************************************
  * @brief computes the matrix vector product Px
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondMatVec"
 PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex) {
     PetscErrorCode ierr = 0;
     void* ptr;
@@ -197,8 +185,6 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex) {
  * @param tao pointer to tao solver
  * @param optprob pointer to optimziation problem
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CheckConvergenceGrad"
 PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     IntType iter, maxiter, miniter;
@@ -288,8 +274,6 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
  * @param tao pointer to tao solver
  * @param ptr pointer to optimziation problem (has to be implemented by user)
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimizationMonitor"
 PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     IntType iter;
@@ -360,8 +344,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
 /****************************************************************************
  * @brief display the convergence reason of the KSP method
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DispLSConvReason"
 PetscErrorCode DispLSConvReason(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     std::string msg;
@@ -465,8 +447,6 @@ PetscErrorCode DispLSConvReason(Tao tao, void* ptr) {
 /****************************************************************************
  * @brief display the convergence reason of the optimizer
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DispTaoConvReason"
 PetscErrorCode DispTaoConvReason(TaoConvergedReason flag) {
     PetscErrorCode ierr = 0;
     std::string msg;

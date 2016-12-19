@@ -36,8 +36,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ReadWriteReg"
 ReadWriteReg::ReadWriteReg() {
     this->Initialize();
 }
@@ -48,8 +46,6 @@ ReadWriteReg::ReadWriteReg() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ReadWriteReg"
 ReadWriteReg::ReadWriteReg(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -61,8 +57,6 @@ ReadWriteReg::ReadWriteReg(RegOpt* opt) {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~ReadWriteReg"
 ReadWriteReg::~ReadWriteReg() {
     this->ClearMemory();
 }
@@ -73,8 +67,6 @@ ReadWriteReg::~ReadWriteReg() {
 /********************************************************************
  * @brief init class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode ReadWriteReg::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -101,8 +93,6 @@ PetscErrorCode ReadWriteReg::Initialize() {
 /********************************************************************
  * @brief clear class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode ReadWriteReg::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -132,14 +122,12 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
 /********************************************************************
  * @brief read data from file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Read"
 PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     std::string file, msg;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get file name without path
     ierr = GetFileName(file, filename); CHKERRQ(ierr);
@@ -190,7 +178,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
         ierr = ThrowError("could not read: data type not supported"); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -201,14 +189,12 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
 /********************************************************************
  * @brief read data from file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Read"
 PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
                                     std::string fnx2, std::string fnx3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -216,7 +202,7 @@ PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
     ierr = this->Read(&v->m_X1, fnx2); CHKERRQ(ierr);
     ierr = this->Read(&v->m_X1, fnx3); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -227,19 +213,17 @@ PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
 /********************************************************************
  * @brief write time series data to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteTimeSeries"
 PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
 
     filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -250,15 +234,13 @@ PetscErrorCode ReadWriteReg::WriteTimeSeries(Vec x, std::string filename) {
 /********************************************************************
  * @brief read temporal data from file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ReadTimeSeries"
 PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -269,16 +251,14 @@ PetscErrorCode ReadWriteReg::ReadTimeSeries(Vec x, std::string filename) {
 /********************************************************************
  * @brief read data from file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ReadBlock"
 PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -289,16 +269,14 @@ PetscErrorCode ReadWriteReg::ReadBlock(Vec x, int isize[3], std::string filename
 /********************************************************************
  * @brief write data to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteBlock"
 PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filename) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     filename = this->m_Opt->GetReadWriteFlags().xfolder + filename;
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -309,8 +287,6 @@ PetscErrorCode ReadWriteReg::WriteBlock(Vec x, int isize[3], std::string filenam
 /********************************************************************
  * @brief write multi component image to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteMC"
 PetscErrorCode ReadWriteReg::WriteMC(Vec x, std::string filename) {
     PetscErrorCode ierr;
     IntType nc, nl, ng;
@@ -320,7 +296,7 @@ PetscErrorCode ReadWriteReg::WriteMC(Vec x, std::string filename) {
     std::string msg, path, file, ext;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -363,7 +339,7 @@ PetscErrorCode ReadWriteReg::WriteMC(Vec x, std::string filename) {
 
     if (xk != NULL) {ierr = VecDestroy(&xk); CHKERRQ(ierr); xk = NULL;}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -374,15 +350,13 @@ PetscErrorCode ReadWriteReg::WriteMC(Vec x, std::string filename) {
 /********************************************************************
  * @brief write data to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Write"
 PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename) {
     PetscErrorCode ierr;
     std::string file, msg;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -432,7 +406,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename) {
         ierr = ThrowError("could not write: data type not supported"); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -443,8 +417,6 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename) {
 /********************************************************************
  * @brief write data to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Write"
 PetscErrorCode ReadWriteReg::Write(VecField* v,
                                    std::string fnx1,
                                    std::string fnx2,
@@ -453,14 +425,14 @@ PetscErrorCode ReadWriteReg::Write(VecField* v,
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = this->Write(v->m_X1, fnx1); CHKERRQ(ierr);
     ierr = this->Write(v->m_X2, fnx2); CHKERRQ(ierr);
     ierr = this->Write(v->m_X3, fnx3); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -472,14 +444,12 @@ PetscErrorCode ReadWriteReg::Write(VecField* v,
  * @brief get component type of NII images
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "GetComponentTypeNII"
 PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     switch (niiimage->datatype) {
         case NIFTI_TYPE_UINT8:
@@ -529,7 +499,7 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -542,8 +512,6 @@ PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
  * @brief read nifty image
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "ReadNII"
 PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     std::string msg, file;
@@ -556,7 +524,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
@@ -733,7 +701,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     if (image != NULL) {nifti_image_free(image); image = NULL;}
     if (this->m_Data != NULL) {delete [] this->m_Data; this->m_Data = NULL;}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -746,8 +714,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
  * @brief read nifty image with right component type
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "ReadNII"
 PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename) {
     PetscErrorCode ierr;
     std::string msg;
@@ -755,7 +721,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     msg = "should only be called on master/root rank";
@@ -841,7 +807,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -854,8 +820,6 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename
  * @brief get component type of NII images
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "ReadNII"
 template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage, std::string filename) {
     PetscErrorCode ierr;
     T *data = NULL;
@@ -866,7 +830,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_Data != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -891,7 +855,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
         this->m_Data[i] = static_cast<ScalarType>(data[i]);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -904,15 +868,13 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
  * @brief write buffer to nii files
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "WriteNII"
 PetscErrorCode ReadWriteReg::WriteNII(Vec x, std::string filename) {
     PetscErrorCode ierr;
     int rank;
     nifti_image* image = NULL;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // TODO
     // we want to rescale the image to whatever
@@ -930,7 +892,7 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x, std::string filename) {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if(rank == 0) { nifti_image_write(image); }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -943,20 +905,18 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x, std::string filename) {
  * @brief write buffer to nii files
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "WriteNII"
 PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage, Vec x, std::string filename) {
     PetscErrorCode ierr;
     std::string msg;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // if nifty image is null pointer default to double
     if ((*niiimage) == NULL) {
         ierr = this->WriteNII<ScalarType>(niiimage, x, filename); CHKERRQ(ierr);
-        this->m_Opt->Exit(__FUNCT__);
+        this->m_Opt->Exit(__func__);
         PetscFunctionReturn(0);
     }
 
@@ -1008,7 +968,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage, Vec x, std::string
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1020,8 +980,6 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** niiimage, Vec x, std::string
  * @brief write buffer to nii files
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "WriteNII"
 template <typename T>
 PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string filename) {
     PetscErrorCode ierr;
@@ -1035,7 +993,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get number of ranks
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -1184,7 +1142,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
     if (xcollect != NULL) {ierr = VecDestroy(&xcollect); CHKERRQ(ierr);}
     if (scatterctx != NULL) {ierr = VecScatterDestroy(&scatterctx); CHKERRQ(ierr);}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1196,8 +1154,6 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x, std::string fi
  * @brief allocate buffer for nifty image
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-#undef __FUNCT__
-#define __FUNCT__ "AllocateNII"
 PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     PetscErrorCode ierr = 0;
     IntType n;
@@ -1205,7 +1161,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -1279,7 +1235,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1291,8 +1247,6 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
 /********************************************************************
  * @brief write binary data set to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ReadBIN"
 PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -1328,8 +1282,6 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename) {
 /********************************************************************
  * @brief write bin to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteBIN"
 PetscErrorCode ReadWriteReg::WriteBIN(Vec x, std::string filename) {
     PetscErrorCode ierr = 0;
     PetscViewer viewer = NULL;
@@ -1355,8 +1307,6 @@ PetscErrorCode ReadWriteReg::WriteBIN(Vec x, std::string filename) {
  * @brief read hdf5 image
  *******************************************************************/
 #if defined(PETSC_HAVE_HDF5)
-#undef __FUNCT__
-#define __FUNCT__ "ReadHDF5"
 PetscErrorCode ReadWriteReg::ReadHDF5(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     PetscViewer viewer = NULL;
@@ -1383,8 +1333,6 @@ PetscErrorCode ReadWriteReg::ReadHDF5(Vec* x, std::string filename) {
  * @brief read hdf5 image
  *******************************************************************/
 #if defined(PETSC_HAVE_HDF5)
-#undef __FUNCT__
-#define __FUNCT__ "WriteHDF5"
 PetscErrorCode ReadWriteReg::WriteHDF5(Vec x, std::string filename) {
     PetscErrorCode ierr = 0;
     PetscViewer viewer=NULL;
@@ -1412,8 +1360,6 @@ PetscErrorCode ReadWriteReg::WriteHDF5(Vec x, std::string filename) {
  * @brief write netcdf to file
  *******************************************************************/
 #ifdef REG_HAS_PNETCDF
-#undef __FUNCT__
-#define __FUNCT__ "ReadNC"
 PetscErrorCode ReadWriteReg::ReadNC(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     int rank, ncerr, fileid, ndims, nvars, ngatts, unlimited, varid[1];
@@ -1473,8 +1419,6 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x, std::string filename) {
  * @brief write netcdf to file
  *******************************************************************/
 #ifdef REG_HAS_PNETCDF
-#undef __FUNCT__
-#define __FUNCT__ "WriteNC"
 PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
     PetscErrorCode ierr = 0;
     int ncerr, mode, dims[3], varid[1], nx[3], iscdf5, fileid;

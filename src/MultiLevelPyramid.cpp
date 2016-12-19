@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "MultiLevelPyramid"
 MultiLevelPyramid::MultiLevelPyramid() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ MultiLevelPyramid::MultiLevelPyramid() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "MultiLevelPyramid"
 MultiLevelPyramid::MultiLevelPyramid(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -59,8 +55,6 @@ MultiLevelPyramid::MultiLevelPyramid(RegOpt* opt) {
 /********************************************************************
  * @brief destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~MultiLevelPyramid"
 MultiLevelPyramid::~MultiLevelPyramid() {
     this->ClearMemory();
 }
@@ -71,8 +65,6 @@ MultiLevelPyramid::~MultiLevelPyramid() {
 /********************************************************************
  * @brief initialize class
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode MultiLevelPyramid::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -104,8 +96,6 @@ PetscErrorCode MultiLevelPyramid::Initialize() {
 /********************************************************************
  * @brief clean up class
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode MultiLevelPyramid::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -180,8 +170,6 @@ PetscErrorCode MultiLevelPyramid::ClearMemory() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetPreProc"
 PetscErrorCode MultiLevelPyramid::SetPreProc(PreProcReg* ppr) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -198,8 +186,6 @@ PetscErrorCode MultiLevelPyramid::SetPreProc(PreProcReg* ppr) {
 /********************************************************************
  * @brief allocate entire pyramid
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "AllocatePyramid"
 PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -291,8 +277,6 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
 /********************************************************************
  * @brief allocate entire pyramid
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetData"
 PetscErrorCode MultiLevelPyramid::SetData(Vec x, int level) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -340,8 +324,6 @@ PetscErrorCode MultiLevelPyramid::SetData(Vec x, int level) {
 /********************************************************************
  * @brief allocate
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -364,8 +346,6 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng) {
 /********************************************************************
  * @brief do setup
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DoSetup"
 PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     PetscErrorCode ierr = 0;
     IntType nxlevel[3], nx[3];
@@ -410,8 +390,6 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
 /********************************************************************
  * @brief get data at specific level
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetLevel"
 PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -473,8 +451,6 @@ PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level) {
 /********************************************************************
  * @brief get data at specific level
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetData"
 PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;

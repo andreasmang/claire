@@ -34,8 +34,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimizationProblem"
 OptimizationProblem::OptimizationProblem() {
     this->Initialize();
 }
@@ -46,8 +44,6 @@ OptimizationProblem::OptimizationProblem() {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimizationProblem"
 OptimizationProblem::OptimizationProblem(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -59,8 +55,6 @@ OptimizationProblem::OptimizationProblem(RegOpt* opt) {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~OptimizationProblem"
 OptimizationProblem::~OptimizationProblem(void) {
 }
 
@@ -70,8 +64,6 @@ OptimizationProblem::~OptimizationProblem(void) {
 /********************************************************************
  * @brief init class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode OptimizationProblem::Initialize(void) {
     PetscFunctionBegin;
 
@@ -90,8 +82,6 @@ PetscErrorCode OptimizationProblem::Initialize(void) {
 /********************************************************************
  * @brief set the registration options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetOptions"
 PetscErrorCode OptimizationProblem::SetOptions(RegOpt* opt) {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -116,8 +106,6 @@ PetscErrorCode OptimizationProblem::SetOptions(RegOpt* opt) {
 /********************************************************************
  * @brief check gradient based on a taylor expansion
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DerivativeCheck"
 PetscErrorCode OptimizationProblem::DerivativeCheck() {
     PetscErrorCode ierr = 0;
     Vec v = NULL, vtilde = NULL, w = NULL, dvJ = NULL;
@@ -213,8 +201,6 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
  *   \langle A x, A x \rangle = \langle A^T*Ax, x \rangle
  * for the inner product
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianSymmetryCheck"
 PetscErrorCode OptimizationProblem::HessianSymmetryCheck() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;

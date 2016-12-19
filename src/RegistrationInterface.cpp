@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegistrationInterface"
 RegistrationInterface::RegistrationInterface() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ RegistrationInterface::RegistrationInterface() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~RegistrationInterface"
 RegistrationInterface::~RegistrationInterface(void) {
     this->ClearMemory();
 }
@@ -58,8 +54,6 @@ RegistrationInterface::~RegistrationInterface(void) {
  * @brief constructor
  * @param[in] opt base class for registration options and arguments
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegistrationInterface"
 RegistrationInterface::RegistrationInterface(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -71,8 +65,6 @@ RegistrationInterface::RegistrationInterface(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode RegistrationInterface::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -104,8 +96,6 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode RegistrationInterface::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -177,8 +167,6 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
  * @brief set initial guess
  * @param[in] x    vector field that contains initial guess
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetInitialGuess"
 PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -212,8 +200,6 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
  * @param[out] x    vector field for solution; needs to be allocated
  * elswhere
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetSolution"
 PetscErrorCode RegistrationInterface::GetSolution(VecField* x, bool copy) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -236,8 +222,6 @@ PetscErrorCode RegistrationInterface::GetSolution(VecField* x, bool copy) {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetReadWrite"
 PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -254,8 +238,6 @@ PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw) {
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetReferenceImage"
 PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -274,8 +256,6 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
 /********************************************************************
  * @brief set template image (i.e., the template image)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetTemplateImage"
 PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -294,8 +274,6 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
 /********************************************************************
  * @brief set read/write object
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DispLevelMsg"
 PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -315,8 +293,6 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
  * @param[in] v velocity field
  * @param[out] value sobolev norm of velocity v
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateRegularizationFunctional"
 PetscErrorCode RegistrationInterface
 ::EvaluateRegularizationFunctional(ScalarType* value, VecField* v) {
     PetscErrorCode ierr = 0;
@@ -340,13 +316,11 @@ PetscErrorCode RegistrationInterface
 /********************************************************************
  * @brief set up the registration problem and optimizer
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupSolver"
 PetscErrorCode RegistrationInterface::SetupSolver() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // reset optimization problem
     if (this->m_Optimizer != NULL) {
@@ -394,7 +368,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
         ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -406,13 +380,11 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
  * @brief set up the registration problem, which essentially is
  * equivalent to allocating the class
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupRegProblem"
 PetscErrorCode RegistrationInterface::SetupRegProblem() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // reset registration problem
     if (this->m_RegProblem != NULL) {
@@ -442,7 +414,7 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = this->m_RegProblem->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -454,8 +426,6 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
  * @brief main function to call in order to solve the optimization
  * problem
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Run"
 PetscErrorCode RegistrationInterface::Run() {
     PetscErrorCode ierr = 0;
     IntType nxmax, nx;
@@ -464,7 +434,7 @@ PetscErrorCode RegistrationInterface::Run() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -503,7 +473,7 @@ PetscErrorCode RegistrationInterface::Run() {
     ierr = this->DispLevelMsg("optimization done", rank); CHKERRQ(ierr);
     ierr = this->Finalize(); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -515,15 +485,13 @@ PetscErrorCode RegistrationInterface::Run() {
  * @brief run single level solver (no grid, scale, or parameter
  * continuation is performed)
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolver"
 PetscErrorCode RegistrationInterface::RunSolver() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
     bool boundreached;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // do the setup
     ierr = this->SetupSolver(); CHKERRQ(ierr);
@@ -598,7 +566,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -609,15 +577,13 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 /********************************************************************
  * @brief main function to run the parameter continuation
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolverRegParaCont"
 PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // do the setup
     ierr = this->SetupSolver(); CHKERRQ(ierr);
@@ -693,7 +659,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -708,8 +674,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
  * is diffeomorphic and results in a map that is close to the bound
  * on jacobian set by user
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolverRegParaContBinarySearch"
 PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     PetscErrorCode ierr = 0;
     int maxsteps, level, rank;
@@ -723,7 +687,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
@@ -936,7 +900,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // wrap up
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -952,8 +916,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
  * diffeomorphic deformation map (as judged by the determinant
  * of the deformation gradient)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolverRegParaContReductSearch"
 PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
@@ -964,7 +926,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -1051,7 +1013,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     // wrap up
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1064,8 +1026,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
  * the regularization parameter until we have reached the
  * target regularization weight set by the user
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolverRegParaContReduction"
 PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     PetscErrorCode ierr = 0;
     int level, rank;
@@ -1075,7 +1035,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -1140,7 +1100,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     // wrap up
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1154,8 +1114,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
  * registered to get to finer and finer scales; this is supposed to
  * reduce the non-linearity in the problem
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolverScaleCont"
 PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
@@ -1278,8 +1236,6 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
  * will successively increase the number of grid points of the
  * template and reference image
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunSolverGridCont"
 PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     PetscErrorCode ierr = 0;
     int rank, level, nlevels;
@@ -1482,8 +1438,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 /********************************************************************
  * @brief prolong velocity field
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ProlongVelocityField"
 PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int level) {
     PetscErrorCode ierr = 0;
     IntType nx_f[3], nx_c[3], nl, ng;
@@ -1491,7 +1445,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -1538,7 +1492,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     if (v_f != NULL) {delete v_f; v_f = NULL;}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1549,13 +1503,11 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 /********************************************************************
  * @brief finalize optimization (displays information for user)
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Finalize"
 PetscErrorCode RegistrationInterface::Finalize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // finalize optimizer (show tao output)
     ierr = this->m_Optimizer->Finalize(); CHKERRQ(ierr);
@@ -1563,7 +1515,7 @@ PetscErrorCode RegistrationInterface::Finalize() {
     // display time to solution
     ierr = this->m_Opt->DisplayTimeToSolution(); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1574,14 +1526,12 @@ PetscErrorCode RegistrationInterface::Finalize() {
 /********************************************************************
  * @brief run postprocessing of input data
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunPostProcessing"
 PetscErrorCode RegistrationInterface::RunPostProcessing() {
     PetscErrorCode ierr = 0;
     Vec mR = NULL, mT = NULL;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = this->SetupRegProblem(); CHKERRQ(ierr);
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1623,7 +1573,7 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1637,13 +1587,11 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
  * @param[in] m0 initial condition/template image
  * @param[out] m1 transported template image
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveForwardProblem"
 PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1671,7 +1619,7 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1685,13 +1633,11 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
  * @param[in] m1 deformed template image
  * @param[out] l0 adjoint variable at t=0
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveAdjointProblem"
 PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -1706,7 +1652,7 @@ PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
     ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     ierr = this->m_RegProblem->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1718,13 +1664,11 @@ PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
 /********************************************************************
  * @brief compute deformation map or deformation gradient
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeDefFields"
 PetscErrorCode RegistrationInterface::ComputeDefFields() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = this->SetupRegProblem(); CHKERRQ(ierr);
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1752,7 +1696,7 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
         ierr = this->m_RegProblem->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

@@ -33,8 +33,6 @@ namespace reg {
 /****************************************************************************
  * @brief monitor evolution of krylov subspace method
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "KrylovMonitor"
 PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
                              ScalarType rnorm, void* ptr) {
     PetscErrorCode ierr = 0;
@@ -80,8 +78,6 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
  * @para[in] b right hand side of equation
  * @para[in] x solution vector
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PreKrylovSolve"
 PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     PetscErrorCode ierr = 0;
     ScalarType gnorm = 0.0, g0norm = 0.0, reltol, abstol, divtol,
@@ -194,8 +190,6 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
  * @para[in] b right hand side of equation
  * @para[in] x solution vector
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PostKrylovSolve"
 PetscErrorCode PostKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     PetscErrorCode ierr = 0;
     OptimizationProblem* optprob = NULL;
@@ -226,8 +220,6 @@ PetscErrorCode PostKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
 /****************************************************************************
  * @briefdisplay the convergence reason of the KSP method
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DispKSPConvReason"
 PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
     PetscErrorCode ierr = 0;
     std::string msg;
@@ -374,8 +366,6 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
  * @para[in] current norm of residual
  * @para[in] pointer to preconditioner object
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "InvertPrecondKrylovMonitor"
 PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
                                           ScalarType rnorm, void* ptr) {
     PetscErrorCode ierr = 0;
@@ -408,8 +398,6 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
 /****************************************************************************
  * @brief computes the hessian matrix vector product Hx = H*xtilde
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "InvertPrecondMatVec"
 PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
     PetscErrorCode ierr = 0;
     void* ptr;
@@ -435,8 +423,6 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
  * @para[in] b right hand side of equation
  * @para[in] x solution vector
  ****************************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "InvertPrecondPreKrylovSolve"
 PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
                                            Vec x, void* ptr) {
     PetscErrorCode ierr = 0;

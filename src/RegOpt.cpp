@@ -36,8 +36,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegOpt"
 RegOpt::RegOpt() {
     this->Initialize();
 }
@@ -48,8 +46,6 @@ RegOpt::RegOpt() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegOpt"
 RegOpt::RegOpt(int argc, char** argv) {
     this->Initialize();
     this->ParseArguments(argc, argv);
@@ -61,8 +57,6 @@ RegOpt::RegOpt(int argc, char** argv) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegOpt"
 RegOpt::RegOpt(const RegOpt& opt) {
     this->Initialize();
     this->Copy(opt);
@@ -74,8 +68,6 @@ RegOpt::RegOpt(const RegOpt& opt) {
 /********************************************************************
  * @brief copy entries of input options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Copy"
 void RegOpt::Copy(const RegOpt& opt) {
     this->m_SetupDone = false;
     this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
@@ -223,8 +215,6 @@ void RegOpt::Copy(const RegOpt& opt) {
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ParseArguments"
 PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
@@ -630,8 +620,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~RegOpt"
 RegOpt::~RegOpt() {
     this->ClearMemory();
 }
@@ -642,8 +630,6 @@ RegOpt::~RegOpt() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode RegOpt::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -659,8 +645,6 @@ PetscErrorCode RegOpt::ClearMemory() {
 /********************************************************************
  * @brief clean up fourier transform and mpi communicator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DestroyFFT"
 PetscErrorCode RegOpt::DestroyFFT() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -685,8 +669,6 @@ PetscErrorCode RegOpt::DestroyFFT() {
 /********************************************************************
  * @brief setup fourier transform and mpi communicator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "InitializeFFT"
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
     int nx[3], isize[3], istart[3], osize[3], ostart[3];
@@ -695,7 +677,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     Complex *uk = NULL;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     // if communicator is not set up
     if (this->m_FFT.mpicomm == NULL) {
@@ -757,7 +739,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     if (u != NULL) { accfft_free(u); u = NULL; }
     if (uk != NULL) { accfft_free(uk); uk = NULL; }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -768,8 +750,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
 /********************************************************************
  * @brief initialize class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode RegOpt::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -941,8 +921,6 @@ PetscErrorCode RegOpt::Initialize() {
 /********************************************************************
  * @brief display usage message for binary
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Usage"
 PetscErrorCode RegOpt::Usage(bool advanced) {
     PetscErrorCode ierr = 0;
     int rank;
@@ -1136,8 +1114,6 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CheckArguments"
 PetscErrorCode RegOpt::CheckArguments() {
     PetscErrorCode ierr = 0;
     bool readmR = false, readmT = false, loggingenabled = false,
@@ -1256,15 +1232,13 @@ PetscErrorCode RegOpt::CheckArguments() {
 /********************************************************************
  * @brief setup options and accfft
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DoSetup"
 PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     ierr = this->InitializeFFT(); CHKERRQ(ierr);
 
@@ -1275,7 +1249,7 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
 
     this->m_SetupDone = true;
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1288,13 +1262,11 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
  * uses the fft class to and communcation layout as an input
  * and sets the associated parameters
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CouplingSetup"
 PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
@@ -1316,7 +1288,7 @@ PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
 
     ierr = this->DoSetup(true); CHKERRQ(ierr);
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1328,19 +1300,17 @@ PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
  * @brief set preset parameters (maybe reduce number of krylov
  * iterations)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EnableFastSolve"
 PetscErrorCode RegOpt::EnableFastSolve() {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     this->m_SolveType = FAST_SMOOTH;
     ierr = this->SetPresetParameters(); CHKERRQ(ierr);
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1353,14 +1323,12 @@ PetscErrorCode RegOpt::EnableFastSolve() {
  * either reduce the time to solution or compute high-fidelity
  * results
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetPresetParameters"
 PetscErrorCode RegOpt::SetPresetParameters() {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     if (this->m_SolveType == FAST_AGG) {
         // use fast and aggressive method
@@ -1404,7 +1372,7 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         ierr = ThrowError("flag not defined"); CHKERRQ(ierr);
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1415,8 +1383,6 @@ PetscErrorCode RegOpt::SetPresetParameters() {
 /********************************************************************
  * @brief display registration options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetBetaMinParaCont"
 ScalarType RegOpt::GetBetaMinParaCont() {
     if (this->m_RegNorm.type == H1) {
         return this->m_ParaCont.betavminh1;
@@ -1435,8 +1401,6 @@ ScalarType RegOpt::GetBetaMinParaCont() {
 /********************************************************************
  * @brief set up grid continuation
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupGridCont"
 PetscErrorCode RegOpt::SetupGridCont() {
     PetscErrorCode ierr = 0;
     IntType nxmin, nxi, nl, ng, nalloc;
@@ -1446,7 +1410,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     // compute number of levels
     nxmin = this->m_Domain.nx[0];
@@ -1524,7 +1488,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         ++level;  // increment
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1535,8 +1499,6 @@ PetscErrorCode RegOpt::SetupGridCont() {
 /********************************************************************
  * @brief display registration options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DisplayOptions"
 PetscErrorCode RegOpt::DisplayOptions() {
     PetscErrorCode ierr;
     int rank, indent, align;
@@ -1545,7 +1507,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -1919,7 +1881,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << line << std::endl;
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1930,15 +1892,13 @@ PetscErrorCode RegOpt::DisplayOptions() {
 /********************************************************************
  * @brief compute sizes
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     PetscErrorCode ierr = 0;
     int nxi[3], isize[3], istart[3], osize[3], ostart[3];
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     ierr = Assert(nx[0] > 0, "error in size"); CHKERRQ(ierr);
     ierr = Assert(nx[1] > 0, "error in size"); CHKERRQ(ierr);
@@ -1956,7 +1916,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
         nl *= static_cast<IntType>(isize[i]);
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1967,15 +1927,13 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
 /********************************************************************
  * @brief compute sizes
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetSizes"
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     PetscErrorCode ierr = 0;
     int nxi[3], isizei[3], istarti[3], osize[3], ostart[3];
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     ierr = Assert(nx[0] > 0, "error in size"); CHKERRQ(ierr);
     ierr = Assert(nx[1] > 0, "error in size"); CHKERRQ(ierr);
@@ -1992,7 +1950,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
         istart[i] = static_cast<IntType>(istarti[i]);
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2003,8 +1961,6 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
 /********************************************************************
  * @brief compute weight for FFT
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeFFTScale"
 ScalarType RegOpt::ComputeFFTScale() {
     ScalarType scale = 1.0;
     for (int i = 0; i < 3; ++i) {
@@ -2019,13 +1975,11 @@ ScalarType RegOpt::ComputeFFTScale() {
 /********************************************************************
  * @brief resets all timers
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResetTimers"
 PetscErrorCode RegOpt::ResetTimers() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     for (int i = 0; i < NTIMERS; ++i) {
         if (i != FFTSETUP) {
@@ -2049,7 +2003,7 @@ PetscErrorCode RegOpt::ResetTimers() {
         }
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2060,13 +2014,11 @@ PetscErrorCode RegOpt::ResetTimers() {
 /********************************************************************
  * @brief resets timer
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResetTimer"
 PetscErrorCode RegOpt::ResetTimer(TimerType id) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     for (int j = 0; j < NVALTYPES; ++j) {
         this->m_Timer[id][j] = 0.0;
@@ -2074,7 +2026,7 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id) {
     this->m_TimerIsRunning[id] = false;
     this->m_TempTimer[id] = 0.0;
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2085,15 +2037,13 @@ PetscErrorCode RegOpt::ResetTimer(TimerType id) {
 /********************************************************************
  * @brief start the timer (checks if running)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "StartTimer"
 PetscErrorCode RegOpt::StartTimer(TimerType id) {
     PetscErrorCode ierr = 0;
     std::string msg;
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     msg = "fatal error: timer has already been started";
     ierr = Assert(this->m_TimerIsRunning[id] == false, msg); CHKERRQ(ierr);
@@ -2101,7 +2051,7 @@ PetscErrorCode RegOpt::StartTimer(TimerType id) {
     this->m_TempTimer[id] = -MPI_Wtime();
     this->m_TimerIsRunning[id] = true;
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2112,15 +2062,13 @@ PetscErrorCode RegOpt::StartTimer(TimerType id) {
 /********************************************************************
  * @brief stop setup timer (checks if running)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "StopTimer"
 PetscErrorCode RegOpt::StopTimer(TimerType id) {
     PetscErrorCode ierr = 0;
     std::string msg;
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     msg = "fatal error: timer has not been started";
     ierr = Assert(this->m_TimerIsRunning[id], msg); CHKERRQ(ierr);
@@ -2131,7 +2079,7 @@ PetscErrorCode RegOpt::StopTimer(TimerType id) {
     // tell the world that we stop the timer
     this->m_TimerIsRunning[id] = false;
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2143,8 +2091,6 @@ PetscErrorCode RegOpt::StopTimer(TimerType id) {
 /********************************************************************
  * @brief process the timers
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ProcessTimers"
 PetscErrorCode RegOpt::ProcessTimers() {
     PetscErrorCode ierr = 0;
     int rval, rank, nproc;
@@ -2152,7 +2098,7 @@ PetscErrorCode RegOpt::ProcessTimers() {
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
@@ -2229,7 +2175,7 @@ PetscErrorCode RegOpt::ProcessTimers() {
         }
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2240,17 +2186,15 @@ PetscErrorCode RegOpt::ProcessTimers() {
 /********************************************************************
  * @brief resets counters
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResetCounters"
 PetscErrorCode RegOpt::ResetCounters() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     for (int i = 0; i < NCOUNTERS; ++i) {this->m_Counter[i] = 0;}
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2261,17 +2205,15 @@ PetscErrorCode RegOpt::ResetCounters() {
 /********************************************************************
  * @brief resets counter
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResetCounter"
 PetscErrorCode RegOpt::ResetCounter(CounterType id) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     this->m_Counter[id] = 0;
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2282,8 +2224,6 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id) {
 /********************************************************************
  * @brief write log results to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteLogFile"
 PetscErrorCode RegOpt::WriteLogFile() {
     PetscErrorCode ierr = 0;
 
@@ -2308,8 +2248,6 @@ PetscErrorCode RegOpt::WriteLogFile() {
 /********************************************************************
  * @brief displays the global exection time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteWorkLoadLog"
 PetscErrorCode RegOpt::WriteWorkLoadLog() {
     PetscErrorCode ierr = 0;
     std::string fn, line, path;
@@ -2319,7 +2257,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -2661,7 +2599,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
         }
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2672,8 +2610,6 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 /********************************************************************
  * @brief write residual to file
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteResidualLog"
 PetscErrorCode RegOpt::WriteResidualLog() {
     PetscErrorCode ierr = 0;
     int rank, nnum;
@@ -2682,7 +2618,7 @@ PetscErrorCode RegOpt::WriteResidualLog() {
     std::string path, fn;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -2738,7 +2674,7 @@ PetscErrorCode RegOpt::WriteResidualLog() {
         logwriter.close();
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2749,8 +2685,6 @@ PetscErrorCode RegOpt::WriteResidualLog() {
 /********************************************************************
  * @brief write out logging information for krylov method
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WriteKSPLog"
 PetscErrorCode RegOpt::WriteKSPLog() {
     PetscErrorCode ierr = 0;
     int rank, n;
@@ -2759,7 +2693,7 @@ PetscErrorCode RegOpt::WriteKSPLog() {
     std::string path, fn;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -2782,7 +2716,7 @@ PetscErrorCode RegOpt::WriteKSPLog() {
         logwriter.close();  // close logger
     }
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2793,8 +2727,6 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 /********************************************************************
  * @brief displays the global exection time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DisplayTimeToSolution"
 PetscErrorCode RegOpt::DisplayTimeToSolution() {
     PetscErrorCode ierr = 0;
     double hours, minutes, seconds, millisec, time;
@@ -2803,7 +2735,7 @@ PetscErrorCode RegOpt::DisplayTimeToSolution() {
     std::string line;
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     time = this->m_Timer[T2SEXEC][MAX];
 
@@ -2828,7 +2760,7 @@ PetscErrorCode RegOpt::DisplayTimeToSolution() {
     ierr = Msg(ss.str()); CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD, "%s\n", line.c_str()); CHKERRQ(ierr);
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

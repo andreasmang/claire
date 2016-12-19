@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SynProbRegistration"
 SynProbRegistration::SynProbRegistration() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ SynProbRegistration::SynProbRegistration() {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SynProbRegistration"
 SynProbRegistration::SynProbRegistration(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -58,8 +54,6 @@ SynProbRegistration::SynProbRegistration(RegOpt* opt) {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~SynProbRegistration"
 SynProbRegistration::~SynProbRegistration() {
     this->ClearMemory();
 }
@@ -70,8 +64,6 @@ SynProbRegistration::~SynProbRegistration() {
 /********************************************************************
  * @brief initialize class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode SynProbRegistration::Initialize() {
     this->m_Opt = NULL;
     PetscFunctionReturn(0);
@@ -83,8 +75,6 @@ PetscErrorCode SynProbRegistration::Initialize() {
 /********************************************************************
  * @brief clear memory
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode SynProbRegistration::ClearMemory() {
     PetscFunctionReturn(0);
 }
@@ -95,8 +85,6 @@ PetscErrorCode SynProbRegistration::ClearMemory() {
 /********************************************************************
  * @brief compute smooth scalar field (image)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeSmoothScalarField"
 PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
     PetscErrorCode ierr = 0;
     IntType isize[3], istart[3];
@@ -219,8 +207,6 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
 /********************************************************************
  * @brief compute smooth vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeSmoothVectorField"
 PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id) {
     PetscErrorCode ierr = 0;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
@@ -291,8 +277,6 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
 /********************************************************************
  * @brief compute square
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeSquare"
 PetscErrorCode SynProbRegistration::ComputeSquare(Vec m) {
     PetscErrorCode ierr = 0;
     IntType isize[3], istart[3];
@@ -345,8 +329,6 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m) {
 /********************************************************************
  * @brief compute diamond
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeSphere"
 PetscErrorCode SynProbRegistration::ComputeSphere(Vec m) {
     PetscErrorCode ierr = 0;
     IntType isize[3], istart[3];
@@ -403,8 +385,6 @@ PetscErrorCode SynProbRegistration::ComputeSphere(Vec m) {
 /********************************************************************
  * @brief compute 3D c-like shape/hollow sphere
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeHollowSphere"
 PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m) {
     PetscErrorCode ierr;
     IntType isize[3],istart[3];
@@ -471,8 +451,6 @@ PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m) {
 /********************************************************************
  * @brief compute exp sin field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeExpSin"
 PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m) {
     PetscErrorCode ierr = 0;
     IntType isize[3], istart[3];
@@ -537,8 +515,6 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m) {
 /********************************************************************
  * @brief compute diamond
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeDiamond"
 PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m, int id) {
     PetscErrorCode ierr = 0;
     IntType isize[3], istart[3];

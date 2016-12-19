@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegularizationRegistrationH1"
 RegularizationRegistrationH1::RegularizationRegistrationH1() : SuperClass() {
 }
 
@@ -44,8 +42,6 @@ RegularizationRegistrationH1::RegularizationRegistrationH1() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~RegularizationRegistrationH1"
 RegularizationRegistrationH1::~RegularizationRegistrationH1(void) {
     this->ClearMemory();
 }
@@ -56,8 +52,6 @@ RegularizationRegistrationH1::~RegularizationRegistrationH1(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegularizationRegistrationH1"
 RegularizationRegistrationH1::RegularizationRegistrationH1(RegOpt* opt) : SuperClass(opt) {
 }
 
@@ -67,8 +61,6 @@ RegularizationRegistrationH1::RegularizationRegistrationH1(RegOpt* opt) : SuperC
 /********************************************************************
  * @brief evaluates the functional
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateFunctional"
 PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr;
     ScalarType  *p_v1 = NULL,*p_v2 = NULL, *p_v3 = NULL,
@@ -161,8 +153,6 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
 /********************************************************************
  * @brief evaluates first variation of regularization norm
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateGradient"
 PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
     int nx[3];
@@ -265,8 +255,6 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
  * @brief applies second variation of regularization norm to
  * a vector (note: the first and second variation are identical)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
 PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr = 0;
     ScalarType beta[2];
@@ -296,8 +284,6 @@ PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecFi
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyInvOp"
 PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr = 0;
     int nx[3];
@@ -400,8 +386,6 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
  * @brief computes the largest and smallest eigenvalue of
  * the inverse regularization operator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetExtremeEigValsInvOp"
 PetscErrorCode RegularizationRegistrationH1::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
     PetscErrorCode ierr = 0;
     ScalarType w[3], beta1, beta2, regop;

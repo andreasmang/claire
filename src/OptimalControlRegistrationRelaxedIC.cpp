@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistrationRelaxedIC"
 OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : SuperClass() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : Sup
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~OptimalControlRegistrationRelaxedIC"
 OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC(void) {
     this->ClearMemory();
 }
@@ -57,8 +53,6 @@ OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC(void) 
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistrationRelaxedIC"
 OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
@@ -69,8 +63,6 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt*
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -92,8 +84,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -133,14 +123,12 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void) {
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateObjective"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType D = 0.0, Rv = 0.0, Rw = 0.0, hd;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // allocate velocity field
     if (this->m_VelocityField == NULL) {
@@ -187,7 +175,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
 
     this->m_Opt->IncrementCounter(OBJEVAL);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
     PetscFunctionReturn(0);
 }
 
@@ -200,8 +188,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluteRegFunctionalW"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(ScalarType* Rw) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
@@ -212,7 +198,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     std::bitset<3> XYZ = 0; XYZ[0] = 1, XYZ[1] = 1, XYZ[2] = 1;
 
     PetscFunctionBegin;
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
@@ -259,7 +245,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     *Rw = 0.5*betaw*regvalue;
 
     this->m_Opt->IncreaseFFTTimers(timer);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -273,12 +259,10 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeBodyForce"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_WorkVecField1 == NULL) {
         this->m_WorkVecField1 = new VecField(this->m_Opt);
@@ -294,7 +278,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce() {
     ierr = this->ApplyProjection(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
     PetscFunctionReturn(ierr);
 }
 
@@ -307,12 +291,10 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce() {
  * where K is an operator that projects \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeIncBodyForce"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_WorkVecField1 == NULL) {
         this->m_WorkVecField1 = new VecField(this->m_Opt);
@@ -328,7 +310,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce() {
     ierr = this->ApplyProjection(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -340,8 +322,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce() {
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyProjection"
 PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
@@ -351,7 +331,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nx[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
     nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
@@ -473,7 +453,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }

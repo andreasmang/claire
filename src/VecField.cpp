@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "VecField"
 VecField::VecField() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ VecField::VecField() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~VecField"
 VecField::~VecField() {
     this->ClearMemory();
 }
@@ -57,8 +53,6 @@ VecField::~VecField() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "VecField"
 VecField::VecField(RegOpt* opt) {
     this->Initialize();
     this->SetOpt(opt);
@@ -71,8 +65,6 @@ VecField::VecField(RegOpt* opt) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "VecField"
 VecField::VecField(RegOpt* opt, int level) {
     this->Initialize();
     this->SetOpt(opt);
@@ -85,8 +77,6 @@ VecField::VecField(RegOpt* opt, int level) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "VecField"
 VecField::VecField(IntType nl, IntType ng) {
     this->Initialize();
     this->Allocate(nl, ng);
@@ -98,8 +88,6 @@ VecField::VecField(IntType nl, IntType ng) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode VecField::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -119,8 +107,6 @@ PetscErrorCode VecField::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode VecField::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -147,8 +133,6 @@ PetscErrorCode VecField::ClearMemory(void) {
 /********************************************************************
  * @brief set the options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetOpt"
 PetscErrorCode VecField::SetOpt(RegOpt* opt) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -165,8 +149,6 @@ PetscErrorCode VecField::SetOpt(RegOpt* opt) {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode VecField::Allocate() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -189,8 +171,6 @@ PetscErrorCode VecField::Allocate() {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode VecField::Allocate(int level) {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -213,8 +193,6 @@ PetscErrorCode VecField::Allocate(int level) {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -246,8 +224,6 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
 /********************************************************************
  * @brief Copy
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Copy"
 PetscErrorCode VecField::Copy(VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -265,8 +241,6 @@ PetscErrorCode VecField::Copy(VecField* v) {
 /********************************************************************
  * @brief set value
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetValue"
 PetscErrorCode VecField::SetValue(ScalarType value) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -284,8 +258,6 @@ PetscErrorCode VecField::SetValue(ScalarType value) {
 /********************************************************************
  * @brief get arrays of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetArrays"
 PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
                                    ScalarType*& p_x2,
                                    ScalarType*& p_x3) {
@@ -304,8 +276,6 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
 /********************************************************************
  * @brief get arrays of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetArrays"
 PetscErrorCode VecField::GetArraysRead(const ScalarType*& p_x1,
                                        const ScalarType*& p_x2,
                                        const ScalarType*& p_x3) {
@@ -324,8 +294,6 @@ PetscErrorCode VecField::GetArraysRead(const ScalarType*& p_x1,
 /********************************************************************
  * @brief pointwise scale of a vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RestoreArrays"
 PetscErrorCode VecField::RestoreArrays(ScalarType*& p_x1,
                                        ScalarType*& p_x2,
                                        ScalarType*& p_x3) {
@@ -344,8 +312,6 @@ PetscErrorCode VecField::RestoreArrays(ScalarType*& p_x1,
 /********************************************************************
  * @brief restore arrays of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetArrays"
 PetscErrorCode VecField::RestoreArraysRead(const ScalarType*& p_x1,
                                            const ScalarType*& p_x2,
                                            const ScalarType*& p_x3) {
@@ -364,8 +330,6 @@ PetscErrorCode VecField::RestoreArraysRead(const ScalarType*& p_x1,
  * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetComponents"
 PetscErrorCode VecField::SetComponents(Vec w) {
     PetscErrorCode ierr = 0;
     IntType nl, n;
@@ -411,8 +375,6 @@ PetscErrorCode VecField::SetComponents(Vec w) {
  * @brief get components of vector field and store them
  * in a flat vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetComponents"
 PetscErrorCode VecField::GetComponents(Vec w) {
     PetscErrorCode ierr = 0;
     IntType nl, n;
@@ -451,8 +413,6 @@ PetscErrorCode VecField::GetComponents(Vec w) {
 /********************************************************************
  * @brief scale vector by scalar value
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Scale"
 PetscErrorCode VecField::Scale(ScalarType value) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -470,8 +430,6 @@ PetscErrorCode VecField::Scale(ScalarType value) {
 /********************************************************************
  * @brief pointwise scale of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Scale"
 PetscErrorCode VecField::Scale(Vec s) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -511,8 +469,6 @@ PetscErrorCode VecField::Scale(Vec s) {
 /********************************************************************
  * @brief pointwise scale of a vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Scale"
 PetscErrorCode VecField::Scale(VecField* v, Vec s) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -555,8 +511,6 @@ PetscErrorCode VecField::Scale(VecField* v, Vec s) {
 /********************************************************************
  * @brief interface for AXPY
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "AXPY"
 PetscErrorCode VecField::AXPY(ScalarType s, VecField* v) {
     PetscErrorCode ierr = 0;
 
@@ -575,8 +529,6 @@ PetscErrorCode VecField::AXPY(ScalarType s, VecField* v) {
 /********************************************************************
  * @brief interface for WAXPY
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "AXPY"
 PetscErrorCode VecField::WAXPY(ScalarType s, VecField* v, VecField* w) {
     PetscErrorCode ierr = 0;
 
@@ -594,8 +546,6 @@ PetscErrorCode VecField::WAXPY(ScalarType s, VecField* v, VecField* w) {
 /********************************************************************
  * @brief compute norm of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Scale"
 PetscErrorCode VecField::Norm(Vec xnorm) {
     PetscErrorCode ierr = 0;
     IntType i, nl;

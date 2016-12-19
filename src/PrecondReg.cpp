@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondReg"
 PrecondReg::PrecondReg() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ PrecondReg::PrecondReg() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~PrecondReg"
 PrecondReg::~PrecondReg() {
     this->ClearMemory();
 }
@@ -57,8 +53,6 @@ PrecondReg::~PrecondReg() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistration"
 PrecondReg::PrecondReg(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -70,8 +64,6 @@ PrecondReg::PrecondReg(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode PrecondReg::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -114,8 +106,6 @@ PetscErrorCode PrecondReg::Initialize() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode PrecondReg::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -219,18 +209,16 @@ PetscErrorCode PrecondReg::ClearMemory() {
  * implementation; the user can set different optimization problems
  * and we can solve them)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetProblem"
 PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_OptProb = optprob;
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -243,18 +231,16 @@ PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob) {
  * implementation; the user can set different optimization problems
  * and we can solve them)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetPreProc"
 PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(preproc != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_PreProc = preproc;
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -267,13 +253,11 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc) {
  * quantities; implemented to allow multiple calls of the solver
  * without destroying it;
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Reset"
 PetscErrorCode PrecondReg::Reset() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // switch case for choice of preconditioner
     switch(this->m_Opt->GetKrylovSolverPara().pctype) {
@@ -303,7 +287,7 @@ PetscErrorCode PrecondReg::Reset() {
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -314,13 +298,11 @@ PetscErrorCode PrecondReg::Reset() {
 /********************************************************************
  * @brief setup phase of preconditioner
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DoSetup"
 PetscErrorCode PrecondReg::DoSetup() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // start timer
     ierr = this->m_Opt->StartTimer(PMVSETUP); CHKERRQ(ierr);
@@ -334,7 +316,7 @@ PetscErrorCode PrecondReg::DoSetup() {
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVSETUP); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -345,13 +327,11 @@ PetscErrorCode PrecondReg::DoSetup() {
 /********************************************************************
  * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "MatVec"
 PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // switch case for choice of preconditioner
     switch(this->m_Opt->GetKrylovSolverPara().pctype) {
@@ -381,7 +361,7 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
     // increment counter
     this->m_Opt->IncrementCounter(PCMATVEC);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -392,13 +372,11 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
 /********************************************************************
  * @brief apply inverse of regularization operator as preconditioner
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyInvRegPC"
 PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // check if optimization problem is set up
     ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
@@ -412,7 +390,7 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x) {
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -423,13 +401,11 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x) {
 /********************************************************************
  * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Apply2LevelPC"
 PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // do setup
     if (this->m_KrylovMethod == NULL) {
@@ -444,7 +420,7 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
     // increment counter
     this->m_Opt->IncrementCounter(PCMATVEC);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -455,8 +431,6 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
 /********************************************************************
  * @brief setup 2 level preconditioner
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Setup2LevelPrecond"
 PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     PetscErrorCode ierr = 0;
     IntType nl_f, ng_f, nl_c, ng_c, nt, nc, nx_c[3], nx_f[3], l_f, l_c, lnext_f;
@@ -468,7 +442,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
 
     // check if optimization problem is set up
@@ -648,7 +622,7 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     ierr = this->m_OptProbCoarse->SetStateVariable(this->m_StateVariableCoarse); CHKERRQ(ierr);
     ierr = this->m_OptProbCoarse->SetAdjointVariable(this->m_AdjointVariableCoarse); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -659,15 +633,13 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 /********************************************************************
  * @brief do setup for krylov method
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupKrylovMethod"
 PetscErrorCode PrecondReg::SetupKrylovMethod() {
     PetscErrorCode ierr = 0;
     PC pc = NULL;
     IntType nl, ng;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get sizes
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -760,7 +732,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
     ierr = KSPSetUp(this->m_KrylovMethod); CHKERRQ(ierr);
 
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 
@@ -772,13 +744,11 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
 /********************************************************************
  * @brief do setup for two level preconditioner
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
 PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // apply hessian (hessian matvec)
     if (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) {
@@ -787,7 +757,7 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
         ierr = this->m_OptProb->HessianMatVec(Hx, x); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 
@@ -799,8 +769,6 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
 /********************************************************************
  * @brief do setup for two level preconditioner
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianMatVecRestrict"
 PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
     PetscErrorCode ierr = 0;
     IntType nx_c[3], nx_f[3];
@@ -808,7 +776,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // check if all the necessary pointers have been initialized
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
@@ -884,7 +852,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
     //ierr = this->m_OptProbCoarse->HessianMatVec(Hx,x,false); CHKERRQ(ierr);
     //ierr = this->m_OptProb->HessianMatVec(Hx,x,false); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -898,8 +866,6 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
  * the eigenvalues are estimated using the Lanczo (KSPCG) or
  * Arnoldi (KSPGMRES) process using a random right hand side vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EstimateEigenValues"
 PetscErrorCode PrecondReg::EstimateEigenValues() {
     PetscErrorCode ierr = 0;
     IntType i, n, neig, nl, ng;
@@ -995,15 +961,13 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
 /********************************************************************
  * @brief do setup for krylov method to estimate eigenvalues
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupKrylovMethodEigEst"
 PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
     PetscErrorCode ierr = 0;
     PC pc = NULL;
     IntType nl, ng;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get sizes
     nl = this->m_Opt->GetDomainPara().nlocal;
@@ -1052,7 +1016,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
     // finish
     ierr = KSPSetUp(this->m_KrylovMethodEigEst); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief DomainDecomposition
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DomainDecomposition"
 DomainDecomposition::DomainDecomposition() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ DomainDecomposition::DomainDecomposition() {
 /********************************************************************
  * @brief DomainDecomposition
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DomainDecomposition"
 DomainDecomposition::DomainDecomposition(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -58,8 +54,6 @@ DomainDecomposition::DomainDecomposition(RegOpt* opt) {
 /********************************************************************
  * @brief DomainDecomposition
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~DomainDecomposition"
 DomainDecomposition::~DomainDecomposition() {
     this->ClearMemory();
 }
@@ -69,8 +63,6 @@ DomainDecomposition::~DomainDecomposition() {
 /********************************************************************
  * @brief Initialize
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode DomainDecomposition::Initialize() {
     PetscErrorCode ierr = 0;
 
@@ -98,8 +90,6 @@ PetscErrorCode DomainDecomposition::Initialize() {
 /********************************************************************
  * @brief ClearMemory
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode DomainDecomposition::ClearMemory() {
     //PetscErrorCode ierr;
     if(this->m_xhat != NULL){
@@ -137,8 +127,6 @@ PetscErrorCode DomainDecomposition::ClearMemory() {
 /********************************************************************
  * @brief SetIO
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetIO"
 PetscErrorCode DomainDecomposition::SetIO(DomainDecomposition::ReadWriteType* io) {
     PetscErrorCode ierr = 0;
 
@@ -154,8 +142,6 @@ PetscErrorCode DomainDecomposition::SetIO(DomainDecomposition::ReadWriteType* io
 /********************************************************************
  * @brief ResetDDData
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResetDDData"
 PetscErrorCode DomainDecomposition::ResetDDData(int np) {
     PetscErrorCode ierr = 0;
 
@@ -202,8 +188,6 @@ PetscErrorCode DomainDecomposition::ResetDDData(int np) {
 /********************************************************************
  * @brief ApplyGaussianSmoothing
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyGaussianSmoothing"
 PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x) {
     PetscErrorCode ierr = 0;
     int isize[3], osize[3], istart[3], ostart[3], n[3];
@@ -301,8 +285,6 @@ PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x) {
 /********************************************************************
  * @brief SetupDomainComposition
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupDomainComposition"
 PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n) {
     PetscErrorCode ierr = 0;
     ScalarType nx[3],nd;
@@ -359,8 +341,6 @@ PetscErrorCode DomainDecomposition::SetupDomainComposition(unsigned int n) {
 /********************************************************************
  * @brief SetupDomainDecomposition
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupDomainDecomposition"
 PetscErrorCode DomainDecomposition::SetupDomainDecomposition(unsigned int n) {
     PetscErrorCode ierr = 0;
     ScalarType nx[3],nd;
@@ -420,8 +400,6 @@ PetscErrorCode DomainDecomposition::SetupDomainDecomposition(unsigned int n) {
 /********************************************************************
  * @brief DecompositionData
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DecompositionData"
 PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std::string filename) {
     PetscErrorCode ierr = 0;
     Vec yj;
@@ -519,8 +497,6 @@ PetscErrorCode DomainDecomposition::DecompositionData(Vec x, unsigned int n, std
 /********************************************************************
  * @brief DecompositionData
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CompositionData"
 PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::string filename) {
     PetscErrorCode ierr = 0;
     Vec yj;
@@ -618,8 +594,6 @@ PetscErrorCode DomainDecomposition::CompositionData(Vec x, unsigned int n, std::
 /********************************************************************
  * @brief CompositionTimeDependentData
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CompositionTimeDependentData"
 PetscErrorCode DomainDecomposition::CompositionTimeDependentData(Vec x, unsigned int n, std::string filename) {
     PetscErrorCode ierr;
     ScalarType *p_x=NULL, *p_xj=NULL;
@@ -671,8 +645,6 @@ PetscErrorCode DomainDecomposition::CompositionTimeDependentData(Vec x, unsigned
 /********************************************************************
  * @brief DecompositionTimeDependentData
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DecompositionTimeDependentData"
 PetscErrorCode DomainDecomposition::DecompositionTimeDependentData(Vec x, unsigned int n, std::string filename) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x=NULL, *p_xj=NULL;

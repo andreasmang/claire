@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SemiLagrangian"
 SemiLagrangian::SemiLagrangian() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ SemiLagrangian::SemiLagrangian() {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SemiLagrangian"
 SemiLagrangian::SemiLagrangian(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -58,8 +54,6 @@ SemiLagrangian::SemiLagrangian(RegOpt* opt) {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~SemiLagrangian"
 SemiLagrangian::~SemiLagrangian() {
     this->ClearMemory();
 }
@@ -70,8 +64,6 @@ SemiLagrangian::~SemiLagrangian() {
 /********************************************************************
  * @brief init class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode SemiLagrangian::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -105,8 +97,6 @@ PetscErrorCode SemiLagrangian::Initialize() {
 /********************************************************************
  * @brief clears memory
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode SemiLagrangian::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -167,8 +157,6 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetReadWrite"
 PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* rw) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -186,8 +174,6 @@ PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* rw) {
 /********************************************************************
  * @brief compute the trajectory from the velocity field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeTrajectory"
 PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
     ScalarType ht, hthalf, hx[3], x1, x2, x3;
@@ -325,8 +311,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 /********************************************************************
  * @brief interpolate scalar field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
 PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
     PetscErrorCode ierr = 0;
     ScalarType *p_xo = NULL, *p_xi = NULL;
@@ -357,8 +341,6 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
 /********************************************************************
  * @brief interpolate scalar field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
 PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval;
@@ -426,8 +408,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 /********************************************************************
  * @brief interpolate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
 PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::string flag) {
     PetscErrorCode ierr = 0;
     ScalarType *p_vix1 = NULL, *p_vix2 = NULL, *p_vix3 = NULL,
@@ -458,8 +438,6 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::stri
 /********************************************************************
  * @brief interpolate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
 PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
                                             ScalarType* wx2,
                                             ScalarType* wx3,
@@ -571,8 +549,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 /********************************************************************
  * @brief interpolate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
 PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
                                             ScalarType* wx2,
                                             ScalarType* wx3,
@@ -694,8 +670,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
  * @brief change from lexicographical ordering to xyz
  * @param flag flag to switch between forward and adjoint solves
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "MapCoordinateVector"
 PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
     int nx[3], nlocal, isize[3], istart[3];

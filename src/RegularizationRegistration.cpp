@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegularizationRegistration"
 RegularizationRegistration::RegularizationRegistration() {
     this->Initialize();
 }
@@ -45,8 +43,6 @@ RegularizationRegistration::RegularizationRegistration() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~RegularizationRegistration"
 RegularizationRegistration::~RegularizationRegistration(void) {
     this->ClearMemory();
 }
@@ -57,8 +53,6 @@ RegularizationRegistration::~RegularizationRegistration(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegularizationRegistration"
 RegularizationRegistration::RegularizationRegistration(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -70,8 +64,6 @@ RegularizationRegistration::RegularizationRegistration(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode RegularizationRegistration::Initialize(void) {
     PetscFunctionBegin;
 
@@ -105,8 +97,6 @@ PetscErrorCode RegularizationRegistration::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode RegularizationRegistration::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -129,8 +119,6 @@ PetscErrorCode RegularizationRegistration::ClearMemory(void) {
  * @brief allocate arrays for fft (we might have to do this
  * in several functions, so we do it collectively here)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode RegularizationRegistration::Allocate(int flag) {
     PetscFunctionBegin;
 
@@ -196,8 +184,6 @@ PetscErrorCode RegularizationRegistration::Allocate(int flag) {
  * @brief deallocate arrays for fft (we might have to do this
  * in several functions, so we do it collectively here)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Deallocate"
 PetscErrorCode RegularizationRegistration::Deallocate(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;

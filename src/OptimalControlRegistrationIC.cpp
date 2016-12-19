@@ -34,8 +34,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistrationIC"
 OptimalControlRegistrationIC::OptimalControlRegistrationIC() : SuperClass() {
     this->Initialize();
 }
@@ -46,8 +44,6 @@ OptimalControlRegistrationIC::OptimalControlRegistrationIC() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~OptimalControlRegistrationIC"
 OptimalControlRegistrationIC::~OptimalControlRegistrationIC(void) {
     this->ClearMemory();
 }
@@ -58,8 +54,6 @@ OptimalControlRegistrationIC::~OptimalControlRegistrationIC(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistrationIC"
 OptimalControlRegistrationIC::OptimalControlRegistrationIC(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
@@ -70,8 +64,6 @@ OptimalControlRegistrationIC::OptimalControlRegistrationIC(RegOpt* opt) : SuperC
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode OptimalControlRegistrationIC::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -93,8 +85,6 @@ PetscErrorCode OptimalControlRegistrationIC::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode OptimalControlRegistrationIC::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -136,8 +126,6 @@ PetscErrorCode OptimalControlRegistrationIC::ClearMemory(void) {
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeBodyForce"
 PetscErrorCode OptimalControlRegistrationIC::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -168,8 +156,6 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeBodyForce() {
  * where K is an operator that projects \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeIncBodyForce"
 PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -200,8 +186,6 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveAdjointEquationSL"
 PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
     ScalarType *p_l = NULL;
@@ -252,8 +236,6 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncAdjointEquationGNSL"
 PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, nt, nc, l, lnext;
@@ -286,8 +268,6 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyProjection"
 PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;

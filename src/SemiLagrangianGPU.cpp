@@ -4,8 +4,7 @@
 #include "SemiLagrangianGPU.hpp"
 
 
-namespace reg
-{
+namespace reg {
 
 
 
@@ -14,10 +13,7 @@ namespace reg
  * Name: SemiLagrangianGPU
  * Description: default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SemiLagrangianGPU"
-SemiLagrangianGPU::SemiLagrangianGPU()
-{
+SemiLagrangianGPU::SemiLagrangianGPU() {
     this->Initialize();
 }
 
@@ -27,10 +23,7 @@ SemiLagrangianGPU::SemiLagrangianGPU()
  * Name: SemiLagrangianGPU
  * Description: default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SemiLagrangianGPU"
-SemiLagrangianGPU::SemiLagrangianGPU(RegOpt* opt)
-{
+SemiLagrangianGPU::SemiLagrangianGPU(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
@@ -41,10 +34,7 @@ SemiLagrangianGPU::SemiLagrangianGPU(RegOpt* opt)
  * Name: SemiLagrangianGPU
  * Description: default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~SemiLagrangianGPU"
-SemiLagrangianGPU::~SemiLagrangianGPU()
-{
+SemiLagrangianGPU::~SemiLagrangianGPU() {
     this->ClearMemory();
 }
 
@@ -55,10 +45,7 @@ SemiLagrangianGPU::~SemiLagrangianGPU()
  * Name: Initialize
  * Description: init class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
-PetscErrorCode SemiLagrangianGPU::Initialize()
-{
+PetscErrorCode SemiLagrangianGPU::Initialize() {
     PetscFunctionBegin;
 
     this->m_TrajectoryA = NULL;
@@ -92,10 +79,7 @@ PetscErrorCode SemiLagrangianGPU::Initialize()
  * Name: ClearMemory
  * Description: clears memory
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
-PetscErrorCode SemiLagrangianGPU::ClearMemory()
-{
+PetscErrorCode SemiLagrangianGPU::ClearMemory() {
 
     PetscFunctionBegin;
 
@@ -167,10 +151,7 @@ PetscErrorCode SemiLagrangianGPU::ClearMemory()
  * Name: ComputeTrajectory
  * Description: compute the trajectory from the velocity field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeTrajectory"
-PetscErrorCode SemiLagrangianGPU::ComputeTrajectory(VecField* v, std::string flag)
-{
+PetscErrorCode SemiLagrangianGPU::ComputeTrajectory(VecField* v, std::string flag) {
 
     PetscErrorCode ierr;
     ScalarType ht,hthalf;
@@ -246,10 +227,7 @@ PetscErrorCode SemiLagrangianGPU::ComputeTrajectory(VecField* v, std::string fla
  * Name: Interpolate
  * Description: interpolate scalar field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
-PetscErrorCode SemiLagrangianGPU::Interpolate(Vec* w,Vec v,std::string flag)
-{
+PetscErrorCode SemiLagrangianGPU::Interpolate(Vec* w,Vec v,std::string flag) {
     PetscErrorCode ierr;
     ScalarType *p_w=NULL,*p_v=NULL;
 
@@ -274,10 +252,7 @@ PetscErrorCode SemiLagrangianGPU::Interpolate(Vec* w,Vec v,std::string flag)
  * Name: Interpolate
  * Description: interpolate scalar field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
-PetscErrorCode SemiLagrangianGPU::Interpolate(ScalarType* w,ScalarType* v,std::string flag)
-{
+PetscErrorCode SemiLagrangianGPU::Interpolate(ScalarType* w,ScalarType* v,std::string flag) {
     PetscErrorCode ierr;
     int nx[3],isize_g[3],istart_g[3],c_dims[2];
     accfft_plan* plan=NULL;
@@ -309,27 +284,24 @@ PetscErrorCode SemiLagrangianGPU::Interpolate(ScalarType* w,ScalarType* v,std::s
 
     accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,v,this->m_ScaFieldGhost);
 
-    if (strcmp(flag.c_str(),"state")!=0){
-
-        ierr=Assert(this->m_XS!=NULL,"state X is null pointer"); CHKERRQ(ierr);
+    if (strcmp(flag.c_str(),"state") !=0 ) {
+        ierr = Assert(this->m_XS != NULL, "state X is null pointer"); CHKERRQ(ierr);
 
         this->m_StatePlan->interpolate(this->m_ScaFieldGhost,1,nx,
                             this->m_Opt->m_MiscOpt->isize,
                             this->m_Opt->m_MiscOpt->istart,
                             nl,this->m_GhostSize,w,c_dims,
                             this->m_Opt->m_MiscOpt->c_comm,timers);
-    }
-    else if (strcmp(flag.c_str(),"adjoint")!=0){
-
-        ierr=Assert(this->m_XA!=NULL,"adjoint X is null pointer"); CHKERRQ(ierr);
+    } else if (strcmp(flag.c_str(), "adjoint") != 0) {
+        ierr=Assert(this->m_XA != NULL, "adjoint X is null pointer"); CHKERRQ(ierr);
         this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost,1,nx,
-                            this->m_Opt->m_MiscOpt->isize,
-                            this->m_Opt->m_MiscOpt->istart,
-                            nl,this->m_GhostSize,w,c_dims,
-                            this->m_Opt->m_MiscOpt->c_comm,timers);
-
+                                        this->m_Opt->m_MiscOpt->isize,
+                                        this->m_Opt->m_MiscOpt->istart,
+                                        nl, this->m_GhostSize, w, c_dims,
+                                        this->m_Opt->m_MiscOpt->c_comm, timers);
+    } else {
+        ierr=ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-    else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
 
 //    ierr=this->m_Opt->StopTimer(IPEXEC); CHKERRQ(ierr);
 
@@ -345,10 +317,7 @@ PetscErrorCode SemiLagrangianGPU::Interpolate(ScalarType* w,ScalarType* v,std::s
  * Name: Interpolate
  * Description: interpolate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
-PetscErrorCode SemiLagrangianGPU::Interpolate(VecField* w, VecField* v, std::string flag)
-{
+PetscErrorCode SemiLagrangianGPU::Interpolate(VecField* w, VecField* v, std::string flag) {
     PetscErrorCode ierr;
     ScalarType *p_vx1=NULL,*p_vx2=NULL,*p_vx3=NULL,
                 *p_wx1=NULL,*p_wx2=NULL,*p_wx3=NULL;
@@ -387,16 +356,13 @@ PetscErrorCode SemiLagrangianGPU::Interpolate(VecField* w, VecField* v, std::str
  * Name: Interpolate
  * Description: interpolate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Interpolate"
 PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
                                                       ScalarType* vox2,
                                                       ScalarType* vox3,
                                                       ScalarType* vix1,
                                                       ScalarType* vix2,
                                                       ScalarType* vix3,
-                                                      std::string flag)
-{
+                                                      std::string flag) {
     PetscErrorCode ierr;
     int nx[3],isize_g[3],istart_g[3],c_dims[2];
     double timers[4] = {0,0,0,0};
@@ -405,12 +371,12 @@ PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
     IntType nl,nlghost;
     PetscFunctionBegin;
 
-    ierr=Assert(vix1!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vix2!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vix3!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vox1!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vox2!=NULL,"input is null pointer"); CHKERRQ(ierr);
-    ierr=Assert(vox3!=NULL,"input is null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vix1 != NULL, "input is null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vix2 != NULL, "input is null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vix3 != NULL, "input is null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vox1 != NULL, "input is null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vox2 != NULL, "input is null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vox3 != NULL, "input is null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetNLocal();
     nx[0] = this->m_Opt->m_MiscOpt->N[0];
@@ -511,10 +477,7 @@ PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
  * Name: ComputeInitialCondition
  * Description: compute initial condition for trajectory
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeInitialCondition"
-PetscErrorCode SemiLagrangianGPU::ComputeInitialCondition()
-{
+PetscErrorCode SemiLagrangianGPU::ComputeInitialCondition() {
     PetscErrorCode ierr;
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
     unsigned int isize[3],istart[3];
@@ -577,10 +540,7 @@ PetscErrorCode SemiLagrangianGPU::ComputeInitialCondition()
  * Name: map coordinates
  * Description: change from lexicographical ordering to xyz
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "MapCoordinateVector"
-PetscErrorCode SemiLagrangianGPU::MapCoordinateVector(std::string flag)
-{
+PetscErrorCode SemiLagrangianGPU::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
     const ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
     int nx[3],isize_g[3],istart_g[3],c_dims[2],isize[3],istart[3];
@@ -728,8 +688,9 @@ PetscErrorCode SemiLagrangianGPU::MapCoordinateVector(std::string flag)
                                     this->m_GhostSize,this->m_XA,
                                     c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
 
+    } else {
+        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-    else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
 
     this->m_Opt->IncreaseInterpTimers(timers);
 
@@ -739,5 +700,8 @@ PetscErrorCode SemiLagrangianGPU::MapCoordinateVector(std::string flag)
 
 
 } // namespace
+
+
+
 
 #endif // _SEMILAGRANGIAN_CPP_

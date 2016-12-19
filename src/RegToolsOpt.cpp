@@ -14,8 +14,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegOpt"
 RegToolsOpt::RegToolsOpt() {
     this->Initialize();
 }
@@ -26,8 +24,6 @@ RegToolsOpt::RegToolsOpt() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegOpt"
 RegToolsOpt::RegToolsOpt(int argc, char** argv) {
     this->Initialize();
     this->ParseArguments(argc,argv);
@@ -39,8 +35,6 @@ RegToolsOpt::RegToolsOpt(int argc, char** argv) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegToolsOpt"
 RegToolsOpt::RegToolsOpt(const RegToolsOpt& opt) {
     this->Initialize();
     this->Copy(opt);
@@ -52,8 +46,6 @@ RegToolsOpt::RegToolsOpt(const RegToolsOpt& opt) {
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ParseArguments"
 PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
@@ -290,8 +282,6 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~RegOpt"
 RegToolsOpt::~RegToolsOpt() {
     this->ClearMemory();
 }
@@ -302,8 +292,6 @@ RegToolsOpt::~RegToolsOpt() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode RegToolsOpt::ClearMemory() {
     PetscFunctionBegin;
 
@@ -327,8 +315,6 @@ PetscErrorCode RegToolsOpt::ClearMemory() {
 /********************************************************************
  * @brief initialize class variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode RegToolsOpt::Initialize() {
     PetscErrorCode ierr;
     PetscFunctionBegin;
@@ -361,8 +347,6 @@ PetscErrorCode RegToolsOpt::Initialize() {
 /********************************************************************
  * @brief display usage message for binary
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Usage"
 PetscErrorCode RegToolsOpt::Usage(bool advanced) {
     PetscErrorCode ierr = 0;
     int rank;
@@ -481,8 +465,6 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
 /********************************************************************
  * @brief display options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DisplayOptions"
 PetscErrorCode RegToolsOpt::DisplayOptions() {
     PetscErrorCode ierr = 0;
     int rank, indent;
@@ -490,7 +472,7 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
 
     PetscFunctionBegin;
 
-    this->Enter(__FUNCT__);
+    this->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -526,7 +508,7 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
         std::cout << line << std::endl;
     }  // rank
 
-    this->Exit(__FUNCT__);
+    this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -537,8 +519,6 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetVecFieldFN"
 std::string RegToolsOpt::GetVecFieldFN(int i, int flag) {
     if (flag == 0) {
         if (i == 0) {
@@ -566,8 +546,6 @@ std::string RegToolsOpt::GetVecFieldFN(int i, int flag) {
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetScaFieldFN"
 std::string RegToolsOpt::GetScaFieldFN(int flag) {
     if (flag == 0) {
         return this->m_iScaFieldFN;
@@ -587,8 +565,6 @@ std::string RegToolsOpt::GetScaFieldFN(int flag) {
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CheckArguments"
 PetscErrorCode RegToolsOpt::CheckArguments() {
     PetscErrorCode ierr;
     std::string msg, path, filename, extension;

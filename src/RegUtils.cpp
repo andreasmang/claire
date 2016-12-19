@@ -41,8 +41,6 @@ namespace reg {
  * @brief error handling: check if condition is valid, and if
  * not throw an error PETSc style
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Assert"
 PetscErrorCode Assert(bool condition,std::string msg) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -60,8 +58,6 @@ PetscErrorCode Assert(bool condition,std::string msg) {
 /********************************************************************
  * @brief get the filename of an image
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetFileName"
 PetscErrorCode GetFileName(std::string& filename, std::string file) {
     PetscErrorCode ierr = 0;
     std::string path;
@@ -86,8 +82,6 @@ PetscErrorCode GetFileName(std::string& filename, std::string file) {
 /********************************************************************
  * @brief get the filename, path, and extension
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetFileName"
 PetscErrorCode GetFileName(std::string& path, std::string& filename,
                            std::string& extension, std::string file) {
     PetscErrorCode ierr = 0;
@@ -135,8 +129,6 @@ PetscErrorCode GetFileName(std::string& path, std::string& filename,
 /********************************************************************
  * @brief check if file exists
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "FileExists"
 bool FileExists(const std::string& filename) {
     struct stat buffer;
     return (stat(filename.c_str(), &buffer) == 0);
@@ -148,8 +140,6 @@ bool FileExists(const std::string& filename) {
 /********************************************************************
  * @brief print msg (interfaces petsc)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Msg"
 PetscErrorCode Msg(std::string msg) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
@@ -172,8 +162,6 @@ PetscErrorCode Msg(std::string msg) {
  * @brief print msg (interfaces petsc)
  * Author: Andreas Mang
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "DbgMsg"
 PetscErrorCode DbgMsg(std::string msg) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
@@ -195,8 +183,6 @@ PetscErrorCode DbgMsg(std::string msg) {
 /********************************************************************
  * @brief print warning msg (interfaces petsc)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "WrngMsg"
 PetscErrorCode WrngMsg(std::string msg) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
@@ -218,8 +204,6 @@ PetscErrorCode WrngMsg(std::string msg) {
 /********************************************************************
  * @brief throw error
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ThrowError"
 PetscErrorCode ThrowError(std::string msg) {
     PetscErrorCode ierr = 0;
 
@@ -240,8 +224,6 @@ PetscErrorCode ThrowError(std::string msg) {
 /********************************************************************
  * @brief mpi error handling
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "MPIERRQ"
 PetscErrorCode MPIERRQ(int cerr) {
     int rank;
     PetscErrorCode ierr = 0;
@@ -269,8 +251,6 @@ PetscErrorCode MPIERRQ(int cerr) {
  * @brief mpi error handling
  *******************************************************************/
 #ifdef REG_HAS_PNETCDF
-#undef __FUNCT__
-#define __FUNCT__ "NCERRQ"
 PetscErrorCode NCERRQ(int cerr) {
     int rank;
     PetscErrorCode ierr = 0;
@@ -294,8 +274,6 @@ PetscErrorCode NCERRQ(int cerr) {
 /********************************************************************
  * @brief function to slow down code
  ********************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "isleep"
 void isleep( unsigned int nanosec ) {
     clock_t wait = (clock_t) nanosec;
     clock_t start_time = clock();
@@ -309,8 +287,6 @@ void isleep( unsigned int nanosec ) {
 /********************************************************************
  * @brief setup library
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "InitializeDataDistribution"
 PetscErrorCode InitializeDataDistribution(int nthreads,
                                           int *c_grid,
                                           MPI_Comm& c_comm) {
@@ -358,8 +334,6 @@ PetscErrorCode InitializeDataDistribution(int nthreads,
 /********************************************************************
  * @brief view vector entries (transpose output)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Finalize"
 PetscErrorCode Finalize() {
     PetscErrorCode ierr = 0;
 
@@ -377,8 +351,6 @@ PetscErrorCode Finalize() {
 /********************************************************************
  * @brief view vector entries (transpose output)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "VecView"
 PetscErrorCode VecView(Vec x) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x = NULL;
@@ -411,8 +383,6 @@ PetscErrorCode VecView(Vec x) {
 /********************************************************************
  * @brief interface to create vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "VecCreate"
 PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
 
@@ -431,8 +401,6 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
 /********************************************************************
  * @brief rescale data to [xminout,xmaxout]
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Rescale"
 PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc) {
     PetscErrorCode ierr = 0;
     ScalarType xmin, xmax, xmin_g, xmax_g, xshift, xscale, *p_x = NULL;

@@ -34,8 +34,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PreProcReg"
 PreProcReg::PreProcReg() {
     this->Initialize();
 }
@@ -46,8 +44,6 @@ PreProcReg::PreProcReg() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PreProcReg"
 PreProcReg::PreProcReg(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
@@ -59,8 +55,6 @@ PreProcReg::PreProcReg(RegOpt* opt) {
 /********************************************************************
  * @brief default deconstructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~PreProcReg"
 PreProcReg::~PreProcReg() {
     this->ClearMemory();
 }
@@ -71,8 +65,6 @@ PreProcReg::~PreProcReg() {
 /********************************************************************
  * @brief initialize
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode PreProcReg::Initialize() {
     PetscErrorCode ierr = 0;
     this->m_Opt = NULL;
@@ -127,8 +119,6 @@ PetscErrorCode PreProcReg::Initialize() {
 /********************************************************************
  * @brief clear memory
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode PreProcReg::ClearMemory() {
     PetscErrorCode ierr = 0;
 
@@ -242,8 +232,6 @@ PetscErrorCode PreProcReg::ClearMemory() {
 /********************************************************************
  * @brief set read/write object for data
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetReadWrite"
 PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -263,8 +251,6 @@ PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
  * @param nx_f grid size on fine grid
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetupGridChangeOps"
 PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     IntType nalloc_c,nalloc_f;
@@ -276,7 +262,7 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->GetVerbosity() > 1) {
         ierr = DbgMsg("setting up grid change operators"); CHKERRQ(ierr);
@@ -378,7 +364,7 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     // set flag
     this->m_GridChangeOpsSet = true;
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -391,14 +377,12 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
  * @param v input vector field
  * @param vcoarse output vector field v_c = R[v]
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Restrict"
 PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(vfine != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vcoarse != NULL, "null pointer"); CHKERRQ(ierr);
@@ -407,7 +391,7 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
     ierr = this->Restrict(&vcoarse->m_X2, vfine->m_X2, nx_c, nx_f); CHKERRQ(ierr);
     ierr = this->Restrict(&vcoarse->m_X3, vfine->m_X3, nx_c, nx_f); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -425,8 +409,6 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
  * apply this function to each component of a vector field, or a
  * time dependend field; if the parameter is not set, it is true
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Restrict"
 PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
     ScalarType *p_xf=NULL,*p_xc=NULL,scale,coeff[2];//,value
@@ -437,7 +419,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "applying restriction operator ["
@@ -594,7 +576,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     // increment counter
     this->m_Opt->IncrementCounter(FFT, 2);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -606,8 +588,6 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
  * @brief do setup for applying restriction operator
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeGridChangeIndices"
 PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank, nprocs, nowned, ncommunicate, nprocessed, xrank, cart_grid[2], p1, p2;
@@ -617,7 +597,7 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
@@ -737,7 +717,7 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
 
     this->m_GridChangeIndicesComputed = true;
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -748,8 +728,6 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
 /********************************************************************
  * @brief communicate indices
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GridChangeCommIndices"
 PetscErrorCode PreProcReg::GridChangeCommIndices() {
     PetscErrorCode ierr = 0;
     int merr, nprocs, rank, i_recv, i_send;
@@ -759,7 +737,7 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
@@ -996,7 +974,7 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
     // we only have to communicate these indices once
     this->m_IndicesCommunicated = true;
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1008,8 +986,6 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
  * @brief do setup for applying restriction operator
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GridChangeCommDataRestrict"
 PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
     PetscErrorCode ierr = 0;
     int merr,nprocs,rank,i_recv,i_send;
@@ -1019,7 +995,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
@@ -1131,7 +1107,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1146,8 +1122,6 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
  * we send here, what has been received on the coarse grid
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GridChangeCommDataProlong"
 PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
     PetscErrorCode ierr = 0;
     int merr,nprocs,rank,i_recv,i_send;
@@ -1157,7 +1131,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
@@ -1269,7 +1243,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -1282,13 +1256,11 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
  * @param vcoarse input vector field
  * @param vfine output vector field vfine = P[vcoarse]
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Prolong"
 PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v_f != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(v_c != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1297,7 +1269,7 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
     ierr = this->Prolong(&v_f->m_X2, v_c->m_X2, nx_f, nx_c); CHKERRQ(ierr);
     ierr = this->Prolong(&v_f->m_X3, v_c->m_X3, nx_f, nx_c); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1315,8 +1287,6 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
  * apply this function to each component of a vector field, or a
  * time dependend field; if the parameter is not set, it is true
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Prolong"
 PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank, nprocs;
@@ -1327,7 +1297,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("applying prolongation operator"); CHKERRQ(ierr);
@@ -1484,7 +1454,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     // increment counter
     this->m_Opt->IncrementCounter(FFT, 2);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1500,19 +1470,17 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
  * @param pct cut off precentage (provide 0.5 for 50%)
  * @param lowpass flag to switch on low pass filter; default is true
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyRectFreqFilter"
 PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt, VecField* v, ScalarType pct, bool lowpass) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = this->ApplyRectFreqFilter(vflt->m_X1, v->m_X1, pct, lowpass); CHKERRQ(ierr);
     ierr = this->ApplyRectFreqFilter(vflt->m_X2, v->m_X2, pct, lowpass); CHKERRQ(ierr);
     ierr = this->ApplyRectFreqFilter(vflt->m_X3, v->m_X3, pct, lowpass); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1527,8 +1495,6 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt, VecField* v, Scal
  * @param pct cut off precentage (provide 0.5 for 50%)
  * @param lowpass flag to switch on low pass filter; default is true
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyRectFreqFilter"
 PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, bool lowpass) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
@@ -1539,7 +1505,7 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xflt != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1640,7 +1606,7 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
     // increment counter
     this->m_Opt->IncrementCounter(FFT, 2);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1651,8 +1617,6 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
 /********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplySmoothing"
 PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
@@ -1662,7 +1626,7 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xsmooth != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1743,7 +1707,7 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1755,8 +1719,6 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
  * @param mRl label map for reference image
  * @param mTl label map for template image
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeOverlapMeasures"
 PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
     PetscErrorCode ierr = 0;
     int nlabels, lR, lT;
@@ -1766,7 +1728,7 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
     ScalarType *p_mrl = NULL, *p_mtl = NULL;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(mRl != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(mTl != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1865,7 +1827,7 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
     if (nlR != NULL) {delete [] nlR; nlR = NULL;}
     if (nlT != NULL) {delete [] nlT; nlT = NULL;}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

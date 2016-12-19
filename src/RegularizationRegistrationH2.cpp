@@ -33,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegularizationRegistrationH2"
 RegularizationRegistrationH2::RegularizationRegistrationH2() : SuperClass() {
 }
 
@@ -44,8 +42,6 @@ RegularizationRegistrationH2::RegularizationRegistrationH2() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~RegularizationRegistrationH2"
 RegularizationRegistrationH2::~RegularizationRegistrationH2(void) {
     this->ClearMemory();
 }
@@ -56,8 +52,6 @@ RegularizationRegistrationH2::~RegularizationRegistrationH2(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RegularizationRegistrationH2"
 RegularizationRegistrationH2::RegularizationRegistrationH2(RegOpt* opt) : SuperClass(opt) {
 }
 
@@ -67,8 +61,6 @@ RegularizationRegistrationH2::RegularizationRegistrationH2(RegOpt* opt) : SuperC
 /********************************************************************
  * @brief evaluates the functional
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateFunctional"
 PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
@@ -180,10 +172,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
 /********************************************************************
  * @brief evaluates first variation of regularization norm
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateGradient"
-PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v)
-{
+PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr;
     int nx[3];
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
@@ -285,10 +274,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
  * @brief applies second variation of regularization norm to
  * a vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
-PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecField* vtilde)
-{
+PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr;
     ScalarType beta;
     PetscFunctionBegin;
@@ -315,10 +301,7 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplyInvOp"
-PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt)
-{
+PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr;
     int nx[3];
     ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL,
@@ -427,10 +410,7 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
  * @brief computes the largest and smallest eigenvalue of
  * the inverse regularization operator
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetExtremeEigValsInvOp"
-PetscErrorCode RegularizationRegistrationH2::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax)
-{
+PetscErrorCode RegularizationRegistrationH2::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
     PetscErrorCode ierr=0;
     ScalarType w[3],beta1,beta2,regop;
 

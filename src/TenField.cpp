@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _TENFIELD_CPP_
 #define _TENFIELD_CPP_
@@ -34,8 +33,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TenField"
 TenField::TenField() {
     this->Initialize();
 }
@@ -46,8 +43,6 @@ TenField::TenField() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~TenField"
 TenField::~TenField() {
     this->ClearMemory();
 }
@@ -58,8 +53,6 @@ TenField::~TenField() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TenField"
 TenField::TenField(RegOpt* opt) {
     this->Initialize();
     this->SetOpt(opt);
@@ -72,8 +65,6 @@ TenField::TenField(RegOpt* opt) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TenField"
 TenField::TenField(RegOpt* opt, int level) {
     this->Initialize();
     this->SetOpt(opt);
@@ -86,8 +77,6 @@ TenField::TenField(RegOpt* opt, int level) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "TenField"
 TenField::TenField(IntType nl, IntType ng) {
     this->Initialize();
     this->Allocate(nl, ng);
@@ -100,8 +89,6 @@ TenField::TenField(IntType nl, IntType ng) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode TenField::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -128,8 +115,6 @@ PetscErrorCode TenField::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode TenField::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -155,8 +140,6 @@ PetscErrorCode TenField::ClearMemory(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetOpt"
 PetscErrorCode TenField::SetOpt(RegOpt* opt) {
     PetscErrorCode ierr = 0;
 
@@ -172,8 +155,6 @@ PetscErrorCode TenField::SetOpt(RegOpt* opt) {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode TenField::Allocate() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -196,8 +177,6 @@ PetscErrorCode TenField::Allocate() {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
 PetscErrorCode TenField::Allocate(int level) {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -220,10 +199,7 @@ PetscErrorCode TenField::Allocate(int level) {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Allocate"
-PetscErrorCode TenField::Allocate(IntType nl, IntType ng)
-{
+PetscErrorCode TenField::Allocate(IntType nl, IntType ng) {
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
@@ -283,8 +259,6 @@ PetscErrorCode TenField::Allocate(IntType nl, IntType ng)
 /********************************************************************
  * @brief Copy
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Copy"
 PetscErrorCode TenField::Copy(TenField* t) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -310,8 +284,6 @@ PetscErrorCode TenField::Copy(TenField* t) {
 /********************************************************************
  * @brief set value
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetValue"
 PetscErrorCode TenField::SetValue(ScalarType value) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -337,8 +309,6 @@ PetscErrorCode TenField::SetValue(ScalarType value) {
 /********************************************************************
  * @brief get arrays of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetArrays"
 PetscErrorCode TenField::GetArrays(ScalarType*& p_x11, ScalarType*& p_x12, ScalarType*& p_x13,
                                    ScalarType*& p_x21, ScalarType*& p_x22, ScalarType*& p_x23,
                                    ScalarType*& p_x31, ScalarType*& p_x32, ScalarType*& p_x33) {
@@ -365,8 +335,6 @@ PetscErrorCode TenField::GetArrays(ScalarType*& p_x11, ScalarType*& p_x12, Scala
 /********************************************************************
  * @brief get arrays of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetArrays"
 PetscErrorCode TenField::GetArraysRead(const ScalarType*& p_x11, const ScalarType*& p_x12, const ScalarType*& p_x13,
                                        const ScalarType*& p_x21, const ScalarType*& p_x22, const ScalarType*& p_x23,
                                        const ScalarType*& p_x31, const ScalarType*& p_x32, const ScalarType*& p_x33) {
@@ -393,8 +361,6 @@ PetscErrorCode TenField::GetArraysRead(const ScalarType*& p_x11, const ScalarTyp
 /********************************************************************
  * @brief pointwise scale of a vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RestoreArrays"
 PetscErrorCode TenField::RestoreArrays(ScalarType*& p_x11,ScalarType*& p_x12,ScalarType*& p_x13,
                                        ScalarType*& p_x21,ScalarType*& p_x22,ScalarType*& p_x23,
                                        ScalarType*& p_x31,ScalarType*& p_x32,ScalarType*& p_x33) {
@@ -421,8 +387,6 @@ PetscErrorCode TenField::RestoreArrays(ScalarType*& p_x11,ScalarType*& p_x12,Sca
 /********************************************************************
  * @brief restore arrays of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetArrays"
 PetscErrorCode TenField::RestoreArraysRead(const ScalarType*& p_x11, const ScalarType*& p_x12, const ScalarType*& p_x13,
                                            const ScalarType*& p_x21, const ScalarType*& p_x22, const ScalarType*& p_x23,
                                            const ScalarType*& p_x31, const ScalarType*& p_x32, const ScalarType*& p_x33) {
@@ -450,8 +414,6 @@ PetscErrorCode TenField::RestoreArraysRead(const ScalarType*& p_x11, const Scala
  * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetComponents"
 PetscErrorCode TenField::SetComponents(Vec w) {
     PetscErrorCode ierr = 0;
     IntType nl, n;
@@ -518,8 +480,6 @@ PetscErrorCode TenField::SetComponents(Vec w) {
  * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetComponents"
 PetscErrorCode TenField::GetComponents(Vec w) {
     PetscErrorCode ierr = 0;
     IntType nl, n;
@@ -586,8 +546,6 @@ PetscErrorCode TenField::GetComponents(Vec w) {
 /********************************************************************
  * @brief scale tensor field by scalar value
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Scale"
 PetscErrorCode TenField::Scale(ScalarType value) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -613,8 +571,6 @@ PetscErrorCode TenField::Scale(ScalarType value) {
 /********************************************************************
  * @brief pointwise scale of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetIdentity"
 PetscErrorCode TenField::SetIdentity() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -640,8 +596,6 @@ PetscErrorCode TenField::SetIdentity() {
 /********************************************************************
  * @brief pointwise scale of vector field
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Scale"
 PetscErrorCode TenField::Scale(Vec s) {
     PetscErrorCode ierr;
     IntType nl;
@@ -663,7 +617,7 @@ PetscErrorCode TenField::Scale(Vec s) {
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i = 0; i < nl; ++i){
+    for (IntType i = 0; i < nl; ++i) {
         ScalarType scale = p_s[i];
         p_x11[i] *= scale;
         p_x12[i] *= scale;
@@ -692,8 +646,6 @@ PetscErrorCode TenField::Scale(Vec s) {
 /********************************************************************
  * @brief interface for AXPY
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "AXPY"
 PetscErrorCode TenField::AXPY(ScalarType s,TenField* t) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -719,8 +671,6 @@ PetscErrorCode TenField::AXPY(ScalarType s,TenField* t) {
 /********************************************************************
  * @brief interface for WAXPY
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "AXPY"
 PetscErrorCode TenField::WAXPY(ScalarType s, TenField* tv, TenField* tw) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;

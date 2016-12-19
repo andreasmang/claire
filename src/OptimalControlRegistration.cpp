@@ -1,5 +1,4 @@
-/*************************************************************************
- *  Copyright (c) 2016.
+/************************************************************************* *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -38,8 +37,6 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistration"
 OptimalControlRegistration::OptimalControlRegistration() : SuperClass() {
     this->Initialize();
 }
@@ -50,8 +47,6 @@ OptimalControlRegistration::OptimalControlRegistration() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "~OptimalControlRegistration"
 OptimalControlRegistration::~OptimalControlRegistration(void) {
     this->ClearMemory();
 }
@@ -62,8 +57,6 @@ OptimalControlRegistration::~OptimalControlRegistration(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "OptimalControlRegistration"
 OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
@@ -74,8 +67,6 @@ OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Initialize"
 PetscErrorCode OptimalControlRegistration::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -117,8 +108,6 @@ PetscErrorCode OptimalControlRegistration::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ClearMemory"
 PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -214,8 +203,6 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
  * the objective functional and the gradient for a given initial
  * guess)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "InitializeOptimization"
 PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -225,7 +212,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
     bool lssuccess;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nl = this->m_Opt->GetDomainPara().nlocal;
     ng = this->m_Opt->GetDomainPara().nglobal;
@@ -322,9 +309,10 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
     }
 
     if (v0 != NULL) {
+//      TODO: what's going on here
 //    ierr = VecSet(v, 0.0); CHKERRQ(ierr);
 //    ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
-//        ierr = v0->Copy(this->m_VelocityField); CHKERRQ(ierr);
+//    ierr = v0->Copy(this->m_VelocityField); CHKERRQ(ierr);
 //    ierr = v0->SetValue(0.0); CHKERRQ(ierr);
     }
 
@@ -334,7 +322,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
     if (dv != NULL) {ierr = VecDestroy(&dv); CHKERRQ(ierr); dv = NULL;}
     if (vtilde != NULL) {ierr = VecDestroy(&vtilde); CHKERRQ(ierr); vtilde = NULL;}
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -349,8 +337,6 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
  * @param[out] m1 density/image at t=1 (solution of transport
  * equation)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveForwardProblem"
 PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m1 = NULL, *p_m = NULL;
@@ -359,7 +345,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -394,7 +380,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -409,15 +395,13 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
  * @param[out] l0 adjoint variable at t=0 (solution of transport
  * equation)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveAdjointProblem"
 PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m = NULL, *p_m1 = NULL, *p_l = NULL, *p_l0 = NULL;
     IntType nt, nl, nc, ng;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -454,7 +438,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(l0, &p_l0); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -466,15 +450,13 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetStateVariable"
 PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -515,7 +497,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -526,20 +508,18 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetStateVariable"
 PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(m == NULL, "null pointer expected"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     m = this->m_StateVariable;
 //    ierr = VecCopy(this->m_StateVariable,m); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -550,15 +530,13 @@ PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
 /********************************************************************
  * @brief set adjoint variable from externally
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SetAdjointVariable"
 PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -599,7 +577,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "adjoint"); CHKERRQ(ierr);
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -610,20 +588,18 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "GetAdjointVariable"
 PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(lambda == NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
     lambda = this->m_AdjointVariable;
 //    ierr = VecCopy(this->m_AdjointVariable,lambda); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -634,8 +610,6 @@ PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda) {
 /********************************************************************
  * @brief evaluate the l2 distance between m_R and m_1
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateDistanceMeasure"
 PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D) {
     PetscErrorCode ierr = 0;
     ScalarType *p_mr = NULL, *p_m = NULL;
@@ -645,7 +619,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -673,7 +647,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     // objective value
     *D = 0.5*l2distance/static_cast<ScalarType>(nc);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -684,14 +658,12 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateObjective"
 PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType D = 0.0, R = 0.0, hd;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get lebesque measure
     hd = this->m_Opt->GetLebesqueMeasure();
@@ -731,7 +703,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // increment counter for objective evaluations
     this->m_Opt->IncrementCounter(OBJEVAL);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -742,14 +714,12 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluateGradient"
 PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType hd;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // allocate
     if (this->m_VelocityField == NULL) {
@@ -813,7 +783,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
     // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -825,8 +795,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
  * @brief compute the body force
  * b = \int_0^1 grad(m) \lambda dt
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeBodyForce"
 PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, l;
@@ -839,7 +807,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // check for null pointers
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
@@ -929,7 +897,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -943,14 +911,12 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
  * @param[in] scale flag to switch on scaling by lebesque measure
  * @param[out] Hvtilde hessian applied to vector
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessianMatVec"
 PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscErrorCode ierr = 0;
     ScalarType hd;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
 
     if (this->m_Opt->GetVerbosity() > 2) {
@@ -1000,7 +966,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
     // increment matvecs
     this->m_Opt->IncrementCounter(HESSMATVEC);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1011,13 +977,11 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 /********************************************************************
  * @brief applies the hessian to a vector (default way of doing this)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "HessMatVec"
 PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
@@ -1066,7 +1030,7 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
     // pass to output
     ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1082,13 +1046,11 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
  * it is important to note, that this matrix is no longer symmetric;
  * we therefore can't use pcg
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondHessMatVec"
 PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
@@ -1137,7 +1099,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
     // pass to output
     ierr = this->m_WorkVecField2->GetComponents(Hvtilde); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1152,13 +1114,11 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
  * it is important to note, that this matrix is no longer symmetric;
  * we therefore can't use pcg
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "PrecondHessMatVecSym"
 PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
@@ -1224,7 +1184,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     // pass to output
     ierr = this->m_WorkVecField5->GetComponents(Hvtilde); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1238,15 +1198,13 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
  * @param[in] m state variable
  * @param[in] lambda adjoint variable
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeInitialCondition"
 PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec lambda) {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, ng;
     std::string ext;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -1306,7 +1264,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
                                     "initial-condition-x2" + ext,
                                     "initial-condition-x3" + ext); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1319,13 +1277,11 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
  * @param[in] v velocity field
  * @param[out] g gradient
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "EvaluatePrecondGradient"
 PetscErrorCode OptimalControlRegistration::EvaluatePrecondGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(g != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1384,7 +1340,7 @@ PetscErrorCode OptimalControlRegistration::EvaluatePrecondGradient(Vec g, Vec v)
     // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1397,8 +1353,6 @@ PetscErrorCode OptimalControlRegistration::EvaluatePrecondGradient(Vec g, Vec v)
  * \tilde{\vect{b}} = \int_0^1 \igrad\tilde{m}\lambda
  *                           + \igrad m\tilde{\lambda} dt
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeIncBodyForce"
 PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, l;
@@ -1412,7 +1366,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1538,7 +1492,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1552,8 +1506,6 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveStateEquation"
 PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
@@ -1562,7 +1514,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     std::string ext;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1665,7 +1617,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1679,8 +1631,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveStateEquationRK2"
 PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
@@ -1693,7 +1643,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -1770,7 +1720,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1784,8 +1734,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveStateEquationSL"
 PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, lnext;
@@ -1794,7 +1742,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     std::string filename;
 
     PetscFunctionBegin;
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -1830,7 +1778,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     }
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1844,8 +1792,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveAdjointEquation"
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     PetscErrorCode ierr = 0;
     IntType nl, nc, ng, nt, l;
@@ -1854,7 +1800,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1927,7 +1873,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -1940,8 +1886,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
  * subject to \lambda_1 + (m_R - m_1) = 0 (solved backward in time)
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveAdjointEquationRK2"
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     PetscErrorCode ierr;
     IntType nl, ng, nc, nt, l, lnext;
@@ -1952,7 +1896,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     double timers[5] = {0, 0, 0, 0, 0};
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2028,7 +1972,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -2042,8 +1986,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveAdjointEquationSL"
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
     double timers[5] = {0, 0, 0, 0, 0};
@@ -2054,7 +1996,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2134,7 +2076,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2149,8 +2091,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncStateEquation"
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
@@ -2158,7 +2098,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2212,7 +2152,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -2227,8 +2167,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncStateEquationRK2"
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
@@ -2242,7 +2180,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2367,7 +2305,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -2382,8 +2320,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncStateEquationSL"
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, nt, nc, l, lnext;
@@ -2399,7 +2335,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2498,7 +2434,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -2514,8 +2450,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncAdjointEquation"
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     PetscErrorCode ierr = 0;
     ScalarType *p_lt = NULL, *p_mt = NULL;
@@ -2524,7 +2458,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2620,7 +2554,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2636,8 +2570,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncAdjointEquationGNRK2"
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
@@ -2648,7 +2580,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     ScalarType ht, hthalf;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2717,7 +2649,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
 
 
     this->m_Opt->IncreaseFFTTimers(timers);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2733,8 +2665,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncAdjointEquationFNRK2"
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
@@ -2747,7 +2677,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2858,7 +2788,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
     ierr = this->m_WorkVecField1->RestoreArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timers);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -2874,8 +2804,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncAdjointEquationGNSL"
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
@@ -2887,7 +2815,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -2970,7 +2898,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timers);
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -2986,8 +2914,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveIncAdjointEquationFNSL"
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -3003,8 +2929,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void) {
 /********************************************************************
  * @brief finalize the current iteration
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "FinalizeIteration"
 PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     PetscErrorCode ierr = 0;
     int rank;
@@ -3016,7 +2940,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
@@ -3123,7 +3047,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
         }
     }
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -3134,8 +3058,6 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 /********************************************************************
  * @brief finalize the registration
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "Finalize"
 PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     PetscErrorCode ierr = 0;
     std::string filename, fn, ext;
@@ -3148,7 +3070,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -3333,7 +3255,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // write log file
     ierr = this->m_Opt->WriteLogFile(); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
