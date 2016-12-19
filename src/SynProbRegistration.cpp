@@ -214,7 +214,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
     IntType i;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -264,7 +264,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
 }  // pragma omp parallel
     ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }

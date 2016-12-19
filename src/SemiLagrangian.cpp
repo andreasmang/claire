@@ -184,7 +184,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_WorkVecField == NULL) {
         try {this->m_WorkVecField = new VecField(this->m_Opt);}
@@ -300,7 +300,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     ierr =this->MapCoordinateVector(flag); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -317,7 +317,7 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(*xo != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert( xi != NULL, "null pointer"); CHKERRQ(ierr);
@@ -330,7 +330,7 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
     ierr = VecRestoreArray(*xo, &p_xo); CHKERRQ(ierr);
     ierr = VecRestoreArray( xi, &p_xi); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -351,7 +351,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(xi != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xo != NULL, "null pointer"); CHKERRQ(ierr);
@@ -397,7 +397,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -414,7 +414,7 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::stri
                *p_vox1 = NULL, *p_vox2 = NULL, *p_vox3 = NULL;
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(vi != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vo != NULL, "null pointer"); CHKERRQ(ierr);
@@ -427,7 +427,7 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::stri
     ierr = vi->RestoreArrays(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
     ierr = vo->RestoreArrays(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -454,7 +454,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(vx1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vx2 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -538,7 +538,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -565,7 +565,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(vx1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vx2 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -658,7 +658,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -678,7 +678,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
 
     PetscFunctionBegin;
 
-    this->m_Opt->Enter(__FUNCT__);
+    this->m_Opt->Enter(__func__);
 
     // get sizes
     nlocal = static_cast<int>(this->m_Opt->GetDomainPara().nlocal);
@@ -762,7 +762,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
 
     this->m_Opt->IncreaseInterpTimers(timers);
 
-    this->m_Opt->Exit(__FUNCT__);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
