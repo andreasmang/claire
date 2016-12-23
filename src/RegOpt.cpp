@@ -125,6 +125,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovSolverPara.pctol[2] = opt.m_KrylovSolverPara.pctol[2];
     this->m_KrylovSolverPara.matvectype = opt.m_KrylovSolverPara.matvectype;
     this->m_KrylovSolverPara.checkhesssymmetry = opt.m_KrylovSolverPara.checkhesssymmetry;
+    this->m_KrylovSolverPara.hessshift = opt.m_KrylovSolverPara.hessshift;
 
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
     this->m_OptPara.minit = opt.m_OptPara.minit;
@@ -509,6 +510,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-hessshift") == 0) {
+            argc--; argv++;
+            this->m_KrylovSolverPara.hessshift = atof(argv[1]);
         } else if (strcmp(argv[1], "-regnorm") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "h1s") == 0) {
@@ -824,6 +828,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.reesteigvals = false;
     this->m_KrylovSolverPara.eigvalsestimated = false;
     this->m_KrylovSolverPara.checkhesssymmetry = false;
+    this->m_KrylovSolverPara.hessshift = 0.0;
 
     // tolerances for optimization
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
@@ -1014,6 +1019,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -checksymmetry            check symmetry of hessian operator" << std::endl;
         std::cout << " -reesteigvals             re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
         std::cout << "                           (in case a chebyshev method is used to invert preconditioner)" << std::endl;
+        std::cout << " -hessshift <dbl>          add perturbation to hessian" << std::endl;
         std::cout << " -pctolscale <dbl>         scale for tolerance (preconditioner needs to be inverted more" << std::endl;
         std::cout << "                           accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
         std::cout << " -nonzeroinitialguess      use a non-zero velocity field to compute the initial gradient" << std::endl;

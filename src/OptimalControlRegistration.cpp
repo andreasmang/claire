@@ -517,7 +517,6 @@ PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
     ierr = Assert(m == NULL, "null pointer expected"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     m = this->m_StateVariable;
-//    ierr = VecCopy(this->m_StateVariable,m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -913,7 +912,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscErrorCode ierr = 0;
-    ScalarType hd;
+    ScalarType hd, gamma;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -960,6 +959,10 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
         ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
     }
 
+    gamma = this->m_Opt->GetKrylovSolverPara().hessshift;
+    if (gamma > 0.0) {
+        ierr = VecAXPY(Hvtilde, gamma, vtilde); CHKERRQ(ierr);
+    }
     // stop hessian matvec timer
     ierr = this->m_Opt->StopTimer(HMVEXEC); CHKERRQ(ierr);
 
@@ -2895,12 +2898,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_divvX); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
 
-
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timers);
     this->m_Opt->Exit(__func__);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -3037,10 +3039,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
                 ss  << std::scientific
                     <<  "iter = "     << this->m_Opt->GetCounter(ITERATIONS)
                     <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
-                    << std::left
-                    << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
-                    << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
-                    << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
+                    << std::left << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
+                                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
+                                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
                 logwriter << ss.str() << std::endl;
                 ss.str(std::string()); ss.clear();
             }   // if on master rank

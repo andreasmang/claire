@@ -782,10 +782,8 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
 
     // compute size to be allocated
     for (int p = 0; p < nprocs; ++p) {
-
         this->m_NumSend[p] = 0;
         this->m_NumRecv[p] = 0;
-
         if (!this->m_IndicesF[p].empty()) {
             n_f=this->m_IndicesF[p].size();
             n_c=this->m_IndicesC[p].size();
@@ -803,8 +801,8 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
 
     // now we compute the size of the arrays, we have to allocate locally to
     // send and recv all the data
-    this->m_nAllocSend=this->m_NumSend[0];
-    this->m_nAllocRecv=this->m_NumRecv[0];
+    this->m_nAllocSend = this->m_NumSend[0];
+    this->m_nAllocRecv = this->m_NumRecv[0];
     this->m_OffsetSend[0] = 0;
     this->m_OffsetRecv[0] = 0;
     for (int p = 1; p < nprocs; ++p) {
@@ -1587,7 +1585,6 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
                     this->m_xhat[li][0] *= scale;
                     this->m_xhat[li][1] *= scale;
                 }
-
             } // i1
         } // i2
     } // i3

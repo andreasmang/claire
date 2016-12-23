@@ -253,6 +253,7 @@ struct KrylovSolver {
     bool reesteigvals;              ///< flag to reestimate eigenvalues every iteration
     bool eigvalsestimated;          ///< flag if eigenvalues have already been estimated
     bool checkhesssymmetry;         ///< check symmetry of hessian operator
+    ScalarType hessshift;           ///< perturbation to hessian operator
 };
 
 
