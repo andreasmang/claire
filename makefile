@@ -2,10 +2,10 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=yes
-DBGCODE=yes
-PEDANTIC=yes
-USEPNETCDF=yes
+BUILDTOOLS=no
+DBGCODE=no
+PEDANTIC=no
+USEPNETCDF=no
 USENIFTI=yes
 
 RM = rm -f
@@ -18,7 +18,7 @@ else
 endif
 
 ifeq ($(USEINTEL),yes)
-	CXXFLAGS+= -DINVERT_RHO -xhost -parallel
+	CXXFLAGS+= -xhost -parallel
 	#CXXFLAGS+= -openmp
 	CXXFLAGS+= -qopenmp
 else
