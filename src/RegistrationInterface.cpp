@@ -1245,6 +1245,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     Vec mT = NULL, mR = NULL, xstar = NULL;
     VecField *v = NULL;
     ScalarType greltol, tolscale = 1E1;
+
     PetscFunctionBegin;
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -1276,7 +1277,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
     // allocate multilevel pyramid for reference image
     if (this->m_Opt->GetVerbosity() > 1) {
-        ierr = DbgMsg("setting up reference image multilevel pyramid"); CHKERRQ(ierr);
+        ierr = DbgMsg("setup: reference image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_ReferencePyramid == NULL) {
         try {this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
@@ -1290,7 +1291,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
     // allocate multilevel pyramid for template image
     if (this->m_Opt->GetVerbosity() > 1) {
-        ierr = DbgMsg("setting up template image multilevel pyramid"); CHKERRQ(ierr);
+        ierr = DbgMsg("setup: template image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_TemplatePyramid == NULL) {
         try {this->m_TemplatePyramid = new MultiLevelPyramid(this->m_Opt);}
@@ -1356,7 +1357,9 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
         // get the individual images from the pyramid
         ierr = this->m_ReferencePyramid->GetLevel(&mR, level); CHKERRQ(ierr);
+        ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = this->m_TemplatePyramid->GetLevel(&mT, level); CHKERRQ(ierr);
+        ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
         // initialize
         for (int i=0; i < 3; ++i) {

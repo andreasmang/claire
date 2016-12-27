@@ -893,17 +893,19 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
     }
 */
     if (!this->m_Opt->GetKrylovSolverPara().eigvalsestimated) {
-        if (this->m_Opt->GetVerbosity() > 1) {
-            ierr = DbgMsg("estimating eigenvalues of hessian"); CHKERRQ(ierr);
-        }
-
         if (this->m_Opt->GetKrylovSolverPara().usepetsceigest) {
+            if (this->m_Opt->GetVerbosity() > 1) {
+                ierr = DbgMsg("estimating eigenvalues (petsc)"); CHKERRQ(ierr);
+            }
             // default interface for chebyshev method to estimate eigenvalues
             ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE,
                                                                PETSC_DECIDE,
                                                                PETSC_DECIDE,
                                                                PETSC_DECIDE); CHKERRQ(ierr);
         } else {
+            if (this->m_Opt->GetVerbosity() > 1) {
+                ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);
+            }
             // get sizes
             nl = this->m_Opt->GetDomainPara().nlocal;
             ng = this->m_Opt->GetDomainPara().nglobal;

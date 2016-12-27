@@ -220,6 +220,9 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
     // if velocity field is null pointer, we did not set
     // any initial guess
     if (this->m_VelocityField == NULL) {
+        if (this->m_Opt->GetVerbosity() > 1) {
+            ierr = DbgMsg("allocating velocity field"); CHKERRQ(ierr);
+        }
         try {this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -846,6 +849,9 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
+        if (this->m_Opt->GetVerbosity() > 1) {
+            ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
+        }
         // m and \lambda are constant in time
         ierr = VecGetArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {  // for all components

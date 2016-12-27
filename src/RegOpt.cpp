@@ -201,8 +201,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Log.residual[3] = 0;
 
     this->m_NumThreads = opt.m_NumThreads;
-    this->m_FFT.mpicomm = opt.m_FFT.mpicomm;
-
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
     this->m_CartGridDims[1] = opt.m_CartGridDims[1];
 
@@ -675,13 +673,17 @@ PetscErrorCode RegOpt::DestroyFFT() {
  *******************************************************************/
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3];
-    int nalloc;
+    int nx[3], isize[3], istart[3], osize[3], ostart[3], nalloc;
+    std::stringstream ss;
     ScalarType *u = NULL, fftsetuptime;
     Complex *uk = NULL;
     PetscFunctionBegin;
 
     this->Enter(__func__);
+
+    if (this->m_Verbosity > 1) {
+        ierr = DbgMsg("initializing data distribution"); CHKERRQ(ierr);
+    }
 
     // if communicator is not set up
     if (this->m_FFT.mpicomm == NULL) {
@@ -690,10 +692,16 @@ PetscErrorCode RegOpt::InitializeFFT() {
                                           this->m_FFT.mpicomm); CHKERRQ(ierr);
     }
 
+
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Domain.nx[i]);
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
+    }
+    if (this->m_Verbosity > 1) {
+        ss << "number of grid points: (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
     }
 
     // get sizes
@@ -718,6 +726,16 @@ PetscErrorCode RegOpt::InitializeFFT() {
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
     fftsetuptime += MPI_Wtime();
 
+    if (this->m_PDESolver.type == SL) {
+        if (isize[0] < 3 || isize[1] < 3) {
+            ss << "local size smaller than padding size (isize=("
+               << isize[0] << "," << isize[1] << "," << isize[2]
+               << ") < 3) -> reduce number of mpi tasks";
+            ierr = ThrowError(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+    }
+
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
 
@@ -725,13 +743,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
     this->m_Domain.nlocal = 1;
     this->m_Domain.nglobal = 1;
     for (int i = 0; i < 3; ++i) {
-        this->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
+        this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
-
-        this->m_FFT.osize[i] = static_cast<IntType>(osize[i]);
+        this->m_FFT.osize[i]  = static_cast<IntType>(osize[i]);
         this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
-
-        this->m_Domain.nlocal *= static_cast<IntType>(isize[i]);
+        this->m_Domain.nlocal  *= static_cast<IntType>(isize[i]);
         this->m_Domain.nglobal *= this->m_Domain.nx[i];
     }
 
@@ -1518,7 +1534,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     indent = 40;
-    align  = 30;
+    align = 30;
     line = std::string(this->m_LineLength, '-');
 
     // display the parameters (only on rank 0)

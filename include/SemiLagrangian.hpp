@@ -37,14 +37,16 @@ void accfft_get_ghost_xyz(accfft_plan* plan,int g_size,int* isize_g, double* dat
 
 #include "interp3.hpp"
 
-namespace reg
-{
 
 
-class SemiLagrangian
-{
-public:
 
+namespace reg {
+
+
+
+
+class SemiLagrangian {
+ public:
     typedef SemiLagrangian Self;
 
     SemiLagrangian();
@@ -73,17 +75,12 @@ public:
 
     PetscErrorCode SetReadWrite(ReadWriteReg*);
 
-protected:
-
+ protected:
     PetscErrorCode Initialize();
     virtual PetscErrorCode MapCoordinateVector(std::string);
     PetscErrorCode ClearMemory();
 
     VecField* m_WorkVecField;
-
-    ScalarType* m_XA;
-    ScalarType* m_XS;
-    ScalarType* m_X;
 
     Interp3_Plan* m_AdjointPlan;
     Interp3_Plan* m_StatePlan;
@@ -91,17 +88,24 @@ protected:
     Interp3_Plan* m_StatePlanVec;
     Interp3_Plan* m_VecFieldPlan;
 
+    ScalarType* m_XA;
+    ScalarType* m_XS;
+    ScalarType* m_X;
+
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
     static const IntType m_GhostSize = 3;
 
     ReadWriteReg* m_ReadWrite;
-
     RegOpt* m_Opt;
-
 };
 
-} // namespace
+
+
+
+}  // namespace
+
+
 
 
 #endif

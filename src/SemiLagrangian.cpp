@@ -438,13 +438,9 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::stri
 /********************************************************************
  * @brief interpolate vector field
  *******************************************************************/
-PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
-                                            ScalarType* wx2,
-                                            ScalarType* wx3,
-                                            ScalarType* vx1,
-                                            ScalarType* vx2,
-                                            ScalarType* vx3,
-                                            std::string flag) {
+PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, ScalarType* wx3,
+                                           ScalarType* vx1, ScalarType* vx2, ScalarType* vx3,
+                                           std::string flag) {
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2];
     double timers[4] = {0, 0, 0, 0};
@@ -495,7 +491,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
     // get nlocal for ghosts
     nlghost = 1;
-    for (IntType i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         nlghost *= static_cast<IntType>(isize_g[i]);
     }
 
@@ -507,8 +503,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
 
     // do the communication for the ghost points
     for (int i = 0; i < 3; i++) {
-        accfft_get_ghost_xyz(plan, this->m_GhostSize, isize_g,
-                             &this->m_X[i*nl],
+        accfft_get_ghost_xyz(plan, this->m_GhostSize, isize_g, &this->m_X[i*nl],
                              &this->m_VecFieldGhost[i*nlghost]);
     }
 
