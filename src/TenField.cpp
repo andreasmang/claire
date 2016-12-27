@@ -163,8 +163,8 @@ PetscErrorCode TenField::Allocate() {
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     ierr = this->Allocate(nl, ng); CHKERRQ(ierr);
 
@@ -185,8 +185,8 @@ PetscErrorCode TenField::Allocate(int level) {
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetGridContPara().nlocal[level];
-    ng = this->m_Opt->GetGridContPara().nglobal[level];
+    nl = this->m_Opt->GetGridContPara().nl[level];
+    ng = this->m_Opt->GetGridContPara().ng[level];
 
     ierr = this->Allocate(nl, ng); CHKERRQ(ierr);
 
@@ -444,7 +444,7 @@ PetscErrorCode TenField::SetComponents(Vec w) {
 
     //compute size of each individual component
     nl = n / 9;
-    //ierr = Assert(nl==this->m_Opt->GetDomainPara().nlocal,"dimension mismatch"); CHKERRQ(ierr);
+    //ierr = Assert(nl==this->m_Opt->GetDomainPara().nl,"dimension mismatch"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -510,7 +510,7 @@ PetscErrorCode TenField::GetComponents(Vec w) {
 
     //compute size of each individual component
     nl = n / 9;
-    //ierr = Assert(nl==this->m_Opt->GetDomainPara().nlocal,"dimension mismatch"); CHKERRQ(ierr);
+    //ierr = Assert(nl==this->m_Opt->GetDomainPara().nl,"dimension mismatch"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {

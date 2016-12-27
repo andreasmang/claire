@@ -1730,7 +1730,7 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
     ierr = Assert(mRl != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(mTl != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     nlabels = 32;
 

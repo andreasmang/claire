@@ -122,8 +122,8 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
 
     if (this->m_Solution == NULL) {
         // compute number of unknowns
-        nlu = 3*this->m_Opt->GetDomainPara().nlocal;
-        ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+        nlu = 3*this->m_Opt->GetDomainPara().nl;
+        ngu = 3*this->m_Opt->GetDomainPara().ng;
         ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
         ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
     }
@@ -151,8 +151,8 @@ PetscErrorCode Optimizer::SetInitialGuess() {
     ierr = Assert(this->m_Tao != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_Solution == NULL) {
-        nlu = 3*this->m_Opt->GetDomainPara().nlocal;
-        ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+        nlu = 3*this->m_Opt->GetDomainPara().nl;
+        ngu = 3*this->m_Opt->GetDomainPara().ng;
         ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
         ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
     }
@@ -220,8 +220,8 @@ PetscErrorCode Optimizer::SetupTao() {
     ierr = Assert(this->m_OptimizationProblem !=NULL, "optimization problem not set"); CHKERRQ(ierr);
 
     // compute the number of unknowns
-    nlu = 3*this->m_Opt->GetDomainPara().nlocal;
-    ngu = 3*this->m_Opt->GetDomainPara().nglobal;
+    nlu = 3*this->m_Opt->GetDomainPara().nl;
+    ngu = 3*this->m_Opt->GetDomainPara().ng;
 
     // if tao exists, kill it
     if (this->m_Tao != NULL) {

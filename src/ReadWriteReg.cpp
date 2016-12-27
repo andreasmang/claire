@@ -310,8 +310,8 @@ PetscErrorCode ReadWriteReg::WriteMC(Vec x, std::string filename) {
     }
 
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // allocate data
     ierr = VecCreate(xk, nl, ng); CHKERRQ(ierr);
@@ -584,8 +584,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x, std::string filename) {
     }
 
     // get local size
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     for (int i = 0; i < 3; ++i) {
         isize[i] = this->m_Opt->GetDomainPara().isize[i];
         istart[i] = this->m_Opt->GetDomainPara().istart[i];
@@ -848,7 +848,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
     ierr = Assert(data != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get global number of points
-    ng = static_cast<IntType>(this->m_Opt->GetDomainPara().nglobal);
+    ng = static_cast<IntType>(this->m_Opt->GetDomainPara().ng);
 
     // copy buffer
     for (IntType i = 0; i < ng; ++i) {
@@ -1185,13 +1185,13 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     (*image)->pixdim[3] = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);  // z direction
 
     // TODO: add temporal support
-    if (n == this->m_Opt->GetDomainPara().nlocal) {  // scalar field
+    if (n == this->m_Opt->GetDomainPara().nl) {  // scalar field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 1;
 
         // temporal step size
         (*image)->pixdim[4] = 1.0;
-    } else if (n == 2*this->m_Opt->GetDomainPara().nlocal) {  // 2D vector field
+    } else if (n == 2*this->m_Opt->GetDomainPara().nl) {  // 2D vector field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 2;
 
@@ -1201,7 +1201,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
         // step size (vector field)
         (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
         (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
-    } else if (n == 3*this->m_Opt->GetDomainPara().nlocal) {  // 3D vector field
+    } else if (n == 3*this->m_Opt->GetDomainPara().nl) {  // 3D vector field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 3;
 
@@ -1258,8 +1258,8 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename) {
     if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
@@ -1376,8 +1376,8 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x, std::string filename) {
     if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     // open file
@@ -1449,7 +1449,7 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x, std::string filename) {
     nx[0] = static_cast<int>(this->m_Opt->GetDomainPara().nx[0]);
     nx[1] = static_cast<int>(this->m_Opt->GetDomainPara().nx[1]);
     nx[2] = static_cast<int>(this->m_Opt->GetDomainPara().nx[2]);
-    nl = static_cast<int>(this->m_Opt->GetDomainPara().nlocal);
+    nl = static_cast<int>(this->m_Opt->GetDomainPara().nl);
 
     // set size
     ncerr = ncmpi_def_dim(fileid, "x", nx[0], &dims[0]);

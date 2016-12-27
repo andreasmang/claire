@@ -1345,8 +1345,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         for (int i = 0; i < 3; ++i) {
             nx[i] = this->m_Opt->GetGridContPara().nx[level][i];
         }
-        nl = this->m_Opt->GetGridContPara().nlocal[level];
-        ng = this->m_Opt->GetGridContPara().nglobal[level];
+        nl = this->m_Opt->GetGridContPara().nl[level];
+        ng = this->m_Opt->GetGridContPara().ng[level];
 
         // display user message
         ss << std::scientific << "level " << std::setw(3) << level

@@ -107,7 +107,7 @@ PetscErrorCode RegularizationRegistrationL2::EvaluateGradient(VecField* dvR, Vec
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        nl = this->m_Opt->GetDomainPara().nlocal;
+        nl = this->m_Opt->GetDomainPara().nl;
 
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
         ierr = dvR->GetArrays(p_dvR1, p_dvR2, p_dvR3); CHKERRQ(ierr);
@@ -176,7 +176,7 @@ PetscErrorCode RegularizationRegistrationL2::ApplyInvOp(VecField* Ainvx, VecFiel
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nl = this->m_Opt->GetDomainPara().nlocal;
+        nl = this->m_Opt->GetDomainPara().nl;
         ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
         ierr = Ainvx->GetArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
         for (IntType i = 0; i < nl; ++i) {

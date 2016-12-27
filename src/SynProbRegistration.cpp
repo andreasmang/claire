@@ -103,7 +103,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
     }
 
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
 #pragma omp parallel

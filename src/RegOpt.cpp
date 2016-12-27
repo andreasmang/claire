@@ -81,8 +81,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_FFT.ostart[1] = opt.m_FFT.ostart[1];
     this->m_FFT.ostart[2] = opt.m_FFT.ostart[2];
 
-    this->m_Domain.nlocal = opt.m_Domain.nlocal;
-    this->m_Domain.nglobal = opt.m_Domain.nglobal;
+    this->m_Domain.nl = opt.m_Domain.nl;
+    this->m_Domain.ng = opt.m_Domain.ng;
     this->m_Domain.isize[0] = opt.m_Domain.isize[0];
     this->m_Domain.isize[1] = opt.m_Domain.isize[1];
     this->m_Domain.isize[2] = opt.m_Domain.isize[2];
@@ -740,20 +740,20 @@ PetscErrorCode RegOpt::InitializeFFT() {
     this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
 
     // compute global and local size
-    this->m_Domain.nlocal = 1;
-    this->m_Domain.nglobal = 1;
+    this->m_Domain.nl = 1;
+    this->m_Domain.ng = 1;
     for (int i = 0; i < 3; ++i) {
         this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
         this->m_FFT.osize[i]  = static_cast<IntType>(osize[i]);
         this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
-        this->m_Domain.nlocal  *= static_cast<IntType>(isize[i]);
-        this->m_Domain.nglobal *= this->m_Domain.nx[i];
+        this->m_Domain.nl *= static_cast<IntType>(isize[i]);
+        this->m_Domain.ng *= this->m_Domain.nx[i];
     }
 
     // check if sizes are ok
-    ierr = reg::Assert(this->m_Domain.nlocal > 0, "bug in setup"); CHKERRQ(ierr);
-    ierr = reg::Assert(this->m_Domain.nglobal > 0, "bug in setup"); CHKERRQ(ierr);
+    ierr = reg::Assert(this->m_Domain.nl > 0, "nl <= 0"); CHKERRQ(ierr);
+    ierr = reg::Assert(this->m_Domain.ng > 0, "ng <= 0"); CHKERRQ(ierr);
 
     // clean up
     if (u != NULL) { accfft_free(u); u = NULL; }
@@ -784,8 +784,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FFT.ostart[1] = 0;
     this->m_FFT.ostart[2] = 0;
 
-    this->m_Domain.nlocal = 0;
-    this->m_Domain.nglobal = 0;
+    this->m_Domain.nl = 0;
+    this->m_Domain.ng = 0;
     this->m_Domain.isize[0] = 0;
     this->m_Domain.isize[1] = 0;
     this->m_Domain.isize[2] = 0;
@@ -1461,8 +1461,8 @@ PetscErrorCode RegOpt::SetupGridCont() {
         this->m_GridCont.osize[i].resize(3);
     }
 
-    this->m_GridCont.nlocal.resize(nlevels);    ///< local points (MPI task) per level
-    this->m_GridCont.nglobal.resize(nlevels);   ///< global points per level
+    this->m_GridCont.nl.resize(nlevels);    ///< local points (MPI task) per level
+    this->m_GridCont.ng.resize(nlevels);   ///< global points per level
     this->m_GridCont.nalloc.resize(nlevels);    ///< alloc size in fourier domain
 
     level = 0;
@@ -1485,7 +1485,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
             nx[i] = static_cast<int>(this->m_GridCont.nx[j][i]);
         }
 
-        this->m_GridCont.nglobal[j] = ng;  // set global size
+        this->m_GridCont.ng[j] = ng;  // set global size
 
         // get the local sizes
         nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
@@ -1505,7 +1505,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
             this->m_GridCont.ostart[j][i] = static_cast<IntType>(ostart[i]);
         }
 
-        this->m_GridCont.nlocal[j] = nl;  // set local size
+        this->m_GridCont.nl[j] = nl;  // set local size
 
         ++level;  // increment
     }
@@ -1570,8 +1570,8 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << std::left << std::setw(indent) << " threads"
                     << this->m_NumThreads<< std::endl;
         std::cout << std::left << std::setw(indent) << " (ng,nl)"
-                    << "(" << this->m_Domain.nglobal << ","
-                    <<  this->m_Domain.nlocal << ")" << std::endl;
+                    << "(" << this->m_Domain.ng
+                    << "," << this->m_Domain.nl << ")" << std::endl;
 
         std::cout << line << std::endl;
         std::cout << " parameters" << std::endl;
@@ -2316,11 +2316,11 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         logwriter << std::left
                   << std::setw(nstr) << " n" << std::right
-                  << std::setw(nnum) << this->GetDomainPara().nglobal << std::endl;
+                  << std::setw(nnum) << this->GetDomainPara().ng << std::endl;
 
         logwriter << std::left
                   << std::setw(nstr) << " nl" << std::right
-                  << std::setw(nnum) << this->GetDomainPara().nlocal << std::endl;
+                  << std::setw(nnum) << this->GetDomainPara().nl << std::endl;
 
         logwriter << std::left
                   << std::setw(nstr) << " nmpi" << std::right

@@ -214,8 +214,8 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // if velocity field is null pointer, we did not set
     // any initial guess
@@ -356,8 +356,8 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // allocate state and adjoint variables
     if (this->m_StateVariable == NULL) {
@@ -410,8 +410,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // allocate state variable
     if (this->m_StateVariable == NULL) {
@@ -466,8 +466,8 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
     // get sizes
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
@@ -545,8 +545,8 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     // get sizes
     nc = this->m_Opt->GetDomainPara().nc;
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
@@ -628,7 +628,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     // get sizes
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
@@ -819,7 +819,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     // get problem dimensions and weights
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
 
@@ -1219,8 +1219,8 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
@@ -1382,7 +1382,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht <= 0"); CHKERRQ(ierr);
@@ -1530,8 +1530,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
 
     ext = this->m_Opt->GetReadWriteFlags().extension;
@@ -1656,8 +1656,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1755,7 +1755,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1818,8 +1818,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     nt = this->m_Opt->GetDomainPara().nt;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "solving adjoint equation (nt=" << nt << ")";
@@ -1909,8 +1909,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2009,8 +2009,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2115,8 +2115,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
@@ -2193,8 +2193,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2348,7 +2348,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2474,8 +2474,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
@@ -2593,8 +2593,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2690,8 +2690,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2828,8 +2828,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2957,8 +2957,8 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // get number of time points and grid points
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
@@ -3088,8 +3088,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // get sizes
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_Opt->GetVerbosity() >= 2) {
         ierr = DbgMsg("finalizing registration"); CHKERRQ(ierr);

@@ -193,7 +193,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
         }
     }
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     if (strcmp(flag.c_str(),"state") == 0) {
         if (this->m_XS == NULL) {
@@ -365,7 +365,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     neval = static_cast<int>(nl);
     ierr = Assert(neval != 0, "size problem"); CHKERRQ(ierr);
 
@@ -459,7 +459,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
@@ -489,7 +489,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, this->m_GhostSize, isize_g, istart_g);
     ierr = Assert(g_alloc_max != 0, "alloc problem"); CHKERRQ(ierr);
 
-    // get nlocal for ghosts
+    // get nl for ghosts
     nlghost = 1;
     for (int i = 0; i < 3; ++i) {
         nlghost *= static_cast<IntType>(isize_g[i]);
@@ -574,7 +574,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     ierr = Assert(yx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(yx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
@@ -622,7 +622,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
     nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->GetFFT().plan,
                                                  this->m_GhostSize, isize_g, istart_g);
 
-    // get nlocal for ghosts
+    // get nl for ghosts
     nlghost = 1;
     for (IntType i = 0; i < 3; ++i) {
         nlghost *= static_cast<IntType>(isize_g[i]);
@@ -667,7 +667,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
  *******************************************************************/
 PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
-    int nx[3], nlocal, isize[3], istart[3];
+    int nx[3], nl, isize[3], istart[3];
     int c_dims[2];
     double timers[4] = {0, 0, 0, 0};
 
@@ -676,7 +676,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     this->m_Opt->Enter(__func__);
 
     // get sizes
-    nlocal = static_cast<int>(this->m_Opt->GetDomainPara().nlocal);
+    nl = static_cast<int>(this->m_Opt->GetDomainPara().nl);
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
@@ -698,10 +698,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_StatePlan->allocate(nlocal, 1);
+            this->m_StatePlan->allocate(nl, 1);
         }
         // scatter
-        this->m_StatePlan->scatter(1, nx, isize, istart, nlocal,
+        this->m_StatePlan->scatter(1, nx, isize, istart, nl,
                                    this->m_GhostSize, this->m_XS, c_dims,
                                    this->m_Opt->GetFFT().mpicomm, timers);
 
@@ -711,10 +711,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_StatePlanVec->allocate(nlocal,3);
+            this->m_StatePlanVec->allocate(nl,3);
         }
         // scatter
-        this->m_StatePlanVec->scatter(3, nx, isize, istart, nlocal,
+        this->m_StatePlanVec->scatter(3, nx, isize, istart, nl,
                                       this->m_GhostSize, this->m_XS, c_dims,
                                       this->m_Opt->GetFFT().mpicomm, timers);
 
@@ -729,11 +729,11 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_AdjointPlan->allocate(nlocal, 1);
+            this->m_AdjointPlan->allocate(nl, 1);
         }
 
         // scatter
-        this->m_AdjointPlan->scatter(1, nx, isize, istart, nlocal,
+        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl,
                                      this->m_GhostSize, this->m_XA,
                                      c_dims, this->m_Opt->GetFFT().mpicomm, timers);
 
@@ -743,11 +743,11 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_AdjointPlanVec->allocate(nlocal, 3);
+            this->m_AdjointPlanVec->allocate(nl, 3);
         }
 
         // scatter
-        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nlocal,
+        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl,
                                         this->m_GhostSize, this->m_XA, c_dims,
                                         this->m_Opt->GetFFT().mpicomm, timers);
 

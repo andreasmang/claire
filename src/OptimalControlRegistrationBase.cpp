@@ -385,8 +385,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     if (!this->m_Opt->GetOptPara().usezeroinitialguess) {
-        nl = this->m_Opt->GetDomainPara().nlocal;
-        ng = this->m_Opt->GetDomainPara().nglobal;
+        nl = this->m_Opt->GetDomainPara().nl;
+        ng = this->m_Opt->GetDomainPara().ng;
         ierr = VecCreate(v, nl, ng); CHKERRQ(ierr);
         ierr = VecCreate(g, nl, ng); CHKERRQ(ierr);
 
@@ -764,8 +764,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         ierr = DbgMsg("setting up synthetic problem"); CHKERRQ(ierr);
     }
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -907,7 +907,7 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     // get pointers
     ierr = VecGetArray(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
@@ -947,8 +947,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
@@ -1087,8 +1087,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
         ierr = DbgMsg("computing determinant of deformation gradient"); CHKERRQ(ierr);
     }
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_VelocityField == NULL) {
        try {this->m_VelocityField = new VecField(this->m_Opt);}
@@ -1139,7 +1139,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     ierr = VecMin(this->m_WorkScaField1, NULL, &minddg); CHKERRQ(ierr);
     ierr = VecMax(this->m_WorkScaField1, NULL, &maxddg); CHKERRQ(ierr);
     ierr = VecSum(this->m_WorkScaField1, &meanddg); CHKERRQ(ierr);
-    meanddg /= static_cast<ScalarType>(this->m_Opt->GetDomainPara().nglobal);
+    meanddg /= static_cast<ScalarType>(this->m_Opt->GetDomainPara().ng);
 
     // remember
     this->m_Opt->SetJacMin(minddg);
@@ -1183,8 +1183,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
@@ -1339,7 +1339,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
     ierr = Assert(this->m_WorkTenField1 != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1490,8 +1490,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
     this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1602,8 +1602,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1769,8 +1769,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_WorkVecField1 == NULL) {
        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1869,8 +1869,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2067,8 +2067,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     this->m_Opt->Enter(__func__);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2360,7 +2360,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
 //    if (inverse) { ht *= -1.0; }
     hthalf = 0.5*ht;
@@ -2549,7 +2549,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
 //    if (inverse) { ht *= -1.0; }
     hthalf = 0.5*ht;
@@ -2804,7 +2804,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
 
     nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nlocal;
+    nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 

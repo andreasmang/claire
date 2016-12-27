@@ -503,8 +503,8 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
         std::cout << std::left << std::setw(indent) << " threads"
                   << this->m_NumThreads << std::endl;
         std::cout << std::left << std::setw(indent) << " (ng,nl)"
-                  << "(" << this->m_Domain.nglobal << ", "
-                  << this->m_Domain.nlocal << ")" << std::endl;
+                  << "(" << this->m_Domain.ng << ", "
+                  << this->m_Domain.nl << ")" << std::endl;
         std::cout << line << std::endl;
     }  // rank
 

@@ -359,8 +359,8 @@ PetscErrorCode DispLSConvReason(Tao tao, void* ptr) {
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = optprob->GetOptions()->GetDomainPara().nlocal;
-    ng = optprob->GetOptions()->GetDomainPara().nglobal;
+    nl = optprob->GetOptions()->GetDomainPara().nl;
+    ng = optprob->GetOptions()->GetDomainPara().ng;
 
     ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
     ierr = VecCreate(x, nl, ng); CHKERRQ(ierr);

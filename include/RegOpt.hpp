@@ -203,8 +203,8 @@ struct ReadWriteFlags {
 struct Domain {
     IntType isize[3];           ///< size of grid in spatial domain for mpi proc
     IntType istart[3];          ///< start index in spatial domain for mpi proc
-    IntType nlocal;             ///< number of grid points for each mpi proc
-    IntType nglobal;            ///< number of grid points (global)
+    IntType nl;                 ///< number of grid points for each mpi proc
+    IntType ng;                 ///< number of grid points (global)
     ScalarType hx[3];           ///< spatial grid cell size
     IntType nx[3];              ///< spatial grid size
     IntType nt;                 ///< number of time points
@@ -291,8 +291,8 @@ struct GridCont{
     std::vector< std::vector<IntType> > istart;
     std::vector< std::vector<IntType> > osize;
     std::vector< std::vector<IntType> > ostart;
-    std::vector<IntType> nlocal;
-    std::vector<IntType> nglobal;
+    std::vector<IntType> nl;
+    std::vector<IntType> ng;
     std::vector<IntType> nalloc;
 };
 

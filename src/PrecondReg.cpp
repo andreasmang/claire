@@ -451,8 +451,8 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 
     nt  = this->m_Opt->GetDomainPara().nt;
     nc  = this->m_Opt->GetDomainPara().nc;
-    nl_f = this->m_Opt->GetDomainPara().nlocal;
-    ng_f = this->m_Opt->GetDomainPara().nglobal;
+    nl_f = this->m_Opt->GetDomainPara().nl;
+    ng_f = this->m_Opt->GetDomainPara().ng;
 
     scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
 
@@ -486,8 +486,8 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
         }
         ierr = this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
 
-        nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
-        ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
+        nl_c = this->m_OptCoarse->GetDomainPara().nl;
+        ng_c = this->m_OptCoarse->GetDomainPara().ng;
 
         // allocate class for registration
         if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
@@ -561,8 +561,8 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     ierr = VecGetArray(this->m_StateVariableCoarse, &p_mcoarse); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_AdjointVariableCoarse, &p_lcoarse); CHKERRQ(ierr);
 
-    nl_c = this->m_OptCoarse->GetDomainPara().nlocal;
-    ng_c = this->m_OptCoarse->GetDomainPara().nglobal;
+    nl_c = this->m_OptCoarse->GetDomainPara().nl;
+    ng_c = this->m_OptCoarse->GetDomainPara().ng;
 
     // apply restriction operator to time series of images
     for (IntType j = 0; j <= nt; ++j) {  // for all time points
@@ -642,8 +642,8 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
     this->m_Opt->Enter(__func__);
 
     // get sizes
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     ierr = Assert(this->m_KrylovMethod == NULL, "expecting null pointer"); CHKERRQ(ierr);
     ierr = KSPCreate(PETSC_COMM_WORLD, &this->m_KrylovMethod); CHKERRQ(ierr);
@@ -907,8 +907,8 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
                 ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);
             }
             // get sizes
-            nl = this->m_Opt->GetDomainPara().nlocal;
-            ng = this->m_Opt->GetDomainPara().nglobal;
+            nl = this->m_Opt->GetDomainPara().nl;
+            ng = this->m_Opt->GetDomainPara().ng;
 
             ierr = VecCreate(x, 3*nl, 3*ng); CHKERRQ(ierr);
             ierr = VecCreate(b, 3*nl, 3*ng); CHKERRQ(ierr);
@@ -972,8 +972,8 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
     this->m_Opt->Enter(__func__);
 
     // get sizes
-    nl = this->m_Opt->GetDomainPara().nlocal;
-    ng = this->m_Opt->GetDomainPara().nglobal;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
 
     // create krylov method
     if (this->m_KrylovMethodEigEst != NULL) {
