@@ -65,8 +65,14 @@ int main(int argc, char **argv) {
     }
 
     if (regopt->GetReadWriteFlags().readfiles) {
+        if (regopt->GetVerbosity() > 1) {
+            ierr = reg::DbgMsg("reading reference image"); CHKERRQ(ierr);
+        }
         ierr = readwrite->Read(&mR, regopt->GetReadWriteFlags().mr); CHKERRQ(ierr);
         ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+        if (regopt->GetVerbosity() > 1) {
+            ierr = reg::DbgMsg("reading template image"); CHKERRQ(ierr);
+        }
         ierr = readwrite->Read(&mT, regopt->GetReadWriteFlags().mt); CHKERRQ(ierr);
         ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -83,6 +89,9 @@ int main(int argc, char **argv) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
+        if (regopt->GetVerbosity() > 1) {
+            ierr = reg::DbgMsg("reading velocity field"); CHKERRQ(ierr);
+        }
         ierr = readwrite->Read(&vxi, regopt->GetReadWriteFlags().vx1); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);

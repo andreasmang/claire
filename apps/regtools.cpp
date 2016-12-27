@@ -619,7 +619,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
 
     if ( !regopt->SetupDone() ) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
-    nl = regopt->GetDomainPara().nlocal;
+    nl = regopt->GetDomainPara().nl;
 
     // do allocation
     ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
@@ -727,7 +727,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     ierr = reg::Rescale(mR, 0, 1); CHKERRQ(ierr);
     ierr = reg::Rescale(mT, 0, 1); CHKERRQ(ierr);
 
-    nl = regopt->GetDomainPara().nlocal;
+    nl = regopt->GetDomainPara().nl;
 
     ierr = VecGetArray(mR, &p_mr); CHKERRQ(ierr);
     ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
@@ -877,8 +877,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     regopt->DisableSmoothing();
 
     nc = regopt->GetDomainPara().nc;
-    nl = regopt->GetDomainPara().nlocal;
-    ng = regopt->GetDomainPara().nglobal;
+    nl = regopt->GetDomainPara().nl;
+    ng = regopt->GetDomainPara().ng;
 
     // allocation
     try {v = new reg::VecField(regopt);}
@@ -950,8 +950,8 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     regopt->DisableSmoothing();
 
     nc = regopt->GetDomainPara().nc;
-    nl = regopt->GetDomainPara().nlocal;
-    ng = regopt->GetDomainPara().nglobal;
+    nl = regopt->GetDomainPara().nl;
+    ng = regopt->GetDomainPara().ng;
 
     // allocation
     try {v = new reg::VecField(regopt);}
