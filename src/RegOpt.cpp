@@ -750,14 +750,12 @@ PetscErrorCode RegOpt::InitializeFFT() {
         accfft_destroy_plan(this->m_FFT.plan);
         this->m_FFT.plan = NULL;
     }
-    std::cout << "here"<< std::endl;
 
     fftsetuptime = -MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<double*>(uk),
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
     fftsetuptime += MPI_Wtime();
 
-    std::cout << "here again"<< std::endl;
 
     if (this->m_PDESolver.type == SL) {
         if (isize[0] <= 3 || isize[1] <= 3) {
