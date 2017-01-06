@@ -204,6 +204,9 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
     this->m_CartGridDims[1] = opt.m_CartGridDims[1];
 
+    this->ResetTimers();
+    this->ResetCounters();
+
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
 }
@@ -220,6 +223,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     std::vector<unsigned int> nx;
     std::vector<unsigned int> np;
     std::vector<unsigned int> sigma;
+    int flag;
     PetscFunctionBegin;
 
     while (argc > 1) {
@@ -403,9 +407,21 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-gabs") == 0) {
             argc--; argv++;
             this->m_OptPara.tol[0] = atof(argv[1]);
-        } else if (strcmp(argv[1], "-grel") == 0) {
+        } else if (strcmp(argv[1], "-opttol") == 0) {
             argc--; argv++;
             this->m_OptPara.tol[2] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-stopcond") == 0) {
+            argc--; argv++;
+            flag = atof(argv[1]);
+            if (flag == 0) {
+                 this->m_OptPara.stopcond = GRAD;
+            } else if (flag == 1) {
+                 this->m_OptPara.stopcond = GRADOBJ;
+            } else {
+                msg = "\n\x1b[31m stopping conditions not defined: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-nonzeroinitialguess") == 0) {
             this->m_OptPara.usezeroinitialguess = false;
         } else if (strcmp(argv[1], "-jbound") == 0) {
@@ -580,6 +596,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
             this->m_Verbosity = std::min(atoi(argv[1]), 2);
+        } else if (strcmp(argv[1], "-debug") == 0) {
+            this->m_Verbosity = 3;
         } else if (strcmp(argv[1], "-mdefgrad") == 0) {
             this->m_RegMonitor.JAC = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
@@ -673,7 +691,7 @@ PetscErrorCode RegOpt::DestroyFFT() {
  *******************************************************************/
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3], nalloc;
+    int nx[3], isize[3], istart[3], osize[3], ostart[3], nalloc, rank;
     std::stringstream ss;
     ScalarType *u = NULL, fftsetuptime;
     Complex *uk = NULL;
@@ -681,7 +699,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     this->Enter(__func__);
 
-    if (this->m_Verbosity > 1) {
+    if (this->m_Verbosity > 2) {
         ierr = DbgMsg("initializing data distribution"); CHKERRQ(ierr);
     }
 
@@ -692,42 +710,57 @@ PetscErrorCode RegOpt::InitializeFFT() {
                                           this->m_FFT.mpicomm); CHKERRQ(ierr);
     }
 
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Domain.nx[i]);
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
-    if (this->m_Verbosity > 1) {
-        ss << "number of grid points: (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
+
+    // get sizes
+    nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    if ((nalloc > 0) == false) std::cout << "allocation size " << nalloc << std::endl;
+    ierr = Assert(nalloc > 0, "n < 0"); CHKERRQ(ierr);
+    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+    if (this->m_Verbosity > 2) {
+        ss << "data distribution: nx=("
+           << nx[0] << "," << nx[1] << "," << nx[2]
+           << "); isize=(" << isize[0] << "," << isize[1]
+           << "," << isize[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
 
-    // get sizes
-    nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
-    ierr = Assert(nalloc != 0, "alloc problem"); CHKERRQ(ierr);
-    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+//    std::cout << nalloc << std::endl;
 
     // set up the fft
-    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
+    //u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
+    u = (ScalarType*)accfft_alloc(nalloc);
     ierr = Assert(u != NULL, "alloc failed"); CHKERRQ(ierr);
 
-    uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
+    //uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
+    uk = (Complex*)accfft_alloc(nalloc);
     ierr = Assert(uk != NULL, "alloc failed"); CHKERRQ(ierr);
 
     if (this->m_FFT.plan != NULL) {
+        if (this->m_Verbosity > 2) {
+            ierr = DbgMsg("deleting fft plan"); CHKERRQ(ierr);
+        }
         accfft_destroy_plan(this->m_FFT.plan);
         this->m_FFT.plan = NULL;
     }
+    std::cout << "here"<< std::endl;
 
     fftsetuptime = -MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<double*>(uk),
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
     fftsetuptime += MPI_Wtime();
 
+    std::cout << "here again"<< std::endl;
+
     if (this->m_PDESolver.type == SL) {
-        if (isize[0] < 3 || isize[1] < 3) {
+        if (isize[0] <= 3 || isize[1] <= 3) {
             ss << "local size smaller than padding size (isize=("
                << isize[0] << "," << isize[1] << "," << isize[2]
                << ") < 3) -> reduce number of mpi tasks";
@@ -997,13 +1030,14 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                           <type> is one of the following" << std::endl;
         std::cout << "                               gn           Gauss-Newton (default)" << std::endl;
         std::cout << "                               fn           full Newton" << std::endl;
-        std::cout << " -grel <dbl>               tolerance for optimization (default: 1E-2)" << std::endl;
-        std::cout << "                               relative change of gradient" << std::endl;
-        std::cout << "                               optimization stops if ||g_k||/||g_0|| <= tol" << std::endl;
+        std::cout << " -opttol <dbl>             tolerance for optimization (default: 1E-2)" << std::endl;
         std::cout << " -gabs <dbl>               tolerance for optimization (default: 1E-6)" << std::endl;
         std::cout << "                               lower bound for gradient" << std::endl;
         std::cout << "                               optimization stops if ||g_k|| <= tol" << std::endl;
-        std::cout << "                               tol <= ||g||/||g_init||" << std::endl;
+        std::cout << " -stopcond <int>           stopping conditions" << std::endl;
+        std::cout << "                           <int> is one of the following" << std::endl;
+        std::cout << "                               0            relative change of gradient (default)" << std::endl;
+        std::cout << "                               1            gradient, update, objective" << std::endl;
         std::cout << " -maxit <int>              maximum number of (outer) Newton iterations (default: 50)" << std::endl;
         std::cout << " -krylovsolver <type>      solver for reduced space hessian system H[vtilde]=-g" << std::endl;
         std::cout << "                           <type> is one of the following" << std::endl;
@@ -1760,19 +1794,28 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
         }
 
-        std::cout << std::left << std::setw(indent) << " maximal # iterations"
-                  << this->m_OptPara.maxit << std::endl;
+        if (this->m_OptPara.stopcond == GRAD) {
+            std::cout << std::left << std::setw(indent) << " "
+                      << std::setw(align) << "||g(v)||/||g(v0)|| <= tol"
+                      << this->m_OptPara.tol[2] << std::endl;
 
-        // display optimization tolerances
+        } else if (this->m_OptPara.stopcond == GRADOBJ) {
+            std::cout << std::left << std::setw(indent) << " "
+                      << std::setw(align) << "|dJ|/|1+J| <= tol"
+                      << this->m_OptPara.tol[2] << std::endl;
+            std::cout << std::left << std::setw(indent) << " "
+                      << std::setw(align) << "||g(v)||/|1+J| <= sqrt(tol)"
+                      << sqrt(this->m_OptPara.tol[2]) << std::endl;
+            std::cout << std::left << std::setw(indent) << " "
+                      << std::setw(align) << "||dx||/(1+||x||) <= sqrt(tol)"
+                      << sqrt(this->m_OptPara.tol[2]) << std::endl;
+        }
         std::cout << std::left << std::setw(indent) << " convergence tolerances"
                   << std::setw(align) << "||g(v)|| <= tol"
                   << this->m_OptPara.tol[0] << std::endl;
-//        std::cout << std::left << std::setw(indent) <<" "
-//                  << std::setw(align) <<"||g(v)||/|J(v)| <= tol"
-//                  << this->m_OptPara.tol[1] << std::endl;
-        std::cout << std::left << std::setw(indent) << " "
-                  << std::setw(align) << "||g(v)||/||g(v0)|| <= tol"
-                  << this->m_OptPara.tol[2] << std::endl;
+
+        std::cout << std::left << std::setw(indent) << " maximal # iterations"
+                  << this->m_OptPara.maxit << std::endl;
 
         // display parameters for newton type optimization methods
         if ( newtontype ) {
@@ -2214,7 +2257,9 @@ PetscErrorCode RegOpt::ResetCounters() {
 
     this->Enter(__func__);
 
-    for (int i = 0; i < NCOUNTERS; ++i) {this->m_Counter[i] = 0;}
+    for (int i = 0; i < NCOUNTERS; ++i) {
+        this->m_Counter[i] = 0;
+    }
 
     this->Exit(__func__);
 

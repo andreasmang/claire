@@ -169,6 +169,7 @@ enum LogType{
 /*! flags for timers */
 enum StopCondType{
     GRAD,
+    GRADOBJ,
 };
 
 
