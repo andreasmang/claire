@@ -100,10 +100,10 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     // set the iteration count to zero
     optprob->GetOptions()->SetKrylovIter(0);
 
-    if (optprob->GetOptions()->GetKrylovSolverPara().matvectype == PRECONDMATVEC) {
+    if ((optprob->GetOptions()->GetKrylovSolverPara().matvectype == PRECONDMATVEC)
+     || (optprob->GetOptions()->GetKrylovSolverPara().matvectype == PRECONDMATVECSYM))  {
         // get current gradient and compute norm
-        // before we apply the preconditioner to
-        // the right hand side
+        // before we apply the preconditioner to the right hand side
         ierr = VecNorm(b, NORM_2, &gnorm); CHKERRQ(ierr);
     }
 
