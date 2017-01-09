@@ -96,7 +96,7 @@ class PrecondReg {
     PetscErrorCode Apply2LevelPrecond(Vec, Vec);
 
     /*! apply 2Level PC as preconditioner */
-    PetscErrorCode Apply2LevelPrecondInside(Vec, Vec);
+    PetscErrorCode Apply2LevelPrecondResPro(Vec, Vec);
 
 
     RegOpt* m_Opt;                      ///< registration options
@@ -130,6 +130,7 @@ class PrecondReg {
     PetscRandom m_RandomNumGen;     ///< random number generated
     KSP m_KrylovMethodEigEst;
 
+    bool m_SetupKSPOnCoarseGrid;
     bool m_CoarseGridSetupDone;
 };
 
