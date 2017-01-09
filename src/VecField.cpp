@@ -195,6 +195,7 @@ PetscErrorCode VecField::Allocate(int level) {
  *******************************************************************/
 PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
+    std::stringstream ss;
     PetscFunctionBegin;
 
     // make sure, that all pointers are deallocated

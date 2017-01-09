@@ -66,6 +66,8 @@ PetscErrorCode RegularizationRegistrationL2::EvaluateFunctional(ScalarType* R, V
     ScalarType beta, ipxi;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
@@ -80,6 +82,8 @@ PetscErrorCode RegularizationRegistrationL2::EvaluateFunctional(ScalarType* R, V
         ierr = VecTDot(v->m_X3, v->m_X3, &ipxi); CHKERRQ(ierr); *R += ipxi;
         *R *= 0.5*beta;
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -96,6 +100,8 @@ PetscErrorCode RegularizationRegistrationL2::EvaluateGradient(VecField* dvR, Vec
                 *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     IntType nl;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(dvR != NULL, "null pointer"); CHKERRQ(ierr);
@@ -120,6 +126,8 @@ PetscErrorCode RegularizationRegistrationL2::EvaluateGradient(VecField* dvR, Vec
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -135,6 +143,8 @@ PetscErrorCode RegularizationRegistrationL2::HessianMatVec(VecField* dvvR, VecFi
     ScalarType beta;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -146,6 +156,8 @@ PetscErrorCode RegularizationRegistrationL2::HessianMatVec(VecField* dvvR, VecFi
     } else {
         ierr = this->EvaluateGradient(dvvR, vtilde); CHKERRQ(ierr);
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -164,6 +176,8 @@ PetscErrorCode RegularizationRegistrationL2::ApplyInvOp(VecField* Ainvx, VecFiel
                 *p_Ainvx1 = NULL, *p_Ainvx2 = NULL, *p_Ainvx3 = NULL, beta;
     IntType nl;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(Ainvx != NULL, "null pointer"); CHKERRQ(ierr);
@@ -188,6 +202,8 @@ PetscErrorCode RegularizationRegistrationL2::ApplyInvOp(VecField* Ainvx, VecFiel
         ierr = Ainvx->RestoreArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -204,11 +220,15 @@ PetscErrorCode RegularizationRegistrationL2::GetExtremeEigValsInvOp(ScalarType& 
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     beta = this->m_Opt->GetRegNorm().beta[0];
 
     // compute largest value for operator
     emin = 1.0/beta;
     emax = 1.0/beta;
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

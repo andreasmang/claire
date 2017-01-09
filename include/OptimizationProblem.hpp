@@ -43,11 +43,18 @@ class OptimizationProblem {
     PetscErrorCode SetOptions(RegOpt*);
     inline RegOpt* GetOptions(void) {return this->m_Opt;};
 
-    inline ScalarType GetInitialObjVal() {return this->m_InitObjectiveVal;};
-    inline ScalarType GetInitialDistanceVal() {return this->m_InitDistanceVal;};
-    inline ScalarType GetInitialGradNorm() {return this->m_InitGradNorm;};
+    inline void SetConvergenceMessage(std::string msg){this->m_ConvergenceMessage = msg;}
+    inline void Converged(bool flag){this->m_Converged = flag;}
+    inline bool Converged(){return this->m_Converged;}
+    inline std::string GetConvergenceMessage(){return this->m_ConvergenceMessage;}
+    inline ScalarType GetInitialObjectiveValue() {return this->m_InitObjectiveValue;}
+    inline ScalarType GetInitialDistanceValue() {return this->m_InitDistanceValue;}
+    inline ScalarType GetInitialGradientNorm() {return this->m_InitGradientNorm;}
 
-    inline void IncrementIterations() {this->m_Opt->IncrementCounter(ITERATIONS);};
+    inline ScalarType GetObjectiveValue(){return this->m_ObjectiveValue;}
+    inline void SetObjectiveValue(ScalarType value){this->m_ObjectiveValue = value;}
+
+    inline void IncrementIterations() {this->m_Opt->IncrementCounter(ITERATIONS);}
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization(VecField* v0 = NULL) = 0;
@@ -115,23 +122,33 @@ class OptimizationProblem {
     /*! check if hessian is symmetric */
     PetscErrorCode HessianSymmetryCheck(void);
 
+    /*! check if hessian is symmetric */
+    PetscErrorCode ComputeUpdateNorm(Vec, ScalarType&, ScalarType&);
+
 protected:
 
     PetscErrorCode Initialize(void);
-    virtual PetscErrorCode ClearMemory(void) = 0;
+    PetscErrorCode ClearMemory(void);
 
     RegOpt* m_Opt;
 
-    ScalarType m_InitGradNorm;
-    ScalarType m_InitObjectiveVal;
-    ScalarType m_InitDistanceVal;
+    ScalarType m_InitGradientNorm;
+    ScalarType m_InitObjectiveValue;
+    ScalarType m_InitDistanceValue;
+    ScalarType m_ObjectiveValue;
 
 private:
-
+    Vec m_Iterate;
+    std::string m_ConvergenceMessage;
+    bool m_Converged;
 };
 
-} // end of namespace
 
 
-#endif // _OPTIMIZATIONPROBLEM_H_
 
+}  // end of namespace
+
+
+
+
+#endif  // _OPTIMIZATIONPROBLEM_H_

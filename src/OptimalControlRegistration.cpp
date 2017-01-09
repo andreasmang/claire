@@ -291,19 +291,19 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
 
     // evaluate distance measure
     ierr = this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
-    this->m_InitDistanceVal = hd*value;
+    this->m_InitDistanceValue = hd*value;
 
     // evaluate objective functional
     ierr = this->EvaluateObjective(&value, v); CHKERRQ(ierr);
 //    this->m_InitObjectiveVal = hd*value;
-    this->m_InitObjectiveVal = value;
+    this->m_InitObjectiveValue = value;
 
     // compute gradient
     ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
     // compute gradient norm
     ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
-    this->m_InitGradNorm = value;
+    this->m_InitGradientNorm = value;
 
     if (this->m_Opt->GetVerbosity() > 0) {
         ss << "initial gradient norm: "<< std::scientific << value;
@@ -1537,7 +1537,10 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving state equation (nt=" << nt << ")";
+        ss << "solving state equation (nt=" << nt
+           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
+           <<      "," << this->m_Opt->GetDomainPara().nx[1]
+           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
@@ -1822,7 +1825,10 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving adjoint equation (nt=" << nt << ")";
+        ss << "solving adjoint equation (nt=" << nt
+           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
+           <<      "," << this->m_Opt->GetDomainPara().nx[1]
+           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -2120,7 +2126,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving incremental state equation (nt=" << nt << ")";
+        ss << "solving incremental state equation (nt=" << nt
+           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
+           <<      "," << this->m_Opt->GetDomainPara().nx[1]
+           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
@@ -2479,7 +2488,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving incremental adjoint equation (nt=" << nt << ")";
+        ss << "solving incremental adjoint equation (nt=" << nt
+           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
+           <<      "," << this->m_Opt->GetDomainPara().nx[1]
+           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 

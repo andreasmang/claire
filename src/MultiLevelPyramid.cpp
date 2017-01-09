@@ -100,65 +100,65 @@ PetscErrorCode MultiLevelPyramid::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if(this->m_DataL01 != NULL) {
+    if (this->m_DataL01 != NULL) {
         ierr = VecDestroy(&this->m_DataL01); CHKERRQ(ierr);
-        this->m_DataL01=NULL;
+        this->m_DataL01 = NULL;
     }
-    if(this->m_DataL02 != NULL) {
+    if (this->m_DataL02 != NULL) {
         ierr = VecDestroy(&this->m_DataL02); CHKERRQ(ierr);
-        this->m_DataL02=NULL;
+        this->m_DataL02 = NULL;
     }
-    if(this->m_DataL03 != NULL) {
+    if (this->m_DataL03 != NULL) {
         ierr = VecDestroy(&this->m_DataL03); CHKERRQ(ierr);
-        this->m_DataL03=NULL;
+        this->m_DataL03 = NULL;
     }
-    if(this->m_DataL04 != NULL) {
+    if (this->m_DataL04 != NULL) {
         ierr = VecDestroy(&this->m_DataL04); CHKERRQ(ierr);
-        this->m_DataL04=NULL;
+        this->m_DataL04 = NULL;
     }
-    if(this->m_DataL05 != NULL) {
+    if (this->m_DataL05 != NULL) {
         ierr = VecDestroy(&this->m_DataL05); CHKERRQ(ierr);
-        this->m_DataL05=NULL;
+        this->m_DataL05 = NULL;
     }
-    if(this->m_DataL06 != NULL) {
+    if (this->m_DataL06 != NULL) {
         ierr = VecDestroy(&this->m_DataL06); CHKERRQ(ierr);
-        this->m_DataL06=NULL;
+        this->m_DataL06 = NULL;
     }
-    if(this->m_DataL07 != NULL) {
+    if (this->m_DataL07 != NULL) {
         ierr = VecDestroy(&this->m_DataL07); CHKERRQ(ierr);
-        this->m_DataL07=NULL;
+        this->m_DataL07 = NULL;
     }
-    if(this->m_DataL08 != NULL) {
+    if (this->m_DataL08 != NULL) {
         ierr = VecDestroy(&this->m_DataL08); CHKERRQ(ierr);
-        this->m_DataL08=NULL;
+        this->m_DataL08 = NULL;
     }
-    if(this->m_DataL09 != NULL) {
+    if (this->m_DataL09 != NULL) {
         ierr = VecDestroy(&this->m_DataL09); CHKERRQ(ierr);
-        this->m_DataL09=NULL;
+        this->m_DataL09 = NULL;
     }
-    if(this->m_DataL10 != NULL) {
+    if (this->m_DataL10 != NULL) {
         ierr = VecDestroy(&this->m_DataL10); CHKERRQ(ierr);
-        this->m_DataL10=NULL;
+        this->m_DataL10 = NULL;
     }
-    if(this->m_DataL11 != NULL) {
+    if (this->m_DataL11 != NULL) {
         ierr = VecDestroy(&this->m_DataL11); CHKERRQ(ierr);
-        this->m_DataL11=NULL;
+        this->m_DataL11 = NULL;
     }
-    if(this->m_DataL12 != NULL) {
+    if (this->m_DataL12 != NULL) {
         ierr = VecDestroy(&this->m_DataL12); CHKERRQ(ierr);
-        this->m_DataL12=NULL;
+        this->m_DataL12 = NULL;
     }
-    if(this->m_DataL13 != NULL) {
+    if (this->m_DataL13 != NULL) {
         ierr = VecDestroy(&this->m_DataL13); CHKERRQ(ierr);
-        this->m_DataL13=NULL;
+        this->m_DataL13 = NULL;
     }
-    if(this->m_DataL14 != NULL) {
+    if (this->m_DataL14 != NULL) {
         ierr = VecDestroy(&this->m_DataL14); CHKERRQ(ierr);
-        this->m_DataL14=NULL;
+        this->m_DataL14 = NULL;
     }
-    if(this->m_DataL15 != NULL) {
+    if (this->m_DataL15 != NULL) {
         ierr = VecDestroy(&this->m_DataL15); CHKERRQ(ierr);
-        this->m_DataL15=NULL;
+        this->m_DataL15 = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -194,6 +194,8 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     // set up parametes for grid continuation
     ierr = this->m_Opt->SetupGridCont(); CHKERRQ(ierr);
 
@@ -208,13 +210,15 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
         if (this->m_Opt->GetVerbosity() > 2) {
             ss << std::scientific << "allocating ML data: level " << std::setw(3) << level + 1
                << " of "  << nlevels
-               << " nx=(" << this->m_Opt->GetGridContPara().nx[level][0]
+               << "      nx=(" << this->m_Opt->GetGridContPara().nx[level][0]
                << ","     << this->m_Opt->GetGridContPara().nx[level][1]
                << ","     << this->m_Opt->GetGridContPara().nx[level][2]
-               << "); (nl,ng)=(" << nl << "," << ng << ")";
-
+               << "); (nl,ng)=(" << nl << "," << ng
+               << "); isize=(" << this->m_Opt->GetGridContPara().isize[level][0] << ","
+               << this->m_Opt->GetGridContPara().isize[level][1] << ","
+               << this->m_Opt->GetGridContPara().isize[level][2] << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str( std::string() ); ss.clear();
+            ss.str(std::string()); ss.clear();
         }
 
         if (level == 0) {
@@ -268,6 +272,8 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
         ++level;
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -280,6 +286,8 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
 PetscErrorCode MultiLevelPyramid::SetData(Vec x, int level) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     if (level == 0) {
         ierr = VecCopy(x, this->m_DataL01); CHKERRQ(ierr);
@@ -315,6 +323,8 @@ PetscErrorCode MultiLevelPyramid::SetData(Vec x, int level) {
         ierr = ThrowError("level not accessible"); CHKERRQ(ierr);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -328,6 +338,8 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     if (*x != NULL) {
         ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;
     }
@@ -336,6 +348,8 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng) {
     ierr = VecSetSizes(*x, nl, ng); CHKERRQ(ierr);
     ierr = VecSetFromOptions(*x); CHKERRQ(ierr);
     ierr = VecSet(*x, 0.0); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -352,6 +366,8 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     int nlevels;
     Vec *xlevel;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
@@ -381,6 +397,9 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
         ierr = this->m_PreProc->Restrict(xlevel, x, nxlevel, nx); CHKERRQ(ierr);
 
     }
+
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -393,6 +412,8 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
 PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     if (level == 0) {
         ierr = VecDuplicate(this->m_DataL01, x); CHKERRQ(ierr);
@@ -442,6 +463,9 @@ PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level) {
     } else {
         ierr = ThrowError("level not accessible"); CHKERRQ(ierr);
     }
+
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -454,6 +478,8 @@ PetscErrorCode MultiLevelPyramid::GetLevel(Vec* x, int level) {
 PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     if (level ==  0) {
         *x = &this->m_DataL01;
@@ -488,6 +514,8 @@ PetscErrorCode MultiLevelPyramid::GetData(Vec** x, int level) {
     } else {
         ierr = ThrowError("level not accessible"); CHKERRQ(ierr);
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

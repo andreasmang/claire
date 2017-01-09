@@ -361,7 +361,10 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 
     // set up initial condition
     if (this->m_Solution == NULL) {
-        try{ this->m_Solution = new VecField(this->m_Opt); }
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("allocating solution vector"); CHKERRQ(ierr);
+        }
+        try {this->m_Solution = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1241,10 +1244,11 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     int rank, level, nlevels;
     std::stringstream ss;
     std::string ext;
-    IntType nx[3], nl, ng;
+    IntType nx[3], nl, ng, isize[3];
     Vec mT = NULL, mR = NULL, xstar = NULL;
     VecField *v = NULL;
     ScalarType greltol, tolscale = 1E1;
+    bool solve;
 
     PetscFunctionBegin;
 
@@ -1316,7 +1320,6 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     }
     ierr = v->SetValue(0.0); CHKERRQ(ierr);
 
-
     // reset tolerance for gradient (optimization); we do not want
     // to solve as accurately when we solve on the coarse grid
     greltol = this->m_Opt->GetOptPara().tol[2];
@@ -1344,6 +1347,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         // get number of grid points for current level
         for (int i = 0; i < 3; ++i) {
             nx[i] = this->m_Opt->GetGridContPara().nx[level][i];
+            isize[i] = this->m_Opt->GetGridContPara().isize[level][i];
         }
         nl = this->m_Opt->GetGridContPara().nl[level];
         ng = this->m_Opt->GetGridContPara().ng[level];
@@ -1351,68 +1355,80 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         // display user message
         ss << std::scientific << "level " << std::setw(3) << level
            << "    nx=(" << nx[0] << "," << nx[1] << "," << nx[2]
-           << "); (nl,ng)=(" << nl << "," << ng << ")";
+           << "); (nl,ng)=(" << nl << "," << ng
+           << "); isize=(" << isize[0] << ","
+           << isize[1] << "," << isize[2] << ")";
          ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
          ss.str(std::string()); ss.clear();
 
-        // get the individual images from the pyramid
-        ierr = this->m_ReferencePyramid->GetLevel(&mR, level); CHKERRQ(ierr);
-        ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr = this->m_TemplatePyramid->GetLevel(&mT, level); CHKERRQ(ierr);
-        ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // initialize
-        for (int i=0; i < 3; ++i) {
-            this->m_Opt->SetNumGridPoints(i, nx[i]);
-        }
-        ierr = this->m_Opt->DoSetup(false); CHKERRQ(ierr);
-
-        // store intermediate results
-        if (this->m_Opt->GetReadWriteFlags().iterates) {
-            ext = this->m_Opt->GetReadWriteFlags().extension;
-            ss << "reference-image-level=" << level << ext;
-            ierr = this->m_ReadWrite->Write(mR, ss.str()); CHKERRQ(ierr);
-            ss.str(std::string()); ss.clear();
-
-            ss << "template-image-level=" << level << ext;
-            ierr = this->m_ReadWrite->Write(mT, ss.str()); CHKERRQ(ierr);
-            ss.str(std::string()); ss.clear();
+        solve = true;
+        if (this->m_Opt->GetPDESolver().type == SL) {
+            if (isize[0] < 3 || isize[1] < 3) solve = false;
         }
 
-        // do the setup
-        ierr = this->SetupSolver(); CHKERRQ(ierr);
+        if (solve) {
+            // get the individual images from the pyramid
+            ierr = this->m_ReferencePyramid->GetLevel(&mR, level); CHKERRQ(ierr);
+            ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+            ierr = this->m_TemplatePyramid->GetLevel(&mT, level); CHKERRQ(ierr);
+            ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
-        // set images
-        ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+            // initialize
+            for (int i=0; i < 3; ++i) {
+                this->m_Opt->SetNumGridPoints(i, nx[i]);
+            }
+            ierr = this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
-        // compute initial gradient, objective and
-        // distance mesure for zero velocity field
-        ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            // store intermediate results
+            if (this->m_Opt->GetReadWriteFlags().iterates) {
+                ext = this->m_Opt->GetReadWriteFlags().extension;
+                ss << "reference-image-level=" << level << ext;
+                ierr = this->m_ReadWrite->Write(mR, ss.str()); CHKERRQ(ierr);
+                ss.str(std::string()); ss.clear();
 
-        // set initial guess and registraiton problem
-        ierr = this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);
-        ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
-
-        // reset tolerances
-        if ( (level == (nlevels-1)) && (greltol < 1E-2) ) {
-            if (this->m_Opt->GetVerbosity() > 1) {
-                ss  << std::scientific << "reseting tolerance for gradient: "
-                    << tolscale*greltol << " >> " << greltol;
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss << "template-image-level=" << level << ext;
+                ierr = this->m_ReadWrite->Write(mT, ss.str()); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
-            this->m_Opt->SetOptTol(2, greltol);
+
+            // do the setup
+            ierr = this->SetupSolver(); CHKERRQ(ierr);
+
+            // set images
+            ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+
+            // compute initial gradient, objective and
+            // distance mesure for zero velocity field
+            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+
+            // set initial guess and registraiton problem
+            ierr = this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);
+            ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
+
+            // reset tolerances
+            if ((level == (nlevels-1)) && (greltol < 1E-2)) {
+                if (this->m_Opt->GetVerbosity() > 1) {
+                    ss  << std::scientific << "reseting tolerance for gradient: "
+                        << tolscale*greltol << " >> " << greltol;
+                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ss.str(std::string()); ss.clear();
+                }
+                this->m_Opt->SetOptTol(2, greltol);
+            }
+
+            // run the optimizer
+            ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+
+            // get and parse solution
+            ierr = this->m_Optimizer->GetSolution(xstar); CHKERRQ(ierr);
+            ierr = v->SetComponents(xstar); CHKERRQ(ierr);
+        } else {
+            ss << "skipping level " << level;
+            ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
         }
-
-        // run the optimizer
-        ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
-
-        // get and parse solution
-        ierr = this->m_Optimizer->GetSolution(xstar); CHKERRQ(ierr);
-        ierr = v->SetComponents(xstar); CHKERRQ(ierr);
-
-        ++level; // increment iterator
+        ++level;  // increment level
 
         if (level < nlevels) {
             ierr = this->ProlongVelocityField(v, level); CHKERRQ(ierr);

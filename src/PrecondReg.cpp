@@ -358,9 +358,6 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
         }
     }
 
-    // increment counter
-    this->m_Opt->IncrementCounter(PCMATVEC);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -390,6 +387,9 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x) {
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
 
+    // increment counter
+    this->m_Opt->IncrementCounter(PCMATVEC);
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -417,9 +417,6 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
     ierr = KSPSolve(this->m_KrylovMethod, x, Px); CHKERRQ(ierr);
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
 
-    // increment counter
-    this->m_Opt->IncrementCounter(PCMATVEC);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -433,17 +430,16 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
  *******************************************************************/
 PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     PetscErrorCode ierr = 0;
-    IntType nl_f, ng_f, nl_c, ng_c, nt, nc, nx_c[3], nx_f[3], l_f, l_c, lnext_f;
+    IntType nl_f, ng_f, nl_c, ng_c, nt, nc,
+            nx_c[3], nx_f[3], l_f, l_c, lnext_f;
     ScalarType scale, value;
     std::stringstream ss;
     Vec m = NULL, lambda = NULL;
     ScalarType *p_mj = NULL, *p_m = NULL, *p_mjcoarse = NULL, *p_mcoarse = NULL,
                 *p_lj = NULL, *p_l = NULL, *p_ljcoarse = NULL, *p_lcoarse = NULL;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
 
     // check if optimization problem is set up
     ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
@@ -491,12 +487,12 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
 
         // allocate class for registration
         if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
-            try{ this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse); }
+            try {this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         } else if (this->m_Opt->GetRegModel() == STOKES) {
-            try{ this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse); }
+            try {this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -648,9 +644,16 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
     ierr = Assert(this->m_KrylovMethod == NULL, "expecting null pointer"); CHKERRQ(ierr);
     ierr = KSPCreate(PETSC_COMM_WORLD, &this->m_KrylovMethod); CHKERRQ(ierr);
 
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = DbgMsg("preconditioner setup: krylovmethod"); CHKERRQ(ierr);
+    }
+
     switch (this->m_Opt->GetKrylovSolverPara().pcsolver) {
         case CHEB:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("preconditioner setup: semi-iterative chebyshev method selected"); CHKERRQ(ierr);
+            }
             // chebyshev iteration
             ierr = KSPSetType(this->m_KrylovMethod, KSPCHEBYSHEV); CHKERRQ(ierr);
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
@@ -660,24 +663,36 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         }
         case PCG:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("preconditioner setup: cg selected"); CHKERRQ(ierr);
+            }
             // preconditioned conjugate gradient
             ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
             break;
         }
         case FCG:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("preconditioner setup: flexible cg selected"); CHKERRQ(ierr);
+            }
             // flexible conjugate gradient
             ierr = KSPSetType(this->m_KrylovMethod, KSPFCG); CHKERRQ(ierr);
             break;
         }
         case GMRES:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("preconditioner setup: gmres selected"); CHKERRQ(ierr);
+            }
             // generalized minimal residual method
             ierr = KSPSetType(this->m_KrylovMethod, KSPGMRES); CHKERRQ(ierr);
             break;
         }
         case FGMRES:
         {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("preconditioner setup: flexible gmres selected"); CHKERRQ(ierr);
+            }
             // flexible generalized minimal residual method
             ierr = KSPSetType(this->m_KrylovMethod, KSPFGMRES); CHKERRQ(ierr);
             break;
@@ -725,17 +740,15 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
 
     // remove preconditioner
     ierr = KSPGetPC(this->m_KrylovMethod,&pc); CHKERRQ(ierr);
-    ierr = PCSetType(pc,PCNONE); CHKERRQ(ierr);  ///< set no preconditioner
+    ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);  ///< set no preconditioner
 
     // finish
     ierr = KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
     ierr = KSPSetUp(this->m_KrylovMethod); CHKERRQ(ierr);
 
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
-
 }
 
 
@@ -760,7 +773,6 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
-
 }
 
 
@@ -777,6 +789,10 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
+    if (this->m_Opt->GetVerbosity() > 1) {
+        ierr = DbgMsg("preconditioner: applying restriction"); CHKERRQ(ierr);
+    }
 
     // check if all the necessary pointers have been initialized
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
@@ -818,8 +834,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
 
     // apply restriction operator to incremental control variable
     ierr = this->m_PreProc->Restrict(this->m_IncControlVariableCoarse,
-                                     this->m_IncControlVariable,
-                                     nx_c, nx_f); CHKERRQ(ierr);
+                                     this->m_IncControlVariable, nx_c, nx_f); CHKERRQ(ierr);
 
     // get the components to interface hessian mat vec
     ierr = this->m_IncControlVariableCoarse->GetComponents(this->m_xCoarse); CHKERRQ(ierr);
@@ -851,6 +866,9 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
 
     //ierr = this->m_OptProbCoarse->HessianMatVec(Hx,x,false); CHKERRQ(ierr);
     //ierr = this->m_OptProb->HessianMatVec(Hx,x,false); CHKERRQ(ierr);
+
+    // increment counter
+    this->m_Opt->IncrementCounter(PCMATVEC);
 
     this->m_Opt->Exit(__func__);
 
@@ -983,7 +1001,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
     ierr = KSPCreate(PETSC_COMM_WORLD,&this->m_KrylovMethodEigEst); CHKERRQ(ierr);
 
     // preconditioned conjugate gradient
-    ierr = KSPSetType(this->m_KrylovMethodEigEst,KSPCG); CHKERRQ(ierr);
+    ierr = KSPSetType(this->m_KrylovMethodEigEst, KSPCG); CHKERRQ(ierr);
 
     //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
     //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
@@ -1000,13 +1018,13 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
 
     ierr = MatCreateShell(PETSC_COMM_WORLD, 3*nl, 3*nl, 3*ng, 3*ng, this, &this->m_MatVecEigEst); CHKERRQ(ierr);
     ierr = MatShellSetOperation(this->m_MatVecEigEst, MATOP_MULT, (void(*)(void))InvertPrecondMatVec); CHKERRQ(ierr);
-    ierr = KSPSetOperators(this->m_KrylovMethodEigEst, this->m_MatVecEigEst, this->m_MatVecEigEst);CHKERRQ(ierr);
+    ierr = KSPSetOperators(this->m_KrylovMethodEigEst, this->m_MatVecEigEst, this->m_MatVecEigEst); CHKERRQ(ierr);
     ierr = MatSetOption(this->m_MatVecEigEst, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
     //ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
 
     // remove preconditioner
     ierr = KSPGetPC(this->m_KrylovMethodEigEst, &pc); CHKERRQ(ierr);
-    ierr = PCSetType(pc,PCNONE); CHKERRQ(ierr); ///< set no preconditioner
+    ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr); ///< set no preconditioner
 
     ierr = KSPSetTolerances(this->m_KrylovMethodEigEst, 1E-12, 1E-12, 1E+6, 10); CHKERRQ(ierr);
     ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst, PETSC_FALSE); CHKERRQ(ierr);

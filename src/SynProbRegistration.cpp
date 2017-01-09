@@ -93,6 +93,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
     const ScalarType sigma = 160.0;
     IntType nc, nl;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -198,6 +199,8 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -283,6 +286,7 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m) {
     ScalarType *p_m = NULL, hx[3], x1, x2, x3;
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -320,6 +324,8 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m) {
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -335,6 +341,8 @@ PetscErrorCode SynProbRegistration::ComputeSphere(Vec m) {
     ScalarType *p_m = NULL, hx[3];
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -376,6 +384,8 @@ PetscErrorCode SynProbRegistration::ComputeSphere(Vec m) {
 
     ierr = VecRestoreArray(m,&p_m); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -391,6 +401,8 @@ PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m) {
     ScalarType *p_m=NULL,hx[3];
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -441,6 +453,8 @@ PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m) {
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -458,6 +472,8 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m) {
     ScalarType *p_m = NULL, hx[3], sigma[3];
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -506,6 +522,8 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m) {
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -521,6 +539,7 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m, int id) {
     ScalarType *p_m = NULL, hx[3];
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->GetDomainPara().hx[i];
@@ -569,6 +588,8 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m, int id) {
 }  // pragma omp parallel
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }

@@ -31,6 +31,31 @@ namespace reg {
 
 
 
+struct GridData {
+    typedef ScalarType DataType[2];
+    DataType* xhat;
+    DataType* yhat;
+    std::vector< std::vector<IntType> > idx;
+    ScalarType* datasend;
+    ScalarType* datarecv;
+    IntType* idxsend;
+    IntType* idxrecv;
+    accfft_plan* fftplan;
+
+    IntType nx[3];
+    IntType osize[3];
+    IntType ostart[3];
+
+    IntType *nsend;
+    IntType *nrecv;
+    IntType *offsetsend;
+    IntType *offsetrecv;
+
+    ScalarType scale;
+    MPI_Request *sendrequest;
+    MPI_Request *recvrequest;
+};
+
 
 class PreProcReg {
  public:

@@ -56,6 +56,7 @@ OptimizationProblem::OptimizationProblem(RegOpt* opt) {
  * @brief default destructor
  *******************************************************************/
 OptimizationProblem::~OptimizationProblem(void) {
+    this->ClearMemory();
 }
 
 
@@ -68,12 +69,32 @@ PetscErrorCode OptimizationProblem::Initialize(void) {
     PetscFunctionBegin;
 
     this->m_Opt = NULL;
+    this->m_Iterate = NULL;
 
-    this->m_InitGradNorm = 0.0;
-    this->m_InitDistanceVal = 0.0;
-    this->m_InitObjectiveVal = 0.0;
+    this->m_ObjectiveValue = 0.0;
+    this->m_InitGradientNorm = 0.0;
+    this->m_InitDistanceValue = 0.0;
+    this->m_InitObjectiveValue = 0.0;
 
     PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief default destructor
+ *******************************************************************/
+PetscErrorCode OptimizationProblem::ClearMemory(void) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    if (this->m_Iterate != NULL) {
+        ierr = VecDestroy(&this->m_Iterate); CHKERRQ(ierr);
+        this->m_Iterate = NULL;
+    }
+
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -83,7 +104,7 @@ PetscErrorCode OptimizationProblem::Initialize(void) {
  * @brief set the registration options
  *******************************************************************/
 PetscErrorCode OptimizationProblem::SetOptions(RegOpt* opt) {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     // check for null pointer
@@ -97,8 +118,40 @@ PetscErrorCode OptimizationProblem::SetOptions(RegOpt* opt) {
     // overwrite
     this->m_Opt = opt;
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief set the registration options
+ *******************************************************************/
+PetscErrorCode OptimizationProblem::ComputeUpdateNorm(Vec x, ScalarType& normdx, ScalarType& normx) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    // check for null pointer
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+
+    if (this->m_Iterate == NULL) {
+        ierr = VecDuplicate(x, &this->m_Iterate); CHKERRQ(ierr);
+        ierr = VecSet(this->m_Iterate, 0.0); CHKERRQ(ierr);
+    }
+
+    // compute norm of new iterate
+    ierr = VecNorm(x, NORM_INFINITY, &normx); CHKERRQ(ierr);
+
+    // compute update and it's norm
+    ierr = VecAXPY(this->m_Iterate, -1.0, x); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_Iterate, NORM_INFINITY, &normdx); CHKERRQ(ierr);
+
+    // overwrite iterate
+    ierr = VecCopy(x, this->m_Iterate); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

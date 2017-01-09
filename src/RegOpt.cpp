@@ -2255,6 +2255,9 @@ PetscErrorCode RegOpt::ResetCounters() {
 
     this->Enter(__func__);
 
+    if (this->m_Verbosity > 2) {
+        ierr = DbgMsg("resetting counters"); CHKERRQ(ierr);
+    }
     for (int i = 0; i < NCOUNTERS; ++i) {
         this->m_Counter[i] = 0;
     }

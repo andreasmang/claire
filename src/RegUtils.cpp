@@ -41,11 +41,12 @@ namespace reg {
  * @brief error handling: check if condition is valid, and if
  * not throw an error PETSc style
  *******************************************************************/
-PetscErrorCode Assert(bool condition,std::string msg) {
+PetscErrorCode Assert(bool condition, std::string msg) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if(condition == false) {
+    if (condition == false) {
+        std::cout << msg << std::endl;
         ierr = ThrowError(msg); CHKERRQ(ierr);
     }
 
@@ -210,10 +211,10 @@ PetscErrorCode ThrowError(std::string msg) {
     PetscFunctionBegin;
 
     std::string errmsg = "\x1b[31mERROR: " + msg + "\x1b[0m";
-    ierr = PetscError(PETSC_COMM_WORLD,__LINE__,
-                    PETSC_FUNCTION_NAME,__FILE__,
-                    1,PETSC_ERROR_INITIAL,
-                    errmsg.c_str()); CHKERRQ(ierr);
+    ierr = PetscError(PETSC_COMM_WORLD, __LINE__,
+                      PETSC_FUNCTION_NAME, __FILE__,
+                      1, PETSC_ERROR_INITIAL,
+                      errmsg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -238,7 +239,6 @@ PetscErrorCode MPIERRQ(int cerr) {
         MPI_Error_class(cerr, &error_class);
         MPI_Error_string(error_class, error_string, &length_of_error_string);
         ierr = ThrowError(error_string); CHKERRQ(ierr);
-
     }
 
     PetscFunctionReturn(ierr);
@@ -301,11 +301,10 @@ PetscErrorCode InitializeDataDistribution(int nthreads,
 
     // check if number of threads is consistent with user options
     ompthreads=omp_get_max_threads();
-    ss << "max number of openmp threads is not a match (user,set)=("
-       << nthreads <<"," << ompthreads <<")\n";
-    ierr = Assert(ompthreads == nthreads,ss.str().c_str()); CHKERRQ(ierr);
-    ss.str( std::string() );
-    ss.clear();
+    ss << "openmp threads (user,set)=("
+       << nthreads <<"," << ompthreads << ")\n";
+    ierr = Assert(ompthreads == nthreads, ss.str().c_str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
 
     // set up MPI/cartesian grid
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
@@ -318,7 +317,6 @@ PetscErrorCode InitializeDataDistribution(int nthreads,
         c_grid[1]=0;
         MPI_Dims_create(nprocs, 2, c_grid);
     }
-
     if (c_comm != NULL) {MPI_Comm_free(&c_comm); c_comm = NULL;}
 
     // initialize accft

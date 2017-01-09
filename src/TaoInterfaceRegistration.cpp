@@ -185,11 +185,16 @@ PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex) {
  * @param tao pointer to tao solver
  * @param optprob pointer to optimziation problem
  ****************************************************************************/
-PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
+PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     IntType iter, maxiter, miniter;
     OptimizationProblem* optprob = NULL;
-    ScalarType J, gnorm, step, gatol, grtol, gttol, g0norm, minstep;
+    std::stringstream ss, sc;
+    ScalarType J, Jold, gnorm, step, gatol, grtol,
+                gttol, g0norm, minstep, theta,
+                normx, normdx, tolJ, toldx, toldJ;
+    bool stop[5];
+    Vec x;
 
     PetscFunctionBegin;
 
@@ -201,7 +206,161 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     miniter = optprob->GetOptions()->GetOptPara().minit;
 
     // get initial gradient
-    g0norm = optprob->GetInitialGradNorm();
+    g0norm = optprob->GetInitialGradientNorm();
+    g0norm = (g0norm > 0.0) ? g0norm : 1.0;
+
+
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
+    ierr = TaoGetTolerances(tao, &gatol, &grtol, &gttol); CHKERRQ(ierr);
+#else
+    ierr = TaoGetTolerances(tao, NULL, NULL, &gatol, &grtol, &gttol); CHKERRQ(ierr);
+#endif
+
+    tolJ  = gttol;
+    toldx = sqrt(gttol);
+    toldJ = sqrt(gttol);
+
+    ierr = TaoGetMaximumIterations(tao, &maxiter); CHKERRQ(ierr);
+    ierr = TaoGetSolutionStatus(tao, &iter, &J, &gnorm, NULL, &step, NULL); CHKERRQ(ierr);
+    ierr = TaoGetSolutionVector(tao, &x); CHKERRQ(ierr);
+
+    // compute theta
+    theta = 1.0 + std::abs(J);
+    ierr = optprob->ComputeUpdateNorm(x, normdx, normx); CHKERRQ(ierr);
+    Jold = optprob->GetObjectiveValue();
+
+    // check for NaN value
+    if (PetscIsInfOrNanReal(J)) {
+        ierr = WrngMsg("objective is NaN"); CHKERRQ(ierr);
+        ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_NAN); CHKERRQ(ierr);
+        PetscFunctionReturn(ierr);
+    }
+
+    // check for NaN value
+    if (PetscIsInfOrNanReal(gnorm)) {
+        ierr = WrngMsg("||g|| is NaN"); CHKERRQ(ierr);
+        ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_NAN); CHKERRQ(ierr);
+        PetscFunctionReturn(ierr);
+    }
+
+    // convergence criterium met
+
+    for (int i = 0; i < 5; ++i) stop[i] = false;
+
+    // only check convergence criteria after a certain number of iterations
+    if (iter >= miniter) {
+        if (step < minstep) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
+            PetscFunctionReturn(ierr);
+        }
+
+        // |Jold - J| < tolJ*abs(1+J)
+        if (std::abs(Jold-J) < tolJ*theta) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
+            stop[0] = true;
+        }
+        ss << "[  " << stop[0] << "    |dJ|  = " << std::setw(14)
+           << std::right << std::scientific << std::abs(Jold-J) << "    <    "
+           << std::left << std::setw(14) << tolJ*theta << " = " << "tol*|1+J|";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        // ||dx|| < toldx*(1+||x||)
+        if (normdx < toldx*(1+normx)) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
+            stop[1] = true;
+        }
+        ss << "[  " << stop[1] << "    |dx|  = " << std::setw(14)
+           << std::right << std::scientific << normdx << "    <    "
+           << std::left << std::setw(14) << toldx*(1+normx) << " = " << "tol*(1+||x||)";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        // ||g_k||_2 < toldJ*abs(1+Jc)
+        if (gnorm < toldJ*theta) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
+            stop[2] = true;
+        }
+        ss  << "[  " << stop[2] << "    ||g|| = " << std::setw(14)
+            << std::right << std::scientific << gnorm << "    <    "
+            << std::left << std::setw(14) << toldJ*theta << " = " << "sqrt(tol)*|1+J|";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        // ||g_k||_2 < tol
+        if (gnorm < gatol) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
+            stop[3] = true;
+        }
+        ss  << "[  " << stop[3] << "    ||g|| = " << std::setw(14)
+            << std::right << std::scientific << gnorm << "    <    "
+            << std::left << std::setw(14) << gatol << " = " << "tol";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        if (iter > maxiter) {
+            ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_MAXITS); CHKERRQ(ierr);
+            stop[4] = true;
+        }
+        ss  << "[  " << stop[4] << "     iter = " << std::setw(14)
+            << std::right << iter  << "    >    "
+            << std::left << std::setw(14) << maxiter << " = " << "maxiter";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        sc << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        optprob->SetConvergenceMessage(sc.str());
+
+        if ((stop[0] && stop[1] && stop[2]) || stop[3] || stop[4]) {
+            optprob->Converged(true);
+            PetscFunctionReturn(ierr);
+        }
+    } else {
+        // if the gradient is zero, we should terminate immediately
+        if (gnorm == 0) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
+            PetscFunctionReturn(ierr);
+        }
+    }
+
+    optprob->SetObjectiveValue(J);
+
+    // if we're here, we're good to go
+    ierr = TaoSetConvergedReason(tao, TAO_CONTINUE_ITERATING); CHKERRQ(ierr);
+
+    // go home
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+
+/****************************************************************************
+ * @brief convergence test for optimization
+ * @param tao pointer to tao solver
+ * @param optprob pointer to optimziation problem
+ ****************************************************************************/
+PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
+    PetscErrorCode ierr = 0;
+    IntType iter, maxiter, miniter;
+    OptimizationProblem* optprob = NULL;
+    ScalarType J, gnorm, step, gatol, grtol, gttol, g0norm, minstep;
+    bool stop[3];
+    std::stringstream ss, sc;
+
+    PetscFunctionBegin;
+
+    optprob = reinterpret_cast<OptimizationProblem*>(ptr);
+    ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
+
+    minstep = std::pow(2.0, 10.0);
+    minstep = 1.0 / minstep;
+    miniter = optprob->GetOptions()->GetOptPara().minit;
+
+    // get initial gradient
+    g0norm = optprob->GetInitialGradientNorm();
     g0norm = (g0norm > 0.0) ? g0norm : 1.0;
 
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
@@ -227,30 +386,56 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
         PetscFunctionReturn(ierr);
     }
 
-    // convergence criterium met
-    if (iter > maxiter) {
-        ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_MAXITS); CHKERRQ(ierr);
-        PetscFunctionReturn(ierr);
-    }
-
     // only check convergence criteria after a certain number of iterations
+    stop[0] = false; stop[1] = false; stop[2] = false;
+    optprob->Converged(false);
     if (iter >= miniter) {
-        // ||g_k||_2 < tol
-        if (gnorm < gatol) {
-            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
+        if (step < minstep) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
         }
 
         // ||g_k||_2 < tol*||g_0||
         if (gnorm < gttol*g0norm) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GTTOL); CHKERRQ(ierr);
+            stop[0] = true;
+        }
+        ss << "[  " << stop[0] << "    ||g|| = " << std::setw(14)
+           << std::right << std::scientific << gnorm << "    <    "
+           << std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        // ||g_k||_2 < tol
+        if (gnorm < gatol) {
+            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
+            stop[1] = true;
+        }
+        ss  << "[  " << stop[1] << "    ||g|| = " << std::setw(14)
+            << std::right << std::scientific << gnorm << "    <    "
+            << std::left << std::setw(14) << gatol << " = " << "tol";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        // iteration number exceeds limit
+        if (iter > maxiter) {
+            ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_MAXITS); CHKERRQ(ierr);
+            stop[2] = true;
+        }
+        ss  << "[  " << stop[2] << "     iter = " << std::setw(14)
+            << std::right << iter  << "    >    "
+            << std::left << std::setw(14) << maxiter << " = " << "maxiter";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        sc << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        optprob->SetConvergenceMessage(sc.str());
+
+        if (stop[0] || stop[1] || stop[2]) {
+            optprob->Converged(true);
             PetscFunctionReturn(ierr);
         }
 
-        if (step < minstep) {
-            ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
-            PetscFunctionReturn(ierr);
-        }
     } else {
         // if the gradient is zero, we should terminate immediately
         if (gnorm == 0) {
@@ -313,15 +498,15 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     D *= optprob->GetOptions()->GetLebesqueMeasure();
 
     // get initial gradient
-    gnorm0 = optprob->GetInitialGradNorm();
+    gnorm0 = optprob->GetInitialGradientNorm();
     gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
 
     // get initial l2 distance
-    D0 = optprob->GetInitialDistanceVal();
+    D0 = optprob->GetInitialDistanceValue();
     D0 = (D0 > 0.0) ? D0 : 1.0;
 
     // get initial objective value
-    J0 = optprob->GetInitialObjVal();
+    J0 = optprob->GetInitialObjectiveValue();
     J0 = (J0 > 0.0) ? J0 : 1.0;
 
     // get the solution vector and finalize the iteration

@@ -70,6 +70,8 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, V
     double timer[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     // get regularization weight
     sqrtbeta[0] = sqrt(this->m_Opt->GetRegNorm().beta[0]);
     sqrtbeta[1] = sqrt(this->m_Opt->GetRegNorm().beta[1]);
@@ -183,6 +185,8 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, V
         *R *= 0.5;
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -201,6 +205,8 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateGradient(VecField* dvR, Vec
     double timer[5]={0,0,0,0,0};
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvR!=NULL,"null pointer"); CHKERRQ(ierr);
@@ -299,6 +305,8 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateGradient(VecField* dvR, Vec
         this->m_Opt->IncreaseFFTTimers(timer);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -314,6 +322,8 @@ PetscErrorCode RegularizationRegistrationH3::HessianMatVec(VecField* dvvR, VecFi
     ScalarType beta;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     ierr=Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(dvvR != NULL,"null pointer"); CHKERRQ(ierr);
 
@@ -322,8 +332,11 @@ PetscErrorCode RegularizationRegistrationH3::HessianMatVec(VecField* dvvR, VecFi
     // if regularization weight is zero, do noting
     if (beta == 0.0){
         ierr=dvvR->SetValue(0.0); CHKERRQ(ierr);
+    } else {
+        ierr=this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr);
     }
-    else{ ierr=this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr); }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -344,6 +357,8 @@ PetscErrorCode RegularizationRegistrationH3::ApplyInvOp(VecField* Ainvx, VecFiel
     ScalarType beta[2],scale;
     double timer[5]={0,0,0,0,0};
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
     ierr=Assert(Ainvx != NULL,"null pointer"); CHKERRQ(ierr);
@@ -440,6 +455,8 @@ PetscErrorCode RegularizationRegistrationH3::ApplyInvOp(VecField* Ainvx, VecFiel
         this->m_Opt->IncreaseFFTTimers(timer);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -455,6 +472,7 @@ PetscErrorCode RegularizationRegistrationH3::GetExtremeEigValsInvOp(ScalarType& 
     ScalarType w[3],beta1,beta2,trihik,regop;
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     beta1=this->m_Opt->GetRegNorm().beta[0];
     beta2=this->m_Opt->GetRegNorm().beta[1];
@@ -477,6 +495,8 @@ PetscErrorCode RegularizationRegistrationH3::GetExtremeEigValsInvOp(ScalarType& 
     regop = -beta1*trihik + beta2;
     emin = 1.0/regop;
     emax = 1.0/beta2; // 1/(0*beta_1 + beta_2)
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

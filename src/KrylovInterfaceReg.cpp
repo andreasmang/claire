@@ -409,7 +409,7 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
     // apply hessian
-    ierr = precond->HessianMatVec(Px,x); CHKERRQ(ierr);
+    ierr = precond->HessianMatVec(Px, x); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

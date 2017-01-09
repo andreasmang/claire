@@ -119,6 +119,7 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     IntType nlu, ngu;
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     if (this->m_Solution == NULL) {
         // compute number of unknowns
@@ -131,6 +132,8 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     // the input better is not zero
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -146,6 +149,7 @@ PetscErrorCode Optimizer::SetInitialGuess() {
     IntType nlu, ngu;
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     // check if tao has been set up
     ierr = Assert(this->m_Tao != NULL, "null pointer"); CHKERRQ(ierr);
@@ -159,6 +163,8 @@ PetscErrorCode Optimizer::SetInitialGuess() {
 
     // parse initial guess to tao
     ierr = TaoSetInitialVector(this->m_Tao, this->m_Solution); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -175,10 +181,12 @@ PetscErrorCode Optimizer::SetInitialGuess() {
 PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_OptimizationProblem = optprob;
 
+    this->m_Opt->Exit(__func__);
     PetscFunctionReturn(ierr);
 }
 
@@ -192,10 +200,12 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob) {
 PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_Precond = precond;
 
+    this->m_Opt->Exit(__func__);
     PetscFunctionReturn(ierr);
 }
 
@@ -216,6 +226,7 @@ PetscErrorCode Optimizer::SetupTao() {
     PC preconditioner;
     TaoLineSearch linesearch;
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_OptimizationProblem !=NULL, "optimization problem not set"); CHKERRQ(ierr);
 
@@ -326,6 +337,8 @@ PetscErrorCode Optimizer::SetupTao() {
     // set function to test stopping conditions
     if (this->m_Opt->GetOptPara().stopcond == GRAD) {
         ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGrad, this->m_OptimizationProblem); CHKERRQ(ierr);
+    } else if (this->m_Opt->GetOptPara().stopcond == GRADOBJ) {
+        ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGradObj, this->m_OptimizationProblem); CHKERRQ(ierr);
     } else {
         ierr = ThrowError("stop condition not defined"); CHKERRQ(ierr);
     }
@@ -351,6 +364,7 @@ PetscErrorCode Optimizer::SetupTao() {
     ierr = MatSetOption(matvec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
     ierr = TaoSetHessianRoutine(this->m_Tao, matvec, matvec, EvaluateHessian, optprob); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
     PetscFunctionReturn(0);
 }
 
@@ -369,6 +383,8 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     std::stringstream ss;
     Vec x = NULL;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     // check if optimization problem has been set
     ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
@@ -397,10 +413,8 @@ PetscErrorCode Optimizer::Run(bool presolve) {
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr = TaoSetTolerances(this->m_Tao, PETSC_DEFAULT, PETSC_DEFAULT, gtol); CHKERRQ(ierr);
 #else
-    ierr = TaoSetTolerances(this->m_Tao, PETSC_DEFAULT,
-                                         PETSC_DEFAULT,
-                                         PETSC_DEFAULT,
-                                         PETSC_DEFAULT, gtol); CHKERRQ(ierr);
+    ierr = TaoSetTolerances(this->m_Tao, PETSC_DEFAULT, PETSC_DEFAULT,
+                                         PETSC_DEFAULT, PETSC_DEFAULT, gtol); CHKERRQ(ierr);
 #endif
     ierr = TaoSetMaximumIterations(this->m_Tao, maxit-1); CHKERRQ(ierr);
 
@@ -423,6 +437,8 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     // copy solution into place holder
     ierr = VecCopy(x, this->m_Solution); CHKERRQ(ierr);
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -437,11 +453,15 @@ PetscErrorCode Optimizer::GetSolution(Vec &x) {
     PetscErrorCode ierr;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     // check if we have solved the problem / set up tao
     ierr = Assert(this->m_Tao != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get solution
     ierr = TaoGetSolutionVector(this->m_Tao, &x); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -458,6 +478,8 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
     TaoConvergedReason reason;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     // check if we have solved the problem / set up tao
     ierr = Assert(this->m_Tao != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -471,6 +493,8 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
         }
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -483,74 +507,27 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
 PetscErrorCode Optimizer::Finalize() {
     PetscErrorCode ierr = 0;
     int rank, indent, numindent, linelength;
-    IntType maxiter, iter;
-    ScalarType gatol, grtol, gttol, gnorm, J, g0norm;
-    bool stop[3], converged;
+    IntType iter;
+    ScalarType gnorm, J;
     std::string line, msg;
     TaoConvergedReason reason;
     std::stringstream ss;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    ierr = Assert(this->m_Tao !=NULL, "null pointer"); CHKERRQ(ierr);
-
-#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
-    ierr = TaoGetTolerances(this->m_Tao, &gatol, &grtol, &gttol); CHKERRQ(ierr);
-#else
-    ierr = TaoGetTolerances(this->m_Tao, NULL, NULL, &gatol, &grtol, &gttol); CHKERRQ(ierr);
-#endif
-    g0norm = this->m_OptimizationProblem->GetInitialGradNorm();
-
-    ierr = TaoGetMaximumIterations(this->m_Tao, &maxiter); CHKERRQ(ierr);
-    ierr = TaoGetSolutionStatus(this->m_Tao, &iter, &J, &gnorm, NULL, NULL, &reason); CHKERRQ(ierr);
-
-    linelength = this->m_Opt->GetLineLength();
-    line = std::string(linelength, '-');
-
-    stop[0] = (gnorm < gttol*g0norm);   ///< relative change of gradient
-    stop[1] = (gnorm < gatol);          ///< absolute norm of gradient
-    stop[2] = (iter  > maxiter);        ///< max number of iterations
-
-    // check if we converged
-    converged = false;
-    for (int i = 0; i < 3; ++i) {
-        if (stop[i]) converged=true;
-    }
-
-    indent    = 25;
-    numindent = 5;
     if (rank == 0) {
-        if (converged) {
-            std::cout << std::endl;
-            std::cout << " convergence criteria" << std::endl;
-            std::cout << std::endl;
-
-            // relative change of gradient
-            ss  << "[  " << stop[0] << "    ||g|| = " << std::setw(14)
-                << std::right << std::scientific << gnorm << "    <    "
-                << std::left << std::setw(14) << gttol*g0norm << " = " << "tol";
-            std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
-            ss.str(std::string()); ss.clear();
-
-            // absolute norm of gradient
-            ss  << "[  " << stop[1] << "    ||g|| = " << std::setw(14)
-                << std::right << std::scientific << gnorm << "    <    "
-                << std::left << std::setw(14) << gatol << " = " << "tol";
-            std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
-            ss.str(std::string()); ss.clear();
-
-            // number of iterations
-            ss  << "[  " << stop[2] << "     iter = " << std::setw(14)
-                << std::right << iter  << "    >    "
-                << std::left << std::setw(14) << maxiter << " = " << "maxiter";
-            std::cout << std::left << std::setw(100) << ss.str() << "]" << std::endl;
-            ss.str(std::string()); ss.clear();
-            std::cout << std::endl;
-        }
+        std::cout << std::endl;
+        std::cout << " convergence criteria" << std::endl;
+        std::cout << std::endl;
+        std::cout << this->m_OptimizationProblem->GetConvergenceMessage();
     }
 
-    if (!converged) {
+    if (!this->m_OptimizationProblem->Converged()) {
+        ierr = Assert(this->m_Tao != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = TaoGetSolutionStatus(this->m_Tao, &iter, &J, &gnorm, NULL, NULL, &reason); CHKERRQ(ierr);
         switch (reason) {
             case TAO_CONVERGED_STEPTOL:
             {
@@ -591,8 +568,11 @@ PetscErrorCode Optimizer::Finalize() {
         ierr = WrngMsg(msg); CHKERRQ(ierr);
     }
 
+    linelength = this->m_Opt->GetLineLength();
+    line = std::string(linelength, '-');
+    indent = 25; numindent = 5;
     if (this->m_Opt->GetVerbosity() > 1) {
-        if (converged && !rank) std::cout<< line <<std::endl;
+        if (this->m_OptimizationProblem->Converged() && !rank) std::cout << line << std::endl;
         ss << std::left << std::setw(indent)
            << "outer iterations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(ITERATIONS) - 1;
@@ -620,6 +600,7 @@ PetscErrorCode Optimizer::Finalize() {
 
     // display info to user, once we're done
 //    ierr = TaoView(this->m_Tao, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }

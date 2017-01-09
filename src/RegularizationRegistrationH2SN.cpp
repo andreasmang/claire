@@ -70,13 +70,14 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
     sqrtbeta = sqrt(this->m_Opt->GetRegNorm().beta[0]);
 
-    *R=0.0;
+    *R = 0.0;
 
     // if regularization weight is zero, do noting
     if (sqrtbeta != 0.0) {
@@ -147,7 +148,6 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv2hat, p_Lv2, timers);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv3hat, p_Lv3, timers);
         ierr = this->m_WorkVecField->RestoreArrays(p_Lv1, p_Lv2, p_Lv3); CHKERRQ(ierr);
-
         this->m_Opt->IncrementCounter(FFT,3);
 
         // restore arrays
@@ -162,6 +162,8 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timers);
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -183,6 +185,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
                 *p_Lv1 = NULL, *p_Lv2 = NULL, *p_Lv3 = NULL;
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(dvR != NULL, "null pointer"); CHKERRQ(ierr);
@@ -210,7 +213,6 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, ffttimers);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, ffttimers);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
         this->m_Opt->IncrementCounter(FFT, 3);
 
 #pragma omp parallel
@@ -257,13 +259,14 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv2hat, p_Lv2, ffttimers);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv3hat, p_Lv3, ffttimers);
         ierr = dvR->RestoreArrays(p_Lv1, p_Lv2, p_Lv3); CHKERRQ(ierr);
-
         this->m_Opt->IncrementCounter(FFT, 3);
 
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(ffttimers);
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -281,6 +284,8 @@ PetscErrorCode RegularizationRegistrationH2SN::HessianMatVec(VecField* dvvR, Vec
     ScalarType beta;
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -292,6 +297,8 @@ PetscErrorCode RegularizationRegistrationH2SN::HessianMatVec(VecField* dvvR, Vec
     } else {
         ierr = this->EvaluateGradient(dvvR, vtilde); CHKERRQ(ierr);
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -314,6 +321,8 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
                 *p_Lv1 = NULL, *p_Lv2 = NULL, *p_Lv3 = NULL;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(Ainvv != NULL, "null pointer"); CHKERRQ(ierr);
@@ -341,8 +350,7 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timers);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timers);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
 #pragma omp parallel
 {
@@ -398,6 +406,8 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
         this->m_Opt->IncreaseFFTTimers(timers);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
@@ -414,6 +424,8 @@ PetscErrorCode RegularizationRegistrationH2SN::GetExtremeEigValsInvOp(ScalarType
 
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     beta = this->m_Opt->GetRegNorm().beta[0];
 
     // get max value
@@ -427,15 +439,17 @@ PetscErrorCode RegularizationRegistrationH2SN::GetExtremeEigValsInvOp(ScalarType
     emin = 1.0/regop;
     emax = 1.0; // by definition; it's 1/0
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(ierr);
 }
 
 
 
 
-} // end of name space
+}  // namespace reg
 
 
 
 
-#endif //_REGULARIZATIONREGISTRATIONH2SN_CPP_
+#endif  // _REGULARIZATIONREGISTRATIONH2SN_CPP_

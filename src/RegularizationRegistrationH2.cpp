@@ -70,6 +70,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
     double timer[5] = {0, 0, 0, 0, 0};
     PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
     // get regularization weight
     sqrtbeta[0] = sqrt(this->m_Opt->GetRegNorm().beta[0]);
     sqrtbeta[1] = sqrt(this->m_Opt->GetRegNorm().beta[1]);
@@ -78,15 +80,15 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
 
     // if regularization weight is zero, do noting
     if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0){
-        ierr=Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
+        ierr = Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
 
-        ierr=this->Allocate(0); CHKERRQ(ierr);
-        ierr=this->Allocate(1); CHKERRQ(ierr);
+        ierr = this->Allocate(0); CHKERRQ(ierr);
+        ierr = this->Allocate(1); CHKERRQ(ierr);
 
         if (this->m_WorkVecField==NULL){
             try{this->m_WorkVecField = new VecField(this->m_Opt);}
             catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
 
@@ -147,9 +149,9 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv1hat, p_Lv1, timer);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv2hat, p_Lv2, timer);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv3hat, p_Lv3, timer);
-        ierr=this->m_WorkVecField->RestoreArrays(p_Lv1, p_Lv2, p_Lv3); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField->RestoreArrays(p_Lv1, p_Lv2, p_Lv3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         // compute inner product
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); *R += ipxi;
@@ -162,6 +164,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         // multiply with regularization weight
         *R *= 0.5;
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -178,12 +182,14 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
     ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
                 *p_Lv1=NULL,*p_Lv2=NULL,*p_Lv3=NULL;
     ScalarType beta[2],scale;
-    double timer[5]={0,0,0,0,0};
+    double timer[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
-    ierr=Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(dvR!=NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(v!=NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(dvR!=NULL,"null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
@@ -191,7 +197,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
 
     // if regularization weight is zero, do noting
     if ((beta[0] == 0.0) && (beta[1] == 0.0)) {
-        ierr=dvR->SetValue(0.0); CHKERRQ(ierr);
+        ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
         ierr = this->Allocate(0); CHKERRQ(ierr);
         ierr = this->Allocate(1); CHKERRQ(ierr);
@@ -207,7 +213,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timer);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timer);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
-        ierr=v->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
+        ierr = v->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -264,6 +270,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
         this->m_Opt->IncreaseFFTTimers(timer);
     }
 
+    this->m_Opt->Exit(__func__);
+
     PetscFunctionReturn(0);
 }
 
@@ -279,16 +287,21 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
     ScalarType beta;
     PetscFunctionBegin;
 
-    ierr=Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(dvvR != NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(vtilde != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(dvvR != NULL,"null pointer"); CHKERRQ(ierr);
 
     beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0){
-        ierr=dvvR->SetValue(0.0); CHKERRQ(ierr);
+        ierr = dvvR->SetValue(0.0); CHKERRQ(ierr);
+    } else {
+        ierr = this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr);
     }
-    else{ ierr=this->EvaluateGradient(dvvR,vtilde); CHKERRQ(ierr); }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -310,22 +323,23 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
     double timer[5]={0,0,0,0,0};
     PetscFunctionBegin;
 
-    ierr=Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
-    ierr=Assert(Ainvx != NULL,"null pointer"); CHKERRQ(ierr);
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(x != NULL,"null pointer"); CHKERRQ(ierr);
+    ierr = Assert(Ainvx != NULL,"null pointer"); CHKERRQ(ierr);
 
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
     beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
     if ( beta[0] == 0.0 && beta[1] == 0.0 ){
-        ierr=VecCopy(x->m_X1,Ainvx->m_X1); CHKERRQ(ierr);
-        ierr=VecCopy(x->m_X2,Ainvx->m_X2); CHKERRQ(ierr);
-        ierr=VecCopy(x->m_X3,Ainvx->m_X3); CHKERRQ(ierr);
-    }
-    else{
+        ierr = VecCopy(x->m_X1, Ainvx->m_X1); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
+    } else {
 
-        ierr=this->Allocate(0); CHKERRQ(ierr);
-        ierr=this->Allocate(1); CHKERRQ(ierr);
+        ierr = this->Allocate(0); CHKERRQ(ierr);
+        ierr = this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -334,11 +348,11 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
         scale = this->m_Opt->ComputeFFTScale();
 
         // compute forward fft
-        ierr=x->GetArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
+        ierr = x->GetArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x1,this->m_v1hat,timer);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x2,this->m_v2hat,timer);
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_x3,this->m_v3hat,timer);
-        ierr=x->RestoreArrays(p_x1,p_x2,p_x3); CHKERRQ(ierr);
+        ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT,3);
 
@@ -388,17 +402,19 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
 
 
         // compute inverse fft
-        ierr=Ainvx->GetArrays(p_Lv1,p_Lv2,p_Lv3); CHKERRQ(ierr);
+        ierr = Ainvx->GetArrays(p_Lv1,p_Lv2,p_Lv3); CHKERRQ(ierr);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Lv1hat,p_Lv1,timer);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Lv2hat,p_Lv2,timer);
         accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan,this->m_Lv3hat,p_Lv3,timer);
-        ierr=Ainvx->RestoreArrays(p_Lv1,p_Lv2,p_Lv3); CHKERRQ(ierr);
+        ierr = Ainvx->RestoreArrays(p_Lv1,p_Lv2,p_Lv3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT,3);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
     }
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
@@ -411,10 +427,12 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
  * the inverse regularization operator
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationH2::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
-    PetscErrorCode ierr=0;
+    PetscErrorCode ierr = 0;
     ScalarType w[3],beta1,beta2,regop;
 
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     beta1=this->m_Opt->GetRegNorm().beta[0];
     beta2=this->m_Opt->GetRegNorm().beta[1];
@@ -429,6 +447,8 @@ PetscErrorCode RegularizationRegistrationH2::GetExtremeEigValsInvOp(ScalarType& 
     regop = beta1*(regop*regop) + beta2; // beta * biharmonic
     emin = 1.0/regop;
     emax = 1.0/beta2; // 1/(0*beta_1 + beta_2)
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
