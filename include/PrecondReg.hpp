@@ -78,20 +78,26 @@ class PrecondReg {
 
  private:
     /*! setup two level preconditioner */
-    PetscErrorCode Setup2LevelPrecond();
-    PetscErrorCode HessianMatVecRestrict(Vec, Vec);
+    PetscErrorCode ApplyRestriction();
+    PetscErrorCode SetupCoarseGrid();
+    PetscErrorCode HessianMatVecProRes(Vec, Vec);
+    PetscErrorCode HessianMatVecCoarse(Vec, Vec);
 
-    /*! setup krylov method */
+    /*! setup krylov method for inversion of preconditioner */
     PetscErrorCode SetupKrylovMethod();
 
     /*! setup krylov method for estimating eigenvalues */
     PetscErrorCode SetupKrylovMethodEigEst();
 
     /*! apply inverse regularization operator as preconditioner */
-    PetscErrorCode ApplyInvRegPC(Vec, Vec);
+    PetscErrorCode ApplyInvRegPrecond(Vec, Vec);
 
     /*! apply 2Level PC as preconditioner */
-    PetscErrorCode Apply2LevelPC(Vec, Vec);
+    PetscErrorCode Apply2LevelPrecond(Vec, Vec);
+
+    /*! apply 2Level PC as preconditioner */
+    PetscErrorCode Apply2LevelPrecondInside(Vec, Vec);
+
 
     RegOpt* m_Opt;                      ///< registration options
     RegOpt* m_OptCoarse;                ///< registration options (on coarse grid)
@@ -123,6 +129,8 @@ class PrecondReg {
 
     PetscRandom m_RandomNumGen;     ///< random number generated
     KSP m_KrylovMethodEigEst;
+
+    bool m_CoarseGridSetupDone;
 };
 
 

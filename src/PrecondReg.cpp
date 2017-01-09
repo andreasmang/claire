@@ -97,6 +97,8 @@ PetscErrorCode PrecondReg::Initialize() {
     this->m_WorkScaFieldCoarse1 = NULL;     ///< temporary scalar field (coarse level)
     this->m_WorkScaFieldCoarse2 = NULL;     ///< temporary scalar field (coarse level)
 
+    this->m_CoarseGridSetupDone = false;
+
     PetscFunctionReturn(ierr);
 }
 
@@ -309,12 +311,136 @@ PetscErrorCode PrecondReg::DoSetup() {
 
     // switch case for choice of preconditioner
     if (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) {
-        ierr = this->Setup2LevelPrecond(); CHKERRQ(ierr);
+        // apply restriction to adjoint, state and control variable
+        ierr = this->ApplyRestriction(); CHKERRQ(ierr);
     }
     this->m_Opt->PrecondSetupDone(true);
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVSETUP); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief setup phase of preconditioner
+ *******************************************************************/
+PetscErrorCode PrecondReg::SetupCoarseGrid() {
+    PetscErrorCode ierr = 0;
+    IntType nl_f, ng_f, nl_c, ng_c, nt, nc, nx_c[3], nx_f[3];
+    ScalarType scale, value;
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    // check if optimization problem is set up
+    ierr = Assert(this->m_Opt != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt  = this->m_Opt->GetDomainPara().nt;
+    nc  = this->m_Opt->GetDomainPara().nc;
+    nl_f = this->m_Opt->GetDomainPara().nl;
+    ng_f = this->m_Opt->GetDomainPara().ng;
+
+    scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
+
+    for (int i = 0; i < 3; ++i) {
+        nx_f[i] = this->m_Opt->GetDomainPara().nx[i];
+        value = static_cast<ScalarType>(nx_f[i])/scale;
+        nx_c[i] = static_cast<IntType>( std::ceil(value) );
+    }
+
+    if (this->m_Opt->GetVerbosity() > 1) {
+        ss  << "setup of preconditioner (data allocation) "
+            << "nx (f): (" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "); "
+            << "nx (c): (" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
+    // set up options for coarse grid (copy all parameters
+    // but the grid resolution and do setup of all plans)
+    if (this->m_OptCoarse != NULL) {
+        delete this->m_OptCoarse;
+        this->m_OptCoarse=NULL;
+    }
+    try {this->m_OptCoarse = new RegOpt(*this->m_Opt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    for (int i = 0; i < 3; ++i) {
+        this->m_OptCoarse->SetNumGridPoints(i, nx_c[i]);
+    }
+    ierr = this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
+
+    nl_c = this->m_OptCoarse->GetDomainPara().nl;
+    ng_c = this->m_OptCoarse->GetDomainPara().ng;
+
+    // allocate optimization problem
+    if (this->m_OptProbCoarse != NULL) {
+        delete this->m_OptProbCoarse;
+        this->m_OptProbCoarse = NULL;
+    }
+
+    // allocate class for registration
+    if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
+        try {this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    } else if (this->m_Opt->GetRegModel() == STOKES) {
+        try {this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    } else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
+        try {this->m_OptProbCoarse = new OptimalControlRegistrationRelaxedIC(this->m_OptCoarse);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    } else {
+        ierr = ThrowError("registration model not defined"); CHKERRQ(ierr);
+    }
+
+    // create vector fields
+    ierr = VecCreate(this->m_WorkScaField1, nl_f, ng_f); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkScaField2, nl_f, ng_f); CHKERRQ(ierr);
+
+    try {this->m_ControlVariable = new VecField(this->m_Opt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {this->m_IncControlVariable = new VecField(this->m_Opt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = VecCreate(this->m_StateVariableCoarse, (nt+1)*nc*nl_c, (nt+1)*nc*ng_c); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_AdjointVariableCoarse, (nt+1)*nc*nl_c, (nt+1)*nc*ng_c); CHKERRQ(ierr);
+
+    ierr = VecCreate(this->m_WorkScaFieldCoarse1, nl_c, ng_c); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkScaFieldCoarse2, nl_c, ng_c); CHKERRQ(ierr);
+
+    try {this->m_ControlVariableCoarse = new VecField(this->m_OptCoarse);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {this->m_IncControlVariableCoarse = new VecField(this->m_OptCoarse);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = VecCreate(this->m_xCoarse, 3*nl_c, 3*ng_c); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_HxCoarse, 3*nl_c, 3*ng_c); CHKERRQ(ierr);
+
+    this->m_CoarseGridSetupDone = true;
 
     this->m_Opt->Exit(__func__);
 
@@ -343,12 +469,12 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
         }
         case INVREG:
         {
-            ierr = this->ApplyInvRegPC(Px, x); CHKERRQ(ierr);
+            ierr = this->ApplyInvRegPrecond(Px, x); CHKERRQ(ierr);
             break;
         }
         case TWOLEVEL:
         {
-            ierr = this->Apply2LevelPC(Px, x); CHKERRQ(ierr);
+            ierr = this->Apply2LevelPrecond(Px, x); CHKERRQ(ierr);
             break;
         }
         default:
@@ -369,7 +495,7 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
 /********************************************************************
  * @brief apply inverse of regularization operator as preconditioner
  *******************************************************************/
-PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x) {
+PetscErrorCode PrecondReg::ApplyInvRegPrecond(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -401,11 +527,16 @@ PetscErrorCode PrecondReg::ApplyInvRegPC(Vec Px, Vec x) {
 /********************************************************************
  * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
-PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
+PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
+    // do allocation of coarse grid
+    if (!this->m_CoarseGridSetupDone) {
+        ierr = this->SetupCoarseGrid(); CHKERRQ(ierr);
+    }
 
     // do setup
     if (this->m_KrylovMethod == NULL) {
@@ -426,12 +557,12 @@ PetscErrorCode PrecondReg::Apply2LevelPC(Vec Px, Vec x) {
 
 
 /********************************************************************
- * @brief setup 2 level preconditioner
+ * @brief applies the restriction operator to the state, adjoint,
+ * and control variable (setup phase of 2level preconditioner)
  *******************************************************************/
-PetscErrorCode PrecondReg::Setup2LevelPrecond() {
+PetscErrorCode PrecondReg::ApplyRestriction() {
     PetscErrorCode ierr = 0;
-    IntType nl_f, ng_f, nl_c, ng_c, nt, nc,
-            nx_c[3], nx_f[3], l_f, l_c, lnext_f;
+    IntType nl_f, nl_c, nt, nc, nx_c[3], nx_f[3], l_f, l_c, lnext_f;
     ScalarType scale, value;
     std::stringstream ss;
     Vec m = NULL, lambda = NULL;
@@ -448,7 +579,6 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     nt  = this->m_Opt->GetDomainPara().nt;
     nc  = this->m_Opt->GetDomainPara().nc;
     nl_f = this->m_Opt->GetDomainPara().nl;
-    ng_f = this->m_Opt->GetDomainPara().ng;
 
     scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
 
@@ -459,86 +589,14 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     }
 
     if (this->m_Opt->GetVerbosity() > 1) {
-        ss  << "initializing two-level preconditioner; "
-            << "fine level: (" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "); "
-            << "coarse level: (" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << ")";
+        ss  << "applying restriction to variables "
+            << " (" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << ") ->"
+            << " (" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
-    if (this->m_OptProbCoarse == NULL) {
-        if (this->m_OptCoarse != NULL) {
-            delete this->m_OptCoarse;
-            this->m_OptCoarse=NULL;
-        }
-
-        try {this->m_OptCoarse = new RegOpt(*this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        for (int i = 0; i < 3; ++i) {
-            this->m_OptCoarse->SetNumGridPoints(i, nx_c[i]);
-        }
-        ierr = this->m_OptCoarse->DoSetup(false); CHKERRQ(ierr);
-
-        nl_c = this->m_OptCoarse->GetDomainPara().nl;
-        ng_c = this->m_OptCoarse->GetDomainPara().ng;
-
-        // allocate class for registration
-        if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
-            try {this->m_OptProbCoarse = new OptimalControlRegistration(this->m_OptCoarse);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        } else if (this->m_Opt->GetRegModel() == STOKES) {
-            try {this->m_OptProbCoarse = new OptimalControlRegistrationIC(this->m_OptCoarse);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        } else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
-            try {this->m_OptProbCoarse = new OptimalControlRegistrationRelaxedIC(this->m_OptCoarse);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        } else {
-            ierr = ThrowError("registration model not defined"); CHKERRQ(ierr);
-        }
-
-        // create vector fields
-        ierr = VecCreate(this->m_WorkScaField1, nl_f, ng_f); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_WorkScaField2, nl_f, ng_f); CHKERRQ(ierr);
-
-        try {this->m_ControlVariable = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        try {this->m_IncControlVariable = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        ierr = VecCreate(this->m_StateVariableCoarse, (nt+1)*nc*nl_c, (nt+1)*nc*ng_c); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_AdjointVariableCoarse, (nt+1)*nc*nl_c, (nt+1)*nc*ng_c); CHKERRQ(ierr);
-
-        ierr = VecCreate(this->m_WorkScaFieldCoarse1, nl_c, ng_c); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_WorkScaFieldCoarse2, nl_c, ng_c); CHKERRQ(ierr);
-
-        try {this->m_ControlVariableCoarse = new VecField(this->m_OptCoarse);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        try {this->m_IncControlVariableCoarse = new VecField(this->m_OptCoarse);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        ierr = VecCreate(this->m_xCoarse, 3*nl_c, 3*ng_c); CHKERRQ(ierr);
-        ierr = VecCreate(this->m_HxCoarse, 3*nl_c, 3*ng_c); CHKERRQ(ierr);
-    }
-
-
-    // if parameter continuatoin is enabled, parse regularization weight
+    // if parameter continuation is enabled, parse regularization weight
     if (this->m_Opt->GetParaCont().enabled) {
         this->m_OptCoarse->SetRegularizationWeight(0, this->m_Opt->GetRegNorm().beta[0]);
         this->m_OptCoarse->SetRegularizationWeight(1, this->m_Opt->GetRegNorm().beta[1]);
@@ -558,7 +616,6 @@ PetscErrorCode PrecondReg::Setup2LevelPrecond() {
     ierr = VecGetArray(this->m_AdjointVariableCoarse, &p_lcoarse); CHKERRQ(ierr);
 
     nl_c = this->m_OptCoarse->GetDomainPara().nl;
-    ng_c = this->m_OptCoarse->GetDomainPara().ng;
 
     // apply restriction operator to time series of images
     for (IntType j = 0; j <= nt; ++j) {  // for all time points
@@ -645,14 +702,14 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
     ierr = KSPCreate(PETSC_COMM_WORLD, &this->m_KrylovMethod); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg("preconditioner setup: krylovmethod"); CHKERRQ(ierr);
+        ierr = DbgMsg("preconditioner: setup krylovmethod"); CHKERRQ(ierr);
     }
 
     switch (this->m_Opt->GetKrylovSolverPara().pcsolver) {
         case CHEB:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("preconditioner setup: semi-iterative chebyshev method selected"); CHKERRQ(ierr);
+                ierr = DbgMsg("preconditioner: semi-iterative chebyshev method selected"); CHKERRQ(ierr);
             }
             // chebyshev iteration
             ierr = KSPSetType(this->m_KrylovMethod, KSPCHEBYSHEV); CHKERRQ(ierr);
@@ -664,7 +721,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         case PCG:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("preconditioner setup: cg selected"); CHKERRQ(ierr);
+                ierr = DbgMsg("preconditioner: cg selected"); CHKERRQ(ierr);
             }
             // preconditioned conjugate gradient
             ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
@@ -673,7 +730,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         case FCG:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("preconditioner setup: flexible cg selected"); CHKERRQ(ierr);
+                ierr = DbgMsg("preconditioner: flexible cg selected"); CHKERRQ(ierr);
             }
             // flexible conjugate gradient
             ierr = KSPSetType(this->m_KrylovMethod, KSPFCG); CHKERRQ(ierr);
@@ -682,7 +739,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         case GMRES:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("preconditioner setup: gmres selected"); CHKERRQ(ierr);
+                ierr = DbgMsg("preconditioner: gmres selected"); CHKERRQ(ierr);
             }
             // generalized minimal residual method
             ierr = KSPSetType(this->m_KrylovMethod, KSPGMRES); CHKERRQ(ierr);
@@ -691,7 +748,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod() {
         case FGMRES:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("preconditioner setup: flexible gmres selected"); CHKERRQ(ierr);
+                ierr = DbgMsg("preconditioner: flexible gmres selected"); CHKERRQ(ierr);
             }
             // flexible generalized minimal residual method
             ierr = KSPSetType(this->m_KrylovMethod, KSPFGMRES); CHKERRQ(ierr);
@@ -765,7 +822,7 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
 
     // apply hessian (hessian matvec)
     if (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) {
-        ierr = this->HessianMatVecRestrict(Hx, x); CHKERRQ(ierr);
+        ierr = this->HessianMatVecProRes(Hx, x); CHKERRQ(ierr);
     } else {
         ierr = this->m_OptProb->HessianMatVec(Hx, x); CHKERRQ(ierr);
     }
@@ -779,9 +836,14 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
 
 
 /********************************************************************
- * @brief do setup for two level preconditioner
+ * @brief apply hessian matvec on coarse level
+ * @input x input vector
+ * @output Hx hessian applied to input vector
+ * the hessian matvec will do the prolongation and restriction;
+ * the input vector lives in R^n; we restrict it to R^{n/2}, then
+ * apply the hessian on a coarser grid and prolong again to R^n
  *******************************************************************/
-PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
+PetscErrorCode PrecondReg::HessianMatVecProRes(Vec Hx, Vec x) {
     PetscErrorCode ierr = 0;
     IntType nx_c[3], nx_f[3];
     ScalarType pct, value;
@@ -791,7 +853,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg("preconditioner: applying restriction"); CHKERRQ(ierr);
+        ierr = DbgMsg("preconditioner: (P(H + Q)R)[vtilde]"); CHKERRQ(ierr);
     }
 
     // check if all the necessary pointers have been initialized
