@@ -790,7 +790,7 @@ PetscErrorCode PrecondReg::HessianMatVecRestrict(Vec Hx, Vec x) {
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("preconditioner: applying restriction"); CHKERRQ(ierr);
     }
 
