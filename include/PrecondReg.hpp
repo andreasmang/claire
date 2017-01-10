@@ -63,6 +63,9 @@ class PrecondReg {
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec, Vec);
 
+    /*! apply hessian (for inversion) */
+    PetscErrorCode HessianMatVec(Vec, Vec);
+
     /*! estimate eigenvalues */
     PetscErrorCode EstimateEigenValues();
 
@@ -78,9 +81,6 @@ class PrecondReg {
     PetscErrorCode ApplyRestriction();
     PetscErrorCode SetupCoarseGrid();
 
-    /*! apply hessian (for inversion) */
-    PetscErrorCode HessianMatVec(Vec, Vec);
-
     /*! setup krylov method for inversion of preconditioner */
     PetscErrorCode SetupKrylovMethod(IntType, IntType);
 
@@ -93,14 +93,27 @@ class PrecondReg {
     /*! apply 2Level PC as preconditioner */
     PetscErrorCode Apply2LevelPrecond(Vec, Vec);
 
-    /*! apply 2Level PC as preconditioner */
-    PetscErrorCode Apply2LevelPrecondResPro(Vec, Vec);
+    struct CoarseGrid{
+        RegOpt* m_Opt;                          ///< registration options (on coarse grid)
+        OptProbType* m_OptimizationProblem;     ///< pointer to optimization problem (coarse level)
+        Vec x;                                  ///< array for input to hessian mat vec (on coarse level)
+        Vec y;                                  ///< array for hessian mat vec (on coarse level)
+        Vec m_StateVariable;                    ///< pointer to state variable (coarse level)
+        Vec m_AdjointVariable;                  ///< pointer to adjoint variable (coarse level)
+        VecField* m_ControlVariable;            ///< pointer to velocity field (coarse level)
+        VecField* m_IncControlVariable;         ///< pointer to velocity field (coarse level)
+        Vec m_WorkScaField1;                ///< temporary scalar field
+        Vec m_WorkScaField2;                ///< temprary scalar field
 
+        inline IntType nl(){return this->m_Opt->GetDomainPara().nl;};
+        inline IntType ng(){return this->m_Opt->GetDomainPara().ng;};
+        bool setupdone;
+    };
+
+    CoarseGrid m_CoarseGrid;
 
     RegOpt* m_Opt;                       ///< registration options
-    RegOpt* m_OptCoarse;                 ///< registration options (on coarse grid)
     OptProbType* m_OptimizationProblem;  ///< pointer to optimization problem
-    OptProbType* m_OptProbCoarse;        ///< pointer to optimization problem (coarse level)
 
     VecField* m_ControlVariable;        ///< pointer to velocity field
     VecField* m_IncControlVariable;     ///< pointer to velocity field
@@ -108,16 +121,6 @@ class PrecondReg {
     Vec m_WorkScaField1;                ///< temporary scalar field
     Vec m_WorkScaField2;                ///< temprary scalar field
     VecField* m_WorkVecField;           ///< temporary vector field
-    Vec m_WorkScaFieldCoarse1;          ///< temporary scalar field (coarse level)
-    Vec m_WorkScaFieldCoarse2;          ///< temporary scalar field (coarse level)
-
-    Vec m_xCoarse;      ///< array for input to hessian mat vec (on coarse level)
-    Vec m_HxCoarse;     ///< array for hessian mat vec (on coarse level)
-
-    Vec m_StateVariableCoarse;              ///< pointer to state variable (coarse level)
-    Vec m_AdjointVariableCoarse;            ///< pointer to adjoint variable (coarse level)
-    VecField* m_ControlVariableCoarse;      ///< pointer to velocity field (coarse level)
-    VecField* m_IncControlVariableCoarse;   ///< pointer to velocity field (coarse level)
 
     Mat m_MatVec;           ///< mat vec object (PETSc)
     Mat m_MatVecEigEst;     ///< mat vec object (PETSc)
@@ -128,7 +131,6 @@ class PrecondReg {
     PetscRandom m_RandomNumGen;     ///< random number generated
     KSP m_KrylovMethodEigEst;
 
-    bool m_CoarseGridSetupDone;
 };
 
 
