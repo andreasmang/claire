@@ -97,7 +97,6 @@ PetscErrorCode PrecondReg::Initialize() {
     this->m_WorkScaFieldCoarse1 = NULL;     ///< temporary scalar field (coarse level)
     this->m_WorkScaFieldCoarse2 = NULL;     ///< temporary scalar field (coarse level)
 
-    this->m_SetupKSPOnCoarseGrid = false;
     this->m_CoarseGridSetupDone = false;
 
     PetscFunctionReturn(ierr);
@@ -219,7 +218,7 @@ PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_OptProb = optprob;
+    this->m_OptimizationProblem = optprob;
 
     this->m_Opt->Exit(__func__);
 
@@ -342,7 +341,7 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
 
     // check if optimization problem is set up
     ierr = Assert(this->m_Opt != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt  = this->m_Opt->GetDomainPara().nt;
@@ -358,7 +357,7 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
         nx_c[i] = static_cast<IntType>( std::ceil(value) );
     }
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->GetVerbosity() > 2) {
         ss  << "setup of preconditioner (data allocation) "
             << "nx (f): (" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "); "
             << "nx (c): (" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << ")";
@@ -503,13 +502,13 @@ PetscErrorCode PrecondReg::ApplyInvRegPrecond(Vec Px, Vec x) {
     this->m_Opt->Enter(__func__);
 
     // check if optimization problem is set up
-    ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     // start timer
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
     // apply inverse regularization operator
-    ierr = this->m_OptProb->ApplyInvRegOp(Px, x); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->ApplyInvRegOp(Px, x); CHKERRQ(ierr);
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
@@ -532,7 +531,7 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     ScalarType pct, value;
-    IntType nx_f[3], nx_c[3];
+    IntType nx_f[3], nx_c[3], nl, ng;
     this->m_Opt->Enter(__func__);
 
     // do allocation of coarse grid
@@ -542,8 +541,9 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
 
     // do setup
     if (this->m_KrylovMethod == NULL) {
-        this->m_SetupKSPOnCoarseGrid = true;
-        ierr = this->SetupKrylovMethod(); CHKERRQ(ierr);
+        nl = this->m_OptCoarse->GetDomainPara().nl;
+        ng = this->m_OptCoarse->GetDomainPara().ng;
+        ierr = this->SetupKrylovMethod(nl, ng); CHKERRQ(ierr);
     }
 
     // check if all the necessary pointers have been initialized
@@ -624,39 +624,6 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
 
 
 
-
-/********************************************************************
- * @brief applies the preconditioner for the hessian to a vector
- *******************************************************************/
-PetscErrorCode PrecondReg::Apply2LevelPrecondResPro(Vec Px, Vec x) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    // do allocation of coarse grid
-    if (!this->m_CoarseGridSetupDone) {
-        ierr = this->SetupCoarseGrid(); CHKERRQ(ierr);
-    }
-
-    // do setup
-    if (this->m_KrylovMethod == NULL) {
-        ierr = this->SetupKrylovMethod(); CHKERRQ(ierr);
-    }
-
-    // invert preconditioner
-    ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
-    ierr = KSPSolve(this->m_KrylovMethod, x, Px); CHKERRQ(ierr);
-    ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
 /********************************************************************
  * @brief applies the restriction operator to the state, adjoint,
  * and control variable (setup phase of 2level preconditioner)
@@ -674,7 +641,7 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     this->m_Opt->Enter(__func__);
 
     // check if optimization problem is set up
-    ierr = Assert(this->m_OptProb != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_OptCoarse != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -705,9 +672,9 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     }
 
     // get variables from optimization problem on fine level
-    ierr = this->m_OptProb->GetControlVariable(this->m_ControlVariable); CHKERRQ(ierr);
-    ierr = this->m_OptProb->GetStateVariable(m); CHKERRQ(ierr);
-    ierr = this->m_OptProb->GetAdjointVariable(lambda); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->GetControlVariable(this->m_ControlVariable); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->GetStateVariable(m); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
     // restrict control variable
     ierr = this->m_PreProc->Restrict(this->m_ControlVariableCoarse, this->m_ControlVariable, nx_c, nx_f); CHKERRQ(ierr);
@@ -788,24 +755,12 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
 /********************************************************************
  * @brief do setup for krylov method
  *******************************************************************/
-PetscErrorCode PrecondReg::SetupKrylovMethod() {
+PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
     PetscErrorCode ierr = 0;
     PC pc = NULL;
-    IntType nl, ng;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    if (this->m_SetupKSPOnCoarseGrid) {
-        // get sizes
-        ierr = Assert(this->m_OptCoarse != NULL, "null pointer"); CHKERRQ(ierr);
-        nl = this->m_OptCoarse->GetDomainPara().nl;
-        ng = this->m_OptCoarse->GetDomainPara().ng;
-    } else {
-        // get sizes
-        nl = this->m_Opt->GetDomainPara().nl;
-        ng = this->m_Opt->GetDomainPara().ng;
-    }
 
     ierr = Assert(this->m_KrylovMethod == NULL, "expecting null pointer"); CHKERRQ(ierr);
     ierr = KSPCreate(PETSC_COMM_WORLD, &this->m_KrylovMethod); CHKERRQ(ierr);
@@ -932,160 +887,21 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
 
     // apply hessian (hessian matvec)
     if (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) {
-        //ierr = this->HessianMatVecProRes(Hx, x); CHKERRQ(ierr);
-        ierr = this->HessianMatVecCoarse(Hx, x); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("preconditioner: (H^coarse + Q^coarse)[x^coarse]"); CHKERRQ(ierr);
+        }
+        ierr = this->m_OptProbCoarse->HessianMatVec(Hx, x, false); CHKERRQ(ierr);
     } else {
-        ierr = this->m_OptProb->HessianMatVec(Hx, x); CHKERRQ(ierr);
+        ierr = this->m_OptimizationProblem->HessianMatVec(Hx, x); CHKERRQ(ierr);
     }
+
+    // increment counter
+    this->m_Opt->IncrementCounter(PCMATVEC);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
-
-
-
-
-/********************************************************************
- * @brief apply hessian matvec on coarse level
- * @input x input vector
- * @output Hx hessian applied to input vector
- * the hessian matvec will do the prolongation and restriction;
- * the input vector lives in R^n; we restrict it to R^{n/2}, then
- * apply the hessian on a coarser grid and prolong again to R^n
- *******************************************************************/
-PetscErrorCode PrecondReg::HessianMatVecProRes(Vec Hx, Vec x) {
-    PetscErrorCode ierr = 0;
-    IntType nx_c[3], nx_f[3];
-    ScalarType pct, value;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg("preconditioner: (P(H + Q)R)[vtilde]"); CHKERRQ(ierr);
-    }
-
-    // check if all the necessary pointers have been initialized
-    ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_xCoarse != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_HxCoarse != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_OptProbCoarse != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncControlVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncControlVariableCoarse != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // allocate vector field
-    if (this->m_WorkVecField == NULL) {
-        try{ this->m_WorkVecField = new VecField(this->m_Opt); }
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    pct = 0; // set to zero, cause we search for a max
-    for (int i = 0; i < 3; ++i) {
-        nx_f[i] = this->m_Opt->GetDomainPara().nx[i];
-        nx_c[i] = this->m_OptCoarse->GetDomainPara().nx[i];
-        value = static_cast<ScalarType>(nx_c[i]);
-        value /= static_cast<ScalarType>(nx_f[i]);
-        pct = value > pct ? value : pct;
-    }
-
-    // check onput
-    ierr = Assert(nx_f[0] >= nx_c[0], "nx_f[0] < nx_c[0]"); CHKERRQ(ierr);
-    ierr = Assert(nx_f[1] >= nx_c[1], "nx_f[1] < nx_c[1]"); CHKERRQ(ierr);
-    ierr = Assert(nx_f[2] >= nx_c[2], "nx_f[2] < nx_c[2]"); CHKERRQ(ierr);
-
-    // set components
-    ierr = this->m_WorkVecField->SetComponents(x); CHKERRQ(ierr);
-
-    // apply low pass filter before we restrict
-    // incremental control variable to coarse grid
-    ierr = this->m_PreProc->ApplyRectFreqFilter(this->m_IncControlVariable,
-                                                this->m_WorkVecField, pct); CHKERRQ(ierr);
-
-    // apply restriction operator to incremental control variable
-    ierr = this->m_PreProc->Restrict(this->m_IncControlVariableCoarse,
-                                     this->m_IncControlVariable, nx_c, nx_f); CHKERRQ(ierr);
-
-    // get the components to interface hessian mat vec
-    ierr = this->m_IncControlVariableCoarse->GetComponents(this->m_xCoarse); CHKERRQ(ierr);
-
-    // apply hessian (hessian matvec)
-    ierr = this->m_OptProbCoarse->HessianMatVec(this->m_HxCoarse, this->m_xCoarse, false); CHKERRQ(ierr);
-
-    // get components (for interface of hessian matvec)
-    ierr = this->m_IncControlVariableCoarse->SetComponents(this->m_HxCoarse); CHKERRQ(ierr);
-
-    // apply prolongation operator
-    ierr = this->m_PreProc->Prolong(this->m_IncControlVariable,
-                                    this->m_IncControlVariableCoarse,
-                                    nx_f, nx_c ); CHKERRQ(ierr);
-
-    // apply low pass filter to output of hessian matvec
-    ierr = this->m_PreProc->ApplyRectFreqFilter(this->m_IncControlVariable,
-                                                this->m_IncControlVariable, pct); CHKERRQ(ierr);
-
-    // apply high-pass filter to input
-    ierr = this->m_PreProc->ApplyRectFreqFilter(this->m_WorkVecField,
-                                                this->m_WorkVecField, pct, false); CHKERRQ(ierr);
-
-    // add up high and low frequency components
-    this->m_IncControlVariable->AXPY(1.0, this->m_WorkVecField); CHKERRQ(ierr);
-
-    // parse to output
-    ierr = this->m_IncControlVariable->GetComponents(Hx); CHKERRQ(ierr);
-
-    //ierr = this->m_OptProbCoarse->HessianMatVec(Hx,x,false); CHKERRQ(ierr);
-    //ierr = this->m_OptProb->HessianMatVec(Hx,x,false); CHKERRQ(ierr);
-
-    // increment counter
-    this->m_Opt->IncrementCounter(PCMATVEC);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief apply hessian matvec on coarse level
- * @input x input vector
- * @output Hx hessian applied to input vector
- * the hessian matvec will do the prolongation and restriction;
- * the input vector lives in R^n; we restrict it to R^{n/2}, then
- * apply the hessian on a coarser grid and prolong again to R^n
- *******************************************************************/
-PetscErrorCode PrecondReg::HessianMatVecCoarse(Vec Hx, Vec x) {
-    PetscErrorCode ierr = 0;
-    IntType nx_c[3], nx_f[3];
-    ScalarType pct, value;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg("preconditioner: (H^coarse + Q^coarse)[x^coarse]"); CHKERRQ(ierr);
-    }
-
-    // apply hessian (hessian matvec)
-    ierr = this->m_OptProbCoarse->HessianMatVec(Hx, x, false); CHKERRQ(ierr);
-
-    // increment counter
-    this->m_Opt->IncrementCounter(PCMATVEC);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
 
 
 

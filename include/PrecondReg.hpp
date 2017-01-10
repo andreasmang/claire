@@ -63,9 +63,6 @@ class PrecondReg {
     /*! apply preconditioner */
     PetscErrorCode MatVec(Vec, Vec);
 
-    /*! apply hessian (for inversion) */
-    PetscErrorCode HessianMatVec(Vec,Vec);
-
     /*! estimate eigenvalues */
     PetscErrorCode EstimateEigenValues();
 
@@ -80,11 +77,12 @@ class PrecondReg {
     /*! setup two level preconditioner */
     PetscErrorCode ApplyRestriction();
     PetscErrorCode SetupCoarseGrid();
-    PetscErrorCode HessianMatVecProRes(Vec, Vec);
-    PetscErrorCode HessianMatVecCoarse(Vec, Vec);
+
+    /*! apply hessian (for inversion) */
+    PetscErrorCode HessianMatVec(Vec, Vec);
 
     /*! setup krylov method for inversion of preconditioner */
-    PetscErrorCode SetupKrylovMethod();
+    PetscErrorCode SetupKrylovMethod(IntType, IntType);
 
     /*! setup krylov method for estimating eigenvalues */
     PetscErrorCode SetupKrylovMethodEigEst();
@@ -99,10 +97,10 @@ class PrecondReg {
     PetscErrorCode Apply2LevelPrecondResPro(Vec, Vec);
 
 
-    RegOpt* m_Opt;                      ///< registration options
-    RegOpt* m_OptCoarse;                ///< registration options (on coarse grid)
-    OptProbType* m_OptProb;             ///< pointer to optimization problem
-    OptProbType* m_OptProbCoarse;       ///< pointer to optimization problem (coarse level)
+    RegOpt* m_Opt;                       ///< registration options
+    RegOpt* m_OptCoarse;                 ///< registration options (on coarse grid)
+    OptProbType* m_OptimizationProblem;  ///< pointer to optimization problem
+    OptProbType* m_OptProbCoarse;        ///< pointer to optimization problem (coarse level)
 
     VecField* m_ControlVariable;        ///< pointer to velocity field
     VecField* m_IncControlVariable;     ///< pointer to velocity field
@@ -130,7 +128,6 @@ class PrecondReg {
     PetscRandom m_RandomNumGen;     ///< random number generated
     KSP m_KrylovMethodEigEst;
 
-    bool m_SetupKSPOnCoarseGrid;
     bool m_CoarseGridSetupDone;
 };
 
