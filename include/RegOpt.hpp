@@ -20,7 +20,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-//#define _REG_DEBUG_
+//  #define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -159,6 +159,7 @@ enum RegModel {
 /*! flags for timers */
 enum LogType{
     LOGRES,
+    LOGRESCONV,
     LOGKSPRES,
     LOGJAC,
     LOGLOAD,
@@ -344,9 +345,11 @@ struct PDESolver{
 /*! parameter for grid continuation */
 struct Logger{
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
+    std::vector<ScalarType> residual;       ///< convergence for residual
+    std::vector<int> outeriterations;       ///< iterations of solver
     std::vector<ScalarType> kspresidual;    ///< residual of krylov method
     std::vector<int> kspiterations;         ///< iterations of krylov method
-    ScalarType residual[4];
+    ScalarType finalresidual[4];
     bool enabled[NLOGFLAGS];
 
     double timer[NTIMERS][NVALTYPES];
@@ -493,7 +496,11 @@ class RegOpt {
         this->m_Log.kspiterations.push_back(i);
     }
     inline void LogResidual(const int i, const ScalarType value){
-        this->m_Log.residual[i] = value;
+        this->m_Log.residual.push_back(value);
+        this->m_Log.outeriterations.push_back(i);
+    }
+    inline void LogFinalResidual(const int i, const ScalarType value){
+        this->m_Log.finalresidual[i] = value;
     }
 
     inline int GetVerbosity() {
@@ -519,7 +526,6 @@ class RegOpt {
     PetscErrorCode DoSetup(bool dispteaser = true);
 
     PetscErrorCode CouplingSetup(IntType[3]);
-
 
     inline void Enter(std::string fname) {
         #ifdef _REG_DEBUG_
@@ -551,6 +557,7 @@ class RegOpt {
     PetscErrorCode WriteWorkLoadLog();
     PetscErrorCode WriteKSPLog();
     PetscErrorCode WriteResidualLog();
+    PetscErrorCode WriteFinalResidualLog();
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
 

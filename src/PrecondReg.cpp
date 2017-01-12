@@ -347,7 +347,6 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     nt  = this->m_Opt->GetDomainPara().nt;
     nc  = this->m_Opt->GetDomainPara().nc;
 
-
     // set up options for coarse grid (copy all parameters
     // but the grid resolution and do setup of all plans)
     if (this->m_CoarseGrid.m_Opt != NULL) {
@@ -358,6 +357,7 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
+
     // get grid scale and compute number of grid points
     scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
     for (int i = 0; i < 3; ++i) {
@@ -971,7 +971,6 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
             ierr = KSPSolve(this->m_KrylovMethodEigEst, b, x); CHKERRQ(ierr);
             ierr = KSPGetIterationNumber(this->m_KrylovMethodEigEst, &n); CHKERRQ(ierr);
 
-            std::cout << n <<std::endl;
             ierr = PetscMalloc2(n, &re, n, &im); CHKERRQ(ierr);
             ierr = KSPComputeEigenvalues(this->m_KrylovMethodEigEst, n, re, im, &neig); CHKERRQ(ierr);
 

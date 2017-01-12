@@ -77,6 +77,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_FFT.osize[0] = opt.m_FFT.osize[0];
     this->m_FFT.osize[1] = opt.m_FFT.osize[1];
     this->m_FFT.osize[2] = opt.m_FFT.osize[2];
+
     this->m_FFT.ostart[0] = opt.m_FFT.ostart[0];
     this->m_FFT.ostart[1] = opt.m_FFT.ostart[1];
     this->m_FFT.ostart[2] = opt.m_FFT.ostart[2];
@@ -195,10 +196,10 @@ void RegOpt::Copy(const RegOpt& opt) {
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = opt.m_Log.enabled[i];
     }
-    this->m_Log.residual[0] = 0;
-    this->m_Log.residual[1] = 0;
-    this->m_Log.residual[2] = 0;
-    this->m_Log.residual[3] = 0;
+    this->m_Log.finalresidual[0] = 0;
+    this->m_Log.finalresidual[1] = 0;
+    this->m_Log.finalresidual[2] = 0;
+    this->m_Log.finalresidual[3] = 0;
 
     this->m_NumThreads = opt.m_NumThreads;
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
@@ -365,6 +366,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Log.enabled[LOGKSPRES] = true;
         } else if (strcmp(argv[1], "-logworkload") == 0) {
             this->m_Log.enabled[LOGLOAD] = true;
+        } else if (strcmp(argv[1], "-logconvergence") == 0) {
+            this->m_Log.enabled[LOGRESCONV] = true;
         } else if (strcmp(argv[1], "-logresidual") == 0) {
             this->m_Log.enabled[LOGRES] = true;
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
@@ -731,8 +734,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
-
-//    std::cout << nalloc << std::endl;
 
     // set up the fft
     //u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
@@ -1130,6 +1131,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " logging" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -logresidual              log residual (user needs to set '-x' option)" << std::endl;
+        std::cout << " -logconvergence           log convergence (residual; user needs to set '-x' option)" << std::endl;
         std::cout << " -logkrylovres             log residual of krylov subpsace method (user needs to set '-x' option)" << std::endl;
         std::cout << " -logworkload              log cpu time and counters (user needs to set '-x' option)" << std::endl;
         std::cout << " -storecheckpoints         store iterates after each iteration (files will be overwritten); this is" << std::endl;
@@ -2303,8 +2305,12 @@ PetscErrorCode RegOpt::WriteLogFile() {
         ierr = this->WriteKSPLog(); CHKERRQ(ierr);
     }
 
-    if (this->m_Log.enabled[LOGRES]) {
+    if (this->m_Log.enabled[LOGRESCONV]) {
         ierr = this->WriteResidualLog(); CHKERRQ(ierr);
+    }
+
+    if (this->m_Log.enabled[LOGRES]) {
+        ierr = this->WriteFinalResidualLog(); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(ierr);
@@ -2678,7 +2684,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 /********************************************************************
  * @brief write residual to file
  *******************************************************************/
-PetscErrorCode RegOpt::WriteResidualLog() {
+PetscErrorCode RegOpt::WriteFinalResidualLog() {
     PetscErrorCode ierr = 0;
     int rank, nnum;
     std::ofstream logwriter;
@@ -2701,45 +2707,87 @@ PetscErrorCode RegOpt::WriteResidualLog() {
 
         ss  << std::scientific << std::left
             << std::setw(20) << "||mR-mT||_2" << std::right
-            << std::setw(nnum) << this->m_Log.residual[0];
+            << std::setw(nnum) << this->m_Log.finalresidual[0];
         logwriter << ss.str() << std::endl;
         ss.clear(); ss.str(std::string());
 
         ss  << std::scientific << std::left
             << std::setw(20) << "||mR-mT||_infty" << std::right
-            << std::setw(nnum) << this->m_Log.residual[1];
+            << std::setw(nnum) << this->m_Log.finalresidual[1];
         logwriter << ss.str() << std::endl;
         ss.clear(); ss.str(std::string());
 
         ss  << std::scientific << std::left
             << std::setw(20) << "||mR-m1||_2" << std::right
-            << std::setw(nnum) << this->m_Log.residual[2];
+            << std::setw(nnum) << this->m_Log.finalresidual[2];
         logwriter << ss.str() << std::endl;
         ss.clear(); ss.str(std::string());
 
         ss  << std::scientific << std::left
             << std::setw(20) << "||mR-m1||_infty" << std::right
-            << std::setw(nnum) << this->m_Log.residual[3];
+            << std::setw(nnum) << this->m_Log.finalresidual[3];
         logwriter << ss.str() << std::endl;
         ss.clear(); ss.str(std::string());
 
-        this->m_Log.residual[0] = (this->m_Log.residual[0] > 0.0) ? this->m_Log.residual[0] : 1.0;
-        this->m_Log.residual[1] = (this->m_Log.residual[1] > 0.0) ? this->m_Log.residual[1] : 1.0;
+        this->m_Log.finalresidual[0] = (this->m_Log.finalresidual[0] > 0.0) ? this->m_Log.finalresidual[0] : 1.0;
+        this->m_Log.finalresidual[1] = (this->m_Log.finalresidual[1] > 0.0) ? this->m_Log.finalresidual[1] : 1.0;
 
         ss  << std::scientific << std::left
             << std::setw(20) << "||mR-m1||_2,rel" << std::right
-            << std::setw(nnum) <<  this->m_Log.residual[2]/this->m_Log.residual[0];
+            << std::setw(nnum) <<  this->m_Log.finalresidual[2]/this->m_Log.finalresidual[0];
         logwriter << ss.str() << std::endl;
         ss.clear(); ss.str(std::string());
 
         ss  << std::scientific << std::left
             << std::setw(20) << "||mR-m1||_infty,rel" << std::right
-            << std::setw(nnum) <<  this->m_Log.residual[3]/this->m_Log.residual[1];
+            << std::setw(nnum) <<  this->m_Log.finalresidual[3]/this->m_Log.finalresidual[1];
         logwriter << ss.str() << std::endl;
         ss.clear(); ss.str(std::string());
 
         // close logger
         logwriter.close();
+    }
+
+    this->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief write out logging information for krylov method
+ *******************************************************************/
+PetscErrorCode RegOpt::WriteResidualLog() {
+    PetscErrorCode ierr = 0;
+    int rank, n;
+    std::ofstream logwriter;
+    std::stringstream ss;
+    std::string path, fn;
+    PetscFunctionBegin;
+
+    this->Enter(__func__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    path = this->m_ReadWriteFlags.xfolder;
+
+    if (rank == 0) {
+        // create output file
+        fn = path + "cold-residual.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+
+        n = static_cast<int>(this->m_Log.residual.size());
+        for (int i = 0; i < n; ++i) {
+            ss << std::scientific << std::right
+               << std::setw(2) << this->m_Log.outeriterations[i]
+               << std::setw(20) << this->m_Log.residual[i];
+            logwriter << ss.str() << std::endl;
+            ss.str(std::string()); ss.clear();
+        }
+        logwriter.close();  // close logger
     }
 
     this->Exit(__func__);
@@ -2788,6 +2836,8 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 
     PetscFunctionReturn(ierr);
 }
+
+
 
 
 

@@ -1,4 +1,5 @@
-/************************************************************************* *  Copyright (c) 2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -1542,6 +1543,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
            <<      "," << this->m_Opt->GetDomainPara().nx[1]
            <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     if (this->m_Opt->GetRegMonitor().CFL) {
@@ -1592,6 +1594,17 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     }  // velocity field is zero
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
+
+
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ScalarType maxval, minval;
+        ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
+        ss << "state variable: [" << std::scientific << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
 
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries) {
@@ -1883,6 +1896,15 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         }
     }
 
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ScalarType maxval, minval;
+        ierr = VecMax(this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
+        ss << "adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
     // increment counter
@@ -2131,6 +2153,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
            <<      "," << this->m_Opt->GetDomainPara().nx[1]
            <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     // allocate variables
@@ -2162,6 +2185,15 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
             ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
             break;
         }
+    }
+
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ScalarType maxval, minval;
+        ierr = VecMax(this->m_IncStateVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_IncStateVariable, NULL, &minval); CHKERRQ(ierr);
+        ss << "incremental state variable: [" << std::scientific << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     // stop timer
@@ -2493,6 +2525,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
            <<      "," << this->m_Opt->GetDomainPara().nx[1]
            <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
@@ -2568,6 +2601,15 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
         }
     } else {
         ierr = ThrowError("update method not defined"); CHKERRQ(ierr);
+    }
+
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ScalarType maxval, minval;
+        ierr = VecMax(this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_IncAdjointVariable, NULL, &minval); CHKERRQ(ierr);
+        ss << "incremental adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
@@ -2668,8 +2710,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
 
-
     this->m_Opt->IncreaseFFTTimers(timers);
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -2956,7 +2998,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     std::string filename, fnx1, fnx2, fnx3, ext;
     std::stringstream ss;
     std::ofstream logwriter;
-    ScalarType *p_m1 = NULL, *p_m = NULL;
+    ScalarType *p_m1 = NULL, *p_m = NULL, value;
 
     PetscFunctionBegin;
 
@@ -2975,11 +3017,6 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
-    // allocate
-    if (this->m_WorkScaFieldMC == NULL) {
-        ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
-    }
-
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
@@ -2990,8 +3027,21 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // set velocity field
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
+    if (this->m_Opt->GetLogger().enabled[LOGRESCONV]) {
+        ierr = this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
+        iter = this->m_Opt->GetCounter(ITERATIONS);
+        ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
+        this->m_Opt->LogResidual(iter, value);
+    }
+
+
     // store iterates
     if (this->m_Opt->GetReadWriteFlags().iterates) {
+        // allocate
+        if (this->m_WorkScaFieldMC == NULL) {
+            ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
+        }
+
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
 
@@ -3150,10 +3200,10 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
-        this->m_Opt->LogResidual(0, value);
+        this->m_Opt->LogFinalResidual(0, value);
 
         ierr = VecNorm(this->m_WorkScaFieldMC, NORM_INFINITY, &value); CHKERRQ(ierr);
-        this->m_Opt->LogResidual(1, value);
+        this->m_Opt->LogFinalResidual(1, value);
 
         // deformed template out (compute solution of state equation)
         ierr = this->SolveStateEquation(); CHKERRQ(ierr);
@@ -3169,13 +3219,13 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
 
         // ||m_R - m_1||
-        ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_WorkScaFieldMC, this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr = VecAXPY(this->m_WorkScaFieldMC, -1.0, this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
-        this->m_Opt->LogResidual(2, value);
+        this->m_Opt->LogFinalResidual(2, value);
 
         ierr = VecNorm(this->m_WorkScaFieldMC, NORM_INFINITY, &value); CHKERRQ(ierr);
-        this->m_Opt->LogResidual(3, value);
+        this->m_Opt->LogFinalResidual(3, value);
     }
 
     // write deformed template image to file
@@ -3249,7 +3299,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         ierr = this->m_VelocityField->Norm(this->m_WorkScaField1); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, "velocity-field-norm"+ext); CHKERRQ(ierr);
     }
-
 
     // write determinant of deformation gradient to file
     if (this->m_Opt->GetReadWriteFlags().detdefgrad) {
