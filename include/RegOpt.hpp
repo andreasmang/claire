@@ -159,7 +159,7 @@ enum RegModel {
 /*! flags for timers */
 enum LogType{
     LOGRES,
-    LOGRESCONV,
+    LOGCONV,
     LOGKSPRES,
     LOGJAC,
     LOGLOAD,
@@ -345,7 +345,9 @@ struct PDESolver{
 /*! parameter for grid continuation */
 struct Logger{
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
-    std::vector<ScalarType> residual;       ///< convergence for residual
+    std::vector<ScalarType> distance;       ///< convergence for residual
+    std::vector<ScalarType> regularization; ///< convergence for regularization
+    std::vector<ScalarType> objective;      ///< convergence for objective
     std::vector<int> outeriterations;       ///< iterations of solver
     std::vector<ScalarType> kspresidual;    ///< residual of krylov method
     std::vector<int> kspiterations;         ///< iterations of krylov method
@@ -495,8 +497,10 @@ class RegOpt {
         this->m_Log.kspresidual.push_back(value);
         this->m_Log.kspiterations.push_back(i);
     }
-    inline void LogResidual(const int i, const ScalarType value){
-        this->m_Log.residual.push_back(value);
+    inline void LogConvergence(const int i, const ScalarType J, const ScalarType D, const ScalarType R){
+        this->m_Log.distance.push_back(D);
+        this->m_Log.regularization.push_back(R);
+        this->m_Log.objective.push_back(J);
         this->m_Log.outeriterations.push_back(i);
     }
     inline void LogFinalResidual(const int i, const ScalarType value){
@@ -556,7 +560,7 @@ class RegOpt {
     PetscErrorCode SetPresetParameters();
     PetscErrorCode WriteWorkLoadLog();
     PetscErrorCode WriteKSPLog();
-    PetscErrorCode WriteResidualLog();
+    PetscErrorCode WriteConvergenceLog();
     PetscErrorCode WriteFinalResidualLog();
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};

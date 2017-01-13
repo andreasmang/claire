@@ -2998,7 +2998,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     std::string filename, fnx1, fnx2, fnx3, ext;
     std::stringstream ss;
     std::ofstream logwriter;
-    ScalarType *p_m1 = NULL, *p_m = NULL, value;
+    ScalarType *p_m1 = NULL, *p_m = NULL, rval, dval, jval, hd;
 
     PetscFunctionBegin;
 
@@ -3027,11 +3027,19 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // set velocity field
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetLogger().enabled[LOGRESCONV]) {
-        ierr = this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
+    if (this->m_Opt->GetLogger().enabled[LOGCONV]) {
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
-        this->m_Opt->LogResidual(iter, value);
+
+        ierr = this->EvaluateDistanceMeasure(&dval); CHKERRQ(ierr);
+        ierr = this->m_Regularization->EvaluateFunctional(&rval, this->m_VelocityField); CHKERRQ(ierr);
+
+        // get lebesque measure
+        hd = this->m_Opt->GetLebesqueMeasure();
+
+        // add up the contributions
+        jval = hd*(dval + rval);
+        this->m_Opt->LogConvergence(iter, jval, dval, rval);
     }
 
 

@@ -367,7 +367,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-logworkload") == 0) {
             this->m_Log.enabled[LOGLOAD] = true;
         } else if (strcmp(argv[1], "-logconvergence") == 0) {
-            this->m_Log.enabled[LOGRESCONV] = true;
+            this->m_Log.enabled[LOGCONV] = true;
         } else if (strcmp(argv[1], "-logresidual") == 0) {
             this->m_Log.enabled[LOGRES] = true;
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
@@ -2305,12 +2305,12 @@ PetscErrorCode RegOpt::WriteLogFile() {
         ierr = this->WriteKSPLog(); CHKERRQ(ierr);
     }
 
-    if (this->m_Log.enabled[LOGRESCONV]) {
-        ierr = this->WriteResidualLog(); CHKERRQ(ierr);
+    if (this->m_Log.enabled[LOGCONV]) {
+        ierr = this->WriteConvergenceLog(); CHKERRQ(ierr);
     }
 
     if (this->m_Log.enabled[LOGRES]) {
-        ierr = this->WriteFinalResidualLog(); CHKERRQ(ierr);
+        ierr = this->WriteConvergenceLog(); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(ierr);
@@ -2759,7 +2759,7 @@ PetscErrorCode RegOpt::WriteFinalResidualLog() {
 /********************************************************************
  * @brief write out logging information for krylov method
  *******************************************************************/
-PetscErrorCode RegOpt::WriteResidualLog() {
+PetscErrorCode RegOpt::WriteConvergenceLog() {
     PetscErrorCode ierr = 0;
     int rank, n;
     std::ofstream logwriter;
@@ -2775,19 +2775,53 @@ PetscErrorCode RegOpt::WriteResidualLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-residual.log";
+        fn = path + "cold-distance-measure-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
-        n = static_cast<int>(this->m_Log.residual.size());
+        n = static_cast<int>(this->m_Log.distance.size());
         for (int i = 0; i < n; ++i) {
             ss << std::scientific << std::right
                << std::setw(2) << this->m_Log.outeriterations[i]
-               << std::setw(20) << this->m_Log.residual[i];
+               << std::setw(20) << this->m_Log.distance[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();
         }
         logwriter.close();  // close logger
+
+        // create output file
+        fn = path + "cold-regularization-trend.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+
+        n = static_cast<int>(this->m_Log.regularization.size());
+        for (int i = 0; i < n; ++i) {
+            ss << std::scientific << std::right
+               << std::setw(2) << this->m_Log.outeriterations[i]
+               << std::setw(20) << this->m_Log.regularization[i];
+            logwriter << ss.str() << std::endl;
+            ss.str(std::string()); ss.clear();
+        }
+        logwriter.close();  // close logger
+
+
+        // create output file
+        fn = path + "cold-objective-trend.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+
+        n = static_cast<int>(this->m_Log.objective.size());
+        for (int i = 0; i < n; ++i) {
+            ss << std::scientific << std::right
+               << std::setw(2) << this->m_Log.outeriterations[i]
+               << std::setw(20) << this->m_Log.objective[i];
+            logwriter << ss.str() << std::endl;
+            ss.str(std::string()); ss.clear();
+        }
+        logwriter.close();  // close logger
+
+
+
     }
 
     this->Exit(__func__);
