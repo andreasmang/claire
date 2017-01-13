@@ -98,19 +98,24 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
     PetscFunctionBegin;
 
     if (this->m_Data != NULL) {
-        delete [] this->m_Data; this->m_Data = NULL;
+        delete [] this->m_Data;
+        this->m_Data = NULL;
     }
     if (this->m_iSizeC != NULL) {
-        delete [] this->m_iSizeC; this->m_iSizeC = NULL;
+        delete [] this->m_iSizeC;
+        this->m_iSizeC = NULL;
     }
     if (this->m_iStartC != NULL) {
-        delete [] this->m_iStartC; this->m_iStartC = NULL;
+        delete [] this->m_iStartC;
+        this->m_iStartC = NULL;
     }
     if (this->m_nOffset != NULL) {
-        delete [] this->m_nOffset; this->m_nOffset = NULL;
+        delete [] this->m_nOffset;
+        this->m_nOffset = NULL;
     }
     if (this->m_nSend != NULL) {
-        delete [] this->m_nSend; this->m_nSend = NULL;
+        delete [] this->m_nSend;
+        this->m_nSend = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -199,8 +204,8 @@ PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->Read(&v->m_X1, fnx1); CHKERRQ(ierr);
-    ierr = this->Read(&v->m_X1, fnx2); CHKERRQ(ierr);
-    ierr = this->Read(&v->m_X1, fnx3); CHKERRQ(ierr);
+    ierr = this->Read(&v->m_X2, fnx2); CHKERRQ(ierr);
+    ierr = this->Read(&v->m_X3, fnx3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
