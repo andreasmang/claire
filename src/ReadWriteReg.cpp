@@ -206,8 +206,8 @@ PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->Read(&v->m_X1, fnx1); CHKERRQ(ierr);
-    ierr = this->Read(&v->m_X1, fnx2); CHKERRQ(ierr);
-    ierr = this->Read(&v->m_X1, fnx3); CHKERRQ(ierr);
+    ierr = this->Read(&v->m_X2, fnx2); CHKERRQ(ierr);
+    ierr = this->Read(&v->m_X3, fnx3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
