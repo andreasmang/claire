@@ -46,7 +46,6 @@ PetscErrorCode Assert(bool condition, std::string msg) {
     PetscFunctionBegin;
 
     if (condition == false) {
-        std::cout << msg << std::endl;
         ierr = ThrowError(msg); CHKERRQ(ierr);
     }
 
@@ -211,10 +210,7 @@ PetscErrorCode ThrowError(std::string msg) {
     PetscFunctionBegin;
 
     std::string errmsg = "\x1b[31mERROR: " + msg + "\x1b[0m";
-    ierr = PetscError(PETSC_COMM_WORLD, __LINE__,
-                      PETSC_FUNCTION_NAME, __FILE__,
-                      1, PETSC_ERROR_INITIAL,
-                      errmsg.c_str()); CHKERRQ(ierr);
+    ierr = PetscError(PETSC_COMM_WORLD, __LINE__, PETSC_FUNCTION_NAME, __FILE__, 1, PETSC_ERROR_INITIAL, errmsg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
