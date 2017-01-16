@@ -98,19 +98,24 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
     PetscFunctionBegin;
 
     if (this->m_Data != NULL) {
-        delete [] this->m_Data; this->m_Data = NULL;
+        delete [] this->m_Data;
+        this->m_Data = NULL;
     }
     if (this->m_iSizeC != NULL) {
-        delete [] this->m_iSizeC; this->m_iSizeC = NULL;
+        delete [] this->m_iSizeC;
+        this->m_iSizeC = NULL;
     }
     if (this->m_iStartC != NULL) {
-        delete [] this->m_iStartC; this->m_iStartC = NULL;
+        delete [] this->m_iStartC;
+        this->m_iStartC = NULL;
     }
     if (this->m_nOffset != NULL) {
-        delete [] this->m_nOffset; this->m_nOffset = NULL;
+        delete [] this->m_nOffset;
+        this->m_nOffset = NULL;
     }
     if (this->m_nSend != NULL) {
-        delete [] this->m_nSend; this->m_nSend = NULL;
+        delete [] this->m_nSend;
+        this->m_nSend = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -128,6 +133,8 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
+    ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
 
     // get file name without path
     ierr = GetFileName(file, filename); CHKERRQ(ierr);
@@ -1253,7 +1260,10 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x, std::string filename) {
     PetscViewer viewer=NULL;
     PetscFunctionBegin;
 
-    if (*x != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;}
+    if (*x != NULL) {
+        ierr = VecDestroy(x); CHKERRQ(ierr);
+        *x = NULL;
+    }
 
     if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);

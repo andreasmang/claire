@@ -162,6 +162,13 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
     this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
 
+    this->m_ReadWriteFlags.mr = opt.m_ReadWriteFlags.mr;
+    this->m_ReadWriteFlags.mt = opt.m_ReadWriteFlags.mt;
+    this->m_ReadWriteFlags.vx1 = opt.m_ReadWriteFlags.vx1;
+    this->m_ReadWriteFlags.vx2 = opt.m_ReadWriteFlags.vx2;
+    this->m_ReadWriteFlags.vx3 = opt.m_ReadWriteFlags.vx3;
+
+
     this->m_RegFlags.applysmoothing = opt.m_RegFlags.applysmoothing;
     this->m_RegFlags.applyrescaling = opt.m_RegFlags.applyrescaling;
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
@@ -901,7 +908,8 @@ PetscErrorCode RegOpt::Initialize() {
     // flags
     this->m_ReadWriteFlags.templateim = false;
     this->m_ReadWriteFlags.referenceim = false;
-    this->m_ReadWriteFlags.readfiles = false;       ///< read images to file
+    this->m_ReadWriteFlags.readfiles = false;       ///< read images from file
+    this->m_ReadWriteFlags.readvelocity = false;    ///< read velocity from file
     this->m_ReadWriteFlags.timeseries = false;      ///< write time series to file (time dependent variables; use with caution) to file
     this->m_ReadWriteFlags.iterates = false;        ///< write iterates (velocity field; use with caution) to file
     this->m_ReadWriteFlags.results = false;         ///< write results (velocity field) to file
@@ -913,6 +921,12 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
     this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
     this->m_ReadWriteFlags.extension = ".nii.gz";   ///< file extension for output
+
+    this->m_ReadWriteFlags.mr.clear();
+    this->m_ReadWriteFlags.mt.clear();
+    this->m_ReadWriteFlags.vx1.clear();
+    this->m_ReadWriteFlags.vx2.clear();
+    this->m_ReadWriteFlags.vx3.clear();
 
     this->m_RegFlags.applysmoothing = true;           ///< enable/disable image smoothing
     this->m_RegFlags.applyrescaling = true;           ///< enable/disable image rescaling
@@ -1203,6 +1217,9 @@ PetscErrorCode RegOpt::CheckArguments() {
         ierr = this->Usage(); CHKERRQ(ierr);
     } else if ( (readmT == false) && (readmR == false) ) {
         this->m_ReadWriteFlags.readfiles = false;
+        if (this->m_Verbosity > 2) {
+            ierr = DbgMsg("no input images set"); CHKERRQ(ierr);
+        }
     }
 
     if (readvx1 && readvx2 && readvx3) {
@@ -1214,6 +1231,11 @@ PetscErrorCode RegOpt::CheckArguments() {
         msg = "file " + this->m_ReadWriteFlags.vx3 + " does not exist";
         ierr = Assert(FileExists(this->m_ReadWriteFlags.vx3), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readvelocity = true;
+    } else {
+        this->m_ReadWriteFlags.readvelocity = false;
+        if (this->m_Verbosity > 2) {
+            ierr = DbgMsg("no input velocity set"); CHKERRQ(ierr);
+        }
     }
 
     if (this->m_ParaCont.strategy == PCONTINUATION) {
