@@ -20,7 +20,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-//  #define _REG_DEBUG_
+// #define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -288,6 +288,8 @@ struct GridCont{
     bool enabled;
     static const int minlevels = 3;
     int nlevels;
+    int minlevel;
+    IntType nxmin;
     std::vector< std::vector<IntType> > nx;
     std::vector< std::vector<IntType> > isize;
     std::vector< std::vector<IntType> > istart;
@@ -303,7 +305,6 @@ struct GridCont{
 struct RegMonitor{
     bool JAC;               ///< flag to monitor jacobian during iterations
     bool CFL;               ///< flag to monitor CFL condition during iterations
-
     ScalarType jacmin;      ///< min value of jacobian
     ScalarType jacmax;      ///< max value of jacobian
     ScalarType jacmean;     ///< mean value of jacobian
@@ -438,6 +439,7 @@ class RegOpt {
 
     // solver flags
     inline PDESolver GetPDESolver(void) {return this->m_PDESolver;}
+    inline void SetPDESolver(PDESolver flag) {this->m_PDESolver = flag;}
     inline KrylovSolver GetKrylovSolverPara() {return this->m_KrylovSolverPara;}
     inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
     inline void SetRelTolKrylovMethod(ScalarType value) {this->m_KrylovSolverPara.reltol = value;}
