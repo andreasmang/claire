@@ -353,7 +353,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     std::stringstream ss;
     int rank;
     IntType nl, ng, nx[3], nxl[3];
-    ScalarType gridscale, value;
+    ScalarType gridscale, value, hd, hdl;
     bool pro, res;
     Vec m = NULL, ml = NULL;
     reg::PreProcReg* preproc = NULL;
@@ -420,7 +420,8 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
         ierr = regopt->GetSizes(nxl, nl, ng); CHKERRQ(ierr);
 
-        ss << "resampling scalar field  (" << nx[0] << "," << nx[1] << "," << nx[2] << ")"
+        ss << "resampling scalar field  ("
+           << nx[0] << "," << nx[1] << "," << nx[2] << ")"
            << " -> (" << nxl[0] << "," << nxl[1] << "," << nxl[2] << ")";
         ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -459,6 +460,19 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
         ierr = readwrite->Write(m, filename); CHKERRQ(ierr);
     }
 
+    hd  = (2.0*PETSC_PI/nx[0])*(2.0*PETSC_PI/nx[1])*(2.0*PETSC_PI/nx[2]);
+    hdl = (2.0*PETSC_PI/nxl[0])*(2.0*PETSC_PI/nxl[1])*(2.0*PETSC_PI/nxl[2]);
+
+    ierr = VecTDot(m, m, &value); CHKERRQ(ierr);
+    ss << "norm (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecTDot(ml, ml, &value); CHKERRQ(ierr);
+    ss << "norm (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr);}
     if (ml != NULL) {ierr = VecDestroy(&ml); CHKERRQ(ierr);}
 
@@ -484,7 +498,7 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
     std::string filename, fnx1, fnx2, fnx3;
     std::stringstream ss;
     IntType nl, ng, nx[3], nxl[3];
-    ScalarType scale;
+    ScalarType scale, hd, hdl, value;
     Vec vx1 = NULL, vx2 = NULL, vx3 = NULL;
     reg::VecField *v = NULL, *vl = NULL;
     reg::PreProcReg* preproc = NULL;
@@ -552,9 +566,46 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
         ierr = preproc->Restrict(vl, v, nxl, nx); CHKERRQ(ierr);
     }
 
+    hd  = (2.0*PETSC_PI/nx[0])*(2.0*PETSC_PI/nx[1])*(2.0*PETSC_PI/nx[2]);
+    hdl = (2.0*PETSC_PI/nxl[0])*(2.0*PETSC_PI/nxl[1])*(2.0*PETSC_PI/nxl[2]);
+
+    ierr = VecTDot(v->m_X1, v->m_X1, &value); CHKERRQ(ierr);
+    ss << std::scientific << "norm x1 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecTDot(vl->m_X1, vl->m_X1, &value); CHKERRQ(ierr);
+    ss << std::scientific << "norm x1 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+
+    ierr = VecTDot(v->m_X2, v->m_X2, &value); CHKERRQ(ierr);
+    ss << std::scientific << "norm x1 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecTDot(vl->m_X2, vl->m_X2, &value); CHKERRQ(ierr);
+    ss << std::scientific << "norm x1 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+
+    ierr = VecTDot(v->m_X3, v->m_X3, &value); CHKERRQ(ierr);
+    ss << std::scientific << "norm x1 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecTDot(vl->m_X3, vl->m_X3, &value); CHKERRQ(ierr);
+    ss << std::scientific << "norm x1 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
     // reset io
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    for (int i=0; i < 3; ++i) {
+    if (readwrite != NULL) {
+        delete readwrite; readwrite = NULL;
+    }
+    for (int i = 0; i < 3; ++i) {
         regopt->SetNumGridPoints(i, nxl[i]);
     }
     ierr = regopt->DoSetup(false); CHKERRQ(ierr);
@@ -860,16 +911,18 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nc, nl, ng;
-    Vec m0 = NULL, m1 = NULL;
+    Vec m0 = NULL, m1 = NULL, m0tilde = NULL;
     reg::VecField *v = NULL;
     reg::RegistrationInterface* registration = NULL;
     reg::SynProbRegistration* synprob = NULL;
     reg::ReadWriteReg* readwrite = NULL;
+    ScalarType errval, normval, minval, maxval;
+    std::stringstream ss;
     PetscFunctionBegin;
 
     regopt->Enter(__FUNCT__);
 
-    nc = 2;
+    nc = 1;
 
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
 
@@ -900,14 +953,60 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    // allocate the data
     ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = reg::VecCreate(m0tilde, nc*nl, nc*ng); CHKERRQ(ierr);
+
+    // set up smooth problem
     ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
     ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+
+    // set initial guess and solve forward problem
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
-    ierr = readwrite->WriteMC(m0, "initial-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-    ierr = readwrite->WriteMC(m1, "final-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+
+    ierr = v->Scale(-1.0); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
+
+    if (regopt->GetReadWriteFlags().results) {
+        ierr = readwrite->WriteMC(m0, "initial-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->WriteMC(m1, "final-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->WriteMC(m0tilde, "backward-solve" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+    }
+    ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
+    ierr = VecMax(m0, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(m0, NULL, &minval); CHKERRQ(ierr);
+    ss  << "m(t=0)                    (min,max,norm)=("
+        << std::scientific << minval << "," << maxval << "," << normval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecNorm(m1, NORM_2, &normval); CHKERRQ(ierr);
+    ierr = VecMax(m1, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(m1, NULL, &minval); CHKERRQ(ierr);
+    ss  << "m(t=1) = m(t=0) o v       (min,max,norm)=("
+        << std::scientific << minval << "," << maxval << "," << normval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecNorm(m0tilde, NORM_2, &normval); CHKERRQ(ierr);
+    ierr = VecMax(m0tilde, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(m0tilde, NULL, &minval); CHKERRQ(ierr);
+    ss  << "m(t=0) = m(t=1) o (-v)    (min,max,norm)=("
+        << std::scientific << minval << "," << maxval << "," << normval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+
+    ierr = VecAXPY(m0tilde, -1.0, m0); CHKERRQ(ierr);
+    ierr = VecNorm(m0tilde, NORM_2, &errval); CHKERRQ(ierr);
+    ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
+    ss  << "error in forward solve " << std::scientific
+        << errval/normval << " (" << errval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
 
     regopt->Exit(__FUNCT__);
 
