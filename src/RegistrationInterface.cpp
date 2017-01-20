@@ -322,30 +322,39 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 
     this->m_Opt->Enter(__func__);
 
-    // reset optimization problem
-    if (this->m_Optimizer != NULL) {
-        delete this->m_Optimizer; this->m_Optimizer = NULL;
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = DbgMsg("setting up solver"); CHKERRQ(ierr);
     }
 
-    // allocate class for io
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = DbgMsg(" >> allocation of optimizer"); CHKERRQ(ierr);
+    }
+    // reset optimizer
+    if (this->m_Optimizer != NULL) {
+        delete this->m_Optimizer;
+        this->m_Optimizer = NULL;
+    }
     try {this->m_Optimizer = new OptimizerType(this->m_Opt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    // set up optimization problem
+    // set up optimization/registration problem
     ierr = this->SetupRegProblem(); CHKERRQ(ierr);
 
     // reset/setup preprocessing
     if (this->m_PreProc != NULL) {
         delete this->m_PreProc; this->m_PreProc = NULL;
     }
-    try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+    try {this->m_PreProc = new PreProcReg(this->m_Opt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->GetKrylovSolverPara().pctype != NOPC) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg(" >> allocation of preconditioner"); CHKERRQ(ierr);
+        }
         // reset/setup preconditioner
         if (this->m_Precond != NULL) {
             delete this->m_Precond; this->m_Precond = NULL;
@@ -360,16 +369,17 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     }
 
     // set up initial condition
-    if (this->m_Solution == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ierr = DbgMsg("allocating solution vector"); CHKERRQ(ierr);
-        }
-        try {this->m_Solution = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = DbgMsg(" >> allocation of solution vector"); CHKERRQ(ierr);
     }
+    if (this->m_Solution != NULL) {
+        delete this->m_Solution; this->m_Solution = NULL;
+    }
+    try {this->m_Solution = new VecField(this->m_Opt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -449,11 +459,11 @@ PetscErrorCode RegistrationInterface::Run() {
     if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
 
     // switch between solvers we have to solve optimization problem
-    if ( this->m_Opt->GetParaCont().enabled ) {
+    if (this->m_Opt->GetParaCont().enabled) {
         ierr = this->RunSolverRegParaCont(); CHKERRQ(ierr);
-    } else if ( this->m_Opt->GetScaleContPara().enabled ) {
+    } else if (this->m_Opt->GetScaleContPara().enabled) {
         ierr = this->RunSolverScaleCont(); CHKERRQ(ierr);
-    } else if ( this->m_Opt->GetGridContPara().enabled ) {
+    } else if (this->m_Opt->GetGridContPara().enabled) {
         nxmax = PETSC_MIN_INT;
         for (int i = 0; i < 3; ++i) {
             nx = this->m_Opt->GetDomainPara().nx[i];
@@ -1272,7 +1282,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
         // set up synthetic test problem
-        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
+        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage,
+                                                      this->m_TemplateImage); CHKERRQ(ierr);
     }
 
     // make sure images have not been set
@@ -1314,7 +1325,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     ierr = this->m_Opt->GetSizes(nx, nl, ng); CHKERRQ(ierr);
 
     // TODO: allow for warm start
-    try{v = new VecField(nl, ng);}
+    try {v = new VecField(nl, ng);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -1342,7 +1353,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     nlevels = this->m_Opt->GetGridContPara().nlevels;
 
     // run multi-level solver
-    level = 0;
+    level = 0; // this->m_Opt->GetGridContPara().minlevel;
     while (level < nlevels) {
         // get number of grid points for current level
         for (int i = 0; i < 3; ++i) {
@@ -1363,7 +1374,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
         solve = true;
         if (this->m_Opt->GetPDESolver().type == SL) {
-            if (isize[0] < 3 || isize[1] < 3) solve = false;
+            if (isize[0] < 6 || isize[1] < 6) solve = false;
         }
 
         if (solve) {
@@ -1374,7 +1385,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
             // initialize
-            for (int i=0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i) {
                 this->m_Opt->SetNumGridPoints(i, nx[i]);
             }
             ierr = this->m_Opt->DoSetup(false); CHKERRQ(ierr);
@@ -1400,7 +1411,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
             // compute initial gradient, objective and
             // distance mesure for zero velocity field
-            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
             // set initial guess and registraiton problem
             ierr = this->m_Optimizer->SetInitialGuess(v); CHKERRQ(ierr);
@@ -1679,7 +1690,6 @@ PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
 
 
 
-
 /********************************************************************
  * @brief compute deformation map or deformation gradient
  ********************************************************************/
@@ -1719,6 +1729,37 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+
+/********************************************************************
+ * @brief compute deformation map or deformation gradient
+ ********************************************************************/
+PetscErrorCode RegistrationInterface::ComputeDetDefGrad(Vec detj) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // user needs to set template and reference image and the solution
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // compute stuff
+    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+
+    ierr = Msg("computing determinant of deformation gradient"); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->ComputeDetDefGrad(false, detj); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 
