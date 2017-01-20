@@ -377,8 +377,12 @@ class RegOpt {
     void Copy(const RegOpt&);
 
     // spatial grid
-    inline void SetNumGridPoints(int i, IntType nx) {this->m_Domain.nx[i] = nx;}
-    inline IntType GetNumGridPoints(int i) {return this->m_Domain.nx[i];}
+    inline void SetNumGridPoints(int i, IntType nx) {
+        this->m_Domain.nx[i] = nx;
+    }
+    inline IntType GetNumGridPoints(int i) {
+        return this->m_Domain.nx[i];
+    }
     inline ScalarType GetLebesqueMeasure(void) {
         return  this->m_Domain.hx[0]
                *this->m_Domain.hx[1]
@@ -399,9 +403,17 @@ class RegOpt {
     inline Optimization GetOptPara() {return this->m_OptPara;}
     inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
 
+    inline void EnableJacobianBound() {
+        this->m_RegMonitor.JAC = true;
+    }
+    inline void DisableJacobianBound() {
+        this->m_RegMonitor.JAC = false;
+    }
 
-    inline void EnableJacobianBound() {this->m_RegMonitor.JAC = true;}
-    inline void DisableJacobianBound() {this->m_RegMonitor.JAC = false;}
+    inline void ComputeInvDetDefGrad(bool flag) {
+        this->m_RegFlags.invdefgrad = flag;
+    }
+
 
     inline void EnableRescaling() {this->m_RegFlags.applyrescaling = true;}
     inline void DisableRescaling() {this->m_RegFlags.applyrescaling = false;}
@@ -427,8 +439,12 @@ class RegOpt {
     PetscErrorCode SetupGridCont();
 
     // regularization
-    inline RegNorm GetRegNorm() {return this->m_RegNorm;}
-    inline void SetRegNormType(RegNormType flag) {this->m_RegNorm.type = flag;}
+    inline RegNorm GetRegNorm() {
+        return this->m_RegNorm;
+    }
+    inline void SetRegNormType(RegNormType flag) {
+        this->m_RegNorm.type = flag;
+    }
     inline void SetRegularizationWeight(int i, ScalarType beta) {
         this->m_RegNorm.beta[i] = beta;
     }
@@ -438,27 +454,53 @@ class RegOpt {
     inline void SetSigma(int i, ScalarType sigma) {this->m_Sigma[i] = sigma;}
 
     // solver flags
-    inline PDESolver GetPDESolver(void) {return this->m_PDESolver;}
-    inline void SetPDESolver(PDESolver flag) {this->m_PDESolver = flag;}
-    inline KrylovSolver GetKrylovSolverPara() {return this->m_KrylovSolverPara;}
-    inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
-    inline void SetRelTolKrylovMethod(ScalarType value) {this->m_KrylovSolverPara.reltol = value;}
-    inline void SetKrylovIter(IntType value) {this->m_KrylovSolverPara.iter = value;}
+    inline PDESolver GetPDESolver(void) {
+        return this->m_PDESolver;
+    }
+    inline void SetPDESolver(PDESolver flag) {
+        this->m_PDESolver = flag;
+    }
+    inline KrylovSolver GetKrylovSolverPara() {
+        return this->m_KrylovSolverPara;
+    }
+    inline void PrecondSetupDone(bool flag) {
+        this->m_KrylovSolverPara.pcsetupdone = flag;
+    }
+    inline void SetRelTolKrylovMethod(ScalarType value) {
+        this->m_KrylovSolverPara.reltol = value;
+    }
+    inline void SetKrylovIter(IntType value) {
+        this->m_KrylovSolverPara.iter = value;
+    }
     inline void SetInitialGradNormKrylovMethod(ScalarType value) {
         this->m_KrylovSolverPara.g0norm = value;
         this->m_KrylovSolverPara.g0normset = true;
     }
-    inline void InitialGradNormSet(bool flag) {this->m_KrylovSolverPara.g0normset = flag;}
-    inline void KrylovMethodEigValsEstimated(bool flag) {this->m_KrylovSolverPara.eigvalsestimated = flag;}
+    inline void InitialGradNormSet(bool flag) {
+        this->m_KrylovSolverPara.g0normset = flag;
+    }
+    inline void KrylovMethodEigValsEstimated(bool flag) {
+        this->m_KrylovSolverPara.eigvalsestimated = flag;
+    }
 
     // jacobians
-    inline void SetJacMin(ScalarType value) {this->m_RegMonitor.jacmin = value;}
-    inline void SetJacMax(ScalarType value) {this->m_RegMonitor.jacmax = value;}
-    inline void SetJacMean(ScalarType value) {this->m_RegMonitor.jacmean = value;}
+    inline void SetJacMin(ScalarType value) {
+        this->m_RegMonitor.jacmin = value;
+    }
+    inline void SetJacMax(ScalarType value) {
+        this->m_RegMonitor.jacmax = value;
+    }
+    inline void SetJacMean(ScalarType value) {
+        this->m_RegMonitor.jacmean = value;
+    }
 
     // flag for setup
-    inline bool SetupDone() {return this->m_SetupDone;}
-    inline bool StoreCheckPoints() {return this->m_StoreCheckPoints;}
+    inline bool SetupDone() {
+        return this->m_SetupDone;
+    }
+    inline bool StoreCheckPoints() {
+        return this->m_StoreCheckPoints;
+    }
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id) {

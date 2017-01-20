@@ -183,6 +183,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     // grid continuation
     this->m_GridCont.enabled = opt.m_GridCont.enabled;
     this->m_GridCont.nlevels = opt.m_GridCont.nlevels;
+    this->m_GridCont.minlevel = opt.m_GridCont.minlevel;
+    this->m_GridCont.nxmin = opt.m_GridCont.nxmin;
 
     // scale continuation
     this->m_ScaleCont.enabled = opt.m_ScaleCont.enabled;
@@ -482,6 +484,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             } else if (strcmp(argv[1], "2level") == 0) {
                 this->m_KrylovSolverPara.pctype = TWOLEVEL;
                 this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+                this->m_GridCont.nxmin = 64;
 //                 this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
@@ -743,13 +746,13 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // set up the fft
-    //u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
-    u = (ScalarType*)accfft_alloc(nalloc);
+    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
     ierr = Assert(u != NULL, "alloc failed"); CHKERRQ(ierr);
 
-    //uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
-    uk = (Complex*)accfft_alloc(nalloc);
+    uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
     ierr = Assert(uk != NULL, "alloc failed"); CHKERRQ(ierr);
+
+    MPI_Barrier(PETSC_COMM_WORLD);
 
     if (this->m_FFT.plan != NULL) {
         if (this->m_Verbosity > 2) {
@@ -836,6 +839,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
     this->m_Domain.nx[2] = 32;
+    this->m_GridCont.nxmin = 16;
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
@@ -1563,6 +1567,14 @@ PetscErrorCode RegOpt::SetupGridCont() {
 
         this->m_GridCont.nl[j] = nl;  // set local size
 
+        nxmin = nx[0];
+        for (int i = 1; i < 3; ++i) {
+            nxi = nx[i];
+            nxmin = nxmin < nxi ? nxmin : nxi;
+        }
+        if (nxmin >= this->m_GridCont.nxmin) {
+            this->m_GridCont.minlevel = j;
+        }
         ++level;  // increment
     }
 

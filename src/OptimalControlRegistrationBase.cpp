@@ -404,8 +404,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
 
 
 
-
-
 /********************************************************************
  * @brief check if velocity field is zero
  *******************************************************************/
@@ -543,8 +541,6 @@ PetscErrorCode OptimalControlRegistrationBase
 
 
 
-
-
 /********************************************************************
  * @brief applies inverse regularization operator
  *******************************************************************/
@@ -607,7 +603,6 @@ PetscErrorCode OptimalControlRegistrationBase
 
     PetscFunctionReturn(ierr);
 }
-
 
 
 
@@ -1042,7 +1037,9 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     maxboundreached = 1.0/jmax <= jbound;
 
     boundreached = (minboundreached || maxboundreached) ? true : false;
-    if (boundreached) { ierr = WrngMsg("jacobian bound reached"); CHKERRQ(ierr); }
+    if (boundreached) {
+        ierr = WrngMsg("jacobian bound reached"); CHKERRQ(ierr);
+    }
 
     // display what's going on
     if (this->m_Opt->GetVerbosity() > 1) {
@@ -1072,11 +1069,11 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
 /********************************************************************
  * @brief compute determinant of deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file) {
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file, Vec detj) {
     PetscErrorCode ierr = 0;
     ScalarType minddg, maxddg, meanddg;
     IntType nl, ng;
-    std::string ext;
+    std::string ext, filename;
     std::stringstream ss, ssnum;
 
     PetscFunctionBegin;
@@ -1084,7 +1081,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg("computing determinant of deformation gradient"); CHKERRQ(ierr);
+        if (this->m_Opt->GetRegFlags().invdefgrad) {
+            ierr = DbgMsg("computing inverse determinant of deformation gradient"); CHKERRQ(ierr);
+        } else {
+            ierr = DbgMsg("computing determinant of deformation gradient"); CHKERRQ(ierr);
+        }
     }
 
     nl = this->m_Opt->GetDomainPara().nl;
@@ -1154,8 +1155,17 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     }
 
     if (write2file) {
-        ext = this->m_Opt->GetReadWriteFlags().extension;
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, "det-deformation-grad"+ext); CHKERRQ(ierr);
+        if (this->m_Opt->GetRegFlags().invdefgrad) {
+            filename = "inverse-det-deformation-grad" + ext;
+        } else {
+            filename = "det-deformation-grad" + ext;
+        }
+        filename += this->m_Opt->GetReadWriteFlags().extension;
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, filename); CHKERRQ(ierr);
+    }
+
+    if (detj != NULL) {
+        ierr = VecCopy(this->m_WorkScaField1, detj); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -1310,7 +1320,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
 
 
 
-
 /********************************************************************
  * @brief compute deformation gradient
  *******************************************************************/
@@ -1418,7 +1427,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
                    rhs21, rhs22, rhs23,
                    rhs31, rhs32, rhs33;
 #pragma omp for
-        for (IntType i=0; i < nl; ++i) {
+        for (IntType i = 0; i < nl; ++i) {
             // evaluate right hand side at t^j
             rhs11 = p_gv11X[i]*p_j11X[i] + p_gv21X[i]*p_j21X[i] + p_gv31X[i]*p_j31X[i];
             rhs12 = p_gv11X[i]*p_j12X[i] + p_gv21X[i]*p_j22X[i] + p_gv31X[i]*p_j32X[i];
@@ -1444,11 +1453,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
             p_j31[i] = p_j31X[i] + hthalf*( rhs31 + ( p_gv31X[i] + ht*(p_gv13[i]*rhs11 + p_gv23[i]*rhs21 + p_gv33[i]*rhs31) ) );
             p_j32[i] = p_j32X[i] + hthalf*( rhs32 + ( p_gv32X[i] + ht*(p_gv13[i]*rhs12 + p_gv23[i]*rhs22 + p_gv33[i]*rhs32) ) );
             p_j33[i] = p_j33X[i] + hthalf*( rhs33 + ( p_gv33X[i] + ht*(p_gv13[i]*rhs13 + p_gv23[i]*rhs23 + p_gv33[i]*rhs33) ) );
-
         }  // for all grid points
-
 }  // pragma omp parallel
-
     }  // for all time points
 
     ierr = this->m_WorkTenField4->RestoreArrays(p_gv11X, p_gv12X, p_gv13X,
@@ -1530,7 +1536,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
     ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3,this->m_Opt->GetFFT().plan,timings);
+    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
@@ -1550,7 +1556,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
         }
 } // pragma omp
 
-        accfft_grad(p_gx1, p_gx2, p_gx3, p_jbar,this->m_Opt->GetFFT().plan,&XYZ,timings);
+        accfft_grad(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timings);
 
 #pragma omp parallel
 {
@@ -1668,13 +1674,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
-
         // compute grad(\phi_j)
         accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phi,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
         // compute div(\vect{v}\phi_j)
         accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3,this->m_Opt->GetFFT().plan,timings);
-
 #pragma omp parallel
 {
 #pragma omp  for

@@ -97,7 +97,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     /*! compute determinant of deformation gradient, i.e.
         the jacobian of the deformation map */
-    PetscErrorCode ComputeDetDefGrad(bool write2file = false);
+    PetscErrorCode ComputeDetDefGrad(bool write2file = false, Vec detj = NULL);
 
     /*! compute deformation map */
     PetscErrorCode ComputeDeformationMap(bool write2file = false);
