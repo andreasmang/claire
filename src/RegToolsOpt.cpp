@@ -229,6 +229,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.checkfwdsolve = true;
         } else if (strcmp(argv[1], "-checkadjsolve") == 0) {
             this->m_RegToolFlags.checkadjsolve = true;
+        } else if (strcmp(argv[1], "-checkdetdefgradsolve") == 0) {
+            this->m_RegToolFlags.checkdetdefgradsolve = true;
         } else if (strcmp(argv[1], "-rscale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
@@ -332,6 +334,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.checkfwdsolve = false;
     this->m_RegToolFlags.checkadjsolve = false;
     this->m_RegToolFlags.convert = false;
+    this->m_RegToolFlags.checkdetdefgradsolve = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
@@ -438,6 +441,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
         std::cout << " -checkfwdsolve            check forward solver"<<std::endl;
+        std::cout << " -checkdetdefgradsolve     check solve for det(grad(y))"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;

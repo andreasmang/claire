@@ -38,6 +38,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
 PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
+PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt*);
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
 
@@ -87,6 +88,8 @@ int main(int argc, char **argv) {
         ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkadjsolve) {
         ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().checkdetdefgradsolve) {
+        ierr = CheckDetDefGradSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().convert) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().applysmoothing) {
@@ -109,8 +112,6 @@ int main(int argc, char **argv) {
  * @brief compute gradient of scalar field
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeGrad"
 PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string filename, fnx1, fnx2, fnx3;
@@ -125,7 +126,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
 
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     // allocate class for io
     try {readwrite = new reg::ReadWriteReg(regopt);}
@@ -168,7 +169,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
     if (grad != NULL) {delete grad; grad = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -180,8 +181,6 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
  * @brief post process image registration results
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "RunPostProcessing"
 PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string ifolder, xfolder, filename, ext;
@@ -273,8 +272,6 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
  * @brief post process image registration results
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeDefFields"
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string ifolder, xfolder, filename, ext;
@@ -345,8 +342,6 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
  * @brief resample scalar field
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResampleScaField"
 PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string filename;
@@ -361,7 +356,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     // allocate class for io
     try {readwrite = new reg::ReadWriteReg(regopt);}
@@ -479,7 +474,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     if (preproc != NULL) {delete preproc; preproc = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -491,8 +486,6 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
  * @brief resample vector field
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ResampleVecField"
 PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string filename, fnx1, fnx2, fnx3;
@@ -642,8 +635,6 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
  * @brief solve forward problem
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "SolveForwardProblem"
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -656,7 +647,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     reg::RegistrationInterface* registration = NULL;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     // allocate class for io
     try { readwrite = new reg::ReadWriteReg(regopt); }
@@ -728,7 +719,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -740,8 +731,6 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
  * @brief compute residual
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeResidual"
 PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -753,7 +742,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     reg::ReadWriteReg* readwrite = NULL;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     // allocate class for io
     try { readwrite = new reg::ReadWriteReg(regopt); }
@@ -800,7 +789,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -812,8 +801,6 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
  * @brief compute synthetic velocity field
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ComputeSynVel"
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     int problem = 3;
@@ -824,7 +811,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     std::string fnx1, fnx2, fnx3;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
 
@@ -894,7 +881,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (v != NULL) {delete v; v = NULL;}
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -906,8 +893,6 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
  * @brief check the forward solver
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CheckForwardSolve"
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nc, nl, ng;
@@ -920,11 +905,24 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     std::stringstream ss;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     nc = 1;
 
-    ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    if (regopt->GetFlags().readscafield) {
+        if (regopt->GetVerbosity() > 1) {
+            ierr = reg::DbgMsg("reading m0"); CHKERRQ(ierr);
+        }
+        ierr = readwrite->Read(&m0, regopt->GetScaFieldFN(0)); CHKERRQ(ierr);
+        ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
+    } else {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
 
     regopt->SetNumImageComponents(nc);
     regopt->DisableSmoothing();
@@ -935,10 +933,6 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
 
     // allocation
     try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -954,12 +948,15 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     }
 
     // allocate the data
-    ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
+    if (m0 == NULL) {
+        ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
+        ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+    }
+
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
     ierr = reg::VecCreate(m0tilde, nc*nl, nc*ng); CHKERRQ(ierr);
 
     // set up smooth problem
-    ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
     ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
 
     // set initial guess and solve forward problem
@@ -1003,12 +1000,12 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     ierr = VecAXPY(m0tilde, -1.0, m0); CHKERRQ(ierr);
     ierr = VecNorm(m0tilde, NORM_2, &errval); CHKERRQ(ierr);
     ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
-    ss  << "error in forward solve " << std::scientific
+    ss  << "error " << std::scientific
         << errval/normval << " (" << errval << ")";
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     if (v != NULL) {delete v; v = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
@@ -1027,8 +1024,6 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
  * @brief check the adjoint solver
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "CheckAdjointSolve"
 PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nc, nl, ng;
@@ -1039,7 +1034,7 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     reg::ReadWriteReg* readwrite = NULL;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     nc = 2;
 
@@ -1086,7 +1081,7 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
     ierr = readwrite->WriteMC(l0, "initial-adjoint-variable.nc"); CHKERRQ(ierr);
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     if (v != NULL) {delete v; v = NULL;}
     if (l0 != NULL) {ierr = VecDestroy(&l0); CHKERRQ(ierr); l0 = NULL;}
@@ -1103,11 +1098,113 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
 
 
 /********************************************************************
+ * @brief check the jacobian solver
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng;
+    Vec detj = NULL, invdetj = NULL;
+    reg::VecField *v = NULL;
+    reg::RegistrationInterface* registration = NULL;
+    reg::SynProbRegistration* synprob = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    ScalarType minval, maxval, normval, errval;
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    ierr = regopt->DoSetup(); CHKERRQ(ierr);
+
+    regopt->DisableSmoothing();
+    nl = regopt->GetDomainPara().nl;
+    ng = regopt->GetDomainPara().ng;
+
+    // allocation
+    try {v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {registration = new reg::RegistrationInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+    try {synprob = new reg::SynProbRegistration(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = reg::VecCreate(detj, nl, ng); CHKERRQ(ierr);
+    ierr = reg::VecCreate(invdetj, nl, ng); CHKERRQ(ierr);
+
+    ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+    ierr = registration->ComputeDetDefGrad(detj); CHKERRQ(ierr);
+
+    regopt->ComputeInvDetDefGrad(true);
+    ierr = registration->ComputeDetDefGrad(invdetj); CHKERRQ(ierr);
+
+    ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
+    ierr = VecMax(detj, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(detj, NULL, &minval); CHKERRQ(ierr);
+    ss  << "det(grad(y))    (min,max,norm)=("
+        << std::scientific << minval << "," << maxval << "," << normval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecNorm(invdetj, NORM_2, &normval); CHKERRQ(ierr);
+    ierr = VecMax(invdetj, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(invdetj, NULL, &minval); CHKERRQ(ierr);
+    ss  << "det(grad(y))    (min,max,norm)=("
+        << std::scientific << minval << "," << maxval << "," << normval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    if (regopt->GetReadWriteFlags().results) {
+        ierr = readwrite->WriteMC(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->WriteMC(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+    }
+
+    ierr = VecReciprocal(invdetj); CHKERRQ(ierr);
+
+    ierr = VecAXPY(invdetj, -1.0, detj); CHKERRQ(ierr);
+    ierr = VecNorm(invdetj, NORM_2, &errval); CHKERRQ(ierr);
+    ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
+    ss  << "error " << std::scientific
+        << errval/normval << " (" << errval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+
+    regopt->Exit(__func__);
+
+    if (v != NULL) {delete v; v = NULL;}
+    if (detj != NULL) {ierr = VecDestroy(&detj); CHKERRQ(ierr); detj = NULL;}
+    if (invdetj != NULL) {ierr = VecDestroy(&invdetj); CHKERRQ(ierr); invdetj = NULL;}
+    if (synprob != NULL) {delete synprob; synprob = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+
+
+/********************************************************************
  * @brief convert the data
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ConvertData"
 PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string fn, path, filename, extension;
@@ -1115,7 +1212,7 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     reg::ReadWriteReg* readwrite = NULL;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
@@ -1135,7 +1232,7 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     std::cout << fn << std::endl;
     ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
@@ -1150,8 +1247,6 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
  * @brief apply smoothing to data
  * @param[in] regopt container for user defined options
  *******************************************************************/
-#undef __FUNCT__
-#define __FUNCT__ "ApplySmoothing"
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string fn, path, filename, extension;
@@ -1160,7 +1255,7 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     reg::PreProcReg* preproc = NULL;
     PetscFunctionBegin;
 
-    regopt->Enter(__FUNCT__);
+    regopt->Enter(__func__);
 
     try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
@@ -1189,7 +1284,7 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     std::cout << fn << std::endl;
     ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
 
-    regopt->Exit(__FUNCT__);
+    regopt->Exit(__func__);
 
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
