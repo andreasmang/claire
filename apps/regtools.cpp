@@ -278,6 +278,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     Vec vxi = NULL;
     reg::VecField* v = NULL;
     reg::ReadWriteReg* readwrite = NULL;
+    reg::SynProbRegistration* synprob = NULL;
     reg::RegistrationInterface* registration = NULL;
 
     PetscFunctionBegin;
@@ -290,30 +291,43 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
 
     ext = regopt->GetReadWriteFlags().extension;
     ifolder = regopt->GetReadWriteFlags().ifolder;
-    ierr = reg::Assert(ifolder.empty() != true, "input folder needs to be provided"); CHKERRQ(ierr);
+    if (!ifolder.empty()) {
+        // read velocity components
+        filename = ifolder + "velocity-field-x1" + ext;
+        ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+        if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
-    // read velocity components
-    filename = ifolder + "velocity-field-x1" + ext;
-    ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
-    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+        // allocate container for velocity field
+        try {v = new reg::VecField(regopt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
+        if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
-    // allocate container for velocity field
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        filename = ifolder + "velocity-field-x2" + ext;
+        ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+        ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
+        if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+
+        filename = ifolder + "velocity-field-x3" + ext;
+        ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+        ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
+        if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+    } else {
+        // allocate container for velocity field
+        if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+        try {v = new reg::VecField(regopt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        try {synprob = new reg::SynProbRegistration(regopt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        // set up smooth problem
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
     }
-    ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-    filename = ifolder + "velocity-field-x2" + ext;
-    ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
-    ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-    filename = ifolder + "velocity-field-x3" + ext;
-    ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
-    ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
     // allocate class for registration interface
     try {registration = new reg::RegistrationInterface(regopt);}
@@ -331,6 +345,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     if (v != NULL) {delete v; v = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
+    if (synprob != NULL) {delete synprob; synprob = NULL;}
 
     PetscFunctionReturn(ierr);
 }
@@ -857,14 +872,19 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
                     p_vx1[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
                     p_vx2[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
                     p_vx3[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
-                } else if (problem == 3) {
+                } else if (problem == 2) {
                     p_vx1[i] = cos(x1)*sin(x2);
                     p_vx2[i] = cos(x2)*sin(x1);
                     p_vx3[i] = cos(x1)*sin(x3);
-                } else if (problem == 4) {
+                } else if (problem == 3) {
                     p_vx1[i] = cos(x2)*cos(x3);
                     p_vx2[i] = sin(x3)*sin(x1);
                     p_vx3[i] = cos(x1)*cos(x2);
+                } else if (problem == 4) {
+                    ScalarType v0 = 0.5;
+                    p_vx1[i] = v0;
+                    p_vx2[i] = v0;
+                    p_vx3[i] = v0;
                 }
             }  // i1
         }  // i2

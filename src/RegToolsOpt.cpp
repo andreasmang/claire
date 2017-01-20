@@ -587,8 +587,8 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 
         if (this->m_ReadWriteFlags.ifolder.empty()) {
             msg = "\x1b[31m input folder needs to be set (-i option) \x1b[0m\n";
-            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-            ierr = this->Usage(); CHKERRQ(ierr);
+//            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+//            ierr = this->Usage(); CHKERRQ(ierr);
         }
 
         this->m_RegToolFlags.computedeffields = true;
