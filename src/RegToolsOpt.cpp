@@ -258,7 +258,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.resample = true;
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
-            this->m_Verbosity = atoi(argv[1]);
+            this->m_Verbosity = std::min(atoi(argv[1]),2);
+        } else if (strcmp(argv[1], "-debug") == 0) {
+            this->m_Verbosity = 3;
         } else {
             msg = "\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -402,6 +404,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -deffield                 compute displacement field u (input: velocity field)"<<std::endl;
         std::cout << " -defmap                   compute deformation map y (input: velocity field)"<<std::endl;
         std::cout << " -tscafield                transport scalar field (input: velocity field and scalar field)"<<std::endl;
+        std::cout << " -tlabelmap                transport label map (input: velocity field and scalar field)"<<std::endl;
         std::cout << " -residual                 compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
         // ####################### advanced options #######################
         if (advanced) {

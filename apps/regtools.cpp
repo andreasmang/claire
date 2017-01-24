@@ -657,8 +657,9 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     std::stringstream ss;
     reg::VecField* v = NULL;
     Vec m0 = NULL, m1 = NULL, vxi = NULL;
-    ScalarType *p_m1 = NULL;
+    ScalarType *p_m1 = NULL, *p_m0 = NULL;
     reg::ReadWriteReg* readwrite = NULL;
+    reg::PreProcReg* preproc = NULL;
     reg::RegistrationInterface* registration = NULL;
     PetscFunctionBegin;
 
@@ -674,12 +675,36 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     fn = regopt->GetScaFieldFN(0);
     ierr = readwrite->Read(&m0, fn); CHKERRQ(ierr);
     ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
+    if (!regopt->SetupDone()) {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
+    ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
 
-    if ( !regopt->SetupDone() ) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
     nl = regopt->GetDomainPara().nl;
 
-    // do allocation
-    ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
+    // if we consider a lable map, we want to truncate the values
+    if (regopt->GetFlags().tlabelmap) {
+        // map to integer
+        ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
+        for (IntType i = 0; i < nl; ++i) {
+            if (p_m0[i] > 0.5) {
+                p_m0[i] = 1.0;
+            } else {
+                p_m0[i] = 0.0;
+            }
+        }
+        ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
+
+        try {preproc = new reg::PreProcReg(regopt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr = preproc->ApplySmoothing(m1, m0); CHKERRQ(ierr);
+        ierr = VecCopy(m1, m0); CHKERRQ(ierr);
+    } else {
+        ierr = reg::Rescale(m0, 0.0, 1.0); CHKERRQ(ierr);
+    }
+
     try {v = new reg::VecField(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -719,9 +744,13 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
         // map to integer
         ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
         for (IntType i = 0; i < nl; ++i) {
-            p_m1[i] = round(p_m1[i]);
+            if (p_m1[i] > 0.5) {
+                p_m1[i] = 1.0;
+            } else {
+                p_m1[i] = 0.0;
+            }
         }
-        ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
     }
 
     // write resampled scalar field to file
@@ -732,6 +761,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (preproc != NULL) {delete preproc; preproc = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
 
     regopt->Exit(__func__);
@@ -772,7 +802,9 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     ierr = readwrite->Read(&mR, fn); CHKERRQ(ierr);
     ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if ( !regopt->SetupDone() ) { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
+    if (!regopt->SetupDone()) {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
 
     // read template image
     fn = regopt->GetScaFieldFN(3);
@@ -970,7 +1002,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     // allocate the data
     if (m0 == NULL) {
         ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
-        ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+        //ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+        ierr = synprob->ComputeSmoothScalarField(m0, 10); CHKERRQ(ierr);
     }
 
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
@@ -1214,9 +1247,6 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 
 
