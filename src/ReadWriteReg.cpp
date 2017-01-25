@@ -127,7 +127,89 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
 /********************************************************************
  * @brief read data from file
  *******************************************************************/
-PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename, bool multicomponent) {
+PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) {
+    PetscErrorCode ierr = 0;
+    std::string file, filename;
+    IntType nc, nl, ng;
+    std::stringstream ss;
+    Vec xk = NULL;
+    ScalarType *p_x = NULL, *p_xk = NULL, value, maxval, minval;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    //ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
+
+    nc = this->m_Opt->GetDomainPara().nc;
+    ierr = Assert(filenames.size()==nc, "size mismatch"); CHKERRQ(ierr);
+
+    for (IntType k = 0; k < nc; ++k) {
+        filename = filenames[k];
+
+        // get file name without path
+        ierr = GetFileName(file, filename); CHKERRQ(ierr);
+
+        // check if file exists
+        ss << "file " << file << " does not exist";
+        ierr = Assert(FileExists(filename), ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+
+        // display what we are doing
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << "reading " << file;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+
+        // read component
+        this->m_FileName = filename;
+        ierr = this->Read(&xk); CHKERRQ(ierr);
+
+        // display how we are doing
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = VecNorm(xk, NORM_2, &value); CHKERRQ(ierr);
+            ierr = VecMax(xk, NULL, &maxval); CHKERRQ(ierr);
+            ierr = VecMin(xk, NULL, &minval); CHKERRQ(ierr);
+            ss << "(norm,min,max) = (" << std::scientific << value
+               << "," << minval << "," << maxval << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+
+        ierr = Assert(this->m_Opt->SetupDone(), "error in setup"); CHKERRQ(ierr);
+        nl = this->m_Opt->GetDomainPara().nl;
+        ng = this->m_Opt->GetDomainPara().ng;
+
+        if (*x == NULL) {
+            ierr = VecCreate(*x, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
+
+        ierr = VecGetArray(*x, &p_x); CHKERRQ(ierr);
+        // extract individual components
+        ierr = VecGetArray(xk, &p_xk); CHKERRQ(ierr);
+        try {std::copy(p_xk, p_xk+nl, p_x+k*nl);}
+        catch(std::exception&) {
+            ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+        }
+        ierr = VecRestoreArray(xk, &p_xk); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
+
+        // delete temporary variable
+        if (xk != NULL) {ierr = VecDestroy(&xk); CHKERRQ(ierr); xk = NULL;}
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief read data from file
+ *******************************************************************/
+PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
     PetscErrorCode ierr = 0;
     std::string file, msg;
     PetscFunctionBegin;
@@ -503,12 +585,12 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     nx[1] = static_cast<IntType>(image->ny);
     nx[0] = static_cast<IntType>(image->nz);
 
-    for (int i = 0; i < 3; ++i) {
-        if (nx[i] % 2 != 0) {
-            std::cout << "grid size is not odd " << nx[i] << std::endl;
+//    for (int i = 0; i < 3; ++i) {
+//        if (nx[i] % 2 != 0) {
+//            std::cout << "grid size is not odd " << nx[i] << std::endl;
 //            nx[i]++;
-        }
-    }
+//        }
+//    }
 
     // if we read images, we want to make sure that they have the same size
     if (   (this->m_nx[0] == -1)
@@ -558,10 +640,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 
     // allocate vector
     if (*x != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr);}
-    ierr = VecCreate(PETSC_COMM_WORLD, x); CHKERRQ(ierr);
-    ierr = VecSetSizes(*x, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(*x); CHKERRQ(ierr);
-
+    ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     // read data only on master rank
     if (rank == 0) {
@@ -994,10 +1073,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
                 }
             }
         }
-
         ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
-
-
     } else {
         // allocate the index buffers on master rank
         if (rank == 0) {

@@ -25,6 +25,7 @@
 
 
 
+
 /********************************************************************
  * @brief main function to run registration
  *******************************************************************/
@@ -36,6 +37,8 @@ int main(int argc, char **argv) {
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     reg::RegistrationInterface* registration = NULL;
+    ScalarType value;
+    std::stringstream ss;
 
     // initialize petsc (user is not allowed to set petsc options)
     ierr = PetscInitialize(0, reinterpret_cast<char***>(NULL),
@@ -96,17 +99,37 @@ int main(int argc, char **argv) {
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+        if (regopt->GetVerbosity() > 2) {
+            ierr = VecNorm(v->m_X1, NORM_2, &value); CHKERRQ(ierr);
+            ss << "velocity norm x1: " << value;
+            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
 
+
+        //std::cout << regopt->GetReadWriteFlags().vx2 << std::endl;
         ierr = readwrite->Read(&vxi, regopt->GetReadWriteFlags().vx2); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+        if (regopt->GetVerbosity() > 2) {
+            ierr = VecNorm(v->m_X2, NORM_2, &value); CHKERRQ(ierr);
+            ss << "velocity norm x2: " << value;
+            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
 
+        //std::cout << regopt->GetReadWriteFlags().vx3 << std::endl;
         ierr = readwrite->Read(&vxi, regopt->GetReadWriteFlags().vx3); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
+        if (regopt->GetVerbosity() > 2) {
+            ierr = VecNorm(v->m_X3, NORM_2, &value); CHKERRQ(ierr);
+            ss << "velocity norm x3: " << value;
+            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
         ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
     }
 

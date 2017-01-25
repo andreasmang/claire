@@ -191,13 +191,13 @@ struct ReadWriteFlags {
     bool results;
     std::string extension;
 
-    std::string xfolder;  ///< identifier for folder to write results to
-    std::string ifolder;  ///< identifier for folder to read in results from
-    std::string mt;       ///< template image file name
-    std::string mr;       ///< reference image file name
-    std::string vx1;      ///< x1-velocity field file name
-    std::string vx2;      ///< x2-velocity field file name
-    std::string vx3;      ///< x3-velocity field file name
+    std::string xfolder;                ///< identifier for folder to write results to
+    std::string ifolder;                ///< identifier for folder to read in results from
+    std::vector < std::string > mt;     ///< template image file name
+    std::vector < std::string > mr;     ///< reference image file name
+    std::string vx1;                    ///< x1-velocity field file name
+    std::string vx2;                    ///< x2-velocity field file name
+    std::string vx3;                    ///< x3-velocity field file name
 };
 
 

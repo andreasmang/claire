@@ -257,7 +257,6 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
-        // TODO: this needs to be fixed for vector valued images
         ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
     }
 
@@ -324,8 +323,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // allocate velocity field
-    if(this->m_VelocityField == NULL) {
-        try{this->m_VelocityField = new VecField(this->m_Opt);}
+    if (this->m_VelocityField == NULL) {
+        try {this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -877,6 +876,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
+
     // reset velocity field
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
@@ -2020,9 +2020,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
 
     if (write2file) {
         ext = this->m_Opt->GetReadWriteFlags().extension;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "deformation-map-x1"+ext,
-                                                               "deformation-map-x2"+ext,
-                                                               "deformation-map-x3"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "deformation-map"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -2729,9 +2727,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
 
     if (write2file) {
         ext = this->m_Opt->GetReadWriteFlags().extension;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,"displacement-field-x1"+ext,
-                                                              "displacement-field-x2"+ext,
-                                                              "displacement-field-x3"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "displacement-field"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -2836,11 +2832,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
             p_u2[i] = p_uX2[i] + hthalf*(p_vX2[i] + p_v2[i]);
             p_u3[i] = p_uX3[i] + hthalf*(p_vX3[i] + p_v3[i]);
         }
-}// end of pragma omp parallel
+}  // end of pragma omp parallel
         ierr = this->m_WorkVecField3->RestoreArrays(p_uX1, p_uX2, p_uX3); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
+    }  // for all time points
 
-    } // for all time points
     ierr = this->m_WorkVecField2->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -2945,4 +2941,4 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
 
 
 
-#endif // _OPTIMALCONTROLREGISTRATIONBASE_CPP_
+#endif  // _OPTIMALCONTROLREGISTRATIONBASE_CPP_

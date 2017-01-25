@@ -885,9 +885,9 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
                 // \vect{b}_i += h_d*ht*\lambda^j (\grad m^j)_i
                 for (IntType i = 0; i < nl; ++i) {
                     lambda = p_l[l+i];  // get \lambda(x_i,t^j)
-                    p_b1[i] += scale*p_gradm1[i]*lambda;
-                    p_b2[i] += scale*p_gradm2[i]*lambda;
-                    p_b3[i] += scale*p_gradm3[i]*lambda;
+                    p_b1[i] += scale*p_gradm1[i]*lambda/static_cast<ScalarType>(nc);
+                    p_b2[i] += scale*p_gradm2[i]*lambda/static_cast<ScalarType>(nc);
+                    p_b3[i] += scale*p_gradm3[i]*lambda/static_cast<ScalarType>(nc);
                 }
             }
             // trapezoidal rule (revert scaling)
@@ -1269,10 +1269,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     ierr = VecSet(this->m_StateVariable, 0.0); CHKERRQ(ierr);
     ierr = VecSet(this->m_AdjointVariable, 0.0); CHKERRQ(ierr);
 
-    ierr = this->m_ReadWrite->Write(this->m_VelocityField,
-                                    "initial-condition-x1" + ext,
-                                    "initial-condition-x2" + ext,
-                                    "initial-condition-x3" + ext); CHKERRQ(ierr);
+    ierr = this->m_ReadWrite->Write(this->m_VelocityField, "initial-condition"+ext); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1453,9 +1450,9 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
                     lj  = p_l[l+i];
                     ltj = p_lt[l+i];
 
-                    p_bt1[i] += scale*(p_gradm1[i]*ltj + p_gradmt1[i]*lj);
-                    p_bt2[i] += scale*(p_gradm2[i]*ltj + p_gradmt2[i]*lj);
-                    p_bt3[i] += scale*(p_gradm3[i]*ltj + p_gradmt3[i]*lj);
+                    p_bt1[i] += scale*(p_gradm1[i]*ltj + p_gradmt1[i]*lj)/static_cast<ScalarType>(nc);
+                    p_bt2[i] += scale*(p_gradm2[i]*ltj + p_gradmt2[i]*lj)/static_cast<ScalarType>(nc);
+                    p_bt3[i] += scale*(p_gradm3[i]*ltj + p_gradmt3[i]*lj)/static_cast<ScalarType>(nc);
                 }  // for all grid points
             }  // for all image components
             // trapezoidal rule (revert scaling)
@@ -1481,9 +1478,9 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
                 for (IntType i = 0; i < nl; ++i) {  // for all grid points
                     // get \tilde{\lambda}(x_i,t^j)
                     ltj = p_lt[l+i];
-                    p_bt1[i] += scale*p_gradm1[i]*ltj;
-                    p_bt2[i] += scale*p_gradm2[i]*ltj;
-                    p_bt3[i] += scale*p_gradm3[i]*ltj;
+                    p_bt1[i] += scale*p_gradm1[i]*ltj/static_cast<ScalarType>(nc);
+                    p_bt2[i] += scale*p_gradm2[i]*ltj/static_cast<ScalarType>(nc);
+                    p_bt3[i] += scale*p_gradm3[i]*ltj/static_cast<ScalarType>(nc);
                 }  // for all grid points
             }  // for all image components
             // trapezoidal rule (revert scaling)
@@ -1857,7 +1854,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     l = nt*nc*nl;  // index for final condition
     for (IntType i = 0; i < nc*nl; ++i) {
-        p_l[l+i] = (p_mr[i] - p_m[l+i]) / static_cast<ScalarType>(nc);
+        p_l[l+i] = (p_mr[i] - p_m[l+i]); // / static_cast<ScalarType>(nc);
     }
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -2540,7 +2537,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
     l = nt*nl*nc;
     for (IntType i = 0; i < nl*nc; ++i) {
-        p_lt[l+i] = -p_mt[l+i] / static_cast<ScalarType>(nc);
+        p_lt[l+i] = -p_mt[l+i]; // / static_cast<ScalarType>(nc);
     }
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);
@@ -2995,11 +2992,10 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     PetscErrorCode ierr = 0;
     int rank;
     IntType nl, ng, nc, nt, iter;
-    std::string filename, fnx1, fnx2, fnx3, ext;
+    std::string filename, ext;
     std::stringstream ss;
     std::ofstream logwriter;
     ScalarType *p_m1 = NULL, *p_m = NULL, rval, dval, jval, hd;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -3064,45 +3060,27 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
         ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
-        if (nc == 1) {
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, ss.str()); CHKERRQ(ierr);
-        } else {
-            ierr = this->m_ReadWrite->WriteMC(this->m_WorkScaFieldMC, ss.str()); CHKERRQ(ierr);
-        }
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, ss.str(), nc > 1); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         // construct file names for velocity field components
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << "-x1" << ext;
-        fnx1 = ss.str();
-        ss.str(std::string()); ss.clear();
-
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << "-x2" << ext;
-        fnx2 = ss.str();
-        ss.str(std::string()); ss.clear();
-
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter  << "-x3" << ext;
-        fnx3 = ss.str();
+        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        filename = ss.str();
         ss.str(std::string()); ss.clear();
 
         // velocity field out
-        ierr = this->m_ReadWrite->Write(this->m_VelocityField, fnx1, fnx2, fnx3); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_VelocityField, filename); CHKERRQ(ierr);
     }  // store iterates
 
 
     if (this->m_Opt->StoreCheckPoints()) {
-        // construct file names for velocity field components
-        fnx1 = "velocity-field-checkpoint-x1" + ext;
-        fnx2 = "velocity-field-checkpoint-x2" + ext;
-        fnx3 = "velocity-field-checkpoint-x3" + ext;
-        // velocity field out
-        ierr = this->m_ReadWrite->Write(this->m_VelocityField, fnx1, fnx2, fnx3); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field-checkpoint"+ext); CHKERRQ(ierr);
     }
 
 
     // compute determinant of deformation gradient and write it to file
     if ( this->m_Opt->GetRegMonitor().JAC ) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
-
         // if user enabled the logger
         if (this->m_Opt->GetLogger().enabled[LOGJAC]) {
             if (rank == 0) {
@@ -3189,18 +3167,10 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
 
     // write deformed template image to file
     if (this->m_Opt->GetReadWriteFlags().templateim) {
-        if (nc == 1) {
-            ierr = this->m_ReadWrite->Write(this->m_TemplateImage, "template-image"+ext); CHKERRQ(ierr);
-        } else {
-            ierr = this->m_ReadWrite->WriteMC(this->m_TemplateImage, "template-image"+ext); CHKERRQ(ierr);
-        }
+        ierr = this->m_ReadWrite->Write(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
     if (this->m_Opt->GetReadWriteFlags().referenceim) {
-        if (nc == 1) {
-            ierr = this->m_ReadWrite->Write(this->m_ReferenceImage, "reference-image"+ext); CHKERRQ(ierr);
-        } else {
-            ierr = this->m_ReadWrite->WriteMC(this->m_ReferenceImage, "reference-image"+ext); CHKERRQ(ierr);
-        }
+        ierr = this->m_ReadWrite->Write(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // compute residuals
@@ -3247,12 +3217,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-
-        if (nc == 1) {
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "deformed-template-image"+ext); CHKERRQ(ierr);
-        } else {
-            ierr = this->m_ReadWrite->WriteMC(this->m_WorkScaFieldMC, "deformed-template-image"+ext); CHKERRQ(ierr);
-        }
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "deformed-template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write residual images to file
@@ -3266,12 +3231,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-
-        if (nc == 1) {
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0"+ext); CHKERRQ(ierr);
-        } else {
-            ierr = this->m_ReadWrite->WriteMC(this->m_WorkScaFieldMC, "residual-t=0"+ext); CHKERRQ(ierr);
-        }
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0"+ext, nc > 1); CHKERRQ(ierr);
 
         // copy memory for m_1
         ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
@@ -3286,20 +3246,14 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
             p_dr[i] = 1.0 - PetscAbs(p_mr[i] - p_dr[i]);
         }
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-        if (nc == 1) {
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1"+ext); CHKERRQ(ierr);
-        } else {
-            ierr = this->m_ReadWrite->WriteMC(this->m_WorkScaFieldMC, "residual-t=1"+ext); CHKERRQ(ierr);
-        }
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1"+ext, nc > 1); CHKERRQ(ierr);
 
         ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     }
 
     // write velocity field to file
     if (this->m_Opt->GetReadWriteFlags().results) {
-        ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field-x1"+ext,
-                                                               "velocity-field-x2"+ext,
-                                                               "velocity-field-x3"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field"+ext); CHKERRQ(ierr);
     }
 
     // write norm of velocity field to file

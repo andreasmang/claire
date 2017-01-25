@@ -1,5 +1,4 @@
-/*************************************************************************
- *  Copyright (c) 2016.
+/************************************************************************* *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -318,10 +317,36 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-mr") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.mr = argv[1];
+            this->m_ReadWriteFlags.mr.push_back(argv[1]);
+            this->m_Domain.nc = 1;
         } else if (strcmp(argv[1], "-mt") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.mt = argv[1];
+            this->m_ReadWriteFlags.mt.push_back(argv[1]);
+            this->m_Domain.nc = 1;
+        } else if (strcmp(argv[1], "-mrc") == 0) {
+            argc--; argv++;
+            this->m_Domain.nc = static_cast<IntType>(atoi(argv[1]));
+            if (this->m_Domain.nc < 1) {
+                msg = "\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
+            for (IntType i = 0; i < this->m_Domain.nc; ++i) {
+                argc--; argv++;
+                this->m_ReadWriteFlags.mr.push_back(argv[1]);
+            }
+        } else if (strcmp(argv[1], "-mtc") == 0) {
+            argc--; argv++;
+            this->m_Domain.nc = static_cast<IntType>(atoi(argv[1]));
+            if (this->m_Domain.nc < 1) {
+                msg = "\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
+            for (IntType i = 0; i < this->m_Domain.nc; ++i) {
+                argc--; argv++;
+                this->m_ReadWriteFlags.mt.push_back(argv[1]);
+            }
         } else if (strcmp(argv[1], "-vx1") == 0) {
             argc--; argv++;
             this->m_ReadWriteFlags.vx1 = argv[1];
@@ -1206,10 +1231,10 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     if (readmT && readmR) {
         // check if files exist
-        msg = "file " + this->m_ReadWriteFlags.mt + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.mt), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_ReadWriteFlags.mr + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.mr), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_ReadWriteFlags.mt[0] + " does not exist";
+        ierr = Assert(FileExists(this->m_ReadWriteFlags.mt[0]), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_ReadWriteFlags.mr[0] + " does not exist";
+        ierr = Assert(FileExists(this->m_ReadWriteFlags.mr[0]), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readfiles = true;
     } else if ( (readmT == false) && readmR ) {
         msg = "\x1b[31m you need to also assign a template image\x1b[0m\n";

@@ -52,7 +52,8 @@ class ReadWriteReg {
     ReadWriteReg(RegOpt*);
     ~ReadWriteReg(void);
 
-    PetscErrorCode Read(Vec*, std::string, bool multicomponent = false);
+    PetscErrorCode Read(Vec*, std::vector < std::string >);
+    PetscErrorCode Read(Vec*, std::string);
     PetscErrorCode Read(VecField*, std::string, std::string, std::string);
 
     PetscErrorCode Write(Vec, std::string, bool multicomponent = false);
