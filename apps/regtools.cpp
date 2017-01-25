@@ -160,10 +160,11 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
         ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
         // write to file
+        // TODO fix this
         fnx1 = regopt->GetVecFieldFN(0, 1);
-        fnx2 = regopt->GetVecFieldFN(1, 1);
-        fnx3 = regopt->GetVecFieldFN(2, 1);
-        ierr = readwrite->Write(grad, fnx1, fnx2, fnx3); CHKERRQ(ierr);
+//        fnx2 = regopt->GetVecFieldFN(1, 1);
+//        fnx3 = regopt->GetVecFieldFN(2, 1);
+        ierr = readwrite->Write(grad, fnx1); CHKERRQ(ierr);
 
     } else if (regopt->GetFlags().readvecfield) {
     }
@@ -465,7 +466,6 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
         // write resampled scalar field to file
         filename = regopt->GetScaFieldFN(1);
-        std::cout << filename << std::endl;
         ierr = readwrite->Write(ml, filename); CHKERRQ(ierr);
     } else {
         // simply write field to file
@@ -626,12 +626,13 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
     }
 
     // get output file name (based on input file name)
+    // TODO: fix this
     fnx1 = regopt->GetVecFieldFN(0, 1);
-    fnx2 = regopt->GetVecFieldFN(1, 1);
-    fnx3 = regopt->GetVecFieldFN(2, 1);
+//    fnx2 = regopt->GetVecFieldFN(1, 1);
+//    fnx3 = regopt->GetVecFieldFN(2, 1);
 
     // write to file
-    ierr = readwrite->Write(vl, fnx1, fnx2, fnx3); CHKERRQ(ierr);
+    ierr = readwrite->Write(vl, fnx1); CHKERRQ(ierr);
 
     if (v != NULL) {delete v; v = NULL; }
     if (vl != NULL) {delete vl; vl = NULL;}
@@ -934,7 +935,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     reg::ReadWriteReg* readwrite = NULL;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
     ScalarType hx[3];
-    std::string fnx1, fnx2, fnx3;
+    std::string filename;
     PetscFunctionBegin;
 
     regopt->Enter(__func__);
@@ -1004,10 +1005,8 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     // write computed vectorfield to file
-    fnx1 = "velocity-field-x1" + regopt->GetReadWriteFlags().extension;
-    fnx2 = "velocity-field-x2" + regopt->GetReadWriteFlags().extension;
-    fnx3 = "velocity-field-x3" + regopt->GetReadWriteFlags().extension;
-    ierr = readwrite->Write(v, fnx1, fnx2, fnx3); CHKERRQ(ierr);
+    filename = "velocity-field" + regopt->GetReadWriteFlags().extension;
+    ierr = readwrite->Write(v, filename); CHKERRQ(ierr);
 
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (v != NULL) {delete v; v = NULL;}
@@ -1100,9 +1099,9 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
 
     if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->WriteMC(m0, "initial-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-        ierr = readwrite->WriteMC(m1, "final-condition" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-        ierr = readwrite->WriteMC(m0tilde, "backward-solve" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->Write(m0, "initial-condition" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+        ierr = readwrite->Write(m1, "final-condition" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+        ierr = readwrite->Write(m0tilde, "backward-solve" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
     }
     ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
     ierr = VecMax(m0, NULL, &maxval); CHKERRQ(ierr);
@@ -1211,7 +1210,7 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
     ierr = registration->SetReferenceImage(mR); CHKERRQ(ierr);
     ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
-    ierr = readwrite->WriteMC(l0, "initial-adjoint-variable.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(l0, "initial-adjoint-variable.nc", nc > 1); CHKERRQ(ierr);
 
     regopt->Exit(__func__);
 
@@ -1243,6 +1242,7 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
     reg::ReadWriteReg* readwrite = NULL;
     ScalarType minval, maxval, normval, errval;
     std::stringstream ss;
+
     PetscFunctionBegin;
 
     regopt->Enter(__func__);
@@ -1300,8 +1300,8 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
     ss.str(std::string()); ss.clear();
 
     if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->WriteMC(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-        ierr = readwrite->WriteMC(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->Write(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->Write(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
     }
 
     ierr = VecReciprocal(invdetj); CHKERRQ(ierr);
