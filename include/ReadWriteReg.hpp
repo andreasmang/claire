@@ -52,51 +52,53 @@ class ReadWriteReg {
     ReadWriteReg(RegOpt*);
     ~ReadWriteReg(void);
 
-    PetscErrorCode Read(Vec*, std::string);
+    PetscErrorCode Read(Vec*, std::string, bool multicomponent = false);
     PetscErrorCode Read(VecField*, std::string, std::string, std::string);
-    PetscErrorCode ReadBlock(Vec, int*, std::string);
-    PetscErrorCode ReadTimeSeries(Vec, std::string);
 
-    PetscErrorCode Write(Vec, std::string);
+    PetscErrorCode Write(Vec, std::string, bool multicomponent = false);
     PetscErrorCode WriteMC(Vec, std::string);
     PetscErrorCode Write(VecField*, std::string, std::string, std::string);
-    PetscErrorCode WriteBlock(Vec, int*, std::string);
-    PetscErrorCode WriteTimeSeries(Vec, std::string);
 
  private:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
+    PetscErrorCode Read(Vec*);
+
+    PetscErrorCode Write(Vec);
+    PetscErrorCode WriteMC(Vec);
+    PetscErrorCode Write(VecField*);
+
 #if defined(PETSC_HAVE_HDF5)
-    PetscErrorCode ReadHDF5(Vec*, std::string);
-    PetscErrorCode WriteHDF5(Vec, std::string);
+    PetscErrorCode ReadHDF5(Vec*);
+    PetscErrorCode WriteHDF5(Vec);
 #endif
 
 #ifdef REG_HAS_PNETCDF
-    PetscErrorCode ReadNC(Vec*, std::string);
-    PetscErrorCode WriteNC(Vec, std::string);
+    PetscErrorCode ReadNC(Vec*);
+    PetscErrorCode WriteNC(Vec);
 #endif
 
-    PetscErrorCode ReadBIN(Vec*, std::string);
-    PetscErrorCode WriteBIN(Vec, std::string);
+    PetscErrorCode ReadBIN(Vec*);
+    PetscErrorCode WriteBIN(Vec);
 
-    PetscErrorCode ReadNetCDF(Vec, std::string);
-    PetscErrorCode ReadTimeSeriesNetCDF(Vec, std::string);
-    PetscErrorCode ReadBlockNetCDF(Vec, int*, std::string);
+    PetscErrorCode ReadNetCDF(Vec);
+    PetscErrorCode ReadTimeSeriesNetCDF(Vec);
+    PetscErrorCode ReadBlockNetCDF(Vec, int*);
 
-    PetscErrorCode WriteNetCDF(Vec, std::string);
-    PetscErrorCode WriteTimeSeriesNetCDF(Vec, std::string);
-    PetscErrorCode WriteBlockNetCDF(Vec, int*, std::string);
+    PetscErrorCode WriteNetCDF(Vec);
+    PetscErrorCode WriteTimeSeriesNetCDF(Vec);
+    PetscErrorCode WriteBlockNetCDF(Vec, int*);
 
 #ifdef REG_HAS_NIFTI
-    PetscErrorCode ReadNII(Vec*, std::string);
-    PetscErrorCode ReadNII(VecField*, std::string, std::string, std::string);
-    PetscErrorCode ReadNII(nifti_image*, std::string);
-    template <typename T> PetscErrorCode ReadNII(nifti_image*, std::string);
+    PetscErrorCode ReadNII(Vec*);
+    PetscErrorCode ReadNII(VecField*);
+    PetscErrorCode ReadNII(nifti_image*);
+    template <typename T> PetscErrorCode ReadNII(nifti_image*);
 
-    PetscErrorCode WriteNII(Vec, std::string);
-    PetscErrorCode WriteNII(nifti_image**, Vec, std::string);
-    template <typename T> PetscErrorCode WriteNII(nifti_image**, Vec, std::string);
+    PetscErrorCode WriteNII(Vec);
+    PetscErrorCode WriteNII(nifti_image**);
+    template <typename T> PetscErrorCode WriteNII(nifti_image**, Vec);
 
     PetscErrorCode GetComponentTypeNII(nifti_image*);;
     PetscErrorCode AllocateNII(nifti_image**, Vec);
@@ -113,6 +115,11 @@ class ReadWriteReg {
 
     ScalarType* m_Data;
     IntType m_nx[3];
+
+    std::string m_FileName;
+    std::string m_FileNameX1;
+    std::string m_FileNameX2;
+    std::string m_FileNameX3;
 };
 
 
