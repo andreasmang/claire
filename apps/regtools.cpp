@@ -34,6 +34,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt*);
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt*);
 PetscErrorCode ComputeGrad(reg::RegToolsOpt*);
 PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
+PetscErrorCode ComputeError(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
 PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
@@ -82,6 +83,8 @@ int main(int argc, char **argv) {
         ierr = SolveForwardProblem(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computeresidual) {
         ierr = ComputeResidual(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().computeerror) {
+        ierr = ComputeError(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computesynvel) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkfwdsolve) {
@@ -768,6 +771,82 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief compute error
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode ComputeError(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::string fn;
+    std::stringstream ss;
+    Vec mR = NULL, mT = NULL;
+    ScalarType value, minval, maxval, ell2norm, ell8norm;
+    reg::ReadWriteReg* readwrite = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    // allocate class for io
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read reference image
+    fn = regopt->GetScaFieldFN(2);
+    ierr = readwrite->Read(&mR, fn); CHKERRQ(ierr);
+    ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+    if (!regopt->SetupDone()) {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
+
+    // read template image
+    fn = regopt->GetScaFieldFN(3);
+    ierr = readwrite->Read(&mT, fn); CHKERRQ(ierr);
+    ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = VecNorm(mR, NORM_2, &ell2norm); CHKERRQ(ierr);
+    ell2norm = ell2norm <= 0.0 ? 1.0 : ell2norm;
+
+    ierr = VecNorm(mR, NORM_INFINITY, &ell8norm); CHKERRQ(ierr);
+    ell8norm = ell8norm <= 0.0 ? 1.0 : ell8norm;
+
+    ierr = VecMin(mR, NULL, &minval); CHKERRQ(ierr);
+    ierr = VecMax(mR, NULL, &maxval); CHKERRQ(ierr);
+    ss << std::scientific << "mr (min, max) = (" << minval << "," << maxval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecMin(mT, NULL, &minval); CHKERRQ(ierr);
+    ierr = VecMax(mT, NULL, &maxval); CHKERRQ(ierr);
+    ss << std::scientific << "mt (min, max) = (" << minval << "," << maxval << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecAXPY(mR, -1.0, mT); CHKERRQ(ierr);
+    ierr = VecNorm(mR, NORM_2, &value); CHKERRQ(ierr);
+    ss << std::scientific << "ell2-norm " << value/ell2norm << " (" << value << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecNorm(mR, NORM_INFINITY, &value); CHKERRQ(ierr);
+    ss << std::scientific << "ell8-norm " << value/ell8norm << " (" << value << ")";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
+
+    regopt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

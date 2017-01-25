@@ -181,8 +181,6 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.results = true;
         } else if (strcmp(argv[1], "-defgrad") == 0) {
             this->m_ReadWriteFlags.defgrad = true;
-        } else if (strcmp(argv[1], "-residual") == 0) {
-            this->m_RegToolFlags.computeresidual = true;
         } else if (strcmp(argv[1], "-detdefgrad") == 0) {
             this->m_ReadWriteFlags.detdefgrad = true;
         } else if (strcmp(argv[1], "-invdetdefgrad") == 0) {
@@ -196,6 +194,10 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.timeseries = true;
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
             this->m_RegFlags.detdefgradfromdeffield = true;
+        } else if (strcmp(argv[1], "-residual") == 0) {
+            this->m_RegToolFlags.computeresidual = true;
+        } else if (strcmp(argv[1], "-error") == 0) {
+            this->m_RegToolFlags.computeerror = true;
         } else if (strcmp(argv[1], "-grad") == 0) {
             this->m_RegToolFlags.computegrad = true;
         } else if (strcmp(argv[1], "-tscafield") == 0) {
@@ -337,6 +339,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.checkadjsolve = false;
     this->m_RegToolFlags.convert = false;
     this->m_RegToolFlags.checkdetdefgradsolve = false;
+    this->m_RegToolFlags.computeerror = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
@@ -406,6 +409,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -tscafield                transport scalar field (input: velocity field and scalar field)"<<std::endl;
         std::cout << " -tlabelmap                transport label map (input: velocity field and scalar field)"<<std::endl;
         std::cout << " -residual                 compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
+        std::cout << " -error                    compute error between scalar fields ('-mr' and '-mt' options)"<<std::endl;
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << " -grad                     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
@@ -710,6 +714,15 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             extension = this->m_ReadWriteFlags.extension;
         }
         this->m_xScaFieldFN = path + "/" + filename + "-transported" + extension;
+    }
+
+    if (this->m_RegToolFlags.computeerror) {
+        // transport scalar field
+        if ( this->m_TFN.empty() || this->m_RFN.empty() ) {
+            msg = "\x1b[31m reference and template images need to be set\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
     }
 
     if (this->m_RegToolFlags.computeresidual) {

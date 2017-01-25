@@ -48,6 +48,7 @@ struct RegToolFlags {
     bool computegrad;          ///< compute gradient of scalar field
     bool computesynvel;        ///< compute synthetic velocity field
     bool computeresidual;      ///< compute residual between two images
+    bool computeerror;         ///< compute difference / error between two scalar fields
     bool tscafield;            ///< transport scalar field (forward problem)
     bool tlabelmap;            ///< transport label map (solve forward problem)
     bool convert;              ///< convert image data
