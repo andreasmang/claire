@@ -57,7 +57,7 @@ class ReadWriteReg {
 
     PetscErrorCode Write(Vec, std::string, bool multicomponent = false);
     PetscErrorCode WriteMC(Vec, std::string);
-    PetscErrorCode Write(VecField*, std::string, std::string, std::string);
+    PetscErrorCode Write(VecField*, std::string);
 
  private:
     PetscErrorCode Initialize();

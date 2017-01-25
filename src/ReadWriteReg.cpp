@@ -226,6 +226,9 @@ PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(!fnx1.empty(), "filename not set"); CHKERRQ(ierr);
+    ierr = Assert(!fnx2.empty(), "filename not set"); CHKERRQ(ierr);
+    ierr = Assert(!fnx3.empty(), "filename not set"); CHKERRQ(ierr);
 
     ierr = this->Read(&v->m_X1, fnx1); CHKERRQ(ierr);
     ierr = this->Read(&v->m_X2, fnx2); CHKERRQ(ierr);
@@ -368,20 +371,21 @@ PetscErrorCode ReadWriteReg::Write(Vec x) {
 /********************************************************************
  * @brief write data to file
  *******************************************************************/
-PetscErrorCode ReadWriteReg::Write(VecField* v,
-                                   std::string fnx1,
-                                   std::string fnx2,
-                                   std::string fnx3) {
+PetscErrorCode ReadWriteReg::Write(VecField* v, std::string filename) {
     PetscErrorCode ierr = 0;
-
+    std::string fnx1, fnx2, fnx3, path, file, ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-    ierr = Assert(!fnx1.empty(), "filename not set"); CHKERRQ(ierr);
-    ierr = Assert(!fnx2.empty(), "filename not set"); CHKERRQ(ierr);
-    ierr = Assert(!fnx3.empty(), "filename not set"); CHKERRQ(ierr);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
+
+    ierr = GetFileName(path, file, ext, filename); CHKERRQ(ierr);
+    fnx1 = path + file + "-x1" + ext;
+    fnx2 = path + file + "-x2" + ext;
+    fnx3 = path + file + "-x3" + ext;
+
     ierr = this->Write(v->m_X1, fnx1); CHKERRQ(ierr);
     ierr = this->Write(v->m_X2, fnx2); CHKERRQ(ierr);
     ierr = this->Write(v->m_X3, fnx3); CHKERRQ(ierr);
