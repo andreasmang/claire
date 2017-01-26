@@ -124,9 +124,7 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
                 i = GetLinearIndex(i1, i2, i3, isize);
 
                 if (id == 0) {
-                    s1 = sin(x1);
-                    s2 = sin(x2);
-                    s3 = sin(x3);
+                    s1 = sin(x1); s2 = sin(x2); s3 = sin(x3);
                     value = (s1*s1 + s2*s2 + s3*s3)/3.0;
                 } else if (id == 1) {
                    // first derivative of id 0 with respect to x1
@@ -169,12 +167,21 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
                 } else if (id == 8) {
                     value  = 0.5 + 0.5*sin(x1)*sin(x2)*sin(x3);
                 } else if (id == 9) {
+                    value  = 0.5 + 0.5*sin(x2)*sin(x1)*sin(x3);
+                } else if (id == 10) {
                     value = sin(2.0*x1)*sin(2.0*x2)*sin(2.0*x3);
                     value *= value;
+                } else if (id == 11) {
+                    value = cos(2.0*x1)*cos(2.0*x2)*cos(2.0*x3);
+                    value *= value;
+                } else if (id == 12) {
+                    y = (x1-PETSC_PI)*(x1-PETSC_PI)
+                      + (x2-PETSC_PI)*(x2-PETSC_PI)
+                      + (x3-PETSC_PI)*(x3-PETSC_PI);
+                    value = exp(-y)/(2.0*0.5);
                 } else {
                     value = 0.0;
                 }
-
                 p_m[i] = value;
             }  // i1
         }  // i2
@@ -260,6 +267,14 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
                     p_vx1[i] = v0;
                     p_vx2[i] = v0;
                     p_vx3[i] = v0;
+                } else if (id == 5) {
+                    p_vx1[i] = 0.5*sin(x1)*cos(x2);
+                    p_vx2[i] = 0.5*sin(x2)*cos(x1);
+                    p_vx3[i] = 0.5*cos(x1)*sin(x3);
+                } else if (id == 6) {
+                    p_vx1[i] = sin(2.0*x2)*cos(2.0*x1);
+                    p_vx2[i] = sin(2.0*x2)*cos(2.0*x1);
+                    p_vx3[i] = cos(2.0*x1)*sin(2.0*x3);
                 }
             }  // i1
         }  // i2

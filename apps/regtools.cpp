@@ -1080,15 +1080,34 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     // allocate the data
     if (m0 == NULL) {
         ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
-        //ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
-        ierr = synprob->ComputeSmoothScalarField(m0, 10); CHKERRQ(ierr);
+        if (regopt->GetFlags().problemid == 0) {
+            ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+        } else if (regopt->GetFlags().problemid == 1) {
+            ierr = synprob->ComputeSmoothScalarField(m0, 8); CHKERRQ(ierr);
+        } else if (regopt->GetFlags().problemid == 2) {
+            ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+        } else if (regopt->GetFlags().problemid == 3) {
+            ierr = synprob->ComputeSmoothScalarField(m0, 11); CHKERRQ(ierr);
+        } else {
+            ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+        }
     }
 
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
     ierr = reg::VecCreate(m0tilde, nc*nl, nc*ng); CHKERRQ(ierr);
 
     // set up smooth problem
-    ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    if (regopt->GetFlags().problemid == 0) {
+        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 1) {
+        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 2) {
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 3) {
+        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
+    } else {
+        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+    }
 
     // set initial guess and solve forward problem
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
@@ -1099,9 +1118,10 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
 
     if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(m0, "initial-condition" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-        ierr = readwrite->Write(m1, "final-condition" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-        ierr = readwrite->Write(m0tilde, "backward-solve" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+        ierr = readwrite->Write(m0, "m0" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+        ierr = readwrite->Write(m1, "m1" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+        ierr = readwrite->Write(m0tilde, "m0tilde" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+        ierr = readwrite->Write(v, "velocity-field" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
     }
     ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
     ierr = VecMax(m0, NULL, &maxval); CHKERRQ(ierr);

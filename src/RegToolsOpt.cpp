@@ -124,6 +124,13 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-adapttimestep") == 0) {
+            this->m_PDESolver.adapttimestep = true;
+        } else if (strcmp(argv[1], "-cflnumber") == 0) {
+            argc--; argv++;
+            this->m_PDESolver.cflnumber = atof(argv[1]);
+        } else if (strcmp(argv[1], "-monitorcflnumber") == 0) {
+            this->m_PDESolver.monitorcflnumber = true;
         } else if (strcmp(argv[1], "-sigma") == 0) {
             argc--; argv++;
             const std::string sigmainput = argv[1];
@@ -233,6 +240,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.checkadjsolve = true;
         } else if (strcmp(argv[1], "-checkdetdefgradsolve") == 0) {
             this->m_RegToolFlags.checkdetdefgradsolve = true;
+        } else if (strcmp(argv[1], "-problemid") == 0) {
+            argc--; argv++;
+            this->m_RegToolFlags.problemid = atoi(argv[1]);
         } else if (strcmp(argv[1], "-rscale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
@@ -340,6 +350,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.convert = false;
     this->m_RegToolFlags.checkdetdefgradsolve = false;
     this->m_RegToolFlags.computeerror = false;
+    this->m_RegToolFlags.problemid = 0;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;

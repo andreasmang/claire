@@ -37,22 +37,23 @@ struct ResamplingPara {
 
 
 struct RegToolFlags {
-    bool computesynprob;       ///< compute synthetic test problem
-    bool checkfwdsolve;        ///< perform test for forward solve
-    bool checkadjsolve;        ///< perform test for adjoint solve
-    bool checkdetdefgradsolve; ///< perform test for computation of jacobian
-    bool readvecfield;         ///< read vector field
-    bool resample;             ///< resample scalar / vector field
-    bool readscafield;         ///< read scalar field
-    bool computedeffields;     ///< compute deformation fields (deformation gradient, displacement field, ...)
-    bool computegrad;          ///< compute gradient of scalar field
-    bool computesynvel;        ///< compute synthetic velocity field
-    bool computeresidual;      ///< compute residual between two images
-    bool computeerror;         ///< compute difference / error between two scalar fields
-    bool tscafield;            ///< transport scalar field (forward problem)
-    bool tlabelmap;            ///< transport label map (solve forward problem)
-    bool convert;              ///< convert image data
-    bool applysmoothing;       ///< convert image data
+    bool computesynprob;        ///< compute synthetic test problem
+    bool checkfwdsolve;         ///< perform test for forward solve
+    bool checkadjsolve;         ///< perform test for adjoint solve
+    bool checkdetdefgradsolve;  ///< perform test for computation of jacobian
+    bool readvecfield;          ///< read vector field
+    bool resample;              ///< resample scalar / vector field
+    bool readscafield;          ///< read scalar field
+    bool computedeffields;      ///< compute deformation fields (deformation gradient, displacement field, ...)
+    bool computegrad;           ///< compute gradient of scalar field
+    bool computesynvel;         ///< compute synthetic velocity field
+    bool computeresidual;       ///< compute residual between two images
+    bool computeerror;          ///< compute difference / error between two scalar fields
+    bool tscafield;             ///< transport scalar field (forward problem)
+    bool tlabelmap;             ///< transport label map (solve forward problem)
+    bool convert;               ///< convert image data
+    bool applysmoothing;        ///< convert image data
+    int problemid;
 };
 
 
