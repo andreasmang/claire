@@ -114,22 +114,8 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
     PetscFunctionBegin;
 
     // delete all variables
-    if (this->m_StateVariable != NULL) {
-        ierr = VecDestroy(&this->m_StateVariable); CHKERRQ(ierr);
-        this->m_StateVariable = NULL;
-    }
-    if (this->m_AdjointVariable != NULL) {
-        ierr = VecDestroy(&this->m_AdjointVariable); CHKERRQ(ierr);
-        this->m_AdjointVariable = NULL;
-    }
-    if (this->m_IncStateVariable != NULL) {
-        ierr = VecDestroy(&this->m_IncStateVariable); CHKERRQ(ierr);
-        this->m_IncStateVariable = NULL;
-    }
-    if (this->m_IncAdjointVariable != NULL) {
-        ierr = VecDestroy(&this->m_IncAdjointVariable); CHKERRQ(ierr);
-        this->m_IncAdjointVariable = NULL;
-    }
+    ierr = this->ClearVariables(); CHKERRQ(ierr);
+
     if (this->m_VelocityField != NULL) {
         delete this->m_VelocityField;
         this->m_VelocityField = NULL;
@@ -196,6 +182,36 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
     PetscFunctionReturn(ierr);
 }
 
+
+
+
+/********************************************************************
+ * @brief clean up
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    // delete all variables
+    if (this->m_StateVariable != NULL) {
+        ierr = VecDestroy(&this->m_StateVariable); CHKERRQ(ierr);
+        this->m_StateVariable = NULL;
+    }
+    if (this->m_AdjointVariable != NULL) {
+        ierr = VecDestroy(&this->m_AdjointVariable); CHKERRQ(ierr);
+        this->m_AdjointVariable = NULL;
+    }
+    if (this->m_IncStateVariable != NULL) {
+        ierr = VecDestroy(&this->m_IncStateVariable); CHKERRQ(ierr);
+        this->m_IncStateVariable = NULL;
+    }
+    if (this->m_IncAdjointVariable != NULL) {
+        ierr = VecDestroy(&this->m_IncAdjointVariable); CHKERRQ(ierr);
+        this->m_IncAdjointVariable = NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+}
 
 
 
@@ -481,7 +497,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
 
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
-    if (this->m_Opt->GetPDESolver().type == SL) {
+    if (this->m_Opt->GetPDESolverPara().type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -558,7 +574,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
 
     ierr = VecCopy(lambda, this->m_AdjointVariable); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetPDESolver().type == SL) {
+    if (this->m_Opt->GetPDESolverPara().type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -1526,6 +1542,12 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
 
+    // check cfl condition / update time step
+    if (this->m_Opt->GetPDESolverPara().monitorcflnumber ||
+        this->m_Opt->GetPDESolverPara().adapttimestep) {
+        ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
+    }
+
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nl;
@@ -1541,10 +1563,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
            <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
-    }
-
-    if (this->m_Opt->GetRegMonitor().CFL) {
-        ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
     }
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
@@ -1571,7 +1589,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
         // call the solver
-        switch (this->m_Opt->GetPDESolver().type) {
+        switch (this->m_Opt->GetPDESolverPara().type) {
             case RK2:
             {
                 ierr = this->SolveStateEquationRK2(); CHKERRQ(ierr);
@@ -1874,7 +1892,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     } else {
         // call the solver
-        switch (this->m_Opt->GetPDESolver().type) {
+        switch (this->m_Opt->GetPDESolverPara().type) {
             case RK2:
             {
                 ierr = this->SolveAdjointEquationRK2(); CHKERRQ(ierr);
@@ -2165,7 +2183,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     ierr = VecSet(this->m_IncStateVariable, 0.0); CHKERRQ(ierr);
 
     // call the solver
-    switch (this->m_Opt->GetPDESolver().type) {
+    switch (this->m_Opt->GetPDESolverPara().type) {
         case RK2:
         {
             ierr = this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
@@ -2557,7 +2575,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
             ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
         } else {
             // call the solver
-            switch (this->m_Opt->GetPDESolver().type) {
+            switch (this->m_Opt->GetPDESolverPara().type) {
                 case RK2:
                 {
                     ierr = this->SolveIncAdjointEquationGNRK2(); CHKERRQ(ierr);
@@ -2577,7 +2595,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
         }  // zero velocity field
     } else if (this->m_Opt->GetOptPara().method == FULLNEWTON) {   // full newton
         // call the solver
-        switch (this->m_Opt->GetPDESolver().type) {
+        switch (this->m_Opt->GetPDESolverPara().type) {
             case RK2:
             {
                 ierr = ThrowError("not tested"); CHKERRQ(ierr);

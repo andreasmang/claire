@@ -161,6 +161,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode Initialize(void);
     PetscErrorCode ComputeInitialGuess(void);
     PetscErrorCode ClearMemory(void);
+    virtual PetscErrorCode ClearVariables(void) = 0;
     PetscErrorCode CopyToAllTimePoints(Vec, Vec);
     PetscErrorCode IsVelocityZero(void);
 

@@ -106,7 +106,11 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];
 
-    this->m_PDESolver = opt.m_PDESolver;
+    this->m_PDESolver.type = opt.m_PDESolver.type;
+    this->m_PDESolver.order = opt.m_PDESolver.order;
+    this->m_PDESolver.cflnumber = opt.m_PDESolver.cflnumber;
+    this->m_PDESolver.monitorcflnumber = opt.m_PDESolver.monitorcflnumber;
+    this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
     this->m_RegModel = opt.m_RegModel;
 
     // smoothing
@@ -195,7 +199,6 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     // monitor for registration
     this->m_RegMonitor.JAC = opt.m_RegMonitor.JAC;
-    this->m_RegMonitor.CFL = opt.m_RegMonitor.CFL;
     this->m_RegMonitor.jacmin = opt.m_RegMonitor.jacmin;
     this->m_RegMonitor.jacmax = opt.m_RegMonitor.jacmax;
     this->m_RegMonitor.jacmean = opt.m_RegMonitor.jacmean;
@@ -562,6 +565,13 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-cflnumber") == 0) {
+            argc--; argv++;
+            this->m_PDESolver.cflnumber = atof(argv[1]);
+        } else if (strcmp(argv[1], "-monitorcflnumber") == 0) {
+            this->m_PDESolver.monitorcflnumber = true;
+        } else if (strcmp(argv[1], "-adapttimestep") == 0) {
+            this->m_PDESolver.adapttimestep = true;
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
             this->m_KrylovSolverPara.hessshift = atof(argv[1]);
@@ -878,7 +888,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Verbosity = 0;
 
     this->m_PDESolver.type = SL;
-    this->m_PDESolver.cflnumber = 0;
+    this->m_PDESolver.cflnumber = 0.5;
+    this->m_PDESolver.monitorcflnumber = false;
+    this->m_PDESolver.adapttimestep = false;
     this->m_PDESolver.order = 2;
 
     // smoothing
@@ -986,7 +998,6 @@ PetscErrorCode RegOpt::Initialize() {
 
     // monitor for registration
     this->m_RegMonitor.JAC = false;
-    this->m_RegMonitor.CFL = false;
     this->m_RegMonitor.jacmin = 0.0;
     this->m_RegMonitor.jacmax = 0.0;
     this->m_RegMonitor.jacmean = 0.0;

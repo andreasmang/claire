@@ -1,5 +1,4 @@
-/*************************************************************************
- *  Copyright (c) 2016.
+/************************************************************************* *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -304,7 +303,6 @@ struct GridCont{
 /* parameters for parameter continuation */
 struct RegMonitor{
     bool JAC;               ///< flag to monitor jacobian during iterations
-    bool CFL;               ///< flag to monitor CFL condition during iterations
     ScalarType jacmin;      ///< min value of jacobian
     ScalarType jacmax;      ///< max value of jacobian
     ScalarType jacmean;     ///< mean value of jacobian
@@ -339,7 +337,9 @@ struct RegFlags{
 struct PDESolver{
     PDESolverType type;
     int order;
-    int cflnumber;
+    ScalarType cflnumber;
+    bool monitorcflnumber;
+    bool adapttimestep;
 };
 
 
@@ -425,7 +425,9 @@ class RegOpt {
     PetscErrorCode GetSizes(IntType*, IntType*, IntType*);
 
     // time horizon, step size, and ....
-    inline void SetNumTimePoints(IntType nt) {this->m_Domain.nt = nt;}
+    inline void SetNumTimePoints(IntType nt) {
+            this->m_Domain.nt = nt;
+    }
     inline ScalarType GetTimeStepSize(void) {
         return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
@@ -454,11 +456,11 @@ class RegOpt {
     inline void SetSigma(int i, ScalarType sigma) {this->m_Sigma[i] = sigma;}
 
     // solver flags
-    inline PDESolver GetPDESolver(void) {
+    inline PDESolver GetPDESolverPara(void) {
         return this->m_PDESolver;
     }
-    inline void SetPDESolver(PDESolver flag) {
-        this->m_PDESolver = flag;
+    inline void SetPDESolverType(PDESolverType flag) {
+        this->m_PDESolver.type = flag;
     }
     inline KrylovSolver GetKrylovSolverPara() {
         return this->m_KrylovSolverPara;

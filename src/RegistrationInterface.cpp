@@ -1373,7 +1373,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
          ss.str(std::string()); ss.clear();
 
         solve = true;
-        if (this->m_Opt->GetPDESolver().type == SL) {
+        if (this->m_Opt->GetPDESolverPara().type == SL) {
             if (isize[0] < 6 || isize[1] < 6) solve = false;
         }
 

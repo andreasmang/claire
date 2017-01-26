@@ -94,6 +94,9 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 
+    /*! delete / reset variables */
+    PetscErrorCode ClearVariables(void);
+
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
 
