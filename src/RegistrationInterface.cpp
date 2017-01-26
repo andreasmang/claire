@@ -369,17 +369,16 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     }
 
     // set up initial condition
-    if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = DbgMsg(" >> allocation of solution vector"); CHKERRQ(ierr);
+    if (this->m_Solution == NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg(" >> allocation of solution vector"); CHKERRQ(ierr);
+        }
+        try {this->m_Solution = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
     }
-    if (this->m_Solution != NULL) {
-        delete this->m_Solution; this->m_Solution = NULL;
-    }
-    try {this->m_Solution = new VecField(this->m_Opt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
