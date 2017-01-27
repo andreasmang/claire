@@ -1301,12 +1301,12 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
     } else if (regopt->GetFlags().problemid == 1) {
         ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
     } else if (regopt->GetFlags().problemid == 2) {
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 3) {
         ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
     } else {
         ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
     }
-
-    ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
     ierr = registration->ComputeDetDefGrad(detj); CHKERRQ(ierr);
 
