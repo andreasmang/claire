@@ -360,7 +360,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
 PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m1 = NULL, *p_m = NULL;
-    IntType nt, nl, nc, ng;
+    IntType nt, nl, nc;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -369,28 +369,19 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
 
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // set initial condition
     this->m_TemplateImage = m0;
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
-
-    // allocate state and adjoint variables
-    if (this->m_StateVariable == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << "allocating state variable: (nt+1,nl,ng,nc) = ("
-               << nt+1 << "," << nl << "," <<  ng << "," << nc << "); "
-                << (nt+1)*nl*nc << "; " << (nt+1)*ng*nc;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str(std::string()); ss.clear();
-        }
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
-    }
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
 
-    // copy memory for m_1
+    // get sizes
+    nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->GetDomainPara().nc;
+    nl = this->m_Opt->GetDomainPara().nl;
+
+    // copy m(t=1) to m_1
     ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
@@ -1811,7 +1802,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             l = j*nl*nc + k*nl;
             lnext = (j+1)*nl*nc + k*nl;
-
             // compute m(X,t^{j+1}) (interpolate state variable)
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_m+lnext, p_m+l, "state"); CHKERRQ(ierr);
         }

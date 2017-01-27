@@ -1037,8 +1037,6 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
 
     regopt->Enter(__func__);
 
-    nc = 1;
-
     try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1054,8 +1052,6 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
 
-    regopt->SetNumImageComponents(nc);
-    regopt->DisableSmoothing();
 
     nc = regopt->GetDomainPara().nc;
     nl = regopt->GetDomainPara().nl;
@@ -1108,6 +1104,9 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     } else {
         ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
     }
+
+    // make sure we do not apply any smoothing
+    regopt->DisableSmoothing();
 
     // set initial guess and solve forward problem
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
@@ -1295,6 +1294,17 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
 
     ierr = reg::VecCreate(detj, nl, ng); CHKERRQ(ierr);
     ierr = reg::VecCreate(invdetj, nl, ng); CHKERRQ(ierr);
+
+    // set up smooth problem
+    if (regopt->GetFlags().problemid == 0) {
+        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 1) {
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 2) {
+        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
+    } else {
+        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+    }
 
     ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
