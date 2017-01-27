@@ -1119,6 +1119,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
+    // check cfl condition / update time step
+    if (this->m_Opt->GetPDESolverPara().adapttimestep) {
+        ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
+    }
+
     // set initial condition
     if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
