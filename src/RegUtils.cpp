@@ -270,7 +270,7 @@ PetscErrorCode NCERRQ(int cerr) {
 /********************************************************************
  * @brief function to slow down code
  ********************************************************************/
-void isleep( unsigned int nanosec ) {
+void isleep(unsigned int nanosec) {
     clock_t wait = (clock_t) nanosec;
     clock_t start_time = clock();
     while( clock() != start_time + wait ) {};

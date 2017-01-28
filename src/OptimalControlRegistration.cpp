@@ -707,6 +707,11 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // add up the contributions
     *J = hd*(D + R);
 
+    // store for access
+    this->m_Opt->SetJVal(*J);
+    this->m_Opt->SetDVal(hd*D);
+    this->m_Opt->SetRVal(hd*R);
+
     // stop timer
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
 

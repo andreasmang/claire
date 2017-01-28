@@ -1065,13 +1065,13 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     if (this->m_Opt->GetVerbosity() > 1) {
         if (minboundreached) {
             ss << std::scientific
-            << "min(det(grad(y))) = "<< jmin << " <= " << jbound;
+            << "min(det(grad(y^{-1}))) = "<< jmin << " <= " << jbound;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
         if (maxboundreached) {
             ss << std::scientific
-            << "max(det(grad(y))) = "<< jmax << " >= " << 1.0/jbound
+            << "max(det(grad(y^{-1}))) = "<< jmax << " >= " << 1.0/jbound
             << " ( = 1/bound )";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
@@ -1102,9 +1102,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     if (this->m_Opt->GetVerbosity() > 2) {
         if (this->m_Opt->GetRegFlags().invdefgrad) {
-            ierr = DbgMsg("computing inverse determinant of deformation gradient"); CHKERRQ(ierr);
+            ierr = DbgMsg("computing det(grad(y))"); CHKERRQ(ierr);
         } else {
-            ierr = DbgMsg("computing determinant of deformation gradient"); CHKERRQ(ierr);
+            ierr = DbgMsg("computing det(grad(y^{-1}))"); CHKERRQ(ierr);
         }
     }
 
@@ -2004,7 +2004,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 /********************************************************************
  * @brief compute deformation map
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2file) {
+PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2file, VecField* y) {
     PetscErrorCode ierr = 0;
     std::string ext;
     PetscFunctionBegin;
@@ -2033,7 +2033,22 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         }
         case SL:
         {
-            ierr = this->ComputeDeformationMapSL(); CHKERRQ(ierr);
+            switch (this->m_Opt->GetPDESolverPara().order) {
+                case 2:
+                {
+                    ierr = this->ComputeDeformationMapSLRK2(); CHKERRQ(ierr);
+                    break;
+                }
+                case 4:
+                {
+                    ierr = this->ComputeDeformationMapSLRK4(); CHKERRQ(ierr);
+                    break;
+                }
+                default:
+                {
+                    ierr = ThrowError("order not available"); CHKERRQ(ierr);
+                }
+            }
             break;
         }
         default:
@@ -2046,6 +2061,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
     if (write2file) {
         ext = this->m_Opt->GetReadWriteFlags().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "deformation-map"+ext); CHKERRQ(ierr);
+    }
+
+    if (y != NULL) {
+        ierr = y->Copy(this->m_WorkVecField1); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -2244,42 +2263,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
 
 
 /********************************************************************
- * @brief compute deformation map
- *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSL() {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
-    switch (this->m_Opt->GetPDESolverPara().order) {
-        case 2:
-        {
-            ierr = this->ComputeDeformationMapSLRK2(); CHKERRQ(ierr);
-            break;
-        }
-        case 4:
-        {
-            ierr = this->ComputeDeformationMapSLRK4(); CHKERRQ(ierr);
-            break;
-        }
-        default:
-        {
-            ierr = ThrowError("order not available"); CHKERRQ(ierr);
-        }
-    }
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
  * @brief compute deformation map if we consider a semi-lagrangian
  * time integrator; the scheme is full lagrangian; we use an
  * rk2 scheme to compute the characteristic;
@@ -2311,19 +2294,19 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_WorkVecField2==NULL) {
+    if (this->m_WorkVecField2 == NULL) {
         try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_WorkVecField3==NULL) {
+    if (this->m_WorkVecField3 == NULL) {
         try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_WorkVecField4==NULL) {
+    if (this->m_WorkVecField4 == NULL) {
         try{this->m_WorkVecField4 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -2480,8 +2463,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     std::string ext;
-    IntType nl,nt;
-    ScalarType hx[3],ht,hthalf,htby6;
+    IntType nl, nt;
+    ScalarType hx[3], ht, hthalf, htby6;
     ScalarType *p_y1 = NULL, *p_y2 = NULL, *p_y3 = NULL,
                 *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_vy1 = NULL, *p_vy2 = NULL, *p_vy3 = NULL,
@@ -2523,8 +2506,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     }
 
     // allocate semi-lagrangian solver
-    if(this->m_SemiLagrangianMethod == NULL) {
-        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+    if (this->m_SemiLagrangianMethod == NULL) {
+        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -2560,19 +2543,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries ) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // write out y1
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1" << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
-
-        ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2" << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
-
-        ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3" << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
     }
 
     nt = this->m_Opt->GetDomainPara().nt;
@@ -2591,7 +2564,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
-
         // evaluate right hand side v(y) (i.e., F0)
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
                                                          p_y1, p_y2, p_y3); CHKERRQ(ierr);
@@ -2669,24 +2641,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // store time series
-        if (this->m_Opt->GetReadWriteFlags().timeseries ) {
+        if (this->m_Opt->GetReadWriteFlags().timeseries) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-
-            // write out y1
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1" << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
-
-            ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2" << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
-
-            ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3" << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
-
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
+            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
         }
     }  // for all time points

@@ -100,7 +100,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode ComputeDetDefGrad(bool write2file = false, Vec detj = NULL);
 
     /*! compute deformation map */
-    PetscErrorCode ComputeDeformationMap(bool write2file = false);
+    PetscErrorCode ComputeDeformationMap(bool write2file = false, VecField* y = NULL);
 
     /*! compute displacement field */
     PetscErrorCode ComputeDisplacementField(bool write2file = false);
@@ -174,7 +174,6 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode ComputeDetDefGradRK2A();             ///< implemented via RK2 time integrator (assymetric form)
     PetscErrorCode ComputeDetDefGradViaDispField();     ///< implemented via RK2 time integrator (asymetric form)
 
-    PetscErrorCode ComputeDeformationMapSL();           ///< implementation via SL time integrator (full lagrangian)
     PetscErrorCode ComputeDeformationMapSLRK2();        ///< implementation via SL time integrator using RK2
     PetscErrorCode ComputeDeformationMapSLRK4();        ///< implementation via SL time integrator using RK4
     PetscErrorCode ComputeDeformationMapRK2();          ///< implementation via RK2 time integrator

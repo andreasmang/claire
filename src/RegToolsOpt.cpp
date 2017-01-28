@@ -443,6 +443,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << "                               sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
         std::cout << "                               rk2          rk2 time integrator (conditionally stable)"<<std::endl;
         std::cout << " -nt <int>                 number of time points (for time integration; default: 4)"<<std::endl;
+        std::cout << " -adapttimestep            vary number of time steps according to defined number"<<std::endl;
+        std::cout << " -cflnumber <dbl>          set cfl number"<<std::endl;
         }
         // ####################### advanced options #######################
         std::cout << line << std::endl;

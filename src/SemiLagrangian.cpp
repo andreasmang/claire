@@ -172,7 +172,8 @@ PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* rw) {
 
 
 /********************************************************************
- * @brief compute the trajectory from the velocity field
+ * @brief compute the trajectory from the velocity field based
+ * on an rk2 scheme
  *******************************************************************/
 PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
@@ -232,7 +233,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
-
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
 
@@ -244,7 +244,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 X[l*3+0] = x1 - ht*p_v1[l];
                 X[l*3+1] = x2 - ht*p_v2[l];
                 X[l*3+2] = x3 - ht*p_v3[l];
-
             }  // i1
         }  // i2
     }  // i3
@@ -678,6 +677,8 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     // get sizes
     nl = static_cast<int>(this->m_Opt->GetDomainPara().nl);
 
+    ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
+
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
         isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
@@ -688,18 +689,21 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     if (strcmp(flag.c_str(),"state") == 0) {
-        // characteristic for state equation should
-        // have been computed already
-        ierr =Assert(this->m_XS != NULL, "null pointer"); CHKERRQ(ierr);
+        // characteristic for state equation should have been computed already
+        ierr = Assert(this->m_XS != NULL, "null pointer"); CHKERRQ(ierr);
 
         // create planer
         if (this->m_StatePlan == NULL) {
-            try{ this->m_StatePlan = new Interp3_Plan; }
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("allocating interpolation plan for state equations (scalar)"); CHKERRQ(ierr);
+            }
+            try {this->m_StatePlan = new Interp3_Plan;}
             catch (std::bad_alloc&) {
-                ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
             this->m_StatePlan->allocate(nl, 1);
         }
+
         // scatter
         this->m_StatePlan->scatter(1, nx, isize, istart, nl,
                                    this->m_GhostSize, this->m_XS, c_dims,
@@ -707,25 +711,31 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
 
         // create planer
         if (this->m_StatePlanVec == NULL) {
-            try{ this->m_StatePlanVec = new Interp3_Plan; }
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("allocating interpolation plan for state equations (vector)"); CHKERRQ(ierr);
+            }
+            try {this->m_StatePlanVec = new Interp3_Plan;}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            this->m_StatePlanVec->allocate(nl,3);
+            this->m_StatePlanVec->allocate(nl, 3);
         }
+
         // scatter
         this->m_StatePlanVec->scatter(3, nx, isize, istart, nl,
                                       this->m_GhostSize, this->m_XS, c_dims,
                                       this->m_Opt->GetFFT().mpicomm, timers);
-
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         // characteristic for adjoint equation should
         // have been computed already
-        ierr =Assert(this->m_XA != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_XA != NULL, "null pointer"); CHKERRQ(ierr);
 
         // create planer
         if (this->m_AdjointPlan == NULL) {
-            try{ this->m_AdjointPlan = new Interp3_Plan; }
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("allocating interpolation plan for adjoint equations (scalar)"); CHKERRQ(ierr);
+            }
+            try {this->m_AdjointPlan = new Interp3_Plan;}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -739,7 +749,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
 
         // create planer
         if (this->m_AdjointPlanVec == NULL) {
-            try{ this->m_AdjointPlanVec = new Interp3_Plan; }
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("allocating interpolation plan for adjoint equations (vector)"); CHKERRQ(ierr);
+            }
+            try {this->m_AdjointPlanVec = new Interp3_Plan;}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }

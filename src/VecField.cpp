@@ -223,7 +223,7 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
 
 
 /********************************************************************
- * @brief Copy
+ * @brief copy input vector field
  *******************************************************************/
 PetscErrorCode VecField::Copy(VecField* v) {
     PetscErrorCode ierr = 0;

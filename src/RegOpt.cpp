@@ -203,6 +203,9 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegMonitor.jacmax = opt.m_RegMonitor.jacmax;
     this->m_RegMonitor.jacmean = opt.m_RegMonitor.jacmean;
     this->m_RegMonitor.jacbound = opt.m_RegMonitor.jacbound;
+    this->m_RegMonitor.jval = 0;
+    this->m_RegMonitor.dval = 0;
+    this->m_RegMonitor.rval = 0;
 
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = opt.m_Log.enabled[i];
@@ -1003,6 +1006,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegMonitor.jacmean = 0.0;
     this->m_RegMonitor.jacbound = 2E-1;
     this->m_RegMonitor.boundreached = 2E-1;
+    this->m_RegMonitor.jval = 0.0;
+    this->m_RegMonitor.dval = 0.0;
+    this->m_RegMonitor.rval = 0.0;
 
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;

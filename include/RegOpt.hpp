@@ -220,7 +220,7 @@ struct Optimization {
     int minit;                  ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];          ///< tolerances for optimization
     OptMeth method;             ///< optimization method
-    StopCondType stopcond;             ///< optimization method
+    StopCondType stopcond;      ///< optimization method
     bool fastpresolve;          ///< flag to switch on fast presolve
     bool fastsolve;             ///< flag to switch on fast (inaccurate) solve
     ScalarType presolvetol[3];  ///< tolerances for presolve
@@ -308,6 +308,9 @@ struct RegMonitor{
     ScalarType jacmean;     ///< mean value of jacobian
     ScalarType jacbound;    ///< lower bound for jacobian
     bool boundreached;
+    ScalarType jval;  ///< value of objective functional
+    ScalarType dval;  ///< value of distance measure
+    ScalarType rval;  ///< value of regularization functional
 };
 
 
@@ -400,6 +403,10 @@ class RegOpt {
     inline void JacBoundReached(bool flag) {this->m_RegMonitor.boundreached = flag;}
     inline bool JacBoundReached() {return this->m_RegMonitor.boundreached;}
 
+    inline void SetJVal(ScalarType value){this->m_RegMonitor.jval = value;}
+    inline void SetRVal(ScalarType value){this->m_RegMonitor.rval = value;}
+    inline void SetDVal(ScalarType value){this->m_RegMonitor.dval = value;}
+
     inline Optimization GetOptPara() {return this->m_OptPara;}
     inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
 
@@ -432,7 +439,9 @@ class RegOpt {
         return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
     }
-    inline void SetNumImageComponents(IntType n) {this->m_Domain.nc = n;}
+    inline void SetNumImageComponents(IntType n) {
+        this->m_Domain.nc = n;
+    }
 
     inline ReadWriteFlags GetReadWriteFlags() {return this->m_ReadWriteFlags;}
     inline RegModel GetRegModel(void) {return this->m_RegModel;}
