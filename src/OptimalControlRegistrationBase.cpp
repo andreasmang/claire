@@ -2126,7 +2126,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         ierr = DbgMsg("computing deformation map"); CHKERRQ(ierr);
     }
 
-    if (y = NULL) {
+    if (y == NULL) {
         // compute initial condition
         ierr = this->ComputeRegularGrid(this->m_WorkVecField1); CHKERRQ(ierr);
     } else {
