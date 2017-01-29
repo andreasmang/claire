@@ -102,6 +102,9 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! compute deformation map */
     PetscErrorCode ComputeDeformationMap(bool write2file = false, VecField* y = NULL);
 
+    /*! check deformation map computation */
+    PetscErrorCode CheckDefMapConsistency();
+
     /*! compute displacement field */
     PetscErrorCode ComputeDisplacementField(bool write2file = false);
 
@@ -161,35 +164,21 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode Initialize(void);
     PetscErrorCode ComputeInitialGuess(void);
     PetscErrorCode ClearMemory(void);
-    virtual PetscErrorCode ClearVariables(void) = 0;
     PetscErrorCode CopyToAllTimePoints(Vec, Vec);
     PetscErrorCode IsVelocityZero(void);
 
+    virtual PetscErrorCode ClearVariables(void) = 0;
+
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();
-    PetscErrorCode ComputeDefGradSL();  ///< implemented via SL time integrator
-
-    PetscErrorCode ComputeDetDefGradSL();               ///< implemented via SL time integrator
-    PetscErrorCode ComputeDetDefGradRK2();              ///< implemented via RK2 time integrator
-    PetscErrorCode ComputeDetDefGradRK2A();             ///< implemented via RK2 time integrator (assymetric form)
-    PetscErrorCode ComputeDetDefGradViaDispField();     ///< implemented via RK2 time integrator (asymetric form)
-
-    PetscErrorCode ComputeDeformationMapSLRK2();        ///< implementation via SL time integrator using RK2
-    PetscErrorCode ComputeDeformationMapSLRK4();        ///< implementation via SL time integrator using RK4
-    PetscErrorCode ComputeDeformationMapRK2();          ///< implementation via RK2 time integrator
-    PetscErrorCode ComputeDeformationMapRK2A();         ///< implementation via RK2A time integrator
-
-    PetscErrorCode ComputeDefMapFromDisplacement();     ///< compute deformation map from displacement
-
-    PetscErrorCode ComputeDisplacementFieldSL();        ///< implementation via SL time integrator
-    PetscErrorCode ComputeDisplacementFieldRK2();       ///< implementation via RK2 time integrator
-
+    PetscErrorCode ComputeDefMapFromDisplacement();  ///< compute deformation map from displacement
     PetscErrorCode ApplyInvRegOpSqrt(Vec);
+    PetscErrorCode ComputeRegularGrid(VecField*);  ///< compute coordinates for regular grid
 
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
-    Vec m_TemplateImage;  ///< data container for reference image mR
+    Vec m_TemplateImage;   ///< data container for reference image mR
     Vec m_ReferenceImage;  ///< data container for template image mT
 
     Vec m_WorkScaField1;  ///< work scalar field
@@ -220,16 +209,30 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)
 
     bool m_VelocityIsZero;
+    bool m_ComputeInverseDefMap;
 
     SemiLagrangianType* m_SemiLagrangianMethod;
 
  private:
-
-
-
+    PetscErrorCode ComputeDefGradSL();                  ///< implemented via SL time integrator
+    PetscErrorCode ComputeDetDefGradSL();               ///< implemented via SL time integrator
+    PetscErrorCode ComputeDetDefGradRK2();              ///< implemented via RK2 time integrator
+    PetscErrorCode ComputeDetDefGradRK2A();             ///< implemented via RK2 time integrator (assymetric form)
+    PetscErrorCode ComputeDetDefGradViaDispField();     ///< implemented via RK2 time integrator (asymetric form)
+    PetscErrorCode ComputeDeformationMapSLRK2();        ///< implementation via SL time integrator using RK2
+    PetscErrorCode ComputeDeformationMapSLRK4();        ///< implementation via SL time integrator using RK4
+    PetscErrorCode ComputeDeformationMapRK2();          ///< implementation via RK2 time integrator
+    PetscErrorCode ComputeDeformationMapRK2A();         ///< implementation via RK2A time integrator
+    PetscErrorCode ComputeDisplacementFieldSL();        ///< implementation via SL time integrator
+    PetscErrorCode ComputeDisplacementFieldRK2();       ///< implementation via RK2 time integrator
 };
 
-} // end of namespace
 
 
-#endif// _OPTIMALCONTROLREGISTRATIONBASE_H_
+
+}  // end of namespace
+
+
+
+
+#endif  // _OPTIMALCONTROLREGISTRATIONBASE_H_

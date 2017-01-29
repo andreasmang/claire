@@ -2,10 +2,10 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=no
-DBGCODE=no
-PEDANTIC=no
-USEPNETCDF=no
+BUILDTOOLS=yes
+DBGCODE=yes
+PEDANTIC=yes
+USEPNETCDF=yes
 USENIFTI=yes
 
 RM = rm -f
@@ -99,7 +99,7 @@ LDFLAGS+= -lm
 
 BIN+=$(BINDIR)/runcoldreg
 ifeq ($(BUILDTOOLS),yes)
-#	BIN+=$(BINDIR)/regtools
+	BIN+=$(BINDIR)/regtools
 endif
 
 

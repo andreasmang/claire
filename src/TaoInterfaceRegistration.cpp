@@ -494,8 +494,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     }
 
     // compute l2 distance at current iteration
-//    ierr = optprob->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
-//    D *= optprob->GetOptions()->GetLebesqueMeasure();
     D = optprob->GetOptions()->GetRegMonitor().dval;
 
     // get initial gradient

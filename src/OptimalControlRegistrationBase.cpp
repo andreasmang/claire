@@ -99,7 +99,8 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
     this->m_WorkTenField3 = NULL;
     this->m_WorkTenField4 = NULL;
 
-    this->m_VelocityIsZero = false;  ///< flag for velocity field
+    this->m_VelocityIsZero = false;         ///< flag: is velocity zero
+    this->m_ComputeInverseDefMap = false;   ///< flag: compute inverse deformation map
 
     this->m_Regularization = NULL;  ///< pointer for regularization class
 
@@ -519,12 +520,64 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
 
 
 /********************************************************************
- * @brief set velocity field
+ * @brief compute coordinates of regular grid
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase
+::ComputeRegularGrid(VecField* x) {
+    PetscErrorCode ierr = 0;
+    ScalarType hx[3];
+    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // get grid size
+    for (int i = 0; i < 3; ++i) {
+        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+    }
+
+    // compute initial condition
+    ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+    IntType l,i1,i2,i3;
+#pragma omp for
+    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
+
+                // compute coordinates (nodal grid)
+                p_x1[l] = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
+                p_x2[l] = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
+                p_x3[l] = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+            } // i1
+        } // i2
+    } // i3
+}// pragma omp for
+
+    ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+}
+
+
+
+
+
+/********************************************************************
+ * @brief evaluate regularization model
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase
 ::EvaluateRegularizationFunctional(ScalarType* value, VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -533,6 +586,8 @@ PetscErrorCode OptimalControlRegistrationBase
     }
 
     ierr = this->m_Regularization->EvaluateFunctional(value, v); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -2004,9 +2059,56 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 /********************************************************************
  * @brief compute deformation map
  *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::CheckDefMapConsistency() {
+    PetscErrorCode ierr = 0;
+    VecField* y = NULL;
+    bool flag;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    // allocate velocity field
+    if (this->m_VelocityField == NULL) {
+       try {this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    }
+
+    try {y = new VecField(this->m_Opt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr = y->SetValue(0.0); CHKERRQ(ierr);
+
+    flag = this->m_ComputeInverseDefMap;
+
+    // compute initial condition
+    ierr = this->ComputeRegularGrid(y); CHKERRQ(ierr);
+
+    this->m_ComputeInverseDefMap = false;
+    ierr = this->ComputeDeformationMap(false, y); CHKERRQ(ierr);
+
+    this->m_ComputeInverseDefMap = true;
+    ierr = this->ComputeDeformationMap(false, y); CHKERRQ(ierr);
+
+
+    if (y != NULL) {delete y; y = NULL;}
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief compute deformation map
+ *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2file, VecField* y) {
     PetscErrorCode ierr = 0;
     std::string ext;
+    ScalarType hx[3];
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -2022,6 +2124,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("computing deformation map"); CHKERRQ(ierr);
+    }
+
+    if (y = NULL) {
+        // compute initial condition
+        ierr = this->ComputeRegularGrid(this->m_WorkVecField1); CHKERRQ(ierr);
+    } else {
+        ierr = this->m_WorkVecField1->Copy(y); CHKERRQ(ierr);
     }
 
     // call the solver
@@ -2322,58 +2431,23 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     }
     ierr = this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
-    for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-    }
-
-    // compute initial condition
-    ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-
-#pragma omp parallel
-{
-    IntType l,i1,i2,i3;
-#pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
-
-                // compute coordinates (nodal grid)
-                p_y1[l] = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                p_y2[l] = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                p_y3[l] = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
-            } // i1
-        } // i2
-    } // i3
-}// pragma omp for
-
-    ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
 
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries ) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // write out y1
         ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x1" << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
-
-        ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x2" << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
-
-        ss.str(std::string()); ss.clear();
-        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << "-x3" << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
+        ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
     }
 
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
-//    if (inverse) { ht *= -1.0; }
     hthalf = 0.5*ht;
+
+    // if we request the inverse deformation map
+    if (this->m_ComputeInverseDefMap) {ht *= -1.0; hthalf *= -1.0;}
 
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -2419,22 +2493,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
         // store time series
         if (this->m_Opt->GetReadWriteFlags().timeseries ) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-
-            // write out y1
             ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x1" << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X1,ss.str()); CHKERRQ(ierr);
-
-            ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x2" << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X2,ss.str()); CHKERRQ(ierr);
-
-            ss.str(std::string()); ss.clear();
-            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << "-x3" << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1->m_X3,ss.str()); CHKERRQ(ierr);
-
+            ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
+            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
         }
     } // for all time points
@@ -2514,32 +2576,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     }
     ierr = this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
-    for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-    }
-
-    // compute initial condition y = x
-    ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-#pragma omp parallel
-{
-    IntType l, i1, i2, i3;
-#pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
-                // compute linear / flat index
-                l = GetLinearIndex(i1,i2,i3,this->m_Opt->GetDomainPara().isize);
-
-                // compute coordinates (nodal grid)
-                p_y1[l] = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                p_y2[l] = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                p_y3[l] = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
-            }  // i1
-        }  // i2
-    }  // i3
-}  // pragma omp for
-    ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries ) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2551,9 +2587,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nl;
     ht = this->m_Opt->GetTimeStepSize();
-//    if (inverse) { ht *= -1.0; }
     hthalf = 0.5*ht;
     htby6  = ht/6.0;
+
+    // if we request the inverse deformation map
+    if (this->m_ComputeInverseDefMap) {ht *= -1.0; hthalf *= -1.0; htby6 *= -1.0;}
 
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
