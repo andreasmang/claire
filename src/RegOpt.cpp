@@ -176,6 +176,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegFlags.applyrescaling = opt.m_RegFlags.applyrescaling;
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
     this->m_RegFlags.invdefgrad = opt.m_RegFlags.invdefgrad;
+    this->m_RegFlags.checkdefmapsolve = opt.m_RegFlags.checkdefmapsolve;
 
     // parameter continuation
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
@@ -972,17 +973,17 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.vx2.clear();
     this->m_ReadWriteFlags.vx3.clear();
 
-    this->m_RegFlags.applysmoothing = true;           ///< enable/disable image smoothing
-    this->m_RegFlags.applyrescaling = true;           ///< enable/disable image rescaling
+    this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
+    this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
     this->m_RegFlags.invdefgrad = false;                ///< compute inverse of det(grad(y))^{-1}
+    this->m_RegFlags.checkdefmapsolve = false;          ///< check computation of deformation map y; error = x - (y^-1 \circ y)(x)
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation
     this->m_ParaCont.enabled = false;           ///< flag for parameter continuation
     this->m_ParaCont.targetbeta = 0.0;          ///< has to be set by user
-    //this->m_ParaCont.beta0 = 1.0;               ///< default initial parameter for parameter continuation
-    this->m_ParaCont.beta0 = 1E-1;               ///< default initial parameter for parameter continuation
+    this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
 
     // grid continuation
     this->m_GridCont.enabled = false;

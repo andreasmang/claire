@@ -55,7 +55,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     std::vector<unsigned int> sigma;
     PetscFunctionBegin;
 
-    if (argc == 1) { ierr = this->Usage(); CHKERRQ(ierr); }
+    if (argc == 1) {
+        ierr = this->Usage(); CHKERRQ(ierr);
+    }
 
     while(argc > 1) {
         if ( (strcmp(argv[1], "-help") == 0)
@@ -160,7 +162,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             const std::string npinput = argv[1];
 
             // strip the "x" in the string to get the numbers
-            np = String2Vec( npinput );
+            np = String2Vec(npinput);
             if (np.size() == 1) {
                 for(int i=0; i < 2; ++i) {
                     this->m_CartGridDims[i] = static_cast<unsigned int>(np[0]);
@@ -240,6 +242,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.checkadjsolve = true;
         } else if (strcmp(argv[1], "-checkdetdefgradsolve") == 0) {
             this->m_RegToolFlags.checkdetdefgradsolve = true;
+        } else if (strcmp(argv[1], "-checkdefmapsolve") == 0) {
+            this->m_RegFlags.checkdefmapsolve = true;
         } else if (strcmp(argv[1], "-problemid") == 0) {
             argc--; argv++;
             this->m_RegToolFlags.problemid = atoi(argv[1]);
@@ -251,7 +255,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             const std::string nxinput = argv[1];
 
             // strip the "x" in the string to get the numbers
-            nxr = String2Vec( nxinput );
+            nxr = String2Vec(nxinput);
 
             if (nxr.size() == 1) {
                 for(int i = 0; i < 3; ++i) {
@@ -462,6 +466,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
         std::cout << " -checkfwdsolve            check forward solver"<<std::endl;
         std::cout << " -checkdetdefgradsolve     check solve for det(grad(y))"<<std::endl;
+        std::cout << " -checkdefmapsolve         check solve for y"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;

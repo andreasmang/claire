@@ -1733,9 +1733,8 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
 
 
 
-
 /********************************************************************
- * @brief compute deformation map or deformation gradient
+ * @brief compute determinant of deformation gradient
  ********************************************************************/
 PetscErrorCode RegistrationInterface::ComputeDetDefGrad(Vec detj) {
     PetscErrorCode ierr = 0;
@@ -1760,6 +1759,38 @@ PetscErrorCode RegistrationInterface::ComputeDetDefGrad(Vec detj) {
     PetscFunctionReturn(ierr);
 }
 
+
+
+
+/********************************************************************
+ * @brief compute deformation map
+ ********************************************************************/
+PetscErrorCode RegistrationInterface::ComputeDeformationMap(VecField* y) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // user needs to set template and reference image and the solution
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // compute stuff
+    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+
+    ierr = Msg("computing deformation map"); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->ComputeDeformationMap(false, y); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetRegFlags().checkdefmapsolve) {
+        ierr = this->m_RegProblem->CheckDefMapConsistency(); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

@@ -94,6 +94,8 @@ int main(int argc, char **argv) {
         ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkdetdefgradsolve) {
         ierr = CheckDetDefGradSolve(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetRegFlags().checkdefmapsolve) {
+        ierr = CheckDefMapSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().convert) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().applysmoothing) {
@@ -330,8 +332,23 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        // set up smooth problem
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+        // allocate container for velocity field
+        try {v = new reg::VecField(regopt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+        ierr = reg::DbgMsg("computing synthetic velocity field"); CHKERRQ(ierr);
+        if (regopt->GetFlags().problemid == 0) {
+            ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+        } else if (regopt->GetFlags().problemid == 1) {
+            ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+        } else if (regopt->GetFlags().problemid == 2) {
+            ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+        } else if (regopt->GetFlags().problemid == 3) {
+            ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
+        } else {
+            ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+        }
     }
 
     // allocate class for registration interface
@@ -1367,13 +1384,11 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng;
     reg::VecField *v = NULL;
     reg::VecField *y = NULL;
     reg::RegistrationInterface *registration = NULL;
     reg::SynProbRegistration *synprob = NULL;
     reg::ReadWriteReg *readwrite = NULL;
-    ScalarType minval, maxval, normval, errval;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -1381,10 +1396,6 @@ PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt* regopt) {
     regopt->Enter(__func__);
 
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
-
-    regopt->DisableSmoothing();
-    nl = regopt->GetDomainPara().nl;
-    ng = regopt->GetDomainPara().ng;
 
     // allocation
     try {v = new reg::VecField(regopt);}
@@ -1424,19 +1435,11 @@ PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt* regopt) {
     }
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
 
+    ierr = registration->ComputeDeformationMap(y); CHKERRQ(ierr);
 
     if (regopt->GetReadWriteFlags().results) {
-//        ierr = readwrite->Write(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-//        ierr = readwrite->Write(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->Write(y, "deformation-map" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
     }
-
-    //ierr = VecAXPY(invdetj, -1.0, detj); CHKERRQ(ierr);
-    //ierr = VecNorm(invdetj, NORM_2, &errval); CHKERRQ(ierr);
-    //ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
-    //ss  << "error " << std::scientific
-    //    << errval/normval << " (" << errval << ")";
-    //ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    //ss.str(std::string()); ss.clear();
 
 
     regopt->Exit(__func__);

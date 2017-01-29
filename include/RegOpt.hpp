@@ -334,6 +334,7 @@ struct RegFlags{
     bool applyrescaling;  ///< apply rescaling to images (map the intensity range to [0,1])
     bool detdefgradfromdeffield;
     bool invdefgrad;
+    bool checkdefmapsolve;
 };
 
 

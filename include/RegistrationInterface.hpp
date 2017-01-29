@@ -65,9 +65,10 @@ class RegistrationInterface {
     //PetscErrorCode EvaluateDistance(ScalarType&, VecField*);  // TODO
     PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*);
 
-    PetscErrorCode ComputeDetDefGrad(Vec);
     PetscErrorCode RunPostProcessing();
     PetscErrorCode ComputeDefFields();
+    PetscErrorCode ComputeDetDefGrad(Vec);
+    PetscErrorCode ComputeDeformationMap(VecField*);
 
  private:
     PetscErrorCode Initialize(void);
