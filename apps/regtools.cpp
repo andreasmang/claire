@@ -40,6 +40,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
 PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
 PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt*);
+PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt*);
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
 
@@ -1356,6 +1357,99 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief check the jacobian solver
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng;
+    reg::VecField *v = NULL;
+    reg::VecField *y = NULL;
+    reg::RegistrationInterface *registration = NULL;
+    reg::SynProbRegistration *synprob = NULL;
+    reg::ReadWriteReg *readwrite = NULL;
+    ScalarType minval, maxval, normval, errval;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    ierr = regopt->DoSetup(); CHKERRQ(ierr);
+
+    regopt->DisableSmoothing();
+    nl = regopt->GetDomainPara().nl;
+    ng = regopt->GetDomainPara().ng;
+
+    // allocation
+    try {v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {y = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {registration = new reg::RegistrationInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+    try {synprob = new reg::SynProbRegistration(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // set up smooth problem
+    if (regopt->GetFlags().problemid == 0) {
+        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 1) {
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 2) {
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 3) {
+        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
+    } else {
+        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+    }
+    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+
+
+    if (regopt->GetReadWriteFlags().results) {
+//        ierr = readwrite->Write(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+//        ierr = readwrite->Write(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+    }
+
+    //ierr = VecAXPY(invdetj, -1.0, detj); CHKERRQ(ierr);
+    //ierr = VecNorm(invdetj, NORM_2, &errval); CHKERRQ(ierr);
+    //ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
+    //ss  << "error " << std::scientific
+    //    << errval/normval << " (" << errval << ")";
+    //ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    //ss.str(std::string()); ss.clear();
+
+
+    regopt->Exit(__func__);
+
+    if (v != NULL) {delete v; v = NULL;}
+    if (y != NULL) {delete y; y = NULL;}
+    if (synprob != NULL) {delete synprob; synprob = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

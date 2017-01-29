@@ -363,7 +363,7 @@ PetscErrorCode MultiLevelPyramid::Allocate(Vec* x, IntType nl, IntType ng) {
 PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     PetscErrorCode ierr = 0;
     IntType nxlevel[3], nx[3];
-    int nlevels;
+    int nlevels, minlevel;
     Vec *xlevel;
     PetscFunctionBegin;
 
@@ -385,8 +385,11 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     nx[0] = this->m_Opt->GetDomainPara().nx[0];
     nx[1] = this->m_Opt->GetDomainPara().nx[1];
     nx[2] = this->m_Opt->GetDomainPara().nx[2];
+    minlevel = 0; //this->m_Opt->GetGridContPara().minlevel;
 
-    for (int l = 0; l < nlevels-1; ++l) {  // for all levels
+    if (minlevel >= nlevels) minlevel = nlevels-1;
+
+    for (int l = minlevel; l < nlevels-1; ++l) {  // for all levels
         for (int i = 0; i < 3; ++i) {  // get grid size
             nxlevel[i] = this->m_Opt->GetGridContPara().nx[l][i];
         }
@@ -395,7 +398,6 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
         ierr = Assert(*xlevel != NULL, "null pointer"); CHKERRQ(ierr);
         // restrict data
         ierr = this->m_PreProc->Restrict(xlevel, x, nxlevel, nx); CHKERRQ(ierr);
-
     }
 
     this->m_Opt->Exit(__func__);

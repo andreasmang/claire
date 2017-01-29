@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 
 
@@ -24,41 +23,38 @@
 #ifndef _MULTILEVELPYRAMID_H_
 #define _MULTILEVELPYRAMID_H_
 
+
+
+
 #include "RegOpt.hpp"
 #include "PreProcReg.hpp"
 
-namespace reg
-{
+namespace reg {
 
 
-struct DataPyramidNode{
+struct DataPyramidNode {
     int m_Level;
     Vec m_Data;
     IntType ng;
     IntType nl;
-
     struct DataPyramidNode* next;
 };
 
 
 
-class MultiLevelPyramid
-{
-
-public:
-
+class MultiLevelPyramid {
+ public:
     MultiLevelPyramid();
     MultiLevelPyramid(RegOpt*);
     ~MultiLevelPyramid();
 
-    PetscErrorCode GetLevel(Vec*,int);
+    PetscErrorCode GetLevel(Vec*, int);
     //PetscErrorCode GetLevel(Vec,int);
     PetscErrorCode DoSetup(Vec);
 
     PetscErrorCode SetPreProc(PreProcReg*);
 
-private:
-
+ private:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
@@ -88,15 +84,14 @@ private:
 
     RegOpt* m_Opt;
     PreProcReg* m_PreProc;
-
 };
 
 
 
 
-} // end of namespace
+}  // namespace reg
 
 
 
 
-#endif // _MULTILEVELPYRAMID_H_
+#endif  // _MULTILEVELPYRAMID_H_
