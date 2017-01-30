@@ -427,6 +427,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -error                    compute error between scalar fields ('-mr' and '-mt' options)"<<std::endl;
         // ####################### advanced options #######################
         if (advanced) {
+        std::cout << " -detdefgradfromdeffield    compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
         std::cout << " -grad                     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
         std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
         std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
@@ -461,21 +462,16 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " ### synthetic test problems"<<std::endl;
-        std::cout << line << std::endl;
+        // ####################### advanced options #######################
+        if (advanced) {
         std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
         std::cout << " -checkfwdsolve            check forward solver"<<std::endl;
         std::cout << " -checkdetdefgradsolve     check solve for det(grad(y))"<<std::endl;
         std::cout << " -checkdefmapsolve         check solve for y"<<std::endl;
-        std::cout << line << std::endl;
-        std::cout << " other parameters/debugging"<<std::endl;
-        std::cout << line << std::endl;
-        // ####################### advanced options #######################
-        if (advanced) {
-        std::cout << " -usenc                    use netcdf format os output (*.nc; default is *.nii.gz)"<<std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         }
         // ####################### advanced options #######################
+        std::cout << " -usenc                    use netcdf format os output (*.nc; default is *.nii.gz)"<<std::endl;
+        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
         std::cout << " -help                     display a brief version of the user message"<<std::endl;
         std::cout << " -advanced                 display this message"<<std::endl;
         std::cout << line << std::endl;
@@ -654,19 +650,19 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
-            this->m_xVecFieldX1FN = path + "/resampled_" + filename + extension;
+            this->m_xVecFieldX1FN = path + "/" + "resampled_" + filename + extension;
 
             ierr = GetFileName(path, filename, extension, this->m_iVecFieldX2FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
-            this->m_xVecFieldX2FN = path + "/resampled_" + filename + extension;
+            this->m_xVecFieldX2FN = path + "/" + "resampled_" + filename + extension;
 
             ierr = GetFileName(path, filename, extension, this->m_iVecFieldX3FN); CHKERRQ(ierr);
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
-            this->m_xVecFieldX3FN = path + "/resampled_" + filename + extension;
+            this->m_xVecFieldX3FN = path + "/" + "resampled_" + filename + extension;
         }
 
         if (this->m_RegToolFlags.readscafield) {
@@ -674,7 +670,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             if (this->m_ReadWriteFlags.extension != ".nii.gz") {
                 extension = this->m_ReadWriteFlags.extension;
             }
-            this->m_xScaFieldFN = path + "/resampled_" + filename + extension;
+            this->m_xScaFieldFN = path + "/" + "resampled_" + filename + extension;
         }
     }
 

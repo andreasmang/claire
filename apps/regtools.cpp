@@ -643,14 +643,14 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    // get output file name (based on input file name)
-    // TODO: fix this
     fnx1 = regopt->GetVecFieldFN(0, 1);
-//    fnx2 = regopt->GetVecFieldFN(1, 1);
-//    fnx3 = regopt->GetVecFieldFN(2, 1);
+    fnx2 = regopt->GetVecFieldFN(1, 1);
+    fnx3 = regopt->GetVecFieldFN(2, 1);
 
     // write to file
-    ierr = readwrite->Write(vl, fnx1); CHKERRQ(ierr);
+    ierr = readwrite->Write(vl->m_X1, fnx1); CHKERRQ(ierr);
+    ierr = readwrite->Write(vl->m_X2, fnx2); CHKERRQ(ierr);
+    ierr = readwrite->Write(vl->m_X3, fnx3); CHKERRQ(ierr);
 
     if (v != NULL) {delete v; v = NULL; }
     if (vl != NULL) {delete vl; vl = NULL;}
