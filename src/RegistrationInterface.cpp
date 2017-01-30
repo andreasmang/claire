@@ -272,6 +272,42 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
 
 
 /********************************************************************
+ * @brief set reference image (i.e., the fixed image)
+ *******************************************************************/
+PetscErrorCode RegistrationInterface::GetResidual(Vec residual) {
+    PetscErrorCode ierr = 0;
+    Vec lambda = NULL;
+    IntType nl, nc, nt;
+    ScalarType *p_l = NULL, *p_res = NULL;
+    PetscFunctionBegin;
+
+    ierr = Assert(residual != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->m_RegProblem->GetAdjointVariable(lambda); CHKERRQ(ierr);
+
+    nc = this->m_Opt->GetDomainPara().nc;
+    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->GetDomainPara().nt;
+
+    ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
+    ierr = VecGetArray(residual, &p_res); CHKERRQ(ierr);
+
+    try {std::copy(p_l+nt*nc*nl, p_l+(nt+1)*nc*nl, p_res);}
+    catch (std::exception&) {
+        ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+    }
+
+    ierr = VecRestoreArray(residual, &p_res); CHKERRQ(ierr);
+    ierr = VecRestoreArray(lambda, &p_l); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief set read/write object
  *******************************************************************/
 PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
