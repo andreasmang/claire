@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 
 #ifndef _OPTIMALCONTROLREGISTRATIONIC_H_
@@ -24,15 +23,16 @@
 
 #include "OptimalControlRegistration.hpp"
 
-namespace reg
-{
 
 
-class OptimalControlRegistrationIC : public OptimalControlRegistration
-{
 
-public:
+namespace reg {
 
+
+
+
+class OptimalControlRegistrationIC : public OptimalControlRegistration {
+ public:
     typedef OptimalControlRegistrationIC Self;
     typedef OptimalControlRegistration SuperClass;
     typedef ScalarType FFTScaType[2];
@@ -41,8 +41,7 @@ public:
     OptimalControlRegistrationIC(RegOpt*);
     ~OptimalControlRegistrationIC();
 
-protected:
-
+ protected:
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 
@@ -65,8 +64,7 @@ protected:
     /*! reimplementation (accounting for incompressiblity) */
     PetscErrorCode SolveIncAdjointEquationGNSL(void);
 
-private:
-
+ private:
     FFTScaType *m_x1hat;
     FFTScaType *m_x2hat;
     FFTScaType *m_x3hat;
@@ -74,11 +72,14 @@ private:
     FFTScaType *m_Kx1hat;
     FFTScaType *m_Kx2hat;
     FFTScaType *m_Kx3hat;
-
 };
 
 
-} // end of name space
 
 
-#endif // _OPTIMALCONTROLREGISTRATIONIC_H_
+}  // namespace reg
+
+
+
+
+#endif  // _OPTIMALCONTROLREGISTRATIONIC_H_

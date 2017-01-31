@@ -43,7 +43,7 @@ OptimalControlRegistrationBase::OptimalControlRegistrationBase() : SuperClass() 
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistrationBase::~OptimalControlRegistrationBase(void) {
+OptimalControlRegistrationBase::~OptimalControlRegistrationBase() {
     this->ClearMemory();
 }
 
@@ -63,7 +63,7 @@ OptimalControlRegistrationBase::OptimalControlRegistrationBase(RegOpt* opt) : Su
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
+PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -73,13 +73,11 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
     // pointer for container of incremental velocity field
     this->m_IncVelocityField = NULL;
 
-    // pointers to images
+    // pointers to images (set from outside; not to be deleted)
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
-    this->m_ReadWrite = NULL;  ///< read / write object
-    this->m_SemiLagrangianMethod = NULL;  ///< semi lagranigan
-
+    // temporary internal variables (all of these have to be deleted)
     this->m_WorkScaField1 = NULL;
     this->m_WorkScaField2 = NULL;
     this->m_WorkScaField3 = NULL;
@@ -99,10 +97,13 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
     this->m_WorkTenField3 = NULL;
     this->m_WorkTenField4 = NULL;
 
+    // objects
+    this->m_ReadWrite = NULL;               ///< read / write object
+    this->m_Regularization = NULL;          ///< pointer for regularization class
+    this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
+
     this->m_VelocityIsZero = false;         ///< flag: is velocity zero
     this->m_ComputeInverseDefMap = false;   ///< flag: compute inverse deformation map
-
-    this->m_Regularization = NULL;  ///< pointer for regularization class
 
     PetscFunctionReturn(ierr);
 }
@@ -113,7 +114,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
+PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -121,7 +122,6 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
         delete this->m_VelocityField;
         this->m_VelocityField = NULL;
     }
-
     if (this->m_IncVelocityField != NULL) {
         delete this->m_IncVelocityField;
         this->m_IncVelocityField = NULL;
@@ -130,6 +130,11 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
     if (this->m_Regularization != NULL) {
         delete this->m_Regularization;
         this->m_Regularization = NULL;
+    }
+
+    if (this->m_SemiLagrangianMethod != NULL) {
+        delete this->m_SemiLagrangianMethod;
+        this->m_SemiLagrangianMethod = NULL;
     }
 
     if (this->m_WorkScaField1 != NULL) {
@@ -147,6 +152,10 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
     if (this->m_WorkScaField4 != NULL) {
         ierr = VecDestroy(&this->m_WorkScaField4); CHKERRQ(ierr);
         this->m_WorkScaField4 = NULL;
+    }
+    if (this->m_WorkScaField5 != NULL) {
+        ierr = VecDestroy(&this->m_WorkScaField5); CHKERRQ(ierr);
+        this->m_WorkScaField5 = NULL;
     }
 
     if (this->m_WorkScaFieldMC != NULL) {
@@ -201,12 +210,12 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory(void) {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* rw) {
+PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(rw != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_ReadWrite = rw;
+    ierr = Assert(readwrite != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
 }
@@ -1150,7 +1159,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     PetscErrorCode ierr = 0;
     ScalarType minddg, maxddg, meanddg;
     IntType nl, ng;
-    std::string ext, filename;
+    std::string filename;
     std::stringstream ss, ssnum;
 
     PetscFunctionBegin;
@@ -1238,9 +1247,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     if (write2file) {
         if (this->m_Opt->GetRegFlags().invdefgrad) {
-            filename = "inverse-det-deformation-grad" + ext;
+            filename = "inverse-det-deformation-grad";
         } else {
-            filename = "det-deformation-grad" + ext;
+            filename = "det-deformation-grad";
         }
         filename += this->m_Opt->GetReadWriteFlags().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, filename); CHKERRQ(ierr);
@@ -1629,9 +1638,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
 #pragma omp  for
         for (IntType i=0; i < nl; ++i) {  // for all grid points
             // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            p_rhs0[i] = -( velsign*p_vx1[i]*p_gx1[i]
+            p_rhs0[i] = - (velsign*p_vx1[i]*p_gx1[i]
                          + velsign*p_vx2[i]*p_gx2[i]
-                         + velsign*p_vx3[i]*p_gx3[i] )
+                         + velsign*p_vx3[i]*p_gx3[i])
                          + p_jac[i]*velsign*p_divv[i];
 
             p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
@@ -1681,7 +1690,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
                 *p_gphi1 = NULL, *p_gphi2 = NULL, *p_gphi3 = NULL, *p_divv = NULL,
                 *p_phiv1 = NULL, *p_phiv2 = NULL, *p_phiv3 = NULL,
                 *p_phi = NULL,  *p_rhs0 = NULL,  *p_divvphi=NULL;
-    ScalarType ht, hthalf;
+    ScalarType ht, hthalf, alpha;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     double timings[5] = {0, 0, 0, 0, 0};
 
@@ -1740,6 +1749,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     // compute div(v)
     accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3,this->m_Opt->GetFFT().plan,timings);
 
+    if (this->m_Opt->GetRegFlags().invdefgrad) {
+        alpha = -1.0;
+    } else {
+        alpha = 1.0;
+    }
 
 #pragma omp parallel
 {
@@ -1766,14 +1780,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 #pragma omp  for
         for (IntType i=0; i < nl; ++i) {  // for all grid points
             // \bar{j} = -(\vect{v} \cdot \igrad) \phi + j (\idiv \vect{v})
-            p_rhs0[i] = - ( p_vx1[i]*p_gphi1[i]
-                          + p_vx2[i]*p_gphi2[i]
-                          + p_vx3[i]*p_gphi3[i] )
-                        + 0.5*p_phi[i]*p_divv[i]
-                        + 0.5*p_divvphi[i]
-                        - 0.5*( p_gphi1[i]*p_vx1[i]
-                              + p_gphi2[i]*p_vx2[i]
-                              + p_gphi3[i]*p_vx3[i] );
+            //p_rhs0[i] = - alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+            //            + 0.5*alpha*p_phi[i]*p_divv[i] + 0.5*alpha*p_divvphi[i]
+            //            - 0.5*alpha*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
+            p_rhs0[i] = - 0.5*alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+                        + 1.5*alpha*p_phi[i]*p_divv[i] - 0.5*alpha*p_divvphi[i];
 
             p_phibar[i] = p_phi[i] + ht*p_rhs0[i];
 
@@ -1795,9 +1806,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 #pragma omp  for
         for (IntType i=0; i < nl; ++i) {  // for all grid points
             // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            rhs1 = -(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
-                    + 0.5*p_phibar[i]*p_divv[i] + 0.5*p_divvphi[i]
-                    - 0.5*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
+            //rhs1 = -alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+            //        + 0.5*alpha*p_phibar[i]*p_divv[i] + 0.5*alpha*p_divvphi[i]
+            //        - 0.5*alpha*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
+            rhs1 = -0.5*alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+                    + 1.5*alpha*p_phibar[i]*p_divv[i] - 0.5*alpha*p_divvphi[i];
 
             p_phi[i] = p_phi[i] + hthalf*(p_rhs0[i] + rhs1);
 
@@ -2123,6 +2136,8 @@ PetscErrorCode OptimalControlRegistrationBase::CheckDefMapConsistency() {
 
     PetscFunctionReturn(ierr);
 }
+
+
 
 
 /********************************************************************

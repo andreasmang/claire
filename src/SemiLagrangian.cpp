@@ -76,10 +76,9 @@ PetscErrorCode SemiLagrangian::Initialize() {
     this->m_XS = NULL;
 
     this->m_AdjointPlan = NULL;
-    this->m_AdjointPlanVec = NULL;
-
     this->m_StatePlan = NULL;
     this->m_StatePlanVec = NULL;
+    this->m_AdjointPlanVec = NULL;
 
     this->m_VecFieldPlan = NULL;
 
@@ -107,14 +106,13 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
     }
 
     if (this->m_X != NULL) {
-        delete this->m_X; this->m_X = NULL;
+        delete [] this->m_X; this->m_X = NULL;
     }
-
     if (this->m_XS != NULL) {
-        delete this->m_XS; this->m_XS = NULL;
+        delete [] this->m_XS; this->m_XS = NULL;
     }
     if (this->m_XA != NULL) {
-        delete this->m_XA; this->m_XA = NULL;
+        delete [] this->m_XA; this->m_XA = NULL;
     }
 
     if (this->m_AdjointPlan != NULL) {
@@ -157,12 +155,12 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* rw) {
+PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(rw != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_ReadWrite = rw;
+    ierr = Assert(readwrite != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
 
@@ -282,9 +280,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
                 x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
 
-                X[l*3+0] = x1 - hthalf*(p_vX1[l]+p_v1[l]);
-                X[l*3+1] = x2 - hthalf*(p_vX2[l]+p_v2[l]);
-                X[l*3+2] = x3 - hthalf*(p_vX3[l]+p_v3[l]);
+                X[l*3+0] = x1 - hthalf*(p_vX1[l] + p_v1[l]);
+                X[l*3+1] = x2 - hthalf*(p_vX2[l] + p_v2[l]);
+                X[l*3+2] = x3 - hthalf*(p_vX3[l] + p_v3[l]);
             }  // i1
         }  // i2
     }  // i3
@@ -423,8 +421,8 @@ PetscErrorCode SemiLagrangian::Interpolate(VecField* vo, VecField* vi, std::stri
 
     ierr = this->Interpolate(p_vox1, p_vox2, p_vox3, p_vix1, p_vix2, p_vix3, flag); CHKERRQ(ierr);
 
-    ierr = vi->RestoreArrays(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
     ierr = vo->RestoreArrays(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
+    ierr = vi->RestoreArrays(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -543,15 +541,9 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 /********************************************************************
  * @brief interpolate vector field
  *******************************************************************/
-PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1,
-                                            ScalarType* wx2,
-                                            ScalarType* wx3,
-                                            ScalarType* vx1,
-                                            ScalarType* vx2,
-                                            ScalarType* vx3,
-                                            ScalarType* yx1,
-                                            ScalarType* yx2,
-                                            ScalarType* yx3) {
+PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, ScalarType* wx3,
+                                            ScalarType* vx1, ScalarType* vx2, ScalarType* vx3,
+                                            ScalarType* yx1, ScalarType* yx2, ScalarType* yx3) {
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2];
     double timers[4] = {0, 0, 0, 0};
@@ -705,9 +697,8 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         }
 
         // scatter
-        this->m_StatePlan->scatter(1, nx, isize, istart, nl,
-                                   this->m_GhostSize, this->m_XS, c_dims,
-                                   this->m_Opt->GetFFT().mpicomm, timers);
+        this->m_StatePlan->scatter(1, nx, isize, istart, nl, this->m_GhostSize, this->m_XS,
+                                   c_dims, this->m_Opt->GetFFT().mpicomm, timers);
 
         // create planer
         if (this->m_StatePlanVec == NULL) {
@@ -722,9 +713,8 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         }
 
         // scatter
-        this->m_StatePlanVec->scatter(3, nx, isize, istart, nl,
-                                      this->m_GhostSize, this->m_XS, c_dims,
-                                      this->m_Opt->GetFFT().mpicomm, timers);
+        this->m_StatePlanVec->scatter(3, nx, isize, istart, nl, this->m_GhostSize, this->m_XS,
+                                      c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         // characteristic for adjoint equation should
         // have been computed already
@@ -743,8 +733,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         }
 
         // scatter
-        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl,
-                                     this->m_GhostSize, this->m_XA,
+        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl, this->m_GhostSize, this->m_XA,
                                      c_dims, this->m_Opt->GetFFT().mpicomm, timers);
 
         // create planer
@@ -760,12 +749,10 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         }
 
         // scatter
-        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl,
-                                        this->m_GhostSize, this->m_XA, c_dims,
-                                        this->m_Opt->GetFFT().mpicomm, timers);
-
+        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl, this->m_GhostSize, this->m_XA,
+                                        c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else {
-        ierr =ThrowError("flag wrong"); CHKERRQ(ierr);
+        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
     this->m_Opt->IncreaseInterpTimers(timers);

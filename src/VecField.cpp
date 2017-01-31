@@ -107,7 +107,7 @@ PetscErrorCode VecField::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode VecField::ClearMemory(void) {
+PetscErrorCode VecField::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 

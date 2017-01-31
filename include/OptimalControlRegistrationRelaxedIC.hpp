@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,25 +14,24 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
-
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
 #define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
 
 #include "OptimalControlRegistration.hpp"
 
-namespace reg
-{
 
 
-class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration
-{
 
-public:
+namespace reg {
 
+
+
+
+class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
+ public:
     typedef OptimalControlRegistrationRelaxedIC Self;
     typedef OptimalControlRegistration SuperClass;
     typedef ScalarType FFTScaType[2];
@@ -41,8 +40,7 @@ public:
     OptimalControlRegistrationRelaxedIC(RegOpt*);
     ~OptimalControlRegistrationRelaxedIC();
 
-protected:
-
+ protected:
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 
@@ -62,8 +60,7 @@ protected:
         body force and the incremental body force */
     PetscErrorCode ApplyProjection(VecField*);
 
-private:
-
+ private:
     PetscErrorCode EvaluteRegFunctionalW(ScalarType*);
 
     FFTScaType *m_x1hat;
@@ -73,11 +70,14 @@ private:
     FFTScaType *m_Kx1hat;
     FFTScaType *m_Kx2hat;
     FFTScaType *m_Kx3hat;
-
 };
 
 
-} // end of name space
 
 
-#endif //_OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
+}  // namespace reg
+
+
+
+
+#endif  // _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_

@@ -178,15 +178,17 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
-    Vec m_TemplateImage;   ///< data container for reference image mR
-    Vec m_ReferenceImage;  ///< data container for template image mT
+    Vec m_TemplateImage;            ///< data container for reference image mR
+    Vec m_ReferenceImage;           ///< data container for template image mT
+
+    VecField* m_VelocityField;      ///< data container for velocity field (control variable)
+    VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)
 
     Vec m_WorkScaField1;  ///< work scalar field
     Vec m_WorkScaField2;  ///< work scalar field
     Vec m_WorkScaField3;  ///< work scalar field
     Vec m_WorkScaField4;  ///< work scalar field
     Vec m_WorkScaField5;  ///< work scalar field
-
 
     Vec m_WorkScaFieldMC;  ///< work scalar field for multi-component/vector fields
 
@@ -201,17 +203,12 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     TenField* m_WorkTenField3;  ///< data container for tensor field (temporary variable)
     TenField* m_WorkTenField4;  ///< data container for tensor field (temporary variable)
 
-    // regularization model
-    ReadWriteType* m_ReadWrite;
-    RegularizationType* m_Regularization;
-
-    VecField* m_VelocityField;      ///< data container for velocity field (control variable)
-    VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)
+    ReadWriteType* m_ReadWrite;  ///< io; set from outside (not to be delted)
+    RegularizationType* m_Regularization;   ///< regularization functional
+    SemiLagrangianType* m_SemiLagrangianMethod;   ///< semi-lagrangian method
 
     bool m_VelocityIsZero;
     bool m_ComputeInverseDefMap;
-
-    SemiLagrangianType* m_SemiLagrangianMethod;
 
  private:
     PetscErrorCode ComputeDefGradSL();                  ///< implemented via SL time integrator

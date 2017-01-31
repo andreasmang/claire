@@ -75,12 +75,14 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
     this->m_Optimizer = NULL;
     this->m_Precond = NULL;
     this->m_RegProblem = NULL;
-    this->m_ReferencePyramid = NULL;
-    this->m_TemplatePyramid = NULL;
 
-    this->m_Solution = NULL;
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
+
+    this->m_TemplatePyramid = NULL;
+    this->m_ReferencePyramid = NULL;
+
+    this->m_Solution = NULL;
 
     this->m_IsTemplateSet = false;
     this->m_IsReferenceSet = false;
@@ -222,12 +224,12 @@ PetscErrorCode RegistrationInterface::GetSolution(VecField* x, bool copy) {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* rw) {
+PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(rw != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_ReadWrite = rw;
+    ierr = Assert(readwrite != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
 }
@@ -1661,13 +1663,15 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    if (this->m_RegProblem == NULL) {
+        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    }
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
     // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
     if (this->m_Opt->GetRegFlags().applysmoothing) {
-        std::cout<< " applying smoothing " << std::endl;
+        std::cout << " applying smoothing " << std::endl;
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try {this->m_PreProc = new PreProcReg(this->m_Opt);}

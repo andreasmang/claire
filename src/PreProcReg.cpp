@@ -449,8 +449,8 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
  *******************************************************************/
 PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2];
-    IntType n, l, k_c[3], i_c[3], nr, os_recv;
+    ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2], value;
+    IntType n, l, k_c[3], i_c[3], nr, os_recv, nyqfreqid[3];
     std::stringstream ss;
     int rank, nprocs;
     double timer[5] = {0, 0, 0, 0, 0};
@@ -480,6 +480,8 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     for (int i = 0; i < 3; ++i) {
         this->m_nxC[i] = nx_c[i];
         this->m_nxF[i] = nx_f[i];
+        value = static_cast<ScalarType>(nx_c[i])/2.0;
+        nyqfreqid[i] = static_cast<IntType>(std::ceil(value));
     }
 //    for(int i = 0; i < 3; ++i) {
 //        value = static_cast<ScalarType>(nx_c[i])/2.0;
@@ -528,7 +530,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
         nr = this->m_NumRecv[p];
         os_recv = this->m_OffsetRecv[p];
 
-        for (int j = 0; j < nr; ++j) {
+        for (IntType j = 0; j < nr; ++j) {
             bool outofbounds = false;
 
             for (int i = 0; i < 3; ++i) {
@@ -552,58 +554,26 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
             if (!outofbounds) {
                 // compute flat index
                 l = GetLinearIndex(i_c[0], i_c[1], i_c[2], this->m_osizeC);
+                bool setvalue = true;
+                for (int i = 0; i < 3; ++i) {
+                    if (i_c[i] == nyqfreqid[i]) {
+                        setvalue = false;
+                    }
+                }
 
-                // get fourier coefficients
-                coeff[0] = this->m_FourierCoeffRecvF[2*j + 0 + 2*os_recv];
-                coeff[1] = this->m_FourierCoeffRecvF[2*j + 1 + 2*os_recv];
+                if (setvalue) {
+                    // get fourier coefficients
+                    coeff[0] = this->m_FourierCoeffRecvF[2*j + 0 + 2*os_recv];
+                    coeff[1] = this->m_FourierCoeffRecvF[2*j + 1 + 2*os_recv];
 
-                // assign values to coarse grid
-                this->m_XHatCoarse[l][0] = scale*coeff[0];
-                this->m_XHatCoarse[l][1] = scale*coeff[1];
+                    // assign values to coarse grid
+                    this->m_XHatCoarse[l][0] = scale*coeff[0];
+                    this->m_XHatCoarse[l][1] = scale*coeff[1];
+                }
             }
         }
     }
 
-/*
-    n = this->m_IndicesC[rank].size()/3;
-#pragma omp parallel
-{
-    IntType l_f,l_c,k_c,k_f,i_c[3],i_f[3];
-#pragma omp for
-    for (IntType j = 0; j < n; ++j) {
-
-        // compute local index
-        for (int i = 0; i < 3; ++i) {
-
-            k_c = this->m_IndicesC[rank][j*3 + i];
-            k_f = this->m_IndicesF[rank][j*3 + i];
-
-            // convert global index into local index
-            i_c[i] = k_c - this->m_ostartC[i];
-            i_f[i] = k_f - this->m_ostartF[i];
-
-            // check if we're inside expected range
-            if ( (i_c[i] >= this->m_osizeC[i]) || (i_c[i] < 0) ) {
-                std::cout<<" r "<<rank<<" "<<i_c[i]<<">="<<this->m_osizeC[i]<<"   "<<i_c[i]<<"<0"<<std::endl;
-            }
-            if ( (i_f[i] >= this->m_osizeF[i]) || (i_f[i] < 0) ) {
-                std::cout<<" r "<<rank<<" "<<i_f[i]<<">="<<this->m_osizeF[i]<<"   "<<i_f[i]<<"<0"<< std::endl;
-            }
-
-        }
-
-        // compute flat index
-        l_c = GetLinearIndex(i_c[0],i_c[1],i_c[2],this->m_osizeC);
-        l_f = GetLinearIndex(i_f[0],i_f[1],i_f[2],this->m_osizeF);
-
-        // assign values to coarse grid
-        this->m_XHatCoarse[l_c][0] = scale*this->m_XHatFine[l_f][0];
-        this->m_XHatCoarse[l_c][1] = scale*this->m_XHatFine[l_f][1];
-
-    }
-
-} // pragma omp parallel
-*/
     ierr = VecGetArray(*x_c,&p_xc); CHKERRQ(ierr);
     accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTCoarsePlan, this->m_XHatCoarse, p_xc, timer);
     ierr = VecRestoreArray(*x_c,&p_xc); CHKERRQ(ierr);
@@ -889,7 +859,7 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
                 }
 
                 // do the assignment
-                for (int j = 0; j < n; ++j) {
+                for (IntType j = 0; j < n; ++j) {
                     // get index
                     for (int i = 0; i < 3; ++i) {
                         k_f[i] = this->m_IndicesF[p][j*3 + i];
@@ -1076,7 +1046,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
             if (n != 0) {
                 os_send = this->m_OffsetSend[p];
 
-                for (int j = 0; j < n; ++j) {
+                for (IntType j = 0; j < n; ++j) {
                     for (int i = 0; i < 3; ++i) {
                         // get index (in local space)
                         i_f[i] = this->m_FourierIndicesSendF[3*j + i + 3*os_send] - this->m_ostartF[i];
@@ -1211,7 +1181,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
 
             if (n != 0) {
                 os_recv = this->m_OffsetRecv[p];
-                for (int j = 0; j < n; ++j) {
+                for (IntType j = 0; j < n; ++j) {
                     for (int i = 0; i < 3; ++i) {
                         // get index (in local space)
                         i_c[i] = this->m_FourierIndicesRecvC[3*j + i + 3*os_recv] - this->m_ostartC[i];
@@ -1326,8 +1296,8 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
 PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank, nprocs;
-    IntType l, n, ns, os_send, k_f[3], i_f[3];
-    ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2];
+    IntType l, n, ns, os_send, k_f[3], i_f[3], nyqfreqid[3];
+    ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2], value;
     std::stringstream ss;
     double timer[5] = {0, 0, 0, 0, 0};
 
@@ -1355,6 +1325,8 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
     for (int i = 0; i < 3; ++i) {
         this->m_nxC[i] = nx_c[i];
         this->m_nxF[i] = nx_f[i];
+        value = static_cast<ScalarType>(nx_c[i])/2.0;
+        nyqfreqid[i] = static_cast<IntType>(std::ceil(value));
     }
 
     if (this->m_ResetGridChangeOps) {
@@ -1401,7 +1373,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
         ns = this->m_NumSend[p];
         os_send = this->m_OffsetSend[p];
 
-        for (int j = 0; j < ns; ++j) {
+        for (IntType j = 0; j < ns; ++j) {
             bool outofbounds = false;
             for (int i = 0; i < 3; ++i) {
                 k_f[i] = this->m_FourierIndicesSendF[3*j + i + 3*os_send] ;
@@ -1410,70 +1382,40 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
 //                k_c[i] = k_f[i] <= nxhalf_c[i] ? k_f[i] : nx_c[i] - nx_f[i] + k_f[i];
                 i_f[i] = k_f[i] - this->m_ostartF[i];
 
-                if ( (k_f[i] < this->m_ostartF[i]) || (k_f[i] > this->m_ostartF[i] + this->m_osizeF[i]) ) {
-                    outofbounds=true;
+                if ((k_f[i] < this->m_ostartF[i]) || (k_f[i] > this->m_ostartF[i] + this->m_osizeF[i])) {
+                    outofbounds = true;
                 }
-                if ( (i_f[i] < 0) || (i_f[i] > this->m_osizeF[i]) ) {
-                    outofbounds=true;
+                if ((i_f[i] < 0) || (i_f[i] > this->m_osizeF[i])) {
+                    outofbounds = true;
                 }
             }
             if (outofbounds) {
                 std::cout << i_f[0] << " " << i_f[1] << " " << i_f[2] << std::endl;
             }
             if (!outofbounds) {
-                // compute flat index
-                l = GetLinearIndex(i_f[0],i_f[1],i_f[2],this->m_osizeF);
 
-                // get fourier coefficients
-                coeff[0] = this->m_FourierCoeffRecvC[2*j + 0 + 2*os_send];
-                coeff[1] = this->m_FourierCoeffRecvC[2*j + 1 + 2*os_send];
+                bool setvalue = true;
+                for (int i = 0; i < 3; ++i) {
+                    if (i_f[i] == nyqfreqid[i]) {
+                        setvalue = false;
+                    }
+                }
 
-                // assign values to coarse grid
-                this->m_XHatFine[l][0] = scale*coeff[0];
-                this->m_XHatFine[l][1] = scale*coeff[1];
+                if (setvalue) {
+                    // compute flat index
+                    l = GetLinearIndex(i_f[0], i_f[1], i_f[2], this->m_osizeF);
+
+                    // get fourier coefficients
+                    coeff[0] = this->m_FourierCoeffRecvC[2*j + 0 + 2*os_send];
+                    coeff[1] = this->m_FourierCoeffRecvC[2*j + 1 + 2*os_send];
+
+                    // assign values to coarse grid
+                    this->m_XHatFine[l][0] = scale*coeff[0];
+                    this->m_XHatFine[l][1] = scale*coeff[1];
+                }
             }
         }
     }
-
-
-/*
-    // get number of entries we are going to assign
-    n = this->m_IndicesC[rank].size()/3;
-
-#pragma omp parallel
-{
-    IntType l_f,l_c,k_c,k_f,i_c[3],i_f[3];
-#pragma omp for
-    for (IntType j = 0; j < n; ++j) {
-
-        // compute local index
-        for (int i = 0; i < 3; ++i) {
-
-            k_f = this->m_IndicesF[rank][j*3 + i];
-            k_c = this->m_IndicesC[rank][j*3 + i];
-
-            i_c[i] = k_c - this->m_ostartC[i];
-            i_f[i] = k_f - this->m_ostartF[i];
-
-            if ( (i_c[i] >= this->m_osizeC[i]) || (i_c[i] < 0.0) ) {
-                std::cout<<" r "<<rank<<" "<<i_c[i]<<">="<<this->m_osizeC[i]<<"   "<<i_c[i]<<"<0"<<std::endl;
-            }
-            if ( (i_f[i] >= this->m_osizeF[i]) || (i_f[i] < 0.0) ) {
-                std::cout<<" r "<<rank<<" "<<i_f[i]<<">="<<this->m_osizeF[i]<<"   "<<i_f[i]<<"<0"<< std::endl;
-            }
-        }
-        // compute flat index
-        l_c = GetLinearIndex(i_c[0],i_c[1],i_c[2],this->m_osizeC);
-        l_f = GetLinearIndex(i_f[0],i_f[1],i_f[2],this->m_osizeF);
-
-        // assign values to coarse grid
-        this->m_XHatFine[l_f][0] = scale*this->m_XHatCoarse[l_c][0];
-        this->m_XHatFine[l_f][1] = scale*this->m_XHatCoarse[l_c][1];
-
-    }
-
-} // pragma omp parallel
-*/
 
 
     ierr = VecGetArray(*x_f, &p_xf); CHKERRQ(ierr);
@@ -1743,6 +1685,7 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 

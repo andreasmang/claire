@@ -38,7 +38,8 @@ struct ResamplingPara {
 
 struct RegToolFlags {
     bool computesynprob;        ///< compute synthetic test problem
-    bool checkfwdsolve;         ///< perform test for forward solve
+    bool checkfwdsolveerr;      ///< perform test to check numerical error for forward solve
+    bool checkfwdsolvetts;      ///< perform test to analyze time to solution for forward solve
     bool checkadjsolve;         ///< perform test for adjoint solve
     bool checkdetdefgradsolve;  ///< perform test for computation of jacobian
     bool readvecfield;          ///< read vector field
@@ -52,6 +53,7 @@ struct RegToolFlags {
     bool tscafield;             ///< transport scalar field (forward problem)
     bool tlabelmap;             ///< transport label map (solve forward problem)
     bool convert;               ///< convert image data
+    bool computeanalytics;      ///< compute analytics of scalar field
     bool applysmoothing;        ///< convert image data
     int problemid;
 };

@@ -43,6 +43,7 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt*);
 PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt*);
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
+PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt*);
 
 
 
@@ -88,7 +89,9 @@ int main(int argc, char **argv) {
         ierr = ComputeError(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computesynvel) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().checkfwdsolve) {
+    } else if (regopt->GetFlags().checkfwdsolveerr) {
+        ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().checkfwdsolvetts) {
         ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().checkadjsolve) {
         ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
@@ -103,7 +106,10 @@ int main(int argc, char **argv) {
     }
 
     // clean up
-    if (regopt != NULL) {delete regopt; regopt = NULL;}
+    if (regopt != NULL) {
+        delete regopt;
+        regopt = NULL;
+    }
 
     // clean up petsc
     ierr = PetscFinalize(); CHKERRQ(ierr);
@@ -795,6 +801,64 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
 
 
 /********************************************************************
+ * @brief compute values of scalar field
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::string fn;
+    std::stringstream ss;
+    ScalarType value;
+    Vec m = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    // allocate class for io
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read velocity components
+    fn = regopt->GetScaFieldFN(0);
+    ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
+    ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
+    if (!regopt->SetupDone()) {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
+
+    ierr = VecMin(m, NULL, &value); CHKERRQ(ierr);
+    ss << std::scientific << std::setw(12) << "min value" << value;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecMax(m, NULL, &value); CHKERRQ(ierr);
+    ss << std::scientific << std::setw(12) << "max value" << value;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    ierr = VecNorm(m, NORM_2, &value); CHKERRQ(ierr);
+    ss << std::scientific << std::setw(12) << "norm" << value;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+
+    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+
+    regopt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+
+/********************************************************************
  * @brief compute error
  * @param[in] regopt container for user defined options
  *******************************************************************/
@@ -1070,7 +1134,6 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
 
-
     nc = regopt->GetDomainPara().nc;
     nl = regopt->GetDomainPara().nl;
     ng = regopt->GetDomainPara().ng;
@@ -1108,7 +1171,6 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     }
 
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
-    ierr = reg::VecCreate(m0tilde, nc*nl, nc*ng); CHKERRQ(ierr);
 
     // set up smooth problem
     if (regopt->GetFlags().problemid == 0) {
@@ -1126,58 +1188,75 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     // make sure we do not apply any smoothing
     regopt->DisableSmoothing();
 
-    // set initial guess and solve forward problem
-    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-    ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+    if (regopt->GetFlags().checkfwdsolvetts) {
+        // set initial guess and solve forward problem
+        ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+        ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
+        int n = 10;
+        for (int i = 0; i < n; ++i) {
+            ss  << "forward solve "<< std::setw(3) << i << " of " << std::setw(3) << n;
+            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+            ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+        }
+        ierr = regopt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+        ierr = regopt->ProcessTimers(); CHKERRQ(ierr);
+        ierr = regopt->DisplayTimeToSolution(); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().checkfwdsolveerr) {
+        // set initial guess and solve forward problem
+        ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+        ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
-    ierr = v->Scale(-1.0); CHKERRQ(ierr);
-    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-    ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
+        ierr = v->Scale(-1.0); CHKERRQ(ierr);
+        ierr = reg::VecCreate(m0tilde, nc*nl, nc*ng); CHKERRQ(ierr);
+        ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+        ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
 
-    if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(m0, "m0" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-        ierr = readwrite->Write(m1, "m1" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-        ierr = readwrite->Write(m0tilde, "m0tilde" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-        ierr = readwrite->Write(v, "velocity-field" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        if (regopt->GetReadWriteFlags().results) {
+            ierr = readwrite->Write(m0, "m0" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+            ierr = readwrite->Write(m1, "m1" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+            ierr = readwrite->Write(m0tilde, "m0tilde" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+            ierr = readwrite->Write(v, "velocity-field" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        }
+        ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
+        ierr = VecMax(m0, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(m0, NULL, &minval); CHKERRQ(ierr);
+        ss  << "m(t=0)                    (min,max,norm)=("
+            << std::scientific << minval << "," << maxval << "," << normval << ")";
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecNorm(m1, NORM_2, &normval); CHKERRQ(ierr);
+        ierr = VecMax(m1, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(m1, NULL, &minval); CHKERRQ(ierr);
+        ss  << "m(t=1) = m(t=0) o v       (min,max,norm)=("
+            << std::scientific << minval << "," << maxval << "," << normval << ")";
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecNorm(m0tilde, NORM_2, &normval); CHKERRQ(ierr);
+        ierr = VecMax(m0tilde, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(m0tilde, NULL, &minval); CHKERRQ(ierr);
+        ss  << "m(t=0) = m(t=1) o (-v)    (min,max,norm)=("
+            << std::scientific << minval << "," << maxval << "," << normval << ")";
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecAXPY(m0tilde, -1.0, m0); CHKERRQ(ierr);
+        ierr = VecNorm(m0tilde, NORM_2, &errval); CHKERRQ(ierr);
+        ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
+        ss  << "error " << std::scientific
+            << errval/normval << " (" << errval << ")";
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
-    ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
-    ierr = VecMax(m0, NULL, &maxval); CHKERRQ(ierr);
-    ierr = VecMin(m0, NULL, &minval); CHKERRQ(ierr);
-    ss  << "m(t=0)                    (min,max,norm)=("
-        << std::scientific << minval << "," << maxval << "," << normval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
-    ierr = VecNorm(m1, NORM_2, &normval); CHKERRQ(ierr);
-    ierr = VecMax(m1, NULL, &maxval); CHKERRQ(ierr);
-    ierr = VecMin(m1, NULL, &minval); CHKERRQ(ierr);
-    ss  << "m(t=1) = m(t=0) o v       (min,max,norm)=("
-        << std::scientific << minval << "," << maxval << "," << normval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
-    ierr = VecNorm(m0tilde, NORM_2, &normval); CHKERRQ(ierr);
-    ierr = VecMax(m0tilde, NULL, &maxval); CHKERRQ(ierr);
-    ierr = VecMin(m0tilde, NULL, &minval); CHKERRQ(ierr);
-    ss  << "m(t=0) = m(t=1) o (-v)    (min,max,norm)=("
-        << std::scientific << minval << "," << maxval << "," << normval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
-
-    ierr = VecAXPY(m0tilde, -1.0, m0); CHKERRQ(ierr);
-    ierr = VecNorm(m0tilde, NORM_2, &errval); CHKERRQ(ierr);
-    ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
-    ss  << "error " << std::scientific
-        << errval/normval << " (" << errval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
 
     regopt->Exit(__func__);
 
     if (v != NULL) {delete v; v = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (m0tilde != NULL) {ierr = VecDestroy(&m0tilde); CHKERRQ(ierr); m0tilde = NULL;}
     if (synprob != NULL) {delete synprob; synprob = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}

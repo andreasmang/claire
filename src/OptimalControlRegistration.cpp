@@ -46,16 +46,6 @@ OptimalControlRegistration::OptimalControlRegistration() : SuperClass() {
 
 
 /********************************************************************
- * @brief default destructor
- *******************************************************************/
-OptimalControlRegistration::~OptimalControlRegistration(void) {
-    this->ClearMemory();
-}
-
-
-
-
-/********************************************************************
  * @brief constructor
  *******************************************************************/
 OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass(opt) {
@@ -66,39 +56,26 @@ OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass
 
 
 /********************************************************************
+ * @brief default destructor
+ *******************************************************************/
+OptimalControlRegistration::~OptimalControlRegistration() {
+    this->ClearMemory();
+}
+
+
+
+
+/********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::Initialize(void) {
+PetscErrorCode OptimalControlRegistration::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-
-    this->m_TemplateImage = NULL;       ///< reference iamge
-    this->m_ReferenceImage = NULL;      ///< template image
-
-    this->m_VelocityField = NULL;       ///< control variable
-    this->m_IncVelocityField = NULL;    ///< incremental control variable
 
     this->m_StateVariable = NULL;       ///< state variable
     this->m_AdjointVariable = NULL;     ///< adjoint variable
     this->m_IncStateVariable = NULL;    ///< incremental state variable
     this->m_IncAdjointVariable = NULL;  ///< incremental adjoint variable
-
-    this->m_WorkScaField1 = NULL;
-    this->m_WorkScaField2 = NULL;
-    this->m_WorkScaField3 = NULL;
-    this->m_WorkScaField4 = NULL;
-
-    this->m_WorkScaFieldMC = NULL;
-
-    this->m_WorkVecField1 = NULL;
-    this->m_WorkVecField2 = NULL;
-    this->m_WorkVecField3 = NULL;
-    this->m_WorkVecField4 = NULL;
-    this->m_WorkVecField5 = NULL;
-
-    this->m_SemiLagrangianMethod = NULL;
-
-    this->m_Regularization = NULL;
 
     PetscFunctionReturn(ierr);
 }
@@ -115,69 +92,6 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
 
     // delete all variables
     ierr = this->ClearVariables(); CHKERRQ(ierr);
-
-    if (this->m_VelocityField != NULL) {
-        delete this->m_VelocityField;
-        this->m_VelocityField = NULL;
-    }
-    if (this->m_IncVelocityField != NULL) {
-        delete this->m_IncVelocityField;
-        this->m_IncVelocityField = NULL;
-    }
-
-    if (this->m_WorkScaField1 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField1); CHKERRQ(ierr);
-        this->m_WorkScaField1 = NULL;
-    }
-    if (this->m_WorkScaField2 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField2); CHKERRQ(ierr);
-        this->m_WorkScaField2 = NULL;
-    }
-    if (this->m_WorkScaField3 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField3); CHKERRQ(ierr);
-        this->m_WorkScaField3 = NULL;
-    }
-    if (this->m_WorkScaField4 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField4); CHKERRQ(ierr);
-        this->m_WorkScaField4 = NULL;
-    }
-
-    if (this->m_WorkScaFieldMC != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaFieldMC); CHKERRQ(ierr);
-        this->m_WorkScaFieldMC = NULL;
-    }
-
-    if (this->m_WorkVecField1 != NULL) {
-        delete this->m_WorkVecField1;
-        this->m_WorkVecField1 = NULL;
-    }
-    if (this->m_WorkVecField2 != NULL) {
-        delete this->m_WorkVecField2;
-        this->m_WorkVecField2 = NULL;
-    }
-    if (this->m_WorkVecField3 != NULL) {
-        delete this->m_WorkVecField3;
-        this->m_WorkVecField3 = NULL;
-    }
-    if (this->m_WorkVecField4 != NULL) {
-        delete this->m_WorkVecField4;
-        this->m_WorkVecField4 = NULL;
-    }
-    if (this->m_WorkVecField5 != NULL) {
-        delete this->m_WorkVecField5;
-        this->m_WorkVecField5 = NULL;
-    }
-
-    if (this->m_SemiLagrangianMethod != NULL) {
-        delete this->m_SemiLagrangianMethod;
-        this->m_SemiLagrangianMethod = NULL;
-    }
-
-    // delete class for regularization model
-    if (this->m_Regularization != NULL) {
-        delete this->m_Regularization;
-        this->m_Regularization = NULL;
-    }
 
     PetscFunctionReturn(ierr);
 }

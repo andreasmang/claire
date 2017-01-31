@@ -236,14 +236,18 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.tlabelmap = true;
         } else if (strcmp(argv[1], "-csynvel") == 0) {
             this->m_RegToolFlags.computesynvel = true;
-        } else if (strcmp(argv[1], "-checkfwdsolve") == 0) {
-            this->m_RegToolFlags.checkfwdsolve = true;
+        } else if (strcmp(argv[1], "-checkfwdsolveerr") == 0) {
+            this->m_RegToolFlags.checkfwdsolveerr = true;
+        } else if (strcmp(argv[1], "-checkfwdsolvetts") == 0) {
+            this->m_RegToolFlags.checkfwdsolvetts = true;
         } else if (strcmp(argv[1], "-checkadjsolve") == 0) {
             this->m_RegToolFlags.checkadjsolve = true;
         } else if (strcmp(argv[1], "-checkdetdefgradsolve") == 0) {
             this->m_RegToolFlags.checkdetdefgradsolve = true;
         } else if (strcmp(argv[1], "-checkdefmapsolve") == 0) {
             this->m_RegFlags.checkdefmapsolve = true;
+        } else if (strcmp(argv[1], "-analyze") == 0) {
+            this->m_RegToolFlags.computeanalytics = false;
         } else if (strcmp(argv[1], "-problemid") == 0) {
             argc--; argv++;
             this->m_RegToolFlags.problemid = atoi(argv[1]);
@@ -315,18 +319,7 @@ RegToolsOpt::~RegToolsOpt() {
 PetscErrorCode RegToolsOpt::ClearMemory() {
     PetscFunctionBegin;
 
-    if (this->m_FFT.plan != NULL) {
-        accfft_destroy_plan(this->m_FFT.plan);
-        accfft_cleanup();
-        this->m_FFT.plan = NULL;
-    }
-
-    if (this->m_FFT.mpicomm != NULL) {
-        MPI_Comm_free(&this->m_FFT.mpicomm);
-    }
-
     PetscFunctionReturn(0);
-
 }
 
 
@@ -349,11 +342,14 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.tscafield = false;
     this->m_RegToolFlags.computesynvel = false;
     this->m_RegToolFlags.resample = false;
-    this->m_RegToolFlags.checkfwdsolve = false;
+    this->m_RegToolFlags.checkfwdsolveerr = false;
+    this->m_RegToolFlags.checkfwdsolvetts = false;
     this->m_RegToolFlags.checkadjsolve = false;
     this->m_RegToolFlags.convert = false;
     this->m_RegToolFlags.checkdetdefgradsolve = false;
     this->m_RegToolFlags.computeerror = false;
+    this->m_RegToolFlags.computeanalytics = false;
+    this->m_RegToolFlags.computeresidual = false;
     this->m_RegToolFlags.problemid = 0;
 
     this->m_ResamplingPara.gridscale = -1.0;
@@ -425,6 +421,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -tlabelmap                transport label map (input: velocity field and scalar field)"<<std::endl;
         std::cout << " -residual                 compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
         std::cout << " -error                    compute error between scalar fields ('-mr' and '-mt' options)"<<std::endl;
+        std::cout << " -analyze                  compute analytics for scalar field (-ifile option)"<<std::endl;
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << " -detdefgradfromdeffield    compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
@@ -465,7 +462,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
-        std::cout << " -checkfwdsolve            check forward solver"<<std::endl;
+        std::cout << " -checkfwdsolveerr         check numerical error of forward solver"<<std::endl;
+        std::cout << " -checkfwdsolvetts         check time-to-solution of forward solver"<<std::endl;
         std::cout << " -checkdetdefgradsolve     check solve for det(grad(y))"<<std::endl;
         std::cout << " -checkdefmapsolve         check solve for y"<<std::endl;
         }
@@ -732,8 +730,16 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 
     if (this->m_RegToolFlags.computeerror) {
         // transport scalar field
-        if ( this->m_TFN.empty() || this->m_RFN.empty() ) {
+        if (this->m_TFN.empty() || this->m_RFN.empty()) {
             msg = "\x1b[31m reference and template images need to be set\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_RegToolFlags.computeanalytics) {
+        if (this->m_iScaFieldFN.empty()) {
+            msg = "\x1b[31m input scalarfield needs to be set\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
@@ -741,7 +747,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 
     if (this->m_RegToolFlags.computeresidual) {
         // transport scalar field
-        if ( this->m_TFN.empty() || this->m_RFN.empty() ) {
+        if (this->m_TFN.empty() || this->m_RFN.empty()) {
             msg = "\x1b[31m reference and template images need to be set\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);

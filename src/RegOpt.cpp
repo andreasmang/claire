@@ -69,9 +69,9 @@ RegOpt::RegOpt(const RegOpt& opt) {
  *******************************************************************/
 void RegOpt::Copy(const RegOpt& opt) {
     this->m_SetupDone = false;
-    this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = NULL;
+    this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
 
     this->m_FFT.osize[0] = opt.m_FFT.osize[0];
     this->m_FFT.osize[1] = opt.m_FFT.osize[1];
