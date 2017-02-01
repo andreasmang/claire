@@ -2169,6 +2169,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         ierr = DbgMsg("computing deformation map"); CHKERRQ(ierr);
     }
 
+    // check cfl condition / update time step
+    if (this->m_Opt->GetPDESolverPara().adapttimestep) {
+        ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
+    }
+
     if (y == NULL) {
         // compute initial condition
         ierr = this->ComputeRegularGrid(this->m_WorkVecField1); CHKERRQ(ierr);
@@ -2539,7 +2544,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, ss.str()); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
         }
     } // for all time points
@@ -2727,7 +2732,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, ss.str()); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
         }
     }  // for all time points

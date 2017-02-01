@@ -103,6 +103,8 @@ int main(int argc, char **argv) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().applysmoothing) {
         ierr = ApplySmoothing(regopt); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().computeanalytics) {
+        ierr = AnalyzeScalarField(regopt); CHKERRQ(ierr);
     }
 
     // clean up
@@ -808,6 +810,7 @@ PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string fn;
     std::stringstream ss;
+    ScalarType ng;
     ScalarType value;
     Vec m = NULL;
     reg::ReadWriteReg* readwrite = NULL;
@@ -830,20 +833,26 @@ PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
     }
 
     ierr = VecMin(m, NULL, &value); CHKERRQ(ierr);
-    ss << std::scientific << std::setw(12) << "min value" << value;
+    ss << std::scientific << std::setw(14) << std::left << "min value" << value;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
     ierr = VecMax(m, NULL, &value); CHKERRQ(ierr);
-    ss << std::scientific << std::setw(12) << "max value" << value;
+    ss << std::scientific << std::setw(14) << std::left << "max value" << value;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
+
+    ng = static_cast<ScalarType>(regopt->GetDomainPara().ng);
+    ierr = VecSum(m, &value); CHKERRQ(ierr);
+    ss << std::scientific << std::setw(14) << std::left << "mean value" << value / ng;
+    ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
 
     ierr = VecNorm(m, NORM_2, &value); CHKERRQ(ierr);
-    ss << std::scientific << std::setw(12) << "norm" << value;
+    ss << std::scientific << std::setw(14) << std::left << "norm" << value;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
-
 
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}

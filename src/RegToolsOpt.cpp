@@ -247,7 +247,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-checkdefmapsolve") == 0) {
             this->m_RegFlags.checkdefmapsolve = true;
         } else if (strcmp(argv[1], "-analyze") == 0) {
-            this->m_RegToolFlags.computeanalytics = false;
+            this->m_RegToolFlags.computeanalytics = true;
         } else if (strcmp(argv[1], "-problemid") == 0) {
             argc--; argv++;
             this->m_RegToolFlags.problemid = atoi(argv[1]);

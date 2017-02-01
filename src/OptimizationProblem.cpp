@@ -155,7 +155,6 @@ PetscErrorCode OptimizationProblem::ComputeUpdateNorm(Vec x, ScalarType& normdx,
 
 
 
-
 /********************************************************************
  * @brief check gradient based on a taylor expansion
  *******************************************************************/
@@ -236,13 +235,28 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
     }
 
     // clean up
-    ierr = PetscRandomDestroy(&rctx); CHKERRQ(ierr);
-    ierr = VecDestroy(&v); CHKERRQ(ierr);
-    ierr = VecDestroy(&w); CHKERRQ(ierr);
-    ierr = VecDestroy(&vtilde); CHKERRQ(ierr);
-    ierr = VecDestroy(&dvJ); CHKERRQ(ierr);
+    if (rctx != NULL) {
+        ierr = PetscRandomDestroy(&rctx); CHKERRQ(ierr);
+        rctx = NULL;
+    }
+    if (v != NULL) {
+        ierr = VecDestroy(&v); CHKERRQ(ierr);
+        v = NULL;
+    }
+    if (w != NULL) {
+        ierr = VecDestroy(&w); CHKERRQ(ierr);
+        w = NULL;
+    }
+    if (dvJ != NULL) {
+        ierr = VecDestroy(&dvJ); CHKERRQ(ierr);
+        dvJ = NULL;
+    }
+    if (vtilde != NULL) {
+        ierr = VecDestroy(&vtilde); CHKERRQ(ierr);
+        vtilde = NULL;
+    }
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -268,12 +282,8 @@ PetscErrorCode OptimizationProblem::HessianSymmetryCheck() {
     nl = this->m_Opt->GetDomainPara().nl;
     ng = this->m_Opt->GetDomainPara().ng;
 
-    // create an extra array for initial guess (has to be flat for optimizer)
-    ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
-    ierr = VecSetSizes(v, 3*nl, 3*ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(v); CHKERRQ(ierr);
-
-    // allocate hessian mat vec
+    // create arrays
+    ierr = VecCreate(v, 3*nl, 3*ng); CHKERRQ(ierr);
     ierr = VecDuplicate(v, &Hv); CHKERRQ(ierr);
     ierr = VecDuplicate(v, &HHv); CHKERRQ(ierr);
 
@@ -300,6 +310,18 @@ PetscErrorCode OptimizationProblem::HessianSymmetryCheck() {
 
     ierr = DbgMsg(msg); CHKERRQ(ierr);
 
+    if (v != NULL) {
+        ierr = VecDestroy(&v); CHKERRQ(ierr);
+        v = NULL;
+    }
+    if (Hv != NULL) {
+        ierr = VecDestroy(&Hv); CHKERRQ(ierr);
+        Hv = NULL;
+    }
+    if (HHv != NULL) {
+        ierr = VecDestroy(&HHv); CHKERRQ(ierr);
+        HHv = NULL;
+    }
     PetscFunctionReturn(ierr);
 }
 
