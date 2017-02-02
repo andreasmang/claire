@@ -1467,10 +1467,11 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving state equation (nt=" << nt
-           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
-           <<      "," << this->m_Opt->GetDomainPara().nx[1]
-           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
+        ss << "solving state equation (nx1,nx2,nx3,nc,nt) = ("
+                  << this->m_Opt->GetDomainPara().nx[0]
+           << "," << this->m_Opt->GetDomainPara().nx[1]
+           << "," << this->m_Opt->GetDomainPara().nx[2]
+           << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -1762,10 +1763,11 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ng = this->m_Opt->GetDomainPara().ng;
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving adjoint equation (nt=" << nt
-           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
-           <<      "," << this->m_Opt->GetDomainPara().nx[1]
-           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
+        ss << "solving adjoint equation (nx1,nx2,nx3,nc,nt) = ("
+                  << this->m_Opt->GetDomainPara().nx[0]
+           << "," << this->m_Opt->GetDomainPara().nx[1]
+           << "," << this->m_Opt->GetDomainPara().nx[2]
+           << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -1855,6 +1857,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
                 *p_ljvx1 = NULL, *p_ljvx2 = NULL, *p_ljvx3 = NULL;
     ScalarType hthalf, ht, lambdabar, lambda;
     double timers[5] = {0, 0, 0, 0, 0};
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1885,6 +1888,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
+
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_ljvx1, p_ljvx2, p_ljvx3); CHKERRQ(ierr);
 
@@ -1920,13 +1924,14 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
             this->m_Opt->IncrementCounter(FFT, 4);
 
             for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                p_l[lnext+i] = p_l[l+i] + hthalf*(p_rhs0[i]+p_rhs1[i]);
+                p_l[lnext+i] = p_l[l+i] + hthalf*(p_rhs0[i] + p_rhs1[i]);
             }
         }  // for all image components
     }  // for all time points
 
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_ljvx1, p_ljvx2, p_ljvx3); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -1949,11 +1954,11 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
-    double timers[5] = {0, 0, 0, 0, 0};
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                 *p_divv = NULL, *p_divvX = NULL, *p_l = NULL, *p_ljX = NULL;
     ScalarType ht, ljX, rhs0, rhs1;
     IntType nl, ng, nc, nt, l, lnext;
+    double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
@@ -2072,10 +2077,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving incremental state equation (nt=" << nt
-           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
-           <<      "," << this->m_Opt->GetDomainPara().nx[1]
-           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
+        ss << "solving incremental state equation (nx1,nx2,nx3,nc,nt) = ("
+                  << this->m_Opt->GetDomainPara().nx[0]
+           << "," << this->m_Opt->GetDomainPara().nx[1]
+           << "," << this->m_Opt->GetDomainPara().nx[2]
+           << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -2444,10 +2450,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss << "solving incremental adjoint equation (nt=" << nt
-           << "; nx=(" << this->m_Opt->GetDomainPara().nx[0]
-           <<      "," << this->m_Opt->GetDomainPara().nx[1]
-           <<      "," << this->m_Opt->GetDomainPara().nx[2] << "))";
+        ss << "solving incremental adjoint equation (nx1,nx2,nx3,nc,nt) = ("
+                  << this->m_Opt->GetDomainPara().nx[0]
+           << "," << this->m_Opt->GetDomainPara().nx[1]
+           << "," << this->m_Opt->GetDomainPara().nx[2]
+           << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
