@@ -216,16 +216,17 @@ struct Domain {
 
 /* parameters for optimization */
 struct Optimization {
-    int maxit;                  ///< maximal number of (outer) iterations
-    int minit;                  ///< minimal number of (outer) iterations (for parameter continuation)
-    ScalarType tol[3];          ///< tolerances for optimization
-    OptMeth method;             ///< optimization method
-    StopCondType stopcond;      ///< optimization method
-    bool fastpresolve;          ///< flag to switch on fast presolve
-    bool fastsolve;             ///< flag to switch on fast (inaccurate) solve
-    ScalarType presolvetol[3];  ///< tolerances for presolve
-    int presolvemaxit;          ///< maximal iterations for presolve
-    bool usezeroinitialguess;   ///< use zero initial guess for computing the initial gradient
+    int maxit;                    ///< maximal number of (outer) iterations
+    int minit;                    ///< minimal number of (outer) iterations (for parameter continuation)
+    ScalarType tol[3];            ///< tolerances for optimization
+    OptMeth method;               ///< optimization method
+    StopCondType stopcond;        ///< optimization method
+    bool fastpresolve;            ///< flag to switch on fast presolve
+    bool fastsolve;               ///< flag to switch on fast (inaccurate) solve
+    ScalarType presolvetol[3];    ///< tolerances for presolve
+    int presolvemaxit;            ///< maximal iterations for presolve
+    bool usezeroinitialguess;     ///< use zero initial guess for computing the initial gradient
+    bool derivativecheckenabled;  ///< use zero initial guess for computing the initial gradient
 };
 
 

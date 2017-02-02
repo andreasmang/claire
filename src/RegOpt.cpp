@@ -145,6 +145,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_OptPara.fastpresolve = opt.m_OptPara.fastpresolve;
     this->m_OptPara.method = opt.m_OptPara.method;
     this->m_OptPara.usezeroinitialguess = opt.m_OptPara.usezeroinitialguess;
+    this->m_OptPara.derivativecheckenabled = opt.m_OptPara.derivativecheckenabled;
 
     this->m_SolveType = opt.m_SolveType;
 
@@ -468,6 +469,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-nonzeroinitialguess") == 0) {
             this->m_OptPara.usezeroinitialguess = false;
+        } else if (strcmp(argv[1], "-derivativecheck") == 0) {
+            this->m_OptPara.derivativecheckenabled = true;
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
             this->m_RegMonitor.jacbound = atof(argv[1]);
@@ -941,6 +944,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
     this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
     this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
+    this->m_OptPara.derivativecheckenabled = true;  ///< use zero initial guess for optimization
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
@@ -1126,7 +1130,6 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                               fgmres       flexible gmres" << std::endl;
         std::cout << " -pcsolvermaxit <int>      maximum number of iterations for inverting preconditioner; is" << std::endl;
         std::cout << "                           used for cheb, fgmres and fpcg; default: 10" << std::endl;
-        std::cout << " -checksymmetry            check symmetry of hessian operator" << std::endl;
         std::cout << " -reesteigvals             re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
         std::cout << "                           (in case a chebyshev method is used to invert preconditioner)" << std::endl;
         std::cout << " -hessshift <dbl>          add perturbation to hessian" << std::endl;
@@ -1135,6 +1138,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -nonzeroinitialguess      use a non-zero velocity field to compute the initial gradient" << std::endl;
         std::cout << "                           this is only recommended in case one want to solve more accurately" << std::endl;
         std::cout << "                           after a warm start (in general for debugging purposes only)" << std::endl;
+        std::cout << " -checksymmetry            check symmetry of hessian operator" << std::endl;
+        std::cout << " -derivativecheck          check gradient/derivative" << std::endl;
         std::cout << line << std::endl;
         std::cout << " regularization/constraints" << std::endl;
         std::cout << line << std::endl;

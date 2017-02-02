@@ -325,6 +325,11 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
 
     optprob->SetObjectiveValue(J);
 
+    // perform derivative check
+    if (optprob->GetOptions()->GetOptPara().derivativecheckenabled) {
+        ierr = optprob->DerivativeCheck(); CHKERRQ(ierr);
+    }
+
     // if we're here, we're good to go
     ierr = TaoSetConvergedReason(tao, TAO_CONTINUE_ITERATING); CHKERRQ(ierr);
 
@@ -442,6 +447,11 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
         }
+    }
+
+    // perform derivative check
+    if (optprob->GetOptions()->GetOptPara().derivativecheckenabled) {
+        ierr = optprob->DerivativeCheck(); CHKERRQ(ierr);
     }
 
     // if we're here, we're good to go
