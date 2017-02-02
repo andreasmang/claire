@@ -141,7 +141,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
     //ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
 
     nc = this->m_Opt->GetDomainPara().nc;
-    ierr = Assert(filenames.size()==nc, "size mismatch"); CHKERRQ(ierr);
+    ierr = Assert(filenames.size() == nc, "size mismatch"); CHKERRQ(ierr);
 
     for (IntType k = 0; k < nc; ++k) {
         filename = filenames[k];
@@ -349,7 +349,6 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
         msg = "writing " + file;
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
-
 
     if (multicomponent == false) {
         this->m_FileName = this->m_Opt->GetReadWriteFlags().xfolder + filename;
@@ -639,7 +638,10 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     ierr = Assert(ng == ngx, "global size mismatch"); CHKERRQ(ierr);
 
     // allocate vector
-    if (*x != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr);}
+    if (*x != NULL) {
+        ierr = VecDestroy(x); CHKERRQ(ierr);
+        *x = NULL;
+    }
     ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     // read data only on master rank
@@ -661,27 +663,27 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
         // get all the sizes to read and assign data correctly
         if (this->m_iSizeC == NULL) {
             try {this->m_iSizeC = new IntType[3*nprocs];}
-            catch(std::bad_alloc&) {
+            catch (std::bad_alloc&) {
                 ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         if (this->m_iStartC == NULL) {
             try {this->m_iStartC = new IntType[3*nprocs];}
-            catch(std::bad_alloc&) {
+            catch (std::bad_alloc&) {
                 ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
     }
 
     if (this->m_nSend == NULL) {
-        try{ this->m_nSend = new int[3*nprocs]; }
-        catch(std::bad_alloc&) {
+        try {this->m_nSend = new int[3*nprocs];}
+        catch (std::bad_alloc&) {
              ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
     if (this->m_nOffset == NULL) {
-        try{ this->m_nOffset = new int[3*nprocs]; }
-        catch(std::bad_alloc&) {
+        try {this->m_nOffset = new int[3*nprocs];}
+        catch (std::bad_alloc&) {
              ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
@@ -734,9 +736,18 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     rval = MPI_Scatterv(comdata, this->m_nSend, this->m_nOffset, MPI_DOUBLE, p_x, nrecv, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
     ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
 
-    if (comdata != NULL) {delete [] comdata; comdata = NULL;}
-    if (image != NULL) {nifti_image_free(image); image = NULL;}
-    if (this->m_Data != NULL) {delete [] this->m_Data; this->m_Data = NULL;}
+    if (comdata != NULL) {
+        delete [] comdata;
+        comdata = NULL;
+    }
+    if (image != NULL) {
+        nifti_image_free(image);
+        image = NULL;
+    }
+    if (this->m_Data != NULL) {
+        delete [] this->m_Data;
+        this->m_Data = NULL;
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -762,7 +773,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     msg = "should only be called on master/root rank";
-    ierr = Assert(rank==0,msg); CHKERRQ(ierr);
+    ierr = Assert(rank == 0, msg); CHKERRQ(ierr);
 
     switch (niiimage->datatype) {
         case NIFTI_TYPE_UINT8:

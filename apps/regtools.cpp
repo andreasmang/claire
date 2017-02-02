@@ -1375,6 +1375,7 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
 
     regopt->DisableSmoothing();
+
     nl = regopt->GetDomainPara().nl;
     ng = regopt->GetDomainPara().ng;
 
@@ -1422,7 +1423,7 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
     ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
     ierr = VecMax(detj, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(detj, NULL, &minval); CHKERRQ(ierr);
-    ss  << "det(grad(y))    (min,max,norm)=("
+    ss  << "det(grad(y))         (min,max,norm)=("
         << std::scientific << minval << "," << maxval << "," << normval << ")";
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
@@ -1430,17 +1431,21 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
     ierr = VecNorm(invdetj, NORM_2, &normval); CHKERRQ(ierr);
     ierr = VecMax(invdetj, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(invdetj, NULL, &minval); CHKERRQ(ierr);
-    ss  << "det(grad(y))    (min,max,norm)=("
+    ss  << "det(grad(inv(y)))    (min,max,norm)=("
         << std::scientific << minval << "," << maxval << "," << normval << ")";
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
     if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
         ierr = readwrite->Write(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+        ierr = readwrite->Write(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
     }
 
     ierr = VecReciprocal(invdetj); CHKERRQ(ierr);
+
+    if (regopt->GetReadWriteFlags().results) {
+        ierr = readwrite->Write(invdetj, "detj-inverted" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
+    }
 
     ierr = VecAXPY(invdetj, -1.0, detj); CHKERRQ(ierr);
     ierr = VecNorm(invdetj, NORM_2, &errval); CHKERRQ(ierr);
@@ -1449,7 +1454,6 @@ PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
         << errval/normval << " (" << errval << ")";
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
-
 
     regopt->Exit(__func__);
 

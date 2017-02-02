@@ -1159,19 +1159,19 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     PetscErrorCode ierr = 0;
     ScalarType minddg, maxddg, meanddg;
     IntType nl, ng;
-    std::string filename;
+    std::string filename, detstr;
     std::stringstream ss, ssnum;
+    bool inverse;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
+    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    detstr = inverse ? "det(grad(inv(y)))" : "det(grad(y))";
+
     if (this->m_Opt->GetVerbosity() > 2) {
-        if (this->m_Opt->GetRegFlags().invdefgrad) {
-            ierr = DbgMsg("computing det(grad(y))"); CHKERRQ(ierr);
-        } else {
-            ierr = DbgMsg("computing det(grad(y^{-1}))"); CHKERRQ(ierr);
-        }
+        ierr = DbgMsg("computing " + detstr); CHKERRQ(ierr);
     }
 
     nl = this->m_Opt->GetDomainPara().nl;
@@ -1239,18 +1239,14 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     this->m_Opt->SetJacMean(meanddg);
 
     if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().JAC) {
-        ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
+        ss  << std::scientific << detstr << " : (min, mean, max)="
             << "(" << minddg << ", " << meanddg << ", " << maxddg << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
     if (write2file) {
-        if (this->m_Opt->GetRegFlags().invdefgrad) {
-            filename = "inverse-det-deformation-grad";
-        } else {
-            filename = "det-deformation-grad";
-        }
+        filename = inverse ? "inverse-det-deformation-grad" : "det-deformation-grad";
         filename += this->m_Opt->GetReadWriteFlags().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, filename); CHKERRQ(ierr);
     }
@@ -1263,6 +1259,472 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+
+/********************************************************************
+ * @brief compute determinant of deformation gradient
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng, nt;
+    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_jbar = NULL,
+                *p_gx1 = NULL, *p_gx2 = NULL, *p_gx3 = NULL, *p_divv = NULL,
+                *p_jac = NULL,  *p_rhs0 = NULL;
+    ScalarType ht, hthalf, alpha, rhs1;
+    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    double timings[5] = {0, 0, 0, 0, 0};
+    bool inverse;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField4 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
+    }
+
+    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    alpha = inverse ? -1.0 : 1.0;
+
+    // get pointers
+    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
+
+    ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+
+    // compute div(v)
+    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
+
+    // for all time points
+    for (IntType j = 0; j <= nt; ++j) {
+        accfft_grad(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->GetFFT().plan, &XYZ, timings);
+
+        for (IntType i = 0; i < nl; ++i) {  // for all grid points
+            // \bar{j} = j (\idiv \vect{v}) - (\vect{v} \cdot \igrad) j
+            p_rhs0[i] = alpha*(p_jac[i]*p_divv[i]) - (p_vx1[i]*p_gx1[i] + p_vx2[i]*p_gx2[i] + p_vx3[i]*p_gx3[i]);
+            p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
+        }
+
+        accfft_grad(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timings);
+
+        for (IntType i = 0; i < nl; ++i) {  // for all grid points
+            // \bar{j} = j (\idiv \vect{v}) - (\vect{v} \cdot \igrad) j
+            rhs1 = alpha*(p_jbar[i]*p_divv[i]) - (p_vx1[i]*p_gx1[i] + p_vx2[i]*p_gx2[i] + p_vx3[i]*p_gx3[i]);
+            p_jac[i] += hthalf*(p_rhs0[i] + rhs1);
+        }
+    }
+
+    ierr = VecRestoreArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+
+    ierr = this->m_WorkVecField1->RestoreArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief compute determinant of deformation gradient
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng, nt;
+    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_phibar = NULL,
+                *p_gphi1 = NULL, *p_gphi2 = NULL, *p_gphi3 = NULL, *p_divv = NULL,
+                *p_phiv1 = NULL, *p_phiv2 = NULL, *p_phiv3 = NULL,
+                *p_phi = NULL,  *p_rhs0 = NULL,  *p_divvphi=NULL;
+    ScalarType ht, hthalf, alpha;
+    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    double timings[5] = {0, 0, 0, 0, 0};
+    bool inverse;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    if (this->m_WorkVecField1 == NULL) {
+       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL) {
+       try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField4 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField5 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField5, nl, ng); CHKERRQ(ierr);
+    }
+
+    // set initial condition
+    ierr = VecSet(this->m_WorkScaField1, 1.0); CHKERRQ(ierr);
+
+    // get pointers
+    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
+
+    ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
+
+    // compute div(v)
+    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3,this->m_Opt->GetFFT().plan,timings);
+
+    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    alpha = inverse ? -1.0 : 1.0;
+
+#pragma omp parallel
+{
+#pragma omp  for
+    for (IntType i=0; i < nl; ++i) { // for all grid points
+        // compute phi \vect{v} = 1 \vect{v}
+        p_phiv1[i] = p_vx1[i];
+        p_phiv2[i] = p_vx2[i];
+        p_phiv3[i] = p_vx3[i];
+
+    }
+} // pragma omp
+
+
+    // for all time points
+    for (IntType j = 0; j <= nt; ++j) {
+        // compute grad(\phi_j)
+        accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phi,this->m_Opt->GetFFT().plan,&XYZ,timings);
+
+        // compute div(\vect{v}\phi_j)
+        accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3,this->m_Opt->GetFFT().plan,timings);
+#pragma omp parallel
+{
+#pragma omp  for
+        for (IntType i=0; i < nl; ++i) {  // for all grid points
+            // \bar{j} = -(\vect{v} \cdot \igrad) \phi + j (\idiv \vect{v})
+            //p_rhs0[i] = - alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+            //            + 0.5*alpha*p_phi[i]*p_divv[i] + 0.5*alpha*p_divvphi[i]
+            //            - 0.5*alpha*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
+            p_rhs0[i] = - 0.5*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+                        + alpha*p_phi[i]*p_divv[i] - 0.5*p_divvphi[i] + 0.5*p_phi[i]*p_divv[i];
+
+            p_phibar[i] = p_phi[i] + ht*p_rhs0[i];
+
+            // compute \bar{phi} \vect{v}
+            p_phiv1[i] = p_phibar[i]*p_vx1[i];
+            p_phiv2[i] = p_phibar[i]*p_vx2[i];
+            p_phiv3[i] = p_phibar[i]*p_vx3[i];
+        }
+} // pragma omp
+
+        accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->GetFFT().plan, &XYZ, timings);
+
+        // compute div(\vect{v}\bar{\phi}_j)
+        accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timings);
+
+#pragma omp parallel
+{
+        ScalarType rhs1;
+#pragma omp  for
+        for (IntType i=0; i < nl; ++i) {  // for all grid points
+            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
+            //rhs1 = -alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+            //        + 0.5*alpha*p_phibar[i]*p_divv[i] + 0.5*alpha*p_divvphi[i]
+            //        - 0.5*alpha*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
+            rhs1 = - 0.5*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
+                   + alpha*p_phibar[i]*p_divv[i] - 0.5*p_divvphi[i] + 0.5*p_phibar[i]*p_divv[i];
+
+            p_phi[i] = p_phi[i] + hthalf*(p_rhs0[i] + rhs1);
+
+            // compute \phi \vect{v} for next time step
+            p_phiv1[i] = p_phi[i]*p_vx1[i];
+            p_phiv2[i] = p_phi[i]*p_vx2[i];
+            p_phiv3[i] = p_phi[i]*p_vx3[i];
+        }
+} // pragma omp
+    }
+
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
+
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+/********************************************************************
+ * @brief compute determinant of deformation gradient
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
+    PetscErrorCode ierr;
+    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
+                *p_divv = NULL, *p_divvX = NULL, *p_jac = NULL, *p_jacX=NULL;
+    ScalarType ht, hthalf, alpha;
+    IntType nl, ng, nt;
+    std::stringstream ss;
+    std::string ext;
+    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    double timings[5] = {0, 0, 0, 0, 0};
+    bool inverse;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ext = this->m_Opt->GetReadWriteFlags().extension;
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    if (this->m_SemiLagrangianMethod == NULL) {
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField1 == NULL) {
+       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField4 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
+    }
+
+    // compute trajectory
+    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
+
+    // store time series
+    if (this->m_Opt->GetReadWriteFlags().timeseries) {
+        ss.str(std::string()); ss.clear();
+        ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
+    }
+
+    // get pointers
+    ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
+
+    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
+    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    alpha = inverse ? -1.0 : 1.0;
+
+    // compute div(v)
+    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
+
+    // compute div(v) at X
+    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvX, p_divv, "state"); CHKERRQ(ierr);
+
+
+    for (IntType j = 0; j < nt; ++j) {  // for all time points
+        // compute J(X,t^j)
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_jacX, p_jac, "state"); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+        ScalarType jacX, rhs0, rhs1;
+#pragma omp  for
+        for (IntType i = 0; i < nl; ++i) { // for all grid points
+            jacX = p_jacX[i];
+            rhs0 = alpha*jacX*p_divvX[i];
+            rhs1 = alpha*(jacX + ht*rhs0)*p_divv[i];
+            p_jac[i] = jacX + hthalf*(rhs0 + rhs1);
+        }
+}  // pragma omp
+
+        // store time series
+        if (this->m_Opt->GetReadWriteFlags().timeseries) {
+            ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+            ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
+            ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+        }
+    }  // for all time points
+
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
+    ierr = VecRestoreArray(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+/********************************************************************
+ * @brief compute determinant of deformation gradient; this
+ * implementation first computes the deformation map and then
+ * evaluates the determinant of the deformation gradient
+ * based on the computed deformation map
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng;
+    ScalarType  *p_u1 = NULL, *p_u2 = NULL, *p_u3 = NULL, *p_phi = NULL,
+                *p_gu11 = NULL, *p_gu12 = NULL, *p_gu13 = NULL,
+                *p_gu21 = NULL, *p_gu22 = NULL, *p_gu23 = NULL,
+                *p_gu31 = NULL, *p_gu32 = NULL, *p_gu33 = NULL;
+    double timer[5] = {0, 0, 0, 0, 0};
+    std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // get sizes
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
+
+    if (this->m_WorkVecField1 == NULL) {
+       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL) {
+       try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField3 == NULL) {
+       try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField4 == NULL) {
+       try{this->m_WorkVecField4 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
+    }
+
+    // compute deformation map (stored in work vec field one)
+    ierr = this->ComputeDisplacementField(); CHKERRQ(ierr);
+
+    // compute the derivatives (jacobian matrix; deformation gradient)
+    ierr = this->m_WorkVecField1->GetArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_gu11, p_gu12, p_gu13); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField3->GetArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField4->GetArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
+
+    // compute gradient of components of displacement field
+    accfft_grad(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
+
+    ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+#pragma omp parallel
+{
+#pragma omp  for
+    for (IntType i = 0; i < nl; ++i) {  // for all grid points
+        // compute determinant of deformation gradient
+        p_phi[i] = (1.0-p_gu11[i])*(1.0-p_gu22[i])*(1.0-p_gu33[i])
+                 + p_gu12[i]*p_gu23[i]*p_gu31[i]
+                 + p_gu13[i]*p_gu21[i]*p_gu32[i]
+                 - p_gu13[i]*(1.0-p_gu22[i])*p_gu31[i]
+                 - p_gu12[i]*p_gu21[i]*(1.0-p_gu33[i])
+                 - (1.0-p_gu11[i])*p_gu23[i]*p_gu32[i];
+    }
+}  // pragma omp
+
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+
+    ierr = this->m_WorkVecField4->RestoreArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField3->RestoreArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(p_gu11, p_gu12, p_gu13); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 
@@ -1564,499 +2026,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
                                                 p_j21, p_j22, p_j23,
                                                 p_j31, p_j32, p_j33); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief compute determinant of deformation gradient
- *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nt;
-    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_jbar = NULL,
-                *p_gx1 = NULL, *p_gx2 = NULL, *p_gx3 = NULL, *p_divv = NULL,
-                *p_jac = NULL,  *p_rhs0 = NULL;
-    ScalarType ht, hthalf, velsign;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timings[5] = {0, 0, 0, 0, 0};
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    if (this->m_Opt->GetRegFlags().invdefgrad) {
-        velsign = -1.0;
-    } else {
-        velsign = 1.0;
-    }
-
-    if (this->m_WorkVecField1 == NULL) {
-       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField4 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
-    }
-
-    // set initial condition
-    ierr = VecSet(this->m_WorkScaField1, 1.0); CHKERRQ(ierr);
-
-    // get pointers
-    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
-
-    ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-
-    // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
-
-    // for all time points
-    for (IntType j = 0; j <= nt; ++j) {
-        accfft_grad(p_gx1, p_gx2, p_gx3, p_jac,this->m_Opt->GetFFT().plan,&XYZ,timings);
-
-#pragma omp parallel
-{
-#pragma omp  for
-        for (IntType i=0; i < nl; ++i) {  // for all grid points
-            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            p_rhs0[i] = - (velsign*p_vx1[i]*p_gx1[i]
-                         + velsign*p_vx2[i]*p_gx2[i]
-                         + velsign*p_vx3[i]*p_gx3[i])
-                         + p_jac[i]*velsign*p_divv[i];
-
-            p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
-        }
-} // pragma omp
-
-        accfft_grad(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timings);
-
-#pragma omp parallel
-{
-#pragma omp  for
-        for (IntType i=0; i < nl; ++i) {  // for all grid points
-            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            ScalarType rhs1 = -( velsign*p_vx1[i]*p_gx1[i]
-                               + velsign*p_vx2[i]*p_gx2[i]
-                               + velsign*p_vx3[i]*p_gx3[i] )
-                               + p_jbar[i]*velsign*p_divv[i];
-
-            p_jac[i] = p_jac[i] + hthalf*(p_rhs0[i] + rhs1);
-        }
-}  // pragma omp
-    }
-
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief compute determinant of deformation gradient
- *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nt;
-    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_phibar = NULL,
-                *p_gphi1 = NULL, *p_gphi2 = NULL, *p_gphi3 = NULL, *p_divv = NULL,
-                *p_phiv1 = NULL, *p_phiv2 = NULL, *p_phiv3 = NULL,
-                *p_phi = NULL,  *p_rhs0 = NULL,  *p_divvphi=NULL;
-    ScalarType ht, hthalf, alpha;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timings[5] = {0, 0, 0, 0, 0};
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    if (this->m_WorkVecField1 == NULL) {
-       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-       try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField4 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField5 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField5, nl, ng); CHKERRQ(ierr);
-    }
-
-    // set initial condition
-    ierr = VecSet(this->m_WorkScaField1, 1.0); CHKERRQ(ierr);
-
-    // get pointers
-    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
-
-    ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
-
-    // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3,this->m_Opt->GetFFT().plan,timings);
-
-    if (this->m_Opt->GetRegFlags().invdefgrad) {
-        alpha = -1.0;
-    } else {
-        alpha = 1.0;
-    }
-
-#pragma omp parallel
-{
-#pragma omp  for
-    for (IntType i=0; i < nl; ++i) { // for all grid points
-        // compute phi \vect{v} = 1 \vect{v}
-        p_phiv1[i] = p_vx1[i];
-        p_phiv2[i] = p_vx2[i];
-        p_phiv3[i] = p_vx3[i];
-
-    }
-} // pragma omp
-
-
-    // for all time points
-    for (IntType j = 0; j <= nt; ++j) {
-        // compute grad(\phi_j)
-        accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phi,this->m_Opt->GetFFT().plan,&XYZ,timings);
-
-        // compute div(\vect{v}\phi_j)
-        accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3,this->m_Opt->GetFFT().plan,timings);
-#pragma omp parallel
-{
-#pragma omp  for
-        for (IntType i=0; i < nl; ++i) {  // for all grid points
-            // \bar{j} = -(\vect{v} \cdot \igrad) \phi + j (\idiv \vect{v})
-            //p_rhs0[i] = - alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
-            //            + 0.5*alpha*p_phi[i]*p_divv[i] + 0.5*alpha*p_divvphi[i]
-            //            - 0.5*alpha*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
-            p_rhs0[i] = - 0.5*alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
-                        + 1.5*alpha*p_phi[i]*p_divv[i] - 0.5*alpha*p_divvphi[i];
-
-            p_phibar[i] = p_phi[i] + ht*p_rhs0[i];
-
-            // compute \bar{phi} \vect{v}
-            p_phiv1[i] = p_phibar[i]*p_vx1[i];
-            p_phiv2[i] = p_phibar[i]*p_vx2[i];
-            p_phiv3[i] = p_phibar[i]*p_vx3[i];
-        }
-} // pragma omp
-
-        accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->GetFFT().plan, &XYZ, timings);
-
-        // compute div(\vect{v}\bar{\phi}_j)
-        accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timings);
-
-#pragma omp parallel
-{
-        ScalarType rhs1;
-#pragma omp  for
-        for (IntType i=0; i < nl; ++i) {  // for all grid points
-            // \bar{j} = -(\vect{v} \cdot \igrad) j + j (\idiv \vect{v})
-            //rhs1 = -alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
-            //        + 0.5*alpha*p_phibar[i]*p_divv[i] + 0.5*alpha*p_divvphi[i]
-            //        - 0.5*alpha*(p_gphi1[i]*p_vx1[i] + p_gphi2[i]*p_vx2[i] + p_gphi3[i]*p_vx3[i]);
-            rhs1 = -0.5*alpha*(p_vx1[i]*p_gphi1[i] + p_vx2[i]*p_gphi2[i] + p_vx3[i]*p_gphi3[i])
-                    + 1.5*alpha*p_phibar[i]*p_divv[i] - 0.5*alpha*p_divvphi[i];
-
-            p_phi[i] = p_phi[i] + hthalf*(p_rhs0[i] + rhs1);
-
-            // compute \phi \vect{v} for next time step
-            p_phiv1[i] = p_phi[i]*p_vx1[i];
-            p_phiv2[i] = p_phi[i]*p_vx2[i];
-            p_phiv3[i] = p_phi[i]*p_vx3[i];
-        }
-} // pragma omp
-    }
-
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
-
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief compute determinant of deformation gradient; this
- * implementation first computes the deformation map and then
- * evaluates the determinant of the deformation gradient
- * based on the computed deformation map
- *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng;
-    ScalarType  *p_u1 = NULL, *p_u2 = NULL, *p_u3 = NULL, *p_phi = NULL,
-                *p_gu11 = NULL, *p_gu12 = NULL, *p_gu13 = NULL,
-                *p_gu21 = NULL, *p_gu22 = NULL, *p_gu23 = NULL,
-                *p_gu31 = NULL, *p_gu32 = NULL, *p_gu33 = NULL;
-    double timer[5] = {0, 0, 0, 0, 0};
-    std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // get sizes
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
-
-    if (this->m_WorkVecField1 == NULL) {
-       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-       try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField3 == NULL) {
-       try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField4 == NULL) {
-       try{this->m_WorkVecField4 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1,nl,ng); CHKERRQ(ierr);
-    }
-
-    // compute deformation map (stored in work vec field one)
-    ierr = this->ComputeDisplacementField(); CHKERRQ(ierr);
-
-    // compute the derivatives (jacobian matrix; deformation gradient)
-    ierr = this->m_WorkVecField1->GetArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_gu11, p_gu12, p_gu13); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField3->GetArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField4->GetArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
-
-    // compute gradient of components of displacement field
-    accfft_grad(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
-    accfft_grad(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
-    accfft_grad(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
-
-    ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp  for
-    for (IntType i = 0; i < nl; ++i) {  // for all grid points
-        // compute determinant of deformation gradient
-        p_phi[i] = (1.0-p_gu11[i])*(1.0-p_gu22[i])*(1.0-p_gu33[i])
-                 + p_gu12[i]*p_gu23[i]*p_gu31[i]
-                 + p_gu13[i]*p_gu21[i]*p_gu32[i]
-                 - p_gu13[i]*(1.0-p_gu22[i])*p_gu31[i]
-                 - p_gu12[i]*p_gu21[i]*(1.0-p_gu33[i])
-                 - (1.0-p_gu11[i])*p_gu23[i]*p_gu32[i];
-    }
-}  // pragma omp
-
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField4->RestoreArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField3->RestoreArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_gu11, p_gu12, p_gu13); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief compute determinant of deformation gradient
- *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
-    PetscErrorCode ierr;
-    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_divv = NULL, *p_divvX = NULL, *p_j = NULL, *p_jX=NULL;
-    ScalarType ht, hthalf, velsign;
-    IntType nl, ng, nt;
-    std::stringstream ss;
-    std::string ext;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timings[5] = {0, 0, 0, 0, 0};
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    ext = this->m_Opt->GetReadWriteFlags().extension;
-
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    if (this->m_Opt->GetRegFlags().invdefgrad) {
-        velsign = -1.0;
-    }
-    else {velsign = 1.0;}
-
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField1 == NULL) {
-       try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField4 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
-    }
-
-
-    // compute trajectory
-    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
-
-    // store time series
-    if (this->m_Opt->GetReadWriteFlags().timeseries) {
-        ss.str(std::string()); ss.clear();
-        ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
-    }
-
-    // get pointers
-    ierr = VecGetArray(this->m_WorkScaField1, &p_j); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_jX); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
-
-    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-    // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
-
-    // compute div(v) at X
-    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvX, p_divv, "state"); CHKERRQ(ierr);
-
-
-    for (IntType j = 0; j < nt; ++j) {  // for all time points
-        // compute J(X,t^j)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_jX, p_j, "state"); CHKERRQ(ierr);
-
-#pragma omp parallel
-{
-        ScalarType jX, rhs0, rhs1;
-#pragma omp  for
-        for (IntType i = 0; i < nl; ++i) { // for all grid points
-            jX = p_jX[i];
-            rhs0 = jX*velsign*p_divvX[i];
-            rhs1 = (jX + ht*rhs0)*velsign*p_divv[i];
-            p_j[i] = jX + hthalf*(rhs0+rhs1);
-        }
-}  // pragma omp
-
-        // store time series
-        if (this->m_Opt->GetReadWriteFlags().timeseries) {
-            ierr = VecRestoreArray(this->m_WorkScaField1, &p_j); CHKERRQ(ierr);
-            ss.str(std::string()); ss.clear();
-            ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
-            ierr = VecGetArray(this->m_WorkScaField1, &p_j); CHKERRQ(ierr);
-        }
-    }  // for all time points
-
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-    ierr = VecRestoreArray(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_jX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_j); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
 }
 
 
@@ -2915,7 +2884,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
 
     PetscFunctionReturn(ierr);
 }
-
 
 
 

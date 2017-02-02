@@ -572,7 +572,9 @@ PetscErrorCode Optimizer::Finalize() {
     line = std::string(linelength, '-');
     indent = 25; numindent = 5;
     if (this->m_Opt->GetVerbosity() > 1) {
-        if (this->m_OptimizationProblem->Converged() && !rank) std::cout << line << std::endl;
+        if (this->m_OptimizationProblem->Converged() && !rank) {
+            std::cout << line << std::endl;
+        }
         ss << std::left << std::setw(indent)
            << "outer iterations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(ITERATIONS) - 1;

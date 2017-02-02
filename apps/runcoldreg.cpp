@@ -106,7 +106,6 @@ int main(int argc, char **argv) {
             ss.str(std::string()); ss.clear();
         }
 
-
         //std::cout << regopt->GetReadWriteFlags().vx2 << std::endl;
         ierr = readwrite->Read(&vxi, regopt->GetReadWriteFlags().vx2); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
@@ -137,13 +136,13 @@ int main(int argc, char **argv) {
     ierr = registration->Run(); CHKERRQ(ierr);
 
     // clean up
+    if (v != NULL) {delete v; v = NULL;}
+    if (regopt != NULL) {delete regopt; regopt = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
     if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-    if (regopt != NULL) {delete regopt; regopt = NULL;}
-    if (v != NULL) {delete v; v = NULL;}
 
     ierr = reg::Finalize(); CHKERRQ(ierr);
 
