@@ -66,6 +66,7 @@ class RegistrationInterface {
     PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*);
 
     PetscErrorCode GetResidual(Vec);
+    PetscErrorCode GetFinalState(Vec);
 
     PetscErrorCode RunPostProcessing();
     PetscErrorCode ComputeDefFields();

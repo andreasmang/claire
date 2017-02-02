@@ -256,7 +256,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
 
 
 /********************************************************************
- * @brief set template image (i.e., the template image)
+ * @brief set template image
  *******************************************************************/
 PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
@@ -274,7 +274,45 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
 
 
 /********************************************************************
- * @brief set reference image (i.e., the fixed image)
+ * @brief get final state at t=1 for current iterate v
+ * (stored in state variable)
+ *******************************************************************/
+PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
+    PetscErrorCode ierr = 0;
+    Vec m = NULL;
+    IntType nl, nc, nt;
+    ScalarType *p_m = NULL, *p_m1 = NULL;
+    PetscFunctionBegin;
+
+    ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->m_RegProblem->GetStateVariable(m); CHKERRQ(ierr);
+
+    nc = this->m_Opt->GetDomainPara().nc;
+    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->GetDomainPara().nt;
+
+    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+
+    try {std::copy(p_m+nt*nc*nl, p_m+(nt+1)*nc*nl, p_m1);}
+    catch (std::exception&) {
+        ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+    }
+
+    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief get the residual at t=1 for current iterate v
+ * (stored in adjoint variable)
  *******************************************************************/
 PetscErrorCode RegistrationInterface::GetResidual(Vec residual) {
     PetscErrorCode ierr = 0;
