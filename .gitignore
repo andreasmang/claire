@@ -3,6 +3,7 @@
 *.nii.gz
 *.nii
 *.log
+*.exrc
 bin/
 obj/
 test/
