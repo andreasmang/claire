@@ -944,7 +944,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
     this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
     this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
-    this->m_OptPara.derivativecheckenabled = true;  ///< use zero initial guess for optimization
+    this->m_OptPara.derivativecheckenabled = false; ///< use zero initial guess for optimization
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
