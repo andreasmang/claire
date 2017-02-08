@@ -1483,6 +1483,18 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
                 ss.str(std::string()); ss.clear();
             }
 
+            if (!this->m_Opt->GetGridContPara().maxit.empty()) {
+                int l = this->m_Opt->GetGridContPara().maxit.size() - 1;
+                l = level > l ? l : level;
+                int maxit = this->m_Opt->GetGridContPara().maxit[l];
+                if (this->m_Opt->GetVerbosity() > 1) {
+                    ss  <<"setting max number of iterations to " << maxit;
+                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ss.str(std::string()); ss.clear();
+                }
+                this->m_Opt->SetOptMaxIter(maxit);
+            }
+
             // do the setup
             ierr = this->SetupSolver(); CHKERRQ(ierr);
 

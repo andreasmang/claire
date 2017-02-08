@@ -49,10 +49,10 @@ RegToolsOpt::RegToolsOpt(const RegToolsOpt& opt) {
 PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
-    std::vector<unsigned int> nx;
-    std::vector<unsigned int> nxr;
-    std::vector<unsigned int> np;
-    std::vector<unsigned int> sigma;
+    std::vector<int> nx;
+    std::vector<int> nxr;
+    std::vector<int> np;
+    std::vector<int> sigma;
     PetscFunctionBegin;
 
     if (argc == 1) {

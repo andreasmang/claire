@@ -632,6 +632,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // increment counter for objective evaluations
     this->m_Opt->IncrementCounter(OBJEVAL);
 
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -3013,7 +3014,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
 
     // compute determinant of deformation gradient and write it to file
-    if ( this->m_Opt->GetRegMonitor().JAC ) {
+    if (this->m_Opt->GetRegMonitor().JAC) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
         // if user enabled the logger
         if (this->m_Opt->GetLogger().enabled[LOGJAC]) {

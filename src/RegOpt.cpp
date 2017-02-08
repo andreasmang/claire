@@ -237,9 +237,7 @@ void RegOpt::Copy(const RegOpt& opt) {
 PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
-    std::vector<unsigned int> nx;
-    std::vector<unsigned int> np;
-    std::vector<unsigned int> sigma;
+    std::vector<int> values;
     int flag;
     PetscFunctionBegin;
 
@@ -255,21 +253,22 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             const std::string nxinput = argv[1];
 
             // strip the "x" in the string to get the numbers
-            nx = String2Vec(nxinput);
+            values = String2Vec(nxinput);
 
-            if (nx.size() == 1) {
+            if (values.size() == 1) {
                 for (int i = 0; i < 3; ++i) {
-                    this->m_Domain.nx[i] = static_cast<IntType>(nx[0]);
+                    this->m_Domain.nx[i] = static_cast<IntType>(values[0]);
                 }
-            } else if (nx.size() == 3) {
+            } else if (values.size() == 3) {
                 for (int i = 0; i < 3; ++i) {
-                    this->m_Domain.nx[i] = static_cast<IntType>(nx[i]);
+                    this->m_Domain.nx[i] = static_cast<IntType>(values[i]);
                 }
             } else {
                 msg = "\n\x1b[31m error in grid size argument: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+            values.clear();
         } else if (strcmp(argv[1], "-nt") == 0) {
             argc--; argv++;
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
@@ -281,21 +280,22 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             const std::string sigmainput = argv[1];
 
             // strip the "x" in the string to get the numbers
-            sigma = String2Vec(sigmainput);
+            values = String2Vec(sigmainput);
 
-            if (sigma.size() == 1) {
+            if (values.size() == 1) {
                 for (int i = 0; i < 3; ++i) {
-                    this->m_Sigma[i] = static_cast<ScalarType>(sigma[0]);
+                    this->m_Sigma[i] = static_cast<ScalarType>(values[0]);
                 }
-            } else if (sigma.size() == 3) {
+            } else if (values.size() == 3) {
                 for (int i = 0; i < 3; ++i) {
-                    this->m_Sigma[i] = static_cast<IntType>(sigma[i]);
+                    this->m_Sigma[i] = static_cast<IntType>(values[i]);
                 }
             } else {
                 msg = "\n\x1b[31m error in smoothing kernel size: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+            values.clear();
         } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
             this->m_RegFlags.applysmoothing = false;
         } else if (strcmp(argv[1], "-disablerescaling") == 0) {
@@ -308,21 +308,22 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             const std::string npinput = argv[1];
 
             // strip the "x" in the string to get the numbers
-            np = String2Vec(npinput);
+            values = String2Vec(npinput);
 
-            if (np.size() == 1) {
+            if (values.size() == 1) {
                 for (int i = 0; i < 2; ++i) {
-                    this->m_CartGridDims[i] = static_cast<int>(np[0]);
+                    this->m_CartGridDims[i] = static_cast<int>(values[0]);
                 }
-            } else if (np.size() == 2) {
+            } else if (values.size() == 2) {
                 for (int i = 0; i < 2; ++i) {
-                    this->m_CartGridDims[i] = static_cast<int>(np[i]);
+                    this->m_CartGridDims[i] = static_cast<int>(values[i]);
                 }
             } else {
                 msg = "\n\x1b[31m error in number of procs: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+            values.clear();
         } else if (strcmp(argv[1], "-mr") == 0) {
             argc--; argv++;
             this->m_ReadWriteFlags.mr.push_back(argv[1]);
@@ -448,7 +449,19 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-maxit") == 0) {
             argc--; argv++;
-            this->m_OptPara.maxit = atoi(argv[1]);
+            const std::string iterations = argv[1];
+
+            // strip the "x" in the string to get the numbers
+            values = String2Vec(iterations);
+            if (values.size() == 1) {
+                this->m_OptPara.maxit = values[0];
+            } else {
+                for (unsigned int i = 0; i < values.size(); ++i) {
+                    this->m_GridCont.maxit.push_back(values[i]);
+                }
+                this->m_OptPara.maxit = values[0];
+            }
+            values.clear();
         } else if (strcmp(argv[1], "-gabs") == 0) {
             argc--; argv++;
             this->m_OptPara.tol[0] = atof(argv[1]);

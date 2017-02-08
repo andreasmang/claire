@@ -216,17 +216,17 @@ struct Domain {
 
 /* parameters for optimization */
 struct Optimization {
-    int maxit;                    ///< maximal number of (outer) iterations
-    int minit;                    ///< minimal number of (outer) iterations (for parameter continuation)
-    ScalarType tol[3];            ///< tolerances for optimization
-    OptMeth method;               ///< optimization method
-    StopCondType stopcond;        ///< optimization method
-    bool fastpresolve;            ///< flag to switch on fast presolve
-    bool fastsolve;               ///< flag to switch on fast (inaccurate) solve
-    ScalarType presolvetol[3];    ///< tolerances for presolve
-    int presolvemaxit;            ///< maximal iterations for presolve
-    bool usezeroinitialguess;     ///< use zero initial guess for computing the initial gradient
-    bool derivativecheckenabled;  ///< use zero initial guess for computing the initial gradient
+    int maxit;                          ///< maximal number of (outer) iterations
+    int minit;                          ///< minimal number of (outer) iterations (for parameter continuation)
+    ScalarType tol[3];                  ///< tolerances for optimization
+    OptMeth method;                     ///< optimization method
+    StopCondType stopcond;              ///< optimization method
+    bool fastpresolve;                  ///< flag to switch on fast presolve
+    bool fastsolve;                     ///< flag to switch on fast (inaccurate) solve
+    ScalarType presolvetol[3];          ///< tolerances for presolve
+    int presolvemaxit;                  ///< maximal iterations for presolve
+    bool usezeroinitialguess;           ///< use zero initial guess for computing the initial gradient
+    bool derivativecheckenabled;        ///< use zero initial guess for computing the initial gradient
 };
 
 
@@ -289,6 +289,7 @@ struct GridCont{
     static const int minlevels = 3;
     int nlevels;
     int minlevel;
+    std::vector<int> maxit;
     IntType nxmin;
     std::vector< std::vector<IntType> > nx;
     std::vector< std::vector<IntType> > isize;
@@ -411,6 +412,7 @@ class RegOpt {
 
     inline Optimization GetOptPara() {return this->m_OptPara;}
     inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
+    inline void SetOptMaxIter(int value) {this->m_OptPara.maxit = value;}
 
     inline void EnableJacobianBound() {
         this->m_RegMonitor.JAC = true;
