@@ -355,7 +355,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
         ierr = this->Write(x); CHKERRQ(ierr);
     } else {
         ierr = GetFileName(path, file, ext, filename); CHKERRQ(ierr);
-        filename = file;
+        filename = path + "/" + file;
 
         nc = this->m_Opt->GetDomainPara().nc;
         nl = this->m_Opt->GetDomainPara().nl;
@@ -463,9 +463,9 @@ PetscErrorCode ReadWriteReg::Write(VecField* v, std::string filename) {
     ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
 
     ierr = GetFileName(path, file, ext, filename); CHKERRQ(ierr);
-    fnx1 = path + file + "-x1" + ext;
-    fnx2 = path + file + "-x2" + ext;
-    fnx3 = path + file + "-x3" + ext;
+    fnx1 = path + "/" + file + "-x1" + ext;
+    fnx2 = path + "/" + file + "-x2" + ext;
+    fnx3 = path + "/" + file + "-x3" + ext;
 
     ierr = this->Write(v->m_X1, fnx1); CHKERRQ(ierr);
     ierr = this->Write(v->m_X2, fnx2); CHKERRQ(ierr);
