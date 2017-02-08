@@ -354,9 +354,15 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    if (rank == 0) {
+        std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    }
+
     ierr = Msg(msg); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+
+    if (rank == 0) {
+        std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -1709,7 +1715,6 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
     if (this->m_Opt->GetRegFlags().applysmoothing) {
-        std::cout << " applying smoothing " << std::endl;
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try {this->m_PreProc = new PreProcReg(this->m_Opt);}
