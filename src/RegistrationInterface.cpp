@@ -1529,12 +1529,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
         }
     }
 
-    // get solution
-    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = this->m_Solution->Copy(v); CHKERRQ(ierr);
-
     // wrap up
-    ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->Finalize(v); CHKERRQ(ierr);
 
     if (v != NULL) {delete v; v = NULL;};
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
