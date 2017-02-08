@@ -1332,7 +1332,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
  ********************************************************************/
 PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     PetscErrorCode ierr = 0;
-    int rank, level, nlevels;
+    int rank, level, nlevels, computelevel;
     std::stringstream ss;
     std::string ext;
     IntType nx[3], nl, ng, isize[3];
@@ -1434,6 +1434,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     nlevels = this->m_Opt->GetGridContPara().nlevels;
 
     // run multi-level solver
+    computelevel = 0;
     level = 0; // this->m_Opt->GetGridContPara().minlevel;
     while (level < nlevels) {
         // get number of grid points for current level
@@ -1485,7 +1486,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
             if (!this->m_Opt->GetGridContPara().maxit.empty()) {
                 int l = this->m_Opt->GetGridContPara().maxit.size() - 1;
-                l = level > l ? l : level;
+                l = computelevel > l ? l : computelevel;
                 int maxit = this->m_Opt->GetGridContPara().maxit[l];
                 if (this->m_Opt->GetVerbosity() > 1) {
                     ss  <<"setting max number of iterations to " << maxit;
@@ -1527,6 +1528,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             // get and parse solution
             ierr = this->m_Optimizer->GetSolution(xstar); CHKERRQ(ierr);
             ierr = v->SetComponents(xstar); CHKERRQ(ierr);
+
+            ++computelevel;
         } else {
             ss << "skipping level " << level;
             ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
