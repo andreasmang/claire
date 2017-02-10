@@ -171,6 +171,11 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
     // add up the contributions
     *J = hd*(D + Rv + Rw);
 
+    // store for access
+    this->m_Opt->SetJVal(*J);
+    this->m_Opt->SetDVal(hd*D);
+    this->m_Opt->SetRVal(hd*(Rv + Rw));
+
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
 
     this->m_Opt->IncrementCounter(OBJEVAL);
