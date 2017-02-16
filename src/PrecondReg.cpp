@@ -68,7 +68,6 @@ PetscErrorCode PrecondReg::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt = NULL;     ///< options (default; on grid we solve)
     this->m_CoarseGrid.m_Opt = NULL;   ///< options for coarse grid
 
     this->m_MatVec = NULL;              ///< pointer to matvec in krylov method

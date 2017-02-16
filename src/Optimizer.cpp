@@ -275,6 +275,7 @@ PetscErrorCode Optimizer::SetupTao() {
         abstol = this->m_Opt->GetKrylovSolverPara().tol[1];     // 1E-12;
         divtol = this->m_Opt->GetKrylovSolverPara().tol[2];     // 1E+06;
         maxit  = this->m_Opt->GetKrylovSolverPara().maxit;      // 1000;
+        maxit  = std::max(0.0,maxit-1.0);
         ierr = KSPSetTolerances(this->m_KrylovMethod, reltol, abstol, divtol, maxit); CHKERRQ(ierr);
         ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
 //        ierr = KSPSetInitialGuessNonzero(krylovmethod,PETSC_TRUE); CHKERRQ(ierr);

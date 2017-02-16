@@ -133,93 +133,93 @@ PetscErrorCode PreProcReg::ClearMemory() {
 
     if (this->m_XHatFine != NULL) {
         accfft_free(this->m_XHatFine);
-        this->m_XHatFine=NULL;
+        this->m_XHatFine = NULL;
     }
     if (this->m_XHatCoarse != NULL) {
         accfft_free(this->m_XHatCoarse);
-        this->m_XHatCoarse=NULL;
+        this->m_XHatCoarse = NULL;
     }
 
     if (this->m_FFTFinePlan != NULL) {
         accfft_destroy_plan(this->m_FFTFinePlan);
-        this->m_FFTFinePlan=NULL;
+        this->m_FFTFinePlan = NULL;
     }
     if (this->m_FFTCoarsePlan != NULL) {
         accfft_destroy_plan(this->m_FFTCoarsePlan);
-        this->m_FFTCoarsePlan=NULL;
+        this->m_FFTCoarsePlan = NULL;
     }
 
 
     if (this->m_FourierCoeffSendF != NULL) {
         delete [] this->m_FourierCoeffSendF;
-        this->m_FourierCoeffSendF=NULL;
+        this->m_FourierCoeffSendF = NULL;
     }
 
     if (this->m_FourierCoeffSendC != NULL) {
         delete [] this->m_FourierCoeffSendC;
-        this->m_FourierCoeffSendC=NULL;
+        this->m_FourierCoeffSendC = NULL;
     }
 
     if (this->m_FourierCoeffRecvF != NULL) {
         delete [] this->m_FourierCoeffRecvF;
-        this->m_FourierCoeffRecvF=NULL;
+        this->m_FourierCoeffRecvF = NULL;
     }
 
     if (this->m_FourierCoeffRecvC != NULL) {
         delete [] this->m_FourierCoeffRecvC;
-        this->m_FourierCoeffRecvC=NULL;
+        this->m_FourierCoeffRecvC = NULL;
     }
 
     if (this->m_FourierIndicesRecvF != NULL) {
         delete [] this->m_FourierIndicesRecvF;
-        this->m_FourierIndicesRecvF=NULL;
+        this->m_FourierIndicesRecvF = NULL;
     }
 
     if (this->m_FourierIndicesRecvC != NULL) {
         delete [] this->m_FourierIndicesRecvC;
-        this->m_FourierIndicesRecvC=NULL;
+        this->m_FourierIndicesRecvC = NULL;
     }
 
     if (this->m_FourierIndicesSendF != NULL) {
         delete [] this->m_FourierIndicesSendF;
-        this->m_FourierIndicesSendF=NULL;
+        this->m_FourierIndicesSendF = NULL;
     }
 
     if (this->m_FourierIndicesSendC != NULL) {
         delete [] this->m_FourierIndicesSendC;
-        this->m_FourierIndicesSendC=NULL;
+        this->m_FourierIndicesSendC = NULL;
     }
 
     if (this->m_NumSend != NULL) {
         delete [] this->m_NumSend;
-        this->m_NumSend=NULL;
+        this->m_NumSend = NULL;
     }
     if (this->m_NumRecv != NULL) {
         delete [] this->m_NumRecv;
-        this->m_NumRecv=NULL;
+        this->m_NumRecv = NULL;
     }
 
     if (this->m_OffsetSend != NULL) {
         delete [] this->m_OffsetSend;
-        this->m_OffsetSend=NULL;
+        this->m_OffsetSend = NULL;
     }
     if (this->m_OffsetRecv != NULL) {
         delete [] this->m_OffsetRecv;
-        this->m_OffsetRecv=NULL;
+        this->m_OffsetRecv = NULL;
     }
 
     if (this->m_SendRequest != NULL) {
         delete [] this->m_SendRequest;
-        this->m_SendRequest=NULL;
+        this->m_SendRequest = NULL;
     }
     if (this->m_RecvRequest != NULL) {
         delete [] this->m_RecvRequest;
-        this->m_RecvRequest=NULL;
+        this->m_RecvRequest = NULL;
     }
 
     if (this->m_OverlapMeasures != NULL) {
         delete [] this->m_OverlapMeasures;
-        this->m_OverlapMeasures=NULL;
+        this->m_OverlapMeasures = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -312,10 +312,10 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     nalloc_c = accfft_local_size_dft_r2c(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
     nalloc_f = accfft_local_size_dft_r2c(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
     if (this->m_Opt->GetVerbosity() > 2) {
-        ss  << "sizes on coarse grid: isize=("
-            << _isize_c[0] << "," << _isize_c[1] << "," << _isize_c[2]
-            << ") istart=(" << _istart_c[0] << "," << _istart_c[1]
-            << "," << _istart_c[2] << ")";
+        ss << "sizes on coarse grid: isize=("
+           << _isize_c[0] << "," << _isize_c[1] << "," << _isize_c[2]
+           << ") istart=(" << _istart_c[0] << "," << _istart_c[1]
+           << "," << _istart_c[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -473,7 +473,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
     ierr = Assert(x_c != NULL, "null pointer"); CHKERRQ(ierr);
 
     if ((nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2])) {
-        ierr = VecCopy(x_f,*x_c); CHKERRQ(ierr);
+        ierr = VecCopy(x_f, *x_c); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
     }
 

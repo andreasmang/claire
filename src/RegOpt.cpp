@@ -539,6 +539,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-gridscale") == 0) {
+            argc--; argv++;
+            this->m_KrylovSolverPara.pcgridscale = atof(argv[1]);
         } else if (strcmp(argv[1], "-pcsolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
@@ -1133,6 +1136,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                               none         no preconditioner (not recommended)" << std::endl;
         std::cout << "                               invreg       inverse regularization operator (default)" << std::endl;
         std::cout << "                               2level       2-level preconditioner" << std::endl;
+        std::cout << " -gridscale <dbl>          grid scale for 2-level preconditioner (default: 2)" << std::endl;
         std::cout << " -pcsolver <type>          solver for inversion of preconditioner (in case" << std::endl;
         std::cout << "                           the 2-level preconditioner is used)" << std::endl;
         std::cout << "                           <type> is one of the following" << std::endl;

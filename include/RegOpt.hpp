@@ -19,7 +19,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-// #define _REG_DEBUG_
+//  #define _REG_DEBUG_
 
 // global includes
 #include <fstream>
