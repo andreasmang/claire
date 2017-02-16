@@ -1140,6 +1140,14 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                               0            relative change of gradient (default)" << std::endl;
         std::cout << "                               1            gradient, update, objective" << std::endl;
         std::cout << " -maxit <int>              maximum number of (outer) Newton iterations (default: 50)" << std::endl;
+        std::cout << " -globalization <type>     method for the globalization of optimization problem" << std::endl;
+        std::cout << "                           <type> is one of the following" << std::endl;
+        std::cout << "                               none         no globalization method" << std::endl;
+        std::cout << "                               armijo       armijo linesearch" << std::endl;
+        std::cout << "                               owarmijo     armijo linesearch (orthant wise unconstrained minimization)" << std::endl;
+        std::cout << "                               morethuente  more thuente linesearch" << std::endl;
+        std::cout << "                               gpcg         gradient projection, conjugate gradient method" << std::endl;
+        std::cout << "                               ipm          interior point method" << std::endl;
         std::cout << " -krylovsolver <type>      solver for reduced space hessian system H[vtilde]=-g" << std::endl;
         std::cout << "                           <type> is one of the following" << std::endl;
         std::cout << "                               pcg          preconditioned conjugate gradient method" << std::endl;
@@ -1937,8 +1945,32 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << std::left << std::setw(indent) << " maximal # iterations"
                   << this->m_OptPara.maxit << std::endl;
 
+        std::cout << std::left << std::setw(indent) << " linesearch";
+        switch (this->m_OptPara.glmethod) {
+            case NOGM:
+                std::cout << std::setw(align) << "none" << std::endl;
+                break;
+            case ARMIJOLS:
+                std::cout << std::setw(align) << "armijo" << std::endl;
+                break;
+            case OWARMIJOLS:
+                std::cout << std::setw(align) << "armijo (orthant wise)" << std::endl;
+                break;
+            case MTLS:
+                std::cout << std::setw(align) << "more thuente" << std::endl;
+                break;
+            case GPCGLS:
+                std::cout << std::setw(align) << "gradient projection cg" << std::endl;
+                break;
+            case IPMLS:
+                std::cout << std::setw(align) << "interior point method" << std::endl;
+                break;
+            default:
+                ierr = ThrowError("globalization method not defined"); CHKERRQ(ierr);
+        }
+
         // display parameters for newton type optimization methods
-        if ( newtontype ) {
+        if (newtontype) {
             std::cout << std::left << std::setw(indent)
                       << " hessian system"
                       << std::setw(align) << "solver";
