@@ -423,9 +423,11 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     ierr = this->SetInitialGuess(); CHKERRQ(ierr);
     ierr = TaoSetUp(this->m_Tao); CHKERRQ(ierr);
 
-    // in case we call the optimizer/solver several times
-    // we have to make sure that the preconditioner is reset
-    ierr = this->m_Precond->Reset(); CHKERRQ(ierr);
+    if (this->m_Opt->GetKrylovSolverPara().pctype != NOPC) {
+        // in case we call the optimizer/solver several times
+        // we have to make sure that the preconditioner is reset
+        ierr = this->m_Precond->Reset(); CHKERRQ(ierr);
+    }
 
     // solve optimization problem
     ierr = this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);

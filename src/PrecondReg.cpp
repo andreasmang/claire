@@ -145,7 +145,7 @@ PetscErrorCode PrecondReg::ClearMemory() {
 
     if (this->m_WorkVecField != NULL) {
         delete this->m_WorkVecField;
-        this->m_WorkVecField=NULL;
+        this->m_WorkVecField = NULL;
     }
     if (this->m_WorkScaField1 != NULL) {
         ierr = VecDestroy(&this->m_WorkScaField1); CHKERRQ(ierr);
@@ -172,7 +172,7 @@ PetscErrorCode PrecondReg::ClearMemory() {
 
     if (this->m_ControlVariable != NULL) {
         delete this->m_ControlVariable;
-        this->m_ControlVariable=NULL;
+        this->m_ControlVariable = NULL;
     }
     if (this->m_IncControlVariable != NULL) {
         delete this->m_IncControlVariable;
@@ -196,7 +196,7 @@ PetscErrorCode PrecondReg::ClearMemory() {
 
     if (this->m_RandomNumGen != NULL) {
         ierr = PetscRandomDestroy(&this->m_RandomNumGen); CHKERRQ(ierr);
-        this->m_RandomNumGen=NULL;
+        this->m_RandomNumGen = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -256,6 +256,7 @@ PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc) {
  *******************************************************************/
 PetscErrorCode PrecondReg::Reset() {
     PetscErrorCode ierr = 0;
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -265,6 +266,7 @@ PetscErrorCode PrecondReg::Reset() {
         case NOPC:
         {
             // no need to do anything
+            std::cout<< " herer " << std::endl;
             break;
         }
         case INVREG:
