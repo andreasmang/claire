@@ -146,6 +146,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_OptPara.method = opt.m_OptPara.method;
     this->m_OptPara.usezeroinitialguess = opt.m_OptPara.usezeroinitialguess;
     this->m_OptPara.derivativecheckenabled = opt.m_OptPara.derivativecheckenabled;
+    this->m_OptPara.glmethod = opt.m_OptPara.glmethod;
 
     this->m_SolveType = opt.m_SolveType;
 
@@ -478,12 +479,31 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             } else {
                 msg = "\n\x1b[31m stopping conditions not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
-                ierr = this->Usage(); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
             }
         } else if (strcmp(argv[1], "-nonzeroinitialguess") == 0) {
             this->m_OptPara.usezeroinitialguess = false;
         } else if (strcmp(argv[1], "-derivativecheck") == 0) {
             this->m_OptPara.derivativecheckenabled = true;
+        } else if (strcmp(argv[1], "-globalization") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "none") == 0) {
+                this->m_OptPara.glmethod = NOGM;
+            } else if (strcmp(argv[1], "armijo") == 0) {
+                this->m_OptPara.glmethod = ARMIJOLS;
+            } else if (strcmp(argv[1], "owarmijo") == 0) {
+                this->m_OptPara.glmethod = OWARMIJOLS;
+            } else if (strcmp(argv[1], "morethuente") == 0) {
+                this->m_OptPara.glmethod = MTLS;
+            } else if (strcmp(argv[1], "gpcg") == 0) {
+                this->m_OptPara.glmethod = GPCGLS;
+            } else if (strcmp(argv[1], "ipm") == 0) {
+                this->m_OptPara.glmethod = IPMLS;
+            } else {
+                msg = "\n\x1b[31m globalization method not defined: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
             this->m_RegMonitor.jacbound = atof(argv[1]);
@@ -961,6 +981,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
     this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
     this->m_OptPara.derivativecheckenabled = false; ///< use zero initial guess for optimization
+    this->m_OptPara.glmethod = ARMIJOLS;
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
@@ -1026,7 +1047,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegMonitor.jacmax = 0.0;
     this->m_RegMonitor.jacmean = 0.0;
     this->m_RegMonitor.jacbound = 2E-1;
-    this->m_RegMonitor.boundreached = 2E-1;
+    this->m_RegMonitor.boundreached = false;
     this->m_RegMonitor.jval = 0.0;
     this->m_RegMonitor.dval = 0.0;
     this->m_RegMonitor.rval = 0.0;

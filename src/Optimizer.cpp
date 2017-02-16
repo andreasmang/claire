@@ -345,8 +345,43 @@ PetscErrorCode Optimizer::SetupTao() {
     }
 
     ierr = TaoGetLineSearch(this->m_Tao, &linesearch); CHKERRQ(ierr);
-    ierr = TaoLineSearchSetType(linesearch, "armijo"); CHKERRQ(ierr);
 
+    switch(this->m_Opt->GetOptPara().glmethod) {
+        case NOGM:
+        {
+            ierr = TaoLineSearchSetType(linesearch, "unit"); CHKERRQ(ierr);
+            break;
+        }
+        case ARMIJOLS:
+        {
+            ierr = TaoLineSearchSetType(linesearch, "armijo"); CHKERRQ(ierr);
+            break;
+        }
+        case OWARMIJOLS:
+        {
+            ierr = TaoLineSearchSetType(linesearch, "owarmijo"); CHKERRQ(ierr);
+            break;
+        }
+        case MTLS:
+        {
+            ierr = TaoLineSearchSetType(linesearch, "more-thuente"); CHKERRQ(ierr);
+            break;
+        }
+        case GPCGLS:
+        {
+            ierr = TaoLineSearchSetType(linesearch, "gpcg"); CHKERRQ(ierr);
+            break;
+        }
+        case IPMLS:
+        {
+            ierr = TaoLineSearchSetType(linesearch, "ipm"); CHKERRQ(ierr);
+            break;
+        }
+        default:
+        {
+            ierr = ThrowError("globalization method not defined"); CHKERRQ(ierr);
+        }
+    }
     // set tolerances for optimizer
     gatol = this->m_Opt->GetOptPara().tol[0];   // ||g(x)||             <= gatol
     grtol = this->m_Opt->GetOptPara().tol[1];   // ||g(x)|| / |J(x)|    <= grtol

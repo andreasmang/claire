@@ -66,6 +66,19 @@ enum ParaContType {
 };
 
 
+// flags for regularization norms
+enum GlobalMethType{
+    NOGM,        ///< no linesearch / globalization
+    ARMIJOLS,    ///< armijo line search
+    MTLS,        ///< more-thuente line search
+    GPCGLS,      ///<
+    OWARMIJOLS,  ///<
+    IPMLS,       ///<
+};
+
+
+
+
 /*! hessian mat vec type */
 enum HessianMatVecType {
     DEFAULTMATVEC,
@@ -220,6 +233,7 @@ struct Optimization {
     int minit;                          ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];                  ///< tolerances for optimization
     OptMeth method;                     ///< optimization method
+    GlobalMethType glmethod;            ///< optimization method
     StopCondType stopcond;              ///< optimization method
     bool fastpresolve;                  ///< flag to switch on fast presolve
     bool fastsolve;                     ///< flag to switch on fast (inaccurate) solve
