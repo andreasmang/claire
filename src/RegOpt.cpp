@@ -1434,45 +1434,6 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
 
 
 /********************************************************************
- * @brief setup of accfft has been done externally; this function
- * uses the fft class to and communcation layout as an input
- * and sets the associated parameters
- *******************************************************************/
-PetscErrorCode RegOpt::CouplingSetup(IntType nx[3]) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    this->Enter(__func__);
-
-    // parse grid size for setup
-    for (int i = 0; i < 3; ++i) {
-        this->m_Domain.nx[i] = nx[i];
-    }
-
-    this->m_Verbosity = 2;
-
-    // compute solution faster
-
-    // optimization parameters
-    this->m_OptPara.tol[2] = 5E-2;
-    this->m_OptPara.maxit = 10;
-
-    // parameters for solver of reduced space KKT system
-    this->m_KrylovSolverPara.fseqtype = QDFS;
-    this->m_KrylovSolverPara.pctype = INVREG;
-    this->m_KrylovSolverPara.maxit = 10;
-
-    ierr = this->DoSetup(true); CHKERRQ(ierr);
-
-    this->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
  * @brief set preset parameters (maybe reduce number of krylov
  * iterations)
  *******************************************************************/
@@ -1496,7 +1457,7 @@ PetscErrorCode RegOpt::EnableFastSolve() {
 
 /********************************************************************
  * @brief set preset parameters / provide a crude estimate for users
- * either reduce the time to solution or compute high-fidelity
+ * either reduce the timeution or compute high-fidelity
  * results
  *******************************************************************/
 PetscErrorCode RegOpt::SetPresetParameters() {

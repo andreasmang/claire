@@ -419,6 +419,7 @@ class RegOpt {
     inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}
     inline void JacBoundReached(bool flag) {this->m_RegMonitor.boundreached = flag;}
     inline bool JacBoundReached() {return this->m_RegMonitor.boundreached;}
+    inline void SetJacBound(ScalarType value) {this->m_RegMonitor.jacbound = value;}
 
     inline void SetJVal(ScalarType value){this->m_RegMonitor.jval = value;}
     inline void SetRVal(ScalarType value){this->m_RegMonitor.rval = value;}
@@ -511,6 +512,9 @@ class RegOpt {
     inline void KrylovMethodEigValsEstimated(bool flag) {
         this->m_KrylovSolverPara.eigvalsestimated = flag;
     }
+    inline void SetMaxItKrylovMethod(int value) {
+        this->m_KrylovSolverPara.maxit = value;
+    }
 
     // jacobians
     inline void SetJacMin(ScalarType value) {
@@ -580,6 +584,7 @@ class RegOpt {
         this->m_Log.finalresidual[i] = value;
     }
 
+    inline void SetVerbosity(int value) {this->m_Verbosity = value;}
     inline int GetVerbosity() {
         return this->m_Verbosity;
     }
@@ -601,8 +606,6 @@ class RegOpt {
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);
     PetscErrorCode DoSetup(bool dispteaser = true);
-
-    PetscErrorCode CouplingSetup(IntType[3]);
 
     inline void Enter(std::string fname) {
         #ifdef _REG_DEBUG_
