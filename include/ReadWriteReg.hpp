@@ -25,10 +25,6 @@
 #include "nifti1_io.h"
 #endif
 
-#if defined(PETSC_HAVE_HDF5)
-#include "petscviewerhdf5.h"
-#endif
-
 #ifdef REG_HAS_PNETCDF
 #include "pnetcdf.h"
 #endif
@@ -69,11 +65,6 @@ class ReadWriteReg {
     PetscErrorCode Write(Vec);
     PetscErrorCode WriteMC(Vec);
     PetscErrorCode Write(VecField*);
-
-#if defined(PETSC_HAVE_HDF5)
-    PetscErrorCode ReadHDF5(Vec*);
-    PetscErrorCode WriteHDF5(Vec);
-#endif
 
 #ifdef REG_HAS_PNETCDF
     PetscErrorCode ReadNC(Vec*);
