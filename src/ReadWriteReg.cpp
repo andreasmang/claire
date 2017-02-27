@@ -272,12 +272,6 @@ PetscErrorCode ReadWriteReg::Read(Vec* x) {
 #endif
     } else if (this->m_FileName.find(".bin") != std::string::npos) {
         ierr = this->ReadBIN(x); CHKERRQ(ierr);
-    } else if (this->m_FileName.find(".hdf5") != std::string::npos) {
-#if defined(PETSC_HAVE_HDF5)
-        ierr = this->ReadHDF5(x); CHKERRQ(ierr);
-#else
-        ierr = ThrowError("install hdf5 library (petsc)/enable hdf5 support"); CHKERRQ(ierr);
-#endif
     } else if (this->m_FileName.find(".nc") != std::string::npos) {
 #ifdef REG_HAS_PNETCDF
         ierr = this->ReadNC(x); CHKERRQ(ierr);
@@ -429,12 +423,6 @@ PetscErrorCode ReadWriteReg::Write(Vec x) {
 #endif
     } else if (this->m_FileName.find(".bin") != std::string::npos) {
         ierr = this->WriteBIN(x); CHKERRQ(ierr);
-    } else if (this->m_FileName.find(".hdf5") != std::string::npos) {
-#if defined(PETSC_HAVE_HDF5)
-        ierr = this->WriteHDF5(x); CHKERRQ(ierr);
-#else
-        ierr = ThrowError("install hdf library/enable hdf5 support"); CHKERRQ(ierr);
-#endif
     } else if (this->m_FileName.find(".nc") != std::string::npos) {
 #ifdef REG_HAS_PNETCDF
         ierr = this->WriteNC(x); CHKERRQ(ierr);
@@ -1325,59 +1313,6 @@ PetscErrorCode ReadWriteReg::WriteBIN(Vec x) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
-
-/********************************************************************
- * @brief read hdf5 image
- *******************************************************************/
-#if defined(PETSC_HAVE_HDF5)
-PetscErrorCode ReadWriteReg::ReadHDF5(Vec* x) {
-    PetscErrorCode ierr = 0;
-    PetscViewer viewer = NULL;
-    PetscFunctionBegin;
-
-    ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD, this->m_FileName.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
-    ierr = Assert(viewer!=NULL,"could not read hdf5 file"); CHKERRQ(ierr);
-    ierr = VecLoad(*x, viewer); CHKERRQ(ierr);
-
-    // clean up
-    if (viewer != NULL) {
-        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-        viewer = NULL;
-    }
-
-    PetscFunctionReturn(ierr);
-}
-#endif
-
-
-
-
-/********************************************************************
- * @brief read hdf5 image
- *******************************************************************/
-#if defined(PETSC_HAVE_HDF5)
-PetscErrorCode ReadWriteReg::WriteHDF5(Vec x) {
-    PetscErrorCode ierr = 0;
-    PetscViewer viewer=NULL;
-    PetscFunctionBegin;
-
-    ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD, this->m_FileName.c_str(), FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-    ierr = Assert(viewer!=NULL,"could not write hdf5 file"); CHKERRQ(ierr);
-//    ierr = PetscViewerHDF5PushGroup(viewer, "/"); CHKERRQ(ierr);
-    ierr = VecView(x, viewer); CHKERRQ(ierr);
-
-    // clean up
-    if (viewer != NULL) {
-        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-        viewer = NULL;
-    }
-
-    PetscFunctionReturn(ierr);
-}
-#endif
 
 
 
