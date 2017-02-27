@@ -353,12 +353,15 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     OptimizationProblem* optprob = NULL;
     ScalarType J, gnorm, step, gatol, grtol, gttol, g0norm, minstep;
     bool stop[3];
+    int verbosity;
     std::stringstream ss, sc;
 
     PetscFunctionBegin;
 
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
+
+    verbosity = optprob->GetOptions()->GetVerbosity();
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
@@ -395,7 +398,15 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     stop[0] = false; stop[1] = false; stop[2] = false;
     optprob->Converged(false);
     if (iter >= miniter) {
+        if (verbosity > 1) {
+            ss << "step size in linesearch: " << std::scientific << step;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
         if (step < minstep) {
+            ss << "step  = " << std::scientific << step << " < " << minstep << " = " << "bound";
+            ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
         }
@@ -444,6 +455,9 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     } else {
         // if the gradient is zero, we should terminate immediately
         if (gnorm == 0) {
+            ss << "||g|| = " << std::scientific << 0.0 << " < " << gatol  << " = " << "bound";
+            ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_GATOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
         }
