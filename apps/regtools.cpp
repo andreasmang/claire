@@ -1203,7 +1203,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
         int n = regopt->GetFlags().numrepeat;
         for (int i = 0; i < n; ++i) {
-            ss  << "forward solve "<< std::setw(3) << i << " of " << std::setw(3) << n;
+            ss  << "forward solve "<< std::setw(3)
+                << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);

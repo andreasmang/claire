@@ -3016,11 +3016,12 @@ PetscErrorCode RegOpt::DisplayTimeToSolution() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     ierr = PetscPrintf(PETSC_COMM_WORLD, "%s\n", line.c_str()); CHKERRQ(ierr);
 
-    ss  << "computation finished ( elapsed cpu time "
+    ss  << "computation finished (elapsed cpu time "
         << floor(hours) << " h "
         << floor(minutes) << " m "
         << floor(seconds) << " s "
-        << floor(millisec) << " ms )";
+        << floor(millisec) << " ms; "
+        << std::scientific << time << ")";
 
     ierr = Msg(ss.str()); CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD, "%s\n", line.c_str()); CHKERRQ(ierr);
