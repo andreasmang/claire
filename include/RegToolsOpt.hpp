@@ -56,6 +56,7 @@ struct RegToolFlags {
     bool computeanalytics;      ///< compute analytics of scalar field
     bool applysmoothing;        ///< convert image data
     int problemid;
+    int numrepeat;
 };
 
 

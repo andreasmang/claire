@@ -239,6 +239,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-checkfwdsolveerr") == 0) {
             this->m_RegToolFlags.checkfwdsolveerr = true;
         } else if (strcmp(argv[1], "-checkfwdsolvetts") == 0) {
+            argc--; argv++;
+            this->m_RegToolFlags.numrepeat = atoi(argv[1]);
             this->m_RegToolFlags.checkfwdsolvetts = true;
         } else if (strcmp(argv[1], "-checkadjsolve") == 0) {
             this->m_RegToolFlags.checkadjsolve = true;
@@ -351,6 +353,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.computeanalytics = false;
     this->m_RegToolFlags.computeresidual = false;
     this->m_RegToolFlags.problemid = 0;
+    this->m_RegToolFlags.numrepeat = 1;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
@@ -463,7 +466,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         if (advanced) {
         std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
         std::cout << " -checkfwdsolveerr         check numerical error of forward solver"<<std::endl;
-        std::cout << " -checkfwdsolvetts         check time-to-solution of forward solver"<<std::endl;
+        std::cout << " -checkfwdsolvetts <int>   check time-to-solution of forward solver (<int>: number of runs)"<<std::endl;
         std::cout << " -checkdetdefgradsolve     check solve for det(grad(y))"<<std::endl;
         std::cout << " -checkdefmapsolve         check solve for y"<<std::endl;
         }

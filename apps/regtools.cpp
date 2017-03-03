@@ -1201,7 +1201,7 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         // set initial guess and solve forward problem
         ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
         ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-        int n = 10;
+        int n = regopt->GetFlags().numrepeat;
         for (int i = 0; i < n; ++i) {
             ss  << "forward solve "<< std::setw(3) << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
