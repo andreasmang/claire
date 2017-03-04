@@ -999,10 +999,9 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     PetscErrorCode ierr;
     T* data = NULL;
     ScalarType *p_xc = NULL;
-    int nprocs,rank,rval;
-    IntType istart[3], isize[3], nx[3], i1, i2, i3, j1, j2, j3, l;
-    Vec xcollect = NULL;
-    VecScatter scatterctx = NULL;
+    int nprocs, rank, rval, master = 0;
+    IntType istart[3], isize[3], nx[3], ng, nl;
+    double *comdata;
     std::string msg;
 
     PetscFunctionBegin;
@@ -1014,7 +1013,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
     // allocate the index buffers on master rank
-    if (rank == 0) {
+    if (rank == master) {
         // we need to allocate the image if it's a zero pointer; this
         // will also create a standard header file; not tested (might need
         // to parse the dimensions of the data)
@@ -1062,96 +1061,107 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
         (*image)->iname = nifti_makeimgname(bname.c_str(), (*image)->nifti_type, false, iscompressed);
     }
 
-    // get array
-    if (nprocs == 1) {
-        ierr = VecGetArray(x, &p_xc); CHKERRQ(ierr);
+    // allocate the index buffers on master rank
+    if (rank == master) {
+        // get all the sizes to read and assign data correctly
+        if (this->m_iSizeC == NULL) {
+            try {this->m_iSizeC = new IntType[3*nprocs];}
+            catch(std::bad_alloc&) {
+                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        if (this->m_iStartC == NULL) {
+            try {this->m_iStartC = new IntType[3*nprocs];}
+            catch(std::bad_alloc&) {
+                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+    }
 
+    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->GetDomainPara().nl;
+
+    isize[0] = this->m_Opt->GetDomainPara().isize[0];
+    isize[1] = this->m_Opt->GetDomainPara().isize[1];
+    isize[2] = this->m_Opt->GetDomainPara().isize[2];
+
+    istart[0] = this->m_Opt->GetDomainPara().istart[0];
+    istart[1] = this->m_Opt->GetDomainPara().istart[1];
+    istart[2] = this->m_Opt->GetDomainPara().istart[2];
+
+    // gather the indices
+    rval = MPI_Gather(istart, 3, MPIU_INT, this->m_iStartC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    rval = MPI_Gather(isize, 3, MPIU_INT, this->m_iSizeC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    if (this->m_nSend == NULL) {
+        try {this->m_nSend = new int[3*nprocs];}
+        catch (std::bad_alloc&) {
+             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_nOffset == NULL) {
+        try {this->m_nOffset = new int[3*nprocs];}
+        catch (std::bad_alloc&) {
+             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    if (rank == master) {
+        IntType offset = 0;
+        for (int p = 0; p < nprocs; ++p) {
+            IntType nsend = 1;
+            for (int i = 0; i < 3; ++i) {
+               nsend *= this->m_iSizeC[p*3+i];
+            }
+            this->m_nSend[p] = static_cast<int>(nsend);
+            this->m_nOffset[p] = offset;
+            offset += nsend;
+        }
+    }
+
+    // allocate data buffer
+    try {comdata = new ScalarType[ng];}
+    catch (std::bad_alloc&) {
+        ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    int nrecv = static_cast<int>(nl);
+    ierr = VecGetArray(x, &p_xc); CHKERRQ(ierr);
+    rval = MPI_Gatherv(p_xc, nrecv, MPI_DOUBLE, comdata, this->m_nSend, this->m_nOffset, MPI_DOUBLE, master, PETSC_COMM_WORLD);
+    ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
+
+    nx[0] = this->m_Opt->GetDomainPara().nx[0];
+    nx[1] = this->m_Opt->GetDomainPara().nx[1];
+    nx[2] = this->m_Opt->GetDomainPara().nx[2];
+
+    // if we are on master rank
+    if (rank == master) {
         // cast pointer of nifti image data
         data = reinterpret_cast<T*>((*image)->data);
+        int k = 0;
+        for (int p = 0; p < nprocs; ++p) {
+            for (IntType i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
+                for (IntType i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
+                    for (IntType i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) {  // x3
+                        IntType j1 = i1 + this->m_iStartC[3*p+0];
+                        IntType j2 = i2 + this->m_iStartC[3*p+1];
+                        IntType j3 = i3 + this->m_iStartC[3*p+2];
 
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+                        IntType l = GetLinearIndex(j1, j2, j3, nx);
+                        data[l] = comdata[k++];
+                    }  // for i1
+                }  // for i2
+            }  // for i3
+        }  // for all procs
+    }   // if on master
 
-        for (IntType i1 = 0; i1 < nx[0]; ++i1) {
-            for (IntType i2 = 0; i2 < nx[1]; ++i2) {
-                for (IntType i3 = 0; i3 < nx[2]; ++i3) {
-                    l = GetLinearIndex(i1, i2, i3, nx);
-                    //k = i3*nx[0]*nx[1] + i2*nx[0] + i1;
-                    data[l] = static_cast<T>(p_xc[l]);
-                }
-            }
-        }
-        ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
-    } else {
-        // allocate the index buffers on master rank
-        if (rank == 0) {
-            // get all the sizes to read and assign data correctly
-            if (this->m_iSizeC == NULL) {
-                try{ this->m_iSizeC = new IntType[3*nprocs]; }
-                catch(std::bad_alloc&) {
-                    ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-                }
-            }
-            if (this->m_iStartC == NULL) {
-                try{ this->m_iStartC = new IntType[3*nprocs]; }
-                catch(std::bad_alloc&) {
-                    ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-                }
-            }
-        }
-
-        isize[0] = this->m_Opt->GetDomainPara().isize[0];
-        isize[1] = this->m_Opt->GetDomainPara().isize[1];
-        isize[2] = this->m_Opt->GetDomainPara().isize[2];
-
-        istart[0] = this->m_Opt->GetDomainPara().istart[0];
-        istart[1] = this->m_Opt->GetDomainPara().istart[1];
-        istart[2] = this->m_Opt->GetDomainPara().istart[2];
-
-        // gather the indices
-        rval = MPI_Gather(istart, 3, MPIU_INT, this->m_iStartC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
-        ierr = MPIERRQ(rval); CHKERRQ(ierr);
-
-        rval = MPI_Gather(isize, 3, MPIU_INT, this->m_iSizeC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
-        ierr = MPIERRQ(rval); CHKERRQ(ierr);
-
-        // create scatter object
-        ierr = VecScatterCreateToZero(x, &scatterctx, &xcollect); CHKERRQ(ierr);
-
-        // gather the data
-        ierr = VecScatterBegin(scatterctx, x, xcollect, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
-        ierr = VecScatterEnd(scatterctx, x, xcollect, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
-
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
-
-        // if we are on master rank
-        if (rank == 0) {
-            data = static_cast<T*>((*image)->data);
-            ierr = VecGetArray(xcollect, &p_xc); CHKERRQ(ierr);
-            for(int p = 0; p < nprocs; ++p) {
-                for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
-                    for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
-                        for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) {  // x3
-                            j1 = i1 + this->m_iStartC[3*p+0];
-                            j2 = i2 + this->m_iStartC[3*p+1];
-                            j3 = i3 + this->m_iStartC[3*p+2];
-                            l = GetLinearIndex(j1, j2, j3, nx);
-//                            k = i3*nx[0]*nx[1] + i2*nx[0] + i1;
-                            data[l] = static_cast<T>(p_xc[l]);
-                        }  // for i1
-                    }  // for i2
-                }  // for i3
-            }  // for all procs
-            ierr = VecRestoreArray(xcollect, &p_xc); CHKERRQ(ierr);
-        }   // if on master
-    }  // else
-
-    // clear memory
-    if (xcollect != NULL) {ierr = VecDestroy(&xcollect); CHKERRQ(ierr);}
-    if (scatterctx != NULL) {ierr = VecScatterDestroy(&scatterctx); CHKERRQ(ierr);}
+    if (comdata != NULL) {
+        delete [] comdata;
+        comdata = NULL;
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1187,6 +1197,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
     (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[2];
     (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
     (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[0];
+
 //    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[0];
 //    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
 //    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[2];
@@ -1261,7 +1272,7 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
 PetscErrorCode ReadWriteReg::ReadBIN(Vec* x) {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
-    PetscViewer viewer=NULL;
+    PetscViewer viewer = NULL;
     PetscFunctionBegin;
 
     if (*x != NULL) {
@@ -1362,7 +1373,7 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     ierr = VecGetArray(*x, &p_x); CHKERRQ(ierr);
     //data=static_cast<double*>(p_x);
     //ncerr=ncmpi_get_vara_all(fileid,varid[0],istart,isize,data,nl,MPI_DOUBLE);
-    ncerr=ncmpi_get_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPI_DOUBLE);
+    ncerr = ncmpi_get_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPI_DOUBLE);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
     ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
 
@@ -1435,13 +1446,10 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
     istart[1] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[1]);
     istart[2] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[2]);
 
-//    std::cout<< istart[0] << " " << istart[1] << " " << istart[2] << std::endl;
-
-
     isize[0] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[0]);
     isize[1] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[1]);
     isize[2] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[2]);
-//    std::cout<< isize[0] << " " << isize[1] << " " << isize[2] << std::endl;
+
     ierr = Assert(nl == isize[0]*isize[1]*isize[2], "size error"); CHKERRQ(ierr);
 
     // write data to file

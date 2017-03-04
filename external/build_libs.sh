@@ -620,9 +620,9 @@ if [ ${buildpnetcdf} -eq 1 ]; then
 	echo "----------------------------------------------------------------------------------"
 	make
 	make install
-	echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 fi
 
+echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 if [ ${cleanup} -eq 1 ]; then
 	rm -f ${BUILD_DIR}/environment_vars.sh
