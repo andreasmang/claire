@@ -43,7 +43,7 @@ class RegistrationInterface {
  public:
     typedef Optimizer OptimizerType;
     typedef ReadWriteReg ReadWriteType;
-    typedef PreProcReg PreProcType;
+    typedef Preprocessing PreProcType;
     typedef OptimalControlRegistrationBase RegProblemType;
 
     RegistrationInterface();

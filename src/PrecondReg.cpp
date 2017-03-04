@@ -232,7 +232,7 @@ PetscErrorCode PrecondReg::SetProblem(PrecondReg::OptProbType* optprob) {
  * implementation; the user can set different optimization problems
  * and we can solve them)
  *******************************************************************/
-PetscErrorCode PrecondReg::SetPreProc(PreProcReg* preproc) {
+PetscErrorCode PrecondReg::SetPreProc(Preprocessing* preproc) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 

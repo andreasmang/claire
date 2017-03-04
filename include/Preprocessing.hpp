@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,11 +14,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- **/
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
-#ifndef _PREPROCREG_H_
-#define _PREPROCREG_H_
+#ifndef _PREPROCESSING_H_
+#define _PREPROCESSING_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -57,18 +57,18 @@ struct GridData {
 };
 
 
-class PreProcReg {
+class Preprocessing {
  public:
-    typedef PreProcReg Self;
+    typedef Preprocessing Self;
     typedef ScalarType ScalarTypeFD[2];
     typedef ReadWriteReg ReadWriteType;
 
-    PreProcReg();
-    PreProcReg(RegOpt*);
-    ~PreProcReg();
+    Preprocessing();
+    Preprocessing(RegOpt*);
+    ~Preprocessing();
 
     PetscErrorCode SetReadWrite(ReadWriteType*);
-    PetscErrorCode ApplySmoothing(Vec, Vec);
+    PetscErrorCode Smooth(Vec, Vec);
     PetscErrorCode ApplyRectFreqFilter(Vec, Vec, ScalarType, bool flag = true);
     PetscErrorCode ApplyRectFreqFilter(VecField*, VecField*, ScalarType, bool flag = true);
 
@@ -86,6 +86,9 @@ class PreProcReg {
  private:
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
+
+    PetscErrorCode GaussianSmoothing(Vec, Vec);
+    PetscErrorCode LaplacianSmoothing(Vec, Vec);
 
     PetscErrorCode GridChangeCommDataRestrict();
     PetscErrorCode GridChangeCommDataProlong();
@@ -153,4 +156,4 @@ class PreProcReg {
 
 
 
-#endif  // _PREPROCREG_H_
+#endif  // _PREPROCESSING_H_

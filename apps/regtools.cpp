@@ -22,7 +22,7 @@
 
 #include "RegToolsOpt.hpp"
 #include "RegUtils.hpp"
-#include "PreProcReg.hpp"
+#include "Preprocessing.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
 #include "SynProbRegistration.hpp"
@@ -396,7 +396,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     ScalarType gridscale, value, hd, hdl;
     bool pro, res;
     Vec m = NULL, ml = NULL;
-    reg::PreProcReg* preproc = NULL;
+    reg::Preprocessing* preproc = NULL;
     reg::ReadWriteReg* readwrite = NULL;
 
     PetscFunctionBegin;
@@ -452,7 +452,7 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
 
     if (pro || res) {
         // allocate container for velocity field
-        try {preproc = new reg::PreProcReg(regopt);}
+        try {preproc = new reg::Preprocessing(regopt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -538,7 +538,7 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
     ScalarType scale, hd, hdl, value;
     Vec vx1 = NULL, vx2 = NULL, vx3 = NULL;
     reg::VecField *v = NULL, *vl = NULL;
-    reg::PreProcReg* preproc = NULL;
+    reg::Preprocessing* preproc = NULL;
     reg::ReadWriteReg* readwrite = NULL;
 
     PetscFunctionBegin;
@@ -571,7 +571,7 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
     ierr = VecCopy(vx3, v->m_X3); CHKERRQ(ierr);
 
     // allocate container for velocity field
-    try {preproc = new reg::PreProcReg(regopt);}
+    try {preproc = new reg::Preprocessing(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -689,7 +689,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     Vec m0 = NULL, m1 = NULL, vxi = NULL;
     ScalarType *p_m1 = NULL, *p_m0 = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::PreProcReg* preproc = NULL;
+    reg::Preprocessing* preproc = NULL;
     reg::RegistrationInterface* registration = NULL;
     PetscFunctionBegin;
 
@@ -725,11 +725,11 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
         }
         ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
 
-        try {preproc = new reg::PreProcReg(regopt);}
+        try {preproc = new reg::Preprocessing(regopt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-        ierr = preproc->ApplySmoothing(m1, m0); CHKERRQ(ierr);
+        ierr = preproc->Smooth(m1, m0); CHKERRQ(ierr);
         ierr = VecCopy(m1, m0); CHKERRQ(ierr);
     } else {
         ierr = reg::Rescale(m0, 0.0, 1.0); CHKERRQ(ierr);
@@ -1601,7 +1601,7 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     std::string fn, path, filename, extension;
     Vec m;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::PreProcReg* preproc = NULL;
+    reg::Preprocessing* preproc = NULL;
     PetscFunctionBegin;
 
     regopt->Enter(__func__);
@@ -1620,13 +1620,13 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
 
     // allocate preprocessing class
     if (preproc == NULL) {
-        try {preproc = new reg::PreProcReg(regopt);}
+        try {preproc = new reg::Preprocessing(regopt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
     // apply smoothing
-    ierr = preproc->ApplySmoothing(m, m); CHKERRQ(ierr);
+    ierr = preproc->Smooth(m, m); CHKERRQ(ierr);
 
     ierr = reg::GetFileName(path, filename, extension, fn); CHKERRQ(ierr);
     fn = path + "/" + filename + "_test" + regopt->GetReadWriteFlags().extension;

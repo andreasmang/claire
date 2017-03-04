@@ -428,7 +428,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     if (this->m_PreProc != NULL) {
         delete this->m_PreProc; this->m_PreProc = NULL;
     }
-    try {this->m_PreProc = new PreProcReg(this->m_Opt);}
+    try {this->m_PreProc = new Preprocessing(this->m_Opt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -604,13 +604,13 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 
         if (this->m_Opt->GetRegFlags().applysmoothing) {
             if (this->m_PreProc == NULL) {
-                try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+                try{this->m_PreProc = new Preprocessing(this->m_Opt);}
                 catch (std::bad_alloc&) {
                     ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
                 }
             }
-            ierr = this->m_PreProc->ApplySmoothing(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr = this->m_PreProc->ApplySmoothing(mT, this->m_TemplateImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
         } else {
             ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
             ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
@@ -697,13 +697,13 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
 
         if (this->m_Opt->GetRegFlags().applysmoothing) {
             if (this->m_PreProc == NULL) {
-                try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+                try{this->m_PreProc = new Preprocessing(this->m_Opt);}
                 catch (std::bad_alloc&) {
                     ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
                 }
             }
-            ierr = this->m_PreProc->ApplySmoothing(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr = this->m_PreProc->ApplySmoothing(mT, this->m_TemplateImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
         } else {
             ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
             ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
@@ -1222,7 +1222,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
 
     // set up preprocessing
     if (this->m_PreProc == NULL) {
-        try {this->m_PreProc = new PreProcReg(this->m_Opt);}
+        try {this->m_PreProc = new Preprocessing(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1277,8 +1277,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
 
         // solve problem
         if (solve) {
-            ierr = this->m_PreProc->ApplySmoothing(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr = this->m_PreProc->ApplySmoothing(mT, this->m_TemplateImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
 
             // rescale images (TODO: has to be removed, cause gaussian should be
             // scale invariant)
@@ -1347,7 +1347,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
     // set up preprocessing
     if (this->m_PreProc == NULL) {
-        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+        try{this->m_PreProc = new Preprocessing(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1577,7 +1577,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     // set up preprocessing
     if (this->m_PreProc == NULL) {
-        try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+        try{this->m_PreProc = new Preprocessing(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -1670,14 +1670,14 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
     if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
-            try{this->m_PreProc = new PreProcReg(this->m_Opt);}
+            try{this->m_PreProc = new Preprocessing(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         // apply smoothing
-        ierr = this->m_PreProc->ApplySmoothing(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr = this->m_PreProc->ApplySmoothing(mT, this->m_TemplateImage); CHKERRQ(ierr);
+        ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
     } else {
         // copy input images
         ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
@@ -1728,13 +1728,13 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
-            try {this->m_PreProc = new PreProcReg(this->m_Opt);}
+            try {this->m_PreProc = new Preprocessing(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
         }
         // apply smoothing
-        ierr = this->m_PreProc->ApplySmoothing(m1, m0); CHKERRQ(ierr);
+        ierr = this->m_PreProc->Smooth(m1, m0); CHKERRQ(ierr);
         ierr = VecCopy(m1, m0); CHKERRQ(ierr);
         ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
     }

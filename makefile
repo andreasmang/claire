@@ -133,7 +133,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
 		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
-		$(SRCDIR)/PreProcReg.cpp
+		$(SRCDIR)/Preprocessing.cpp
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
 

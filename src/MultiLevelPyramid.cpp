@@ -170,12 +170,12 @@ PetscErrorCode MultiLevelPyramid::ClearMemory() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode MultiLevelPyramid::SetPreProc(PreProcReg* ppr) {
+PetscErrorCode MultiLevelPyramid::SetPreProc(Preprocessing* pointer) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(ppr != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_PreProc = ppr;
+    ierr = Assert(pointer != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_PreProc = pointer;
 
     PetscFunctionReturn(ierr);
 }

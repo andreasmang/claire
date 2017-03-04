@@ -35,7 +35,7 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "PrecondReg.hpp"
-#include "PreProcReg.hpp"
+#include "Preprocessing.hpp"
 #include "OptimizationProblem.hpp"
 
 namespace reg
@@ -78,7 +78,7 @@ private:
     KSP m_KrylovMethod; ///< KSP object
 //    PC m_KrylovMethodPC; ///< KSP preconditioner object
     PrecondReg* m_Precond;
-    PreProcReg* m_PreProc;
+    Preprocessing* m_PreProc;
 
     Vec m_Solution; ///< solution vector
 

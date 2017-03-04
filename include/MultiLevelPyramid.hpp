@@ -27,7 +27,7 @@
 
 
 #include "RegOpt.hpp"
-#include "PreProcReg.hpp"
+#include "Preprocessing.hpp"
 
 namespace reg {
 
@@ -52,7 +52,7 @@ class MultiLevelPyramid {
     //PetscErrorCode GetLevel(Vec,int);
     PetscErrorCode DoSetup(Vec);
 
-    PetscErrorCode SetPreProc(PreProcReg*);
+    PetscErrorCode SetPreProc(Preprocessing*);
 
  private:
     PetscErrorCode Initialize();
@@ -83,7 +83,7 @@ class MultiLevelPyramid {
     Vec m_DataL15;
 
     RegOpt* m_Opt;
-    PreProcReg* m_PreProc;
+    Preprocessing* m_PreProc;
 };
 
 

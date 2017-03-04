@@ -52,7 +52,7 @@ class PrecondReg {
     PetscErrorCode SetProblem(OptProbType*);
 
     /*! set preprocessing interface */
-    PetscErrorCode SetPreProc(PreProcReg*);
+    PetscErrorCode SetPreProc(Preprocessing*);
 
     /*! setup preconditioner */
     PetscErrorCode DoSetup();
@@ -125,7 +125,7 @@ class PrecondReg {
     Mat m_MatVec;           ///< mat vec object (PETSc)
     Mat m_MatVecEigEst;     ///< mat vec object (PETSc)
 
-    PreProcReg* m_PreProc;  ///< pointer to preprocessing
+    Preprocessing* m_PreProc;  ///< pointer to preprocessing
     KSP m_KrylovMethod;     ///< pointer for krylov subspace method method (PETSc)
 
     PetscRandom m_RandomNumGen;     ///< random number generated

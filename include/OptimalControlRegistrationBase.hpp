@@ -24,7 +24,7 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "TenField.hpp"
-#include "PreProcReg.hpp"
+#include "Preprocessing.hpp"
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
 #include "RegularizationRegistration.hpp"

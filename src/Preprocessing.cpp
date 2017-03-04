@@ -17,10 +17,10 @@
  *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _PREPROCREG_CPP_
-#define _PREPROCREG_CPP_
+#ifndef _PREPROCESSING_CPP_
+#define _PREPROCESSING_CPP_
 
-#include "PreProcReg.hpp"
+#include "Preprocessing.hpp"
 #include <time.h>
 
 
@@ -34,7 +34,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-PreProcReg::PreProcReg() {
+Preprocessing::Preprocessing() {
     this->Initialize();
 }
 
@@ -44,7 +44,7 @@ PreProcReg::PreProcReg() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-PreProcReg::PreProcReg(RegOpt* opt) {
+Preprocessing::Preprocessing(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
@@ -55,7 +55,7 @@ PreProcReg::PreProcReg(RegOpt* opt) {
 /********************************************************************
  * @brief default deconstructor
  *******************************************************************/
-PreProcReg::~PreProcReg() {
+Preprocessing::~Preprocessing() {
     this->ClearMemory();
 }
 
@@ -65,7 +65,7 @@ PreProcReg::~PreProcReg() {
 /********************************************************************
  * @brief initialize
  *******************************************************************/
-PetscErrorCode PreProcReg::Initialize() {
+PetscErrorCode Preprocessing::Initialize() {
     PetscErrorCode ierr = 0;
     this->m_Opt = NULL;
 
@@ -119,7 +119,7 @@ PetscErrorCode PreProcReg::Initialize() {
 /********************************************************************
  * @brief clear memory
  *******************************************************************/
-PetscErrorCode PreProcReg::ClearMemory() {
+PetscErrorCode Preprocessing::ClearMemory() {
     PetscErrorCode ierr = 0;
 
     if (this->m_xhat != NULL) {
@@ -232,7 +232,7 @@ PetscErrorCode PreProcReg::ClearMemory() {
 /********************************************************************
  * @brief set read/write object for data
  *******************************************************************/
-PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
+PetscErrorCode Preprocessing::SetReadWrite(Preprocessing::ReadWriteType* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -251,7 +251,7 @@ PetscErrorCode PreProcReg::SetReadWrite(PreProcReg::ReadWriteType* readwrite) {
  * @param nx_f grid size on fine grid
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
+PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     IntType nalloc_c, nalloc_f;
     int _nx_f[3], _ostart_f[3], _osize_f[3], _isize_f[3], _istart_f[3],
@@ -415,7 +415,7 @@ PetscErrorCode PreProcReg::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
  * @param v input vector field
  * @param vcoarse output vector field v_c = R[v]
  *******************************************************************/
-PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType* nx_c, IntType* nx_f) {
+PetscErrorCode Preprocessing::Restrict(VecField* vcoarse, VecField* vfine, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
@@ -447,7 +447,7 @@ PetscErrorCode PreProcReg::Restrict(VecField* vcoarse, VecField* vfine, IntType*
  * apply this function to each component of a vector field, or a
  * time dependend field; if the parameter is not set, it is true
  *******************************************************************/
-PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
+PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
     ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2], value;
     IntType n, l, k_c[3], i_c[3], nr, os_recv, nyqfreqid[3];
@@ -596,7 +596,7 @@ PetscErrorCode PreProcReg::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* n
  * @brief do setup for applying restriction operator
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c) {
+PetscErrorCode Preprocessing::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank, nprocs, nowned, ncommunicate, nprocessed, xrank, cart_grid[2], p1, p2;
     IntType oend_c[3], osc_x2, osc_x3, i_f[3], k_f[3], k_c[3], nxhalf_c[3];
@@ -736,7 +736,7 @@ PetscErrorCode PreProcReg::ComputeGridChangeIndices(IntType* nx_f, IntType* nx_c
 /********************************************************************
  * @brief communicate indices
  *******************************************************************/
-PetscErrorCode PreProcReg::GridChangeCommIndices() {
+PetscErrorCode Preprocessing::GridChangeCommIndices() {
     PetscErrorCode ierr = 0;
     int merr, nprocs, rank, i_recv, i_send;
     IntType n, k_c[3], k_f[3], os_send, os_recv, nr, ns, n_c, n_f;
@@ -992,7 +992,7 @@ PetscErrorCode PreProcReg::GridChangeCommIndices() {
  * @brief do setup for applying restriction operator
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
+PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
     PetscErrorCode ierr = 0;
     int merr,nprocs,rank,i_recv,i_send;
     IntType n,l,i_f[3],os_send,os_recv,nr,ns;
@@ -1128,7 +1128,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataRestrict() {
  * we send here, what has been received on the coarse grid
  * @param nx_c grid size on coarse grid
  *******************************************************************/
-PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
+PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
     PetscErrorCode ierr = 0;
     int merr,nprocs,rank,i_recv,i_send;
     IntType n,l,i_c[3],os_send,os_recv,nr,ns;
@@ -1262,7 +1262,7 @@ PetscErrorCode PreProcReg::GridChangeCommDataProlong() {
  * @param vcoarse input vector field
  * @param vfine output vector field vfine = P[vcoarse]
  *******************************************************************/
-PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, IntType* nx_c) {
+PetscErrorCode Preprocessing::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1293,7 +1293,7 @@ PetscErrorCode PreProcReg::Prolong(VecField* v_f, VecField* v_c, IntType* nx_f, 
  * apply this function to each component of a vector field, or a
  * time dependend field; if the parameter is not set, it is true
  *******************************************************************/
-PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c) {
+PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank, nprocs;
     IntType l, n, ns, os_send, k_f[3], i_f[3], nyqfreqid[3];
@@ -1444,7 +1444,7 @@ PetscErrorCode PreProcReg::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx
  * @param pct cut off precentage (provide 0.5 for 50%)
  * @param lowpass flag to switch on low pass filter; default is true
  *******************************************************************/
-PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt, VecField* v, ScalarType pct, bool lowpass) {
+PetscErrorCode Preprocessing::ApplyRectFreqFilter(VecField* vflt, VecField* v, ScalarType pct, bool lowpass) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1469,7 +1469,7 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(VecField* vflt, VecField* v, Scal
  * @param pct cut off precentage (provide 0.5 for 50%)
  * @param lowpass flag to switch on low pass filter; default is true
  *******************************************************************/
-PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, bool lowpass) {
+PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, bool lowpass) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
     ScalarType *p_x = NULL, *p_xflt = NULL;
@@ -1590,10 +1590,33 @@ PetscErrorCode PreProcReg::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, 
 /********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
-PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
+PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->GaussianSmoothing(xs, x); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief apply gaussian smoothing operator to input data
+ *******************************************************************/
+PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
-    ScalarType *p_x = NULL, *p_xsmooth = NULL, c[3], scale; //, nx[3];
+    ScalarType *p_x = NULL, *p_xs = NULL, c[3], scale; //, nx[3];
     int nx[3];
     double timer[5] = {0, 0, 0, 0, 0};
 
@@ -1602,7 +1625,7 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xsmooth != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get local pencil size and allocation size
     nalloc = this->m_Opt->GetFFT().nalloc;
@@ -1673,9 +1696,9 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
 }  // pragma omp parallel
 
     // compute inverse fft
-    ierr = VecGetArray(xsmooth, &p_xsmooth); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan, this->m_xhat, p_xsmooth, timer);
-    ierr = VecRestoreArray(xsmooth, &p_xsmooth); CHKERRQ(ierr);
+    ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
+    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan, this->m_xhat, p_xs, timer);
+    ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -1688,13 +1711,12 @@ PetscErrorCode PreProcReg::ApplySmoothing(Vec xsmooth, Vec x) {
 
 
 
-
 /********************************************************************
  * @brief compute overlap between label maps
  * @param mRl label map for reference image
  * @param mTl label map for template image
  *******************************************************************/
-PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
+PetscErrorCode Preprocessing::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
     PetscErrorCode ierr = 0;
     int nlabels, lR, lT;
     double cj, uj, nlabelsR, nlabelsT, n;
@@ -1815,4 +1837,4 @@ PetscErrorCode PreProcReg::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
 
 
 
-#endif   // _PREPROCREG_CPP_
+#endif   // _PREPROCESSING_CPP_
