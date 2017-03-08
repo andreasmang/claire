@@ -545,7 +545,7 @@ PetscErrorCode VecField::WAXPY(ScalarType s, VecField* v, VecField* w) {
 
 
 /********************************************************************
- * @brief compute norm of vector field
+ * @brief compute pointwise norm of vector field
  *******************************************************************/
 PetscErrorCode VecField::Norm(Vec xnorm) {
     PetscErrorCode ierr = 0;
@@ -576,6 +576,37 @@ PetscErrorCode VecField::Norm(Vec xnorm) {
     PetscFunctionReturn(ierr);
 }
 
+
+
+/********************************************************************
+ * @brief compute pointwise norm of vector field
+ *******************************************************************/
+PetscErrorCode VecField::Norm(ScalarType& value) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    ScalarType vnorm;
+    int rval;
+    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, *p_x = NULL;
+
+    PetscFunctionBegin;
+
+    // get local size of vector field
+    ierr = VecGetLocalSize(this->m_X1, &nl); CHKERRQ(ierr);
+
+    vnorm = 0.0;
+    ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        vnorm += p_x1[i]*p_x1[i] + p_x2[i]*p_x2[i] + p_x3[i]*p_x3[i];
+    }
+    ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+
+    rval = MPI_Allreduce(&vnorm, &value, 1, MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+    value = PetscSqrtReal(value);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

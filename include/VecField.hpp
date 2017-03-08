@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 
 #ifndef _VECFIELD_H_
@@ -25,14 +24,16 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 
-namespace reg
-{
 
 
-class VecField
-{
 
-public:
+namespace reg {
+
+
+
+
+class VecField {
+ public:
     typedef VecField Self;
 
     VecField();
@@ -80,14 +81,13 @@ public:
 
     /*! compute norm of vector field */
     PetscErrorCode Norm(Vec);
+    PetscErrorCode Norm(ScalarType&);
 
     // individual components
     Vec m_X1;
     Vec m_X2;
     Vec m_X3;
-
-private:
-
+ private:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
 
@@ -96,10 +96,14 @@ private:
     PetscErrorCode Allocate(int);
 
     RegOpt* m_Opt;
-
 };
 
-} // end of name space
 
 
-#endif // _VECFIELD_H_
+
+}  // end of name space
+
+
+
+
+#endif  // _VECFIELD_H_
