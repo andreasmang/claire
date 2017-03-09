@@ -1,4 +1,5 @@
-/************************************************************************* *  Copyright (c) 2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -13,7 +14,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
 #ifndef _REGOPT_H_
@@ -163,8 +164,8 @@ enum CounterType {
 
 enum RegModel {
     COMPRESSIBLE,
+    RELAXEDSTOKES,
     STOKES,
-    RELAXEDSTOKES
 };
 
 
@@ -366,12 +367,12 @@ struct PDESolver{
 /*! parameter for grid continuation */
 struct Logger{
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
-    std::vector<ScalarType> distance;       ///< convergence for residual
-    std::vector<ScalarType> regularization; ///< convergence for regularization
-    std::vector<ScalarType> objective;      ///< convergence for objective
-    std::vector<int> outeriterations;       ///< iterations of solver
-    std::vector<ScalarType> kspresidual;    ///< residual of krylov method
-    std::vector<int> kspiterations;         ///< iterations of krylov method
+    std::vector<ScalarType> distance;        ///< convergence for residual
+    std::vector<ScalarType> regularization;  ///< convergence for regularization
+    std::vector<ScalarType> objective;       ///< convergence for objective
+    std::vector<int> outeriterations;        ///< iterations of solver
+    std::vector<ScalarType> kspresidual;     ///< residual of krylov method
+    std::vector<int> kspiterations;          ///< iterations of krylov method
     ScalarType finalresidual[4];
     bool enabled[NLOGFLAGS];
 

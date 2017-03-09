@@ -40,6 +40,22 @@ namespace reg {
 
 
 
+#ifdef REG_HAS_NIFTI
+enum DataType {CHAR, UCHAR, SHORT, USHORT, INT, UINT, FLOAT, DOUBLE, UNDEF};
+
+struct ImageType {
+    nifti_image* data;
+    DataType datatype;
+
+    ScalarType minval;
+    ScalarType maxval;
+    IntType nx[3];
+};
+#endif
+
+
+
+
 class ReadWriteReg {
  public:
     typedef ReadWriteReg Self;
@@ -82,6 +98,8 @@ class ReadWriteReg {
     PetscErrorCode WriteTimeSeriesNetCDF(Vec);
     PetscErrorCode WriteBlockNetCDF(Vec, int*);
 
+    PetscErrorCode CollectSizes();
+
 #ifdef REG_HAS_NIFTI
     PetscErrorCode ReadNII(Vec*);
     PetscErrorCode ReadNII(VecField*);
@@ -92,18 +110,21 @@ class ReadWriteReg {
     PetscErrorCode WriteNII(nifti_image**);
     template <typename T> PetscErrorCode WriteNII(nifti_image**, Vec);
 
-    PetscErrorCode GetComponentTypeNII(nifti_image*);;
+    PetscErrorCode GetComponentType(nifti_image*, DataType&);;
     PetscErrorCode AllocateNII(nifti_image**, Vec);
 #endif
 
-    enum VoxelType{CHAR, UCHAR, SHORT, USHORT, INT, UINT, FLOAT, DOUBLE, UNDEF};
-    VoxelType m_ComponentType;
+    ImageType m_TemplateImage;
+    ImageType m_ReferenceImage;
+
+
 
     RegOpt* m_Opt;
     IntType* m_iSizeC;
     IntType* m_iStartC;
     int* m_nOffset;
     int* m_nSend;
+    int m_NumProcs;
 
     ScalarType* m_Data;
     IntType m_nx[3];
