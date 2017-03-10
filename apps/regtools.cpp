@@ -109,8 +109,7 @@ int main(int argc, char **argv) {
 
     // clean up
     if (regopt != NULL) {
-        delete regopt;
-        regopt = NULL;
+        delete regopt; regopt = NULL;
     }
 
     // clean up petsc
@@ -232,7 +231,7 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
     if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
     // allocate container for velocity field
-    try { v = new reg::VecField(regopt); }
+    try {v = new reg::VecField(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -1284,7 +1283,7 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
 PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nc, nl, ng;
-    Vec l0 = NULL, m1 = NULL, mR = NULL;
+    Vec l0 = NULL, m1 = NULL, m0 = NULL;
     reg::VecField *v = NULL;
     reg::RegistrationInterface* registration = NULL;
     reg::SynProbRegistration* synprob = NULL;
@@ -1293,11 +1292,7 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
 
     regopt->Enter(__func__);
 
-    nc = 2;
-
     ierr = regopt->DoSetup(); CHKERRQ(ierr);
-
-    regopt->SetNumImageComponents(nc);
     regopt->DisableSmoothing();
 
     nc = regopt->GetDomainPara().nc;
@@ -1324,26 +1319,50 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ierr = reg::VecCreate(l0, nc*nl, nc*ng); CHKERRQ(ierr);
+    // allocate the data
+    ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
     ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
-    ierr = reg::VecCreate(mR, nc*nl, nc*ng); CHKERRQ(ierr);
+    ierr = reg::VecCreate(l0, nc*nl, nc*ng); CHKERRQ(ierr);
+
+    if (regopt->GetFlags().problemid == 0) {
+        ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 1) {
+        ierr = synprob->ComputeSmoothScalarField(m0, 8); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 2) {
+        ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 3) {
+        ierr = synprob->ComputeSmoothScalarField(m0, 11); CHKERRQ(ierr);
+    } else {
+        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+    }
     ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
-    ierr = VecSet(mR, 0.0); CHKERRQ(ierr);
     ierr = VecSet(l0, 0.0); CHKERRQ(ierr);
 
-    ierr = synprob->ComputeSmoothScalarField(mR, 0); CHKERRQ(ierr);
-    ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-    ierr = registration->SetReferenceImage(mR); CHKERRQ(ierr);
-    ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
-    ierr = readwrite->Write(l0, "initial-adjoint-variable.nc", nc > 1); CHKERRQ(ierr);
+    // set up smooth problem
+    if (regopt->GetFlags().problemid == 0) {
+        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 1) {
+        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 2) {
+        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
+    } else if (regopt->GetFlags().problemid == 3) {
+        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
+    } else {
+        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
+    }
 
+    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
+    ierr = registration->SetReferenceImage(m0); CHKERRQ(ierr);
+    ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
+    if (regopt->GetReadWriteFlags().results) {
+        ierr = readwrite->Write(l0, "initial-adjoint-variable.nc", nc > 1); CHKERRQ(ierr);
+    }
     regopt->Exit(__func__);
 
     if (v != NULL) {delete v; v = NULL;}
     if (l0 != NULL) {ierr = VecDestroy(&l0); CHKERRQ(ierr); l0 = NULL;}
+    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
     if (synprob != NULL) {delete synprob; synprob = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
