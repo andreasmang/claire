@@ -112,11 +112,10 @@ class ReadWriteReg {
 
     PetscErrorCode GetComponentType(nifti_image*, DataType&);;
     PetscErrorCode AllocateNII(nifti_image**, Vec);
-#endif
 
     ImageType m_TemplateImage;
     ImageType m_ReferenceImage;
-
+#endif
 
 
     RegOpt* m_Opt;
