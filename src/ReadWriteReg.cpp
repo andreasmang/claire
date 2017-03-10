@@ -74,6 +74,7 @@ PetscErrorCode ReadWriteReg::Initialize() {
     this->m_Opt = NULL;
     this->m_Data = NULL;
 
+#ifdef REG_HAS_NIFTI
     this->m_ReferenceImage.data = NULL;
     this->m_ReferenceImage.datatype = DOUBLE;
     this->m_ReferenceImage.nx[0] = -1;
@@ -85,6 +86,7 @@ PetscErrorCode ReadWriteReg::Initialize() {
     this->m_TemplateImage.nx[0] = -1;
     this->m_TemplateImage.nx[1] = -1;
     this->m_TemplateImage.nx[2] = -1;
+#endif
 
     this->m_NumProcs = 0;
     this->m_iSizeC = NULL;
