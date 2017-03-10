@@ -103,6 +103,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
 
     this->m_VelocityIsZero = false;         ///< flag: is velocity zero
+    this->m_StoreTimeHistory = true;        ///< flag: store time history (needed for inversion)
     this->m_ComputeInverseDefMap = false;   ///< flag: compute inverse deformation map
 
     PetscFunctionReturn(ierr);

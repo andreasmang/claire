@@ -1390,8 +1390,8 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
 
-    if (   this->m_KrylovSolverPara.pctolscale < 0.0
-        || this->m_KrylovSolverPara.pctolscale >= 1.0 ) {
+    if (this->m_KrylovSolverPara.pctolscale < 0.0
+        || this->m_KrylovSolverPara.pctolscale >= 1.0) {
         msg = "\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
         ierr = this->Usage(); CHKERRQ(ierr);

@@ -441,7 +441,6 @@ class RegOpt {
         this->m_RegFlags.invdefgrad = flag;
     }
 
-
     inline void EnableRescaling() {this->m_RegFlags.applyrescaling = true;}
     inline void DisableRescaling() {this->m_RegFlags.applyrescaling = false;}
 
