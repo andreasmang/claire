@@ -50,6 +50,8 @@ struct ImageType {
     ScalarType minval;
     ScalarType maxval;
     IntType nx[3];
+    bool read;
+    bool write;
 };
 #endif
 
@@ -64,12 +66,23 @@ class ReadWriteReg {
     ReadWriteReg(RegOpt*);
     ~ReadWriteReg(void);
 
+    /*! read reference image */
+    PetscErrorCode ReadR(Vec*, std::vector < std::string >);
+
+    /*! read template image */
+    PetscErrorCode ReadT(Vec*, std::vector < std::string >);
+
     PetscErrorCode Read(Vec*, std::vector < std::string >);
     PetscErrorCode Read(Vec*, std::string);
     PetscErrorCode Read(VecField*, std::string, std::string, std::string);
 
+    /*! write reference image */
+    PetscErrorCode WriteR(Vec, std::string, bool multicomponent = false);
+
+    /*! write template image */
+    PetscErrorCode WriteT(Vec, std::string, bool multicomponent = false);
+
     PetscErrorCode Write(Vec, std::string, bool multicomponent = false);
-    PetscErrorCode WriteMC(Vec, std::string);
     PetscErrorCode Write(VecField*, std::string);
 
  private:
@@ -79,7 +92,6 @@ class ReadWriteReg {
     PetscErrorCode Read(Vec*);
 
     PetscErrorCode Write(Vec);
-    PetscErrorCode WriteMC(Vec);
     PetscErrorCode Write(VecField*);
 
 #ifdef REG_HAS_PNETCDF
@@ -129,9 +141,6 @@ class ReadWriteReg {
     IntType m_nx[3];
 
     std::string m_FileName;
-    std::string m_FileNameX1;
-    std::string m_FileNameX2;
-    std::string m_FileNameX3;
 };
 
 

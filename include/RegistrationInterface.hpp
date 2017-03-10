@@ -118,7 +118,7 @@ class RegistrationInterface {
 
 
 
-#endif // _REGISTRATIONINTERFACE_H_
+#endif  // _REGISTRATIONINTERFACE_H_
 
 
 

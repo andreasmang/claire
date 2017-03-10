@@ -3131,14 +3131,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
-    // write deformed template image to file
-    if (this->m_Opt->GetReadWriteFlags().templateim) {
-        ierr = this->m_ReadWrite->Write(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
-    }
-    if (this->m_Opt->GetReadWriteFlags().referenceim) {
-        ierr = this->m_ReadWrite->Write(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
-    }
-
     // compute residuals
     if (this->m_Opt->GetLogger().enabled[LOGRES]) {
         ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
@@ -3183,7 +3175,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "deformed-template-image"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->WriteT(this->m_WorkScaFieldMC, "deformed-template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write residual images to file
@@ -3246,6 +3238,14 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // write deformation field to file
     if (this->m_Opt->GetReadWriteFlags().deffield) {
         ierr = this->ComputeDisplacementField(true); CHKERRQ(ierr);
+    }
+
+    // write template and reference image
+    if (this->m_Opt->GetReadWriteFlags().templateim) {
+        ierr = this->m_ReadWrite->WriteT(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->GetReadWriteFlags().referenceim) {
+        ierr = this->m_ReadWrite->WriteR(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write log file
