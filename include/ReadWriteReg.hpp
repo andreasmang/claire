@@ -111,7 +111,7 @@ class ReadWriteReg {
     template <typename T> PetscErrorCode WriteNII(nifti_image**, Vec);
 
     PetscErrorCode GetComponentType(nifti_image*, DataType&);;
-    PetscErrorCode AllocateNII(nifti_image**, Vec);
+    PetscErrorCode AllocateImage(nifti_image**, Vec);
 
     ImageType m_TemplateImage;
     ImageType m_ReferenceImage;
