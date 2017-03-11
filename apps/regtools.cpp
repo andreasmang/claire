@@ -1115,7 +1115,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    IntType nc, nl, ng;
+    IntType nc, nl, ng, n;
     Vec m0 = NULL, m1 = NULL, m0tilde = NULL;
     reg::VecField *v = NULL;
     reg::RegistrationInterface* registration = NULL;
@@ -1200,8 +1200,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         // set initial guess and solve forward problem
         ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
         ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-        int n = regopt->GetFlags().numrepeat;
-        for (int i = 0; i < n; ++i) {
+        n = regopt->GetFlags().numrepeat;
+        for (IntType i = 0; i < n; ++i) {
             ss  << "forward solve "<< std::setw(3)
                 << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1282,7 +1282,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    IntType nc, nl, ng;
+    IntType nc, nl, ng, n;
+    std::stringstream ss;
     Vec l0 = NULL, m1 = NULL, m0 = NULL;
     reg::VecField *v = NULL;
     reg::RegistrationInterface* registration = NULL;
@@ -1353,7 +1354,20 @@ PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
 
     ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
     ierr = registration->SetReferenceImage(m0); CHKERRQ(ierr);
-    ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
+    ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    n = regopt->GetFlags().numrepeat;
+    for (IntType i = 0; i < n; ++i) {
+        ss  << "adjoint solve "<< std::setw(3)
+            << i << " of " << std::setw(3) << n;
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+        ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
+    }
+
+
+    ierr = regopt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    ierr = regopt->ProcessTimers(); CHKERRQ(ierr);
+    ierr = regopt->DisplayTimeToSolution(); CHKERRQ(ierr);
     if (regopt->GetReadWriteFlags().results) {
         ierr = readwrite->Write(l0, "initial-adjoint-variable.nc", nc > 1); CHKERRQ(ierr);
     }
