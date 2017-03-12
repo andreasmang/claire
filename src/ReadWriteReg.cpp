@@ -74,6 +74,29 @@ PetscErrorCode ReadWriteReg::Initialize() {
     this->m_Opt = NULL;
     this->m_Data = NULL;
 
+#ifdef REG_HAS_NIFTI
+    this->m_ReferenceImage.data = NULL;
+    this->m_ReferenceImage.datatype = DOUBLE;
+    this->m_ReferenceImage.nx[0] = -1;
+    this->m_ReferenceImage.nx[1] = -1;
+    this->m_ReferenceImage.nx[2] = -1;
+    this->m_ReferenceImage.read = false;
+    this->m_ReferenceImage.write = false;
+    this->m_ReferenceImage.minval = -1.0;
+    this->m_ReferenceImage.maxval = -1.0;
+
+    this->m_TemplateImage.data = NULL;
+    this->m_TemplateImage.datatype = DOUBLE;
+    this->m_TemplateImage.nx[0] = -1;
+    this->m_TemplateImage.nx[1] = -1;
+    this->m_TemplateImage.nx[2] = -1;
+    this->m_TemplateImage.read = false;
+    this->m_TemplateImage.write = false;
+    this->m_TemplateImage.minval = -1.0;
+    this->m_TemplateImage.maxval = -1.0;
+#endif
+
+    this->m_NumProcs = 0;
     this->m_iSizeC = NULL;
     this->m_iStartC = NULL;
 
@@ -117,6 +140,171 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
         delete [] this->m_nSend;
         this->m_nSend = NULL;
     }
+
+#ifdef REG_HAS_NIFTI
+    if (this->m_ReferenceImage.data != NULL) {
+        nifti_image_free(this->m_ReferenceImage.data);
+        this->m_ReferenceImage.data = NULL;
+    }
+    if (this->m_TemplateImage.data != NULL) {
+        nifti_image_free(this->m_TemplateImage.data);
+        this->m_TemplateImage.data = NULL;
+    }
+#endif
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief collect data distribution sizes and collect them on master
+ *******************************************************************/
+PetscErrorCode ReadWriteReg::CollectSizes() {
+    PetscErrorCode ierr = 0;
+    int nprocs, rank, rval;
+    IntType isize[3], istart[3], offset, nsend;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
+
+    this->m_NumProcs = nprocs;
+
+    isize[0] = this->m_Opt->GetDomainPara().isize[0];
+    isize[1] = this->m_Opt->GetDomainPara().isize[1];
+    isize[2] = this->m_Opt->GetDomainPara().isize[2];
+
+    istart[0] = this->m_Opt->GetDomainPara().istart[0];
+    istart[1] = this->m_Opt->GetDomainPara().istart[1];
+    istart[2] = this->m_Opt->GetDomainPara().istart[2];
+
+    // read data only on master rank
+    if (rank == 0) {
+        // get all the sizes to read and assign data correctly
+        if (this->m_iSizeC == NULL) {
+            try {this->m_iSizeC = new IntType[3*nprocs];}
+            catch (std::bad_alloc&) {
+                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+        if (this->m_iStartC == NULL) {
+            try {this->m_iStartC = new IntType[3*nprocs];}
+            catch (std::bad_alloc&) {
+                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+        }
+    }
+
+    if (this->m_nSend == NULL) {
+        try {this->m_nSend = new int[3*nprocs];}
+        catch (std::bad_alloc&) {
+             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_nOffset == NULL) {
+        try {this->m_nOffset = new int[3*nprocs];}
+        catch (std::bad_alloc&) {
+             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // gather isize and istart on master rank
+    rval = MPI_Gather(isize, 3, MPIU_INT, this->m_iSizeC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    rval = MPI_Gather(istart, 3, MPIU_INT, this->m_iStartC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    // compute offset and number of entries to send
+    if (rank == 0) {
+        offset = 0;
+        for (int p = 0; p < nprocs; ++p) {
+            nsend = 1;
+            for (int i = 0; i < 3; ++i) {
+               nsend *= this->m_iSizeC[p*3+i];
+            }
+            this->m_nSend[p] = static_cast<int>(nsend);
+            this->m_nOffset[p] = offset;
+            offset += nsend;
+        }
+    }  // on master rank
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief read reference image from filename
+ *******************************************************************/
+PetscErrorCode ReadWriteReg::ReadR(Vec* x, std::vector< std::string > filenames) {
+    PetscErrorCode ierr = 0;
+    ScalarType maxval, minval;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+#ifdef REG_HAS_NIFTI
+    if (this->m_ReferenceImage.data != NULL) {
+        nifti_image_free(this->m_ReferenceImage.data);
+        this->m_ReferenceImage.data = NULL;
+    }
+    this->m_ReferenceImage.read = true;
+#endif
+
+    ierr = this->Read(x, filenames); CHKERRQ(ierr);
+
+#ifdef REG_HAS_NIFTI
+    this->m_ReferenceImage.read = false;
+    ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
+    this->m_ReferenceImage.minval = minval;
+    this->m_ReferenceImage.maxval = maxval;
+#endif
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief read reference image from filename
+ *******************************************************************/
+PetscErrorCode ReadWriteReg::ReadT(Vec* x, std::vector< std::string > filenames) {
+    PetscErrorCode ierr = 0;
+    ScalarType maxval, minval;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+#ifdef REG_HAS_NIFTI
+    if (this->m_TemplateImage.data != NULL) {
+        nifti_image_free(this->m_TemplateImage.data);
+        this->m_TemplateImage.data = NULL;
+    }
+    this->m_TemplateImage.read = true;
+#endif
+
+    ierr = this->Read(x, filenames); CHKERRQ(ierr);
+
+#ifdef REG_HAS_NIFTI
+    this->m_TemplateImage.read = false;
+    ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
+    this->m_TemplateImage.minval = minval;
+    this->m_TemplateImage.maxval = maxval;
+#endif
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -188,14 +376,16 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
         // extract individual components
         ierr = VecGetArray(xk, &p_xk); CHKERRQ(ierr);
         try {std::copy(p_xk, p_xk+nl, p_x+k*nl);}
-        catch(std::exception&) {
+        catch (std::exception&) {
             ierr = ThrowError("copy failed"); CHKERRQ(ierr);
         }
         ierr = VecRestoreArray(xk, &p_xk); CHKERRQ(ierr);
         ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
 
         // delete temporary variable
-        if (xk != NULL) {ierr = VecDestroy(&xk); CHKERRQ(ierr); xk = NULL;}
+        if (xk != NULL) {
+            ierr = VecDestroy(&xk); CHKERRQ(ierr); xk = NULL;
+        }
     }
 
     this->m_Opt->Exit(__func__);
@@ -319,6 +509,108 @@ PetscErrorCode ReadWriteReg::Read(VecField* v, std::string fnx1,
 
 
 /********************************************************************
+ * @brief write template image to file
+ *******************************************************************/
+PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicomponent) {
+    PetscErrorCode ierr = 0;
+    ScalarType maxval, minval;
+    IntType nc;
+    bool rescaled = false;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+#ifdef REG_HAS_NIFTI
+    nc = this->m_Opt->GetDomainPara().nc;
+    this->m_ReferenceImage.write = true;
+
+    if (this->m_Opt->GetRegFlags().applyrescaling) {
+        if (this->m_ReferenceImage.minval != -1.0 && this->m_ReferenceImage.maxval != -1.0) {
+            minval = this->m_ReferenceImage.minval;
+            maxval = this->m_ReferenceImage.maxval;
+            if (multicomponent) {
+                ierr = Rescale(x, minval, maxval, nc); CHKERRQ(ierr);
+            } else {
+                ierr = Rescale(x, minval, maxval); CHKERRQ(ierr);
+            }
+            rescaled = true;
+        }
+    }
+#endif
+
+    ierr = this->Write(x, filename, multicomponent); CHKERRQ(ierr);
+
+#ifdef REG_HAS_NIFTI
+    this->m_ReferenceImage.write = false;
+    if (rescaled) {
+        if (multicomponent) {
+            ierr = Rescale(x, 0, 1, nc); CHKERRQ(ierr);
+        } else {
+            ierr = Rescale(x, 0, 1); CHKERRQ(ierr);
+        }
+    }
+#endif
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief write template image to file
+ *******************************************************************/
+PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicomponent) {
+    PetscErrorCode ierr = 0;
+    ScalarType maxval, minval;
+    IntType nc;
+    bool rescaled = false;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+#ifdef REG_HAS_NIFTI
+    this->m_TemplateImage.write = true;
+
+    if (this->m_Opt->GetRegFlags().applyrescaling) {
+        if (this->m_TemplateImage.minval != -1.0 && this->m_TemplateImage.maxval != -1.0) {
+            nc = this->m_Opt->GetDomainPara().nc;
+            minval = this->m_TemplateImage.minval;
+            maxval = this->m_TemplateImage.maxval;
+            if (multicomponent) {
+                ierr = Rescale(x, minval, maxval, nc); CHKERRQ(ierr);
+            } else {
+                ierr = Rescale(x, minval, maxval); CHKERRQ(ierr);
+            }
+            rescaled = true;
+        }
+    }
+#endif
+
+    ierr = this->Write(x, filename, multicomponent); CHKERRQ(ierr);
+
+#ifdef REG_HAS_NIFTI
+    this->m_TemplateImage.write = false;
+    if (rescaled) {
+        if (multicomponent) {
+            ierr = Rescale(x, 0, 1, nc); CHKERRQ(ierr);
+        } else {
+            ierr = Rescale(x, 0, 1); CHKERRQ(ierr);
+        }
+    }
+#endif
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief write data to file
  *******************************************************************/
 PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicomponent) {
@@ -381,7 +673,9 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
         ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
     }
 
-    if (xk != NULL) {ierr = VecDestroy(&xk); CHKERRQ(ierr); xk = NULL;}
+    if (xk != NULL) {
+        ierr = VecDestroy(&xk); CHKERRQ(ierr); xk = NULL;
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -478,74 +772,6 @@ PetscErrorCode ReadWriteReg::Write(VecField* v, std::string filename) {
 
 
 /********************************************************************
- * @brief get component type of NII images
- *******************************************************************/
-#ifdef REG_HAS_NIFTI
-PetscErrorCode ReadWriteReg::GetComponentTypeNII(nifti_image* niiimage) {
-    PetscErrorCode ierr = 0;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    switch (niiimage->datatype) {
-        case NIFTI_TYPE_UINT8:
-        {
-            this->m_ComponentType = UCHAR;
-            break;
-        }
-        case NIFTI_TYPE_INT8:
-        {
-            this->m_ComponentType = CHAR;
-            break;
-        }
-        case NIFTI_TYPE_UINT16:
-        {
-            this->m_ComponentType = USHORT;
-            break;
-        }
-        case NIFTI_TYPE_INT16:
-        {
-            this->m_ComponentType = SHORT;
-            break;
-        }
-        case NIFTI_TYPE_UINT32:
-        {
-            this->m_ComponentType = UINT;
-            break;
-        }
-        case NIFTI_TYPE_INT32:
-        {
-            this->m_ComponentType = INT;
-            break;
-        }
-        case NIFTI_TYPE_FLOAT32:
-        {
-            this->m_ComponentType = FLOAT;
-            break;
-        }
-        case NIFTI_TYPE_FLOAT64:
-        {
-            this->m_ComponentType = DOUBLE;
-            break;
-        }
-        default:
-        {
-            ierr = ThrowError("image data not supported"); CHKERRQ(ierr);
-            break;
-        }
-    }
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
-}
-#endif
-
-
-
-
-/********************************************************************
  * @brief read nifty image
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
@@ -553,10 +779,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     PetscErrorCode ierr = 0;
     std::string msg, file;
     std::stringstream ss;
-    int nprocs, rank, rval;
-    IntType nx[3], isize[3], istart[3];
-    IntType ng, ngx, nl, i1, i2, i3, j1, j2, j3, l, k;
-    ScalarType *p_x = NULL, *comdata = NULL;
+    int rank, rval;
+    IntType ng, nl, nglobal, nx[3];
+    ScalarType *p_x = NULL;
     nifti_image *image = NULL;
 
     PetscFunctionBegin;
@@ -564,7 +789,6 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     this->m_Opt->Enter(__func__);
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
     // get file name without path
     ierr = GetFileName(file, this->m_FileName); CHKERRQ(ierr);
@@ -582,23 +806,12 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     nx[1] = static_cast<IntType>(image->ny);
     nx[0] = static_cast<IntType>(image->nz);
 
-//    for (int i = 0; i < 3; ++i) {
-//        if (nx[i] % 2 != 0) {
-//            std::cout << "grid size is not odd " << nx[i] << std::endl;
-//            nx[i]++;
-//        }
-//    }
-
     // if we read images, we want to make sure that they have the same size
-    if (   (this->m_nx[0] == -1)
-        && (this->m_nx[1] == -1)
-        && (this->m_nx[2] == -1) ) {
-
+    if ((this->m_nx[0] == -1) && (this->m_nx[1] == -1) && (this->m_nx[2] == -1)) {
         for (int i = 0; i < 3; ++i) {
             this->m_nx[i] = nx[i];
         }
-
-        if(this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->GetVerbosity() > 2) {
             ss << "grid size (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         }
@@ -616,135 +829,43 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 
     // do the setup before running the code (this essentially
     // concerns the memory distribution/the setup of accfft
-    if ( !this->m_Opt->SetupDone() ) {
+    if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
 
     // get local size
     nl = this->m_Opt->GetDomainPara().nl;
     ng = this->m_Opt->GetDomainPara().ng;
-    for (int i = 0; i < 3; ++i) {
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
-    }
 
     //check global size
-    ngx = 1;
+    nglobal = 1;
     for (int i = 0; i < 3; ++i) {
-        ngx *= nx[i];
+        nglobal *= nx[i];
     }
-    ierr = Assert(ng == ngx, "global size mismatch"); CHKERRQ(ierr);
+    ierr = Assert(ng == nglobal, "problem in setup"); CHKERRQ(ierr);
 
     // allocate vector
     if (*x != NULL) {
-        ierr = VecDestroy(x); CHKERRQ(ierr);
-        *x = NULL;
+        ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;
     }
     ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
-    // read data only on master rank
-    if (rank == 0) {
-        // allocate data buffer
-        if (this->m_Data != NULL) {
-            delete this->m_Data;
-            this->m_Data = NULL;
-        }
-
-        // allocate data buffer
-        try {this->m_Data = new ScalarType[ng];}
-        catch (std::bad_alloc&) {
-            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        ierr = this->ReadNII(image); CHKERRQ(ierr);
-
-        // get all the sizes to read and assign data correctly
-        if (this->m_iSizeC == NULL) {
-            try {this->m_iSizeC = new IntType[3*nprocs];}
-            catch (std::bad_alloc&) {
-                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-        if (this->m_iStartC == NULL) {
-            try {this->m_iStartC = new IntType[3*nprocs];}
-            catch (std::bad_alloc&) {
-                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-    }
-
-    if (this->m_nSend == NULL) {
-        try {this->m_nSend = new int[3*nprocs];}
-        catch (std::bad_alloc&) {
-             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_nOffset == NULL) {
-        try {this->m_nOffset = new int[3*nprocs];}
-        catch (std::bad_alloc&) {
-             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    // gather isize and istart on master rank
-    rval = MPI_Gather(isize, 3, MPIU_INT, this->m_iSizeC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
-    ierr = MPIERRQ(rval); CHKERRQ(ierr);
-    rval = MPI_Gather(istart, 3, MPIU_INT, this->m_iStartC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
-    ierr = MPIERRQ(rval); CHKERRQ(ierr);
-
     // compute offset and number of entries to send
+    ierr = this->CollectSizes(); CHKERRQ(ierr);
+
+    // read the image data
     if (rank == 0) {
-        IntType offset = 0;
-        for (int p = 0; p < nprocs; ++p) {
-            IntType nsend = 1;
-            for (int i = 0; i < 3; ++i) {
-               nsend *= this->m_iSizeC[p*3+i];
-            }
-            this->m_nSend[p] = static_cast<int>(nsend);
-            this->m_nOffset[p] = offset;
-            offset += nsend;
-        }
-
-        // allocate data buffer
-        try {comdata = new ScalarType[ng];}
-        catch (std::bad_alloc&) {
-            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        k = 0;
-        for (int p = 0; p < nprocs; ++p) {
-            for (i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
-                for (i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
-                    for (i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) {  // x3
-                        j1 = i1 + this->m_iStartC[3*p+0];
-                        j2 = i2 + this->m_iStartC[3*p+1];
-                        j3 = i3 + this->m_iStartC[3*p+2];
-
-                        l = GetLinearIndex(j1, j2, j3, nx);
-                        comdata[k++] = this->m_Data[l];
-                    }  // for i1
-                }  // for i2
-            }  // for i3
-        }  // for all procs
-    }  // on master rank
-
-    int nrecv = static_cast<int>(nl);
+        ierr = this->ReadNII(image); CHKERRQ(ierr);
+    }
 
     ierr = VecGetArray(*x, &p_x); CHKERRQ(ierr);
-    rval = MPI_Scatterv(comdata, this->m_nSend, this->m_nOffset, MPI_DOUBLE, p_x, nrecv, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
+    rval = MPI_Scatterv(this->m_Data, this->m_nSend, this->m_nOffset, MPIU_SCALAR, p_x, nl, MPIU_SCALAR, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
     ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
 
-    if (comdata != NULL) {
-        delete [] comdata;
-        comdata = NULL;
-    }
     if (image != NULL) {
         nifti_image_free(image);
         image = NULL;
-    }
-    if (this->m_Data != NULL) {
-        delete [] this->m_Data;
-        this->m_Data = NULL;
     }
 
     this->m_Opt->Exit(__func__);
@@ -760,8 +881,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
  * @brief read nifty image with right component type
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
+PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
     PetscErrorCode ierr;
+//    DataType type;
     std::string msg;
     int rank;
 
@@ -773,14 +895,14 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
     msg = "should only be called on master/root rank";
     ierr = Assert(rank == 0, msg); CHKERRQ(ierr);
 
-    switch (niiimage->datatype) {
+    switch (image->datatype) {
         case NIFTI_TYPE_UINT8:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type uint8 (uchar)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = UCHAR;
-            ierr = this->ReadNII<unsigned char>(niiimage); CHKERRQ(ierr);
+//            type = UCHAR;
+            ierr = this->ReadNII<unsigned char>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_INT8:
@@ -788,8 +910,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type int8 (char)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = CHAR;
-            ierr = this->ReadNII<char>(niiimage); CHKERRQ(ierr);
+//            type = CHAR;
+            ierr = this->ReadNII<char>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_UINT16:
@@ -797,8 +919,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type uint16 (unsigned short)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = USHORT;
-            ierr = this->ReadNII<unsigned short>(niiimage); CHKERRQ(ierr);
+//            type = USHORT;
+            ierr = this->ReadNII<unsigned short>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_INT16:
@@ -806,8 +928,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type int16 (short)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = SHORT;
-            ierr = this->ReadNII<short>(niiimage); CHKERRQ(ierr);
+//            type = SHORT;
+            ierr = this->ReadNII<short>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_UINT32:
@@ -815,8 +937,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type uint32 (unsigned int)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = UINT;
-            ierr = this->ReadNII<unsigned int>(niiimage); CHKERRQ(ierr);
+//            type = UINT;
+            ierr = this->ReadNII<unsigned int>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_INT32:
@@ -824,8 +946,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type int32 (int)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = INT;
-            ierr = this->ReadNII<int>(niiimage); CHKERRQ(ierr);
+//            type = INT;
+            ierr = this->ReadNII<int>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_FLOAT32:
@@ -833,8 +955,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type float32 (float)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = FLOAT;
-            ierr = this->ReadNII<float>(niiimage); CHKERRQ(ierr);
+//            type = FLOAT;
+            ierr = this->ReadNII<float>(image); CHKERRQ(ierr);
             break;
         }
         case NIFTI_TYPE_FLOAT64:
@@ -842,8 +964,8 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type float64 (double)"); CHKERRQ(ierr);
             }
-            this->m_ComponentType = DOUBLE;
-            ierr = this->ReadNII<double>(niiimage); CHKERRQ(ierr);
+//            type = DOUBLE;
+            ierr = this->ReadNII<double>(image); CHKERRQ(ierr);
             break;
         }
         default:
@@ -866,40 +988,63 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
  * @brief get component type of NII images
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage) {
-    PetscErrorCode ierr;
+template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
+    PetscErrorCode ierr = 0;
     T *data = NULL;
     std::string msg;
-    IntType ng;
-    int rank;
+    IntType ng, nx[3];
+    int rank, master = 0;
     std::stringstream ss;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_Data != NULL, "null pointer"); CHKERRQ(ierr);
-
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     msg = "should only be called on master/root rank";
-    ierr = Assert(rank == 0, msg); CHKERRQ(ierr);
+    ierr = Assert(rank == master, msg); CHKERRQ(ierr);
 
-    if (nifti_image_load(niiimage) == -1) {
-        msg="could not read image " + this->m_FileName;
+    // get number of grid points
+    ng = this->m_Opt->GetDomainPara().ng;
+
+    // allocate data buffer
+    if (this->m_Data == NULL) {
+        try {this->m_Data = new ScalarType[ng];}
+        catch (std::bad_alloc&) {
+            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    // load the image
+    if (nifti_image_load(image) == -1) {
+        msg = "could not read image " + this->m_FileName;
         ierr = ThrowError(msg); CHKERRQ(ierr);
     }
 
     // assign data
-    data = static_cast<T*>(niiimage->data);
+    data = static_cast<T*>(image->data);
     ierr = Assert(data != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get global number of points
-    ng = static_cast<IntType>(this->m_Opt->GetDomainPara().ng);
+    ng = this->m_Opt->GetDomainPara().ng;
+    nx[0] = this->m_Opt->GetDomainPara().nx[0];
+    nx[1] = this->m_Opt->GetDomainPara().nx[1];
+    nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
-    // copy buffer
-    for (IntType i = 0; i < ng; ++i) {
-        this->m_Data[i] = static_cast<ScalarType>(data[i]);
-    }
+    IntType k = 0;
+    for (int p = 0; p < this->m_NumProcs; ++p) {
+        for (IntType i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
+            for (IntType i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
+                for (IntType i3 = 0; i3 < this->m_iSizeC[3*p+2]; ++i3) {  // x3
+                    IntType j1 = i1 + this->m_iStartC[3*p+0];
+                    IntType j2 = i2 + this->m_iStartC[3*p+1];
+                    IntType j3 = i3 + this->m_iStartC[3*p+2];
+                    IntType l = GetLinearIndex(j1, j2, j3, nx);
+                    this->m_Data[k++] = static_cast<ScalarType>(data[l]);
+                }  // for i1
+            }  // for i2
+        }  // for i3
+    }  // for all procs
 
     this->m_Opt->Exit(__func__);
 
@@ -916,7 +1061,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* niiimage
 #ifdef REG_HAS_NIFTI
 PetscErrorCode ReadWriteReg::WriteNII(Vec x) {
     PetscErrorCode ierr;
-    int rank;
+    int rank, master = 0;
     nifti_image* image = NULL;
     PetscFunctionBegin;
 
@@ -977,7 +1122,7 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x) {
 
     // at rank zero write out
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    if(rank == 0) {
+    if (rank == master) {
         nifti_image_write(image);
     }
 
@@ -1000,8 +1145,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     T* data = NULL;
     ScalarType *p_xc = NULL;
     int nprocs, rank, rval, master = 0;
-    IntType istart[3], isize[3], nx[3], ng, nl;
-    double *comdata;
+    IntType nx[3], ng, nl;
     std::string msg;
 
     PetscFunctionBegin;
@@ -1011,6 +1155,9 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     // get number of ranks
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
+
+    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->GetDomainPara().nl;
 
     // allocate the index buffers on master rank
     if (rank == master) {
@@ -1022,7 +1169,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
                 msg = "allocating buffer for nifti image";
                 ierr = DbgMsg(msg); CHKERRQ(ierr);
             }
-            ierr = this->AllocateNII(image, x); CHKERRQ(ierr);
+            ierr = this->AllocateImage(image, x); CHKERRQ(ierr);
         }
 
         msg="nifty image is null pointer";
@@ -1061,87 +1208,31 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
         (*image)->iname = nifti_makeimgname(bname.c_str(), (*image)->nifti_type, false, iscompressed);
     }
 
-    // allocate the index buffers on master rank
-    if (rank == master) {
-        // get all the sizes to read and assign data correctly
-        if (this->m_iSizeC == NULL) {
-            try {this->m_iSizeC = new IntType[3*nprocs];}
-            catch(std::bad_alloc&) {
-                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-        if (this->m_iStartC == NULL) {
-            try {this->m_iStartC = new IntType[3*nprocs];}
-            catch(std::bad_alloc&) {
-                ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-    }
-
-    ng = this->m_Opt->GetDomainPara().ng;
-    nl = this->m_Opt->GetDomainPara().nl;
-
-    isize[0] = this->m_Opt->GetDomainPara().isize[0];
-    isize[1] = this->m_Opt->GetDomainPara().isize[1];
-    isize[2] = this->m_Opt->GetDomainPara().isize[2];
-
-    istart[0] = this->m_Opt->GetDomainPara().istart[0];
-    istart[1] = this->m_Opt->GetDomainPara().istart[1];
-    istart[2] = this->m_Opt->GetDomainPara().istart[2];
-
-    // gather the indices
-    rval = MPI_Gather(istart, 3, MPIU_INT, this->m_iStartC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
-    ierr = MPIERRQ(rval); CHKERRQ(ierr);
-
-    rval = MPI_Gather(isize, 3, MPIU_INT, this->m_iSizeC, 3, MPIU_INT, 0, PETSC_COMM_WORLD);
-    ierr = MPIERRQ(rval); CHKERRQ(ierr);
-
-    if (this->m_nSend == NULL) {
-        try {this->m_nSend = new int[3*nprocs];}
-        catch (std::bad_alloc&) {
-             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_nOffset == NULL) {
-        try {this->m_nOffset = new int[3*nprocs];}
-        catch (std::bad_alloc&) {
-             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    if (rank == master) {
-        IntType offset = 0;
-        for (int p = 0; p < nprocs; ++p) {
-            IntType nsend = 1;
-            for (int i = 0; i < 3; ++i) {
-               nsend *= this->m_iSizeC[p*3+i];
-            }
-            this->m_nSend[p] = static_cast<int>(nsend);
-            this->m_nOffset[p] = offset;
-            offset += nsend;
-        }
-    }
-
     // allocate data buffer
-    try {comdata = new ScalarType[ng];}
-    catch (std::bad_alloc&) {
-        ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+    if (this->m_Data == NULL) {
+        try {this->m_Data = new ScalarType[ng];}
+        catch (std::bad_alloc&) {
+            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
     }
 
-    int nrecv = static_cast<int>(nl);
+    // collect sizes and compute number of data to send
+    ierr = this->CollectSizes(); CHKERRQ(ierr);
+
+    // gather data on master rank
     ierr = VecGetArray(x, &p_xc); CHKERRQ(ierr);
-    rval = MPI_Gatherv(p_xc, nrecv, MPI_DOUBLE, comdata, this->m_nSend, this->m_nOffset, MPI_DOUBLE, master, PETSC_COMM_WORLD);
+    rval = MPI_Gatherv(p_xc, nl, MPIU_SCALAR, this->m_Data, this->m_nSend, this->m_nOffset, MPIU_SCALAR, master, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
     ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
 
     nx[0] = this->m_Opt->GetDomainPara().nx[0];
     nx[1] = this->m_Opt->GetDomainPara().nx[1];
     nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
-    // if we are on master rank
     if (rank == master) {
         // cast pointer of nifti image data
         data = reinterpret_cast<T*>((*image)->data);
-        int k = 0;
+        IntType k = 0;
         for (int p = 0; p < nprocs; ++p) {
             for (IntType i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
                 for (IntType i2 = 0; i2 < this->m_iSizeC[3*p+1]; ++i2) {  // x2
@@ -1149,19 +1240,13 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
                         IntType j1 = i1 + this->m_iStartC[3*p+0];
                         IntType j2 = i2 + this->m_iStartC[3*p+1];
                         IntType j3 = i3 + this->m_iStartC[3*p+2];
-
                         IntType l = GetLinearIndex(j1, j2, j3, nx);
-                        data[l] = comdata[k++];
+                        data[l] = static_cast<T>(this->m_Data[k++]);
                     }  // for i1
                 }  // for i2
             }  // for i3
         }  // for all procs
-    }   // if on master
-
-    if (comdata != NULL) {
-        delete [] comdata;
-        comdata = NULL;
-    }
+    }  // if on master
 
     this->m_Opt->Exit(__func__);
 
@@ -1175,7 +1260,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
  * @brief allocate buffer for nifty image
  *******************************************************************/
 #ifdef REG_HAS_NIFTI
-PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
+PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
     PetscErrorCode ierr = 0;
     IntType n;
     int rank;
@@ -1236,17 +1321,18 @@ PetscErrorCode ReadWriteReg::AllocateNII(nifti_image** image, Vec x) {
         (*image)->pixdim[7] = (*image)->dw = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);
     }
 
-    // currently fixed to double precision: TODO flexible...
-    (*image)->datatype = NIFTI_TYPE_FLOAT64;
+    // switch precision in io
+#if defined(PETSC_USE_REAL_SINGLE)
+    (*image)->datatype = NIFTI_TYPE_FLOAT32; // single precision
+#else
+    (*image)->datatype = NIFTI_TYPE_FLOAT64; // double precision
+#endif
     (*image)->nbyper = sizeof(ScalarType);
-
-    (*image)->nvox = 1;
-
     // compute number of voxels (space and time)
+    (*image)->nvox = 1;
     for (int i = 1; i <= 4; ++i) {
         (*image)->nvox *= (*image)->dim[i];
     }
-    // add components
     (*image)->nvox *= (*image)->nu;
 
     // only allocate image buffer on root
@@ -1337,7 +1423,6 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     int rank, ncerr, fileid, ndims, nvars, ngatts, unlimited, varid[1];
     IntType nl, ng;
     ScalarType *p_x = NULL;
-//    double *data=NULL;
     MPI_Offset istart[3], isize[3];
     PetscFunctionBegin;
 
@@ -1359,7 +1444,7 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     // query info about field named "data"
     ncerr=ncmpi_inq(fileid, &ndims, &nvars, &ngatts, &unlimited);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
-    ncerr=ncmpi_inq_varid(fileid, "data", &varid[0]);
+    ncerr = ncmpi_inq_varid(fileid, "data", &varid[0]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     istart[0] = this->m_Opt->GetDomainPara().istart[0];
@@ -1371,12 +1456,9 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     isize[2] = this->m_Opt->GetDomainPara().isize[2];
 
     ierr = VecGetArray(*x, &p_x); CHKERRQ(ierr);
-    //data=static_cast<double*>(p_x);
-    //ncerr=ncmpi_get_vara_all(fileid,varid[0],istart,isize,data,nl,MPI_DOUBLE);
-    ncerr = ncmpi_get_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPI_DOUBLE);
+    ncerr = ncmpi_get_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPIU_SCALAR);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
     ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
-
 
     ncerr=ncmpi_close(fileid);
 
@@ -1432,7 +1514,11 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     // define name for output field
+#if defined(PETSC_USE_REAL_SINGLE)
+    ncerr = ncmpi_def_var(fileid, "data", NC_FLOAT, 3, dims, &varid[0]);
+#else
     ncerr = ncmpi_def_var(fileid, "data", NC_DOUBLE, 3, dims, &varid[0]);
+#endif
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     iscdf5 = usecdf5 ? 1 : 0;
@@ -1454,7 +1540,7 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
 
     // write data to file
     ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-    ncerr = ncmpi_put_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPI_DOUBLE);
+    ncerr = ncmpi_put_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPIU_SCALAR);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
     ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 

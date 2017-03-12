@@ -942,7 +942,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Sigma[2] = 1.0;
 
     this->m_KrylovSolverPara.tol[0] = 1E-12;     ///< relative tolerance
-    this->m_KrylovSolverPara.tol[1] = 1E-12;     ///< absolute tolerance
+    this->m_KrylovSolverPara.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovSolverPara.tol[2] = 1E+06;     ///< divergence tolerance
     this->m_KrylovSolverPara.maxit = 1000;       ///< max number of iterations
     this->m_KrylovSolverPara.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
@@ -958,7 +958,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.pcmaxit = 10;
     this->m_KrylovSolverPara.pcgridscale = 2;
     this->m_KrylovSolverPara.pctol[0] = 1E-12;   ///< relative tolerance
-    this->m_KrylovSolverPara.pctol[1] = 1E-12;   ///< absolute tolerance
+    this->m_KrylovSolverPara.pctol[1] = 1E-16;   ///< absolute tolerance
     this->m_KrylovSolverPara.pctol[2] = 1E+06;   ///< divergence tolerance
     this->m_KrylovSolverPara.usepetsceigest = true;
     this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
@@ -1390,8 +1390,8 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
 
-    if (   this->m_KrylovSolverPara.pctolscale < 0.0
-        || this->m_KrylovSolverPara.pctolscale >= 1.0 ) {
+    if (this->m_KrylovSolverPara.pctolscale < 0.0
+        || this->m_KrylovSolverPara.pctolscale >= 1.0) {
         msg = "\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
         ierr = this->Usage(); CHKERRQ(ierr);

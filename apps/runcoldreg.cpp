@@ -71,12 +71,12 @@ int main(int argc, char **argv) {
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading reference image"); CHKERRQ(ierr);
         }
-        ierr = readwrite->Read(&mR, regopt->GetReadWriteFlags().mr); CHKERRQ(ierr);
+        ierr = readwrite->ReadR(&mR, regopt->GetReadWriteFlags().mr); CHKERRQ(ierr);
         ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading template image"); CHKERRQ(ierr);
         }
-        ierr = readwrite->Read(&mT, regopt->GetReadWriteFlags().mt); CHKERRQ(ierr);
+        ierr = readwrite->ReadT(&mT, regopt->GetReadWriteFlags().mt); CHKERRQ(ierr);
         ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
         // pass to registration

@@ -209,6 +209,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     bool m_VelocityIsZero;
     bool m_ComputeInverseDefMap;
+    bool m_StoreTimeHistory;
 
  private:
     PetscErrorCode ComputeDefGradSL();                  ///< implemented via SL time integrator

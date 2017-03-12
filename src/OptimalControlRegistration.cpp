@@ -644,9 +644,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
+PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType hd;
+    ScalarType hd, value;
+    std::stringstream ss;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -674,11 +675,21 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
         ierr = this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
+    }
+
     // start timer
     ierr = this->m_Opt->StartTimer(GRADEXEC); CHKERRQ(ierr);
 
     // parse input arguments
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = VecNorm(v, NORM_2, &value); CHKERRQ(ierr);
+        ss << "||v||_2 = " << std::scientific << value;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
 
     // compute solution of adjoint equation (i.e., \lambda(x,t))
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
@@ -691,7 +702,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // \vect{g}_v = \D{K}[\vect{b}]
-        ierr = this->m_WorkVecField2->GetComponents(dvJ); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
+        }
+        ierr = this->m_WorkVecField2->GetComponents(g); CHKERRQ(ierr);
     } else {
         // evaluate / apply gradient operator for regularization
         ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
@@ -700,12 +714,19 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
         ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
 
         // parse to output
-        ierr = this->m_WorkVecField1->GetComponents(dvJ); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
     }
 
     // get and scale by lebesque measure
     hd = this->m_Opt->GetLebesqueMeasure();
-    ierr = VecScale(dvJ, hd); CHKERRQ(ierr);
+    ierr = VecScale(g, hd); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
+        ss << "||g||_2 = " << std::scientific << value;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
 
     // stop timer
     ierr = this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
@@ -728,11 +749,12 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec dvJ, Vec v) {
 PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, l;
+    std::stringstream ss;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType *p_mt = NULL, *p_m = NULL, *p_l = NULL,
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
-    ScalarType ht, scale, lambda;
+    ScalarType ht, scale, lambda, value;
     double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
@@ -827,6 +849,15 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);   // adjoint variable for all t^j
     ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = this->m_WorkVecField2->Norm(value); CHKERRQ(ierr);
+        ss << "||b||_2 = " << std::scientific << value;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+
+
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
@@ -3100,14 +3131,6 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // parse extension
     ext = this->m_Opt->GetReadWriteFlags().extension;
 
-    // write deformed template image to file
-    if (this->m_Opt->GetReadWriteFlags().templateim) {
-        ierr = this->m_ReadWrite->Write(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
-    }
-    if (this->m_Opt->GetReadWriteFlags().referenceim) {
-        ierr = this->m_ReadWrite->Write(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
-    }
-
     // compute residuals
     if (this->m_Opt->GetLogger().enabled[LOGRES]) {
         ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
@@ -3152,7 +3175,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "deformed-template-image"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->WriteT(this->m_WorkScaFieldMC, "deformed-template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write residual images to file
@@ -3215,6 +3238,14 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // write deformation field to file
     if (this->m_Opt->GetReadWriteFlags().deffield) {
         ierr = this->ComputeDisplacementField(true); CHKERRQ(ierr);
+    }
+
+    // write template and reference image
+    if (this->m_Opt->GetReadWriteFlags().templateim) {
+        ierr = this->m_ReadWrite->WriteT(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->GetReadWriteFlags().referenceim) {
+        ierr = this->m_ReadWrite->WriteR(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write log file

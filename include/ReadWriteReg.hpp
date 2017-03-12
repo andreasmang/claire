@@ -40,6 +40,24 @@ namespace reg {
 
 
 
+#ifdef REG_HAS_NIFTI
+enum DataType {CHAR, UCHAR, SHORT, USHORT, INT, UINT, FLOAT, DOUBLE, UNDEF};
+
+struct ImageType {
+    nifti_image* data;
+    DataType datatype;
+
+    ScalarType minval;
+    ScalarType maxval;
+    IntType nx[3];
+    bool read;
+    bool write;
+};
+#endif
+
+
+
+
 class ReadWriteReg {
  public:
     typedef ReadWriteReg Self;
@@ -48,12 +66,23 @@ class ReadWriteReg {
     ReadWriteReg(RegOpt*);
     ~ReadWriteReg(void);
 
+    /*! read reference image */
+    PetscErrorCode ReadR(Vec*, std::vector < std::string >);
+
+    /*! read template image */
+    PetscErrorCode ReadT(Vec*, std::vector < std::string >);
+
     PetscErrorCode Read(Vec*, std::vector < std::string >);
     PetscErrorCode Read(Vec*, std::string);
     PetscErrorCode Read(VecField*, std::string, std::string, std::string);
 
+    /*! write reference image */
+    PetscErrorCode WriteR(Vec, std::string, bool multicomponent = false);
+
+    /*! write template image */
+    PetscErrorCode WriteT(Vec, std::string, bool multicomponent = false);
+
     PetscErrorCode Write(Vec, std::string, bool multicomponent = false);
-    PetscErrorCode WriteMC(Vec, std::string);
     PetscErrorCode Write(VecField*, std::string);
 
  private:
@@ -63,7 +92,6 @@ class ReadWriteReg {
     PetscErrorCode Read(Vec*);
 
     PetscErrorCode Write(Vec);
-    PetscErrorCode WriteMC(Vec);
     PetscErrorCode Write(VecField*);
 
 #ifdef REG_HAS_PNETCDF
@@ -82,6 +110,8 @@ class ReadWriteReg {
     PetscErrorCode WriteTimeSeriesNetCDF(Vec);
     PetscErrorCode WriteBlockNetCDF(Vec, int*);
 
+    PetscErrorCode CollectSizes();
+
 #ifdef REG_HAS_NIFTI
     PetscErrorCode ReadNII(Vec*);
     PetscErrorCode ReadNII(VecField*);
@@ -92,26 +122,25 @@ class ReadWriteReg {
     PetscErrorCode WriteNII(nifti_image**);
     template <typename T> PetscErrorCode WriteNII(nifti_image**, Vec);
 
-    PetscErrorCode GetComponentTypeNII(nifti_image*);;
-    PetscErrorCode AllocateNII(nifti_image**, Vec);
+    PetscErrorCode GetComponentType(nifti_image*, DataType&);;
+    PetscErrorCode AllocateImage(nifti_image**, Vec);
+
+    ImageType m_TemplateImage;
+    ImageType m_ReferenceImage;
 #endif
 
-    enum VoxelType{CHAR, UCHAR, SHORT, USHORT, INT, UINT, FLOAT, DOUBLE, UNDEF};
-    VoxelType m_ComponentType;
 
     RegOpt* m_Opt;
     IntType* m_iSizeC;
     IntType* m_iStartC;
     int* m_nOffset;
     int* m_nSend;
+    int m_NumProcs;
 
     ScalarType* m_Data;
     IntType m_nx[3];
 
     std::string m_FileName;
-    std::string m_FileNameX1;
-    std::string m_FileNameX2;
-    std::string m_FileNameX3;
 };
 
 

@@ -90,7 +90,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     PetscFunctionBegin;
 
     uppergradbound = 0.5;
-    lowergradbound = 1E-12;
+    lowergradbound = 1E-16;
 
     (void)krylovmethod;
 
