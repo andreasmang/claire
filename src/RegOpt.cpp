@@ -194,8 +194,8 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     // scale continuation
     this->m_ScaleCont.enabled = opt.m_ScaleCont.enabled;
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 6; ++j) {
+    for (IntType i = 0; i < 3; ++i) {
+        for (IntType j = 0; j < 6; ++j) {
             this->m_ScaleCont.sigma[i][j] = opt.m_ScaleCont.sigma[i][j];
         }
     }
@@ -210,7 +210,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegMonitor.dval = 0;
     this->m_RegMonitor.rval = 0;
 
-    for (int i = 0; i < NLOGFLAGS; ++i) {
+    for (IntType i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = opt.m_Log.enabled[i];
     }
     this->m_Log.finalresidual[0] = 0;
@@ -782,7 +782,8 @@ PetscErrorCode RegOpt::DestroyFFT() {
  *******************************************************************/
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3], nalloc, rank;
+    int nx[3], isize[3], istart[3], osize[3], ostart[3], rank;
+    IntType n;
     std::stringstream ss;
     ScalarType *u = NULL, fftsetuptime;
     Complex *uk = NULL;
@@ -810,10 +811,10 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // get sizes
-    nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
-    if ((nalloc > 0) == false) std::cout << "allocation size " << nalloc << std::endl;
-    ierr = Assert(nalloc > 0, "n < 0"); CHKERRQ(ierr);
-    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+    n = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    if ((n > 0) == false) std::cout << "allocation size " << n << std::endl;
+    ierr = Assert(n > 0, "n < 0"); CHKERRQ(ierr);
+    this->m_FFT.nalloc = static_cast<IntType>(n);
     if (this->m_Verbosity > 2) {
         ss << "data distribution: nx=("
            << nx[0] << "," << nx[1] << "," << nx[2]
@@ -824,11 +825,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // set up the fft
-    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
-    ierr = Assert(u != NULL, "alloc failed"); CHKERRQ(ierr);
+    u = reinterpret_cast<ScalarType*>(accfft_alloc(n));
+    ierr = Assert(u != NULL, "allocation failed"); CHKERRQ(ierr);
 
-    uk = reinterpret_cast<Complex*>(accfft_alloc(nalloc));
-    ierr = Assert(uk != NULL, "alloc failed"); CHKERRQ(ierr);
+    uk = reinterpret_cast<Complex*>(accfft_alloc(n));
+    ierr = Assert(uk != NULL, "allocation failed"); CHKERRQ(ierr);
 
     MPI_Barrier(PETSC_COMM_WORLD);
 
