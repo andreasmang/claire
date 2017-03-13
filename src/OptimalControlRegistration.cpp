@@ -1555,10 +1555,19 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ScalarType maxval, minval;
+        ScalarType maxval, minval, value;
         ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
         ss << "state variable: [" << std::scientific << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecNorm(this->m_VelocityField->m_X1, NORM_2, &value); CHKERRQ(ierr);
+        ss << "velocity norm: " << std::scientific << value;
+        ierr = VecNorm(this->m_VelocityField->m_X2, NORM_2, &value); CHKERRQ(ierr);
+        ss << " " << value;
+        ierr = VecNorm(this->m_VelocityField->m_X3, NORM_2, &value); CHKERRQ(ierr);
+        ss << " " << value;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
