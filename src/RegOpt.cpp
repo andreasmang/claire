@@ -1543,7 +1543,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
     PetscErrorCode ierr = 0;
     IntType nxmin, nxi, nl, ng, nalloc;
     int nx[3], isize[3], istart[3], ostart[3], osize[3];
-    int nlevels, level, j;
+    IntType nlevels, level, j;
     ScalarType value;
 
     PetscFunctionBegin;
@@ -1552,7 +1552,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
 
     // compute number of levels
     nxmin = this->m_Domain.nx[0];
-    for (int i = 1; i < 3; ++i) {
+    for (IntType i = 1; i < 3; ++i) {
         nxi = this->m_Domain.nx[i];
         nxmin = nxmin < nxi ? nxmin : nxi;
     }
@@ -1569,7 +1569,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
     this->m_GridCont.osize.resize(nlevels);     ///< grid size per level (spectral domain)
     this->m_GridCont.ostart.resize(nlevels);    ///< start index per level (spectral domain)
 
-    for (int i = 0; i < nlevels; ++i) {
+    for (IntType i = 0; i < nlevels; ++i) {
         this->m_GridCont.nx[i].resize(3);
         this->m_GridCont.istart[i].resize(3);
         this->m_GridCont.isize[i].resize(3);
@@ -1588,7 +1588,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         ng = 1;  // reset global size
 
         // compute number of grid points for current level
-        for (int i = 0; i < 3; ++i) {
+        for (IntType i = 0; i < 3; ++i) {
             if (level == 0) {
                 this->m_GridCont.nx[j][i] = this->m_Domain.nx[i];
             } else {
@@ -1608,7 +1608,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         this->m_GridCont.nalloc[j] = nalloc;
 
         // compute local sizes
-        for (int i = 0; i < 3; ++i) {
+        for (IntType i = 0; i < 3; ++i) {
             // compute number of local points
             nl *= static_cast<IntType>(isize[i]);
 
@@ -1624,7 +1624,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         this->m_GridCont.nl[j] = nl;  // set local size
 
         nxmin = nx[0];
-        for (int i = 1; i < 3; ++i) {
+        for (IntType i = 1; i < 3; ++i) {
             nxi = nx[i];
             nxmin = nxmin < nxi ? nxmin : nxi;
         }

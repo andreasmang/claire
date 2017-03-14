@@ -70,11 +70,11 @@ class VecField {
 
     PetscErrorCode Copy(VecField*);
 
-    PetscErrorCode GetArrays(ScalarType*&,ScalarType*&,ScalarType*&);
-    PetscErrorCode RestoreArrays(ScalarType*&,ScalarType*&,ScalarType*&);
+    PetscErrorCode GetArrays(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&);
 
-    PetscErrorCode GetArraysRead(const ScalarType*&,const ScalarType*&,const ScalarType*&);
-    PetscErrorCode RestoreArraysRead(const ScalarType*&,const ScalarType*&,const ScalarType*&);
+    PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
+    PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
 
     PetscErrorCode WAXPY(ScalarType,VecField*,VecField*);
     PetscErrorCode AXPY(ScalarType,VecField*);
@@ -82,6 +82,7 @@ class VecField {
     /*! compute norm of vector field */
     PetscErrorCode Norm(Vec);
     PetscErrorCode Norm(ScalarType&);
+    PetscErrorCode Norm(ScalarType&, ScalarType&, ScalarType&);
 
     // individual components
     Vec m_X1;

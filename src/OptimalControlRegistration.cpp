@@ -646,7 +646,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType hd, value;
+    ScalarType hd, value, nvx1, nvx2, nvx3;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -685,8 +685,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     // parse input arguments
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
     if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = VecNorm(v, NORM_2, &value); CHKERRQ(ierr);
-        ss << "||v||_2 = " << std::scientific << value;
+        ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
+        ss  << "||v||_2 = (" << std::scientific
+            << nvx1 << "," << nvx2 << "," << nvx3 << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -1555,19 +1556,16 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
 
     if (this->m_Opt->GetVerbosity() > 2) {
-        ScalarType maxval, minval, value;
+        ScalarType maxval, minval, nvx1, nvx2, nvx3;
         ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
         ss << "state variable: [" << std::scientific << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
-        ierr = VecNorm(this->m_VelocityField->m_X1, NORM_2, &value); CHKERRQ(ierr);
-        ss << "velocity norm: " << std::scientific << value;
-        ierr = VecNorm(this->m_VelocityField->m_X2, NORM_2, &value); CHKERRQ(ierr);
-        ss << " " << value;
-        ierr = VecNorm(this->m_VelocityField->m_X3, NORM_2, &value); CHKERRQ(ierr);
-        ss << " " << value;
+        ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
+        ss  << "velocity norm: (" << std::scientific
+            << nvx1 << "," << nvx2 << "," << nvx3 <<")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
