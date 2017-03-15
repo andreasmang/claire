@@ -179,6 +179,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
     IntType isize[3], istart[3], l, i1, i2, i3, nl;
+    std::stringstream ss;
     ScalarType* X = NULL;
 
     PetscFunctionBegin;
@@ -187,8 +188,8 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     if (this->m_WorkVecField == NULL) {
         try {this->m_WorkVecField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -196,17 +197,27 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     if (strcmp(flag.c_str(),"state") == 0) {
         if (this->m_XS == NULL) {
-            try {this->m_XS = new double[3*nl];}
-            catch (std::bad_alloc&) {
-                ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+            }
+            try {this->m_XS = new double [3*nl];}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         X = this->m_XS;
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         if (this->m_XA == NULL) {
-            try {this->m_XA = new double[3*nl];}
-            catch (std::bad_alloc&) {
-                ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+            }
+            try {this->m_XA = new double [3*nl];}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         X = this->m_XA;
@@ -369,11 +380,11 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     // deal with ghost points
     plan = this->m_Opt->GetFFT().plan;
 
+    g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, this->m_GhostSize, isize_g, istart_g);
     if (this->m_ScaFieldGhost == NULL) {
-        g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, this->m_GhostSize, isize_g, istart_g);
         ierr = Assert(g_alloc_max > 0 && g_alloc_max < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
         if (this->m_Opt->GetVerbosity() > 2) {
-            ss << __func__ << " allocation (size = " << g_alloc_max << ")";
+            ss << " >> " << __func__ << ": allocation (size = " << g_alloc_max << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
         }
@@ -448,8 +459,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2];
     double timers[4] = {0, 0, 0, 0};
     accfft_plan* plan = NULL;
-    IntType g_alloc_max;
-    IntType nl, nlghost;
+    std::stringstream ss;
+    IntType nl, nlghost, g_alloc_max;
 
     PetscFunctionBegin;
 
@@ -475,9 +486,15 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     if (this->m_X == NULL) {
-        try {this->m_X = new double[3*nl];}
-        catch (std::bad_alloc&) {
-            ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+        ierr = Assert(3*nl > 0 && 3*nl < std::numeric_limits<IntType>::max(), "allocation error"); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+        try {this->m_X = new double [3*nl];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -490,7 +507,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     // get ghost sizes
     plan = this->m_Opt->GetFFT().plan;
     g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, this->m_GhostSize, isize_g, istart_g);
-    ierr = Assert(g_alloc_max != 0, "alloc problem"); CHKERRQ(ierr);
 
     // get nl for ghosts
     nlghost = 1;
@@ -500,6 +516,12 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     // deal with ghost points
     if (this->m_VecFieldGhost == NULL) {
+        ierr = Assert(g_alloc_max > 0 && g_alloc_max < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << " >> " << __func__ << ": allocation (size = " << g_alloc_max << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
         this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*g_alloc_max));
     }
 
@@ -553,6 +575,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2];
     double timers[4] = {0, 0, 0, 0};
+    std::stringstream ss;
     IntType nl, nlghost, nalloc;
 
     PetscFunctionBegin;
@@ -584,17 +607,28 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     if (this->m_X == NULL) {
+        ierr = Assert(3*nl > 0 && 3*nl < std::numeric_limits<IntType>::max(), "allocation error"); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
         try {this->m_X = new double [3*nl];}
-        catch (std::bad_alloc&) {
-            ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
     // create planer
     if (this->m_VecFieldPlan == NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << " >> " << __func__ << ": allocation of plan";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
         try {this->m_VecFieldPlan = new Interp3_Plan;}
-        catch (std::bad_alloc&) {
-            ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
         this->m_VecFieldPlan->allocate(nl, 3);
     }
@@ -627,6 +661,12 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
 
     // deal with ghost points
     if (this->m_VecFieldGhost == NULL) {
+        ierr = Assert(3*nalloc > 0 && 3*nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << " >> " << __func__ << ": allocation (size = " << 3*nalloc << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
         this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*nalloc));
     }
 
@@ -664,10 +704,9 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
  *******************************************************************/
 PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
-    int nx[3], nl, isize[3], istart[3];
-    int c_dims[2];
+    int nx[3], nl, isize[3], istart[3], c_dims[2];
     double timers[4] = {0, 0, 0, 0};
-
+    std::stringstream ss;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -693,11 +732,13 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_StatePlan == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("allocating interpolation plan for state equations (scalar)"); CHKERRQ(ierr);
+                ss << " >> " << __func__ << ": allocation of plan (state equations)";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
             }
             try {this->m_StatePlan = new Interp3_Plan;}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
             this->m_StatePlan->allocate(nl, 1);
         }
@@ -709,11 +750,13 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_StatePlanVec == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("allocating interpolation plan for state equations (vector)"); CHKERRQ(ierr);
+                ss << " >> " << __func__ << ": allocation of plan (state equations; vector field)";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
             }
             try {this->m_StatePlanVec = new Interp3_Plan;}
-            catch (std::bad_alloc&) {
-                ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
             this->m_StatePlanVec->allocate(nl, 3);
         }
@@ -729,11 +772,13 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_AdjointPlan == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("allocating interpolation plan for adjoint equations (scalar)"); CHKERRQ(ierr);
+                ss << " >> " << __func__ << ": allocation of plan (adjoint equations)";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
             }
             try {this->m_AdjointPlan = new Interp3_Plan;}
-            catch (std::bad_alloc&) {
-                ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
             this->m_AdjointPlan->allocate(nl, 1);
         }
@@ -745,11 +790,13 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_AdjointPlanVec == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ierr = DbgMsg("allocating interpolation plan for adjoint equations (vector)"); CHKERRQ(ierr);
+                ss << " >> " << __func__ << ": allocation of plan (adjoint equations; vector field)";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
             }
             try {this->m_AdjointPlanVec = new Interp3_Plan;}
-            catch (std::bad_alloc&) {
-                ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
             this->m_AdjointPlanVec->allocate(nl, 3);
         }

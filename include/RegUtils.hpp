@@ -51,6 +51,10 @@ PetscErrorCode Assert(bool, std::string);
 /*! throw error (PETSc interface) */
 PetscErrorCode ThrowError(std::string);
 
+/*! throw error (PETSc interface) */
+PetscErrorCode ThrowError(std::bad_alloc&);
+
+
 /*! mpi error handling */
 PetscErrorCode MPIERRQ(int);
 #ifdef REG_HAS_PNETCDF

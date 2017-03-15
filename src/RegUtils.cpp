@@ -200,6 +200,22 @@ PetscErrorCode WrngMsg(std::string msg) {
 
 
 
+/********************************************************************
+ * @brief throw error
+ *******************************************************************/
+PetscErrorCode ThrowError(std::bad_alloc& err) {
+    PetscErrorCode ierr = 0;
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    ss << "allocation error " << err.what();
+    ierr = ThrowError(ss.str()); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
 
 /********************************************************************
  * @brief throw error
