@@ -127,7 +127,8 @@ int main(int argc, char **argv) {
  *******************************************************************/
 PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string filename, fnx1, fnx2, fnx3;
+    std::vector <std::string> filename;
+    std::string fnx1, fnx2, fnx3;
     std::stringstream ss;
     int rank;
     double timers[5] = {0, 0, 0, 0, 0};
@@ -151,8 +152,8 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
 
     if (regopt->GetFlags().readscafield) {
         // read velocity components
-        filename = regopt->GetScaFieldFN(0);
-        ierr = readwrite->Read(&m, filename); CHKERRQ(ierr);
+        filename.push_back(regopt->GetScaFieldFN(0));
+        ierr = readwrite->ReadR(&m, filename); CHKERRQ(ierr);
         ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
         if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
@@ -197,7 +198,9 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string ifolder, xfolder, filename, ext;
+    std::string ifolder, xfolder, ext;
+    std::vector <std::string> filenames;
+    std::string filename;
     Vec mT = NULL, mR = NULL, vx1 = NULL, vx2 = NULL, vx3 = NULL;
     reg::VecField *v = NULL;
     reg::ReadWriteReg* readwrite = NULL;
@@ -216,19 +219,20 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
     ifolder = regopt->GetReadWriteFlags().ifolder;
     ierr = reg::Assert(ifolder.empty() != true, "input folder needs to be provided"); CHKERRQ(ierr);
 
-    // read template image
-    filename = ifolder + "template-image" + ext;
-    ierr = readwrite->Read(&mT, filename); CHKERRQ(ierr);
-    ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-
-    if ( !regopt->SetupDone() ) { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
-
     // read reference image
-    filename = ifolder + "reference-image" + ext;
-    ierr = readwrite->Read(&mR, filename); CHKERRQ(ierr);
+    filenames.push_back(ifolder + "reference-image" + ext);
+    ierr = readwrite->ReadR(&mR, filenames); CHKERRQ(ierr);
     ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+
+    // read template image
+    filenames.clear();
+    filenames.push_back(ifolder + "template-image" + ext);
+    ierr = readwrite->ReadT(&mT, filenames); CHKERRQ(ierr);
+    ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+
+    if ( !regopt->SetupDone() ) { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
 
     // allocate container for velocity field
     try {v = new reg::VecField(regopt);}
@@ -288,7 +292,8 @@ PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string ifolder, xfolder, filename, ext;
+    std::string ifolder, xfolder, ext;
+    std::vector <std::string> filename;
     Vec vxi = NULL;
     reg::VecField* v = NULL;
     reg::ReadWriteReg* readwrite = NULL;
@@ -307,8 +312,9 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     ifolder = regopt->GetReadWriteFlags().ifolder;
     if (!ifolder.empty()) {
         // read velocity components
-        filename = ifolder + "velocity-field-x1" + ext;
-        ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+        filename.push_back(ifolder + "velocity-field-x1" + ext);
+        ierr = readwrite->ReadR(&vxi, filename); CHKERRQ(ierr);
+        filename.clear();
         if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
         // allocate container for velocity field
@@ -319,13 +325,15 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
-        filename = ifolder + "velocity-field-x2" + ext;
+        filename.push_back(ifolder + "velocity-field-x2" + ext);
         ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+        filename.clear();
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
-        filename = ifolder + "velocity-field-x3" + ext;
+        filename.push_back(ifolder + "velocity-field-x3" + ext);
         ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+        filename.clear();
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
     } else {
@@ -414,7 +422,6 @@ PetscErrorCode ResampleScaField(reg::RegToolsOpt* regopt) {
     filename = regopt->GetScaFieldFN(0);
     ierr = readwrite->Read(&m, filename); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
-
     if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
     // compute grid size
@@ -683,6 +690,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nl;
     std::string fn;
+    std::vector <std::string> filename;
     std::stringstream ss;
     reg::VecField* v = NULL;
     Vec m0 = NULL, m1 = NULL, vxi = NULL;
@@ -695,14 +703,14 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
     regopt->Enter(__func__);
 
     // allocate class for io
-    try { readwrite = new reg::ReadWriteReg(regopt); }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
     // read velocity components
-    fn = regopt->GetScaFieldFN(0);
-    ierr = readwrite->Read(&m0, fn); CHKERRQ(ierr);
+    filename.push_back(regopt->GetScaFieldFN(0));
+    ierr = readwrite->ReadT(&m0, filename); CHKERRQ(ierr);
     ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
     if (!regopt->SetupDone()) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
@@ -784,7 +792,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
 
     // write resampled scalar field to file
     fn = regopt->GetScaFieldFN(1);
-    ierr = readwrite->Write(m1, fn); CHKERRQ(ierr);
+    ierr = readwrite->WriteT(m1, fn); CHKERRQ(ierr);
 
     if (v != NULL) {delete v; v = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
@@ -807,7 +815,7 @@ PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string fn;
+    std::string filename;
     std::stringstream ss;
     ScalarType ng;
     ScalarType value;
@@ -824,8 +832,9 @@ PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
     }
 
     // read velocity components
-    fn = regopt->GetScaFieldFN(0);
-    ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
+    filename = regopt->GetScaFieldFN(0);
+    ierr = readwrite->Read(&m, filename); CHKERRQ(ierr);
+    filename.clear();
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
     if (!regopt->SetupDone()) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
@@ -872,7 +881,7 @@ PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode ComputeError(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string fn;
+    std::vector <std::string> filename;
     std::stringstream ss;
     Vec mR = NULL, mT = NULL;
     ScalarType value, minval, maxval, ell2norm, ell8norm;
@@ -888,16 +897,18 @@ PetscErrorCode ComputeError(reg::RegToolsOpt* regopt) {
     }
 
     // read reference image
-    fn = regopt->GetScaFieldFN(2);
-    ierr = readwrite->Read(&mR, fn); CHKERRQ(ierr);
+    filename.push_back(regopt->GetScaFieldFN(2));
+    ierr = readwrite->ReadR(&mR, filename); CHKERRQ(ierr);
+    filename.clear();
     ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
     if (!regopt->SetupDone()) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
 
     // read template image
-    fn = regopt->GetScaFieldFN(3);
-    ierr = readwrite->Read(&mT, fn); CHKERRQ(ierr);
+    filename.push_back(regopt->GetScaFieldFN(3));
+    ierr = readwrite->ReadT(&mT, filename); CHKERRQ(ierr);
+    filename.clear();
     ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = VecNorm(mR, NORM_2, &ell2norm); CHKERRQ(ierr);
@@ -949,7 +960,8 @@ PetscErrorCode ComputeError(reg::RegToolsOpt* regopt) {
 PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     IntType nl;
-    std::string fn;
+    std::vector <std::string> filename;
+    std::string xfn;
     std::stringstream ss;
     int rank;
     Vec mR = NULL, mT = NULL;
@@ -960,7 +972,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     regopt->Enter(__func__);
 
     // allocate class for io
-    try { readwrite = new reg::ReadWriteReg(regopt); }
+    try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -968,8 +980,9 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // read reference image
-    fn = regopt->GetScaFieldFN(2);
-    ierr = readwrite->Read(&mR, fn); CHKERRQ(ierr);
+    filename.push_back(regopt->GetScaFieldFN(2));
+    ierr = readwrite->ReadR(&mR, filename); CHKERRQ(ierr);
+    filename.clear();
     ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (!regopt->SetupDone()) {
@@ -977,8 +990,9 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     }
 
     // read template image
-    fn = regopt->GetScaFieldFN(3);
-    ierr = readwrite->Read(&mT, fn); CHKERRQ(ierr);
+    filename.push_back(regopt->GetScaFieldFN(3));
+    ierr = readwrite->ReadT(&mT, filename); CHKERRQ(ierr);
+    filename.clear();
     ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = reg::Rescale(mR, 0, 1); CHKERRQ(ierr);
@@ -999,8 +1013,8 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
 
     // write resampled scalar field to file
-    fn = regopt->GetScaFieldFN(1);
-    ierr = readwrite->Write(mT, fn); CHKERRQ(ierr);
+    xfn = regopt->GetScaFieldFN(1);
+    ierr = readwrite->Write(mT, xfn); CHKERRQ(ierr);
 
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
@@ -1122,6 +1136,7 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
     reg::SynProbRegistration* synprob = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     ScalarType errval, normval, minval, maxval;
+    std::vector <std::string> filename;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -1136,7 +1151,9 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading m0"); CHKERRQ(ierr);
         }
-        ierr = readwrite->Read(&m0, regopt->GetScaFieldFN(0)); CHKERRQ(ierr);
+        filename.push_back(regopt->GetScaFieldFN(0));
+        ierr = readwrite->ReadT(&m0, filename); CHKERRQ(ierr);
+        filename.clear();
         ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
     } else {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
@@ -1202,8 +1219,8 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
         n = regopt->GetFlags().numrepeat;
         for (IntType i = 0; i < n; ++i) {
-            ss  << "forward solve "<< std::setw(3)
-                << i << " of " << std::setw(3) << n;
+            ss << "forward solve "<< std::setw(3)
+               << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
@@ -1222,9 +1239,9 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
 
         if (regopt->GetReadWriteFlags().results) {
-            ierr = readwrite->Write(m0, "m0" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-            ierr = readwrite->Write(m1, "m1" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-            ierr = readwrite->Write(m0tilde, "m0tilde" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+            ierr = readwrite->WriteT(m0, "m0" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+            ierr = readwrite->WriteT(m1, "m1" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
+            ierr = readwrite->WriteT(m0tilde, "m0tilde" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
             ierr = readwrite->Write(v, "velocity-field" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
         }
         ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
@@ -1238,24 +1255,24 @@ PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
         ierr = VecNorm(m1, NORM_2, &normval); CHKERRQ(ierr);
         ierr = VecMax(m1, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(m1, NULL, &minval); CHKERRQ(ierr);
-        ss  << "m(t=1) = m(t=0) o v       (min,max,norm)=("
-            << std::scientific << minval << "," << maxval << "," << normval << ")";
+        ss << "m(t=1) = m(t=0) o v       (min,max,norm)=("
+           << std::scientific << minval << "," << maxval << "," << normval << ")";
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ierr = VecNorm(m0tilde, NORM_2, &normval); CHKERRQ(ierr);
         ierr = VecMax(m0tilde, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(m0tilde, NULL, &minval); CHKERRQ(ierr);
-        ss  << "m(t=0) = m(t=1) o (-v)    (min,max,norm)=("
-            << std::scientific << minval << "," << maxval << "," << normval << ")";
+        ss << "m(t=0) = m(t=1) o (-v)    (min,max,norm)=("
+           << std::scientific << minval << "," << maxval << "," << normval << ")";
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ierr = VecAXPY(m0tilde, -1.0, m0); CHKERRQ(ierr);
         ierr = VecNorm(m0tilde, NORM_2, &errval); CHKERRQ(ierr);
         ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
-        ss  << "error " << std::scientific
-            << errval/normval << " (" << errval << ")";
+        ss << "error " << std::scientific
+           << errval/normval << " (" << errval << ")";
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -1589,7 +1606,8 @@ PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string fn, path, filename, extension;
+    std::string filename, path, extension;
+    std::vector <std::string> filenames;
     Vec m;
     reg::ReadWriteReg* readwrite = NULL;
     PetscFunctionBegin;
@@ -1602,17 +1620,14 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     }
 
     // read reference image
-    fn = regopt->GetScaFieldFN(0);
-    ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
+    filenames.push_back(regopt->GetScaFieldFN(0));
+    ierr = readwrite->ReadR(&m, filenames); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
     //if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
-    std::cout << fn << std::endl;
-    ierr = reg::GetFileName(path, filename, extension, fn); CHKERRQ(ierr);
-    std::cout << fn << std::endl;
-    fn = path + "/" + filename + "_converted" + regopt->GetReadWriteFlags().extension;
-    std::cout << fn << std::endl;
-    ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
+    ierr = reg::GetFileName(path, filename, extension, filenames[0]); CHKERRQ(ierr);
+    filename = path + "/" + filename + "_converted" + regopt->GetReadWriteFlags().extension;
+    ierr = readwrite->WriteR(m, filename); CHKERRQ(ierr);
 
     regopt->Exit(__func__);
 
@@ -1631,7 +1646,8 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
  *******************************************************************/
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
-    std::string fn, path, filename, extension;
+    std::string path, filename, extension;
+    std::vector <std::string> filenames;
     Vec m;
     reg::ReadWriteReg* readwrite = NULL;
     reg::Preprocessing* preproc = NULL;
@@ -1645,8 +1661,8 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     }
 
     // read reference image
-    fn = regopt->GetScaFieldFN(0);
-    ierr = readwrite->Read(&m, fn); CHKERRQ(ierr);
+    filenames.push_back(regopt->GetScaFieldFN(0));
+    ierr = readwrite->ReadT(&m, filenames); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
     if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
@@ -1661,10 +1677,9 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     // apply smoothing
     ierr = preproc->Smooth(m, m); CHKERRQ(ierr);
 
-    ierr = reg::GetFileName(path, filename, extension, fn); CHKERRQ(ierr);
-    fn = path + "/" + filename + "_test" + regopt->GetReadWriteFlags().extension;
-    std::cout << fn << std::endl;
-    ierr = readwrite->Write(m, fn); CHKERRQ(ierr);
+    ierr = reg::GetFileName(path, filename, extension, filenames[0]); CHKERRQ(ierr);
+    filename = path + "/" + filename + "_test" + regopt->GetReadWriteFlags().extension;
+    ierr = readwrite->WriteT(m, filename); CHKERRQ(ierr);
 
     regopt->Exit(__func__);
 

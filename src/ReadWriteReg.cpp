@@ -1133,6 +1133,12 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x) {
             // image data only there
             if (this->m_ReferenceImage.data != NULL) {
                 this->m_ImageData = nifti_copy_nim_info(this->m_ReferenceImage.data);
+            } else {
+                if (this->m_TemplateImage.data != NULL) {
+                    this->m_ImageData = nifti_copy_nim_info(this->m_TemplateImage.data);
+                }
+            }
+            if (this->m_ImageData != NULL) {
                 // switch precision in io
 #if defined(PETSC_USE_REAL_SINGLE)
                 this->m_ImageData->datatype = NIFTI_TYPE_FLOAT32; // single precision

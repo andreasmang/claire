@@ -139,6 +139,14 @@ inline void CheckWaveNumbers(long int w[3], int n[3]) {
 };
 
 
+/********************************************************************
+ * @brief map 3d index to linear index (accfft style)
+ *******************************************************************/
+inline bool OnMaster() {
+    int rank;
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    return (rank == 0);
+}
 
 
 }   // namespace reg

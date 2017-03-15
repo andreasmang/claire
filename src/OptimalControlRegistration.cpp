@@ -1628,8 +1628,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
                 *p_gmx1 = NULL, *p_gmx2 = NULL, *p_gmx3 = NULL,
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
     ScalarType ht = 0.0, hthalf = 0.0, rhs1;
-    double timers[5] = {0, 0, 0, 0, 0};
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
@@ -2195,8 +2195,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
                 *p_gmtx1 = NULL, *p_gmtx2 = NULL, *p_gmtx3 = NULL,
                 *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL, *p_rhs0 = NULL;
     ScalarType ht, hthalf;
-    double timers[5] = {0, 0, 0, 0, 0};
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    double timers[5] = {0, 0, 0, 0, 0};
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -2344,13 +2345,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     IntType nl, nt, nc, l, lnext;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, hthalf;
-    double timers[5] = {0, 0, 0, 0, 0};
     ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
                 *p_gmn1 = NULL, *p_gmn2 = NULL, *p_gmn3 = NULL,
                 *p_gmX1 = NULL, *p_gmX2 = NULL, *p_gmX3 = NULL,
                 *p_mtilde = NULL, *p_m = NULL;
     const ScalarType *p_vtildeX1 = NULL, *p_vtildeX2 = NULL, *p_vtildeX3 = NULL,
                      *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL;
+    double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
@@ -2609,8 +2610,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     ScalarType *p_lt = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                 *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
-    double timers[5] = {0, 0, 0, 0, 0};
     ScalarType ht, hthalf;
+    double timers[5] = {0, 0, 0, 0, 0};
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -2705,8 +2707,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                 *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL,
                 *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
-    double timers[5] = {0, 0, 0, 0, 0};
     ScalarType ht, hthalf, lambda, lambdatilde, ltbar;
+    double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
@@ -2840,11 +2842,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
-    double timers[5] = {0, 0, 0, 0, 0};
     ScalarType *p_ltilde = NULL, *p_ltildejX = NULL,
                 *p_divv = NULL, *p_divvX = NULL,
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
     ScalarType ht, hthalf, ltildejX, rhs0, rhs1;
+    double timers[5] = {0, 0, 0, 0, 0};
 
     PetscFunctionBegin;
 
