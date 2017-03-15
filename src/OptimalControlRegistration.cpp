@@ -151,7 +151,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
     // if velocity field is null pointer, we did not set
     // any initial guess
     if (this->m_VelocityField == NULL) {
-        if (this->m_Opt->GetVerbosity() > 1) {
+        if (this->m_Opt->GetVerbosity() > 2) {
             ierr = DbgMsg("allocating velocity field"); CHKERRQ(ierr);
         }
         try {this->m_VelocityField = new VecField(this->m_Opt);}

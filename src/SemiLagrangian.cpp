@@ -196,7 +196,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     if (strcmp(flag.c_str(),"state") == 0) {
         if (this->m_XS == NULL) {
-            try {this->m_XS = new double [3*nl];}
+            try {this->m_XS = new double[3*nl];}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -204,7 +204,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
         X = this->m_XS;
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         if (this->m_XA == NULL) {
-            try {this->m_XA = new double [3*nl];}
+            try {this->m_XA = new double[3*nl];}
             catch (std::bad_alloc&) {
                 ierr =reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -341,9 +341,9 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
 PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval;
-    IntType nl;
+    IntType nl, g_alloc_max;
+    std::stringstream ss;
     accfft_plan* plan = NULL;
-    IntType g_alloc_max;
     double timers[4] = {0, 0, 0, 0};
 
     PetscFunctionBegin;
@@ -368,9 +368,15 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 
     // deal with ghost points
     plan = this->m_Opt->GetFFT().plan;
-    g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, this->m_GhostSize, isize_g, istart_g);
 
     if (this->m_ScaFieldGhost == NULL) {
+        g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, this->m_GhostSize, isize_g, istart_g);
+        ierr = Assert(g_alloc_max > 0 && g_alloc_max < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << __func__ << " allocation (size = " << g_alloc_max << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
         this->m_ScaFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
     }
 
@@ -469,7 +475,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     if (this->m_X == NULL) {
-        try {this->m_X = new double [3*nl];}
+        try {this->m_X = new double[3*nl];}
         catch (std::bad_alloc&) {
             ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
         }

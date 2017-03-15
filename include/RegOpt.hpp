@@ -20,13 +20,14 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-//#define _REG_DEBUG_
+#define _REG_DEBUG_
 
 // global includes
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <limits>
 
 // local includes
 #include "RegUtils.hpp"
