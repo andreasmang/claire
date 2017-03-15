@@ -127,6 +127,7 @@ class ReadWriteReg {
 
     ImageType m_TemplateImage;
     ImageType m_ReferenceImage;
+    nifti_image* m_ImageData;
 #endif
 
 

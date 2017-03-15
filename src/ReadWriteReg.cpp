@@ -94,6 +94,8 @@ PetscErrorCode ReadWriteReg::Initialize() {
     this->m_TemplateImage.write = false;
     this->m_TemplateImage.minval = -1.0;
     this->m_TemplateImage.maxval = -1.0;
+
+    this->m_ImageData = NULL;
 #endif
 
     this->m_NumProcs = 0;
@@ -149,6 +151,11 @@ PetscErrorCode ReadWriteReg::ClearMemory() {
     if (this->m_TemplateImage.data != NULL) {
         nifti_image_free(this->m_TemplateImage.data);
         this->m_TemplateImage.data = NULL;
+    }
+
+    if (this->m_ImageData != NULL) {
+        nifti_image_free(this->m_ImageData);
+        this->m_ImageData = NULL;
     }
 #endif
 
@@ -544,9 +551,9 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
     this->m_ReferenceImage.write = false;
     if (rescaled) {
         if (multicomponent) {
-            ierr = Rescale(x, 0, 1, nc); CHKERRQ(ierr);
+            ierr = Rescale(x, 0.0, 1.0, nc); CHKERRQ(ierr);
         } else {
-            ierr = Rescale(x, 0, 1); CHKERRQ(ierr);
+            ierr = Rescale(x, 0.0, 1.0); CHKERRQ(ierr);
         }
     }
 #endif
@@ -595,9 +602,9 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
     this->m_TemplateImage.write = false;
     if (rescaled) {
         if (multicomponent) {
-            ierr = Rescale(x, 0, 1, nc); CHKERRQ(ierr);
+            ierr = Rescale(x, 0.0, 1.0, nc); CHKERRQ(ierr);
         } else {
-            ierr = Rescale(x, 0, 1); CHKERRQ(ierr);
+            ierr = Rescale(x, 0.0, 1.0); CHKERRQ(ierr);
         }
     }
 #endif
@@ -615,8 +622,8 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
  *******************************************************************/
 PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicomponent) {
     PetscErrorCode ierr = 0;
-    Vec xk = NULL;
     IntType nc, nl, ng;
+    Vec xk = NULL;
     std::string msg, path, file, ext;
     std::stringstream ss;
     ScalarType *p_xk = NULL, *p_x = NULL;
@@ -777,7 +784,7 @@ PetscErrorCode ReadWriteReg::Write(VecField* v, std::string filename) {
 #ifdef REG_HAS_NIFTI
 PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     PetscErrorCode ierr = 0;
-    std::string msg, file;
+    std::string file;
     std::stringstream ss;
     int rank, rval;
     IntType ng, nl, nglobal, nx[3];
@@ -795,8 +802,9 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 
     // read header file
     image = nifti_image_read(this->m_FileName.c_str(), false);
-    msg = "could not read nifti image " + file;
-    ierr = Assert(image != NULL, msg); CHKERRQ(ierr);
+    ss << "could not read image " + file;
+    ierr = Assert(image != NULL, ss.str()); CHKERRQ(ierr);
+    ss.clear(); ss.str(std::string());
 
     // get number of grid points
 //    nx[0] = static_cast<IntType>(image->nx);
@@ -806,20 +814,47 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     nx[1] = static_cast<IntType>(image->ny);
     nx[0] = static_cast<IntType>(image->nz);
 
+    if (this->m_ReferenceImage.read) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << "reading reference image " + file;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+        this->m_ReferenceImage.data = image;
+        this->m_ReferenceImage.nx[0] = nx[0];
+        this->m_ReferenceImage.nx[1] = nx[1];
+        this->m_ReferenceImage.nx[2] = nx[2];
+    } else if (this->m_TemplateImage.read) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ss << "reading template image " + file;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+        this->m_TemplateImage.data = image;
+        this->m_TemplateImage.nx[0] = nx[0];
+        this->m_TemplateImage.nx[1] = nx[1];
+        this->m_TemplateImage.nx[2] = nx[2];
+    } else {
+        // do nothing
+    }
+
+
     // if we read images, we want to make sure that they have the same size
     if ((this->m_nx[0] == -1) && (this->m_nx[1] == -1) && (this->m_nx[2] == -1)) {
         for (int i = 0; i < 3; ++i) {
             this->m_nx[i] = nx[i];
         }
         if (this->m_Opt->GetVerbosity() > 2) {
-            ss << "grid size (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
+            ss << "reading image with grid size (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
         }
     } else {
-        msg = "grid size of images varies: perform affine registration first";
+        ss << "grid size of input images varies: perform affine registration first";
         for (int i = 0; i < 3; ++i) {
-            ierr = Assert(this->m_nx[i] == nx[i], msg); CHKERRQ(ierr);
+            ierr = Assert(this->m_nx[i] == nx[i], ss.str()); CHKERRQ(ierr);
         }
+        ss.clear(); ss.str(std::string());
     }
 
     // pass number of grid points to options
@@ -863,9 +898,10 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     ierr = MPIERRQ(rval); CHKERRQ(ierr);
     ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
 
-    if (image != NULL) {
-        nifti_image_free(image);
-        image = NULL;
+    if (!this->m_ReferenceImage.read && !this->m_TemplateImage.read) {
+        if (image != NULL) {
+            nifti_image_free(image); image = NULL;
+        }
     }
 
     this->m_Opt->Exit(__func__);
@@ -883,7 +919,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 #ifdef REG_HAS_NIFTI
 PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
     PetscErrorCode ierr;
-//    DataType type;
+    DataType datatype;
     std::string msg;
     int rank;
 
@@ -901,7 +937,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type uint8 (uchar)"); CHKERRQ(ierr);
             }
-//            type = UCHAR;
+            datatype = UCHAR;
             ierr = this->ReadNII<unsigned char>(image); CHKERRQ(ierr);
             break;
         }
@@ -910,7 +946,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type int8 (char)"); CHKERRQ(ierr);
             }
-//            type = CHAR;
+            datatype = CHAR;
             ierr = this->ReadNII<char>(image); CHKERRQ(ierr);
             break;
         }
@@ -919,7 +955,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type uint16 (unsigned short)"); CHKERRQ(ierr);
             }
-//            type = USHORT;
+            datatype = USHORT;
             ierr = this->ReadNII<unsigned short>(image); CHKERRQ(ierr);
             break;
         }
@@ -928,7 +964,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type int16 (short)"); CHKERRQ(ierr);
             }
-//            type = SHORT;
+            datatype = SHORT;
             ierr = this->ReadNII<short>(image); CHKERRQ(ierr);
             break;
         }
@@ -937,7 +973,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type uint32 (unsigned int)"); CHKERRQ(ierr);
             }
-//            type = UINT;
+            datatype = UINT;
             ierr = this->ReadNII<unsigned int>(image); CHKERRQ(ierr);
             break;
         }
@@ -946,7 +982,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type int32 (int)"); CHKERRQ(ierr);
             }
-//            type = INT;
+            datatype = INT;
             ierr = this->ReadNII<int>(image); CHKERRQ(ierr);
             break;
         }
@@ -955,7 +991,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type float32 (float)"); CHKERRQ(ierr);
             }
-//            type = FLOAT;
+            datatype = FLOAT;
             ierr = this->ReadNII<float>(image); CHKERRQ(ierr);
             break;
         }
@@ -964,7 +1000,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("reading data of type float64 (double)"); CHKERRQ(ierr);
             }
-//            type = DOUBLE;
+            datatype = DOUBLE;
             ierr = this->ReadNII<double>(image); CHKERRQ(ierr);
             break;
         }
@@ -973,6 +1009,16 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
             ierr = ThrowError("image data not supported"); CHKERRQ(ierr);
             break;
         }
+    }
+
+    // if we read the reference image and the template
+    // image we have to remember the data type
+    if (this->m_ReferenceImage.read) {
+        this->m_ReferenceImage.datatype = datatype;
+    }
+
+    if (this->m_TemplateImage.read) {
+        this->m_TemplateImage.datatype = datatype;
     }
 
     this->m_Opt->Exit(__func__);
@@ -1061,11 +1107,48 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
 #ifdef REG_HAS_NIFTI
 PetscErrorCode ReadWriteReg::WriteNII(Vec x) {
     PetscErrorCode ierr;
-    int rank, master = 0;
     nifti_image* image = NULL;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
+    // if we write the template or refernence image to file,
+    // we'll use the data we have read in; if this data has not
+    // been read, we'll pass a NULL pointer resulting in an image
+    // being allocated
+    if (this->m_TemplateImage.write) {
+        image = this->m_TemplateImage.data;
+    } else if (this->m_ReferenceImage.write) {
+        image = this->m_ReferenceImage.data;
+    } else {
+        // now we have to deal with the case that a reference
+        // image might have been read, so we want to use
+        // all the information within its header (including the
+        // orientation), but write out the data using the
+        // datatype we have used for our computations
+        if (this->m_ImageData == NULL) {   // only do this once
+            // if we have read the reference image
+            // note: the following will only be true
+            // on the master rank, because we allocate
+            // image data only there
+            if (this->m_ReferenceImage.data != NULL) {
+                this->m_ImageData = nifti_copy_nim_info(this->m_ReferenceImage.data);
+                // switch precision in io
+#if defined(PETSC_USE_REAL_SINGLE)
+                this->m_ImageData->datatype = NIFTI_TYPE_FLOAT32; // single precision
+#else
+                this->m_ImageData->datatype = NIFTI_TYPE_FLOAT64; // double precision
+#endif
+                this->m_ImageData->nbyper = sizeof(ScalarType);
+                // allocate image buffer
+                try {this->m_ImageData->data = new ScalarType[this->m_ImageData->nvox];}
+                catch (std::bad_alloc&) {
+                    ierr = ThrowError("allocation failed"); CHKERRQ(ierr);
+                }
+            }
+        }
+        image = this->m_ImageData;
+    }
 
     // if nifty image is null pointer default to double
     if (image == NULL) {
@@ -1120,12 +1203,6 @@ PetscErrorCode ReadWriteReg::WriteNII(Vec x) {
         }
     }
 
-    // at rank zero write out
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    if (rank == master) {
-        nifti_image_write(image);
-    }
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
@@ -1146,6 +1223,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     ScalarType *p_xc = NULL;
     int nprocs, rank, rval, master = 0;
     IntType nx[3], ng, nl;
+    bool deleteimage = false;
     std::string msg;
 
     PetscFunctionBegin;
@@ -1165,15 +1243,13 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
         // will also create a standard header file; not tested (might need
         // to parse the dimensions of the data)
         if ((*image) == NULL) {
-            if (this->m_Opt->GetVerbosity() >= 4) {
-                msg = "allocating buffer for nifti image";
-                ierr = DbgMsg(msg); CHKERRQ(ierr);
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ierr = DbgMsg("allocating nifti image buffer"); CHKERRQ(ierr);
             }
             ierr = this->AllocateImage(image, x); CHKERRQ(ierr);
+            deleteimage = true;
         }
-
-        msg="nifty image is null pointer";
-        ierr = Assert((*image) != NULL, msg); CHKERRQ(ierr);
+        ierr = Assert((*image) != NULL, "null pointer"); CHKERRQ(ierr);
 
         // construct file name
         std::string file(this->m_FileName);
@@ -1232,6 +1308,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     if (rank == master) {
         // cast pointer of nifti image data
         data = reinterpret_cast<T*>((*image)->data);
+
         IntType k = 0;
         for (int p = 0; p < nprocs; ++p) {
             for (IntType i1 = 0; i1 < this->m_iSizeC[3*p+0]; ++i1) {  // x1
@@ -1246,7 +1323,18 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
                 }  // for i2
             }  // for i3
         }  // for all procs
+
+        // write image to file
+        nifti_image_write(*image);
     }  // if on master
+
+
+    if (deleteimage) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("deleting nifti image buffer"); CHKERRQ(ierr);
+        }
+        nifti_image_free(*image); *image = NULL;
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1262,7 +1350,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
 #ifdef REG_HAS_NIFTI
 PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
     PetscErrorCode ierr = 0;
-    IntType n;
+    IntType n, nl;
     int rank;
 
     PetscFunctionBegin;
@@ -1271,6 +1359,8 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
 
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    nl = this->m_Opt->GetDomainPara().nl;
 
     // init nifty image
     *image = nifti_simple_init_nim();
@@ -1292,13 +1382,13 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
     (*image)->pixdim[3] = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);  // z direction
 
     // TODO: add temporal support
-    if (n == this->m_Opt->GetDomainPara().nl) {  // scalar field
+    if (n == nl) {  // scalar field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 1;
 
         // temporal step size
         (*image)->pixdim[4] = 1.0;
-    } else if (n == 2*this->m_Opt->GetDomainPara().nl) {  // 2D vector field
+    } else if (n == 2*nl) {  // 2D vector field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 2;
 
@@ -1308,7 +1398,7 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
         // step size (vector field)
         (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
         (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
-    } else if (n == 3*this->m_Opt->GetDomainPara().nl) {  // 3D vector field
+    } else if (n == 3*nl) {  // 3D vector field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 3;
 
