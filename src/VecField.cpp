@@ -578,6 +578,7 @@ PetscErrorCode VecField::Norm(Vec xnorm) {
 
 
 
+
 /********************************************************************
  * @brief compute pointwise norm of vector field
  *******************************************************************/
@@ -586,7 +587,7 @@ PetscErrorCode VecField::Norm(ScalarType& value) {
     IntType nl;
     ScalarType vnorm;
     int rval;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, *p_x = NULL;
+    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
 
     PetscFunctionBegin;
 
@@ -607,6 +608,24 @@ PetscErrorCode VecField::Norm(ScalarType& value) {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief compute norm of individual components of vector field
+ *******************************************************************/
+PetscErrorCode VecField::Norm(ScalarType& nvx1, ScalarType& nvx2, ScalarType& nvx3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = VecNorm(this->m_X1, NORM_2, &nvx1); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X2, NORM_2, &nvx2); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X3, NORM_2, &nvx3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

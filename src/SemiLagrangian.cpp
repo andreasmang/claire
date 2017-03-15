@@ -621,7 +621,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
 
     // get nl for ghosts
     nlghost = 1;
-    for (IntType i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         nlghost *= static_cast<IntType>(isize_g[i]);
     }
 

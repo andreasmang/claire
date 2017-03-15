@@ -383,7 +383,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
     accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
     accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
     accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
-    this->m_Opt->IncrementCounter(FFT,3);
+    this->m_Opt->IncrementCounter(FFT, 3);
 
     ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
