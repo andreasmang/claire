@@ -41,6 +41,8 @@ class RegularizationRegistration {
     RegularizationRegistration(RegOpt*);
     ~RegularizationRegistration(void);
 
+    PetscErrorCode SetWorkVecField(VecField*);
+
     virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*) = 0;
     virtual PetscErrorCode EvaluateGradient(VecField*, VecField*) = 0;
     virtual PetscErrorCode HessianMatVec(VecField*, VecField*) = 0;
@@ -52,7 +54,6 @@ class RegularizationRegistration {
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
     PetscErrorCode Allocate();
-    PetscErrorCode Deallocate();
 
     RegOpt* m_Opt;
     VecField* m_WorkVecField;

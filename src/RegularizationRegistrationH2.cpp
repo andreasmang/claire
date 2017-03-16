@@ -79,16 +79,10 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
     *R = 0.0;
 
     // if regularization weight is zero, do noting
-    if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0){
+    if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0) {
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = this->Allocate(); CHKERRQ(ierr);
-
-        if (this->m_WorkVecField == NULL){
-            try{this->m_WorkVecField = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&){
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));

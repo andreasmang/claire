@@ -80,14 +80,8 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
     // if regularization weight is zero, do noting
     if (beta != 0.0) {
         ierr = Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = this->Allocate(); CHKERRQ(ierr);
-
-        if (this->m_WorkVecField==NULL){
-            try{this->m_WorkVecField = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&){
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -102,7 +96,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
 #pragma omp parallel
 {

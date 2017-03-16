@@ -83,17 +83,37 @@ PetscErrorCode RegularizationRegistration::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
+PetscErrorCode RegularizationRegistration::SetWorkVecField(VecField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_WorkVecField = v;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+/********************************************************************
+ * @brief clean up
+ *******************************************************************/
 PetscErrorCode RegularizationRegistration::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_WorkVecField!=NULL) {
-        delete this->m_WorkVecField;
-        this->m_WorkVecField = NULL;
+    if (this->m_v1hat != NULL) {
+        accfft_free(this->m_v1hat);
+        this->m_v1hat = NULL;
     }
-
-    // clear the fft arrays
-    ierr = this->Deallocate(); CHKERRQ(ierr);
+    if (this->m_v2hat != NULL) {
+        accfft_free(this->m_v2hat);
+        this->m_v2hat = NULL;
+    }
+    if (this->m_v3hat != NULL) {
+        accfft_free(this->m_v3hat);
+        this->m_v3hat = NULL;
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -119,33 +139,6 @@ PetscErrorCode RegularizationRegistration::Allocate() {
     }
 
     PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief deallocate arrays for fft (we might have to do this
- * in several functions, so we do it collectively here)
- *******************************************************************/
-PetscErrorCode RegularizationRegistration::Deallocate(void) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    if (this->m_v1hat != NULL) {
-        accfft_free(this->m_v1hat);
-        this->m_v1hat = NULL;
-    }
-    if (this->m_v2hat != NULL) {
-        accfft_free(this->m_v2hat);
-        this->m_v2hat = NULL;
-    }
-    if (this->m_v3hat != NULL) {
-        accfft_free(this->m_v3hat);
-        this->m_v3hat = NULL;
-    }
-
-    PetscFunctionReturn(ierr);
 }
 
 

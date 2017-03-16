@@ -82,13 +82,9 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
 
     *R= 0.0;
 
-    if ( (beta[0] != 0.0)  && (beta[1] != 0.0) ) {
-        if (this->m_WorkVecField==NULL) {
-            try{this->m_WorkVecField = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+    if ((beta[0] != 0.0)  && (beta[1] != 0.0)) {
+        ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
         H1v = 0.0;
 

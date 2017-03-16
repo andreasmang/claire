@@ -83,12 +83,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
 
     // if regularization weight is zero, do noting
     if (beta != 0.0) {
-        if (this->m_WorkVecField == NULL) {
-            try{this->m_WorkVecField = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&){
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
         // get arrays
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
