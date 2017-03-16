@@ -78,11 +78,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
     *R = 0.0;
 
     // if regularization weight is zero, do noting
-    if ( beta != 0.0 ){
-
+    if (beta != 0.0) {
         ierr = Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
-        ierr = this->Allocate(0); CHKERRQ(ierr);
-        ierr = this->Allocate(2); CHKERRQ(ierr);
+        ierr = this->Allocate(); CHKERRQ(ierr);
 
         if (this->m_WorkVecField==NULL){
             try{this->m_WorkVecField = new VecField(this->m_Opt);}
@@ -254,7 +252,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        ierr = this->Allocate(0); CHKERRQ(ierr);
+        ierr = this->Allocate(); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -395,7 +393,7 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        ierr = this->Allocate(0); CHKERRQ(ierr);
+        ierr = this->Allocate(); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));

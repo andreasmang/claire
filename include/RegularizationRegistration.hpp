@@ -51,7 +51,7 @@ class RegularizationRegistration {
  protected:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-    PetscErrorCode Allocate(int);
+    PetscErrorCode Allocate();
     PetscErrorCode Deallocate();
 
     RegOpt* m_Opt;
@@ -60,21 +60,6 @@ class RegularizationRegistration {
     FFTScaType *m_v1hat;
     FFTScaType *m_v2hat;
     FFTScaType *m_v3hat;
-
-    FFTScaType *m_Lv1hat;
-    FFTScaType *m_Lv2hat;
-    FFTScaType *m_Lv3hat;
-
-    FFTScaType *m_Dv11hat;
-    FFTScaType *m_Dv12hat;
-    FFTScaType *m_Dv13hat;
-    FFTScaType *m_Dv21hat;
-    FFTScaType *m_Dv22hat;
-    FFTScaType *m_Dv23hat;
-    FFTScaType *m_Dv31hat;
-    FFTScaType *m_Dv32hat;
-    FFTScaType *m_Dv33hat;
-
 };
 
 

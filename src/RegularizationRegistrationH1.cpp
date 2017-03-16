@@ -179,7 +179,7 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
     if ( (beta[0] == 0.0)  && (beta[1] == 0.0) ) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        ierr = this->Allocate(0); CHKERRQ(ierr);
+        ierr = this->Allocate(); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -319,7 +319,7 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        ierr = this->Allocate(0); CHKERRQ(ierr);
+        ierr = this->Allocate(); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
