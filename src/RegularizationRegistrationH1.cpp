@@ -161,7 +161,7 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
     PetscErrorCode ierr = 0;
     int nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_Lv1 = NULL,*p_Lv2 = NULL, *p_Lv3 = NULL;
+                *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta[2], scale;
     double timers[5] = {0, 0, 0, 0, 0};
 
@@ -180,20 +180,19 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
         ierr = this->Allocate(0); CHKERRQ(ierr);
-        ierr = this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
         nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
         // compute forward fft
-        ierr = v->GetArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
-        accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_v1,this->m_v1hat,timers);
-        accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_v2,this->m_v2hat,timers);
-        accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan,p_v3,this->m_v3hat,timers);
-        ierr = v->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
+        ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timers);
+        accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timers);
+        accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timers);
+        ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -211,7 +210,7 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
                     w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
                     w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
-                    CheckWaveNumbers(w,nx);
+                    CheckWaveNumbers(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
@@ -220,17 +219,17 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
                     regop = scale*(-beta[0]*lapik + beta[1]);
 
                     // get linear index
-                    i=GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                     // apply to individual components
-                    this->m_Lv1hat[i][0] = regop*this->m_v1hat[i][0];
-                    this->m_Lv1hat[i][1] = regop*this->m_v1hat[i][1];
+                    this->m_v1hat[i][0] *= regop;
+                    this->m_v1hat[i][1] *= regop;
 
-                    this->m_Lv2hat[i][0] = regop*this->m_v2hat[i][0];
-                    this->m_Lv2hat[i][1] = regop*this->m_v2hat[i][1];
+                    this->m_v2hat[i][0] *= regop;
+                    this->m_v2hat[i][1] *= regop;
 
-                    this->m_Lv3hat[i][0] = regop*this->m_v3hat[i][0];
-                    this->m_Lv3hat[i][1] = regop*this->m_v3hat[i][1];
+                    this->m_v3hat[i][0] *= regop;
+                    this->m_v3hat[i][1] *= regop;
                 }
             }
         }
@@ -238,13 +237,13 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
 
 
         // compute inverse fft
-        ierr = dvR->GetArrays(p_Lv1, p_Lv2, p_Lv3); CHKERRQ(ierr);
-        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv1hat, p_Lv1, timers);
-        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv2hat, p_Lv2, timers);
-        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv3hat, p_Lv3, timers);
-        ierr = dvR->RestoreArrays(p_Lv1, p_Lv2, p_Lv3); CHKERRQ(ierr);
+        ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
+        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timers);
+        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timers);
+        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timers);
+        ierr = dvR->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timers);
@@ -315,13 +314,12 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
     beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
-    if ( (beta[0] == 0.0)  && (beta[1] == 0.0) ) {
-        ierr = VecCopy(x->m_X1,Ainvx->m_X1); CHKERRQ(ierr);
-        ierr = VecCopy(x->m_X2,Ainvx->m_X2); CHKERRQ(ierr);
-        ierr = VecCopy(x->m_X3,Ainvx->m_X3); CHKERRQ(ierr);
+    if ((beta[0] == 0.0)  && (beta[1] == 0.0)) {
+        ierr = VecCopy(x->m_X1, Ainvx->m_X1); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
         ierr = this->Allocate(0); CHKERRQ(ierr);
-        ierr = this->Allocate(1); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -361,17 +359,17 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
                     if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
 
-                    i=GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
 
                     // apply to individual components
-                    this->m_Lv1hat[i][0] = regop*this->m_v1hat[i][0];
-                    this->m_Lv1hat[i][1] = regop*this->m_v1hat[i][1];
+                    this->m_v1hat[i][0] *= regop;
+                    this->m_v1hat[i][1] *= regop;
 
-                    this->m_Lv2hat[i][0] = regop*this->m_v2hat[i][0];
-                    this->m_Lv2hat[i][1] = regop*this->m_v2hat[i][1];
+                    this->m_v2hat[i][0] *= regop;
+                    this->m_v2hat[i][1] *= regop;
 
-                    this->m_Lv3hat[i][0] = regop*this->m_v3hat[i][0];
-                    this->m_Lv3hat[i][1] = regop*this->m_v3hat[i][1];
+                    this->m_v3hat[i][0] *= regop;
+                    this->m_v3hat[i][1] *= regop;
                 }
             }
         }
@@ -379,9 +377,9 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
 
         // compute inverse fft
         ierr = Ainvx->GetArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
-        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv1hat, p_Ainvx1, timers);
-        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv2hat, p_Ainvx2, timers);
-        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Lv3hat, p_Ainvx3, timers);
+        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_v1hat, p_Ainvx1, timers);
+        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_v2hat, p_Ainvx2, timers);
+        accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_v3hat, p_Ainvx3, timers);
         ierr = Ainvx->RestoreArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT, 3);
