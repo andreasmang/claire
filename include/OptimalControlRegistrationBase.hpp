@@ -57,7 +57,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     OptimalControlRegistrationBase(void);
     OptimalControlRegistrationBase(RegOpt*);
-    ~OptimalControlRegistrationBase(void);
+    virtual ~OptimalControlRegistrationBase(void);
 
     /*! set io object */
     PetscErrorCode SetReadWrite(ReadWriteType*);

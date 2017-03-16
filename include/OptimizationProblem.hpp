@@ -38,7 +38,7 @@ class OptimizationProblem {
     typedef OptimizationProblem Self;
     OptimizationProblem(void);
     OptimizationProblem(RegOpt*);
-    ~OptimizationProblem(void);
+    virtual ~OptimizationProblem(void);
 
     PetscErrorCode SetOptions(RegOpt*);
     inline RegOpt* GetOptions(void) {return this->m_Opt;};

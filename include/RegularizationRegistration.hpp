@@ -39,7 +39,7 @@ class RegularizationRegistration {
 
     RegularizationRegistration(void);
     RegularizationRegistration(RegOpt*);
-    ~RegularizationRegistration(void);
+    virtual ~RegularizationRegistration(void);
 
     PetscErrorCode SetWorkVecField(VecField*);
 

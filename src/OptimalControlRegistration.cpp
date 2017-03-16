@@ -108,18 +108,30 @@ PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
 
     // delete all variables
     if (this->m_StateVariable != NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("deallocating state variable"); CHKERRQ(ierr);
+        }
         ierr = VecDestroy(&this->m_StateVariable); CHKERRQ(ierr);
         this->m_StateVariable = NULL;
     }
     if (this->m_AdjointVariable != NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("deallocating adjoint variable"); CHKERRQ(ierr);
+        }
         ierr = VecDestroy(&this->m_AdjointVariable); CHKERRQ(ierr);
         this->m_AdjointVariable = NULL;
     }
     if (this->m_IncStateVariable != NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("deallocating incremental state variable"); CHKERRQ(ierr);
+        }
         ierr = VecDestroy(&this->m_IncStateVariable); CHKERRQ(ierr);
         this->m_IncStateVariable = NULL;
     }
     if (this->m_IncAdjointVariable != NULL) {
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = DbgMsg("deallocating incremental adjoint variable"); CHKERRQ(ierr);
+        }
         ierr = VecDestroy(&this->m_IncAdjointVariable); CHKERRQ(ierr);
         this->m_IncAdjointVariable = NULL;
     }
