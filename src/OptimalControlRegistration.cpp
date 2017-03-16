@@ -155,8 +155,8 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
             ierr = DbgMsg("allocating velocity field"); CHKERRQ(ierr);
         }
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
@@ -406,14 +406,14 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         if (this->m_WorkVecField1 == NULL) {
             try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
 
@@ -483,15 +483,15 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
 
         if (this->m_WorkVecField1 == NULL) {
             try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
 
@@ -595,8 +595,8 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // allocate
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_Regularization == NULL) {
@@ -655,20 +655,20 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     // allocate
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_Regularization == NULL) {
@@ -779,14 +779,14 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -853,7 +853,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = this->m_WorkVecField2->Norm(value); CHKERRQ(ierr);
-        ss << "||b||_2 = " << std::scientific << value;
+        ss << "norm of momentum ||b||_2 = " << std::scientific << value;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -955,20 +955,20 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
         try {this->m_IncVelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_Regularization == NULL) {
@@ -1024,20 +1024,20 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
         try {this->m_IncVelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_Regularization == NULL) {
@@ -1092,20 +1092,20 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     // allocate container for incremental velocity field
     if (this->m_IncVelocityField == NULL) {
         try {this->m_IncVelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_Regularization == NULL) {
@@ -1117,8 +1117,8 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     // solve and the computation of the incremental body force)
     if (this->m_WorkVecField5 == NULL) {
         try {this->m_WorkVecField5 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -1187,8 +1187,8 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     // allocate container for incremental velocity field
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -1255,20 +1255,20 @@ PetscErrorCode OptimalControlRegistration::EvaluatePrecondGradient(Vec g, Vec v)
     // allocate container for incremental velocity field
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -1349,14 +1349,14 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -1376,8 +1376,8 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 
         if (this->m_WorkVecField3 == NULL) {
             try {this->m_WorkVecField3 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
 
@@ -1644,8 +1644,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkScaField1 == NULL) {
@@ -1740,14 +1740,14 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -1919,8 +1919,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -2022,14 +2022,14 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -2222,14 +2222,14 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -2347,7 +2347,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     ScalarType ht, hthalf;
     ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
                 *p_gmn1 = NULL, *p_gmn2 = NULL, *p_gmn3 = NULL,
-                *p_gmX1 = NULL, *p_gmX2 = NULL, *p_gmX3 = NULL,
                 *p_mtilde = NULL, *p_m = NULL;
     const ScalarType *p_vtildeX1 = NULL, *p_vtildeX2 = NULL, *p_vtildeX3 = NULL,
                      *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL;
@@ -2375,26 +2374,20 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     }
     if (this->m_WorkVecField2 == NULL) {
         try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkVecField3 == NULL) {
         try {this->m_WorkVecField3 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField4 == NULL) {
-        try {this->m_WorkVecField4 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
@@ -2409,7 +2402,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     ierr = this->m_WorkVecField1->GetArrays(p_gmn1, p_gmn2, p_gmn3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArraysRead(p_vtildeX1, p_vtildeX2, p_vtildeX3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField4->GetArrays(p_gmX1, p_gmX2, p_gmX3); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
         for (IntType k = 0; k < nc; ++k) {  // for all image components
@@ -2420,21 +2412,22 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
             accfft_grad(p_gm1, p_gm2, p_gm3, p_m+l, this->m_Opt->GetFFT().plan, &XYZ, timers);
             this->m_Opt->IncrementCounter(FFT, 4);
 
+            // interpolate gradient of state variable
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_gm1, p_gm2, p_gm3,
+                                                             p_gm1, p_gm2, p_gm3, "state");
+
             // compute gradient for m_j+1
             accfft_grad(p_gmn1, p_gmn2, p_gmn3, p_m+lnext, this->m_Opt->GetFFT().plan, &XYZ, timers);
             this->m_Opt->IncrementCounter(FFT, 4);
 
-            // interpolate gradient of state variable
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_gmX1, p_gmX2, p_gmX3,
-                                                             p_gm1, p_gm2, p_gm3, "state");
 
             // interpolate incremental adjoint variable
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtilde+lnext, p_mtilde+l, "state"); CHKERRQ(ierr);
 
             for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lnext+i] -= hthalf*(p_gmX1[i]*p_vtildeX1[i]
-                                           + p_gmX2[i]*p_vtildeX2[i]
-                                           + p_gmX3[i]*p_vtildeX3[i]
+                p_mtilde[lnext+i] -= hthalf*(p_gm1[i]*p_vtildeX1[i]
+                                           + p_gm2[i]*p_vtildeX2[i]
+                                           + p_gm3[i]*p_vtildeX3[i]
                                            + p_gmn1[i]*p_vtilde1[i]
                                            + p_gmn2[i]*p_vtilde2[i]
                                            + p_gmn3[i]*p_vtilde3[i]);
@@ -2445,7 +2438,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     ierr = this->m_WorkVecField1->RestoreArrays(p_gmn1, p_gmn2, p_gmn3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArraysRead(p_vtildeX1, p_vtildeX2, p_vtildeX3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField4->RestoreArrays(p_gmX1, p_gmX2, p_gmX3); CHKERRQ(ierr);
 
     ierr = this->m_IncVelocityField->RestoreArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
 
@@ -2726,8 +2718,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
     }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
@@ -2861,8 +2853,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     if (this->m_WorkScaField1 == NULL) {
@@ -2876,8 +2868,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     }
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
@@ -2991,8 +2983,8 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     // set velocity field
@@ -3121,8 +3113,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     // if not yet allocted, do so and copy input
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
     ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
