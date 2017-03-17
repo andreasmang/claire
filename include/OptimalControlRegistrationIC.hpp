@@ -35,7 +35,6 @@ class OptimalControlRegistrationIC : public OptimalControlRegistration {
  public:
     typedef OptimalControlRegistrationIC Self;
     typedef OptimalControlRegistration SuperClass;
-    typedef ScalarType FFTScaType[2];
 
     OptimalControlRegistrationIC();
     OptimalControlRegistrationIC(RegOpt*);
@@ -65,13 +64,13 @@ class OptimalControlRegistrationIC : public OptimalControlRegistration {
     PetscErrorCode SolveIncAdjointEquationGNSL(void);
 
  private:
-    FFTScaType *m_x1hat;
-    FFTScaType *m_x2hat;
-    FFTScaType *m_x3hat;
+    ComplexType* m_x1hat;
+    ComplexType* m_x2hat;
+    ComplexType* m_x3hat;
 
-    FFTScaType *m_Kx1hat;
-    FFTScaType *m_Kx2hat;
-    FFTScaType *m_Kx3hat;
+    ComplexType* m_Kx1hat;
+    ComplexType* m_Kx2hat;
+    ComplexType* m_Kx3hat;
 };
 
 

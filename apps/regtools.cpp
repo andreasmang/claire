@@ -166,7 +166,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
         // computing gradient of m
         ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
         ierr = grad->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-        accfft_grad(p_gm1, p_gm2, p_gm3, p_m, regopt->GetFFT().plan, &XYZ, timers);
+        accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m, regopt->GetFFT().plan, &XYZ, timers);
         ierr = grad->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
         ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 

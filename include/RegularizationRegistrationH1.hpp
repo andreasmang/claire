@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,22 +14,18 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
-
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _REGULARIZATIONREGISTRATIONH1_H_
 #define _REGULARIZATIONREGISTRATIONH1_H_
 
 #include "RegularizationRegistration.hpp"
 
-namespace reg
-{
+namespace reg {
 
-class RegularizationRegistrationH1 : public RegularizationRegistration
-{
-public:
+class RegularizationRegistrationH1 : public RegularizationRegistration {
+ public:
     typedef RegularizationRegistration SuperClass;
     typedef RegularizationRegistrationH1 Self;
 
@@ -43,13 +39,12 @@ public:
     PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false);
     PetscErrorCode GetExtremeEigValsInvOp(ScalarType&,ScalarType&);
 
-protected:
+ protected:
 
-private:
-
+ private:
 };
 
-} // end of namespace
+}  // end of namespace
 
 
 #endif

@@ -1317,11 +1317,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
     ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
+    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
-        accfft_grad(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->GetFFT().plan, &XYZ, timings);
+        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->GetFFT().plan, &XYZ, timings);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
             // \bar{j} = j (\idiv \vect{v}) - (\vect{v} \cdot \igrad) j
@@ -1329,7 +1329,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
             p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
         }
 
-        accfft_grad(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timings);
+        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timings);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
             // \bar{j} = j (\idiv \vect{v}) - (\vect{v} \cdot \igrad) j
@@ -1422,7 +1422,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     ierr = VecGetArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3,this->m_Opt->GetFFT().plan,timings);
+    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
 
     inverse = this->m_Opt->GetRegFlags().invdefgrad;
     alpha = inverse ? -1.0 : 1.0;
@@ -1443,10 +1443,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
         // compute grad(\phi_j)
-        accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phi,this->m_Opt->GetFFT().plan,&XYZ,timings);
+        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phi,this->m_Opt->GetFFT().plan,&XYZ,timings);
 
         // compute div(\vect{v}\phi_j)
-        accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3,this->m_Opt->GetFFT().plan,timings);
+        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timings);
 #pragma omp parallel
 {
 #pragma omp  for
@@ -1467,10 +1467,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
         }
 } // pragma omp
 
-        accfft_grad(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->GetFFT().plan, &XYZ, timings);
+        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->GetFFT().plan, &XYZ, timings);
 
         // compute div(\vect{v}\bar{\phi}_j)
-        accfft_divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timings);
+        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timings);
 
 #pragma omp parallel
 {
@@ -1585,7 +1585,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     alpha = inverse ? -1.0 : 1.0;
 
     // compute div(v)
-    accfft_divergence(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
+    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timings);
 
     // compute div(v) at X
     ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvX, p_divv, "state"); CHKERRQ(ierr);
@@ -1695,9 +1695,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
     ierr = this->m_WorkVecField4->GetArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
 
     // compute gradient of components of displacement field
-    accfft_grad(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
-    accfft_grad(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
-    accfft_grad(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
 
     ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
 #pragma omp parallel
@@ -1950,9 +1950,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
                                             p_gv21X, p_gv22X, p_gv23X,
                                             p_gv31X, p_gv32X, p_gv33X); CHKERRQ(ierr);
 
-    accfft_grad(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X1 gradient
-    accfft_grad(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X2 gradient
-    accfft_grad(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X3 gradient
+    accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X1 gradient
+    accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X2 gradient
+    accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X3 gradient
 
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -2292,7 +2292,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     ierr = this->m_WorkVecField6->GetArrays(p_rhs01, p_rhs02, p_rhs03); CHKERRQ(ierr);
 
     // compute div(v)
-    accfft_divergence(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timers);
+    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timers);
 
 
     // copy initial condition to buffer
@@ -2311,13 +2311,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     for (IntType j = 0; j < nt; ++j) {
 
         // compute gradient of m_j
-        accfft_grad(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timers);
+        accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
-        accfft_grad(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timers);
+        accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
-        accfft_grad(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timers);
+        accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel
@@ -2336,11 +2336,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
 } // pragma omp parallel
 
         // compute div(v)
-        accfft_divergence(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timers);
+        accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timers);
 
 
         // compute gradient of \bar{m}
-        accfft_grad(p_gmx1, p_gmx2, p_gmx3, p_mbar,this->m_Opt->GetFFT().plan,&XYZ,timers);
+        accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_mbar,this->m_Opt->GetFFT().plan,&XYZ,timers);
         this->m_Opt->IncrementCounter(FFT,4);
 
 #pragma omp parallel

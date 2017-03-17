@@ -205,7 +205,7 @@ PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x) {
     n[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
     // get local pencil size and allocation size
-    alloc_max=accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
+    alloc_max = accfft_local_size_dft_r2c_t<ScalarType>(n,isize,istart,osize,ostart,
                                                         this->m_Opt->GetComm());
     if(this->m_xhat == NULL){
         this->m_xhat=(FFTScaType*)accfft_alloc(alloc_max);

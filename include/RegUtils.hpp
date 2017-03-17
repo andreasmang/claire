@@ -32,12 +32,19 @@
 // local includes
 #include "petsc.h"
 #include "accfft.h"
+#include "accfftf.h"
 #include "accfft_operators.h"
 
 #define IntType PetscInt
 #define ScalarType PetscScalar
 
-
+#if defined(PETSC_USE_REAL_SINGLE)
+#define ComplexType Complexf
+#define FFTWPlanType fftwf_plan
+#else
+#define ComplexType Complex
+#define FFTWPlanType fftw_plan
+#endif
 
 
 namespace reg {

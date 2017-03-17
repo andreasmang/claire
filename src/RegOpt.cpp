@@ -21,6 +21,8 @@
 
 #include <string>
 #include <vector>
+#include "accfft.h"
+#include "accfftf.h"
 
 #include "RegOpt.hpp"
 
@@ -782,11 +784,11 @@ PetscErrorCode RegOpt::DestroyFFT() {
  *******************************************************************/
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3], rank;
-    IntType n;
+    int nx[3], isize[3], istart[3], osize[3], ostart[3], rank, nalloc;
     std::stringstream ss;
     ScalarType *u = NULL, fftsetuptime;
-    Complex *uk = NULL;
+    ComplexType *uk = NULL;
+
     PetscFunctionBegin;
 
     this->Enter(__func__);
@@ -810,11 +812,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
 
-    // get sizes
-    n = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
-    if ((n > 0) == false) std::cout << "allocation size " << n << std::endl;
-    ierr = Assert(n > 0, "n < 0"); CHKERRQ(ierr);
-    this->m_FFT.nalloc = static_cast<IntType>(n);
+    // get sizes (n is an integer, so it can overflow)
+    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
+    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+
     if (this->m_Verbosity > 2) {
         ss << "data distribution: nx=("
            << nx[0] << "," << nx[1] << "," << nx[2]
@@ -825,10 +827,21 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // set up the fft
-    u = reinterpret_cast<ScalarType*>(accfft_alloc(n));
+    if (this->m_Verbosity > 2) {
+        ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
     ierr = Assert(u != NULL, "allocation failed"); CHKERRQ(ierr);
 
-    uk = reinterpret_cast<Complex*>(accfft_alloc(n));
+    // set up the fft
+    if (this->m_Verbosity > 2) {
+        ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+    uk = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     ierr = Assert(uk != NULL, "allocation failed"); CHKERRQ(ierr);
 
     MPI_Barrier(PETSC_COMM_WORLD);
@@ -842,10 +855,10 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     fftsetuptime = -MPI_Wtime();
-    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<double*>(uk),
+    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<ScalarType*>(uk),
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
     fftsetuptime += MPI_Wtime();
-
+    ierr = Assert(this->m_FFT.plan != NULL, "allocation failed"); CHKERRQ(ierr);
 
     if (this->m_PDESolver.type == SL) {
         if (isize[0] <= 3 || isize[1] <= 3) {
@@ -873,12 +886,12 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // check if sizes are ok
-    ierr = reg::Assert(this->m_Domain.nl > 0, "nl <= 0"); CHKERRQ(ierr);
-    ierr = reg::Assert(this->m_Domain.ng > 0, "ng <= 0"); CHKERRQ(ierr);
+    ierr = reg::Assert(this->m_Domain.nl > 0 && this->m_Domain.nl < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
+    ierr = reg::Assert(this->m_Domain.ng > 0 && this->m_Domain.ng < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
 
     // clean up
-    if (u != NULL) { accfft_free(u); u = NULL; }
-    if (uk != NULL) { accfft_free(uk); uk = NULL; }
+    if (u != NULL) {accfft_free(u); u = NULL;}
+    if (uk != NULL) {accfft_free(uk); uk = NULL;}
 
     this->Exit(__func__);
 
@@ -1604,7 +1617,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         this->m_GridCont.ng[j] = ng;  // set global size
 
         // get the local sizes
-        nalloc = accfft_local_size_dft_r2c(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+        nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
         this->m_GridCont.nalloc[j] = nalloc;
 
         // compute local sizes
@@ -2087,7 +2100,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     nxi[1] = static_cast<int>(nx[1]);
     nxi[2] = static_cast<int>(nx[2]);
 
-    accfft_local_size_dft_r2c(nxi, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    accfft_local_size_dft_r2c_t<ScalarType>(nxi, isize, istart, osize, ostart, this->m_FFT.mpicomm);
 
     nl = 1; ng = 1;
     for (int i = 0; i < 3; ++i) {
@@ -2122,7 +2135,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     nxi[1] = static_cast<int>(nx[1]);
     nxi[2] = static_cast<int>(nx[2]);
 
-    accfft_local_size_dft_r2c(nxi, isizei, istarti, osize, ostart, this->m_FFT.mpicomm);
+    accfft_local_size_dft_r2c_t<ScalarType>(nxi, isizei, istarti, osize, ostart, this->m_FFT.mpicomm);
 
     for (int i = 0; i < 3; ++i) {
         isize[i] = static_cast<IntType>(isizei[i]);

@@ -257,7 +257,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     int _nx_f[3], _ostart_f[3], _osize_f[3], _isize_f[3], _istart_f[3],
         _nx_c[3], _ostart_c[3], _osize_c[3], _isize_c[3], _istart_c[3];
     ScalarType *p_xfd = NULL, *p_xcd = NULL;
-    Complex *p_xfdhat = NULL, *p_xcdhat = NULL;
+    ComplexType *p_xfdhat = NULL, *p_xcdhat = NULL;
     std::stringstream ss;
     MPI_Comm mpicomm;
 
@@ -309,8 +309,8 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     // get communicator
     mpicomm = this->m_Opt->GetFFT().mpicomm;
 
-    nalloc_c = accfft_local_size_dft_r2c(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
-    nalloc_f = accfft_local_size_dft_r2c(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
+    nalloc_c = accfft_local_size_dft_r2c_t<ScalarType>(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
+    nalloc_f = accfft_local_size_dft_r2c_t<ScalarType>(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "sizes on coarse grid: isize=("
            << _isize_c[0] << "," << _isize_c[1] << "," << _isize_c[2]
@@ -369,7 +369,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         p_xfd = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc_f));
         ierr = Assert(p_xfd != NULL, "allocation failed"); CHKERRQ(ierr);
 
-        p_xfdhat = reinterpret_cast<Complex*>(accfft_alloc(nalloc_f));
+        p_xfdhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_f));
         ierr = Assert(p_xfdhat != NULL, "malloc failed"); CHKERRQ(ierr);
 
         this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f, p_xfd, reinterpret_cast<double*>(p_xfdhat),
@@ -388,7 +388,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         p_xcd = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc_c));
         ierr = Assert(p_xcd != NULL, "malloc failed"); CHKERRQ(ierr);
 
-        p_xcdhat = reinterpret_cast<Complex*>(accfft_alloc(nalloc_c));
+        p_xcdhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_c));
         ierr = Assert(p_xcdhat != NULL, "malloc failed"); CHKERRQ(ierr);
 
         this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c, p_xcd, reinterpret_cast<double*>(p_xcdhat),
@@ -1507,7 +1507,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // allocate
     if (this->m_xhat == NULL) {
-        this->m_xhat = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc));
+        this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
     // get parameters
@@ -1519,7 +1519,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute fft
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
     // compute cutoff frequency
@@ -1570,7 +1570,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute inverse fft
     ierr = VecGetArray(xflt, &p_xflt); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan, this->m_xhat, p_xflt, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_xhat, p_xflt, timer);
     ierr = VecRestoreArray(xflt, &p_xflt); CHKERRQ(ierr);
 
     // increment fft timer
@@ -1647,7 +1647,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     // compute fft
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
 #pragma omp parallel
@@ -1697,7 +1697,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     // compute inverse fft
     ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_Opt->GetFFT().plan, this->m_xhat, p_xs, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_xhat, p_xs, timer);
     ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
 
     // increment fft timer

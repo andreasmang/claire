@@ -20,7 +20,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-#define _REG_DEBUG_
+// #define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -339,6 +339,8 @@ struct RegNorm{
 
 
 struct FourierTransform{
+    //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
+    //accfft_plan_t<double, Complex, fftw_plan>* plan;  ///< accfft plan
     accfft_plan* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain

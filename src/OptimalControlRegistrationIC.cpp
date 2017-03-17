@@ -285,31 +285,31 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
     scale = this->m_Opt->ComputeFFTScale();
 
     if (this->m_x1hat == NULL) {
-        this->m_x1hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
+        this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
     if (this->m_x2hat == NULL) {
-        this->m_x2hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
+        this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
     if (this->m_x3hat == NULL) {
-        this->m_x3hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
+        this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
     if (this->m_Kx1hat == NULL) {
-        this->m_Kx1hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
+        this->m_Kx1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
     if (this->m_Kx2hat == NULL) {
-        this->m_Kx2hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
+        this->m_Kx2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
     if (this->m_Kx3hat == NULL) {
-        this->m_Kx3hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
+        this->m_Kx3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
     ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->IncrementCounter(FFT,3);
 
 #pragma omp parallel
@@ -380,9 +380,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
 }  // pragma omp parallel
 
     // compute inverse fft
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
     this->m_Opt->IncrementCounter(FFT, 3);
 
     ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);

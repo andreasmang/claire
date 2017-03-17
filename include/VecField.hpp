@@ -88,6 +88,7 @@ class VecField {
     Vec m_X1;
     Vec m_X2;
     Vec m_X3;
+
  private:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);

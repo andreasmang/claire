@@ -35,7 +35,7 @@ namespace reg {
 class RegularizationRegistration {
  public:
     typedef RegularizationRegistration Self;
-    typedef ScalarType FFTScaType[2];
+    //typedef ScalarType FFTScaType[2];
 
     RegularizationRegistration(void);
     RegularizationRegistration(RegOpt*);
@@ -58,9 +58,9 @@ class RegularizationRegistration {
     RegOpt* m_Opt;
     VecField* m_WorkVecField;
 
-    FFTScaType *m_v1hat;
-    FFTScaType *m_v2hat;
-    FFTScaType *m_v3hat;
+    ComplexType *m_v1hat;
+    ComplexType *m_v2hat;
+    ComplexType *m_v3hat;
 };
 
 

@@ -232,14 +232,14 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
 
     // compute \idiv(\vect{v})
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    accfft_divergence(p_divv, p_v1, p_v2, p_v3, this->m_Opt->GetFFT().plan, timer);
+    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->GetFFT().plan, timer);
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, 4);
 
 
     // compute gradient of div(v)
     ierr = this->m_WorkVecField1->GetArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
-    accfft_grad(p_gdv3,p_gdv2, p_gdv1, p_divv, this->m_Opt->GetFFT().plan, &XYZ, timer);
+    accfft_grad_t(p_gdv3, p_gdv2, p_gdv1, p_divv, this->m_Opt->GetFFT().plan, &XYZ, timer);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
 
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
@@ -375,9 +375,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
-    accfft_execute_r2c_t<ScalarType,FFTScaType>(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
+    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->IncrementCounter(FFT, 3);
 
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
@@ -457,9 +457,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
 }  // pragma omp parallel
 
     // compute inverse fft
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
-    accfft_execute_c2r_t<FFTScaType,ScalarType>(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
     this->m_Opt->IncrementCounter(FFT, 3);
 
     ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);

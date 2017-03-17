@@ -129,13 +129,13 @@ PetscErrorCode RegularizationRegistration::Allocate() {
     PetscFunctionBegin;
 
     if (this->m_v1hat == NULL) {
-        this->m_v1hat = reinterpret_cast<FFTScaType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
+        this->m_v1hat = reinterpret_cast<ComplexType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
     }
     if (this->m_v2hat == NULL) {
-        this->m_v2hat = reinterpret_cast<FFTScaType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
+        this->m_v2hat = reinterpret_cast<ComplexType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
     }
     if (this->m_v3hat == NULL) {
-        this->m_v3hat = reinterpret_cast<FFTScaType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
+        this->m_v3hat = reinterpret_cast<ComplexType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
     }
 
     PetscFunctionReturn(0);
