@@ -18,7 +18,6 @@
  ************************************************************************/
 
 
-
 #ifndef _SEMILAGRANGIAN_H_
 #define _SEMILAGRANGIAN_H_
 
@@ -26,14 +25,6 @@
 #include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
-
-
-//size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
-//void accfft_get_ghost(accfft_plan* plan,int g_size,int* isize_g, double* data,double* ghost_data);
-
-//size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
-//void accfft_get_ghost_xyz(accfft_plan* plan,int g_size,int* isize_g, double* data,double* ghost_data);
-
 #include "interp3.hpp"
 
 
