@@ -199,16 +199,8 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_WorkVecField1==NULL) {
-        this->m_WorkVecField1 = new VecField(this->m_Opt);
-    }
-
-    // scale v by -1
-    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
-
     // compute trajectory
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "adjoint"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     for (IntType j = 0; j < nt; ++j) {  // for all time points

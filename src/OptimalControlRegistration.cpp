@@ -479,18 +479,8 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
-
-        if (this->m_WorkVecField1 == NULL) {
-            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-
         // compute trajectory
-        ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "adjoint"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -1744,7 +1734,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
@@ -2013,12 +2002,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     if (this->m_WorkScaField3 == NULL) {
         ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
     }
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc& err) {
@@ -2026,21 +2009,15 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
         }
     }
 
-    // scale v by -1
-    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-
     // compute \idiv(\tilde{\lambda}\vect{v})
+    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timers);
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, 4);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
     // compute trajectory
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "adjoint"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     // evaluate div(v) at X
     ierr = VecGetArray(this->m_WorkScaField2, &p_divvX); CHKERRQ(ierr);
@@ -2059,8 +2036,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
             for (IntType i = 0; i < nl; ++i) {
                 ljX = p_ljX[i];
 
-                rhs0 = -ljX*p_divvX[i];
-                rhs1 = -(ljX + ht*rhs0)*p_divv[i];
+                rhs0 = ljX*p_divvX[i];
+                rhs1 = (ljX + ht*rhs0)*p_divv[i];
 
                 // compute \lambda(x,t^{j+1})
                 p_l[lnext+i] = ljX + 0.5*ht*(rhs0 + rhs1);
@@ -2838,12 +2815,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
     if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
@@ -2861,18 +2832,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
-    // set v to -v
-    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->Scale(-1.0); CHKERRQ(ierr);
-
-    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
     // compute div(v)
+    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timers);
-    this->m_Opt->IncrementCounter(FFT, 4);
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    this->m_Opt->IncrementCounter(FFT, 4);
 
     // evaluate div(v) on characteristic
     ierr = VecGetArray(this->m_WorkScaField2, &p_divvX); CHKERRQ(ierr);
@@ -2893,10 +2859,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
                 ltildejX = p_ltildejX[i];
 
                 // scale v(X) by \tilde{\lambda}(X(t^j))
-                rhs0 = -ltildejX*p_divvX[i];
+                rhs0 = ltildejX*p_divvX[i];
 
                 // scale v by \lamba{\lambda}
-                rhs1 = -(ltildejX + ht*rhs0)*p_divv[i];
+                rhs1 = (ltildejX + ht*rhs0)*p_divv[i];
 
                 // final rk2 step
                 p_ltilde[lnext+i] = ltildejX + hthalf*(rhs0 + rhs1);
@@ -2991,6 +2957,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
+        ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_Regularization->EvaluateFunctional(&rval, this->m_VelocityField); CHKERRQ(ierr);
 
         // get lebesque measure

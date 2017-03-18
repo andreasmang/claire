@@ -175,7 +175,7 @@ PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* readwrite) {
  *******************************************************************/
 PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType ht, hthalf, hx[3], x1, x2, x3;
+    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale;
     const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
     IntType isize[3], istart[3], l, i1, i2, i3, nl;
@@ -208,6 +208,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
             }
         }
         X = this->m_XS;
+        scale = 1.0;
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         if (this->m_XA == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
@@ -221,6 +222,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
             }
         }
         X = this->m_XA;
+        scale = -1.0;
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
@@ -250,9 +252,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
                 x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
 
-                X[l*3+0] = x1 - ht*p_v1[l];
-                X[l*3+1] = x2 - ht*p_v2[l];
-                X[l*3+2] = x3 - ht*p_v3[l];
+                X[l*3+0] = x1 - scale*ht*p_v1[l];
+                X[l*3+1] = x2 - scale*ht*p_v2[l];
+                X[l*3+2] = x3 - scale*ht*p_v3[l];
             }  // i1
         }  // i2
     }  // i3
@@ -290,9 +292,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
                 x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
 
-                X[l*3+0] = x1 - hthalf*(p_vX1[l] + p_v1[l]);
-                X[l*3+1] = x2 - hthalf*(p_vX2[l] + p_v2[l]);
-                X[l*3+2] = x3 - hthalf*(p_vX3[l] + p_v3[l]);
+                X[l*3+0] = x1 - scale*hthalf*(p_vX1[l] + p_v1[l]);
+                X[l*3+1] = x2 - scale*hthalf*(p_vX2[l] + p_v2[l]);
+                X[l*3+2] = x3 - scale*hthalf*(p_vX3[l] + p_v3[l]);
             }  // i1
         }  // i2
     }  // i3
