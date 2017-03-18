@@ -2,11 +2,12 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=yes
-DBGCODE=yes
-PEDANTIC=yes
-USEPNETCDF=yes
+BUILDTOOLS=no
+DBGCODE=no
+PEDANTIC=no
+USEPNETCDF=no
 USENIFTI=yes
+USESINGLE=no
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -53,12 +54,21 @@ APPDIR = ./apps
 
 COLD_INC = -I$(INCDIR)
 ifeq ($(DBGCODE),yes)
-	COLD_INC+= -isystem$(PETSC_DBG_DIR)/include -isystem$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/include
+	ifeq ($(USESINGLE),yes)
+		COLD_INC+= -isystem$(PETSC_DBG_DIR_SINGLE)/include -isystem$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/include
+	else 
+		COLD_INC+= -isystem$(PETSC_DBG_DIR)/include -isystem$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/include
+	endif
 else
-	COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
+	ifeq ($(USESINGLE),yes)
+		COLD_INC+= -isystem$(PETSC_DIR_SINGLE)/include -isystem$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/include
+	else
+		COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
+	endif
 endif
 COLD_INC+= -I$(ACCFFT_DIR)/include
 COLD_INC+= -I$(FFTW_DIR)/include
+COLD_INC+= -I$(MORTON_DIR)
 ifeq ($(USENIFTI),yes)
 	COLD_INC+= -I$(NIFTI_DIR)/include/nifti
 endif
@@ -70,10 +80,22 @@ endif
 
 LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
+ifeq ($(USESINGLE),yes)
+	LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3f -lfftw3f_threads
+endif
+
 ifeq ($(DBGCODE),yes)
-	LDFLAGS+= -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib 
+	ifeq ($(USESINGLE),yes)
+		LDFLAGS+= -L$(PETSC_DBG_DIR_SINGLE)/lib -L$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/lib
+	else
+		LDFLAGS+= -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib 
+	endif
 else
-	LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
+	ifeq ($(USESINGLE),yes)
+		LDFLAGS+= -L$(PETSC_DIR_SINGLE)/lib -L$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/lib
+	else
+		LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
+	endif
 endif
 LDFLAGS+= -lpetsc -lf2clapack -lf2cblas 
 
@@ -98,6 +120,7 @@ endif
 LDFLAGS+= -lm
 
 BIN+=$(BINDIR)/runcoldreg
+#BIN+=$(BINDIR)/checkcoldreg
 ifeq ($(BUILDTOOLS),yes)
 	BIN+=$(BINDIR)/regtools
 endif

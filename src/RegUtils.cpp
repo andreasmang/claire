@@ -416,12 +416,13 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
  *******************************************************************/
 PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc) {
     PetscErrorCode ierr = 0;
-    ScalarType xmin, xmax, xmin_g, xmax_g, xshift, xscale, *p_x = NULL;
+    ScalarType xmin, xmax, xmin_g, xmax_g, xscale, xshift, *p_x = NULL;
     IntType nl, l;
     int rval;
     std::stringstream ss;
 
     PetscFunctionBegin;
+
 
     if (nc == 1) {
         // get max and min values
@@ -430,10 +431,7 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
 
         xshift = xminout - xmin;
         ierr = VecShift(x, xshift); CHKERRQ(ierr);
-
-        xmax = (xmax != 0.0) ? xmax : 1.0;
-        xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax;
-
+        xscale = xmaxout / xmax;
         ierr = VecScale(x, xscale); CHKERRQ(ierr);
     } else {
         // compute local size from input vector
@@ -452,11 +450,11 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
             }
 
             // get min accross all procs
-            rval = MPI_Allreduce(&xmin, &xmin_g, 1, MPI_DOUBLE, MPI_MIN, PETSC_COMM_WORLD);
+            rval = MPI_Allreduce(&xmin, &xmin_g, 1, MPIU_REAL, MPI_MIN, PETSC_COMM_WORLD);
             ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
             // get max accross all procs
-            rval = MPI_Allreduce(&xmax, &xmax_g, 1, MPI_DOUBLE, MPI_MAX, PETSC_COMM_WORLD);
+            rval = MPI_Allreduce(&xmax, &xmax_g, 1, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD);
             ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
             // compute shift and scale
@@ -471,6 +469,7 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
         }  // for all components
         ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
     }  // if else
+
     PetscFunctionReturn(ierr);
 }
 

@@ -339,9 +339,9 @@ struct RegNorm{
 
 
 struct FourierTransform{
-    //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
+    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
     //accfft_plan_t<double, Complex, fftw_plan>* plan;  ///< accfft plan
-    accfft_plan* plan;  ///< accfft plan
+    //accfft_plan* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain
     IntType osize[3];   ///< size of grid in fourier domain for mpi proc

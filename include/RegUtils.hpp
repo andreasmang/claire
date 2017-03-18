@@ -36,7 +36,7 @@
 #include "accfft_operators.h"
 
 #define IntType PetscInt
-#define ScalarType PetscScalar
+#define ScalarType PetscReal
 
 #if defined(PETSC_USE_REAL_SINGLE)
 #define ComplexType Complexf
@@ -84,7 +84,7 @@ PetscErrorCode WrngMsg(std::string);
 PetscErrorCode DbgMsg(std::string);
 
 /*! interface to create a vector */
-PetscErrorCode VecCreate(Vec&,IntType,IntType);
+PetscErrorCode VecCreate(Vec&, IntType, IntType);
 
 /*! display scalar field */
 PetscErrorCode VecView(Vec);

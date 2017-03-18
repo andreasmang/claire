@@ -428,7 +428,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     PetscErrorCode ierr = 0;
     PrecondReg* precond = NULL;
     IntType maxits;
-    ScalarType reltol, abstol, divtol, scale;
+    ScalarType reltol, abstol, divtol, scale, lowerbound, upperbound;
     std::stringstream itss, rnss;
     std::string msg;
 
@@ -488,8 +488,12 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
             break;
         }
     }
-    reltol = std::max(reltol, 1E-16);  // make sure tolerance is non-zero
-    reltol = std::min(reltol, 5E-1);   // make sure tolerance smaller than 0.25
+
+    lowerbound = 1E-16;
+    reltol = std::max(reltol, lowerbound);  // make sure tolerance is non-zero
+
+    upperbound = 5E-1;
+    reltol = std::min(reltol, upperbound);   // make sure tolerance smaller than 0.25
 
     // set tolerances
     ierr = KSPSetTolerances(krylovmethod, reltol, abstol, divtol, maxits); CHKERRQ(ierr);

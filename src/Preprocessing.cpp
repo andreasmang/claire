@@ -372,7 +372,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         p_xfdhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_f));
         ierr = Assert(p_xfdhat != NULL, "malloc failed"); CHKERRQ(ierr);
 
-        this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f, p_xfd, reinterpret_cast<double*>(p_xfdhat),
+        this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f, p_xfd, reinterpret_cast<ScalarType*>(p_xfdhat),
                                                      this->m_Opt->GetFFT().mpicomm, ACCFFT_MEASURE);
         ierr = Assert(this->m_FFTFinePlan != NULL, "malloc failed"); CHKERRQ(ierr);
 
@@ -391,7 +391,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         p_xcdhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_c));
         ierr = Assert(p_xcdhat != NULL, "malloc failed"); CHKERRQ(ierr);
 
-        this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c, p_xcd, reinterpret_cast<double*>(p_xcdhat),
+        this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c, p_xcd, reinterpret_cast<ScalarType*>(p_xcdhat),
                                                        this->m_Opt->GetFFT().mpicomm, ACCFFT_MEASURE);
         ierr = Assert(this->m_FFTCoarsePlan != NULL, "malloc failed"); CHKERRQ(ierr);
 

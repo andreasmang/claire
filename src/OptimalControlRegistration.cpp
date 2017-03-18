@@ -577,7 +577,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
         value += dr*dr;
     }
 
-    rval = MPI_Allreduce(&value, &l2distance, 1, MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
     // objective value
@@ -1578,7 +1578,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         ScalarType maxval, minval, nvx1, nvx2, nvx3;
         ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
-        ss << "state variable: [" << std::scientific << minval << "," << maxval << "]";
+        ss  << "state variable: [" << std::scientific
+            << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 

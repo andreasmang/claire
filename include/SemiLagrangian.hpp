@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 
 
@@ -29,11 +28,11 @@
 #include "ReadWriteReg.hpp"
 
 
-size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
-void accfft_get_ghost(accfft_plan* plan,int g_size,int* isize_g, double* data,double* ghost_data);
+//size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
+//void accfft_get_ghost(accfft_plan* plan,int g_size,int* isize_g, double* data,double* ghost_data);
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
-void accfft_get_ghost_xyz(accfft_plan* plan,int g_size,int* isize_g, double* data,double* ghost_data);
+//size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan,int g_size, int * isize_g, int* istart_g);
+//void accfft_get_ghost_xyz(accfft_plan* plan,int g_size,int* isize_g, double* data,double* ghost_data);
 
 #include "interp3.hpp"
 

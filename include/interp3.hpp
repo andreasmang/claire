@@ -1,10 +1,20 @@
 #ifndef _INTERP3_HPP_
 #define _INTERP3_HPP_
-typedef double Real;
-#define MPI_T MPI_DOUBLE
 
-//typedef double Real;
-//#define MPI_T MPI_DOUBLE
+
+#include <accfft.h>
+#include <accfftf.h>
+
+  //        typedef double Real;
+  //        #define MPI_T MPI_DOUBLE
+  //        #define TC Complex
+  //        #define PL fftw_plan
+
+  typedef float Real;
+  #define MPI_T MPI_FLOAT
+  #define TC Complexf
+  #define PL fftwf_plan
+
 #define COORD_DIM 3
 #include <mpi.h>
 #include <vector>
@@ -19,15 +29,20 @@ void interp3_p(Real* reg_grid_vals, int data_dof, int N_reg, const int N_pts,
 void interp3_p(Real* reg_grid_vals, int data_dof, int* N_reg, const int N_pts,
 		Real* query_points, Real* query_values);
 
+void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
+		Real* query_points, Real* query_values,
+		bool query_values_already_scaled = false); // cubic interpolation
+
 void interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
 		Real* query_points, Real* query_values,
-		bool query_values_already_scaled = false);
+		bool query_values_already_scaled = false); // cubic interpolation
 
 void interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
 		Real* query_points, Real* query_values, int interp_order,
-		bool query_values_already_scaled = false);
+		bool query_values_already_scaled = false); // higher order interpolation
 
 void interp3_ghost_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
@@ -46,6 +61,9 @@ public:
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_points_in, Real* query_values, int* c_dims,
 			MPI_Comm c_comm);
+	void fast_scatter(int data_dof, int* N_reg, int * isize, int* istart,
+			const int N_pts, const int g_size, Real* query_points_in,
+			int* c_dims, MPI_Comm c_comm, double * timings);
 	void scatter(int data_dof, int* N_reg, int * isize, int* istart,
 			const int N_pts, const int g_size, Real* query_points_in,
 			int* c_dims, MPI_Comm c_comm, double * timings);
@@ -112,5 +130,27 @@ void gpu_par_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 //
 //		~Mem_Mgr();
 //};
+
+
+// GHOST FUNCTIONS
+
+size_t accfft_ghost_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_size,
+		int * isize_g, int* istart_g);
+//size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan, int g_size,
+//		int * isize_g, int* istart_g);
+void accfft_get_ghost(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_g, Real* data,
+		Real* ghost_data);
+//void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
+//		Real* ghost_data);
+
+size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_size,
+		int * isize_g, int* istart_g);
+//size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
+//		int * isize_g, int* istart_g);
+
+void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_g,
+		Real* data, Real* ghost_data);
+//void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
+//		Real* data, Real* ghost_data);
 
 #endif

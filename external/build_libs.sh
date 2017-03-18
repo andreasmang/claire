@@ -20,6 +20,8 @@ buildnifticlib=0
 buildpetsc=0
 buildpnetcdf=0
 buildpetscdgb=0
+buildpetscsingle=0
+buildpetscdbgsingle=0
 buildzlib=0
 cleanup=0
 
@@ -70,6 +72,14 @@ case $i in
     ;;
     --bpetscdbg)
     buildpetscdgb=1
+    shift # past argument=value
+    ;;
+    --bpetscsingle)
+    buildpetscsingle=1
+    shift # past argument=value
+    ;;
+    --bpetscdbgsingle)
+    buildpetscdbgsingle=1
     shift # past argument=value
     ;;
     --useIMPI)
@@ -310,7 +320,8 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo "----------------------------------------------------------------------------------"
 		echo extracting ACCFFT lib...
 		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
+		#tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/accfft-master.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a  ! ${ACCFFT_LIB_DIR} == ${HOME} ]; then
@@ -403,10 +414,67 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}
 
 
 
+################################
+# PETSC
+################################
+PETSC_LIB_DIR=${BUILD_DIR}/petsc_single
+SRC_DIR=${PETSC_LIB_DIR}/src
+BLD_DIR=${PETSC_LIB_DIR}/build
+PETSC_ARCH=cxx_opt
+
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${PETSC_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting PETSC lib...
+		echo "----------------------------------------------------------------------------------"
+		#tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/petsc-lite-3.7.3.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+if [ ${builddep} -eq 1 -o ${buildpetscsingle} -eq 1 ]; then 
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "configuring PETSC" 
+	echo "----------------------------------------------------------------------------------"
+	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${SRC_DIR}/${PETSC_ARCH}
+	fi
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}/build
+	fi
+	mkdir ${BLD_DIR}
+	cd ${SRC_DIR}
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_OPTIONS} --with-precision=single
+	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_OPTIONS} --with-precision=single
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "building PETSC" 
+	echo "----------------------------------------------------------------------------------"
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
+else
+	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+echo "export PETSC_DIR_SINGLE=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export PETSC_ARCH_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
+
+
 
 
 ################################
-# PETSC
+# PETSC DBG
 ################################
 PETSC_LIB_DIR=${BUILD_DIR}/petsc_dbg
 SRC_DIR=${PETSC_LIB_DIR}/src
@@ -462,7 +530,83 @@ echo "export PETSC_DBG_ARCH=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
 echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 
+################################
+# PETSC DBG SINGLE PRECISION
+################################
+PETSC_LIB_DIR=${BUILD_DIR}/petsc_dbg_single
+SRC_DIR=${PETSC_LIB_DIR}/src
+BLD_DIR=${PETSC_LIB_DIR}/build
+PETSC_ARCH=cxx_opt
 
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${PETSC_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting PETSC lib...
+		echo "----------------------------------------------------------------------------------"
+		#tar -xzf ${LIB_DIR}/petsc-lite-3.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/petsc-lite-3.7.3.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+
+if [ ${builddep} -eq 1 -o ${buildpetscdbgsingle} -eq 1 ]; then 
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "configuring PETSC" 
+	echo "----------------------------------------------------------------------------------"
+	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${SRC_DIR}/${PETSC_ARCH}
+	fi
+	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}/build
+	fi
+	mkdir ${BLD_DIR}
+	cd ${SRC_DIR}
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_DBG_OPTIONS} --with-precision=single
+	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_DBG_OPTIONS} --with-precision=single
+	echo ""
+	echo "----------------------------------------------------------------------------------"
+	echo "building PETSC" 
+	echo "----------------------------------------------------------------------------------"
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
+else
+	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+echo "export PETSC_DBG_DIR_SINGLE=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export PETSC_DBG_ARCH_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
+
+
+
+
+M_LIB_DIR=${BUILD_DIR}/libmorton
+SRC_DIR=${M_LIB_DIR}
+if [ ! ${cleanup} -eq 1 ]; then
+	if [ ! -d ${M_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
+		mkdir -p ${SRC_DIR}
+		echo ""
+		echo "----------------------------------------------------------------------------------"
+		echo extracting libmorton...
+		echo "----------------------------------------------------------------------------------"
+		tar -xzf ${LIB_DIR}/libmorton.tar.gz -C ${SRC_DIR} --strip-components=1
+	fi
+else
+	if [  ${cleanup} -eq 1 -a ! ${M_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${M_LIB_DIR}
+	fi
+fi
+echo "export MORTON_DIR=${SRC_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 
 

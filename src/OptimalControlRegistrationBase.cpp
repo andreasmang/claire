@@ -812,10 +812,12 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nx[3];
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-               *p_mt = NULL, hx[3], xc1, xc2, xc3, x, sigma;
+               *p_mt = NULL, hx[3], xc1, xc2, xc3, x,
+                sigma, maxval, minval, nvx1, nvx2, nvx3;
     int vcase = 2;
     int icase = 0;
     ScalarType v0 = 0.2;
+    std::stringstream ss;
 
     PetscFunctionBegin;
 
@@ -842,15 +844,15 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
+//    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
 
     // allocate reference image
     if (mR == NULL) {ierr = VecCreate(mR, nl*nc, ng*nc); CHKERRQ(ierr);}
-    ierr = VecSet(mR, 0.0); CHKERRQ(ierr);
+    ierr = VecSet(mR, 0); CHKERRQ(ierr);
 
     // allocate template image
     if (mT == NULL) {ierr = VecCreate(mT, nl*nc, ng*nc); CHKERRQ(ierr);}
-    ierr = VecSet(mT, 0.0); CHKERRQ(ierr);
+    ierr = VecSet(mT, 0); CHKERRQ(ierr);
 
     // compute center coordinates
     xc1 = hx[0]*static_cast<ScalarType>(nx[0])/2.0;
@@ -859,11 +861,11 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
-#pragma omp parallel
-{
+//#pragma omp parallel
+//{
     ScalarType x1, x2, x3;
     IntType i1, i2, i3, i;
-#pragma omp for
+//#pragma omp for
     for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
@@ -876,32 +878,34 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
                 i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
 
                 if (icase == 0) {
-                    p_mt[i] = (sin(x1)*sin(x1) + sin(x2)*sin(x2) + sin(x3)*sin(x3))/3.0;
+                    p_mt[i] =  (PetscSinReal(x1)*PetscSinReal(x1)
+                              + PetscSinReal(x2)*PetscSinReal(x2)
+                              + PetscSinReal(x3)*PetscSinReal(x3))/3;
                 } else if (icase == 1) {
                     sigma = 0.05*2.0*PETSC_PI;
                     x1 -= xc1; x2 -= xc2; x3 -= xc3;
-                    x   = sqrt(x1*x1 + x2*x2 + x3*x3)/sigma;
-                    p_mt[i] = exp(-x*x);
+                    x   = PetscSqrtReal(x1*x1 + x2*x2 + x3*x3)/sigma;
+                    p_mt[i] = PetscExpReal(-x*x);
                 }
 
                 if (vcase == 0) {
                     // compute the velocity field
-                    p_vx1[i] = v0*sin(x3)*cos(x2)*sin(x2);
-                    p_vx2[i] = v0*sin(x1)*cos(x3)*sin(x3);
-                    p_vx3[i] = v0*sin(x2)*cos(x1)*sin(x1);
+                    p_vx1[i] = v0*PetscSinReal(x3)*PetscCosReal(x2)*PetscSinReal(x2);
+                    p_vx2[i] = v0*PetscSinReal(x1)*PetscCosReal(x3)*PetscSinReal(x3);
+                    p_vx3[i] = v0*PetscSinReal(x2)*PetscCosReal(x1)*PetscSinReal(x1);
                 } else if (vcase == 1) {
                     // compute the velocity field
-                    p_vx1[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
-                    p_vx2[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
-                    p_vx3[i] = sin(2.0*x1)*cos(2.0*x2)*sin(2.0*x3);
+                    p_vx1[i] = PetscSinReal(2*x1)*PetscCosReal(2*x2)*PetscSinReal(2*x3);
+                    p_vx2[i] = PetscSinReal(2*x1)*PetscCosReal(2*x2)*PetscSinReal(2*x3);
+                    p_vx3[i] = PetscSinReal(2*x1)*PetscCosReal(2*x2)*PetscSinReal(2*x3);
                 } else if (vcase == 2) {
-                    p_vx1[i] = cos(x1)*sin(x2);
-                    p_vx2[i] = cos(x2)*sin(x1);
-                    p_vx3[i] = cos(x1)*sin(x3);
+                    p_vx1[i] = PetscCosReal(x1)*PetscSinReal(x2);
+                    p_vx2[i] = PetscCosReal(x2)*PetscSinReal(x1);
+                    p_vx3[i] = PetscCosReal(x1)*PetscSinReal(x3);
                 } else if (vcase == 3) {
-                    p_vx1[i] = cos(x2)*cos(x3);
-                    p_vx2[i] = sin(x3)*sin(x1);
-                    p_vx3[i] = cos(x1)*cos(x2);
+                    p_vx1[i] = PetscCosReal(x2)*PetscCosReal(x3);
+                    p_vx2[i] = PetscSinReal(x3)*PetscSinReal(x1);
+                    p_vx3[i] = PetscCosReal(x1)*PetscCosReal(x2);
                 } else if (vcase == 4) {
                     p_vx1[i] = v0;
                     p_vx2[i] = v0;
@@ -910,9 +914,35 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
             }  // i1
         }  // i2
     }  // i3
-}  // pragma omp parallel
+//}  // pragma omp parallel
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
+        ss  << "velocity norm: (" << std::scientific
+            << nvx1 << "," << nvx2 << "," << nvx3 <<")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecMin(this->m_VelocityField->m_X1, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(this->m_VelocityField->m_X1, NULL, &maxval); CHKERRQ(ierr);
+        ss << "velocity x1: (" << minval << "," << maxval <<")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecMin(this->m_VelocityField->m_X2, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(this->m_VelocityField->m_X2, NULL, &maxval); CHKERRQ(ierr);
+        ss << "velocity x2: (" << minval << "," << maxval <<")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+
+        ierr = VecMin(this->m_VelocityField->m_X3, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(this->m_VelocityField->m_X3, NULL, &maxval); CHKERRQ(ierr);
+        ss << "velocity x3: (" << minval << "," << maxval <<")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
 
     // if the image has more than one component, just copy the
     // content of first image to all other
@@ -933,8 +963,15 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         }
         ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     }
+    ierr = Rescale(mT, 0, 1, nc); CHKERRQ(ierr);
 
-    ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = VecMin(mT, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(mT, NULL, &maxval); CHKERRQ(ierr);
+        ss << "template image: (" << minval << "," << maxval <<")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
 
     // solve the forward problem using the computed
     // template image and the computed velocity field as input
@@ -942,7 +979,14 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
+    ierr = Rescale(mR, 0, 1, nc); CHKERRQ(ierr);
+    if (this->m_Opt->GetVerbosity() > 2) {
+        ierr = VecMin(mR, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(mR, NULL, &maxval); CHKERRQ(ierr);
+        ss << "reference image: (" << minval << "," << maxval <<")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
 
     // reset velocity field
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);

@@ -2300,17 +2300,17 @@ PetscErrorCode RegOpt::ProcessTimers() {
         ival = this->m_Timer[id][LOG];
 
         // get maximal execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_MIN, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_Timer[id][MIN] = xval;
 
         // get maximal execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_MAX, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_Timer[id][MAX] = xval;
 
         // get mean execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_SUM, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_Timer[id][AVG] = xval;
 
@@ -2324,17 +2324,17 @@ PetscErrorCode RegOpt::ProcessTimers() {
         ival = this->m_FFTTimers[i][LOG];
 
         // get maximal execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_MIN, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_FFTTimers[i][MIN] = xval;
 
         // get maximal execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_MAX, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_FFTTimers[i][MAX] = xval;
 
         // get mean execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_SUM, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_FFTTimers[i][AVG] = xval;
 
@@ -2348,17 +2348,17 @@ PetscErrorCode RegOpt::ProcessTimers() {
         ival = this->m_InterpTimers[i][LOG];
 
         // get maximal execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_MIN, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_InterpTimers[i][MIN] = xval;
 
         // get maximal execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_MAX, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_InterpTimers[i][MAX] = xval;
 
         // get mean execution time
-        rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD);
+        rval = MPI_Reduce(&ival, &xval, 1, MPIU_REAL, MPI_SUM, 0, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
         this->m_InterpTimers[i][AVG] = xval;
 

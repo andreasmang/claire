@@ -1338,7 +1338,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     IntType nx[3], nl, ng, isize[3];
     Vec mT = NULL, mR = NULL, xstar = NULL;
     VecField *v = NULL;
-    ScalarType greltol, tolscale = 1E1;
+    ScalarType greltol, tolscale = 10;
     bool solve;
 
     PetscFunctionBegin;
@@ -1416,7 +1416,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     // to solve as accurately when we solve on the coarse grid
     greltol = this->m_Opt->GetOptPara().tol[2];
 
-    if (greltol < 1E-2) {
+    if (greltol < 0.01) {
         if (this->m_Opt->GetVerbosity() > 1) {
             ss  << std::scientific << "increasing tolerance for gradient: "
                 << greltol << " >> " << tolscale*greltol;
@@ -1512,7 +1512,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
             // reset tolerances
-            if ((level == (nlevels-1)) && (greltol < 1E-2)) {
+            if ((level == (nlevels-1)) && (greltol < 0.01)) {
                 if (this->m_Opt->GetVerbosity() > 1) {
                     ss  << std::scientific << "reseting tolerance for gradient: "
                         << tolscale*greltol << " >> " << greltol;

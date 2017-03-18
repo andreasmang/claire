@@ -607,7 +607,7 @@ PetscErrorCode VecField::Norm(ScalarType& value) {
     }
     ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&vnorm, &value, 1, MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&vnorm, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
     value = PetscSqrtReal(value);

@@ -202,7 +202,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_XS = new double [3*nl];}
+            try {this->m_XS = new ScalarType [3*nl];}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
@@ -215,7 +215,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_XA = new double [3*nl];}
+            try {this->m_XA = new ScalarType [3*nl];}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
@@ -262,7 +262,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     // normalize to [0,1]
     for (IntType i = 0; i < 3*nl; ++i) {
-        X[i] /= (2.0*PETSC_PI);
+        X[i] /= (2*PETSC_PI);
     }
 
     // interpolate velocity field v(X)
@@ -271,7 +271,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     // normalize to [0,2*pi]
     for (IntType i = 0; i < 3*nl; ++i) {
-        X[i] *= (2.0*PETSC_PI);
+        X[i] *= (2*PETSC_PI);
     }
 
     // X = x - 0.5*ht*(v + v(x - ht v))
@@ -303,7 +303,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     // normalize to [0,1]
     for (IntType i = 0; i < 3*nl; ++i) {
-        X[i] /= (2.0*PETSC_PI);
+        X[i] /= (2*PETSC_PI);
     }
 
     ierr =this->MapCoordinateVector(flag); CHKERRQ(ierr);
@@ -354,7 +354,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval;
     IntType nl, g_alloc_max;
     std::stringstream ss;
-    accfft_plan* plan = NULL;
+    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;  ///< accfft plan
+//    accfft_plan* plan = NULL;
     double timers[4] = {0, 0, 0, 0};
 
     PetscFunctionBegin;
@@ -457,7 +458,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2];
     double timers[4] = {0, 0, 0, 0};
-    accfft_plan* plan;
+    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;  ///< accfft plan
+//    accfft_plan* plan;
     std::stringstream ss;
     IntType nl, nlghost, g_alloc_max;
 
@@ -491,7 +493,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
         }
-        try {this->m_X = new double [3*nl];}
+        try {this->m_X = new ScalarType [3*nl];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
@@ -612,7 +614,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
         }
-        try {this->m_X = new double [3*nl];}
+        try {this->m_X = new ScalarType [3*nl];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
@@ -633,9 +635,9 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     }
 
     for (IntType i = 0; i < nl; ++i) {
-        this->m_X[i*3+0] = yx1[i]/(2.0*PETSC_PI);
-        this->m_X[i*3+1] = yx2[i]/(2.0*PETSC_PI);
-        this->m_X[i*3+2] = yx3[i]/(2.0*PETSC_PI);
+        this->m_X[i*3+0] = yx1[i]/(2*PETSC_PI);
+        this->m_X[i*3+1] = yx2[i]/(2*PETSC_PI);
+        this->m_X[i*3+2] = yx3[i]/(2*PETSC_PI);
     }
 
     // scatter

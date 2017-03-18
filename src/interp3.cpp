@@ -13,6 +13,116 @@
 //#define VERBOSE2
 #define sleep(x) ;
 
+
+void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+	//for (int i = 0; i < 4; i++) {
+	//	lagr_denom[i] = 1;
+	//	for (int j = 0; j < 4; j++) {
+	//		if (i != j)
+	//			lagr_denom[i] /= (Real) (i - j);
+	//	}
+	// }
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+  //std::cout << " lagr_denom[0] = " << lagr_denom[0]
+  //          << " lagr_denom[1] = " << lagr_denom[1]
+  //          << " lagr_denom[2] = " << lagr_denom[2]
+  //          << " lagr_denom[3] = " << lagr_denom[3] << std::endl;
+  //do{}while(1);
+	int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
+
+	for (int i = 0; i < N_pts; i++) {
+    {
+#ifdef VERBOSE2
+		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
+		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
+		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
+#endif
+  }
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+    if(grid_indx[0]> isize_g[0]-3 || grid_indx[1]> isize_g[1]-3 ||grid_indx[2]> isize_g[2] -3)
+    {
+//#ifdef VERBOSE2
+		std::cout<<"***** query point="<<query_points[0]<<" "<<query_points[1]<<" "<<query_points[2]<<std::endl;
+		std::cout<<"***** grid_index="<<grid_indx[0]<<" "<<grid_indx[1]<<" "<<grid_indx[2]<<std::endl;
+		std::cout<<"***** point="<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
+		std::cout<<"f @grid_index="<<reg_grid_vals[grid_indx[0]*isize_g[1]*isize_g[2]+grid_indx[1]*isize_g[2]+grid_indx[2]]<<std::endl;
+		std::cout<<"hp= "<<1./N_reg_g[0]<<std::endl;
+		std::cout<<"N_reg_g= "<<N_reg_g[0]<<" "<<N_reg_g[1]<<" "<<N_reg_g[2]<<std::endl;
+//#endif
+  }
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+		int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		for (int k = 0; k < data_dof; k++) {
+			Real val = 0;
+      int indx = 0;
+			for (int j0 = 0; j0 < 4; j0++) {
+				for (int j1 = 0; j1 < 4; j1++) {
+            Real M0M1 = M[0][j0]*M[1][j1];
+            Real val_ = 0;
+			    for (int j2 = 0; j2 < 4; j2++) {
+						//int indx = j2
+						//		+ isize_g[2] * j1
+						//		+ isize_g[2] * isize_g[1] *j0;
+						val_ += M[2][j2]
+								* reg_grid_vals[indx + indxx + k*N_reg3];
+            ++indx;
+					}
+          val += val_ * M0M1;
+          indx += isize_g[2]-4;
+				}
+        indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+			}
+			query_values[i + k * N_pts] = val;
+		}
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+
 /*
  * Performs a parallel 3D cubic interpolation for a row major periodic input (x \in [0,1) )
  * This function assumes that the input grid values have been padded on all sides
@@ -470,6 +580,7 @@ void rescale(const int g_size, int* N_reg, int* N_reg_g, int* istart,
  * determine the x,y, and z coordinate of 1 query point in 3D.
  *
  * @param[out] query_values The interpolated values
+ * snafu
  *
  */
 
@@ -490,14 +601,22 @@ void interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		query_points = query_points_in;
 	}
 	Real lagr_denom[4];
-	for (int i = 0; i < 4; i++) {
-		lagr_denom[i] = 1;
-		for (int j = 0; j < 4; j++) {
-			if (i != j)
-				lagr_denom[i] /= (Real) (i - j);
-		}
-	}
-
+	//for (int i = 0; i < 4; i++) {
+	//	lagr_denom[i] = 1;
+	//	for (int j = 0; j < 4; j++) {
+	//		if (i != j)
+	//			lagr_denom[i] /= (Real) (i - j);
+	//	}
+	// }
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+  //std::cout << " lagr_denom[0] = " << lagr_denom[0]
+  //          << " lagr_denom[1] = " << lagr_denom[1]
+  //          << " lagr_denom[2] = " << lagr_denom[2]
+  //          << " lagr_denom[3] = " << lagr_denom[3] << std::endl;
+  //do{}while(1);
 	int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
 
 	for (int i = 0; i < N_pts; i++) {
@@ -547,11 +666,14 @@ void interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 										* ((grid_indx[1] + j1) % isize_g[1])
 								+ isize_g[2] * isize_g[1]
 										* ((grid_indx[0] + j0) % isize_g[0]);
+						//val += M[0][j0] * M[1][j1] * M[2][j2]
+						//		* reg_grid_vals[0];
 						val += M[0][j0] * M[1][j1] * M[2][j2]
 								* reg_grid_vals[indx + k * N_reg3];
 					}
 				}
 			}
+			//query_values[0] = val;
 			query_values[i + k * N_pts] = val;
 		}
 	}
