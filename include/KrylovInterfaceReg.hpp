@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,9 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 
 #ifndef _KRYLOVINTERFACEREG_H_
 #define _KRYLOVINTERFACEREG_H_
@@ -26,8 +26,13 @@
 #include "OptimizationProblem.hpp"
 #include "PrecondReg.hpp"
 
-namespace reg
-{
+
+
+
+namespace reg {
+
+
+
 
 // mat vec for two level preconditioner
 PetscErrorCode KrylovMonitor(KSP,PetscInt,PetscReal,void*);
@@ -43,6 +48,10 @@ PetscErrorCode PostKrylovSolve(KSP,Vec,Vec,void*);
 
 
 
-} // end of name space
 
-#endif // _KRYLOVINTERFACEREG_H_
+}  // namespace reg
+
+
+
+
+#endif  // _KRYLOVINTERFACEREG_H_
