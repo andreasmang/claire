@@ -100,11 +100,6 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_WorkVecField != NULL) {
-        delete this->m_WorkVecField;
-        this->m_WorkVecField = NULL;
-    }
-
     if (this->m_X != NULL) {
         delete [] this->m_X; this->m_X = NULL;
     }
@@ -170,6 +165,24 @@ PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* readwrite) {
 
 
 /********************************************************************
+ * @brief set work vector field to not have to allocate it locally
+ *******************************************************************/
+PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_WorkVecField = v;
+
+    PetscFunctionReturn(ierr);
+
+}
+
+
+
+
+
+/********************************************************************
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
  *******************************************************************/
@@ -186,12 +199,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_WorkVecField == NULL) {
-        try {this->m_WorkVecField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
+    ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetDomainPara().nl;
 

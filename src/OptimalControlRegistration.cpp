@@ -412,6 +412,13 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
             }
         }
         // compute trajectory
+        if (this->m_WorkVecField1 == NULL) {
+            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+        }
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
 
@@ -480,6 +487,13 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
             }
         }
         // compute trajectory
+        if (this->m_WorkVecField1 == NULL) {
+            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+        }
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
@@ -1735,6 +1749,13 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
         }
     }
     // compute trajectory
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     // get state variable m
@@ -2009,15 +2030,23 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
         }
     }
 
+    // compute trajectory
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+
+
     // compute \idiv(\tilde{\lambda}\vect{v})
     ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timers);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, 4);
-
-    // compute trajectory
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     // evaluate div(v) at X
     ierr = VecGetArray(this->m_WorkScaField2, &p_divvX); CHKERRQ(ierr);
@@ -2352,6 +2381,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
+        if (this->m_WorkVecField1 == NULL) {
+            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+        }
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
 
@@ -2829,6 +2865,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
+        if (this->m_WorkVecField1 == NULL) {
+            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+        }
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 

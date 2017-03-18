@@ -64,6 +64,7 @@ class SemiLagrangian {
                                        ScalarType*,ScalarType*,ScalarType*);
 
     PetscErrorCode SetReadWrite(ReadWriteReg*);
+    PetscErrorCode SetWorkVecField(VecField*);
 
  protected:
     PetscErrorCode Initialize();
