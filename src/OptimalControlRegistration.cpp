@@ -411,16 +411,8 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
-        if (this->m_WorkVecField1 == NULL) {
-            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-
         // compute trajectory
-        ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -477,7 +469,6 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     if (this->m_AdjointVariable == NULL) {
         ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
     }
-
     ierr = VecCopy(lambda, this->m_AdjointVariable); CHKERRQ(ierr);
 
     if (this->m_Opt->GetPDESolverPara().type == SL) {
@@ -1747,12 +1738,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nl;
 
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc& err) {
@@ -1761,8 +1746,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     }
 
     // compute trajectory
-    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     // get state variable m
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
