@@ -338,6 +338,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
     // allocate state variable
     if (this->m_StateVariable == NULL) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        ierr = VecSet(this->m_StateVariable, 0); CHKERRQ(ierr);
     }
 
     // copy memory for m_1
