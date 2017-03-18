@@ -597,9 +597,9 @@ if [ ! ${cleanup} -eq 1 ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
 		echo "----------------------------------------------------------------------------------"
-		echo extracting libmorton...
+		echo extracting morton library...
 		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/libmorton.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/morton.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${M_LIB_DIR} == ${HOME} ]; then
