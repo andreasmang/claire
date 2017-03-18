@@ -171,13 +171,13 @@ PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* readwrite) {
 
 /********************************************************************
  * @brief compute the trajectory from the velocity field based
- * on an rk2 scheme
+ * on an rk2 scheme (todo: make the velocity field a const vector)
  *******************************************************************/
 PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
     ScalarType ht, hthalf, hx[3], x1, x2, x3;
-    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
+    const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
+    ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
     IntType isize[3], istart[3], l, i1, i2, i3, nl;
     std::stringstream ss;
     ScalarType* X = NULL;
@@ -235,7 +235,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     }
 
     // \tilde{X} = x - ht v
-    ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp for
@@ -257,8 +257,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
         }  // i2
     }  // i3
 }  // pragma omp for
-
-    ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // normalize to [0,1]
     for (IntType i = 0; i < 3*nl; ++i) {
@@ -275,7 +274,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     }
 
     // X = x - 0.5*ht*(v + v(x - ht v))
-    ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
 #pragma omp parallel
 {
@@ -299,7 +298,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     }  // i3
 }  // pragma omp for
     ierr = this->m_WorkVecField->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-    ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // normalize to [0,1]
     for (IntType i = 0; i < 3*nl; ++i) {
