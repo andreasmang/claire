@@ -75,8 +75,11 @@ PetscErrorCode Optimizer::Initialize(void) {
 
     this->m_Tao = NULL;
     this->m_Precond = NULL;
+
+    this->m_MatVec = NULL;
     this->m_PreProc = NULL;
     this->m_Solution = NULL;
+
     this->m_KrylovMethod = NULL;
     this->m_OptimizationProblem = NULL;
 
@@ -103,6 +106,11 @@ PetscErrorCode Optimizer::ClearMemory(void) {
     if (this->m_Solution != NULL) {
         ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
         this->m_Solution = NULL;
+    }
+
+    if (this->m_MatVec != NULL) {
+        ierr = MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
+        this->m_MatVec = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -222,7 +230,6 @@ PetscErrorCode Optimizer::SetupTao() {
     ScalarType gatol, grtol, gttol, reltol, abstol, divtol;
     IntType maxit;
     void* optprob;
-    Mat matvec;
     PC preconditioner;
     TaoLineSearch linesearch;
     PetscFunctionBegin;
@@ -275,7 +282,7 @@ PetscErrorCode Optimizer::SetupTao() {
         abstol = this->m_Opt->GetKrylovSolverPara().tol[1];     // 1E-12;
         divtol = this->m_Opt->GetKrylovSolverPara().tol[2];     // 1E+06;
         maxit  = this->m_Opt->GetKrylovSolverPara().maxit;      // 1000;
-        maxit  = std::max(0.0,maxit-1.0);
+        maxit  = std::max(static_cast<IntType>(0), maxit-1);
         ierr = KSPSetTolerances(this->m_KrylovMethod, reltol, abstol, divtol, maxit); CHKERRQ(ierr);
         ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
 //        ierr = KSPSetInitialGuessNonzero(krylovmethod,PETSC_TRUE); CHKERRQ(ierr);
@@ -395,10 +402,10 @@ PetscErrorCode Optimizer::SetupTao() {
     ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->GetOptPara().maxit-1); CHKERRQ(ierr);
     ierr = TaoSetFunctionLowerBound(this->m_Tao, 1E-6); CHKERRQ(ierr);
 
-    ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu, optprob, &matvec); CHKERRQ(ierr);
-    ierr = MatShellSetOperation(matvec, MATOP_MULT, (void(*)(void))HessianMatVec); CHKERRQ(ierr);
-    ierr = MatSetOption(matvec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
-    ierr = TaoSetHessianRoutine(this->m_Tao, matvec, matvec, EvaluateHessian, optprob); CHKERRQ(ierr);
+    ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu, optprob, &this->m_MatVec); CHKERRQ(ierr);
+    ierr = MatShellSetOperation(this->m_MatVec, MATOP_MULT, (void(*)(void))HessianMatVec); CHKERRQ(ierr);
+    ierr = MatSetOption(this->m_MatVec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
+    ierr = TaoSetHessianRoutine(this->m_Tao, this->m_MatVec, this->m_MatVec, EvaluateHessian, optprob); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
     PetscFunctionReturn(0);

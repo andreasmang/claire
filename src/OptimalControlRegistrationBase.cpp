@@ -810,10 +810,11 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegOpSqrt(Vec x) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nx[3];
+    IntType nl, ng, nc, nx[3], i;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                *p_mt = NULL, hx[3], xc1, xc2, xc3, x,
                 sigma, maxval, minval, nvx1, nvx2, nvx3;
+    ScalarType x1, x2, x3;
     int vcase = 2;
     int icase = 0;
     ScalarType v0 = 0.2;
@@ -844,14 +845,18 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
-//    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
+    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
 
     // allocate reference image
-    if (mR == NULL) {ierr = VecCreate(mR, nl*nc, ng*nc); CHKERRQ(ierr);}
+    if (mR == NULL) {
+        ierr = VecCreate(mR, nl*nc, ng*nc); CHKERRQ(ierr);
+    }
     ierr = VecSet(mR, 0); CHKERRQ(ierr);
 
     // allocate template image
-    if (mT == NULL) {ierr = VecCreate(mT, nl*nc, ng*nc); CHKERRQ(ierr);}
+    if (mT == NULL) {
+        ierr = VecCreate(mT, nl*nc, ng*nc); CHKERRQ(ierr);
+    }
     ierr = VecSet(mT, 0); CHKERRQ(ierr);
 
     // compute center coordinates
@@ -863,12 +868,10 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
 //#pragma omp parallel
 //{
-    ScalarType x1, x2, x3;
-    IntType i1, i2, i3, i;
 //#pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (IntType i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
+        for (IntType i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
+            for (IntType i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
                 x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);

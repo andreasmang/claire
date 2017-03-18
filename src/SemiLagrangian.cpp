@@ -737,7 +737,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_StatePlan = new Interp3_Plan;}
+            try {this->m_StatePlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
@@ -755,7 +755,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_StatePlanVec = new Interp3_Plan;}
+            try {this->m_StatePlanVec = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
@@ -777,7 +777,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_AdjointPlan = new Interp3_Plan;}
+            try {this->m_AdjointPlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
@@ -795,7 +795,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_AdjointPlanVec = new Interp3_Plan;}
+            try {this->m_AdjointPlanVec = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
