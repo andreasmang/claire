@@ -40,11 +40,12 @@ namespace reg {
 
 
 
-#ifdef REG_HAS_NIFTI
 enum DataType {CHAR, UCHAR, SHORT, USHORT, INT, UINT, FLOAT, DOUBLE, UNDEF};
 
 struct ImageType {
+#ifdef REG_HAS_NIFTI
     nifti_image* data;
+#endif
     DataType datatype;
 
     ScalarType minval;
@@ -53,7 +54,6 @@ struct ImageType {
     bool read;
     bool write;
 };
-#endif
 
 
 
@@ -125,11 +125,11 @@ class ReadWriteReg {
     PetscErrorCode GetComponentType(nifti_image*, DataType&);;
     PetscErrorCode AllocateImage(nifti_image**, Vec);
 
-    ImageType m_TemplateImage;
-    ImageType m_ReferenceImage;
     nifti_image* m_ImageData;
 #endif
 
+    ImageType m_TemplateImage;
+    ImageType m_ReferenceImage;
 
     RegOpt* m_Opt;
     IntType* m_iSizeC;

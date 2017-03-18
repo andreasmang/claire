@@ -76,6 +76,7 @@ PetscErrorCode ReadWriteReg::Initialize() {
 
 #ifdef REG_HAS_NIFTI
     this->m_ReferenceImage.data = NULL;
+#endif
     this->m_ReferenceImage.datatype = DOUBLE;
     this->m_ReferenceImage.nx[0] = -1;
     this->m_ReferenceImage.nx[1] = -1;
@@ -85,7 +86,9 @@ PetscErrorCode ReadWriteReg::Initialize() {
     this->m_ReferenceImage.minval = -1.0;
     this->m_ReferenceImage.maxval = -1.0;
 
+#ifdef REG_HAS_NIFTI
     this->m_TemplateImage.data = NULL;
+#endif
     this->m_TemplateImage.datatype = DOUBLE;
     this->m_TemplateImage.nx[0] = -1;
     this->m_TemplateImage.nx[1] = -1;
@@ -95,6 +98,7 @@ PetscErrorCode ReadWriteReg::Initialize() {
     this->m_TemplateImage.minval = -1.0;
     this->m_TemplateImage.maxval = -1.0;
 
+#ifdef REG_HAS_NIFTI
     this->m_ImageData = NULL;
 #endif
 
@@ -262,18 +266,16 @@ PetscErrorCode ReadWriteReg::ReadR(Vec* x, std::vector< std::string > filenames)
         nifti_image_free(this->m_ReferenceImage.data);
         this->m_ReferenceImage.data = NULL;
     }
-    this->m_ReferenceImage.read = true;
 #endif
+    this->m_ReferenceImage.read = true;
 
     ierr = this->Read(x, filenames); CHKERRQ(ierr);
 
-#ifdef REG_HAS_NIFTI
     this->m_ReferenceImage.read = false;
     ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
     this->m_ReferenceImage.minval = minval;
     this->m_ReferenceImage.maxval = maxval;
-#endif
 
     this->m_Opt->Exit(__func__);
 
@@ -298,18 +300,16 @@ PetscErrorCode ReadWriteReg::ReadT(Vec* x, std::vector< std::string > filenames)
         nifti_image_free(this->m_TemplateImage.data);
         this->m_TemplateImage.data = NULL;
     }
-    this->m_TemplateImage.read = true;
 #endif
+    this->m_TemplateImage.read = true;
 
     ierr = this->Read(x, filenames); CHKERRQ(ierr);
 
-#ifdef REG_HAS_NIFTI
     this->m_TemplateImage.read = false;
     ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
     this->m_TemplateImage.minval = minval;
     this->m_TemplateImage.maxval = maxval;
-#endif
 
     this->m_Opt->Exit(__func__);
 
@@ -527,7 +527,6 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
 
     this->m_Opt->Enter(__func__);
 
-#ifdef REG_HAS_NIFTI
     nc = this->m_Opt->GetDomainPara().nc;
     this->m_ReferenceImage.write = true;
 
@@ -543,11 +542,9 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
             rescaled = true;
         }
     }
-#endif
 
     ierr = this->Write(x, filename, multicomponent); CHKERRQ(ierr);
 
-#ifdef REG_HAS_NIFTI
     this->m_ReferenceImage.write = false;
     if (rescaled) {
         if (multicomponent) {
@@ -556,7 +553,6 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
             ierr = Rescale(x, 0.0, 1.0); CHKERRQ(ierr);
         }
     }
-#endif
 
     this->m_Opt->Exit(__func__);
 
@@ -578,7 +574,6 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
 
     this->m_Opt->Enter(__func__);
 
-#ifdef REG_HAS_NIFTI
     this->m_TemplateImage.write = true;
 
     if (this->m_Opt->GetRegFlags().applyrescaling) {
@@ -594,11 +589,9 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
             rescaled = true;
         }
     }
-#endif
 
     ierr = this->Write(x, filename, multicomponent); CHKERRQ(ierr);
 
-#ifdef REG_HAS_NIFTI
     this->m_TemplateImage.write = false;
     if (rescaled) {
         if (multicomponent) {
@@ -607,7 +600,6 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
             ierr = Rescale(x, 0.0, 1.0); CHKERRQ(ierr);
         }
     }
-#endif
 
     this->m_Opt->Exit(__func__);
 
