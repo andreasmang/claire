@@ -201,12 +201,6 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
-        ss << " >> " << __func__ << ": allocation vector field (size=" << nl << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.clear(); ss.str(std::string());
-    }
-
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X1); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X1, nl, ng); CHKERRQ(ierr);

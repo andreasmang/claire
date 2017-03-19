@@ -1335,7 +1335,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     int rank, level, nlevels, computelevel;
     std::stringstream ss;
     std::string ext;
-    IntType nx[3], nl, ng, isize[3];
+    IntType nl, ng, isize[3], nx[3];
     Vec mT = NULL, mR = NULL, xstar = NULL;
     VecField *v = NULL;
     ScalarType greltol, tolscale = 10;
