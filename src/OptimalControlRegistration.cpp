@@ -372,7 +372,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
 
 
 
-
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/

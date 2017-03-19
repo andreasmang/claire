@@ -106,6 +106,8 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     this->m_StoreTimeHistory = true;        ///< flag: store time history (needed for inversion)
     this->m_ComputeInverseDefMap = false;   ///< flag: compute inverse deformation map
 
+    this->m_DeleteControlVariable = true;   ///< flag: clear memory for control variable
+
     PetscFunctionReturn(ierr);
 }
 
@@ -119,10 +121,13 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_VelocityField != NULL) {
-        delete this->m_VelocityField;
-        this->m_VelocityField = NULL;
+    if (this->m_DeleteControlVariable) {
+        if (this->m_VelocityField != NULL) {
+            delete this->m_VelocityField;
+            this->m_VelocityField = NULL;
+        }
     }
+
     if (this->m_IncVelocityField != NULL) {
         delete this->m_IncVelocityField;
         this->m_IncVelocityField = NULL;
@@ -330,19 +335,10 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
-    // allocate velocity field
-    if (this->m_VelocityField == NULL) {
-        try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    // copy buffer/values
-    ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+    this->m_VelocityField = v;
+    this->m_DeleteControlVariable = false;
 
     this->m_Opt->Exit(__func__);
 

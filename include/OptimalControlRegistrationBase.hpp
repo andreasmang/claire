@@ -223,6 +223,8 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode ComputeDeformationMapRK2A();         ///< implementation via RK2A time integrator
     PetscErrorCode ComputeDisplacementFieldSL();        ///< implementation via SL time integrator
     PetscErrorCode ComputeDisplacementFieldRK2();       ///< implementation via RK2 time integrator
+
+    bool m_DeleteControlVariable;
 };
 
 
