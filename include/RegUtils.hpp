@@ -60,6 +60,7 @@ PetscErrorCode ThrowError(std::string);
 
 /*! throw error (PETSc interface) */
 PetscErrorCode ThrowError(std::bad_alloc&);
+PetscErrorCode ThrowError(std::exception&);
 
 
 /*! mpi error handling */
