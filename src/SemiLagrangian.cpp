@@ -203,6 +203,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     nl = this->m_Opt->GetDomainPara().nl;
 
+    // switch between state and adjoint variable
     if (strcmp(flag.c_str(),"state") == 0) {
         if (this->m_XS == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
@@ -252,13 +253,13 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, isize);
-
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
                 x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
                 x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, isize);
 
                 X[l*3+0] = x1 - scale*ht*p_v1[l];
                 X[l*3+1] = x2 - scale*ht*p_v2[l];
@@ -292,13 +293,13 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, isize);
-
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
                 x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
                 x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, isize);
 
                 X[l*3+0] = x1 - scale*hthalf*(p_vX1[l] + p_v1[l]);
                 X[l*3+1] = x2 - scale*hthalf*(p_vX2[l] + p_v2[l]);
@@ -742,7 +743,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_StatePlan == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (state equations)";
+                ss << " >> " << __func__ << ": allocation of plan (state, nl=" << nl << ")";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
@@ -760,7 +761,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_StatePlanVec == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (state equations; vector field)";
+                ss << " >> " << __func__ << ": allocation of plan (state; vector field, nl=" << nl << ")";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
@@ -782,7 +783,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_AdjointPlan == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (adjoint equations)";
+                ss << " >> " << __func__ << ": allocation of plan (adjoint, nl=" << nl << ")";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
@@ -800,7 +801,7 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         // create planer
         if (this->m_AdjointPlanVec == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (adjoint equations; vector field)";
+                ss << " >> " << __func__ << ": allocation of plan (adjoint; vector field, nl=" << nl << ")";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
