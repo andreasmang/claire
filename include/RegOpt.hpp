@@ -20,7 +20,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-// #define _REG_DEBUG_
+#define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -343,6 +343,7 @@ struct FourierTransform{
     //accfft_plan_t<double, Complex, fftw_plan>* plan;  ///< accfft plan
     //accfft_plan* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft
+    bool mpicommexists; ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain
     IntType osize[3];   ///< size of grid in fourier domain for mpi proc
     IntType ostart[3];  ///< start index in fourier domain for mpi proc
