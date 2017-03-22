@@ -2203,7 +2203,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         }
         case SL:
         {
-            switch (this->m_Opt->GetPDESolverPara().order) {
+            switch (this->m_Opt->GetPDESolverPara().rungekuttaorder) {
                 case 2:
                 {
                     ierr = this->ComputeDeformationMapSLRK2(); CHKERRQ(ierr);

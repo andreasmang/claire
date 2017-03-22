@@ -20,7 +20,7 @@
 #ifndef _REGOPT_H_
 #define _REGOPT_H_
 
-#define _REG_DEBUG_
+// #define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -292,7 +292,7 @@ struct ParCont {
 
 
 /* parameter for scale continuation */
-struct ScaleCont{
+struct ScaleCont {
     bool enabled;
     static const int maxlevel = 6;
     ScalarType sigma[3][maxlevel];
@@ -300,7 +300,7 @@ struct ScaleCont{
 
 
 /* parameter for grid continuation */
-struct GridCont{
+struct GridCont {
     bool enabled;
     static const int minlevels = 3;
     int nlevels;
@@ -319,7 +319,7 @@ struct GridCont{
 
 
 /* parameters for parameter continuation */
-struct RegMonitor{
+struct RegMonitor {
     bool JAC;               ///< flag to monitor jacobian during iterations
     ScalarType jacmin;      ///< min value of jacobian
     ScalarType jacmax;      ///< max value of jacobian
@@ -332,7 +332,7 @@ struct RegMonitor{
 };
 
 
-struct RegNorm{
+struct RegNorm {
     ScalarType beta[3];  ///< regularization parameter
     RegNormType type;    ///< flag for regularization norm
 };
@@ -350,7 +350,7 @@ struct FourierTransform{
 };
 
 
-struct RegFlags{
+struct RegFlags {
     bool applysmoothing;  ///< apply smoothing to images
     bool applyrescaling;  ///< apply rescaling to images (map the intensity range to [0,1])
     bool detdefgradfromdeffield;
@@ -359,9 +359,10 @@ struct RegFlags{
 };
 
 
-struct PDESolver{
+struct PDESolver {
     PDESolverType type;
-    int order;
+    int rungekuttaorder;
+    int interpolationorder;
     ScalarType cflnumber;
     bool monitorcflnumber;
     bool adapttimestep;
@@ -369,7 +370,7 @@ struct PDESolver{
 
 
 /*! parameter for grid continuation */
-struct Logger{
+struct Logger {
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
     std::vector<ScalarType> distance;        ///< convergence for residual
     std::vector<ScalarType> regularization;  ///< convergence for regularization

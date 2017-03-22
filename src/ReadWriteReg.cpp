@@ -664,7 +664,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
             ierr = VecRestoreArray(xk, &p_xk); CHKERRQ(ierr);
 
             // construct file name and write out component
-            ss  << filename << "-c=" << std::setw(3) << std::setfill('0') << k << ext;
+            ss  << filename << "-" << std::setw(3) << std::setfill('0') << k << ext;
             this->m_FileName = this->m_Opt->GetReadWriteFlags().xfolder + ss.str();
             ierr = this->Write(xk); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();

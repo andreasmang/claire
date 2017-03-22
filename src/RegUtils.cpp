@@ -317,9 +317,7 @@ void isleep(unsigned int nanosec) {
 /********************************************************************
  * @brief setup library
  *******************************************************************/
-PetscErrorCode InitializeDataDistribution(int nthreads,
-                                          int *c_grid,
-                                          MPI_Comm& c_comm) {
+PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c_comm, bool c_exists) {
     PetscErrorCode ierr = 0;
     int nprocs, ompthreads, np;
     std::stringstream ss;
@@ -347,7 +345,9 @@ PetscErrorCode InitializeDataDistribution(int nthreads,
         c_grid[1]=0;
         MPI_Dims_create(nprocs, 2, c_grid);
     }
-    if (c_comm != NULL) {MPI_Comm_free(&c_comm); c_comm = NULL;}
+    if (c_exists) {
+        MPI_Comm_free(&c_comm);
+    }
 
     // initialize accft
     accfft_create_comm(PETSC_COMM_WORLD, c_grid, &c_comm);

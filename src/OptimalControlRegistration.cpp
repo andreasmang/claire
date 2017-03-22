@@ -129,6 +129,7 @@ PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
 
 
 
+
 /********************************************************************
  * @brief initialize the optimization (we essentially evaluate
  * the objective functional and the gradient for a given initial
@@ -2008,6 +2009,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     // init body force for numerical integration
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
+    // for full newton we store $\lambda$
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
         ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         fullnewton = true;
@@ -2132,7 +2134,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
                 *p_lambdajx = NULL, *p_m = NULL,
                 *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
                 *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
-    ScalarType ht, lambdajx, rhs0, rhs1, scale;
+    ScalarType ht, lambdajx, lambda, rhs0, rhs1, scale;
     IntType nl, ng, nc, nt, l, lnext;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     bool fullnewton = false;
@@ -2187,7 +2189,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     // init body force for numerical integration
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
-    // get the arrays
+    // for full newton we store the adjoint variable
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
         ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         fullnewton = true;
@@ -2231,6 +2233,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
             accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+l+k*nl, this->m_Opt->GetFFT().plan, &xyz, timers);
 
             for (IntType i = 0; i < nl; ++i) {
+                lambda = p_l[l+k*nl+i];
                 lambdajx = p_lambdajx[i];
 
                 rhs0 = lambdajx*p_divvx[i];
@@ -2240,9 +2243,9 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
                 p_l[lnext+k*nl+i] = lambdajx + 0.5*ht*(rhs0 + rhs1);
 
                 // compute bodyforce
-                p_b1[i] += scale*p_vec1[i]*lambdajx/static_cast<ScalarType>(nc);
-                p_b2[i] += scale*p_vec2[i]*lambdajx/static_cast<ScalarType>(nc);
-                p_b3[i] += scale*p_vec3[i]*lambdajx/static_cast<ScalarType>(nc);
+                p_b1[i] += scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
+                p_b2[i] += scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
+                p_b3[i] += scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
             }
         }
         // trapezoidal rule (revert scaling; for body force)
@@ -2258,20 +2261,20 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
         this->m_Opt->IncrementCounter(FFT, 4);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
-            lambdajx = p_l[l+i];
+            lambda = p_l[l+i];
             // compute bodyforce
-            p_b1[i] += 0.5*scale*p_vec1[i]*lambdajx/static_cast<ScalarType>(nc);
-            p_b2[i] += 0.5*scale*p_vec2[i]*lambdajx/static_cast<ScalarType>(nc);
-            p_b3[i] += 0.5*scale*p_vec3[i]*lambdajx/static_cast<ScalarType>(nc);
+            p_b1[i] += 0.5*scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
+            p_b2[i] += 0.5*scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
+            p_b3[i] += 0.5*scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
         }
     }
+
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
 
     ierr = VecRestoreArray(this->m_WorkScaField3, &p_lambdajx); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {

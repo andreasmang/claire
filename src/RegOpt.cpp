@@ -110,7 +110,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];
 
     this->m_PDESolver.type = opt.m_PDESolver.type;
-    this->m_PDESolver.order = opt.m_PDESolver.order;
+    this->m_PDESolver.rungekuttaorder = opt.m_PDESolver.rungekuttaorder;
+    this->m_PDESolver.interpolationorder = opt.m_PDESolver.interpolationorder;
     this->m_PDESolver.cflnumber = opt.m_PDESolver.cflnumber;
     this->m_PDESolver.monitorcflnumber = opt.m_PDESolver.monitorcflnumber;
     this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
@@ -618,6 +619,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_PDESolver.monitorcflnumber = true;
         } else if (strcmp(argv[1], "-adapttimestep") == 0) {
             this->m_PDESolver.adapttimestep = true;
+        } else if (strcmp(argv[1], "-interpolationorder") == 0) {
+            argc--; argv++;
+            this->m_PDESolver.interpolationorder = atoi(argv[1]);
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
             this->m_KrylovSolverPara.hessshift = atof(argv[1]);
@@ -722,9 +726,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     }
 
     // set number of threads
-    ierr = InitializeDataDistribution(this->m_NumThreads,
-                                      this->m_CartGridDims,
-                                      this->m_FFT.mpicomm); CHKERRQ(ierr);
+    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
 
@@ -799,9 +802,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     // if communicator is not set up
     if (this->m_FFT.mpicommexists == false) {
-        ierr = InitializeDataDistribution(this->m_NumThreads,
-                                          this->m_CartGridDims,
-                                          this->m_FFT.mpicomm); CHKERRQ(ierr);
+        ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+                                          this->m_FFT.mpicomm, false); CHKERRQ(ierr);
 
         this->m_FFT.mpicommexists = true;
     }
@@ -951,7 +953,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_PDESolver.cflnumber = 0.5;
     this->m_PDESolver.monitorcflnumber = false;
     this->m_PDESolver.adapttimestep = false;
-    this->m_PDESolver.order = 2;
+    this->m_PDESolver.rungekuttaorder = 2;
+    this->m_PDESolver.interpolationorder = 3;
 
     // smoothing
     this->m_Sigma[0] = 1.0;
@@ -1110,179 +1113,182 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " where [options] is one or more of the following" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -mr <file>                reference image (*.nii, *.nii.gz, *.hdr)" << std::endl;
-        std::cout << " -mt <file>                template image (*.nii, *.nii.gz, *.hdr)" << std::endl;
+        std::cout << " -mr <file>                  reference image (*.nii, *.nii.gz, *.hdr)" << std::endl;
+        std::cout << " -mt <file>                  template image (*.nii, *.nii.gz, *.hdr)" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -vx1 <file>               x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
-        std::cout << " -vx2 <file>               x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
-        std::cout << " -vx3 <file>               x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
-        std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images" << std::endl;
-        std::cout << "                           (e.g., 1x2x1; units: voxel size; if only one parameter is set" << std::endl;
-        std::cout << "                           uniform smoothing is assumed: default: 1x1x1)" << std::endl;
-        std::cout << " -nc <int>                 number of image components" << std::endl;
-        std::cout << " -disablesmoothing         flag: switch off smoothing of image data" << std::endl;
-        std::cout << " -disablerescaling         flag: switch off rescaling of intensities of image data to [0,1]" << std::endl;
+        std::cout << " -vx1 <file>                 x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -vx2 <file>                 x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -vx3 <file>                 x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -mrc <int> <files>          list of reference images (*.nii, *.nii.gz, *.hdr)" << std::endl;
+        std::cout << " -mtc <int> <files>          list of template images (*.nii, *.nii.gz, *.hdr)" << std::endl;
+        std::cout << " -sigma <int>x<int>x<int>    size of gaussian smoothing kernel applied to input images" << std::endl;
+        std::cout << "                             (e.g., 1x2x1; units: voxel size; if only one parameter is set" << std::endl;
+        std::cout << "                             uniform smoothing is assumed: default: 1x1x1)" << std::endl;
+        std::cout << " -nc <int>                   number of image components" << std::endl;
+        std::cout << " -disablesmoothing           flag: switch off smoothing of image data" << std::endl;
+        std::cout << " -disablerescaling           flag: switch off rescaling of intensities of image data to [0,1]" << std::endl;
         }
         // ####################### advanced options #######################
 
         std::cout << line << std::endl;
-        std::cout << " -xresult                  output inversion variable (by default only velocity field will" << std::endl;
-        std::cout << "                           be written to file; for more output options, see flags)" << std::endl;
-        std::cout << " -x <path>                 output path (a prefix can be added by doing" << std::endl;
-        std::cout << "                           '-x /output/path/prefix_')" << std::endl;
+        std::cout << " -xresult                    output inversion variable (by default only velocity field will" << std::endl;
+        std::cout << "                             be written to file; for more output options, see flags)" << std::endl;
+        std::cout << " -x <path>                   output path (a prefix can be added by doing" << std::endl;
+        std::cout << "                             '-x /output/path/prefix_')" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -xdefgrad                 write deformation gradient to file" << std::endl;
-        std::cout << " -xdetdefgrad              write determinant of deformation gradient to file" << std::endl;
-        std::cout << " -xdefmap                  write deformation map to file" << std::endl;
-        std::cout << " -xdeffield                write deformation field/displacement field to file" << std::endl;
-        std::cout << " -xdeftemplate             write deformed/transported template image to file" << std::endl;
-        std::cout << " -xresidual                write pointwise residual (before and after registration) to file" << std::endl;
+        std::cout << " -xdefgrad                   write deformation gradient to file" << std::endl;
+        std::cout << " -xdetdefgrad                write determinant of deformation gradient to file" << std::endl;
+        std::cout << " -xdefmap                    write deformation map to file" << std::endl;
+        std::cout << " -xdeffield                  write deformation field/displacement field to file" << std::endl;
+        std::cout << " -xdeftemplate               write deformed/transported template image to file" << std::endl;
+        std::cout << " -xresidual                  write pointwise residual (before and after registration) to file" << std::endl;
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -optmeth <type>           optimization method" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               gn           Gauss-Newton (default)" << std::endl;
-        std::cout << "                               fn           full Newton" << std::endl;
-        std::cout << " -opttol <dbl>             tolerance for optimization (default: 1E-2)" << std::endl;
-        std::cout << " -gabs <dbl>               tolerance for optimization (default: 1E-6)" << std::endl;
-        std::cout << "                               lower bound for gradient" << std::endl;
-        std::cout << "                               optimization stops if ||g_k|| <= tol" << std::endl;
-        std::cout << " -stopcond <int>           stopping conditions" << std::endl;
-        std::cout << "                           <int> is one of the following" << std::endl;
-        std::cout << "                               0            relative change of gradient (default)" << std::endl;
-        std::cout << "                               1            gradient, update, objective" << std::endl;
-        std::cout << " -maxit <int>              maximum number of (outer) Newton iterations (default: 50)" << std::endl;
-        std::cout << " -globalization <type>     method for the globalization of optimization problem" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               none         no globalization method" << std::endl;
-        std::cout << "                               armijo       armijo linesearch" << std::endl;
-        std::cout << "                               owarmijo     armijo linesearch (orthant wise unconstrained minimization)" << std::endl;
-        std::cout << "                               morethuente  more thuente linesearch" << std::endl;
-        std::cout << "                               gpcg         gradient projection, conjugate gradient method" << std::endl;
-        std::cout << "                               ipm          interior point method" << std::endl;
-        std::cout << " -krylovsolver <type>      solver for reduced space hessian system H[vtilde]=-g" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               pcg          preconditioned conjugate gradient method" << std::endl;
+        std::cout << " -optmeth <type>             optimization method" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 gn           Gauss-Newton (default)" << std::endl;
+        std::cout << "                                 fn           full Newton" << std::endl;
+        std::cout << " -opttol <dbl>               tolerance for optimization (default: 1E-2)" << std::endl;
+        std::cout << " -gabs <dbl>                 tolerance for optimization (default: 1E-6)" << std::endl;
+        std::cout << "                                 lower bound for gradient" << std::endl;
+        std::cout << "                                 optimization stops if ||g_k|| <= tol" << std::endl;
+        std::cout << " -stopcond <int>             stopping conditions" << std::endl;
+        std::cout << "                             <int> is one of the following" << std::endl;
+        std::cout << "                                 0            relative change of gradient (default)" << std::endl;
+        std::cout << "                                 1            gradient, update, objective" << std::endl;
+        std::cout << " -maxit <int>                maximum number of (outer) Newton iterations (default: 50)" << std::endl;
+        std::cout << " -globalization <type>       method for the globalization of optimization problem" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 none         no globalization method" << std::endl;
+        std::cout << "                                 armijo       armijo linesearch" << std::endl;
+        std::cout << "                                 owarmijo     armijo linesearch (orthant wise unconstrained minimization)" << std::endl;
+        std::cout << "                                 morethuente  more thuente linesearch" << std::endl;
+        std::cout << "                                 gpcg         gradient projection, conjugate gradient method" << std::endl;
+        std::cout << "                                 ipm          interior point method" << std::endl;
+        std::cout << " -krylovsolver <type>        solver for reduced space hessian system H[vtilde]=-g" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 pcg          preconditioned conjugate gradient method" << std::endl;
         std::cout << "                               gmres        generalized minimal residual method" << std::endl;
-        std::cout << " -krylovmaxit <int>        maximum number of (inner) Krylov iterations (default: 50)" << std::endl;
-        std::cout << " -krylovfseq <type>        forcing sequence for Krylov solver (tolerance for inner iterations)" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               quadratic     quadratic (default)" << std::endl;
-        std::cout << "                               suplinear     super-linear" << std::endl;
-        std::cout << "                               none          exact solve (expensive)" << std::endl;
-        std::cout << " -krylovtol <dbl>          relative tolerance for krylov method (default: 1E-12); forcing sequence" << std::endl;
-        std::cout << "                           needs to be switched off (i.g., use with '-krylovfseq none')" << std::endl;
-        std::cout << " -precond <type>           preconditioner" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               none         no preconditioner (not recommended)" << std::endl;
-        std::cout << "                               invreg       inverse regularization operator (default)" << std::endl;
+        std::cout << " -krylovmaxit <int>          maximum number of (inner) Krylov iterations (default: 50)" << std::endl;
+        std::cout << " -krylovfseq <type>          forcing sequence for Krylov solver (tolerance for inner iterations)" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 quadratic     quadratic (default)" << std::endl;
+        std::cout << "                                 suplinear     super-linear" << std::endl;
+        std::cout << "                                 none          exact solve (expensive)" << std::endl;
+        std::cout << " -krylovtol <dbl>            relative tolerance for krylov method (default: 1E-12); forcing sequence" << std::endl;
+        std::cout << "                             needs to be switched off (i.g., use with '-krylovfseq none')" << std::endl;
+        std::cout << " -precond <type>             preconditioner" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 none         no preconditioner (not recommended)" << std::endl;
+        std::cout << "                                 invreg       inverse regularization operator (default)" << std::endl;
         std::cout << "                               2level       2-level preconditioner" << std::endl;
-        std::cout << " -gridscale <dbl>          grid scale for 2-level preconditioner (default: 2)" << std::endl;
-        std::cout << " -pcsolver <type>          solver for inversion of preconditioner (in case" << std::endl;
-        std::cout << "                           the 2-level preconditioner is used)" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               cheb         chebyshev method (default)" << std::endl;
-        std::cout << "                               pcg          preconditioned conjugate gradient method" << std::endl;
-        std::cout << "                               fpcg         flexible pcg" << std::endl;
-        std::cout << "                               gmres        generalized minimal residual method" << std::endl;
-        std::cout << "                               fgmres       flexible gmres" << std::endl;
-        std::cout << " -pcsolvermaxit <int>      maximum number of iterations for inverting preconditioner; is" << std::endl;
-        std::cout << "                           used for cheb, fgmres and fpcg; default: 10" << std::endl;
-        std::cout << " -reesteigvals             re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
-        std::cout << "                           (in case a chebyshev method is used to invert preconditioner)" << std::endl;
-        std::cout << " -hessshift <dbl>          add perturbation to hessian" << std::endl;
-        std::cout << " -pctolscale <dbl>         scale for tolerance (preconditioner needs to be inverted more" << std::endl;
-        std::cout << "                           accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
-        std::cout << " -nonzeroinitialguess      use a non-zero velocity field to compute the initial gradient" << std::endl;
-        std::cout << "                           this is only recommended in case one want to solve more accurately" << std::endl;
-        std::cout << "                           after a warm start (in general for debugging purposes only)" << std::endl;
-        std::cout << " -checksymmetry            check symmetry of hessian operator" << std::endl;
-        std::cout << " -derivativecheck          check gradient/derivative" << std::endl;
+        std::cout << " -gridscale <dbl>            grid scale for 2-level preconditioner (default: 2)" << std::endl;
+        std::cout << " -pcsolver <type>            solver for inversion of preconditioner (in case" << std::endl;
+        std::cout << "                             the 2-level preconditioner is used)" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 cheb         chebyshev method (default)" << std::endl;
+        std::cout << "                                 pcg          preconditioned conjugate gradient method" << std::endl;
+        std::cout << "                                 fpcg         flexible pcg" << std::endl;
+        std::cout << "                                 gmres        generalized minimal residual method" << std::endl;
+        std::cout << "                                 fgmres       flexible gmres" << std::endl;
+        std::cout << " -pcsolvermaxit <int>        maximum number of iterations for inverting preconditioner; is" << std::endl;
+        std::cout << "                             used for cheb, fgmres and fpcg; default: 10" << std::endl;
+        std::cout << " -reesteigvals               re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
+        std::cout << "                             (in case a chebyshev method is used to invert preconditioner)" << std::endl;
+        std::cout << " -hessshift <dbl>            add perturbation to hessian" << std::endl;
+        std::cout << " -pctolscale <dbl>           scale for tolerance (preconditioner needs to be inverted more" << std::endl;
+        std::cout << "                             accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
+        std::cout << " -nonzeroinitialguess        use a non-zero velocity field to compute the initial gradient" << std::endl;
+        std::cout << "                             this is only recommended in case one want to solve more accurately" << std::endl;
+        std::cout << "                             after a warm start (in general for debugging purposes only)" << std::endl;
+        std::cout << " -checksymmetry              check symmetry of hessian operator" << std::endl;
+        std::cout << " -derivativecheck            check gradient/derivative" << std::endl;
         std::cout << line << std::endl;
         std::cout << " regularization/constraints" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -regnorm <type>           regularization norm for velocity field" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               h1s          H1-seminorm" << std::endl;
-        std::cout << "                               h2s          H2-seminorm (default)" << std::endl;
-        std::cout << "                               h3s          H3-seminorm" << std::endl;
-        std::cout << "                               h1           H1-norm" << std::endl;
-        std::cout << "                               h2           H2-norm" << std::endl;
-        std::cout << "                               h3           H3-norm" << std::endl;
-        std::cout << "                               l2           l2-norm (discouraged)" << std::endl;
-        std::cout << " -betav <dbl>              regularization parameter (velocity field; default: 1E-2)" << std::endl;
-        std::cout << " -betaw <dbl>              regularization parameter (mass source map; default: 1E-4; enable relaxed" << std::endl;
-        std::cout << "                           incompressibility to use this parameter via '-ric' option; see below)" << std::endl;
-        std::cout << " -ic                       enable incompressibility constraint (det(grad(y))=1)" << std::endl;
-        std::cout << " -ric                      enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)" << std::endl;
-        std::cout << " -scalecont                enable scale continuation (continuation in smoothness of images;" << std::endl;
-        std::cout << "                           i.e., use a multi-scale scheme to solve optimization problem)" << std::endl;
-        std::cout << " -gridcont                 enable grid continuation (continuation in resolution of images;" << std::endl;
-        std::cout << "                           i.e., use multi-resultion scheme to solve optimization probelm)" << std::endl;
+        std::cout << " -regnorm <type>             regularization norm for velocity field" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 h1s          H1-seminorm" << std::endl;
+        std::cout << "                                 h2s          H2-seminorm (default)" << std::endl;
+        std::cout << "                                 h3s          H3-seminorm" << std::endl;
+        std::cout << "                                 h1           H1-norm" << std::endl;
+        std::cout << "                                 h2           H2-norm" << std::endl;
+        std::cout << "                                 h3           H3-norm" << std::endl;
+        std::cout << "                                 l2           l2-norm (discouraged)" << std::endl;
+        std::cout << " -betav <dbl>                regularization parameter (velocity field; default: 1E-2)" << std::endl;
+        std::cout << " -betaw <dbl>                regularization parameter (mass source map; default: 1E-4; enable relaxed" << std::endl;
+        std::cout << "                             incompressibility to use this parameter via '-ric' option; see below)" << std::endl;
+        std::cout << " -ic                         enable incompressibility constraint (det(grad(y))=1)" << std::endl;
+        std::cout << " -ric                        enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)" << std::endl;
+        std::cout << " -scalecont                  enable scale continuation (continuation in smoothness of images;" << std::endl;
+        std::cout << "                             i.e., use a multi-scale scheme to solve optimization problem)" << std::endl;
+        std::cout << " -gridcont                   enable grid continuation (continuation in resolution of images;" << std::endl;
+        std::cout << "                             i.e., use multi-resultion scheme to solve optimization probelm)" << std::endl;
         }
         // ####################### advanced options #######################
 
-        std::cout << " -fastsolve                switch on fast solve (preset number of iterations and tolerances to" << std::endl;
-        std::cout << "                           reduce the time to solution; inaccurate solve)" << std::endl;
-        std::cout << " -train <type>             estimate regularization parameter (use 'jbound' to set bound" << std::endl;
-        std::cout << "                           for det(grad(y)) used during estimation)" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               binary       perform binary search (recommended)" << std::endl;
-        std::cout << "                               reduce       reduce parameter by one order until bound is breached" << std::endl;
-        std::cout << " -jbound <dbl>             lower bound on determinant of deformation gradient (default: 2E-1)" << std::endl;
-        std::cout << " -betavcont <dbl>          do parameter continuation in betav until target regularization" << std::endl;
-        std::cout << "                           parameter betav=<dbl> is reached (betav must be in (0,1))" << std::endl;
-        std::cout << " -betavinit <dbl>          initial regularization weight for continuation" << std::endl;
+        std::cout << " -fastsolve                  switch on fast solve (preset number of iterations and tolerances to" << std::endl;
+        std::cout << "                             reduce the time to solution; inaccurate solve)" << std::endl;
+        std::cout << " -train <type>               estimate regularization parameter (use 'jbound' to set bound" << std::endl;
+        std::cout << "                             for det(grad(y)) used during estimation)" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 binary       perform binary search (recommended)" << std::endl;
+        std::cout << "                                 reduce       reduce parameter by one order until bound is breached" << std::endl;
+        std::cout << " -jbound <dbl>               lower bound on determinant of deformation gradient (default: 2E-1)" << std::endl;
+        std::cout << " -betavcont <dbl>            do parameter continuation in betav until target regularization" << std::endl;
+        std::cout << "                             parameter betav=<dbl> is reached (betav must be in (0,1))" << std::endl;
+        std::cout << " -betavinit <dbl>            initial regularization weight for continuation" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -mdefgrad                 enable monitor for det(grad(y))" << std::endl;
+        std::cout << " -mdefgrad                   enable monitor for det(grad(y))" << std::endl;
         std::cout << line << std::endl;
         std::cout << " solver specific parameters (numerics)" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -pdesolver <type>         numerical time integrator for transport equations" << std::endl;
-        std::cout << "                           <type> is one of the following" << std::endl;
-        std::cout << "                               sl           semi-Lagrangian method (default; unconditionally stable)" << std::endl;
-        std::cout << "                               rk2          rk2 time integrator (conditionally stable)" << std::endl;
-        std::cout << " -nt <int>                 number of time points (for time integration; default: 4)" << std::endl;
+        std::cout << " -pdesolver <type>           numerical time integrator for transport equations" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 sl           semi-Lagrangian method (default; unconditionally stable)" << std::endl;
+        std::cout << "                                 rk2          rk2 time integrator (conditionally stable)" << std::endl;
+        std::cout << " -nt <int>                   number of time points (for time integration; default: 4)" << std::endl;
+        std::cout << " -interpolationorder <int>   order of interpolation model (default is 3)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " memory distribution and parallelism" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -nthreads <int>           number of threads (default: 1)" << std::endl;
-        std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results" << std::endl;
-        std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)" << std::endl;
+        std::cout << " -nthreads <int>             number of threads (default: 1)" << std::endl;
+        std::cout << " -np <int>x<int>             distribution of mpi tasks (cartesian grid) (example: -np 2x4 results" << std::endl;
+        std::cout << "                             results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " logging" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -logresidual              log residual (user needs to set '-x' option)" << std::endl;
-        std::cout << " -logconvergence           log convergence (residual; user needs to set '-x' option)" << std::endl;
-        std::cout << " -logkrylovres             log residual of krylov subpsace method (user needs to set '-x' option)" << std::endl;
-        std::cout << " -logworkload              log cpu time and counters (user needs to set '-x' option)" << std::endl;
-        std::cout << " -storecheckpoints         store iterates after each iteration (files will be overwritten); this is" << std::endl;
-        std::cout << "                           a safeguard for large scale runs in case the code crashes" << std::endl;
+        std::cout << " -logresidual                log residual (user needs to set '-x' option)" << std::endl;
+        std::cout << " -logconvergence             log convergence (residual; user needs to set '-x' option)" << std::endl;
+        std::cout << " -logkrylovres               log residual of krylov subpsace method (user needs to set '-x' option)" << std::endl;
+        std::cout << " -logworkload                log cpu time and counters (user needs to set '-x' option)" << std::endl;
+        std::cout << " -storecheckpoints           store iterates after each iteration (files will be overwritten); this is" << std::endl;
+        std::cout << "                             a safeguard for large scale runs in case the code crashes" << std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -xiterates                store/write out iterates (deformed template image and velocity field)" << std::endl;
-        std::cout << " -xiresults                store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
-        std::cout << " -xtimeseries              store time series (use with caution)" << std::endl;
-        std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
-        std::cout << "                           problems; assumed to be uniform if single integer is provided" << std::endl;
-        std::cout << " -usenc                    use netcdf as output format (*.nc); default is NIFTI (*.nii.gz)" << std::endl;
-//        std::cout << " -usebin                   use binary files as output format (*.bin)" << std::endl;
-//        std::cout << " -usehdf5                  use hdf files as output format (*.hdf5)" << std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 2; default: 0)" << std::endl;
+        std::cout << " -xiterates                  store/write out iterates (deformed template image and velocity field)" << std::endl;
+        std::cout << " -xiresults                  store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
+        std::cout << " -xtimeseries                store time series (use with caution)" << std::endl;
+        std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
+        std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
+        std::cout << " -usenc                      use netcdf as output format (*.nc); default is NIFTI (*.nii.gz)" << std::endl;
+//        std::cout << " -usebin                     use binary files as output format (*.bin)" << std::endl;
+//        std::cout << " -usehdf5                    use hdf files as output format (*.hdf5)" << std::endl;
+        std::cout << " -verbosity <int>            verbosity level (ranges from 0 to 2; default: 0)" << std::endl;
         }
         // ####################### advanced options #######################
 
         std::cout << line << std::endl;
-        std::cout << " -help                     display a brief version of the user message" << std::endl;
-        std::cout << " -advanced                 display this message" << std::endl;
+        std::cout << " -help                       display a brief version of the user message" << std::endl;
+        std::cout << " -advanced                   display this message" << std::endl;
         std::cout << line << std::endl;
         std::cout << line << std::endl;
     }
@@ -1852,12 +1858,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
         switch (this->m_PDESolver.type) {
             case RK2:
             {
-                std::cout << "second order rk method" << std::endl;
+                std::cout << "2nd order RK method" << std::endl;
                 break;
             }
             case RK2A:
             {
-                std::cout << "antisymmetric rk2" << std::endl;
+                std::cout << "antisymmetric 2nd order RK method" << std::endl;
                 break;
             }
             case SL:

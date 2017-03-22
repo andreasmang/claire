@@ -17,7 +17,6 @@
  *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-
 #ifndef _SEMILAGRANGIAN_H_
 #define _SEMILAGRANGIAN_H_
 
@@ -85,10 +84,15 @@ class SemiLagrangian {
 
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
-    static const IntType m_GhostSize = 3;
 
     ReadWriteReg* m_ReadWrite;
     RegOpt* m_Opt;
+
+    struct GhostPoints {
+        int isize[3];
+        int istart[3];
+        int nghost;
+    };
 };
 
 

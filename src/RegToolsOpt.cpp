@@ -133,6 +133,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_PDESolver.cflnumber = atof(argv[1]);
         } else if (strcmp(argv[1], "-monitorcflnumber") == 0) {
             this->m_PDESolver.monitorcflnumber = true;
+        } else if (strcmp(argv[1], "-interpolationorder") == 0) {
+            argc--; argv++;
+            this->m_PDESolver.interpolationorder = atoi(argv[1]);
         } else if (strcmp(argv[1], "-sigma") == 0) {
             argc--; argv++;
             const std::string sigmainput = argv[1];
@@ -295,9 +298,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-    ierr = InitializeDataDistribution(this->m_NumThreads,
-                                      this->m_CartGridDims,
-                                      this->m_FFT.mpicomm); CHKERRQ(ierr);
+    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -390,91 +392,93 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " memory distribution and parallelism"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -nthreads <int>           number of threads (default: 1)"<<std::endl;
-        std::cout << " -np <int>x<int>           distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
-        std::cout << "                           results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
+        std::cout << " -nthreads <int>             number of threads (default: 1)"<<std::endl;
+        std::cout << " -np <int>x<int>             distribution of mpi tasks (cartesian grid) (example: -np 2x4 results"<<std::endl;
+        std::cout << "                             results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)"<<std::endl;
         }
         // ####################### advanced options #######################
         std::cout << line << std::endl;
         std::cout << " ### input parameters"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -mr <file>                reference image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
-        std::cout << " -mt <file>                template image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
-        std::cout << " -ivecx1 <file>            x1 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
-        std::cout << " -ivecx2 <file>            x2 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
-        std::cout << " -ivecx3 <file>            x3 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
-        std::cout << " -ifile <filename>         input file (scalar field/image)"<<std::endl;
-        std::cout << " -i <path>                 input path (defines where registration results (i.e., velocity field, "<<std::endl;
-        std::cout << "                           template image, and reference image) are stored; a prefix can be"<<std::endl;
-        std::cout << "                           added by, e.g., doing '-i </path/prefix_>"<<std::endl;
-        std::cout << " -x <path>                 output path (by default only deformed template image and velocity"<<std::endl;
-        std::cout << "                           field will be written; for more output options, see flags;"<<std::endl;
-        std::cout << "                           a prefix can be added by, e.g., doing '-x </path/prefix_>"<<std::endl;
-        std::cout << " -nx <int>x<int>x<int>     grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
-        std::cout << "                           problems; assumed to be uniform if single integer is provided" << std::endl;
+        std::cout << " -mr <file>                  reference image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -mt <file>                  template image (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ivecx1 <file>              x1 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ivecx2 <file>              x2 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ivecx3 <file>              x3 component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)"<<std::endl;
+        std::cout << " -ifile <filename>           input file (scalar field/image)"<<std::endl;
+        std::cout << " -i <path>                   input path (defines where registration results (i.e., velocity field, "<<std::endl;
+        std::cout << "                             template image, and reference image) are stored; a prefix can be"<<std::endl;
+        std::cout << "                             added by, e.g., doing '-i </path/prefix_>"<<std::endl;
+        std::cout << " -x <path>                   output path (by default only deformed template image and velocity"<<std::endl;
+        std::cout << "                             field will be written; for more output options, see flags;"<<std::endl;
+        std::cout << "                             a prefix can be added by, e.g., doing '-x </path/prefix_>"<<std::endl;
+        std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
+        std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
         std::cout << line << std::endl;
         std::cout << " ### postprocessing for registration (requires input fields and/or an input folder)"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -defgrad                  compute deformation gradient F = grad(inv(y)) (input: velocity field)"<<std::endl;
-        std::cout << " -detdefgrad               compute determinant of deformation gradient (input: velocity field)"<<std::endl;
-        std::cout << " -invdetdefgrad            compute inverse of determinant of deformation gradient (input: velocity field)"<<std::endl;
-        std::cout << " -deffield                 compute displacement field u (input: velocity field)"<<std::endl;
-        std::cout << " -defmap                   compute deformation map y (input: velocity field)"<<std::endl;
-        std::cout << " -tscafield                transport scalar field (input: velocity field and scalar field)"<<std::endl;
-        std::cout << " -tlabelmap                transport label map (input: velocity field and scalar field)"<<std::endl;
-        std::cout << " -residual                 compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
-        std::cout << " -error                    compute error between scalar fields ('-mr' and '-mt' options)"<<std::endl;
-        std::cout << " -analyze                  compute analytics for scalar field (-ifile option)"<<std::endl;
+        std::cout << " -defgrad                    compute deformation gradient F = grad(inv(y)) (input: velocity field)"<<std::endl;
+        std::cout << " -detdefgrad                 compute determinant of deformation gradient (input: velocity field)"<<std::endl;
+        std::cout << " -invdetdefgrad              compute inverse of determinant of deformation gradient (input: velocity field)"<<std::endl;
+        std::cout << " -deffield                   compute displacement field u (input: velocity field)"<<std::endl;
+        std::cout << " -defmap                     compute deformation map y (input: velocity field)"<<std::endl;
+        std::cout << " -tscafield                  transport scalar field (input: velocity field and scalar field)"<<std::endl;
+        std::cout << " -tlabelmap                  transport label map (input: velocity field and scalar field)"<<std::endl;
+        std::cout << " -residual                   compute residual between scalar fields ('-mr' and '-mt' options)"<<std::endl;
+        std::cout << " -error                      compute error between scalar fields ('-mr' and '-mt' options)"<<std::endl;
+        std::cout << " -analyze                    compute analytics for scalar field (-ifile option)"<<std::endl;
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -detdefgradfromdeffield    compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
-        std::cout << " -grad                     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
-        std::cout << " -xtimeseries              store time series (use with caution)"<<std::endl;
-        std::cout << "                           problems; assumed to be uniform if single integer is provided"<<std::endl;
+        std::cout << " -detdefgradfromdeffield     compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
+        std::cout << " -grad                       compute gradient of some input scalar field ('-ifile' option)"<<std::endl;
+        std::cout << " -xtimeseries                store time series (use with caution)"<<std::endl;
+        std::cout << "                             problems; assumed to be uniform if single integer is provided"<<std::endl;
         }
         // ####################### advanced options #######################
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << line << std::endl;
-        std::cout << " -sigma <int>x<int>x<int>  size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;"<<std::endl;
-        std::cout << "                           units: voxel size; if only one parameter is set"<<std::endl;
-        std::cout << "                           uniform smoothing is assumed: default: 1x1x1)"<<std::endl;
-        std::cout << " -disablesmoothing         disable smoothing"<<std::endl;
+        std::cout << " -sigma <int>x<int>x<int>    size of gaussian smoothing kernel applied to input images (e.g., 1x2x1;"<<std::endl;
+        std::cout << "                             units: voxel size; if only one parameter is set"<<std::endl;
+        std::cout << "                             uniform smoothing is assumed: default: 1x1x1)"<<std::endl;
+        std::cout << " -disablesmoothing           disable smoothing"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " solver specific parameters (numerics)"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -pdesolver <type>         numerical time integrator for transport equations"<<std::endl;
-        std::cout << "                           <type> is one of the following"<<std::endl;
-        std::cout << "                               sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
-        std::cout << "                               rk2          rk2 time integrator (conditionally stable)"<<std::endl;
-        std::cout << " -nt <int>                 number of time points (for time integration; default: 4)"<<std::endl;
-        std::cout << " -adapttimestep            vary number of time steps according to defined number"<<std::endl;
-        std::cout << " -cflnumber <dbl>          set cfl number"<<std::endl;
+        std::cout << " -pdesolver <type>           numerical time integrator for transport equations"<<std::endl;
+        std::cout << "                             <type> is one of the following"<<std::endl;
+        std::cout << "                                 sl           semi-Lagrangian method (default; unconditionally stable)"<<std::endl;
+        std::cout << "                                 rk2          rk2 time integrator (conditionally stable)"<<std::endl;
+        std::cout << " -nt <int>                   number of time points (for time integration; default: 4)"<<std::endl;
+        std::cout << " -adapttimestep              vary number of time steps according to defined number"<<std::endl;
+        std::cout << " -cflnumber <dbl>            set cfl number"<<std::endl;
+        std::cout << " -interpolationorder <int>   order of interpolation model (default is 3)" << std::endl;
         }
         // ####################### advanced options #######################
         std::cout << line << std::endl;
         std::cout << " ### resampling"<<std::endl;
         std::cout << line << std::endl;
-        std::cout << " -resample                 resample data (requires input scalar or vector field;"<<std::endl;
-        std::cout << "                           output is input_resampled.ext)"<<std::endl;
-        std::cout << " -rscale                   scale for resampling (multiplier applied to number of grid points)"<<std::endl;
-        std::cout << " -nxr                      number of grid points for output"<<std::endl;
+        std::cout << " -resample                   resample data (requires input scalar or vector field;"<<std::endl;
+        std::cout << "                             output is input_resampled.ext)"<<std::endl;
+        std::cout << " -rscale                     scale for resampling (multiplier applied to number of grid points)"<<std::endl;
+        std::cout << " -nxr                        number of grid points for output"<<std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging"<<std::endl;
         std::cout << line << std::endl;
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -csynvel                  compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
-        std::cout << " -checkfwdsolveerr         check numerical error of forward solver"<<std::endl;
-        std::cout << " -checkfwdsolvetts <int>   check time-to-solution of forward solver (<int>: number of runs)"<<std::endl;
-        std::cout << " -checkdetdefgradsolve     check solve for det(grad(y))"<<std::endl;
-        std::cout << " -checkdefmapsolve         check solve for y"<<std::endl;
+        std::cout << " -csynvel                    compute synthetic velocity field (use '-nx' to control size)"<<std::endl;
+        std::cout << " -checkfwdsolveerr           check numerical error of forward solver"<<std::endl;
+        std::cout << " -problemid <int>            problem id for error check"<<std::endl;
+        std::cout << " -checkfwdsolvetts           check time-to-solution of forward solver"<<std::endl;
+        std::cout << " -checkdetdefgradsolve       check solve for det(grad(y))"<<std::endl;
+        std::cout << " -checkdefmapsolve           check solve for y"<<std::endl;
         }
         // ####################### advanced options #######################
-        std::cout << " -usenc                    use netcdf format os output (*.nc; default is *.nii.gz)"<<std::endl;
-        std::cout << " -verbosity <int>          verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
-        std::cout << " -help                     display a brief version of the user message"<<std::endl;
-        std::cout << " -advanced                 display this message"<<std::endl;
+        std::cout << " -usenc                      use netcdf format os output (*.nc; default is *.nii.gz)"<<std::endl;
+        std::cout << " -verbosity <int>            verbosity level (ranges from 0 to 3; default: 1)"<<std::endl;
+        std::cout << " -help                       display a brief version of the user message"<<std::endl;
+        std::cout << " -advanced                   display this message"<<std::endl;
         std::cout << line << std::endl;
         std::cout << line << std::endl;
     }
