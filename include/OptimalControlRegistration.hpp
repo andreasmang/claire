@@ -41,7 +41,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
 
     OptimalControlRegistration(void);
     OptimalControlRegistration(RegOpt*);
-    ~OptimalControlRegistration(void);
+    virtual ~OptimalControlRegistration(void);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     PetscErrorCode InitializeOptimization(VecField* v0 = NULL);

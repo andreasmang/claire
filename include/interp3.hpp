@@ -5,15 +5,15 @@
 #include <accfft.h>
 #include <accfftf.h>
 
-  //        typedef double Real;
-  //        #define MPI_T MPI_DOUBLE
-  //        #define TC Complex
-  //        #define PL fftw_plan
+         typedef double Real;
+         #define MPI_T MPI_DOUBLE
+         #define TC Complex
+         #define PL fftw_plan
 
-  typedef float Real;
-  #define MPI_T MPI_FLOAT
-  #define TC Complexf
-  #define PL fftwf_plan
+ //  typedef float Real;
+ //  #define MPI_T MPI_FLOAT
+ //  #define TC Complexf
+ //  #define PL fftwf_plan
 
 #define COORD_DIM 3
 #include <mpi.h>

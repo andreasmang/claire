@@ -72,7 +72,8 @@ RegOpt::RegOpt(const RegOpt& opt) {
 void RegOpt::Copy(const RegOpt& opt) {
     this->m_SetupDone = false;
     this->m_FFT.plan = NULL;
-    this->m_FFT.mpicomm = NULL;
+    this->m_FFT.mpicomm = 0;
+    this->m_FFT.mpicommexists = false;
     this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
 
     this->m_FFT.osize[0] = opt.m_FFT.osize[0];
@@ -768,9 +769,8 @@ PetscErrorCode RegOpt::DestroyFFT() {
         this->m_FFT.plan = NULL;
     }
 
-    if (this->m_FFT.mpicomm != NULL) {
+    if (this->m_FFT.mpicommexists) {
         MPI_Comm_free(&this->m_FFT.mpicomm);
-        this->m_FFT.mpicomm = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -798,10 +798,12 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // if communicator is not set up
-    if (this->m_FFT.mpicomm == NULL) {
+    if (this->m_FFT.mpicommexists == false) {
         ierr = InitializeDataDistribution(this->m_NumThreads,
                                           this->m_CartGridDims,
                                           this->m_FFT.mpicomm); CHKERRQ(ierr);
+
+        this->m_FFT.mpicommexists = true;
     }
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -910,7 +912,8 @@ PetscErrorCode RegOpt::Initialize() {
 
     this->m_SetupDone = false;
     this->m_FFT.plan = NULL;
-    this->m_FFT.mpicomm = NULL;
+    this->m_FFT.mpicomm = 0;
+    this->m_FFT.mpicommexists = false;
     this->m_FFT.osize[0] = 0;
     this->m_FFT.osize[1] = 0;
     this->m_FFT.osize[2] = 0;
