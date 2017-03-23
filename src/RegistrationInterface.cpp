@@ -317,13 +317,14 @@ PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
 PetscErrorCode RegistrationInterface::GetResidual(Vec residual) {
     PetscErrorCode ierr = 0;
     Vec lambda = NULL;
-    IntType nl, nc, nt;
+    IntType nl, nc, nt, l0, l1;
     ScalarType *p_l = NULL, *p_res = NULL;
     PetscFunctionBegin;
 
     ierr = Assert(residual != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
+    // get lambda
     ierr = this->m_RegProblem->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
     nc = this->m_Opt->GetDomainPara().nc;
@@ -333,7 +334,13 @@ PetscErrorCode RegistrationInterface::GetResidual(Vec residual) {
     ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
     ierr = VecGetArray(residual, &p_res); CHKERRQ(ierr);
 
-    try {std::copy(p_l+nt*nc*nl, p_l+(nt+1)*nc*nl, p_res);}
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        l0 =  nt*nc*nl; l1 = (nt+1)*nc*nl;
+    } else {
+        l0 = 0; l1 = nc*nl;
+    }
+
+    try {std::copy(p_l+l0, p_l+l1, p_res);}
     catch (std::exception&) {
         ierr = ThrowError("copy failed"); CHKERRQ(ierr);
     }

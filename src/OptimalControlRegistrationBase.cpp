@@ -404,6 +404,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
         ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
     }
 
+
+    if (v != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); v = NULL;}
+    if (g != NULL) {ierr = VecDestroy(&v); CHKERRQ(ierr); g = NULL;}
+
     PetscFunctionReturn(ierr);
 }
 

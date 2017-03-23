@@ -202,6 +202,12 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
+    if (this->m_SemiLagrangianMethod == NULL) {
+        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
@@ -210,10 +216,10 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         fullnewton = true;
     }
 
-    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
         lm = (nt-j)*nc*nl;
@@ -263,10 +269,10 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         }
     }
 
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
 
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
@@ -289,25 +295,104 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, nt, nc, l, lnext;
-    ScalarType *p_ltilde = NULL;
-
+    IntType nl, nt, nc, lm, ll;
+    ScalarType *p_ltilde = NULL, *p_m = NULL,
+                *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL,
+                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
+    ScalarType ht, scale, ltilde;
+    std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
+    double timers[5] = {0, 0, 0, 0, 0};
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nl;
+    ht = this->m_Opt->GetTimeStepSize();
+    scale = ht;
 
-    // for all time points
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL) {
+        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_SemiLagrangianMethod == NULL) {
+        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+    }
+
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
+
+    // get variables
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
+
+    // do numerical time integration
     for (IntType j = 0; j < nt; ++j) {  // for all time points
+        lm = (nt-j)*nc*nl;
+
+        if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            l = (nt-j)*nc*nl + k*nl;
-            lnext = (nt-(j+1))*nc*nl + k*nl;
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltilde+lnext, p_ltilde+l, "adjoint"); CHKERRQ(ierr);
+            ll = k*nl;
+
+            // compute gradient of m (for incremental body force)
+            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timers);
+            this->m_Opt->IncrementCounter(FFT, 4);
+
+            // compute incremental bodyforce
+            for (IntType i = 0; i < nl; ++i) {
+                ltilde = p_ltilde[ll+i];    // get \tilde{\lambda}(x)
+                p_btilde1[i] += scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
+                p_btilde2[i] += scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
+                p_btilde3[i] += scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
+            }
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltilde+ll, p_ltilde+ll, "adjoint"); CHKERRQ(ierr);
         }  // for all image components
+        if (j == 0) scale *= 2.0;
     }  // for all time points
+
+
+    // incremental compute body force for last time point t = 0 (i.e., for j = nt)
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        ll = k*nl; lm = k*nl;
+
+        // compute gradient of m (for incremental body force)
+        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timers);
+        this->m_Opt->IncrementCounter(FFT, 4);
+
+        // compute incremental bodyforce
+        for (IntType i = 0; i < nl; ++i) {  // for all grid points
+            ltilde = p_ltilde[ll+i];
+            p_btilde1[i] += 0.5*scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
+            p_btilde2[i] += 0.5*scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
+            p_btilde3[i] += 0.5*scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
+        }
+    }
+
+    // restore variables
+    ierr = this->m_WorkVecField2->RestoreArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+
+
+    // apply projection to map velocity on manifold of divergence free velocities
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
+
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     PetscFunctionReturn(ierr);
 }

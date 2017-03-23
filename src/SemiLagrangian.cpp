@@ -75,8 +75,8 @@ PetscErrorCode SemiLagrangian::Initialize() {
     this->m_XA = NULL;
     this->m_XS = NULL;
 
-    this->m_AdjointPlan = NULL;
     this->m_StatePlan = NULL;
+    this->m_AdjointPlan = NULL;
     this->m_StatePlanVec = NULL;
     this->m_AdjointPlanVec = NULL;
 
@@ -136,12 +136,12 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
 
     if (this->m_ScaFieldGhost != NULL) {
         accfft_free(this->m_ScaFieldGhost);
-        this->m_ScaFieldGhost=NULL;
+        this->m_ScaFieldGhost = NULL;
     }
 
     if (this->m_VecFieldGhost != NULL) {
         accfft_free(this->m_VecFieldGhost);
-        this->m_VecFieldGhost=NULL;
+        this->m_VecFieldGhost = NULL;
     }
 
     PetscFunctionReturn(ierr);
