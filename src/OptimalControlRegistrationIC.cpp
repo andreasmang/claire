@@ -187,6 +187,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute trajectory
     if (this->m_WorkVecField1 == NULL) {
@@ -206,15 +207,13 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         fullnewton = true;
-    } else {
-        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
     }
 
     ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
         lm = (nt-j)*nc*nl;
@@ -227,7 +226,6 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         // scaling for trapezoidal rule (for body force)
         if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-
             // compute gradient of m
             accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timers);
             this->m_Opt->IncrementCounter(FFT, 4);
@@ -265,16 +263,11 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         }
     }
 
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
 
-
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-    }
 
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 

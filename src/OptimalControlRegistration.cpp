@@ -357,22 +357,13 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
 
     // copy memory for lambda0
     ierr = VecGetArray(l0, &p_l0); CHKERRQ(ierr);
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-    }
-
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     try {std::copy(p_l, p_l+nl*nc, p_l0);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-    }
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(l0, &p_l0); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -483,7 +474,11 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external pointer
     if (this->m_AdjointVariable == NULL) {
-        ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        } else {
+            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
     }
     ierr = VecCopy(lambda, this->m_AdjointVariable); CHKERRQ(ierr);
 
@@ -1212,7 +1207,11 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     // allocate state and adjoint variables
     if (this->m_AdjointVariable == NULL) {
-        ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        } else {
+            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
     }
 
     if (this->m_Opt->GetVerbosity() > 2) {
@@ -1825,38 +1824,33 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
             ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
         k = nt*nc*nl;  // index for final condition
-        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     } else {
-        ierr = Assert(this->m_AdjointVariable == NULL, "null pointer expected"); CHKERRQ(ierr);
-        if (this->m_WorkScaField4 == NULL) {
-            ierr = VecCreate(this->m_WorkScaField4, nc*nl, nc*ng); CHKERRQ(ierr);
+        if (this->m_AdjointVariable == NULL) {
+            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
         k = 0;  // index for final condition
-        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
     }
+
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     l = nt*nc*nl;  // index for final condition
     for (IntType i = 0; i < nc*nl; ++i) {
         p_l[k+i] = p_mr[i] - p_m[l+i];  // compute initial condition
     }
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-    }
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
+        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-            ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
             // copy adjoint variable to all time points
             for (IntType j = 1; j <= nt; ++j) {
                 try {std::copy(p_l+nt*nc*nl, p_l+(nt+1)*nc*nl, p_l+(nt-j)*nl*nc);}
@@ -1864,8 +1858,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
                     ierr = ThrowError(err); CHKERRQ(ierr);
                 }
             }
-        } else {
-            ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
         }
 
         if (this->m_WorkVecField1 == NULL) {
@@ -1907,11 +1899,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
 
         // for full newton method we have to store the adjoint variable
-        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-            ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-        } else {
-            ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-        }
+        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
         ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
@@ -1941,13 +1929,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ScalarType maxval, minval;
-        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-            ierr = VecMin(this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
-            ierr = VecMax(this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
-        } else {
-            ierr = VecMin(this->m_WorkScaField4, NULL, &minval); CHKERRQ(ierr);
-            ierr = VecMax(this->m_WorkScaField4, NULL, &maxval); CHKERRQ(ierr);
-        }
+        ierr = VecMin(this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
         ss << "adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -2024,10 +2007,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 
     // for full newton we store $\lambda$
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         fullnewton = true;
-    } else {
-        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
     }
     ierr = VecGetArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
@@ -2035,7 +2015,9 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {  // for all time points
@@ -2110,6 +2092,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
         }
     }
 
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
@@ -2117,12 +2100,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-    }
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
@@ -2205,12 +2182,9 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
     // for full newton we store the adjoint variable
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         fullnewton = true;
-    } else {
-        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
     }
-
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
@@ -2292,12 +2266,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
-    }
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timers);
 
