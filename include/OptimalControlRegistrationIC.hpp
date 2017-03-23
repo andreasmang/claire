@@ -53,24 +53,21 @@ class OptimalControlRegistrationIC : public OptimalControlRegistration {
     /*! compute incremental body force */
     PetscErrorCode ComputeIncBodyForce(void);
 
-    /*! apply the projection operator to the
-        body force and the incremental body force */
-    PetscErrorCode ApplyProjection(VecField*);
-
     /*! reimplementation (accounting for incompressiblity) */
     PetscErrorCode SolveAdjointEquationSL(void);
 
     /*! reimplementation (accounting for incompressiblity) */
     PetscErrorCode SolveIncAdjointEquationGNSL(void);
 
+    /*! apply the projection operator to the
+        body force and the incremental body force */
+    PetscErrorCode ApplyProjection();
+
  private:
+
     ComplexType* m_x1hat;
     ComplexType* m_x2hat;
     ComplexType* m_x3hat;
-
-    ComplexType* m_Kx1hat;
-    ComplexType* m_Kx2hat;
-    ComplexType* m_Kx3hat;
 };
 
 

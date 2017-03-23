@@ -72,10 +72,6 @@ PetscErrorCode OptimalControlRegistrationIC::Initialize(void) {
     this->m_x2hat = NULL;
     this->m_x3hat = NULL;
 
-    this->m_Kx1hat = NULL;
-    this->m_Kx2hat = NULL;
-    this->m_Kx3hat = NULL;
-
     PetscFunctionReturn(ierr);
 }
 
@@ -100,18 +96,6 @@ PetscErrorCode OptimalControlRegistrationIC::ClearMemory(void) {
     if (this->m_x3hat != NULL) {
         accfft_free(this->m_x3hat);
         this->m_x3hat = NULL;
-    }
-    if (this->m_Kx1hat != NULL) {
-        accfft_free(this->m_Kx1hat);
-        this->m_Kx1hat = NULL;
-    }
-    if (this->m_Kx2hat != NULL) {
-        accfft_free(this->m_Kx2hat);
-        this->m_Kx2hat = NULL;
-    }
-    if (this->m_Kx3hat != NULL) {
-        accfft_free(this->m_Kx3hat);
-        this->m_Kx3hat = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -140,9 +124,7 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeBodyForce() {
     // assigned to work vec field 2
     ierr = SuperClass::ComputeBodyForce(); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
-    ierr = this->ApplyProjection(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
@@ -170,9 +152,7 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
     // assigned to work vec field 2
     ierr = SuperClass::ComputeIncBodyForce(); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
-    ierr = this->ApplyProjection(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -188,15 +168,24 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
-    ScalarType *p_l = NULL;
-    IntType nl, nt, nc, l, lnext;
+    IntType nl, nc, nt, ll, lm, llnext;
+    ScalarType *p_l = NULL,  *p_m=NULL,
+                *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
+                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
+    ScalarType lambda, ht, scale;
+    bool fullnewton = false;
+    double timers[5] = {0, 0, 0, 0, 0};
+    std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
 
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nl;
+    ht = this->m_Opt->GetTimeStepSize();
+    scale = ht;
 
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute trajectory
@@ -206,20 +195,90 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
+    if (this->m_WorkVecField2 == NULL) {
+        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+        fullnewton = true;
+    } else {
+        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
+    }
+
+    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+
     for (IntType j = 0; j < nt; ++j) {  // for all time points
+        lm = (nt-j)*nc*nl;
+        if (fullnewton) {
+            ll = (nt-j)*nc*nl; llnext = (nt-(j+1))*nc*nl;
+        } else {
+            ll = 0; llnext = 0;
+        }
+
+        // scaling for trapezoidal rule (for body force)
+        if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            l = (nt-j)*nc*nl + k*nl;
-            lnext = (nt-(j+1))*nc*nl + k*nl;
+
+            // compute gradient of m
+            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timers);
+            this->m_Opt->IncrementCounter(FFT, 4);
+
+            // compute body force
+            for (IntType i = 0; i < nl; ++i) {
+                lambda = p_l[ll+k*nl+i];
+                p_b1[i] += scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
+                p_b2[i] += scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
+                p_b3[i] += scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
+            }
 
             // compute lambda(t^j,X)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_l+lnext, p_l+l, "adjoint"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_l+llnext+k*nl, p_l+ll+k*nl, "adjoint"); CHKERRQ(ierr);
         }  // for all image components
+        // trapezoidal rule (revert scaling; for body force)
+        if (j == 0) scale *= 2.0;
     }  // for all time points
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+
+
+    // compute body force for last time point t = 0 (i.e., for j = nt)
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        ll = k*nl; lm = k*nl;
+
+        // compute gradient of m (for incremental body force)
+        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timers);
+        this->m_Opt->IncrementCounter(FFT, 4);
+
+        for (IntType i = 0; i < nl; ++i) {  // for all grid points
+            lambda = p_l[ll+i];
+            // compute bodyforce
+            p_b1[i] += 0.5*scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
+            p_b2[i] += 0.5*scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
+            p_b3[i] += 0.5*scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
+        }
+    }
+
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
+
+
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    } else {
+        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
+    }
+
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
+
+    this->m_Opt->IncreaseFFTTimers(timers);
 
     PetscFunctionReturn(ierr);
 }
@@ -262,17 +321,17 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
 
 
 
-
 /********************************************************************
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
+PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
     IntType nalloc;
     double timer[5] = {0, 0, 0, 0, 0};
+    ComplexType x1hat, x2hat, x3hat;
 
     PetscFunctionBegin;
 
@@ -293,17 +352,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
         this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
-    if (this->m_Kx1hat == NULL) {
-        this->m_Kx1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
-    if (this->m_Kx2hat == NULL) {
-        this->m_Kx2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
-    if (this->m_Kx3hat == NULL) {
-        this->m_Kx3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
 
-    ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
@@ -349,42 +400,53 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection(VecField* x) {
 
                 i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
-                // compute div(b)
-                this->m_Kx1hat[i][0] = -scale*(gradik1*this->m_x1hat[i][0]
-                                             + gradik2*this->m_x2hat[i][0]
-                                             + gradik3*this->m_x3hat[i][0]);
+                x1hat[0] = this->m_x1hat[i][0];
+                x1hat[1] = this->m_x1hat[i][1];
 
-                this->m_Kx1hat[i][1] =  scale*(gradik1*this->m_x1hat[i][1]
-                                             + gradik2*this->m_x2hat[i][1]
-                                             + gradik3*this->m_x3hat[i][1]);
+                x2hat[0] = this->m_x2hat[i][0];
+                x2hat[1] = this->m_x2hat[i][1];
+
+                x3hat[0] = this->m_x3hat[i][0];
+                x3hat[1] = this->m_x3hat[i][1];
+
+                // compute div(b)
+                this->m_x1hat[i][0] = -scale*(gradik1*x1hat[0]
+                                             + gradik2*x2hat[0]
+                                             + gradik3*x3hat[0]);
+
+                this->m_x1hat[i][1] =  scale*(gradik1*x1hat[1]
+                                             + gradik2*x2hat[1]
+                                             + gradik3*x3hat[1]);
 
                 // compute lap^{-1} div(b)
-                this->m_Kx1hat[i][0] *= lapinvik;
-                this->m_Kx1hat[i][1] *= lapinvik;
+                this->m_x1hat[i][0] *= lapinvik;
+                this->m_x1hat[i][1] *= lapinvik;
 
                 // compute x2 gradient of lab^{-1} div(b)
-                this->m_Kx2hat[i][0] = -gradik2*this->m_Kx1hat[i][0];
-                this->m_Kx2hat[i][1] =  gradik2*this->m_Kx1hat[i][1];
+                this->m_x2hat[i][0] = -gradik2*this->m_x1hat[i][0];
+                this->m_x2hat[i][1] =  gradik2*this->m_x1hat[i][1];
 
                 // compute x3 gradient of lab^{-1} div(b)
-                this->m_Kx3hat[i][0] = -gradik3*this->m_Kx1hat[i][0];
-                this->m_Kx3hat[i][1] =  gradik3*this->m_Kx1hat[i][1];
+                this->m_x3hat[i][0] = -gradik3*this->m_x1hat[i][0];
+                this->m_x3hat[i][1] =  gradik3*this->m_x1hat[i][1];
 
                 // compute x1 gradient of lab^{-1} div(b)
-                this->m_Kx1hat[i][0] *= -gradik1;
-                this->m_Kx1hat[i][1] *=  gradik1;
+                this->m_x1hat[i][0] *= -gradik1;
+                this->m_x1hat[i][1] *=  gradik1;
+
             }
         }
     }
 }  // pragma omp parallel
 
     // compute inverse fft
-    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
-    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx2hat, p_x2, timer);
-    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx3hat, p_x3, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x1hat, p_x1, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x2hat, p_x2, timer);
+    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x3hat, p_x3, timer);
     this->m_Opt->IncrementCounter(FFT, 3);
 
-    ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
 

@@ -148,6 +148,11 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! sl solver for inc adjoint equation */
     PetscErrorCode SolveIncAdjointEquationFNSL();
 
+    /*! apply the projection operator to the
+        body force and the incremental body force */
+    virtual PetscErrorCode ApplyProjection();
+
+
     Vec m_StateVariable;        ///< time dependent state variable m(x,t)
     Vec m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
     Vec m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
@@ -160,6 +165,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     PetscErrorCode HessMatVec(Vec, Vec);
     PetscErrorCode PrecondHessMatVec(Vec, Vec);
     PetscErrorCode PrecondHessMatVecSym(Vec, Vec);
+
 };
 
 

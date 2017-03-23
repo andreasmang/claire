@@ -355,15 +355,24 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
     // compute solution of state equation
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
 
-    // copy memory for m_1
+    // copy memory for lambda0
     ierr = VecGetArray(l0, &p_l0); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    } else {
+        ierr = VecGetArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
+    }
+
     try {std::copy(p_l, p_l+nl*nc, p_l0);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(l0, &p_l0); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    } else {
+        ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1904,7 +1913,11 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
             ierr = VecRestoreArray(this->m_WorkScaField4, &p_l); CHKERRQ(ierr);
         }
 
+        ierr = this->ApplyProjection(); CHKERRQ(ierr);
+
+        // increment timers
         this->m_Opt->IncreaseFFTTimers(timers);
+
     } else {
         // call the solver
         switch (this->m_Opt->GetPDESolverPara().type) {
@@ -2233,6 +2246,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
             // compute gradient of m (for incremental body force)
             accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timers);
+            this->m_Opt->IncrementCounter(FFT, 4);
 
             for (IntType i = 0; i < nl; ++i) {
                 lambda = p_l[ll+k*nl+i];
@@ -3147,6 +3161,16 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void) {
 }
 
 
+
+/********************************************************************
+ * @brief apply projection to map \tilde{v} onto the manifold
+ * of divergence free velocity fields
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::ApplyProjection() {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
