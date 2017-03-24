@@ -761,7 +761,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType ht, scale, lambda, value;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1328,7 +1328,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
                 *p_gradmt1 = NULL, *p_gradmt2 = NULL, *p_gradmt3 = NULL;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, scale, lj, ltj;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1630,7 +1630,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
     ScalarType ht = 0.0, hthalf = 0.0, rhs1;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1788,7 +1788,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -1961,7 +1961,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_m = NULL;
     ScalarType hthalf, ht, lambdabar, lambda, scale;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
     bool fullnewton = false;
     PetscFunctionBegin;
 
@@ -2127,7 +2127,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     IntType nl, ng, nc, nt, ll, lm, llnext;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     bool fullnewton = false;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -2383,7 +2383,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
                 *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL, *p_rhs0 = NULL;
     ScalarType ht, hthalf;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -2536,7 +2536,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
                 *p_mtilde = NULL, *p_m = NULL;
     const ScalarType *p_vtildeX1 = NULL, *p_vtildeX2 = NULL, *p_vtildeX3 = NULL,
                      *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL;
-	double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -2651,7 +2651,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
                *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL;
     IntType nl, ng, nc, nt, l, k;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-	double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -2841,7 +2841,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                 *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
     ScalarType ht, hthalf;
-	double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -2938,7 +2938,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
                 *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL,
                 *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
     ScalarType ht, hthalf, lambda, lambdatilde, ltbar;
-	double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -3079,7 +3079,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
     ScalarType ht, hthalf, ltilde, ltildex, rhs0, rhs1, scale;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-	double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 

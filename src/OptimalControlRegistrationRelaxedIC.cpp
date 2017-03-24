@@ -205,7 +205,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_gdv1 = NULL, *p_gdv2 = NULL, *p_gdv3 = NULL, *p_divv = NULL;
     ScalarType value, regvalue, betaw;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
     IntType nl, ng;
     std::bitset<3> XYZ = 0; XYZ[0] = 1, XYZ[1] = 1, XYZ[2] = 1;
 
@@ -340,7 +340,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ScalarType beta[3], scale;
     long int nx[3];
     IntType nalloc;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
+    double applytime;
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
@@ -383,6 +384,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     beta[0] = this->m_Opt->GetRegNorm().beta[0];
     beta[2] = this->m_Opt->GetRegNorm().beta[2];
 
+    applytime = -MPI_Wtime();
 #pragma omp parallel
 {
     long int x1, x2, x3, wx1, wx2, wx3;
@@ -455,6 +457,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
         }
     }
 }  // pragma omp parallel
+    applytime += MPI_Wtime();
+    timer[FFTHADAMARD] += applytime;
 
     // compute inverse fft
     accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_Kx1hat, p_x1, timer);
@@ -465,6 +469,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);

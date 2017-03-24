@@ -378,6 +378,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = Assert(xi != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xo != NULL, "null pointer"); CHKERRQ(ierr);
 
+    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
+
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
         isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
@@ -430,6 +432,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
+    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);
 
@@ -494,6 +497,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetDomainPara().nl;
     order = this->m_Opt->GetPDESolverPara().interpolationorder;
@@ -586,6 +591,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         wx3[i] = this->m_X[2*nl+i];
     }
 
+    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
@@ -624,6 +630,8 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     ierr = Assert(yx1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(yx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(yx3 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetDomainPara().nl;
     order = this->m_Opt->GetPDESolverPara().interpolationorder;
@@ -723,6 +731,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
         wx3[i] = this->m_X[2*nl+i];
     }
 
+    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 

@@ -67,9 +67,10 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
                 *p_gv11 = NULL, *p_gv12 = NULL, *p_gv13 = NULL,
                 *p_gv21 = NULL, *p_gv22 = NULL, *p_gv23 = NULL,
                 *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
-	double timer[7] = {0};
     std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType beta, value;
+    double timer[NFFTTIMERS] = {0};
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -155,8 +156,8 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[7] = {0};
-
+    double timer[NFFTTIMERS] = {0};
+    double applytime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -187,6 +188,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
 
         scale = this->m_Opt->ComputeFFTScale();
 
+        applytime = -MPI_Wtime();
 #pragma omp parallel
 {
         long int w[3];
@@ -200,7 +202,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
                     w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
                     w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
-                    CheckWaveNumbers(w,nx);
+                    CheckWaveNumbers(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
@@ -224,7 +226,8 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
             }
         }
 }  // pragma omp parallel
-
+        applytime += MPI_Wtime();
+        timer[FFTHADAMARD] += applytime;
 
         // compute inverse fft
         ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
@@ -290,7 +293,8 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
+    double applytime;
 
     PetscFunctionBegin;
 
@@ -323,6 +327,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
         this->m_Opt->IncrementCounter(FFT, 3);
         scale = this->m_Opt->ComputeFFTScale();
 
+        applytime = -MPI_Wtime();
 #pragma omp parallel
 {
         long int w[3];
@@ -362,6 +367,8 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
             }
         }
 }  // pragma omp parallel
+        applytime += MPI_Wtime();
+        timer[FFTHADAMARD] += applytime;
 
         // compute inverse fft
         ierr = Ainvx->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);

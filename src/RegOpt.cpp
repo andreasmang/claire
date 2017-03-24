@@ -2192,17 +2192,21 @@ PetscErrorCode RegOpt::ResetTimers() {
         this->m_TempTimer[i] = 0.0;
     }
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < NFFTTIMERS; ++i) {
         for (int j = 0; j < NVALTYPES; ++j) {
             this->m_FFTTimers[i][j] = 0.0;
         }
     }
+    this->m_FFTAccumTime = 0.0;
 
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < NVALTYPES; ++j) {
             this->m_InterpTimers[i][j] = 0.0;
         }
     }
+    this->m_IPAccumTime = 0.0;
+
+
 
     this->Exit(__func__);
 
@@ -2295,7 +2299,7 @@ PetscErrorCode RegOpt::StopTimer(TimerType id) {
 PetscErrorCode RegOpt::ProcessTimers() {
     PetscErrorCode ierr = 0;
     int rval, rank, nproc;
-    double ival = 0.0, xval = 0.0;
+    double ival = 0.0, xval = 0.0, ivalsum = 0.0;
 
     PetscFunctionBegin;
 
@@ -2328,9 +2332,15 @@ PetscErrorCode RegOpt::ProcessTimers() {
         }
     }
 
-    for (int i = 0; i < 5; ++i) {
+
+    ivalsum = 0.0;
+    for (int i = 0; i < NFFTTIMERS; ++i) {
         // remember input value
         ival = this->m_FFTTimers[i][LOG];
+
+        if ((i == FFTTRANSPOSE) || (i == FFTEXECUTE) || (i == FFTHADAMARD)){
+            ivalsum += ival;
+        }
 
         // get maximal execution time
         rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
@@ -2352,9 +2362,16 @@ PetscErrorCode RegOpt::ProcessTimers() {
         }
     }
 
+    // get max of accumulated time accross all procs
+    rval = MPI_Reduce(&ivalsum, &xval, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+    this->m_FFTAccumTime = xval;
+
+    ivalsum = 0.0;
     for (int i = 0; i < 4; ++i) {
         // remember input value
         ival = this->m_InterpTimers[i][LOG];
+        ivalsum += ival;
 
         // get maximal execution time
         rval = MPI_Reduce(&ival, &xval, 1, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
@@ -2375,6 +2392,12 @@ PetscErrorCode RegOpt::ProcessTimers() {
             this->m_InterpTimers[i][AVG] /= static_cast<double>(nproc);
         }
     }
+
+    // get max of accumulated time accross all procs
+    rval = MPI_Reduce(&ivalsum, &xval, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+    this->m_IPAccumTime = xval;
+
 
     this->Exit(__func__);
 
@@ -2638,6 +2661,17 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
             ss.clear(); ss.str(std::string());
         }
 
+        // if time has been logged
+        if (this->m_FFTAccumTime > 0.0) {
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << " FFT accumulated" << std::right
+                << std::setw(nnum) << " n/a"
+                << std::setw(nnum) << this->m_FFTAccumTime
+                << std::setw(nnum) << "n/a"
+                << std::setw(nnum) << "n/a";
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
+        }
 
         // if time has been logged
         if (this->m_Timer[FFTSETUP][LOG] > 0.0) {
@@ -2652,32 +2686,56 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
         }
 
         // if time has been logged
-        if (this->m_FFTTimers[2][LOG] > 0.0) {
+        if (this->m_FFTTimers[FFTCOMM][LOG] > 0.0) {
             ierr = Assert(this->m_Counter[FFT] > 0, "bug in counter"); CHKERRQ(ierr);
             ss  << std::scientific << std::left
                 << std::setw(nstr) << " FFT communication" << std::right
-                << std::setw(nnum) << this->m_FFTTimers[2][MIN]
-                << std::setw(nnum) << this->m_FFTTimers[2][MAX]
-                << std::setw(nnum) << this->m_FFTTimers[2][AVG]
-                << std::setw(nnum) << this->m_FFTTimers[2][MAX]
+                << std::setw(nnum) << this->m_FFTTimers[FFTCOMM][MIN]
+                << std::setw(nnum) << this->m_FFTTimers[FFTCOMM][MAX]
+                << std::setw(nnum) << this->m_FFTTimers[FFTCOMM][AVG]
+                << std::setw(nnum) << this->m_FFTTimers[FFTCOMM][MAX]
                                     /static_cast<ScalarType>(this->m_Counter[FFT]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
 
         // if time has been logged
-        if (this->m_FFTTimers[4][LOG] > 0.0) {
+        if (this->m_FFTTimers[FFTEXECUTE][LOG] > 0.0) {
             ierr = Assert(this->m_Counter[FFT] > 0, "bug in counter"); CHKERRQ(ierr);
             ss  << std::scientific << std::left
                 << std::setw(nstr) << " FFT execution" << std::right
-                << std::setw(nnum) << this->m_FFTTimers[4][MIN]
-                << std::setw(nnum) << this->m_FFTTimers[4][MAX]
-                << std::setw(nnum) << this->m_FFTTimers[4][AVG]
-                << std::setw(nnum) << this->m_FFTTimers[4][MAX]
+                << std::setw(nnum) << this->m_FFTTimers[FFTEXECUTE][MIN]
+                << std::setw(nnum) << this->m_FFTTimers[FFTEXECUTE][MAX]
+                << std::setw(nnum) << this->m_FFTTimers[FFTEXECUTE][AVG]
+                << std::setw(nnum) << this->m_FFTTimers[FFTEXECUTE][MAX]
                                     /static_cast<ScalarType>(this->m_Counter[FFT]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
+
+        // if time has been logged
+        if (this->m_Timer[IPSELFEXEC][LOG] > 0.0) {
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << " interp selfexec" << std::right
+                << std::setw(nnum) << this->m_Timer[IPSELFEXEC][MIN]
+                << std::setw(nnum) << this->m_Timer[IPSELFEXEC][MAX]
+                << std::setw(nnum) << this->m_Timer[IPSELFEXEC][AVG]
+                << std::setw(nnum) << "n/a";
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
+        }
+
+        if (this->m_IPAccumTime > 0.0) {
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << " interp accumulated" << std::right
+                << std::setw(nnum) << " n/a"
+                << std::setw(nnum) << this->m_IPAccumTime
+                << std::setw(nnum) << "n/a"
+                << std::setw(nnum) << "n/a";
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
+        }
+
 
         // if time has been logged
         if (this->m_InterpTimers[0][LOG] > 0.0) {

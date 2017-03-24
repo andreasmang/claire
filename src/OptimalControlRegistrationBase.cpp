@@ -1323,7 +1323,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
                 *p_jac = NULL,  *p_rhs0 = NULL;
     ScalarType ht, hthalf, alpha, rhs1;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-	double timer[7] = {0};
+    double timer[7] = {0};
     bool inverse;
     PetscFunctionBegin;
 
@@ -1413,7 +1413,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
                 *p_phi = NULL,  *p_rhs0 = NULL,  *p_divvphi=NULL;
     ScalarType ht, hthalf, alpha;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-	double timer[7] = {0};
+    double timer[7] = {0};
     bool inverse;
 
     PetscFunctionBegin;

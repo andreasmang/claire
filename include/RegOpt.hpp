@@ -144,7 +144,21 @@ enum TimerType {
     OBJEXEC,      ///< objective evluation (execution time)
     FFTSETUP,     ///< fft setup time
     FFTEXEC,      ///< fft execution time
+    IPSELFEXEC,   ///< execution time for interpolation
     NTIMERS,      ///< to allocate the timers
+};
+
+
+
+enum FFTTimers {
+    FFTTRANSPOSE = 0,  ///< contains all communication time
+    FFTSHUFFLE   = 1,  ///< contained in FFTTRANSPOSE
+    FFTCOMM      = 2,  ///< contained in FFTTRANSPOSE
+    FFTRESHUFFLE = 3,  ///< contained in FFTTRANSPOSE
+    FFTEXECUTE   = 4,  ///< execution time
+    FFTNAN       = 5,  ///< currently empty
+    FFTHADAMARD  = 6,  ///< hadamard products for differential operators
+    NFFTTIMERS   = 7,  ///< total number of itmers
 };
 
 
@@ -370,7 +384,7 @@ struct PDESolver {
 
 
 /*! parameter for grid continuation */
-struct Logger {
+struct Logger{
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
     std::vector<ScalarType> distance;        ///< convergence for residual
     std::vector<ScalarType> regularization;  ///< convergence for regularization
@@ -381,11 +395,12 @@ struct Logger {
     ScalarType finalresidual[4];
     bool enabled[NLOGFLAGS];
 
+
     double timer[NTIMERS][NVALTYPES];
     double temptimer[NTIMERS];
     bool timerruns[NTIMERS];
     unsigned int counter[NCOUNTERS];
-    double ffttimers[7][NVALTYPES];
+    double ffttimers[NFFTTIMERS][NVALTYPES];
     double iptimers[4][NVALTYPES];
 };
 
@@ -561,8 +576,8 @@ class RegOpt {
         return this->m_NumThreads;
     }
     inline int GetNetworkDims(const int i) {return this->m_CartGridDims[i];}
-    inline void IncreaseFFTTimers(const double timers[7]) {
-        for (int i = 0; i < 7; ++i) {
+    inline void IncreaseFFTTimers(const double timers[NFFTTIMERS]) {
+        for (int i = 0; i < NFFTTIMERS; ++i) {
             this->m_FFTTimers[i][LOG] += timers[i];
         }
     }
@@ -666,8 +681,10 @@ class RegOpt {
     double m_TempTimer[NTIMERS];
     bool m_TimerIsRunning[NTIMERS];
     unsigned int m_Counter[NCOUNTERS];
-    double m_FFTTimers[7][NVALTYPES];
+    double m_FFTTimers[NFFTTIMERS][NVALTYPES];
+    double m_FFTAccumTime;
     double m_InterpTimers[4][NVALTYPES];
+    double m_IPAccumTime;
 
     int m_CartGridDims[2];
     unsigned int m_NumThreads;

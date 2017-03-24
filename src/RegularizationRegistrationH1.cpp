@@ -69,7 +69,7 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
                 *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
     ScalarType value, beta[2], H1v, L2v;
     std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -159,7 +159,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta[2], scale;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
+    double applytime;
 
     PetscFunctionBegin;
 
@@ -192,6 +193,7 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
 
         scale = this->m_Opt->ComputeFFTScale();
 
+        applytime = -MPI_Wtime();
 #pragma omp parallel
 {
         long int w[3];
@@ -230,7 +232,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
             }
         }
 }  // pragma omp parallel
-
+        applytime += MPI_Wtime();
+        timer[FFTHADAMARD] += applytime;
 
         // compute inverse fft
         ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
@@ -297,7 +300,8 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_Ainvx1 = NULL, *p_Ainvx2 = NULL, *p_Ainvx3 = NULL;
     ScalarType beta[2], scale;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
+    double applytime;
 
     PetscFunctionBegin;
 
@@ -331,6 +335,8 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
         this->m_Opt->IncrementCounter(FFT, 3);
 
         scale = this->m_Opt->ComputeFFTScale();
+
+        applytime = -MPI_Wtime();
 
 #pragma omp parallel
 {
@@ -370,6 +376,8 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
             }
         }
 }// pragma omp parallel
+        applytime += MPI_Wtime();
+        timer[FFTHADAMARD] += applytime;
 
         // compute inverse fft
         ierr = Ainvx->GetArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);

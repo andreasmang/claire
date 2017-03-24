@@ -174,7 +174,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
                 *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType lambda, ht, scale;
     bool fullnewton = false;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
 
     PetscFunctionBegin;
@@ -301,7 +301,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
     ScalarType ht, scale, ltilde;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
@@ -408,7 +408,8 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
     IntType nalloc;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
+    double applytime;
     ComplexType x1hat, x2hat, x3hat;
 
     PetscFunctionBegin;
@@ -440,6 +441,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->IncrementCounter(FFT,3);
 
+    applytime = -MPI_Wtime();
 #pragma omp parallel
 {
     long int x1, x2, x3, wx1, wx2, wx3;
@@ -516,6 +518,8 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
         }
     }
 }  // pragma omp parallel
+    applytime += MPI_Wtime();
+    timer[FFTHADAMARD] += applytime;
 
     // compute inverse fft
     accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x1hat, p_x1, timer);

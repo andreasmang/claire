@@ -453,7 +453,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     IntType n, l, k_c[3], i_c[3], nr, os_recv, nyqfreqid[3];
     std::stringstream ss;
     int rank, nprocs;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1299,7 +1299,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     IntType l, n, ns, os_send, k_f[3], i_f[3], nyqfreqid[3];
     ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2], value;
     std::stringstream ss;
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1475,7 +1475,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     ScalarType *p_x = NULL, *p_xflt = NULL;
     ScalarType nxhalf[3], scale, cfreq[3][2], indicator[2], indic;
     int nx[3];
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1618,7 +1618,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     IntType nalloc;
     ScalarType *p_x = NULL, *p_xs = NULL, c[3], scale; //, nx[3];
     int nx[3];
-    double timer[7] = {0};
+    double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
