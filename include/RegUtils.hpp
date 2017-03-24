@@ -96,7 +96,7 @@ PetscErrorCode GetFileName(std::string&, std::string&, std::string&, std::string
 std::vector<int> String2Vec(const std::string&);
 
 
-PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
+PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool, IntType[3]);
 PetscErrorCode Finalize();
 
 

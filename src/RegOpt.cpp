@@ -727,7 +727,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
 
     // set number of threads
     ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
+                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists,
+                                      this->m_Domain.nx); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
 
@@ -803,7 +804,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     // if communicator is not set up
     if (this->m_FFT.mpicommexists == false) {
         ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                          this->m_FFT.mpicomm, false); CHKERRQ(ierr);
+                                          this->m_FFT.mpicomm, false, this->m_Domain.nx); CHKERRQ(ierr);
 
         this->m_FFT.mpicommexists = true;
     }

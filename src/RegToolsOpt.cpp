@@ -299,7 +299,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
 
     // set number of threads
     ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
+                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists,
+                                      this->m_Domain.nx); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }
