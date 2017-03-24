@@ -195,7 +195,7 @@ PetscErrorCode DomainDecomposition::ApplyGaussianSmoothing(Vec y, Vec x) {
     size_t alloc_max;
     ScalarType hx[3], nx[3], c[3], scale;
     ScalarType *p_x = NULL, *p_y = NULL;
-    double timer[5] = {0, 0, 0, 0, 0};
+	double timer[7] = {0};
     PetscFunctionBegin;
 
     ierr = Assert(x != NULL,"null pointer"); CHKERRQ(ierr);

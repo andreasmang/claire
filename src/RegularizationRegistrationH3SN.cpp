@@ -67,7 +67,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta,ipxi,scale;
     int nx[3];
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
 
     PetscFunctionBegin;
 
@@ -231,7 +231,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
 
     PetscFunctionBegin;
 
@@ -372,7 +372,7 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
 
     PetscFunctionBegin;
 

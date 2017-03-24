@@ -174,7 +174,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
                 *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType lambda, ht, scale;
     bool fullnewton = false;
-    double timers[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
 
     PetscFunctionBegin;
@@ -233,7 +233,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             // compute gradient of m
-            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timers);
+            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // compute body force
@@ -257,7 +257,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timers);
+        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->IncrementCounter(FFT, 4);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
@@ -277,7 +277,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(timers);
+    this->m_Opt->IncreaseFFTTimers(timer);
 
     PetscFunctionReturn(ierr);
 }
@@ -301,7 +301,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
     ScalarType ht, scale, ltilde;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    double timers[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
     PetscFunctionBegin;
 
     nt = this->m_Opt->GetDomainPara().nt;
@@ -349,7 +349,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
             ll = k*nl;
 
             // compute gradient of m (for incremental body force)
-            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timers);
+            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // compute incremental bodyforce
@@ -370,7 +370,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timers);
+        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->IncrementCounter(FFT, 4);
 
         // compute incremental bodyforce
@@ -392,7 +392,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
     // apply projection to map velocity on manifold of divergence free velocities
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(timers);
+    this->m_Opt->IncreaseFFTTimers(timer);
 
     PetscFunctionReturn(ierr);
 }
@@ -408,7 +408,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
     IntType nalloc;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
     ComplexType x1hat, x2hat, x3hat;
 
     PetscFunctionBegin;

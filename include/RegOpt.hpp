@@ -385,7 +385,7 @@ struct Logger {
     double temptimer[NTIMERS];
     bool timerruns[NTIMERS];
     unsigned int counter[NCOUNTERS];
-    double ffttimers[5][NVALTYPES];
+    double ffttimers[7][NVALTYPES];
     double iptimers[4][NVALTYPES];
 };
 
@@ -561,8 +561,8 @@ class RegOpt {
         return this->m_NumThreads;
     }
     inline int GetNetworkDims(const int i) {return this->m_CartGridDims[i];}
-    inline void IncreaseFFTTimers(const double timers[5]) {
-        for (int i = 0; i < 5; ++i) {
+    inline void IncreaseFFTTimers(const double timers[7]) {
+        for (int i = 0; i < 7; ++i) {
             this->m_FFTTimers[i][LOG] += timers[i];
         }
     }
@@ -666,7 +666,7 @@ class RegOpt {
     double m_TempTimer[NTIMERS];
     bool m_TimerIsRunning[NTIMERS];
     unsigned int m_Counter[NCOUNTERS];
-    double m_FFTTimers[5][NVALTYPES];
+    double m_FFTTimers[7][NVALTYPES];
     double m_InterpTimers[4][NVALTYPES];
 
     int m_CartGridDims[2];

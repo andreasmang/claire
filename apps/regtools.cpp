@@ -131,7 +131,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
     std::string fnx1, fnx2, fnx3;
     std::stringstream ss;
     int rank;
-    double timers[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
     ScalarType *p_m = NULL, *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL;
     Vec m = NULL;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
@@ -166,7 +166,7 @@ PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
         // computing gradient of m
         ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
         ierr = grad->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-        accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m, regopt->GetFFT().plan, &XYZ, timers);
+        accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m, regopt->GetFFT().plan, &XYZ, timer);
         ierr = grad->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
         ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 

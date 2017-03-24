@@ -67,7 +67,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
                 *p_gv11 = NULL, *p_gv12 = NULL, *p_gv13 = NULL,
                 *p_gv21 = NULL, *p_gv22 = NULL, *p_gv23 = NULL,
                 *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
-    double timer[5] = {0, 0, 0, 0, 0};
+	double timer[7] = {0};
     std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType beta, value;
     PetscFunctionBegin;
@@ -155,7 +155,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
 
     PetscFunctionBegin;
 
@@ -290,7 +290,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
 
     PetscFunctionBegin;
 

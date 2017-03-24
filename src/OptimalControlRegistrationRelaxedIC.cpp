@@ -205,7 +205,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_gdv1 = NULL, *p_gdv2 = NULL, *p_gdv3 = NULL, *p_divv = NULL;
     ScalarType value, regvalue, betaw;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
     IntType nl, ng;
     std::bitset<3> XYZ = 0; XYZ[0] = 1, XYZ[1] = 1, XYZ[2] = 1;
 
@@ -340,7 +340,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection(VecField* x)
     ScalarType beta[3], scale;
     long int nx[3];
     IntType nalloc;
-    double timer[5] = {0, 0, 0, 0, 0};
+    double timer[7] = {0};
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
