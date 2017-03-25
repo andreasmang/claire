@@ -161,7 +161,6 @@ PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* readwrite) {
     this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
-
 }
 
 
@@ -178,7 +177,6 @@ PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* v) {
     this->m_WorkVecField = v;
 
     PetscFunctionReturn(ierr);
-
 }
 
 
@@ -207,28 +205,28 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     nl = this->m_Opt->GetDomainPara().nl;
 
     // switch between state and adjoint variable
-    if (strcmp(flag.c_str(),"state") == 0) {
+    if (strcmp(flag.c_str(), "state") == 0) {
         if (this->m_XS == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_XS = new ScalarType [3*nl];}
+            try {this->m_XS = new ScalarType[3*nl];}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         X = this->m_XS;
         scale = 1.0;
-    } else if (strcmp(flag.c_str(),"adjoint") == 0) {
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
         if (this->m_XA == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.clear(); ss.str(std::string());
             }
-            try {this->m_XA = new ScalarType [3*nl];}
+            try {this->m_XA = new ScalarType[3*nl];}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
@@ -243,16 +241,14 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     hthalf = 0.5*ht;
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
         istart[i] = this->m_Opt->GetDomainPara().istart[i];
     }
 
+
     // \tilde{X} = x - ht v
     ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
     for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
@@ -263,14 +259,12 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
-
                 X[l*3+0] = (x1 - scale*ht*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
                 X[l*3+1] = (x2 - scale*ht*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
                 X[l*3+2] = (x3 - scale*ht*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
             }  // i1
         }  // i2
     }  // i3
-}  // pragma omp for
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // interpolate velocity field v(X)
@@ -280,9 +274,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     // X = x - 0.5*ht*(v + v(x - ht v))
     ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
     for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
@@ -293,7 +284,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
-
                 X[l*3+0] = (x1 - scale*hthalf*(p_vX1[l] + p_v1[l]))/(2.0*PETSC_PI); // normalized to [0,1]
                 X[l*3+1] = (x2 - scale*hthalf*(p_vX2[l] + p_v2[l]))/(2.0*PETSC_PI); // normalized to [0,1]
                 X[l*3+2] = (x3 - scale*hthalf*(p_vX3[l] + p_v3[l]))/(2.0*PETSC_PI); // normalized to [0,1]
@@ -301,7 +291,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
             }  // i1
         }  // i2
     }  // i3
-}  // pragma omp for
     ierr = this->m_WorkVecField->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -371,8 +360,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 
@@ -494,8 +483,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     nghost = order;
 
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i]     = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 
@@ -632,8 +621,8 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     ierr = ThrowError("dont use during SC writeup"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i]     = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 
