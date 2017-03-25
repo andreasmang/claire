@@ -317,9 +317,9 @@ void isleep(unsigned int nanosec) {
 /********************************************************************
  * @brief setup library
  *******************************************************************/
-PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c_comm, bool c_exists, IntType nx[3]) {
+PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c_comm, bool c_exists) {
     PetscErrorCode ierr = 0;
-    int nprocs, ompthreads, np;
+    int nprocs, ompthreads, np, rval;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -337,19 +337,16 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
     // set up MPI/cartesian grid
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
     np = c_grid[0]*c_grid[1];
-
-
-    c_grid[0] = nprocs;
-    c_grid[1] = 1;
-    if (nx[0] < nprocs) {
+    if (np != nprocs) {
         // update cartesian grid layout
-        c_grid[0] = 0;
-        c_grid[1] = 0;
-        MPI_Dims_create(nprocs, 2, c_grid);
+        c_grid[0] = 0; c_grid[1] = 0;
+        rval = MPI_Dims_create(nprocs, 2, c_grid);
+        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     }
 
     if (c_exists) {
-        MPI_Comm_free(&c_comm);
+        rval = MPI_Comm_free(&c_comm);
+        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     }
 
     // initialize accfft
