@@ -264,28 +264,18 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
 
-                X[l*3+0] = x1 - scale*ht*p_v1[l];
-                X[l*3+1] = x2 - scale*ht*p_v2[l];
-                X[l*3+2] = x3 - scale*ht*p_v3[l];
+                X[l*3+0] = (x1 - scale*ht*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                X[l*3+1] = (x2 - scale*ht*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                X[l*3+2] = (x3 - scale*ht*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
             }  // i1
         }  // i2
     }  // i3
 }  // pragma omp for
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-    // normalize to [0,1]
-    for (IntType i = 0; i < 3*nl; ++i) {
-        X[i] /= (2*PETSC_PI);
-    }
-
     // interpolate velocity field v(X)
     ierr = this->MapCoordinateVector(flag); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField, v, flag); CHKERRQ(ierr);
-
-    // normalize to [0,2*pi]
-    for (IntType i = 0; i < 3*nl; ++i) {
-        X[i] *= (2*PETSC_PI);
-    }
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -304,20 +294,16 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
 
-                X[l*3+0] = x1 - scale*hthalf*(p_vX1[l] + p_v1[l]);
-                X[l*3+1] = x2 - scale*hthalf*(p_vX2[l] + p_v2[l]);
-                X[l*3+2] = x3 - scale*hthalf*(p_vX3[l] + p_v3[l]);
+                X[l*3+0] = (x1 - scale*hthalf*(p_vX1[l] + p_v1[l]))/(2.0*PETSC_PI); // normalized to [0,1]
+                X[l*3+1] = (x2 - scale*hthalf*(p_vX2[l] + p_v2[l]))/(2.0*PETSC_PI); // normalized to [0,1]
+                X[l*3+2] = (x3 - scale*hthalf*(p_vX3[l] + p_v3[l]))/(2.0*PETSC_PI); // normalized to [0,1]
+
             }  // i1
         }  // i2
     }  // i3
 }  // pragma omp for
     ierr = this->m_WorkVecField->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-    // normalize to [0,1]
-    for (IntType i = 0; i < 3*nl; ++i) {
-        X[i] /= (2*PETSC_PI);
-    }
 
     ierr =this->MapCoordinateVector(flag); CHKERRQ(ierr);
 
@@ -498,7 +484,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetDomainPara().nl;
     order = this->m_Opt->GetPDESolverPara().interpolationorder;
@@ -532,6 +517,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         this->m_X[1*nl+i] = vx2[i];
         this->m_X[2*nl+i] = vx3[i];
     }
+
+    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     // get ghost sizes
     plan = this->m_Opt->GetFFT().plan;
@@ -585,13 +572,14 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
+    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
+
     for (IntType i = 0; i < nl; ++i) {
         wx1[i] = this->m_X[0*nl+i];
         wx2[i] = this->m_X[1*nl+i];
         wx3[i] = this->m_X[2*nl+i];
     }
 
-    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
@@ -732,6 +720,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     }
 
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
+
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 

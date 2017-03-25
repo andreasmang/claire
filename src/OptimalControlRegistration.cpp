@@ -3166,7 +3166,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
         for (IntType k = 0; k < nc; ++k) {
             ll = k*nl;
 
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildex, p_ltilde+ll, "adjoint"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildex, p_ltilde + ll, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m^j
             accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
