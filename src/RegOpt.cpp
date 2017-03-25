@@ -787,7 +787,7 @@ PetscErrorCode RegOpt::DestroyFFT() {
  *******************************************************************/
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3], rank, nalloc;
+    int nx[3], isize[3], istart[3], osize[3], ostart[3], rank, nalloc, iporder;
     std::stringstream ss;
     ScalarType *u = NULL, fftsetuptime;
     ComplexType *uk = NULL;
@@ -819,6 +819,20 @@ PetscErrorCode RegOpt::InitializeFFT() {
     nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
     ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
+
+    iporder = this->m_PDESolver.interpolationorder;
+    if (this->m_PDESolver.type == SL) {
+        if (isize[0] <= iporder+1 || isize[1] <= iporder+1) {
+            ss << "\n\x1b[31m local size smaller than padding size (isize=("
+               << isize[0] << "," << isize[1] << "," << isize[2]
+               << ") < 3) -> reduce number of mpi tasks\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, ss.str().c_str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+
+            ierr = PetscFinalize(); CHKERRQ(ierr);
+            exit(0);
+        }
+    }
 
     if (this->m_Verbosity > 2) {
         ss << "data distribution: nx=("
@@ -862,16 +876,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
     fftsetuptime += MPI_Wtime();
     ierr = Assert(this->m_FFT.plan != NULL, "allocation failed"); CHKERRQ(ierr);
-
-    if (this->m_PDESolver.type == SL) {
-        if (isize[0] <= 3 || isize[1] <= 3) {
-            ss << "local size smaller than padding size (isize=("
-               << isize[0] << "," << isize[1] << "," << isize[2]
-               << ") < 3) -> reduce number of mpi tasks";
-            ierr = ThrowError(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
-    }
 
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
