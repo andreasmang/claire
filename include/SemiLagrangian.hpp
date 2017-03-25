@@ -67,8 +67,10 @@ class SemiLagrangian {
 
  protected:
     PetscErrorCode Initialize();
-    virtual PetscErrorCode MapCoordinateVector(std::string);
     PetscErrorCode ClearMemory();
+
+    virtual PetscErrorCode CommunicateCoordVecField(std::string);
+    virtual PetscErrorCode CommunicateCoordScaField(std::string);
 
     VecField* m_WorkVecField;
 

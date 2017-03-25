@@ -19,6 +19,7 @@
 #ifndef _REGOPT_CPP_
 #define _REGOPT_CPP_
 
+#include <petscsys.h>
 #include <string>
 #include <vector>
 #include "accfft.h"
@@ -808,6 +809,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_FFT.mpicommexists = true;
     }
 
+    //PETSC_COMM_WORLD = this->m_FFT.mpicomm;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // parse grid size for setup
@@ -821,19 +823,23 @@ PetscErrorCode RegOpt::InitializeFFT() {
     ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
 
+    MPI_Barrier(PETSC_COMM_WORLD);
     iporder = this->m_PDESolver.interpolationorder;
     if (this->m_PDESolver.type == SL) {
         if (isize[0] <= iporder+1 || isize[1] <= iporder+1) {
             ss << "\n\x1b[31m local size smaller than padding size (isize=("
                << isize[0] << "," << isize[1] << "," << isize[2]
                << ") < 3) -> reduce number of mpi tasks\x1b[0m\n";
-            ierr = PetscPrintf(PETSC_COMM_WORLD, ss.str().c_str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-
-            ierr = PetscFinalize(); CHKERRQ(ierr);
-            exit(0);
+            std::cout << ss.str() << std::endl;
+            //SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, ss.str().c_str());
+            PetscFunctionReturn(PETSC_ERR_ARG_SIZ);
+            //ss.clear(); ss.str(std::string());
+            //ierr = ThrowError(" error"); CHKERRQ(ierr);
+            //ierr = PetscFinalize(); CHKERRQ(ierr);
+            //ierr = PetscFinalize(); CHKERRQ(ierr);
         }
     }
+    MPI_Barrier(PETSC_COMM_WORLD);
 
     if (this->m_Verbosity > 2) {
         ss << "data distribution: nx=("
@@ -1043,6 +1049,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
     this->m_RegFlags.invdefgrad = false;                ///< compute inverse of det(grad(y))^{-1}
     this->m_RegFlags.checkdefmapsolve = false;          ///< check computation of deformation map y; error = x - (y^-1 \circ y)(x)
+    this->m_RegFlags.runninginversion = true;           ///< flag indicating that we run the inversion (switches on storage of m)
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation

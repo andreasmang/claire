@@ -370,6 +370,7 @@ struct RegFlags {
     bool detdefgradfromdeffield;
     bool invdefgrad;
     bool checkdefmapsolve;
+    bool runninginversion;
 };
 
 
@@ -414,7 +415,7 @@ class RegOpt {
     RegOpt();
     RegOpt(int, char**);
     RegOpt(const RegOpt&);
-    ~RegOpt();
+    virtual ~RegOpt();
     void Copy(const RegOpt&);
 
     // spatial grid
@@ -441,6 +442,9 @@ class RegOpt {
     inline void JacBoundReached(bool flag) {this->m_RegMonitor.boundreached = flag;}
     inline bool JacBoundReached() {return this->m_RegMonitor.boundreached;}
     inline void SetJacBound(ScalarType value) {this->m_RegMonitor.jacbound = value;}
+
+    inline void DisableInversion() {this->m_RegFlags.runninginversion = false;}
+    inline void EnableInversion() {this->m_RegFlags.runninginversion = true;}
 
     inline void SetJVal(ScalarType value){this->m_RegMonitor.jval = value;}
     inline void SetRVal(ScalarType value){this->m_RegMonitor.rval = value;}

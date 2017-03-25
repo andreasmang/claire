@@ -274,7 +274,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // interpolate velocity field v(X)
-    ierr = this->MapCoordinateVector(flag); CHKERRQ(ierr);
+    ierr = this->CommunicateCoordVecField(flag); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField, v, flag); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
@@ -305,7 +305,11 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = this->m_WorkVecField->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-    ierr =this->MapCoordinateVector(flag); CHKERRQ(ierr);
+    // only communicate vector field if we run the inversion
+    if (this->m_Opt->GetRegFlags().runninginversion) {
+        ierr = this->CommunicateCoordVecField(flag); CHKERRQ(ierr);
+    }
+    ierr = this->CommunicateCoordScaField(flag); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -625,6 +629,8 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     order = this->m_Opt->GetPDESolverPara().interpolationorder;
     nghost = order;
 
+    ierr = ThrowError("dont use during SC writeup"); CHKERRQ(ierr);
+
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
         isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
@@ -733,10 +739,10 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
 
 
 /********************************************************************
- * @brief change from lexicographical ordering to xyz
- * @param flag flag to switch between forward and adjoint solves
+ * @brief communicate the coordinate vector (query points)
+ * @param flag to switch between forward and adjoint solves
  *******************************************************************/
-PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
+PetscErrorCode SemiLagrangian::CommunicateCoordScaField(std::string flag) {
     PetscErrorCode ierr;
     int nx[3], nl, isize[3], istart[3], nghost;
     int c_dims[2];
@@ -747,24 +753,25 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
     this->m_Opt->Enter(__func__);
 
     // get sizes
-    nl = static_cast<int>(this->m_Opt->GetDomainPara().nl);
-    nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
-
     ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
-
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    if (strcmp(flag.c_str(),"state") == 0) {
+    nl     = static_cast<int>(this->m_Opt->GetDomainPara().nl);
+    nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
+
+    // measure my own timings
+    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
+
+    if (strcmp(flag.c_str(), "state") == 0) {
         // characteristic for state equation should have been computed already
         ierr = Assert(this->m_XS != NULL, "null pointer"); CHKERRQ(ierr);
-
         // create planer
         if (this->m_StatePlan == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
@@ -779,10 +786,81 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
             this->m_StatePlan->allocate(nl, 1);
         }
 
-        // scatter
+        // communicate query points
         this->m_StatePlan->scatter(1, nx, isize, istart, nl, nghost, this->m_XS,
                                    c_dims, this->m_Opt->GetFFT().mpicomm, timers);
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+        // characteristic for adjoint equation should have been computed already
+        ierr = Assert(this->m_XA != NULL, "null pointer"); CHKERRQ(ierr);
 
+        // create planer
+        if (this->m_AdjointPlan == NULL) {
+            if (this->m_Opt->GetVerbosity() > 2) {
+                ss << " >> " << __func__ << ": allocation of plan (adjoint, nl=" << nl << ")";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+            }
+            try {this->m_AdjointPlan = new Interp3_Plan();}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+            this->m_AdjointPlan->allocate(nl, 1);
+        }
+
+        // scatter
+        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl, nghost, this->m_XA,
+                                     c_dims, this->m_Opt->GetFFT().mpicomm, timers);
+    } else {
+        ierr = ThrowError("user did not set correct flag"); CHKERRQ(ierr);
+    }
+
+    // measure my own timings
+    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
+    this->m_Opt->IncreaseInterpTimers(timers);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(0);
+}
+
+
+
+
+/********************************************************************
+ * @brief communicate the coordinate vector (query points)
+ * @param flag to switch between forward and adjoint solves
+ *******************************************************************/
+PetscErrorCode SemiLagrangian::CommunicateCoordVecField(std::string flag) {
+    PetscErrorCode ierr;
+    int nx[3], nl, isize[3], istart[3], nghost;
+    int c_dims[2];
+    double timers[4] = {0, 0, 0, 0};
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+
+    ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
+
+
+    // get sizes
+    nl     = static_cast<int>(this->m_Opt->GetDomainPara().nl);
+    nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
+    for (int i = 0; i < 3; ++i) {
+        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+    }
+
+    c_dims[0] = this->m_Opt->GetNetworkDims(0);
+    c_dims[1] = this->m_Opt->GetNetworkDims(1);
+
+    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
+
+    if (strcmp(flag.c_str(),"state") == 0) {
+        // characteristic for state equation should have been computed already
+        ierr = Assert(this->m_XS != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_StatePlanVec == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
@@ -806,24 +884,6 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
         ierr = Assert(this->m_XA != NULL, "null pointer"); CHKERRQ(ierr);
 
         // create planer
-        if (this->m_AdjointPlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (adjoint, nl=" << nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
-            try {this->m_AdjointPlan = new Interp3_Plan();}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-            this->m_AdjointPlan->allocate(nl, 1);
-        }
-
-        // scatter
-        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl, nghost, this->m_XA,
-                                     c_dims, this->m_Opt->GetFFT().mpicomm, timers);
-
-        // create planer
         if (this->m_AdjointPlanVec == NULL) {
             if (this->m_Opt->GetVerbosity() > 2) {
                 ss << " >> " << __func__ << ": allocation of plan (adjoint; vector field, nl=" << nl << ")";
@@ -837,12 +897,14 @@ PetscErrorCode SemiLagrangian::MapCoordinateVector(std::string flag) {
             this->m_AdjointPlanVec->allocate(nl, 3);
         }
 
-        // scatter
+        // communicate coordinates
         this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_XA,
                                         c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
+
+    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseInterpTimers(timers);
 
