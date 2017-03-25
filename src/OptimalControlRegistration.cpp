@@ -1516,22 +1516,29 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
     }
 
+    // set initial condition m_0 = m_T
+    ierr = VecGetArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    try {std::copy(p_m0, p_m0+nl*nc, p_m);}
+    catch (std::exception& err) {
+        ierr = ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = VecRestoreArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // we copy m_0 to all t for v=0
-        ierr = this->CopyToAllTimePoints(this->m_StateVariable, this->m_TemplateImage); CHKERRQ(ierr);
-    } else {
-        // copy initial condition m_0 = m_T
-        ierr = VecGetArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
         ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        try {std::copy(p_m0, p_m0+nl*nc, p_m);}
-        catch (std::exception& err) {
-            ierr = ThrowError(err); CHKERRQ(ierr);
+        for (IntType j = 1; j <= nt; ++j) {
+            try {std::copy(p_m, p_m+nc*nl, p_m+j*nl*nc);}
+            catch (std::exception& err) {
+                ierr = ThrowError(err); CHKERRQ(ierr);
+            }
         }
-        ierr = VecRestoreArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
+    } else {
         // call the solver
         switch (this->m_Opt->GetPDESolverPara().type) {
             case RK2:
@@ -1840,7 +1847,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
@@ -2314,14 +2320,20 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
 
     // allocate variables
     if (this->m_IncStateVariable == NULL) {
-        ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+            ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        } else {
+            ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
     }
+
+    // set initial value
+    ierr = VecSet(this->m_IncStateVariable, 0.0); CHKERRQ(ierr);
+
 
     // start timer
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
-    // set initial value
-    ierr = VecSet(this->m_IncStateVariable, 0.0); CHKERRQ(ierr);
 
     // call the solver
     switch (this->m_Opt->GetPDESolverPara().type) {
@@ -2529,12 +2541,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, nt, nc, l, lnext;
+    IntType nl, nt, nc, lm, lmnext, lmt, lmtnext;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, hthalf;
     ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
                 *p_mtilde = NULL, *p_m = NULL;
-    const ScalarType *p_vtildeX1 = NULL, *p_vtildeX2 = NULL, *p_vtildeX3 = NULL,
+    const ScalarType *p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL,
                      *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL;
     double timer[NFFTTIMERS] = {0};
 
@@ -2573,26 +2585,28 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
 
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-
     // compute \tilde{\vect{v}}(X)
     ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_IncVelocityField, "state"); CHKERRQ(ierr);
 
-    ierr = this->m_IncVelocityField->GetArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArraysRead(p_vtildeX1, p_vtildeX2, p_vtildeX3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->GetArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
+        lm = j*nl*nc; lmnext = (j+1)*nl*nc;
+        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {   // gauss newton
+            lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
+        } else {
+            lmt = 0; lmtnext = 0;
+        }
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            l = j*nl*nc + k*nl;
-            lnext = (j+1)*nl*nc + k*nl;
-
             // interpolate incremental adjoint variable
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtilde+lnext, p_mtilde+l, "state"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtilde + lmtnext + k*nl, p_mtilde + lmt + k*nl, "state"); CHKERRQ(ierr);
 
-            // compute gradient for m_j
-            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m+l, this->m_Opt->GetFFT().plan, &XYZ, timer);
+            // compute gradient for state variable
+            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m + lm + k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // interpolate gradient of state variable
@@ -2600,29 +2614,27 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
                                                              p_gm1, p_gm2, p_gm3, "state");
             // first part of time integration
             for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lnext+i] -= hthalf*(p_gm1[i]*p_vtildeX1[i]
-                                           + p_gm2[i]*p_vtildeX2[i]
-                                           + p_gm3[i]*p_vtildeX3[i]);
+                p_mtilde[lmtnext + k*nl + i] -= hthalf*(p_gm1[i]*p_vtildex1[i]
+                                                      + p_gm2[i]*p_vtildex2[i]
+                                                      + p_gm3[i]*p_vtildex3[i]);
             }
 
-            // compute gradient for m_j+1
-            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m+lnext, this->m_Opt->GetFFT().plan, &XYZ, timer);
+            // compute gradient for state variable at next time time point
+            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m + lmnext + k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // second part of time integration
             for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lnext+i] -= hthalf*(p_gm1[i]*p_vtilde1[i]
-                                           + p_gm2[i]*p_vtilde2[i]
-                                           + p_gm3[i]*p_vtilde3[i]);
+                p_mtilde[lmtnext+ k*nl + i] -= hthalf*(p_gm1[i]*p_vtilde1[i]
+                                                     + p_gm2[i]*p_vtilde2[i]
+                                                     + p_gm3[i]*p_vtilde3[i]);
             }
         }  // for all image components
     }  // for all time points
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArraysRead(p_vtildeX1, p_vtildeX2, p_vtildeX3); CHKERRQ(ierr);
-
     ierr = this->m_IncVelocityField->RestoreArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
-
+    ierr = this->m_WorkVecField2->RestoreArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
@@ -2649,7 +2661,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ScalarType *p_ltilde = NULL, *p_mtilde = NULL, *p_m = NULL,
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL;
-    IntType nl, ng, nc, nt, l, k;
+    IntType nl, ng, nc, nt, l;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
@@ -2684,14 +2696,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
-        k = nt*nc*nl;  // index for final condition
         l = nt*nc*nl;  // index for final condition
     } else {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-        k = 0;  // index for final condition
-        l = nt*nc*nl;  // index for final condition
+        l = 0;  // index for final condition
     }
 
     // TODO ( l = k )
@@ -2699,7 +2709,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = VecGetArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     for (IntType i = 0; i < nl*nc; ++i) {
-        p_ltilde[k+i] = -p_mtilde[l+i]; // / static_cast<ScalarType>(nc);
+        p_ltilde[l+i] = -p_mtilde[l+i]; // / static_cast<ScalarType>(nc);
     }
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
@@ -2735,6 +2745,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
             ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
             ierr = this->m_WorkVecField2->GetArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
 
+            // $m$ and $\tilde{\lambda}$ are constant
             for (IntType k = 0; k < nc; ++k) {  // for all components
                 // compute gradient of m
                 accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);

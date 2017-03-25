@@ -395,7 +395,7 @@ struct Logger{
     ScalarType finalresidual[4];
     bool enabled[NLOGFLAGS];
 
-
+    bool memoryusage;
     double timer[NTIMERS][NVALTYPES];
     double temptimer[NTIMERS];
     bool timerruns[NTIMERS];

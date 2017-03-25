@@ -3,10 +3,10 @@ CXX=mpicxx
 USEINTEL=yes
 USEINTELMPI=yes
 BUILDTOOLS=no
-DBGCODE=no
-PEDANTIC=no
-USEPNETCDF=no
-USENIFTI=yes
+DBGCODE=yes
+PEDANTIC=yes
+USEPNETCDF=yes
+USENIFTI=no
 USESINGLE=no
 
 RM = rm -f
@@ -19,31 +19,31 @@ else
 endif
 
 ifeq ($(USEINTEL),yes)
-	CXXFLAGS+= -xhost -parallel
-	#CXXFLAGS+= -openmp
-	CXXFLAGS+= -qopenmp
+	CXXFLAGS += -xhost -parallel
+	#CXXFLAGS += -openmp
+	CXXFLAGS += -qopenmp
 else
-	CXXFLAGS+= -fopenmp
+	CXXFLAGS += -fopenmp
 endif
-CXXFLAGS+= -std=c++11
+CXXFLAGS += -std=c++11
 
 
 ifeq ($(PEDANTIC),yes)
-	CXXFLAGS+= -Warray-bounds -Wchar-subscripts -Wcomment
-	CXXFLAGS+= -Wenum-compare -Wformat -Wuninitialized
-	CXXFLAGS+= -Wmaybe-uninitialized -Wmain -Wnarrowing
-	CXXFLAGS+= -Wnonnull -Wparentheses -Wpointer-sign
-	CXXFLAGS+= -Wreorder -Wreturn-type -Wsign-compare
-	CXXFLAGS+= -Wsequence-point -Wtrigraphs -Wunused-function
-	CXXFLAGS+= -Wunused-but-set-variable -Wunused-variable -Wwrite-strings
+	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
+	CXXFLAGS += -Wenum-compare -Wformat -Wuninitialized
+	CXXFLAGS += -Wmaybe-uninitialized -Wmain -Wnarrowing
+	CXXFLAGS += -Wnonnull -Wparentheses -Wpointer-sign
+	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
+	CXXFLAGS += -Wsequence-point -Wtrigraphs -Wunused-function
+	CXXFLAGS += -Wunused-but-set-variable -Wunused-variable -Wwrite-strings
 endif
 
 ifeq ($(USEPNETCDF),yes)
-	CXXFLAGS+= -DREG_HAS_PNETCDF
+	CXXFLAGS += -DREG_HAS_PNETCDF
 endif
 
 ifeq ($(USENIFTI),yes)
-	CXXFLAGS+= -DREG_HAS_NIFTI
+	CXXFLAGS += -DREG_HAS_NIFTI
 endif
 
 BINDIR = ./bin
@@ -55,74 +55,74 @@ APPDIR = ./apps
 COLD_INC = -I$(INCDIR)
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
-		COLD_INC+= -isystem$(PETSC_DBG_DIR_SINGLE)/include -isystem$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/include
+		COLD_INC += -isystem$(PETSC_DBG_DIR_SINGLE)/include -isystem$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/include
 	else 
-		COLD_INC+= -isystem$(PETSC_DBG_DIR)/include -isystem$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/include
+		COLD_INC += -isystem$(PETSC_DBG_DIR)/include -isystem$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/include
 	endif
 else
 	ifeq ($(USESINGLE),yes)
-		COLD_INC+= -isystem$(PETSC_DIR_SINGLE)/include -isystem$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/include
+		COLD_INC += -isystem$(PETSC_DIR_SINGLE)/include -isystem$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/include
 	else
-		COLD_INC+= -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
+		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
 	endif
 endif
-COLD_INC+= -I$(ACCFFT_DIR)/include
-COLD_INC+= -I$(FFTW_DIR)/include
-COLD_INC+= -I$(MORTON_DIR)
+COLD_INC += -I$(ACCFFT_DIR)/include
+COLD_INC += -I$(FFTW_DIR)/include
+COLD_INC += -I$(MORTON_DIR)
 ifeq ($(USENIFTI),yes)
-	COLD_INC+= -I$(NIFTI_DIR)/include/nifti
+	COLD_INC += -I$(NIFTI_DIR)/include/nifti
 endif
 ifeq ($(USEPNETCDF),yes)
-	COLD_INC+= -I$(PNETCDF_DIR)/include
+	COLD_INC += -I$(PNETCDF_DIR)/include
 endif
 
 
 
-LDFLAGS+= -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
-LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
+LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
+LDFLAGS += -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
 ifeq ($(USESINGLE),yes)
-	LDFLAGS+= -L$(FFTW_DIR)/lib -lfftw3f -lfftw3f_threads
+	LDFLAGS += -L$(FFTW_DIR)/lib -lfftw3f -lfftw3f_threads
 endif
 
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
-		LDFLAGS+= -L$(PETSC_DBG_DIR_SINGLE)/lib -L$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/lib
+		LDFLAGS += -L$(PETSC_DBG_DIR_SINGLE)/lib -L$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/lib
 	else
-		LDFLAGS+= -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib 
+		LDFLAGS += -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib 
 	endif
 else
 	ifeq ($(USESINGLE),yes)
-		LDFLAGS+= -L$(PETSC_DIR_SINGLE)/lib -L$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/lib
+		LDFLAGS += -L$(PETSC_DIR_SINGLE)/lib -L$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/lib
 	else
-		LDFLAGS+= -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
+		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
 	endif
 endif
-LDFLAGS+= -lpetsc -lf2clapack -lf2cblas 
+LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
 
 ifeq ($(USENIFTI),yes)
-	LDFLAGS+= -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
+	LDFLAGS += -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
 endif
 
 ifeq ($(USEPNETCDF),yes)
-	LDFLAGS+= -L$(PNETCDF_DIR)/lib -lpnetcdf
+	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif
 
 
 #LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
-	LDFLAGS+= -limf
+	LDFLAGS += -limf
 endif
 
 
 ifeq ($(USEINTELMPI),yes)
-#	LDFLAGS+= -lmpi_mt
+#	LDFLAGS += -lmpi_mt
 endif
-LDFLAGS+= -lm
+LDFLAGS += -lm
 
-BIN+=$(BINDIR)/runcoldreg
+BIN += $(BINDIR)/runcoldreg
 #BIN+=$(BINDIR)/checkcoldreg
 ifeq ($(BUILDTOOLS),yes)
-	BIN+=$(BINDIR)/regtools
+	BIN += $(BINDIR)/regtools
 endif
 
 

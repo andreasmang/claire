@@ -115,7 +115,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
                     w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
                     w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
 
-                    CheckWaveNumbers(w,nx);
+                    CheckWaveNumbers(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);

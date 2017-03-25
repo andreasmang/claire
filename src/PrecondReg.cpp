@@ -418,8 +418,14 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
-    ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
+    // allocate state and adjoint variables
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
+    } else {
+        ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, nc*this->m_CoarseGrid.nl(), nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
+        ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, nc*this->m_CoarseGrid.nl(), nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
+    }
 
     ierr = VecCreate(this->m_CoarseGrid.m_WorkScaField1, this->m_CoarseGrid.nl(), this->m_CoarseGrid.ng()); CHKERRQ(ierr);
     ierr = VecCreate(this->m_CoarseGrid.m_WorkScaField2, this->m_CoarseGrid.nl(), this->m_CoarseGrid.ng()); CHKERRQ(ierr);

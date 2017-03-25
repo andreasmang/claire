@@ -221,6 +221,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Log.finalresidual[1] = 0;
     this->m_Log.finalresidual[2] = 0;
     this->m_Log.finalresidual[3] = 0;
+    this->m_Log.memoryusage = false;
 
     this->m_NumThreads = opt.m_NumThreads;
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
@@ -1078,7 +1079,7 @@ PetscErrorCode RegOpt::Initialize() {
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;
     }
-
+    this->m_Log.memoryusage = false;
     this->m_NumThreads = 1;
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;

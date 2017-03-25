@@ -51,20 +51,24 @@ int main(int argc, char **argv) {
 
     // allocate class for controlling everything
     try {regopt = new reg::RegOpt(argc, argv);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+
+    if (regopt->GetLogger().memoryusage) {
+        ierr = PetscMemorySetGetMaximumUsage(); CHKERRQ(ierr);
     }
 
     // allocate class for io
     try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
     // allocate class for io
     try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
     if (regopt->GetReadWriteFlags().readfiles) {
@@ -134,6 +138,16 @@ int main(int argc, char **argv) {
 
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
     ierr = registration->Run(); CHKERRQ(ierr);
+
+    if (regopt->GetLogger().memoryusage) {
+        PetscLogDouble mem;
+        ierr = PetscMemoryGetMaximumUsage(&mem); CHKERRQ(ierr);
+        ss << "memory usage (estimate) " << std::scientific << mem/1E9 << " GB";
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+
+
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}
