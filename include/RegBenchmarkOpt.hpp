@@ -41,6 +41,11 @@ class RegBenchmarkOpt : public RegOpt {
     virtual ~RegBenchmarkOpt();
 
     virtual PetscErrorCode DisplayOptions(void);
+    inline int Benchmark() const {return this->m_BenchmarkID;};
+    inline int NumRepeats() const {return this->m_NumRepeats;};
+
+    inline double GetRunTime() const {return this->m_RunTime;};
+    inline void SetRunTime(double value){this->m_RunTime = value;};
 
  protected:
     virtual PetscErrorCode Initialize(void);
@@ -48,6 +53,10 @@ class RegBenchmarkOpt : public RegOpt {
     virtual PetscErrorCode ParseArguments(int, char**);
     virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);
+
+    int m_BenchmarkID;
+    int m_NumRepeats;
+    double m_RunTime;
 };
 
 

@@ -77,6 +77,9 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! set control variable */
     PetscErrorCode SetControlVariable(VecField*);
 
+    /*! set control variable */
+    PetscErrorCode SetIncControlVariable(VecField*);
+
     /*! get control variable */
     PetscErrorCode GetControlVariable(VecField*&);
 
@@ -225,6 +228,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode ComputeDisplacementFieldRK2();       ///< implementation via RK2 time integrator
 
     bool m_DeleteControlVariable;
+    bool m_DeleteIncControlVariable;
 };
 
 

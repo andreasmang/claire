@@ -23,6 +23,7 @@
 #include "OptimalControlRegistration.hpp"
 
 PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt*);
+PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt*);
 PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt*);
 PetscErrorCode ComputeSyntheticData(Vec&, reg::RegBenchmarkOpt*);
 PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::RegBenchmarkOpt*);
@@ -36,6 +37,9 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::RegBenchmarkOpt*);
 int main(int argc, char **argv) {
     PetscErrorCode ierr = 0;
     reg::RegBenchmarkOpt* opt = NULL;
+    double runtime;
+    std::stringstream ss;
+
     // initialize petsc (user is not allowed to set petsc options)
     ierr = PetscInitialize(0, reinterpret_cast<char***>(NULL),
                               reinterpret_cast<char*>(NULL),
@@ -49,7 +53,33 @@ int main(int argc, char **argv) {
     }
     ierr = opt->DoSetup(); CHKERRQ(ierr);
 
-    ierr = RunForwardSolverBenchmark(opt); CHKERRQ(ierr);
+    IntType n = opt->NumRepeats();
+    ss << "number of repetitions " << n;
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    switch (opt->Benchmark()) {
+        case 0:
+            ierr = RunForwardSolverBenchmark(opt); CHKERRQ(ierr);
+            break;
+        case 1:
+            ierr = RunGradientBenchmark(opt); CHKERRQ(ierr);
+            break;
+        case 2:
+            ierr = RunHessianMatvecBenchmark(opt); CHKERRQ(ierr);
+            break;
+        default:
+            ierr = reg::ThrowError("benchmark not defined"); CHKERRQ(ierr);
+            break;
+    }
+
+    runtime = opt->GetRunTime();
+    ss << "total runtime (in seconds)   " << std::scientific << runtime;
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+    ss << "average runtime (in seconds) " << std::scientific << runtime/static_cast<double>(n);
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
 
     ierr = opt->DisplayTimeToSolution(); CHKERRQ(ierr);
 
@@ -86,12 +116,18 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
     }
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
 
+    ss << "run forward solver benchmarck";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
     // warm start
     ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
+
+    // reset all timers and counters
     ierr = opt->ResetTimers(); CHKERRQ(ierr);
+    ierr = opt->ResetCounters(); CHKERRQ(ierr);
 
-
-    IntType n = 5;
+    IntType n = opt->NumRepeats();
     ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
     runtime = -MPI_Wtime();
     for (IntType i = 0; i < n; ++i) {
@@ -104,15 +140,72 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
         ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
     }
     runtime += MPI_Wtime();
-
-    ss << "total runtime (in seconds)   " << std::scientific << runtime;
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-    ss << "average runtime (in seconds) " << std::scientific << runtime/static_cast<double>(n);
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
     ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+
+    opt->SetRunTime(runtime);
+
+    ierr = opt->ProcessTimers(); CHKERRQ(ierr);
+    ierr = opt->WriteLogFile(); CHKERRQ(ierr);
+
+    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
+    if (v != NULL) {delete v; v = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief perform benchmark for forward solver
+ *******************************************************************/
+PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
+    PetscErrorCode ierr = 0;
+    Vec m = 0;
+    reg::VecField* v = NULL;
+    reg::OptimalControlRegistration* registration = NULL;
+    std::stringstream ss;
+    double runtime;
+    PetscFunctionBegin;
+
+    ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
+    ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
+
+    try {registration = new reg::OptimalControlRegistration(opt);}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
+
+    ss << "run gradient benchmarck";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    // warm start
+    ierr = registration->SetReferenceImage(m); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
+    ierr = registration->EvaluateGradient(NULL, NULL); CHKERRQ(ierr);
+
+    // reset all timers and counters
+    ierr = opt->ResetTimers(); CHKERRQ(ierr);
+    ierr = opt->ResetCounters(); CHKERRQ(ierr);
+
+    IntType n = opt->NumRepeats();
+    ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    runtime = -MPI_Wtime();
+    for (IntType i = 0; i < n; ++i) {
+        if (opt->GetVerbosity() > 1) {
+            ss  << "gradient evaluation "<< std::setw(3)
+                << i << " of " << std::setw(3) << n;
+            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
+        ierr = registration->EvaluateGradient(NULL, NULL); CHKERRQ(ierr);
+    }
+    runtime += MPI_Wtime();
+    ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+
+    opt->SetRunTime(runtime);
     ierr = opt->ProcessTimers(); CHKERRQ(ierr);
     ierr = opt->WriteLogFile(); CHKERRQ(ierr);
 
@@ -130,8 +223,61 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
  *******************************************************************/
 PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
-    //reg::OptimalControlRegistration* registration = NULL;
+    Vec m = 0;
+    reg::VecField *v = NULL, *vtilde = NULL;
+    reg::OptimalControlRegistration* registration = NULL;
+    std::stringstream ss;
+    double runtime;
+    PetscFunctionBegin;
 
+    ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
+    ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
+    ierr = ComputeSyntheticData(vtilde, opt); CHKERRQ(ierr);
+
+    try {registration = new reg::OptimalControlRegistration(opt);}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
+    ierr = registration->SetIncControlVariable(v); CHKERRQ(ierr);
+
+    ss << "run hessian matvec benchmarck";
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+
+    // warm start
+    ierr = registration->SetReferenceImage(m); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
+    ierr = registration->EvaluateGradient(NULL, NULL); CHKERRQ(ierr);
+    ierr = registration->HessianMatVec(NULL, NULL); CHKERRQ(ierr);
+
+    // reset all timers and counters
+    ierr = opt->ResetTimers(); CHKERRQ(ierr);
+    ierr = opt->ResetCounters(); CHKERRQ(ierr);
+
+    IntType n = opt->NumRepeats();
+    ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    runtime = -MPI_Wtime();
+    for (IntType i = 0; i < n; ++i) {
+        if (opt->GetVerbosity() > 1) {
+            ss  << "hessian matvec evaluation "<< std::setw(3)
+                << i << " of " << std::setw(3) << n;
+            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
+        ierr = registration->HessianMatVec(NULL, NULL); CHKERRQ(ierr);
+    }
+    runtime += MPI_Wtime();
+    ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+
+    opt->SetRunTime(runtime);
+
+    ierr = opt->ProcessTimers(); CHKERRQ(ierr);
+    ierr = opt->WriteLogFile(); CHKERRQ(ierr);
+
+    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
+    if (v != NULL) {delete v; v = NULL;}
+    if (vtilde != NULL) {delete vtilde; vtilde = NULL;}
     PetscFunctionBegin;
 
     PetscFunctionReturn(ierr);

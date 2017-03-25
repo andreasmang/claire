@@ -693,7 +693,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     ierr = this->m_Opt->StartTimer(GRADEXEC); CHKERRQ(ierr);
 
     // parse input arguments
-    ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    if (v != NULL) {
+        ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    }
+
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
         ss  << "||v||_2 = (" << std::scientific
@@ -714,7 +717,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         if (this->m_Opt->GetVerbosity() > 2) {
             ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
         }
-        ierr = this->m_WorkVecField2->GetComponents(g); CHKERRQ(ierr);
+
+        if (g != NULL) {
+            ierr = this->m_WorkVecField2->GetComponents(g); CHKERRQ(ierr);
+        }
     } else {
         // evaluate / apply gradient operator for regularization
         ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
@@ -723,19 +729,25 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
 
         // parse to output
-        ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+        if (g != NULL) {
+            ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+        }
     }
 
     // get and scale by lebesque measure
     hd = this->m_Opt->GetLebesqueMeasure();
-    ierr = VecScale(g, hd); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
-        ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
-        ss << "||g||_2 = " << std::scientific << value;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.clear(); ss.str(std::string());
+    if (g != NULL) {
+        ierr = VecScale(g, hd); CHKERRQ(ierr);
+
+        if (this->m_Opt->GetVerbosity() > 2) {
+            ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
+            ss << "||g||_2 = " << std::scientific << value;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
     }
+
 
     // stop timer
     ierr = this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
@@ -889,7 +901,6 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     this->m_Opt->Enter(__func__);
 
-
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("computing hessian matvec"); CHKERRQ(ierr);
     }
@@ -925,16 +936,19 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
     }
 
 
-    // scale by lebesque measure
-    if (scale) {
-        hd = this->m_Opt->GetLebesqueMeasure();
-        ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
+    if (Hvtilde != NULL) {
+        // scale by lebesque measure
+        if (scale) {
+            hd = this->m_Opt->GetLebesqueMeasure();
+            ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
+        }
+
+        gamma = this->m_Opt->GetKrylovSolverPara().hessshift;
+        if (gamma > 0.0) {
+            ierr = VecAXPY(Hvtilde, gamma, vtilde); CHKERRQ(ierr);
+        }
     }
 
-    gamma = this->m_Opt->GetKrylovSolverPara().hessshift;
-    if (gamma > 0.0) {
-        ierr = VecAXPY(Hvtilde, gamma, vtilde); CHKERRQ(ierr);
-    }
     // stop hessian matvec timer
     ierr = this->m_Opt->StopTimer(HMVEXEC); CHKERRQ(ierr);
 
@@ -982,7 +996,9 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
     }
 
     // parse input
-    ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+    if (vtilde != NULL) {
+        ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+    }
 
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
@@ -1003,7 +1019,9 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
 
     // pass to output
-    ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
+    if (Hvtilde != NULL) {
+        ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1051,7 +1069,9 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
     }
 
     // parse input
-    ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+    if (vtilde != NULL) {
+        ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+    }
 
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
@@ -1070,7 +1090,9 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
     ierr = this->m_WorkVecField2->WAXPY(1.0, this->m_IncVelocityField, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
-    ierr = this->m_WorkVecField2->GetComponents(Hvtilde); CHKERRQ(ierr);
+    if (Hvtilde != NULL) {
+        ierr = this->m_WorkVecField2->GetComponents(Hvtilde); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1127,8 +1149,11 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     }
 
     // parse input (store incremental velocity field \tilde{v})
-    ierr = this->m_WorkVecField5->SetComponents(vtilde); CHKERRQ(ierr);
-
+    if (vtilde != NULL) {
+        ierr = this->m_WorkVecField5->SetComponents(vtilde); CHKERRQ(ierr);
+    } else {
+        ierr = this->m_WorkVecField5->Copy(this->m_IncVelocityField); CHKERRQ(ierr);
+    }
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta\D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta\D{A})^{-1/2}
 
@@ -1152,8 +1177,9 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     ierr = this->m_WorkVecField5->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
-    ierr = this->m_WorkVecField5->GetComponents(Hvtilde); CHKERRQ(ierr);
-
+    if (Hvtilde != NULL) {
+        ierr = this->m_WorkVecField5->GetComponents(Hvtilde); CHKERRQ(ierr);
+    }
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

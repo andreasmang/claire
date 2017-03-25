@@ -107,6 +107,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     this->m_ComputeInverseDefMap = false;   ///< flag: compute inverse deformation map
 
     this->m_DeleteControlVariable = true;   ///< flag: clear memory for control variable
+    this->m_DeleteIncControlVariable = true;   ///< flag: clear memory for incremental control variable
 
     PetscFunctionReturn(ierr);
 }
@@ -128,9 +129,11 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
         }
     }
 
-    if (this->m_IncVelocityField != NULL) {
-        delete this->m_IncVelocityField;
-        this->m_IncVelocityField = NULL;
+    if (this->m_DeleteIncControlVariable) {
+        if (this->m_IncVelocityField != NULL) {
+            delete this->m_IncVelocityField;
+            this->m_IncVelocityField = NULL;
+        }
     }
 
     if (this->m_Regularization != NULL) {
@@ -339,6 +342,27 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
 
     this->m_VelocityField = v;
     this->m_DeleteControlVariable = false;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set velocity field
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::SetIncControlVariable(VecField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+
+    this->m_IncVelocityField = v;
+    this->m_DeleteIncControlVariable = false;
 
     this->m_Opt->Exit(__func__);
 

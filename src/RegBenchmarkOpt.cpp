@@ -71,7 +71,6 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
     std::vector<int> nx;
     std::vector<int> nxr;
     std::vector<int> np;
-    std::vector<int> sigma;
     PetscFunctionBegin;
 
     if (argc == 1) {
@@ -154,6 +153,15 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-forward") == 0) {
+            this->m_BenchmarkID = 0;
+        } else if (strcmp(argv[1], "-gradient") == 0) {
+            this->m_BenchmarkID = 1;
+        } else if (strcmp(argv[1], "-hessmatvec") == 0) {
+            this->m_BenchmarkID = 2;
+        } else if (strcmp(argv[1], "-repeats") == 0) {
+            argc--; argv++;
+            this->m_NumRepeats = atoi(argv[1]);
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
             this->m_Verbosity = std::min(atoi(argv[1]),2);
@@ -208,12 +216,15 @@ PetscErrorCode RegBenchmarkOpt::ClearMemory() {
  * @brief initialize class variables
  *******************************************************************/
 PetscErrorCode RegBenchmarkOpt::Initialize() {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     ierr = this->SuperClass::Initialize(); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+    this->m_BenchmarkID = -1;
+    this->m_NumRepeats = 1;
+
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -239,6 +250,9 @@ PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " where [options] is one or more of the following"<<std::endl;
         // ####################### advanced options #######################
+        std::cout << " -forward                    benchmark forward solver"<<std::endl;
+        std::cout << " -gradient                   benchmark gradient evaluation"<<std::endl;
+        std::cout << " -repeats <int>              set number of repeats"<<std::endl;
         if (advanced) {
         std::cout << line << std::endl;
         std::cout << " memory distribution and parallelism"<<std::endl;
@@ -267,6 +281,7 @@ PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
         std::cout << " -adapttimestep              vary number of time steps according to defined number"<<std::endl;
         std::cout << " -cflnumber <dbl>            set cfl number"<<std::endl;
         std::cout << " -interpolationorder <int>   order of interpolation model (default is 3)" << std::endl;
+        std::cout << line << std::endl;
         // ####################### advanced options #######################
         std::cout << line << std::endl;
         std::cout << " -usenc                      use netcdf format os output (*.nc; default is *.nii.gz)"<<std::endl;
@@ -345,9 +360,16 @@ PetscErrorCode RegBenchmarkOpt::DisplayOptions() {
  *******************************************************************/
 PetscErrorCode RegBenchmarkOpt::CheckArguments() {
     PetscErrorCode ierr = 0;
+    std::string msg;
     PetscFunctionBegin;
 
     ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
+
+    if (this->m_BenchmarkID == -1) {
+        msg = "\x1b[31m you need to define a benchmark test\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(ierr);
 }
