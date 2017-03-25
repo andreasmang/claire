@@ -1942,7 +1942,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
                 *p_gv11X = NULL, *p_gv12X = NULL, *p_gv13X = NULL,
                 *p_gv21X = NULL, *p_gv22X = NULL, *p_gv23X = NULL,
                 *p_gv31X = NULL, *p_gv32X = NULL, *p_gv33X = NULL;
-	double timer[7] = {0};
+    double timer[7] = {0};
     PetscFunctionBegin;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);

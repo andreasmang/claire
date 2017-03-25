@@ -283,7 +283,6 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set initial condition
     this->m_TemplateImage = m0;
@@ -291,20 +290,24 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
 
-    // get sizes
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
 
-    // copy m(t=1) to m_1
-    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
+    // only copy if someone cares
+    if (m1 != NULL) {
+        // get sizes
+        nt = this->m_Opt->GetDomainPara().nt;
+        nc = this->m_Opt->GetDomainPara().nc;
+        nl = this->m_Opt->GetDomainPara().nl;
+
+        // copy m(t=1) to m_1
+        ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
+        catch (std::exception& err) {
+            ierr = ThrowError(err); CHKERRQ(ierr);
+        }
+        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1497,8 +1500,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ng = this->m_Opt->GetDomainPara().ng;
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
 
-    ext = this->m_Opt->GetReadWriteFlags().extension;
-
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "solving state equation (nx1,nx2,nx3,nc,nt) = ("
                   << this->m_Opt->GetDomainPara().nx[0]
@@ -1513,7 +1514,11 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     // allocate state and adjoint variables
     if (this->m_StateVariable == NULL) {
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        if (this->m_Opt->GetRegFlags().runninginversion) {
+            ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        } else {
+            ierr = VecCreate(this->m_StateVariable, nl*nc, ng*nc); CHKERRQ(ierr);
+        }
     }
 
     // set initial condition m_0 = m_T
@@ -1530,14 +1535,16 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // we copy m_0 to all t for v=0
-        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        for (IntType j = 1; j <= nt; ++j) {
-            try {std::copy(p_m, p_m+nc*nl, p_m+j*nl*nc);}
-            catch (std::exception& err) {
-                ierr = ThrowError(err); CHKERRQ(ierr);
+        if (this->m_Opt->GetRegFlags().runninginversion) {
+            ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+            for (IntType j = 1; j <= nt; ++j) {
+                try {std::copy(p_m, p_m+nc*nl, p_m+j*nl*nc);}
+                catch (std::exception& err) {
+                    ierr = ThrowError(err); CHKERRQ(ierr);
+                }
             }
+            ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     } else {
         // call the solver
         switch (this->m_Opt->GetPDESolverPara().type) {
@@ -1561,7 +1568,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
-
     if (this->m_Opt->GetVerbosity() > 2) {
         ScalarType maxval, minval, nvx1, nvx2, nvx3;
         ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
@@ -1581,6 +1587,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries) {
+        ext = this->m_Opt->GetReadWriteFlags().extension;
+
         if (this->m_WorkScaField1 == NULL) {
             ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
         }
@@ -1636,12 +1644,16 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
                 *p_gmx1 = NULL, *p_gmx2 = NULL, *p_gmx3 = NULL,
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
     ScalarType ht = 0.0, hthalf = 0.0, rhs1;
+    bool store = true;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
+    // flag to identify if we store the time history
+    store = this->m_Opt->GetRegFlags().runninginversion;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -1673,12 +1685,15 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
-        for (IntType k = 0; k < nc; ++k) {
-            l = j*nl*nc + k*nl;
-            lnext = (j+1)*nl*nc + k*nl;
+        if (store) {
+            l = j*nl*nc; lnext = (j+1)*nl*nc;
+        } else {
+            l = 0; lnext = 0;
+        }
 
+        for (IntType k = 0; k < nc; ++k) {
             // compute gradient of k-th component of m_j
-            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m+l, this->m_Opt->GetFFT().plan, &XYZ, timer);
+            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + l + k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // evaluate right hand side and compute intermediate rk2 step
@@ -1688,7 +1703,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
                              -p_gmx3[i]*p_vx3[i];
 
                  // compute intermediate result
-                 p_mbar[i] = p_m[l+i] + ht*p_rhs0[i];
+                 p_mbar[i] = p_m[l + k*nl + i] + ht*p_rhs0[i];
             }
 
             // compute gradient of \bar{m}
@@ -1703,7 +1718,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
 
                 // we have overwritten m_j with intermediate result
                 // m_{j+1} = m_j + 0.5*ht*(RHS0 + RHS1)
-                p_m[lnext+i] = p_m[l+i] + hthalf*(p_rhs0[i] + rhs1);
+                p_m[lnext + k*nl + i] = p_m[l + k*nl + i] + hthalf*(p_rhs0[i] + rhs1);
             }
         }  // for all components
     }  // for all time points
@@ -1736,11 +1751,15 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, lnext;
     ScalarType *p_m = NULL;
+    bool store = true;
     std::stringstream ss;
     std::string filename;
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
+
+    // flag to identify if we store the time history
+    store = this->m_Opt->GetRegFlags().runninginversion;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
@@ -1765,11 +1784,14 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     // get state variable m
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     for (IntType j = 0; j < nt; ++j) {  // for all time points
+        if (store) {
+            l = j*nl*nc; lnext = (j+1)*nl*nc;
+        } else {
+            l = 0; lnext = 0;
+        }
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            l = j*nl*nc + k*nl;
-            lnext = (j+1)*nl*nc + k*nl;
             // compute m(X,t^{j+1}) (interpolate state variable)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_m+lnext, p_m+l, "state"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_m + lnext + k*nl, p_m + l + k*nl, "state"); CHKERRQ(ierr);
         }
     }
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
