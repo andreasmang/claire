@@ -61,10 +61,9 @@ class OptimalControlRegistrationIC : public OptimalControlRegistration {
 
     /*! apply the projection operator to the
         body force and the incremental body force */
-    PetscErrorCode ApplyProjection();
+    virtual PetscErrorCode ApplyProjection();
 
  private:
-
     ComplexType* m_x1hat;
     ComplexType* m_x2hat;
     ComplexType* m_x3hat;

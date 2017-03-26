@@ -1969,8 +1969,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         // for full newton method we have to store the adjoint variable
         ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
-        ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
         // increment timers
         this->m_Opt->IncreaseFFTTimers(timer);
 
@@ -1994,6 +1992,9 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
             }
         }
     }
+
+    // apply projection
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ScalarType maxval, minval;
@@ -2864,9 +2865,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
 
             ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
 
-            // apply K[\tilde{b}]
-            ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
             // increment timers
             this->m_Opt->IncreaseFFTTimers(timer);
         } else {
@@ -2913,6 +2911,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     } else {
         ierr = ThrowError("update method not defined"); CHKERRQ(ierr);
     }
+
+    // apply K[\tilde{b}]
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ScalarType maxval, minval;

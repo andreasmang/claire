@@ -58,7 +58,7 @@ class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
 
     /*! apply the projection operator to the
         body force and the incremental body force */
-    PetscErrorCode ApplyProjection(VecField*);
+    virtual PetscErrorCode ApplyProjection();
 
  private:
     PetscErrorCode EvaluteRegFunctionalW(ScalarType*);
@@ -66,10 +66,6 @@ class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
     FFTScaType *m_x1hat;
     FFTScaType *m_x2hat;
     FFTScaType *m_x3hat;
-
-    FFTScaType *m_Kx1hat;
-    FFTScaType *m_Kx2hat;
-    FFTScaType *m_Kx3hat;
 };
 
 

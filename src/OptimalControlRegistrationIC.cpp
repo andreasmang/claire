@@ -278,9 +278,6 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-
-    ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
     this->m_Opt->IncreaseFFTTimers(timer);
 
     PetscFunctionReturn(ierr);
@@ -396,10 +393,6 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
     ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-
-    // apply projection to map velocity on manifold of divergence free velocities
-    ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
     this->m_Opt->IncreaseFFTTimers(timer);
 
     PetscFunctionReturn(ierr);
@@ -416,11 +409,13 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
     IntType nalloc;
-    double timer[NFFTTIMERS] = {0};
     double applytime;
     ComplexType x1hat, x2hat, x3hat;
+    double timer[NFFTTIMERS] = {0};
+
 
     PetscFunctionBegin;
+    this->m_Opt->Enter(__func__);
 
     nx[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
     nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
@@ -438,7 +433,6 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     if (this->m_x3hat == NULL) {
         this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
-
 
     ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
@@ -543,6 +537,8 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
+
+    this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
