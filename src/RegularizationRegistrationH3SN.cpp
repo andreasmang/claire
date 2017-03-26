@@ -179,7 +179,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         // compute inner product
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); *R += ipxi;
@@ -195,7 +195,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         // compute inner product
         ierr = VecTDot(this->m_WorkVecField->m_X1,this->m_WorkVecField->m_X1,&ipxi); CHKERRQ(ierr); *R += ipxi;
@@ -211,7 +211,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         // compute inner product
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); *R += ipxi;
@@ -274,7 +274,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
         ierr = v->RestoreArrays(p_v1,p_v2,p_v3); CHKERRQ(ierr);
 
-        this->m_Opt->IncrementCounter(FFT,3);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         applytime = -MPI_Wtime();
 #pragma omp parallel

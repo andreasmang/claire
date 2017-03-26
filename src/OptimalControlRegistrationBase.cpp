@@ -1391,12 +1391,14 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
     this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
+	this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->GetFFT().plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
+		this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
             // \bar{j} = j (\idiv \vect{v}) - (\vect{v} \cdot \igrad) j
@@ -1407,6 +1409,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
+		this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
             // \bar{j} = j (\idiv \vect{v}) - (\vect{v} \cdot \igrad) j
@@ -1502,6 +1505,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
+	this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
     inverse = this->m_Opt->GetRegFlags().invdefgrad;
     alpha = inverse ? -1.0 : 1.0;
@@ -1525,11 +1529,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phi, this->m_Opt->GetFFT().plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
+		this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute div(\vect{v}\phi_j)
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
+		this->m_Opt->IncrementCounter(FFT, FFTDIV);
 #pragma omp parallel
 {
 #pragma omp  for
@@ -1553,12 +1559,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->GetFFT().plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
+		this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute div(\vect{v}\bar{\phi}_j)
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-
+		this->m_Opt->IncrementCounter(FFT, FFTDIV);
 #pragma omp parallel
 {
         ScalarType rhs1;
@@ -1675,6 +1682,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
+	this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
     // compute div(v) at X
     ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvX, p_divv, "state"); CHKERRQ(ierr);
@@ -1789,6 +1797,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
     accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
     accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
+	this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);
 
     ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
 #pragma omp parallel
@@ -2046,6 +2055,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
     accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X2 gradient
     accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X3 gradient
     this->m_Opt->StopTimer(FFTSELFEXEC);
+	this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);
 
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -2388,7 +2398,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
-
+	this->m_Opt->IncrementCounter(FFT, DIV);
 
     // copy initial condition to buffer
     ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
@@ -2409,17 +2419,17 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT,4);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT,4);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT,4);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
 #pragma omp parallel
 {
@@ -2440,13 +2450,14 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-
+		this->m_Opt->IncrementCounter(FFT, FFTDIV);
+	
 
         // compute gradient of \bar{m}
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_mbar,this->m_Opt->GetFFT().plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT,4);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
 #pragma omp parallel
 {

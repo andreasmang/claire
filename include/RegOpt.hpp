@@ -164,7 +164,7 @@ enum FFTTimers {
 
 enum FFTCounters {
     FFTGRAD = 4,  ///< number of ffts for gradient opteration
-    FFTDIV  = 3,  ///< number of ffts for divergence operation
+    FFTDIV  = 4,  ///< number of ffts for divergence operation
 };
 
 

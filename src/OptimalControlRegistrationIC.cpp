@@ -236,7 +236,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
             this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, 4);
+            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
             // compute body force
             for (IntType i = 0; i < nl; ++i) {
@@ -262,7 +262,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, 4);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
             lambda = p_l[ll+i];
@@ -356,7 +356,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
             this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, 4);
+            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
             // compute incremental bodyforce
             for (IntType i = 0; i < nl; ++i) {
@@ -379,7 +379,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, 4);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute incremental bodyforce
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
@@ -449,7 +449,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT,3);
+    this->m_Opt->IncrementCounter(FFT, 3);
 
     applytime = -MPI_Wtime();
 #pragma omp parallel

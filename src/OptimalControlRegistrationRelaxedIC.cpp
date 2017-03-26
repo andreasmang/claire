@@ -236,7 +236,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->GetFFT().plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, 4);
+    this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
 
     // compute gradient of div(v)
@@ -245,9 +245,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     accfft_grad_t(p_gdv3, p_gdv2, p_gdv1, p_divv, this->m_Opt->GetFFT().plan, &XYZ, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
+    this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, 4);
 
 
     // compute inner products ||\igrad w||_L2 + ||w||_L2
