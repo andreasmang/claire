@@ -2494,8 +2494,42 @@ PetscErrorCode RegOpt::WriteLogFile() {
  *******************************************************************/
 PetscErrorCode RegOpt::WriteWorkLoadLog() {
     PetscErrorCode ierr = 0;
-    std::string fn, line, path;
+    std::string fn, path;
     std::ofstream logwriter;
+    int rank;
+    PetscFunctionBegin;
+
+    this->Enter(__func__);
+
+    // get rank
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    path = this->m_ReadWriteFlags.xfolder;
+
+    // write out logfile
+    if (rank == 0) {
+        fn = path + "registration-performance.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+        std::cout << std::endl;
+        ierr = this->WriteWorkLoadLog(std::cout); CHKERRQ(ierr);
+        std::cout << std::endl;
+        ierr = this->WriteWorkLoadLog(logwriter); CHKERRQ(ierr);
+        logwriter.close();
+    }
+
+    this->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief write log file for workload
+ *******************************************************************/
+PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
+    PetscErrorCode ierr = 0;
+    std::string line, path;
     int rank, nproc, count = 0;
     PetscFunctionBegin;
 
@@ -2510,12 +2544,6 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
     // write out logfile
     if (rank == 0) {
-        fn = path + "registration-performance.log";
-
-        // create output file
-        logwriter.open(fn.c_str());
-        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
-
         logwriter << "# problem size (nx1,nx2,nx3,nc,nt,nl,ng)=("
                   << this->m_Domain.nx[0] << ","
                   << this->m_Domain.nx[1] << ","
@@ -2574,6 +2602,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[HESSMATVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"hessian matvec\""
                   << " " << count << std::scientific
                   << " " << this->m_Timer[HMVEXEC][MIN]
@@ -2585,6 +2614,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[PCMATVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"precond matvec (setup)\""
                   << " " << count << std::scientific
                   << " " << this->m_Timer[PMVSETUP][MIN]
@@ -2596,6 +2626,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[PCMATVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"precond matvec (exec)\""
                   << " " << count << std::scientific
                   << " " << this->m_Timer[PMVEXEC][MIN]
@@ -2605,6 +2636,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
                   << std::endl;
 
         count = this->m_Counter[FFT];
+        count = count > 0 ? count : 1;
         logwriter << "\"fft selfexec\""
                   << " " << count << std::scientific
                   << " " << this->m_Timer[FFTSELFEXEC][MIN]
@@ -2615,6 +2647,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[FFT];
+        count = count > 0 ? count : 1;
         logwriter << "\"fft accumulated\""
                   << " " << count << std::scientific
                   << " " << 0.0
@@ -2633,6 +2666,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
                   << std::endl;
 
         count = this->m_Counter[FFT];
+        count = count > 0 ? count : 1;
         logwriter << "\"fft communication\""
                   << " " << count << std::scientific
                   << " " << this->m_FFTTimers[FFTCOMM][MIN]
@@ -2642,6 +2676,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
                   << std::endl;
 
         count = this->m_Counter[FFT];
+        count = count > 0 ? count : 1;
         logwriter << "\"fft execution\""
                   << " " << count << std::scientific
                   << " " << this->m_FFTTimers[FFTEXECUTE][MIN]
@@ -2652,6 +2687,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"interp selfexec\""
                   << " " << count << std::scientific
                   << " " << this->m_Timer[IPSELFEXEC][MIN]
@@ -2662,6 +2698,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
 
         count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"interp accumulated\""
                   << " " << count << std::scientific
                   << " " << 0.0
@@ -2673,6 +2710,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"interp comm\""
                   << " " << count << std::scientific
                   << " " << this->m_InterpTimers[0][MIN]
@@ -2683,6 +2721,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"interp exec\""
                   << " " << count << std::scientific
                   << " " << this->m_InterpTimers[1][MIN]
@@ -2693,6 +2732,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"interp alloc\""
                   << " " << count << std::scientific
                   << " " << this->m_InterpTimers[2][MIN]
@@ -2703,6 +2743,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
         // if time has been logged
         count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        count = count > 0 ? count : 1;
         logwriter << "\"interp sort\""
                   << " " << count << std::scientific
                   << " " << this->m_InterpTimers[3][MIN]
@@ -2723,10 +2764,46 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 /********************************************************************
  * @brief write log file for workload
  *******************************************************************/
-PetscErrorCode RegOpt::WriteWorkLoadLogHumanReadable() {
+PetscErrorCode RegOpt::WriteWorkLoadLogReadable() {
+    PetscErrorCode ierr = 0;
+    std::string fn, path;
+    std::ofstream logwriter;
+    std::stringstream ss, ssnum;
+    int rank;
+
+    PetscFunctionBegin;
+
+    this->Enter(__func__);
+
+    // get rank
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    path = this->m_ReadWriteFlags.xfolder;
+
+    // write out logfile
+    if (rank == 0) {
+        fn = path + "registration-performance.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+        std::cout << std::endl;
+        ierr = this->WriteWorkLoadLogReadable(std::cout); CHKERRQ(ierr);
+        std::cout << std::endl;
+        ierr = this->WriteWorkLoadLogReadable(logwriter); CHKERRQ(ierr);
+        logwriter.close();
+    }
+
+    this->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief write log file for workload
+ *******************************************************************/
+PetscErrorCode RegOpt::WriteWorkLoadLogReadable(std::ostream& logwriter) {
     PetscErrorCode ierr = 0;
     std::string fn, line, path;
-    std::ofstream logwriter;
     std::stringstream ss, ssnum;
     int rank, nnum, nstr, nproc;
 
@@ -2738,17 +2815,10 @@ PetscErrorCode RegOpt::WriteWorkLoadLogHumanReadable() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
 
-    line = std::string(this->m_LineLength, '-');
-    path = this->m_ReadWriteFlags.xfolder;
-
     // write out logfile
     if (rank == 0) {
+        line = std::string(this->m_LineLength, '-');
         nnum = 20; nstr = 20;
-        fn = path + "registration-performance.log";
-
-        // create output file
-        logwriter.open(fn.c_str());
-        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
         logwriter << std::scientific;
         logwriter << line << std::endl;

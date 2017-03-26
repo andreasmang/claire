@@ -74,11 +74,15 @@ int main(int argc, char **argv) {
             break;
     }
 
+    // wrap up timers
+    ierr = opt->ProcessTimers(); CHKERRQ(ierr);
 
+    // get local runtime
     value = opt->GetRunTime();
     rval = MPI_Reduce(&value, &runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
     ierr = reg::Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
 
+    // write logfile and display time to solution
     ss << "total runtime (in seconds)   " << std::scientific << runtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
@@ -86,6 +90,7 @@ int main(int argc, char **argv) {
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
+    ierr = opt->WriteLogFile(); CHKERRQ(ierr);
     ierr = opt->DisplayTimeToSolution(); CHKERRQ(ierr);
 
     if (opt != NULL) {delete opt; opt = NULL;}
@@ -121,9 +126,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
     }
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
 
-    ss << "run forward solver benchmarck";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
+    ierr = reg::DbgMsg("run forward solver benchmarck"); CHKERRQ(ierr);
 
     // warm start
     ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
@@ -134,7 +137,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
 
     IntType n = opt->NumRepeats();
     ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-    runtime = -MPI_Wtime();
+    runtime = -MPI_Wtime(); // start timer
     for (IntType i = 0; i < n; ++i) {
         if (opt->GetVerbosity() > 1) {
             ss  << "forward solve "<< std::setw(3)
@@ -144,14 +147,11 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
         }
         ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
     }
-    runtime += MPI_Wtime();
+    runtime += MPI_Wtime(); // stop timer
     ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
-
     opt->SetRunTime(runtime);
 
-    ierr = opt->ProcessTimers(); CHKERRQ(ierr);
-    ierr = opt->WriteLogFile(); CHKERRQ(ierr);
-
+    if (registration != NULL) {delete registration; registration = NULL;}
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
     if (v != NULL) {delete v; v = NULL;}
 
@@ -182,9 +182,7 @@ PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
     }
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
 
-    ss << "run gradient benchmarck";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
+    ierr = reg::DbgMsg("run gradient benchmarck"); CHKERRQ(ierr);
 
     // warm start
     ierr = registration->SetReferenceImage(m); CHKERRQ(ierr);
@@ -197,7 +195,7 @@ PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
 
     IntType n = opt->NumRepeats();
     ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-    runtime = -MPI_Wtime();
+    runtime = -MPI_Wtime(); // start timer
     for (IntType i = 0; i < n; ++i) {
         if (opt->GetVerbosity() > 1) {
             ss  << "gradient evaluation "<< std::setw(3)
@@ -207,13 +205,12 @@ PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
         }
         ierr = registration->EvaluateGradient(NULL, NULL); CHKERRQ(ierr);
     }
-    runtime += MPI_Wtime();
+    runtime += MPI_Wtime(); // stop timer
     ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
 
     opt->SetRunTime(runtime);
-    ierr = opt->ProcessTimers(); CHKERRQ(ierr);
-    ierr = opt->WriteLogFile(); CHKERRQ(ierr);
 
+    if (registration != NULL) {delete registration; registration = NULL;}
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
     if (v != NULL) {delete v; v = NULL;}
 
@@ -246,9 +243,7 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt *opt) {
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
     ierr = registration->SetIncControlVariable(v); CHKERRQ(ierr);
 
-    ss << "run hessian matvec benchmarck";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
+    ierr = reg::DbgMsg("run hessian matvec benchmarck"); CHKERRQ(ierr);
 
     // warm start
     ierr = registration->SetReferenceImage(m); CHKERRQ(ierr);
@@ -277,13 +272,10 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt *opt) {
 
     opt->SetRunTime(runtime);
 
-    ierr = opt->ProcessTimers(); CHKERRQ(ierr);
-    ierr = opt->WriteLogFile(); CHKERRQ(ierr);
-
-    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
     if (v != NULL) {delete v; v = NULL;}
     if (vtilde != NULL) {delete vtilde; vtilde = NULL;}
-    PetscFunctionBegin;
+    if (registration != NULL) {delete registration; registration = NULL;}
+    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
 
     PetscFunctionReturn(ierr);
 }

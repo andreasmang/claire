@@ -666,7 +666,9 @@ class RegOpt {
     virtual PetscErrorCode CheckArguments(void);
     PetscErrorCode SetPresetParameters();
     PetscErrorCode WriteWorkLoadLog();
-    PetscErrorCode WriteWorkLoadLogHumanReadable();
+    PetscErrorCode WriteWorkLoadLogReadable();
+    PetscErrorCode WriteWorkLoadLog(std::ostream&);
+    PetscErrorCode WriteWorkLoadLogReadable(std::ostream&);
     PetscErrorCode WriteKSPLog();
     PetscErrorCode WriteConvergenceLog();
     PetscErrorCode WriteFinalResidualLog();

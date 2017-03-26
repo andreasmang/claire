@@ -2,7 +2,7 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=no
+BUILDTOOLS=yes
 DBGCODE=yes
 PEDANTIC=yes
 USEPNETCDF=yes
@@ -120,14 +120,15 @@ endif
 LDFLAGS += -lm
 
 BIN += $(BINDIR)/runcoldreg
-#BIN+=$(BINDIR)/checkcoldreg
 ifeq ($(BUILDTOOLS),yes)
+	BIN += $(BINDIR)/regbenchmark
 	BIN += $(BINDIR)/regtools
 endif
 
 
 CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
+		$(SRCDIR)/RegBenchmarkOpt.cpp \
 		$(SRCDIR)/RegUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
@@ -147,10 +148,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationRegistrationL2.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
-		$(SRCDIR)/RegularizationRegistrationH3.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
-		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/OptimalControlRegistrationBase.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \

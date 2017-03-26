@@ -74,7 +74,7 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
     PetscFunctionBegin;
 
     if (argc == 1) {
-//        ierr = this->Usage(); CHKERRQ(ierr);
+        ierr = this->Usage(); CHKERRQ(ierr);
     }
 
     while (argc > 1) {
@@ -253,6 +253,7 @@ PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
         std::cout << " -forward                    benchmark forward solver"<<std::endl;
         std::cout << " -gradient                   benchmark gradient evaluation"<<std::endl;
         std::cout << " -repeats <int>              set number of repeats"<<std::endl;
+        std::cout << " -logwork                    log work load (requires -x option)"<<std::endl;
         if (advanced) {
         std::cout << line << std::endl;
         std::cout << " memory distribution and parallelism"<<std::endl;
@@ -361,6 +362,7 @@ PetscErrorCode RegBenchmarkOpt::DisplayOptions() {
 PetscErrorCode RegBenchmarkOpt::CheckArguments() {
     PetscErrorCode ierr = 0;
     std::string msg;
+    bool log = false;
     PetscFunctionBegin;
 
     ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
@@ -371,6 +373,19 @@ PetscErrorCode RegBenchmarkOpt::CheckArguments() {
         ierr = this->Usage(); CHKERRQ(ierr);
     }
 
+    for (int i = 0; i < NLOGFLAGS; ++i) {
+        if (this->m_Log.enabled[i]) {
+            log = true;
+        }
+    }
+
+    if (log) {
+        if (this->m_ReadWriteFlags.xfolder.empty()) {
+            msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+    }
     PetscFunctionReturn(ierr);
 }
 

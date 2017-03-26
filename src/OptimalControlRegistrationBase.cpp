@@ -507,6 +507,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
+/*
         case H3:
         {
             try {this->m_Regularization = new RegularizationRegistrationH3(this->m_Opt);}
@@ -515,6 +516,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
+*/
         case H1SN:
         {
             try {this->m_Regularization = new RegularizationRegistrationH1SN(this->m_Opt);}
@@ -531,6 +533,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
+/*
         case H3SN:
         {
             try {this->m_Regularization = new RegularizationRegistrationH3SN(this->m_Opt);}
@@ -539,6 +542,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
+*/
         default:
         {
             ierr = reg::ThrowError("regularization model not defined"); CHKERRQ(ierr);
@@ -2398,7 +2402,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
-	this->m_Opt->IncrementCounter(FFT, DIV);
+    this->m_Opt->IncrementCounter(FFT, DIV);
 
     // copy initial condition to buffer
     ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
@@ -2450,8 +2454,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-		this->m_Opt->IncrementCounter(FFT, FFTDIV);
-	
+        this->m_Opt->IncrementCounter(FFT, FFTDIV);
+
 
         // compute gradient of \bar{m}
         this->m_Opt->StartTimer(FFTSELFEXEC);
