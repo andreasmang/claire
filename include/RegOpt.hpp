@@ -162,6 +162,13 @@ enum FFTTimers {
 };
 
 
+enum FFTCounters {
+    FFTGRAD = 4,  ///< number of ffts for gradient opteration
+    FFTDIV  = 3,  ///< number of ffts for divergence operation
+};
+
+
+
 // counters (number of operations)
 enum CounterType {
     PDESOLVE = 0,  ///< PDE solves
@@ -295,9 +302,9 @@ struct ParCont {
 //    static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
     static constexpr ScalarType betavminh1 = 1E-9;      ///< minimal regularization parameter for h1 type norm
     static constexpr ScalarType betavminh2 = 1E-9;      ///< minimal regularization parameter for h2 type norm
-    static const int maxsteps = 10;                     ///< max number of steps
     static constexpr ScalarType betascale = 1E-1;       ///< default reduction factor (one order of magnitude)
     static constexpr ScalarType dbetascale = 1E-2;      ///< default reduction factor (one order of magnitude)
+    static const int maxsteps = 10;                     ///< max number of steps
     ParaContType strategy;                              ///< flag for parameter continuation strategy
     bool enabled;                                       ///< flag: parameter continuation using different strategies
     ScalarType targetbeta;                              ///< target regularization parameter
@@ -385,7 +392,7 @@ struct PDESolver {
 
 
 /*! parameter for grid continuation */
-struct Logger{
+struct Logger {
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
     std::vector<ScalarType> distance;        ///< convergence for residual
     std::vector<ScalarType> regularization;  ///< convergence for regularization
