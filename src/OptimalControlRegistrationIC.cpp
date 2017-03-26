@@ -233,7 +233,9 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             // compute gradient of m
+            this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);
+            this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // compute body force
@@ -257,7 +259,9 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
+        this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, 4);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
@@ -349,7 +353,9 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
             ll = k*nl;
 
             // compute gradient of m (for incremental body force)
+            this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+            this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, 4);
 
             // compute incremental bodyforce
@@ -370,7 +376,9 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
+        this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, 4);
 
         // compute incremental bodyforce
@@ -436,9 +444,11 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
+    this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
     accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT,3);
 
     applytime = -MPI_Wtime();
@@ -522,9 +532,11 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     timer[FFTHADAMARD] += applytime;
 
     // compute inverse fft
+    this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x1hat, p_x1, timer);
     accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x2hat, p_x2, timer);
     accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_x3hat, p_x3, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 
     ierr = this->m_WorkVecField1->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);

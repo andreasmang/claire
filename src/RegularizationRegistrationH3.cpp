@@ -94,6 +94,7 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, V
 
         // compute forward fft
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timer);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timer);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
@@ -164,6 +165,7 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateFunctional(ScalarType* R, V
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT,3);
@@ -224,11 +226,12 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateGradient(VecField* dvR, Vec
         scale = this->m_Opt->ComputeFFTScale();
 
         // compute forward fft
-        ierr=v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timer);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timer);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
-        ierr=v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -291,6 +294,7 @@ PetscErrorCode RegularizationRegistrationH3::EvaluateGradient(VecField* dvR, Vec
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = dvR->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT, 3);
@@ -378,6 +382,7 @@ PetscErrorCode RegularizationRegistrationH3::ApplyInvOp(VecField* Ainvx, VecFiel
 
         // compute forward fft
         ierr=x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+        this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x1, this->m_v1hat, timer);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x2, this->m_v2hat, timer);
         accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x3, this->m_v3hat, timer);
@@ -438,6 +443,7 @@ PetscErrorCode RegularizationRegistrationH3::ApplyInvOp(VecField* Ainvx, VecFiel
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
         accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr  =Ainvx->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
 
         this->m_Opt->IncrementCounter(FFT, 3);

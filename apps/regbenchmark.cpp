@@ -37,7 +37,8 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::RegBenchmarkOpt*);
 int main(int argc, char **argv) {
     PetscErrorCode ierr = 0;
     reg::RegBenchmarkOpt* opt = NULL;
-    double runtime;
+    double runtime, value;
+    int rval;
     std::stringstream ss;
 
     // initialize petsc (user is not allowed to set petsc options)
@@ -73,7 +74,11 @@ int main(int argc, char **argv) {
             break;
     }
 
-    runtime = opt->GetRunTime();
+
+    value = opt->GetRunTime();
+    rval = MPI_Reduce(&value, &runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+    ierr = reg::Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
     ss << "total runtime (in seconds)   " << std::scientific << runtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();

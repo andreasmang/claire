@@ -143,7 +143,7 @@ enum TimerType {
     GRADEXEC,     ///< gradient evaluation (execution time)
     OBJEXEC,      ///< objective evluation (execution time)
     FFTSETUP,     ///< fft setup time
-    FFTEXEC,      ///< fft execution time
+    FFTSELFEXEC,  ///< fft execution time
     IPSELFEXEC,   ///< execution time for interpolation
     NTIMERS,      ///< to allocate the timers
 };
@@ -659,6 +659,7 @@ class RegOpt {
     virtual PetscErrorCode CheckArguments(void);
     PetscErrorCode SetPresetParameters();
     PetscErrorCode WriteWorkLoadLog();
+    PetscErrorCode WriteWorkLoadLogHumanReadable();
     PetscErrorCode WriteKSPLog();
     PetscErrorCode WriteConvergenceLog();
     PetscErrorCode WriteFinalResidualLog();

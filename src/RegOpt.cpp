@@ -2490,9 +2490,240 @@ PetscErrorCode RegOpt::WriteLogFile() {
 
 
 /********************************************************************
- * @brief displays the global exection time
+ * @brief write log file for workload
  *******************************************************************/
 PetscErrorCode RegOpt::WriteWorkLoadLog() {
+    PetscErrorCode ierr = 0;
+    std::string fn, line, path;
+    std::ofstream logwriter;
+    int rank, nproc, count = 0;
+    PetscFunctionBegin;
+
+    this->Enter(__func__);
+
+    // get rank
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
+
+    line = std::string(this->m_LineLength, '-');
+    path = this->m_ReadWriteFlags.xfolder;
+
+    // write out logfile
+    if (rank == 0) {
+        fn = path + "registration-performance.log";
+
+        // create output file
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+
+        logwriter << "# problem size (nx1,nx2,nx3,nc,nt,nl,ng)=("
+                  << this->m_Domain.nx[0] << ","
+                  << this->m_Domain.nx[1] << ","
+                  << this->m_Domain.nx[2] << ","
+                  << this->m_Domain.nc << ","
+                  << this->m_Domain.nt << ","
+                  << this->GetDomainPara().nl << ","
+                  << this->m_Domain.ng << ")"
+                  << std::endl;
+
+        logwriter << "# processors " << nproc
+                  << " " << this->m_CartGridDims[0]
+                  << "x" << this->m_CartGridDims[1] << std::endl;
+        logwriter << "# eventname count maxp minp avgp maxp_by_count" << std::endl;
+
+        count = 1;
+        logwriter << "\"time to solution\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[T2SEXEC][MIN]
+                  << " " << this->m_Timer[T2SEXEC][MAX]
+                  << " " << this->m_Timer[T2SEXEC][AVG]
+                  << " " << this->m_Timer[T2SEXEC][MAX]
+                  << std::endl;
+
+        ierr = Assert(this->m_Counter[PDESOLVE] > 0, "bug in counter"); CHKERRQ(ierr);
+        count = this->m_Counter[PDESOLVE];
+        count = count > 0 ? count : 1;
+        logwriter << "\"pde solves\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[PDEEXEC][MIN]
+                  << " " << this->m_Timer[PDEEXEC][MAX]
+                  << " " << this->m_Timer[PDEEXEC][AVG]
+                  << " " << this->m_Timer[PDEEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        count = this->m_Counter[OBJEVAL];
+        count = count > 0 ? count : 1;
+        logwriter << "\"objective eval\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[OBJEXEC][MIN]
+                  << " " << this->m_Timer[OBJEXEC][MAX]
+                  << " " << this->m_Timer[OBJEXEC][AVG]
+                  << " " << this->m_Timer[OBJEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[GRADEVAL];
+        count = count > 0 ? count : 1;
+        logwriter << "\"gradient eval\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[GRADEXEC][MIN]
+                  << " " << this->m_Timer[GRADEXEC][MAX]
+                  << " " << this->m_Timer[GRADEXEC][AVG]
+                  << " " << this->m_Timer[GRADEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[HESSMATVEC];
+        logwriter << "\"hessian matvec\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[HMVEXEC][MIN]
+                  << " " << this->m_Timer[HMVEXEC][MAX]
+                  << " " << this->m_Timer[HMVEXEC][AVG]
+                  << " " << this->m_Timer[HMVEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+
+        // if time has been logged
+        count = this->m_Counter[PCMATVEC];
+        logwriter << "\"precond matvec (setup)\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[PMVSETUP][MIN]
+                  << " " << this->m_Timer[PMVSETUP][MAX]
+                  << " " << this->m_Timer[PMVSETUP][AVG]
+                  << " " << this->m_Timer[PMVSETUP][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+
+        // if time has been logged
+        count = this->m_Counter[PCMATVEC];
+        logwriter << "\"precond matvec (exec)\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[PMVEXEC][MIN]
+                  << " " << this->m_Timer[PMVEXEC][MAX]
+                  << " " << this->m_Timer[PMVEXEC][AVG]
+                  << " " << this->m_Timer[PMVEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        count = this->m_Counter[FFT];
+        logwriter << "\"fft selfexec\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[FFTSELFEXEC][MIN]
+                  << " " << this->m_Timer[FFTSELFEXEC][MAX]
+                  << " " << this->m_Timer[FFTSELFEXEC][AVG]
+                  << " " << this->m_Timer[FFTSELFEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[FFT];
+        logwriter << "\"fft accumulated\""
+                  << " " << count << std::scientific
+                  << " " << 0.0
+                  << " " << this->m_FFTAccumTime
+                  << " " << 0.0
+                  << " " << this->m_FFTAccumTime / static_cast<double>(count)
+                  << std::endl;
+
+        count = 1;
+        logwriter << "\"fft setup\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[FFTSETUP][MIN]
+                  << " " << this->m_Timer[FFTSETUP][MAX]
+                  << " " << this->m_Timer[FFTSETUP][AVG]
+                  << " " << this->m_Timer[FFTSETUP][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        count = this->m_Counter[FFT];
+        logwriter << "\"fft communication\""
+                  << " " << count << std::scientific
+                  << " " << this->m_FFTTimers[FFTCOMM][MIN]
+                  << " " << this->m_FFTTimers[FFTCOMM][MAX]
+                  << " " << this->m_FFTTimers[FFTCOMM][AVG]
+                  << " " << this->m_FFTTimers[FFTCOMM][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        count = this->m_Counter[FFT];
+        logwriter << "\"fft execution\""
+                  << " " << count << std::scientific
+                  << " " << this->m_FFTTimers[FFTEXECUTE][MIN]
+                  << " " << this->m_FFTTimers[FFTEXECUTE][MAX]
+                  << " " << this->m_FFTTimers[FFTEXECUTE][AVG]
+                  << " " << this->m_FFTTimers[FFTEXECUTE][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        logwriter << "\"interp selfexec\""
+                  << " " << count << std::scientific
+                  << " " << this->m_Timer[IPSELFEXEC][MIN]
+                  << " " << this->m_Timer[IPSELFEXEC][MAX]
+                  << " " << this->m_Timer[IPSELFEXEC][AVG]
+                  << " " << this->m_Timer[IPSELFEXEC][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+
+        count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        logwriter << "\"interp accumulated\""
+                  << " " << count << std::scientific
+                  << " " << 0.0
+                  << " " << this->m_IPAccumTime
+                  << " " << 0.0
+                  << " " << 0.0
+                  << std::endl;
+
+
+        // if time has been logged
+        count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        logwriter << "\"interp comm\""
+                  << " " << count << std::scientific
+                  << " " << this->m_InterpTimers[0][MIN]
+                  << " " << this->m_InterpTimers[0][MAX]
+                  << " " << this->m_InterpTimers[0][AVG]
+                  << " " << this->m_InterpTimers[0][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        logwriter << "\"interp exec\""
+                  << " " << count << std::scientific
+                  << " " << this->m_InterpTimers[1][MIN]
+                  << " " << this->m_InterpTimers[1][MAX]
+                  << " " << this->m_InterpTimers[1][AVG]
+                  << " " << this->m_InterpTimers[1][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        logwriter << "\"interp alloc\""
+                  << " " << count << std::scientific
+                  << " " << this->m_InterpTimers[2][MIN]
+                  << " " << this->m_InterpTimers[2][MAX]
+                  << " " << this->m_InterpTimers[2][AVG]
+                  << " " << this->m_InterpTimers[2][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        // if time has been logged
+        count = this->m_Counter[IP] + 3*this->m_Counter[IPVEC];
+        logwriter << "\"interp sort\""
+                  << " " << count << std::scientific
+                  << " " << this->m_InterpTimers[3][MIN]
+                  << " " << this->m_InterpTimers[3][MAX]
+                  << " " << this->m_InterpTimers[3][AVG]
+                  << " " << this->m_InterpTimers[3][MAX] / static_cast<double>(count)
+                  << std::endl;
+    }
+
+    this->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief write log file for workload
+ *******************************************************************/
+PetscErrorCode RegOpt::WriteWorkLoadLogHumanReadable() {
     PetscErrorCode ierr = 0;
     std::string fn, line, path;
     std::ofstream logwriter;
@@ -2668,6 +2899,20 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
                 << std::setw(nnum) << this->m_Timer[PMVEXEC][AVG]
                 << std::setw(nnum) << this->m_Timer[PMVEXEC][MAX]
                                     /static_cast<ScalarType>(this->m_Counter[PCMATVEC]);
+            logwriter << ss.str() << std::endl;
+            ss.clear(); ss.str(std::string());
+        }
+
+        // if time has been logged
+        if (this->m_Timer[FFTSELFEXEC][LOG] > 0.0) {
+            ierr = Assert(this->m_Counter[FFT] > 0, "bug in counter"); CHKERRQ(ierr);
+            ss  << std::scientific << std::left
+                << std::setw(nstr) << " fft selfexec" << std::right
+                << std::setw(nnum) << this->m_Timer[FFTSELFEXEC][MIN]
+                << std::setw(nnum) << this->m_Timer[FFTSELFEXEC][MAX]
+                << std::setw(nnum) << this->m_Timer[FFTSELFEXEC][AVG]
+                << std::setw(nnum) << this->m_Timer[FFTSELFEXEC][MAX]
+                                    /static_cast<ScalarType>(this->m_Counter[FFT]);
             logwriter << ss.str() << std::endl;
             ss.clear(); ss.str(std::string());
         }
