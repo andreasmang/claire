@@ -2557,7 +2557,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
         logwriter << "# processors " << nproc
                   << " " << this->m_CartGridDims[0]
                   << "x" << this->m_CartGridDims[1] << std::endl;
-        logwriter << "# eventname count maxp minp avgp maxp_by_count" << std::endl;
+        logwriter << "# eventname count minp maxp avgp maxp_by_count" << std::endl;
 
         count = 1;
         logwriter << "\"time to solution\""
