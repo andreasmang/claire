@@ -1,5 +1,8 @@
 // This function performs a 3D cubic interpolation.
 
+
+#define _mm256_set_m128(va, vb) \
+          _mm256_insertf128_ps(_mm256_castps128_ps256(vb), va, 1)
 #include <cmath>
 #include <mpi.h>
 #include <stdlib.h>
@@ -7,14 +10,1650 @@
 #include <string.h>
 #include <vector>
 
-#include <accfft.h>
 #include <interp3.hpp>
+#include <immintrin.h>
 #define COORD_DIM 3
 //#define VERBOSE2
 #define sleep(x) ;
 
+/*
+ * Rescales the query points to [0,1) range for the parallel case. Note that the input query_points are initially
+ * in the global range, however, each parallel process needs to rescale it to [0,1) for its local interpolation.
+ * Since interpolation is scale invariant, this would not affect the interpolation result.
+ * This function assumes that the ghost padding was done only in x, y, and z directions.
+ *
+ * @param[in] g_size: The ghost padding size
+ * @param[in] N_reg: The original (unpadded) global size
+ * @param[in] N_reg_g: The padded global size
+ * @param[in] istart: The original isize for each process
+ * @param[in] N_pts: The number of query points
+ * @param[in,out]: query_points: The query points coordinates
+ *
+ */
+void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
+		int* isize, int* isize_g, const int N_pts, Real* Q_) {
 
-void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+	if (g_size == 0)
+		return;
+	Real hp[3];
+	Real h[3];
+	hp[0] = 1. / N_reg_g[0]; // New mesh size
+	hp[1] = 1. / N_reg_g[1]; // New mesh size
+	hp[2] = 1. / N_reg_g[2]; // New mesh size
+
+	h[0] = 1. / (N_reg[0]); // old mesh size
+	h[1] = 1. / (N_reg[1]); // old mesh size
+	h[2] = 1. / (N_reg[2]); // old mesh size
+
+	const Real factor0 = (1. - (2. * g_size + 1.) * hp[0]) / (1. - h[0]);
+	const Real factor1 = (1. - (2. * g_size + 1.) * hp[1]) / (1. - h[1]);
+	const Real factor2 = (1. - (2. * g_size + 1.) * hp[2]) / (1. - h[2]);
+
+  const Real iX0 = istart[0]*h[0];
+  const Real iX1 = istart[1]*h[1];
+  const Real iX2 = istart[2]*h[2];
+  const Real iY0 = (istart[0]+isize[0])*h[0];
+  const Real iY1 = (istart[1]+isize[1])*h[1];
+  const Real iY2 = (istart[2]+isize[2])*h[2];
+
+  if(0)
+	for (int i = 0; i < N_pts; i++) {
+		Q_[0 + COORD_DIM * i] = (Q_[0 + COORD_DIM * i] + (g_size*h[0]-iX0)) / (iY0-iX0 + 2.*g_size*h[0]);
+		Q_[1 + COORD_DIM * i] = (Q_[1 + COORD_DIM * i] + (g_size*h[1]-iX1)) / (iY1-iX1 + 2.*g_size*h[1]);
+		Q_[2 + COORD_DIM * i] = (Q_[2 + COORD_DIM * i] + (g_size*h[2]-iX2)) / (iY2-iX2 + 2.*g_size*h[2]);
+	}
+	for (int i = 0; i < N_pts; i++) {
+		Q_[0 + COORD_DIM * i] = (Q_[0 + COORD_DIM * i]
+				- iX0) * factor0 + g_size * hp[0];
+		Q_[1 + COORD_DIM * i] = (Q_[1 + COORD_DIM * i]
+				- iX1) * factor1 + g_size * hp[1];
+		Q_[2 + COORD_DIM * i] = (Q_[2 + COORD_DIM * i]
+				- iX2) * factor2 + g_size * hp[2];
+	}
+
+  /*
+  int grid_indx[3];
+	for (int i = 0; i < N_pts; i++) {
+    Real* Qptr = &Q_[COORD_DIM * i];
+
+		Qptr[0] = Qptr[0] * N_reg_g[0];
+		grid_indx[0] = ((int)(Qptr[0])) - 1;
+		Qptr[0] -= grid_indx[0];
+
+		Qptr[1] = Qptr[1] * N_reg_g[1];
+		grid_indx[1] = ((int)(Qptr[1])) - 1;
+		Qptr[1] -= grid_indx[1];
+
+		Qptr[2] = Qptr[2] * N_reg_g[2];
+		grid_indx[2] = ((int)(Qptr[2])) - 1;
+		Qptr[2] -= grid_indx[2];
+
+    //if(Q[0]>=2)
+    //std::cout << Q[0] << std::endl;
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+    const Real tmp = Qptr[0];
+    Real tt;
+    tt = (int)(indxx/(int)512); 
+
+    if( i<= 2 | i == 266461){
+      std::cout << "i = " << i << " multiplier = " << tt << " remainder = " << indxx%512 << std::endl;
+      std::cout << "q[0] = " << Qptr[0] << " q[1] = " << Qptr[1] << std::endl;
+      std::cout << "indxx = " << indxx << std::endl;
+    }
+    Qptr[0] = Qptr[0]/4;
+    Qptr[0] += tt;
+    Qptr[1] = Qptr[1]/4;
+    Qptr[1] += (int)(indxx % 512);
+    Qptr[2] = indxx;
+    //if(indxx != ((int)Q[0])*16 + ((int)Q[1]) )
+    //std::cout << "*** " << (int)Q[0] - 1 << '\t' << indxx << '\t' << Q[0]-indxx<< std::endl;
+    //if(tmp != (Q[0]-((int)Q[0]))*8 )
+    //if(tmp != (Q[0]-tt)*4 )
+    //std::cout << "*** " << tmp-(Q[0]-tt)*4  << '\t' <<  (Q[0]-((int)Q[0]))*4 << std::endl;
+    //if(indxx != ((int)Q[0]-1))
+    //std::cout << (int)Q[0] - 1 << '\t' << indxx << '\t' << Q[0]-indxx<< std::endl;
+	}
+  int i = 0;
+    Real* Qptr = &Q_[COORD_DIM * i];
+    if( i<= 2 | i == 266461){
+      std::cout << "after q[0] = " << Qptr[0] << " q[1] = " << Qptr[1] << std::endl;
+    }
+
+*/
+	return;
+} // end of rescale_xyz
+
+
+// acknowledgemet to http://stackoverflow.com/questions/13219146/how-to-sum-m256-horizontally
+// x = ( x7, x6, x5, x4, x3, x2, x1, x0 )
+float sum8(__m256 x) {
+    // hiQuad = ( x7, x6, x5, x4 )
+    const __m128 hiQuad = _mm256_extractf128_ps(x, 1);
+    // loQuad = ( x3, x2, x1, x0 )
+    const __m128 loQuad = _mm256_castps256_ps128(x);
+    // sumQuad = ( x3 + x7, x2 + x6, x1 + x5, x0 + x4 )
+    const __m128 sumQuad = _mm_add_ps(loQuad, hiQuad);
+    // loDual = ( -, -, x1 + x5, x0 + x4 )
+    const __m128 loDual = sumQuad;
+    // hiDual = ( -, -, x3 + x7, x2 + x6 )
+    const __m128 hiDual = _mm_movehl_ps(sumQuad, sumQuad);
+    // sumDual = ( -, -, x1 + x3 + x5 + x7, x0 + x2 + x4 + x6 )
+    const __m128 sumDual = _mm_add_ps(loDual, hiDual);
+    // lo = ( -, -, -, x0 + x2 + x4 + x6 )
+    const __m128 lo = sumDual;
+    // hi = ( -, -, -, x1 + x3 + x5 + x7 )
+    const __m128 hi = _mm_shuffle_ps(sumDual, sumDual, 0x1);
+    // sum = ( -, -, -, x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7 )
+    const __m128 sum = _mm_add_ss(lo, hi);
+    return _mm_cvtss_f32(sum);
+}
+void print128(__m128 x, const char* name) {
+  Real* ptr = (Real*)&x;
+  std::cout << name
+            << " [0] = " << ptr[0]
+            << " [1] = " << ptr[1]
+            << " [2] = " << ptr[2]
+            << " [3] = " << ptr[3] << std::endl;
+}
+void print256(__m256 x, const char* name) {
+  Real* ptr = (Real*)&x;
+  std::cout << name
+            << "\n [0] = " << ptr[0]
+            << "\n [1] = " << ptr[1]
+            << "\n [2] = " << ptr[2]
+            << "\n [3] = " << ptr[3]
+            << "\n [4] = " << ptr[4]
+            << "\n [5] = " << ptr[5]
+            << "\n [6] = " << ptr[6]
+            << "\n [7] = " << ptr[7] << std::endl;
+}
+
+
+
+
+#ifdef FAST_INTERPV
+
+void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
+		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
+		bool query_values_already_scaled) {
+
+  const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
+  const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
+  const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);
+
+  const __m256 vlagr = _mm256_set_ps(-0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667);
+  const __m256  c33332222 = _mm256_set_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
+  const __m256  c22223333 = _mm256_setr_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
+  const __m256  c11110000 = _mm256_set_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
+  const __m256  c00001111 = _mm256_setr_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
+  const __m256  l0l1 = _mm256_set_ps (-0.1666666667,-0.1666666667,-0.1666666667,-0.1666666667,+0.5,+0.5,+0.5,+0.5);
+  const __m256  l2l3 = _mm256_setr_ps(+0.1666666667,+0.1666666667,+0.1666666667,+0.1666666667,-0.5,-0.5,-0.5,-0.5);
+  const int isize_g2 = isize_g[2];
+  const int two_isize_g2 = 2*isize_g[2];
+  const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+		grid_indx[0] = ((int)(point[0])) - 1;
+		point[0] -= grid_indx[0];
+
+		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+		grid_indx[1] = ((int)(point[1])) - 1;
+		point[1] -= grid_indx[1];
+
+		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+		grid_indx[2] = ((int)(point[2])) - 1;
+		point[2] -= grid_indx[2];
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+    //Real* point_ = &query_points[COORD_DIM * i];
+    //Real point[3];
+    //point[0] = point_[0];
+    //point[1] = point_[1];
+    //point[2] = point_[2];
+
+
+    //int indxx = ((int) point[0]);
+    //indxx *= 512;
+    //indxx += (int)point[1];
+    ////if(indxx>=N_reg_g[0]*N_reg_g[1]*N_reg_g[2] || i <=2){
+    ////if(indxx-(int)point[2]!=0){
+    ////std::cout << "=== i = " << i << " multiplier = " << ((int) point[0]) << " remainder = " << ((int) point[1]) << std::endl;
+    ////std::cout << "=== q[0] = " << point[0] << " q[1] = " << point[1] << std::endl;
+    ////std::cout << "=== indx = " << indxx << " q2 = " << point[2] <<std::endl;
+    ////do{}while(1);
+    ////}
+    //point[0] = point[0] - ((int) point[0]);
+    //point[0] *= 4;
+    ////indxx = point[2];
+    //point[2] = 1;
+    //if(i==2)
+    //do{}while(1);
+    //point[1] =point[1] - (int)point[1];
+    //point[1]*=4;
+
+    //std::cout << "=== i = " << i << " multiplier = " << ((int) point[0]) << " remainder = " << ((int) point[1]) << std::endl;
+    //std::cout << "=== q[0] = " << point[0] << " q[1] = " << point[1] << std::endl;
+
+    int indx = 0;
+    Real* reg_ptr = &reg_grid_vals[indxx];
+		Real val = 0;
+
+    __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
+    __m256 vM0_tttt[4];
+
+
+    {
+    const __m256 vx0 = _mm256_set1_ps(point[0]);
+    vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c1000));
+    vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c2211));
+    vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c3332));
+
+    const __m256 vx1 = _mm256_set1_ps(point[1]);
+    __m256 tmp = _mm256_add_ps(vx1,c33332222); // x-3,...;x-2,...
+    tmp = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c11110000));
+    vM1_0000_1111 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c22223333));
+    vM1_0000_1111 = _mm256_mul_ps(vM1_0000_1111, l0l1);
+    vM1_2222_3333 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c00001111));
+    vM1_2222_3333  = _mm256_mul_ps(vM1_2222_3333, l2l3);
+    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c1000));
+    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c2211));
+    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c3332));
+
+    const __m256 vx2 = _mm256_set1_ps(point[2]);
+    vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c1000));
+    vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c2211));
+    vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c3332));
+    // todo remove permute completely by using different c's in the beginning
+    vM2 = _mm256_permute_ps(vM2,0b00011011);
+    //vM2 = _mm256_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
+
+    //const Real* M1 = (Real*)&vM1;
+    //vM1_0000_1111 = _mm256_set_ps(M1[7],M1[7],M1[7],M1[7],M1[6],M1[6],M1[6],M1[6]);
+    //vM1_2222_3333 = _mm256_set_ps(M1[5],M1[5],M1[5],M1[5],M1[4],M1[4],M1[4],M1[4]);
+    // vM1_0000_1111 = _mm256_set_ps(M1[3],M1[3],M1[3],M1[3],M1[2],M1[2],M1[2],M1[2]);
+    // vM1_2222_3333 = _mm256_set_ps(M1[1],M1[1],M1[1],M1[1],M1[0],M1[0],M1[0],M1[0]);
+    vM0_tttt[0] = _mm256_permute_ps(vM0,0b11111111); // last element
+    vM0_tttt[1] = _mm256_permute_ps(vM0,0b10101010);
+    vM0_tttt[2] = _mm256_permute_ps(vM0,0b01010101);
+    vM0_tttt[3] = _mm256_permute_ps(vM0,0b00000000);
+    }
+
+
+    // load all vfij
+
+
+
+
+          //
+          const __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+
+          const __m256 vt_i0_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i0_j01);
+
+          const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+          const __m256 vt_i0_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i0_j23);
+
+          const __m256 vt_i0 = _mm256_add_ps(vt_i0_j01, vt_i0_j23);
+
+          //
+          const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+
+          const __m256 vt_i1_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i1_j01);
+
+          const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+          const __m256 vt_i1_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i1_j23);
+
+          const __m256 vt_i1 = _mm256_add_ps(vt_i1_j01, vt_i1_j23);
+
+          //
+          const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+
+          const __m256 vt_i2_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i2_j01);
+
+          const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          const __m256 vt_i2_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i2_j23);
+          const __m256 vt_i2 = _mm256_add_ps(vt_i2_j01, vt_i2_j23);
+
+          //
+          const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          // reg_ptr +=  reg_plus;
+
+          const __m256 vt_i3_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i3_j01);
+          const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          const __m256 vt_i3_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i3_j23);
+          const __m256 vt_i3 = _mm256_add_ps(vt_i3_j01, vt_i3_j23);
+
+          const __m256 vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111), vt_i0);
+          const __m256 vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010), vt_i1);
+          const __m256 vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101), vt_i2);
+          const __m256 vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000), vt_i3);
+          //const __m256 vt0 = _mm256_mul_ps(vM0_tttt[0], vt_i0);
+          //const __m256 vt1 = _mm256_mul_ps(vM0_tttt[1], vt_i1);
+          //const __m256 vt2 = _mm256_mul_ps(vM0_tttt[2], vt_i2);
+          //const __m256 vt3 = _mm256_mul_ps(vM0_tttt[3], vt_i3);
+
+          __m256 vt = _mm256_add_ps(vt0, vt1);
+          vt = _mm256_add_ps(vt, vt2);
+          vt = _mm256_add_ps(vt, vt3);
+
+          vt = _mm256_mul_ps(vM2, vt);
+          val = sum8(vt);
+		      query_values[i] = val;
+	}
+
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+#endif
+
+
+
+// void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+// 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
+// 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
+// 		bool query_values_already_scaled) {
+// 
+//   const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
+//   const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
+//   const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);
+// 
+//   const __m256 vlagr = _mm256_set_ps(-0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667);
+//   const __m256  c33332222 = _mm256_set_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
+//   const __m256  c22223333 = _mm256_setr_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
+//   const __m256  c11110000 = _mm256_set_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
+//   const __m256  c00001111 = _mm256_setr_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
+//   const __m256  l0l1 = _mm256_set_ps (-0.1666666667,-0.1666666667,-0.1666666667,-0.1666666667,+0.5,+0.5,+0.5,+0.5);
+//   const __m256  l2l3 = _mm256_setr_ps(+0.1666666667,+0.1666666667,+0.1666666667,+0.1666666667,-0.5,-0.5,-0.5,-0.5);
+// 	for (int i = 0; i < N_pts; i++) {
+// 		Real point[COORD_DIM];
+// 		int grid_indx[COORD_DIM];
+// 
+// 		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+// 		grid_indx[0] = ((int)(point[0])) - 1;
+// 		point[0] -= grid_indx[0];
+// 
+// 		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+// 		grid_indx[1] = ((int)(point[1])) - 1;
+// 		point[1] -= grid_indx[1];
+// 
+// 		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+// 		grid_indx[2] = ((int)(point[2])) - 1;
+// 		point[2] -= grid_indx[2];
+// 
+// 		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+//     Real* reg_ptr = &reg_grid_vals[indxx];
+// 		Real val = 0;
+//     int indx = 0;
+//     const int isize_g2 = isize_g[2];
+//     const int two_isize_g2 = 2*isize_g[2];
+//     const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+// 
+// 
+//     __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+//     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+//     __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+//     __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
+//     __m256 vM0_tttt[4];
+// 
+// 
+//     {
+//     const __m256 vx0 = _mm256_set1_ps(point[0]);
+//     const __m256 vx1 = _mm256_set1_ps(point[1]);
+//     const __m256 vx2 = _mm256_set1_ps(point[2]);
+//     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c1000));
+//     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c2211));
+//     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c3332));
+// 
+//     __m256 tmp = _mm256_add_ps(vx1,c33332222); // x-3,...;x-2,...
+//     tmp = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c11110000));
+//     vM1_0000_1111 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c22223333));
+//     vM1_0000_1111 = _mm256_mul_ps(vM1_0000_1111, l0l1);
+//     vM1_2222_3333 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c00001111));
+//     vM1_2222_3333  = _mm256_mul_ps(vM1_2222_3333, l2l3);
+//     //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c1000));
+//     //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c2211));
+//     //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c3332));
+// 
+//     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c1000));
+//     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c2211));
+//     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c3332));
+//     // todo remove permute completely by using different c's in the beginning
+//     vM2 = _mm256_permute_ps(vM2,0b00011011);
+//     //vM2 = _mm256_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
+// 
+//     //const Real* M1 = (Real*)&vM1;
+//     //vM1_0000_1111 = _mm256_set_ps(M1[7],M1[7],M1[7],M1[7],M1[6],M1[6],M1[6],M1[6]);
+//     //vM1_2222_3333 = _mm256_set_ps(M1[5],M1[5],M1[5],M1[5],M1[4],M1[4],M1[4],M1[4]);
+//     // vM1_0000_1111 = _mm256_set_ps(M1[3],M1[3],M1[3],M1[3],M1[2],M1[2],M1[2],M1[2]);
+//     // vM1_2222_3333 = _mm256_set_ps(M1[1],M1[1],M1[1],M1[1],M1[0],M1[0],M1[0],M1[0]);
+//     vM0_tttt[0] = _mm256_permute_ps(vM0,0b11111111); // last element
+//     vM0_tttt[1] = _mm256_permute_ps(vM0,0b10101010);
+//     vM0_tttt[2] = _mm256_permute_ps(vM0,0b01010101);
+//     vM0_tttt[3] = _mm256_permute_ps(vM0,0b00000000);
+//     }
+// 
+// 
+//     // load all vfij
+//           const __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr +=  reg_plus;
+// 
+//           const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr +=  reg_plus;
+// 
+//           const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr +=  reg_plus;
+// 
+//           const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           // reg_ptr +=  reg_plus;
+// 
+//           const __m256 vt_i0_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i0_j01);
+//           const __m256 vt_i0_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i0_j23);
+//           const __m256 vt_i0 = _mm256_add_ps(vt_i0_j01, vt_i0_j23);
+// 
+//           const __m256 vt_i1_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i1_j01);
+//           const __m256 vt_i1_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i1_j23);
+//           const __m256 vt_i1 = _mm256_add_ps(vt_i1_j01, vt_i1_j23);
+// 
+//           const __m256 vt_i2_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i2_j01);
+//           const __m256 vt_i2_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i2_j23);
+//           const __m256 vt_i2 = _mm256_add_ps(vt_i2_j01, vt_i2_j23);
+// 
+//           const __m256 vt_i3_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i3_j01);
+//           const __m256 vt_i3_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i3_j23);
+//           const __m256 vt_i3 = _mm256_add_ps(vt_i3_j01, vt_i3_j23);
+// 
+//           const __m256 vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111), vt_i0);
+//           const __m256 vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010), vt_i1);
+//           const __m256 vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101), vt_i2);
+//           const __m256 vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000), vt_i3);
+//           //const __m256 vt0 = _mm256_mul_ps(vM0_tttt[0], vt_i0);
+//           //const __m256 vt1 = _mm256_mul_ps(vM0_tttt[1], vt_i1);
+//           //const __m256 vt2 = _mm256_mul_ps(vM0_tttt[2], vt_i2);
+//           //const __m256 vt3 = _mm256_mul_ps(vM0_tttt[3], vt_i3);
+// 
+//           __m256 vt = _mm256_add_ps(vt0, vt1);
+//           vt = _mm256_add_ps(vt, vt2);
+//           vt = _mm256_add_ps(vt, vt3);
+// 
+//           vt = _mm256_mul_ps(vM2, vt);
+//           val = sum8(vt);
+// 		      query_values[i] = val;
+// 	}
+// 
+// 	return;
+// 
+// }  // end of interp3_ghost_xyz_p
+
+
+void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
+		const int N_pts, Real* Q_) {
+
+	if (g_size == 0)
+		return;
+	Real hp[3];
+	Real h[3];
+	hp[0] = 1. / N_reg_g[0]; // New mesh size
+	hp[1] = 1. / N_reg_g[1]; // New mesh size
+	hp[2] = 1. / N_reg_g[2]; // New mesh size
+
+	h[0] = 1. / (N_reg[0]); // old mesh size
+	h[1] = 1. / (N_reg[1]); // old mesh size
+	h[2] = 1. / (N_reg[2]); // old mesh size
+
+	const Real factor0 = (1. - (2. * g_size + 1.) * hp[0]) / (1. - h[0]);
+	const Real factor1 = (1. - (2. * g_size + 1.) * hp[1]) / (1. - h[1]);
+	const Real factor2 = (1. - (2. * g_size + 1.) * hp[2]) / (1. - h[2]);
+  const Real iX0 = istart[0]*h[0];
+  const Real iX1 = istart[1]*h[1];
+  const Real iX2 = istart[2]*h[2];
+
+	for (int i = 0; i < N_pts; i++) {
+		Q_[0 + COORD_DIM * i] = (Q_[0 + COORD_DIM * i]
+				- iX0) * factor0 + g_size * hp[0];
+		Q_[1 + COORD_DIM * i] = (Q_[1 + COORD_DIM * i]
+				- iX1) * factor1 + g_size * hp[1];
+		Q_[2 + COORD_DIM * i] = (Q_[2 + COORD_DIM * i]
+				- iX2) * factor2 + g_size * hp[2];
+	}
+	return;
+} // end of rescale_xyz
+
+
+#ifdef FAST_INTERPV
+
+//#include "v1.cpp" // corresponding optimized version
+void vec_torized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* N_reg,
+		const int* N_reg_g, const int * isize_g, const int* istart, const int N_pts,
+		const int g_size, __restrict Real* query_points, __restrict Real* query_values,
+		bool query_values_already_scaled) {
+
+  const __m128  c1000 = _mm_set_ps(-1.0,-0.0,-0.0,-0.0);
+  const __m128  c2211 = _mm_set_ps(-2.0,-2.0,-1.0,-1.0);
+  const __m128  c3332 = _mm_set_ps(-3.0,-3.0,-3.0,-2.0);
+  const __m128 vlagr = _mm_set_ps(-0.1666666667,0.5,-0.5, 0.1666666667);
+
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+		grid_indx[0] = ((int)(point[0])) - 1;
+		point[0] -= grid_indx[0];
+
+		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+		grid_indx[1] = ((int)(point[1])) - 1;
+		point[1] -= grid_indx[1];
+
+		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+		grid_indx[2] = ((int)(point[2])) - 1;
+		point[2] -= grid_indx[2];
+
+		// for (int j = 0; j < COORD_DIM; j++) {
+		//	Real x = point[j];
+		//	for (int k = 0; k < 4; k++) {
+		//		M[j][k] = lagr_denom[k];
+		//		for (int l = 0; l < 4; l++) {
+		//			if (k != l)
+		//				M[j][k] *= (x - l);
+		//		}
+		//	}
+		// }
+    //M[0][0] = lagr_denom[0];
+    //M[0][1] = lagr_denom[1];
+    //M[0][2] = lagr_denom[2];
+    //M[0][3] = lagr_denom[3];
+
+    //M[0][0] *= (x-1);
+    //M[0][1] *= (x-0);
+    //M[0][2] *= (x-0);
+    //M[0][3] *= (x-0);
+
+    //M[0][0] *= (x-2);
+    //M[0][1] *= (x-2);
+    //M[0][2] *= (x-1);
+    //M[0][3] *= (x-1);
+
+    //M[0][0] *= (x-3);
+    //M[0][1] *= (x-3);
+    //M[0][2] *= (x-3);
+    //M[0][3] *= (x-2);
+
+    __m128 vx;
+
+    __m128 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
+          __m256 vVal_, vPtr_;
+          __m256 vVal2_;//= _mm256_set1_ps(point[0]);
+
+
+    vx = _mm_set1_ps(point[0]);
+    vM0 = _mm_mul_ps(vM0, _mm_add_ps(vx,c1000));
+    vM0 = _mm_mul_ps(vM0, _mm_add_ps(vx,c2211));
+    vM0 = _mm_mul_ps(vM0, _mm_add_ps(vx,c3332));
+
+    vx = _mm_set1_ps(point[1]);
+    vM1 = _mm_mul_ps(vM1, _mm_add_ps(vx,c1000));
+    vM1 = _mm_mul_ps(vM1, _mm_add_ps(vx,c2211));
+    vM1 = _mm_mul_ps(vM1, _mm_add_ps(vx,c3332));
+
+    vx = _mm_set1_ps(point[2]);
+    vM2 = _mm_mul_ps(vM2, _mm_add_ps(vx,c1000));
+    vM2 = _mm_mul_ps(vM2, _mm_add_ps(vx,c2211));
+    vM2 = _mm_mul_ps(vM2, _mm_add_ps(vx,c3332));
+    vM2 = _mm_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
+
+
+    vM1_0000_1111 = _mm256_set_m128(
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(3, 3, 3, 3)), // M[1][0]
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(2, 2, 2, 2)));// M[1][1]
+    vM1_2222_3333 = _mm256_set_m128(
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(1, 1, 1, 1)), // M[1][2]
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(0, 0, 0, 0)));// M[1][3]
+
+
+    Real* M0 = (Real*)&vM0;
+    vM0_tttt[3] = _mm256_set1_ps(M0[0]);
+    vM0_tttt[2] = _mm256_set1_ps(M0[1]);
+    vM0_tttt[1] = _mm256_set1_ps(M0[2]);
+    vM0_tttt[0] = _mm256_set1_ps(M0[3]);
+
+    //vM0_tttt[0] = _mm256_set_m128(
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(3, 3, 3, 3)), // M[0][0]
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(3, 3, 3, 3)));// M[0][0]
+    //vM0_tttt[1] = _mm256_set_m128(
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(2, 2, 2, 2)), // M[0][0]
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(2, 2, 2, 2)));// M[0][0]
+    //vM0_tttt[2] = _mm256_set_m128(
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(1, 1, 1, 1)), // M[0][0]
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(1, 1, 1, 1)));// M[0][0]
+    //vM0_tttt[3] = _mm256_set_m128(
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(0, 0, 0, 0)), // M[0][0]
+    //          _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(0, 0, 0, 0)));// M[0][0]
+    //Real* dum1 = (Real*)&vM0;
+    //Real* dum2 = (Real*)&vM1;
+    //Real* dum3 = (Real*)&vM2;
+    //Real* dum4 = (Real*)&vM1_0000_1111;
+    //Real* dum5 = (Real*)&vM1_2222_3333;
+    //Real* dum6 = (Real*)&vVal_;
+    //Real* dum7 = (Real*)&vM0_tttt[0];
+    //Real* dum8 = (Real*)&vM0_tttt[1];
+    //Real* dum9 = (Real*)&vM0_tttt[2];
+    //Real* dum10 = (Real*)&vM0_tttt[3];
+    //query_values[i] = point[0]*point[1]*point[2];
+    //continue;
+		//query_values[i] = dum1[0]*dum2[0]*dum3[2]*dum4[5]*dum5[5]*dum5[0]*dum5[2]
+    //  *dum7[0]*dum8[5]*dum9[0]*dum10[2];//*dum5[3];
+    //continue;
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+    Real* reg_ptr = &reg_grid_vals[indxx];
+		Real val = 0;
+    int indx = 0;
+    const int isize_g2 = isize_g[2];
+    const int two_isize_g2 = 2*isize_g[2];
+    const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          vVal_ = _mm256_setzero_ps();
+
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM1_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[0]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM1_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[0]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+
+          reg_ptr +=  reg_plus;
+
+      // ------------------------------------ //
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM1_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[1]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM1_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[1]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+          reg_ptr +=  reg_plus;
+
+      // ------------------------------------ //
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM1_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[2]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM1_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[2]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          reg_ptr +=  reg_plus;
+      // ------------------------------------ //
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM1_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[3]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM1_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_tttt[3]);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vm_inv = M[2][0], [1] [2] [3] in reverse order
+          __m256 vM2_256 = _mm256_set_m128(vM2, vM2);
+          vVal_ = _mm256_mul_ps(vVal_, vM2_256);
+          val = sum8(vVal_);
+		query_values[i] = val;
+	}
+
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+
+void _vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+	//for (int i = 0; i < 4; i++) {
+	//	lagr_denom[i] = 1;
+	//	for (int j = 0; j < 4; j++) {
+	//		if (i != j)
+	//			lagr_denom[i] /= (Real) (i - j);
+	//	}
+	// }
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+    {
+#ifdef VERBOSE2
+		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
+		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
+		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
+#endif
+  }
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+    //__m256 vM_ = _mm256_set_ps(M[2][0], M[2][1], M[2][2], M[2][3], 0, 0, 0, 0);
+    register __m128 vM_ = _mm_set_ps(M[2][0], M[2][1], M[2][2], M[2][3]);
+    //__m128 vM_ = _mm_loadu_ps(&M[2][0]);
+    register __m128 vVal =  _mm_setzero_ps();
+    register __m128 vVal_;
+    // std::cout << "indxx = " << indxx << std::endl;
+		Real val = 0;
+    int indx = 0;
+		for (int j0 = 0; j0 < 4; j0++) {
+			for (int j1 = 0; j1 < 4; j1++) {
+          const register __m128 M0M1 = _mm_set1_ps(M[0][j0]*M[1][j1]);
+
+          __m128 vPtr_ = _mm_loadu_ps(&reg_grid_vals[indx + indxx]);
+          vVal_ = _mm_mul_ps(vM_, vPtr_);
+          vVal_ = _mm_mul_ps(vVal_, M0M1);
+
+          //__m256 vVal_;
+          //__m256 vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], 0, 0, 0, 0);
+          //vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          //Real val_ = sum8(vVal_);
+          //val += (val_[4] + val_[5] + val_[6] + val_[7]) * M0M1;
+          vVal = _mm_add_ps(vVal, vVal_);
+          indx += isize_g[2];
+			}
+      indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+		}
+    vVal = _mm_hadd_ps(vVal, vVal);
+    vVal = _mm_hadd_ps(vVal, vVal);
+    Real* val_ = (Real*)&vVal;
+		query_values[i] = val_[0];
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void __vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+    {
+#ifdef VERBOSE2
+		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
+		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
+		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
+#endif
+  }
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    int indx = 0;
+
+
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1, M0M1_2;
+          __m256 vVal_, vM0M1_, vM2_, vM_, vPtr_;
+          Real* ptr, *ptr2;
+
+					// val_ = M[2][0] * ptr[0];
+					// val_ += M[2][1] * ptr[1];
+					// val_ += M[2][2] * ptr[2];
+					// val_ += M[2][3] * ptr[3];
+          // val += val_ * M0M1;
+          // indx += isize_g[2];
+          // M0M1 = M[0][0]*M[1][1];
+          // ptr = &reg_grid_vals[indx + indxx];
+					// val_ = M[2][0] * ptr[0];
+					// val_ += M[2][1] * ptr[1];
+					// val_ += M[2][2] * ptr[2];
+					// val_ += M[2][3] * ptr[3];
+          // val += val_ * M0M1;
+          //indx += isize_g[2];
+
+          M0M1 = M[0][0]*M[1][0];
+          M0M1_2 = M[0][0]*M[1][1];
+          vM2_ = _mm256_set_ps(M[2][0], M[2][1], M[2][2], M[2][3], M[2][0], M[2][1], M[2][2], M[2][3]);
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          //----//
+
+          M0M1 = M[0][0]*M[1][2];
+          M0M1_2 = M[0][0]*M[1][3];
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          indx += isize_g[2];
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+
+          // M0M1 = M[0][0]*M[1][2];
+          // ptr = &reg_grid_vals[indx + indxx];
+					// val_ = M[2][0] * ptr[0];
+					// val_ += M[2][1] * ptr[1];
+					// val_ += M[2][2] * ptr[2];
+					// val_ += M[2][3] * ptr[3];
+          // val += val_ * M0M1;
+          // indx += isize_g[2];
+
+          // M0M1 = M[0][0]*M[1][3];
+          // ptr = &reg_grid_vals[indx + indxx];
+					// val_ = M[2][0] * ptr[0];
+					// val_ += M[2][1] * ptr[1];
+					// val_ += M[2][2] * ptr[2];
+					// val_ += M[2][3] * ptr[3];
+          // val += val_ * M0M1;
+          // indx += isize_g[2];
+          // indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][1]*M[1][0];
+          M0M1_2 = M[0][1]*M[1][1];
+          vM2_ = _mm256_set_ps(M[2][0], M[2][1], M[2][2], M[2][3], M[2][0], M[2][1], M[2][2], M[2][3]);
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          //----//
+
+          M0M1 = M[0][1]*M[1][2];
+          M0M1_2 = M[0][1]*M[1][3];
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          indx += isize_g[2];
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+          //M0M1 = M[0][1]*M[1][0];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+
+          //M0M1 = M[0][1]*M[1][1];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+
+          //M0M1 = M[0][1]*M[1][2];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+          //M0M1 = M[0][1]*M[1][3];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+          //indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // -//----------------------------------- //
+          M0M1 = M[0][2]*M[1][0];
+          M0M1_2 = M[0][2]*M[1][1];
+          vM2_ = _mm256_set_ps(M[2][0], M[2][1], M[2][2], M[2][3], M[2][0], M[2][1], M[2][2], M[2][3]);
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          //----//
+
+          M0M1 = M[0][2]*M[1][2];
+          M0M1_2 = M[0][2]*M[1][3];
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          indx += isize_g[2];
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+          //M0M1 = M[0][2]*M[1][0];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+
+          //M0M1 = M[0][2]*M[1][1];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+
+          //M0M1 = M[0][2]*M[1][2];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+          //M0M1 = M[0][2]*M[1][3];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+          //indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // -//----------------------------------- //
+          M0M1 = M[0][3]*M[1][0];
+          M0M1_2 = M[0][3]*M[1][1];
+          vM2_ = _mm256_set_ps(M[2][0], M[2][1], M[2][2], M[2][3], M[2][0], M[2][1], M[2][2], M[2][3]);
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          //----//
+
+          M0M1 = M[0][3]*M[1][2];
+          M0M1_2 = M[0][3]*M[1][3];
+          vM0M1_ = _mm256_set_ps(M0M1,M0M1,M0M1,M0M1,M0M1_2,M0M1_2,M0M1_2,M0M1_2);
+          vM_ = _mm256_mul_ps(vM0M1_, vM2_);
+
+          indx += isize_g[2];
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          vPtr_ = _mm256_set_ps(ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3]);
+
+          vVal_ = _mm256_mul_ps(vM_, vPtr_);
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+          //M0M1 = M[0][3]*M[1][0];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+
+          //M0M1 = M[0][3]*M[1][1];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+
+          //M0M1 = M[0][3]*M[1][2];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+          //indx += isize_g[2];
+
+          //M0M1 = M[0][3]*M[1][3];
+          //ptr = &reg_grid_vals[indx + indxx];
+					//val_ = M[2][0] * ptr[0];
+					//val_ += M[2][1] * ptr[1];
+					//val_ += M[2][2] * ptr[2];
+					//val_ += M[2][3] * ptr[3];
+          //val += val_ * M0M1;
+		//}
+          //Real val_ = sum8(vVal_);
+		query_values[i] =sum8(vVal_);
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void ____vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+    {
+#ifdef VERBOSE2
+		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
+		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
+		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
+#endif
+  }
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    int indx = 0;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1_[2];
+          Real vM[8];
+
+          M0M1_[0] = M[0][0]*M[1][0];
+          M0M1_[1] = M[0][0]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          register Real val_;
+          Real vVal[8]={0};
+          Real vVal2[8]={0};
+          Real* ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+
+          M0M1_[0] = M[0][0]*M[1][2];
+          M0M1_[1] = M[0][0]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1_[0] = M[0][1]*M[1][0];
+          M0M1_[1] = M[0][1]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+          M0M1_[0] = M[0][1]*M[1][2];
+          M0M1_[1] = M[0][1]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1_[0] = M[0][1]*M[1][0];
+          M0M1_[1] = M[0][1]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+          M0M1_[0] = M[0][1]*M[1][2];
+          M0M1_[1] = M[0][1]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+      // ------------------------------------ //
+          M0M1_[0] = M[0][3]*M[1][0];
+          M0M1_[1] = M[0][3]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+          M0M1_[0] = M[0][3]*M[1][2];
+          M0M1_[1] = M[0][3]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          val += (vVal[0]+vVal[1]+vVal[2]+vVal[3]); // * M0M1_[0];
+          val += (vVal[4]+vVal[5]+vVal[6]+vVal[7]); // * M0M1_[1];
+		//}
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+
+
+void _v2_ectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+  const Real lagr_denom0 = -1.0/6.0;
+  const Real lagr_denom1 = 0.5;
+  const Real lagr_denom2 = -0.5;
+  const Real lagr_denom3 = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+		grid_indx[0] = ((int)(point[0])) - 1;
+		point[0] -= grid_indx[0];
+
+		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+		grid_indx[1] = ((int)(point[1])) - 1;
+		point[1] -= grid_indx[1];
+
+		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+		grid_indx[2] = ((int)(point[2])) - 1;
+		point[2] -= grid_indx[2];
+
+		// for (int j = 0; j < COORD_DIM; j++) {
+		//	Real x = point[j];
+		//	for (int k = 0; k < 4; k++) {
+		//		M[j][k] = lagr_denom[k];
+		//		for (int l = 0; l < 4; l++) {
+		//			if (k != l)
+		//				M[j][k] *= (x - l);
+		//		}
+		//	}
+		// }
+    //M[0][0] = lagr_denom[0];
+    //M[0][1] = lagr_denom[1];
+    //M[0][2] = lagr_denom[2];
+    //M[0][3] = lagr_denom[3];
+
+    //M[0][0] *= (x-1);
+    //M[0][1] *= (x-0);
+    //M[0][2] *= (x-0);
+    //M[0][3] *= (x-0);
+
+    //M[0][0] *= (x-2);
+    //M[0][1] *= (x-2);
+    //M[0][2] *= (x-1);
+    //M[0][3] *= (x-1);
+
+    //M[0][0] *= (x-3);
+    //M[0][1] *= (x-3);
+    //M[0][2] *= (x-3);
+    //M[0][3] *= (x-2);
+
+    __m128 vx;
+    vx = _mm_set1_ps(point[0]);
+    __m128 c1000, c2211, c3332, vlagr;
+    vlagr = _mm_set_ps(lagr_denom0,lagr_denom1,lagr_denom2,lagr_denom3);
+
+    __m128 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    __m256 vM0_0000; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM0_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM0_2222; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM0_3333; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM2_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM2_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
+
+    c1000 = _mm_set_ps(-1.0,-0.0,-0.0,-0.0);
+    c2211 = _mm_set_ps(-2.0,-2.0,-1.0,-1.0);
+    c3332 = _mm_set_ps(-3.0,-3.0,-3.0,-2.0);
+
+    vM0 = _mm_mul_ps(vM0, _mm_add_ps(vx,c1000));
+    vM0 = _mm_mul_ps(vM0, _mm_add_ps(vx,c2211));
+    vM0 = _mm_mul_ps(vM0, _mm_add_ps(vx,c3332));
+
+    vx = _mm_set1_ps(point[1]);
+    vM1 = _mm_mul_ps(vM1, _mm_add_ps(vx,c1000));
+    vM1 = _mm_mul_ps(vM1, _mm_add_ps(vx,c2211));
+    vM1 = _mm_mul_ps(vM1, _mm_add_ps(vx,c3332));
+
+    vx = _mm_set1_ps(point[2]);
+    vM2 = _mm_mul_ps(vM2, _mm_add_ps(vx,c1000));
+    vM2 = _mm_mul_ps(vM2, _mm_add_ps(vx,c2211));
+    vM2 = _mm_mul_ps(vM2, _mm_add_ps(vx,c3332));
+    vM2 = _mm_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
+
+    vM2_0000_1111 = _mm256_set_m128(
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(3, 3, 3, 3)), // M[1][0]
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(2, 2, 2, 2)));// M[1][1]
+    vM2_2222_3333 = _mm256_set_m128(
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(1, 1, 1, 1)), // M[1][2]
+              _mm_shuffle_ps(vM1,vM1,_MM_SHUFFLE(0, 0, 0, 0)));// M[1][3]
+
+
+    vM0_0000 = _mm256_set_m128(
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(3, 3, 3, 3)), // M[0][0]
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(3, 3, 3, 3)));// M[0][0]
+    vM0_1111 = _mm256_set_m128(
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(2, 2, 2, 2)), // M[0][0]
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(2, 2, 2, 2)));// M[0][0]
+    vM0_2222 = _mm256_set_m128(
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(1, 1, 1, 1)), // M[0][0]
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(1, 1, 1, 1)));// M[0][0]
+    vM0_3333 = _mm256_set_m128(
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(0, 0, 0, 0)), // M[0][0]
+              _mm_shuffle_ps(vM0,vM0,_MM_SHUFFLE(0, 0, 0, 0)));// M[0][0]
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+    Real* reg_ptr = &reg_grid_vals[indxx];
+		Real val = 0;
+    int indx = 0;
+    const int isize_g2 = isize_g[2];
+    const int two_isize_g2 = 2*isize_g[2];
+    const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          __m256 vVal_, vPtr_;
+          __m256 vVal2_;
+          vVal_ = _mm256_setzero_ps();
+
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM2_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_0000);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM2_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_0000);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+
+          reg_ptr +=  reg_plus;
+
+      // ------------------------------------ //
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM2_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_1111);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM2_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_1111);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+          reg_ptr +=  reg_plus;
+
+      // ------------------------------------ //
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM2_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_2222);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM2_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_2222);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          reg_ptr +=  reg_plus;
+      // ------------------------------------ //
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vVal2_ = _mm256_mul_ps(vM2_0000_1111, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_3333);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vPtr_ = {ptr[0], ptr[1], ptr[2], ptr[3], ptr2[0], ptr2[1], ptr2[2], ptr2[3])}
+          vPtr_ = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          vVal2_ = _mm256_mul_ps(vM2_2222_3333, vPtr_);
+          vVal2_ = _mm256_mul_ps(vVal2_, vM0_3333);
+          vVal_ = _mm256_add_ps(vVal_, vVal2_);
+
+          // set vm_inv = M[2][0], [1] [2] [3] in reverse order
+          __m256 vM2_256 = _mm256_set_m128(vM2, vM2);
+          vVal_ = _mm256_mul_ps(vVal_, vM2_256);
+          val = sum8(vVal_);
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void _v1_ectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
 		const int g_size, Real* query_points_in, Real* query_values,
 		bool query_values_already_scaled) {
@@ -47,7 +1686,6 @@ void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg
   //          << " lagr_denom[2] = " << lagr_denom[2]
   //          << " lagr_denom[3] = " << lagr_denom[3] << std::endl;
   //do{}while(1);
-	int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
 
 	for (int i = 0; i < N_pts; i++) {
     {
@@ -67,17 +1705,6 @@ void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg
 			//while (grid_indx[j] < 0)
 			//	grid_indx[j] += N_reg_g[j];
 		}
-    if(grid_indx[0]> isize_g[0]-3 || grid_indx[1]> isize_g[1]-3 ||grid_indx[2]> isize_g[2] -3)
-    {
-//#ifdef VERBOSE2
-		std::cout<<"***** query point="<<query_points[0]<<" "<<query_points[1]<<" "<<query_points[2]<<std::endl;
-		std::cout<<"***** grid_index="<<grid_indx[0]<<" "<<grid_indx[1]<<" "<<grid_indx[2]<<std::endl;
-		std::cout<<"***** point="<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
-		std::cout<<"f @grid_index="<<reg_grid_vals[grid_indx[0]*isize_g[1]*isize_g[2]+grid_indx[1]*isize_g[2]+grid_indx[2]]<<std::endl;
-		std::cout<<"hp= "<<1./N_reg_g[0]<<std::endl;
-		std::cout<<"N_reg_g= "<<N_reg_g[0]<<" "<<N_reg_g[1]<<" "<<N_reg_g[2]<<std::endl;
-//#endif
-  }
 		Real M[3][4];
 		for (int j = 0; j < COORD_DIM; j++) {
 			Real x = point[j];
@@ -90,29 +1717,1289 @@ void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg
 			}
 		}
 
-		int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
-		for (int k = 0; k < data_dof; k++) {
-			Real val = 0;
-      int indx = 0;
-			for (int j0 = 0; j0 < 4; j0++) {
-				for (int j1 = 0; j1 < 4; j1++) {
-            Real M0M1 = M[0][j0]*M[1][j1];
-            Real val_ = 0;
-			    for (int j2 = 0; j2 < 4; j2++) {
-						//int indx = j2
-						//		+ isize_g[2] * j1
-						//		+ isize_g[2] * isize_g[1] *j0;
-						val_ += M[2][j2]
-								* reg_grid_vals[indx + indxx + k*N_reg3];
-            ++indx;
-					}
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    int indx = 0;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1 = M[0][0]*M[1][0];
+          register Real val_;
+          Real* ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
           val += val_ * M0M1;
-          indx += isize_g[2]-4;
-				}
-        indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
-			}
-			query_values[i + k * N_pts] = val;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][0]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][0]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][0]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][1]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][1]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][1]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][1]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][2]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][2]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][2]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][2]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][3]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][3]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][3]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][3]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+		//}
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+#endif
+
+void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
 		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    Real vVal2_[8] = {0};
+    Real vVal1_[8] = {0};
+    int indx = 0;
+    Real* ptr, *ptr2;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1;
+          register Real val_;
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][0];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][1];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][0]*vVal2_[j];
+
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][2];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][3];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][0]*vVal2_[j];
+
+          //for(int j = 0; j < 8; ++j)
+          //  std::cout << "[" << j << "] = " << vVal1_[j] << std::endl;
+          //do{}while(1);
+
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][0];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][1];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][1]*vVal2_[j];
+
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][2];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][3];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][1]*vVal2_[j];
+
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][0];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][1];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][2]*vVal2_[j];
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][2];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][3];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][2]*vVal2_[j];
+
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][0];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][1];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][3]*vVal2_[j];
+
+          ptr = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          ptr2 = &reg_grid_vals[indx + indxx];
+          indx += isize_g[2];
+          M0M1 = M[1][2];
+          vVal2_[0] = M0M1 * ptr[0];
+          vVal2_[1] = M0M1 * ptr[1];
+          vVal2_[2] = M0M1 * ptr[2];
+          vVal2_[3] = M0M1 * ptr[3];
+          M0M1 = M[1][3];
+          vVal2_[4] = M0M1 * ptr2[0];
+          vVal2_[5] = M0M1 * ptr2[1];
+          vVal2_[6] = M0M1 * ptr2[2];
+          vVal2_[7] = M0M1 * ptr2[3];
+          for(int j = 0; j < 8; ++j)
+            vVal1_[j] += M[0][3]*vVal2_[j];
+
+          val = 0;
+          for(int j = 0; j < 4; ++j)
+            val+=vVal1_[j]*M[2][j];
+          for(int j = 0; j < 4; ++j)
+            val+=vVal1_[j+4]*M[2][j];
+          //for(int j = 0; j < 4; ++j)
+          //  std::cout << "[" << j << "] = " << vVal1_[j] * M[2][j] << std::endl;
+          //for(int j = 0; j < 4; ++j)
+          //  std::cout << "[" << j << "] = " << vVal1_[j+4] * M[2][j] << std::endl;
+
+		//}
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void gold_optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    int indx = 0;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1 = M[0][0]*M[1][0];
+          register Real val_;
+          Real* ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][0]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][0]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][0]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][1]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][1]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][1]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][1]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][2]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][2]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][2]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][2]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][3]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][3]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][3]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][3]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+		//}
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void ___optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    int indx = 0;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1_[2];
+          Real vM[8];
+
+          M0M1_[0] = M[0][0]*M[1][0];
+          M0M1_[1] = M[0][0]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          register Real val_;
+          Real vVal[8]={0};
+          Real vVal2[8]={0};
+          Real* ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+
+          M0M1_[0] = M[0][0]*M[1][2];
+          M0M1_[1] = M[0][0]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1_[0] = M[0][1]*M[1][0];
+          M0M1_[1] = M[0][1]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+          M0M1_[0] = M[0][1]*M[1][2];
+          M0M1_[1] = M[0][1]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1_[0] = M[0][1]*M[1][0];
+          M0M1_[1] = M[0][1]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+          M0M1_[0] = M[0][1]*M[1][2];
+          M0M1_[1] = M[0][1]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+      // ------------------------------------ //
+          M0M1_[0] = M[0][3]*M[1][0];
+          M0M1_[1] = M[0][3]*M[1][1];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          indx += isize_g[2];
+
+          M0M1_[0] = M[0][3]*M[1][2];
+          M0M1_[1] = M[0][3]*M[1][3];
+          vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[0] = M[2][0] * ptr[0];
+					vVal2[1] = M[2][1] * ptr[1];
+					vVal2[2] = M[2][2] * ptr[2];
+					vVal2[3] = M[2][3] * ptr[3];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					vVal2[4] = M[2][0] * ptr[0];
+					vVal2[5] = M[2][1] * ptr[1];
+					vVal2[6] = M[2][2] * ptr[2];
+					vVal2[7] = M[2][3] * ptr[3];
+          for(int k = 0; k < 8; ++k)
+            vVal2[k] *= vM[k];
+          for(int k = 0; k < 8; ++k)
+            vVal[k] += vVal2[k];
+          val += (vVal[0]+vVal[1]+vVal[2]+vVal[3]); // * M0M1_[0];
+          val += (vVal[4]+vVal[5]+vVal[6]+vVal[7]); // * M0M1_[1];
+		//}
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void _v4_optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+    {
+#ifdef VERBOSE2
+		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
+		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
+		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
+#endif
+  }
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+		Real val = 0;
+    int indx = 0;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          Real M0M1 = M[0][0]*M[1][0];
+          register Real val_;
+          Real* ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][0]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][0]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][0]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][1]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][1]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][1]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][1]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][2]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][2]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][2]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][2]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+          indx += isize_g[1]*isize_g[2] - 4 * isize_g[2];
+
+      // ------------------------------------ //
+          M0M1 = M[0][3]*M[1][0];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][3]*M[1][1];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+
+          M0M1 = M[0][3]*M[1][2];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+          indx += isize_g[2];
+
+          M0M1 = M[0][3]*M[1][3];
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val += val_ * M0M1;
+		//}
+		query_values[i] = val;
+	}
+
+	if (query_values_already_scaled == false) {
+		free(query_points);
+	}
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void _optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+		int* N_reg_g, int * isize_g, int* istart, const int N_pts,
+		const int g_size, Real* query_points_in, Real* query_values,
+		bool query_values_already_scaled) {
+	Real* query_points;
+
+	if (query_values_already_scaled == false) {
+		// First we need to rescale the query points to the new padded dimensions
+		// To avoid changing the user's input we first copy the query points to a
+		// new array
+		query_points = (Real*) malloc(N_pts * COORD_DIM * sizeof(Real));
+		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		rescale_xyz(g_size, N_reg, N_reg_g, istart, N_pts, query_points);
+	} else {
+		query_points = query_points_in;
+	}
+	Real lagr_denom[4];
+  lagr_denom[0] = -1.0/6.0;
+  lagr_denom[1] = 0.5;
+  lagr_denom[2] = -0.5;
+  lagr_denom[3] = 1.0/6.0;
+
+	for (int i = 0; i < N_pts; i++) {
+    {
+#ifdef VERBOSE2
+		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
+		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
+		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
+#endif
+  }
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		for (int j = 0; j < COORD_DIM; j++) {
+			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			grid_indx[j] = (floor(point[j])) - 1;
+			point[j] -= grid_indx[j];
+			//while (grid_indx[j] < 0)
+			//	grid_indx[j] += N_reg_g[j];
+		}
+		Real M[3][4];
+		for (int j = 0; j < COORD_DIM; j++) {
+			Real x = point[j];
+			for (int k = 0; k < 4; k++) {
+				M[j][k] = lagr_denom[k];
+				for (int l = 0; l < 4; l++) {
+					if (k != l)
+						M[j][k] *= (x - l);
+				}
+			}
+		}
+
+
+		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
+    register Real val_j0[4] = {0};
+    int indx = 0;
+		//for (int j0 = 0; j0 < 4; j0++) {
+      // ------------------------------------ //
+          register Real val_ = 0;
+          Real* ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[0] += val_ * M[1][0];
+          indx += isize_g[2];
+
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[0] += val_ * M[1][1];
+          indx += isize_g[2];
+
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[0] += val_ * M[1][2];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[0] += val_ * M[1][3];
+          indx += isize_g[1]*isize_g[2] - 3 * isize_g[2];
+
+      // ------------------------------------ //
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[1] += val_ * M[1][0];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[1] += val_ * M[1][1];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[1] += val_ * M[1][2];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[1] += val_ * M[1][3];
+          indx += isize_g[1]*isize_g[2] - 3 * isize_g[2];
+
+      // ------------------------------------ //
+          val_ = 0;
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[2] += val_ * M[1][0];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[2] += val_ * M[1][1];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[2] += val_ * M[1][2];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[2] += val_ * M[1][3];
+          indx += isize_g[1]*isize_g[2] - 3 * isize_g[2];
+
+      // ------------------------------------ //
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[3] += val_ * M[1][0];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[3] += val_ * M[1][1];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[3] += val_ * M[1][2];
+          indx += isize_g[2];
+
+          ptr = &reg_grid_vals[indx + indxx];
+					val_ = M[2][0] * ptr[0];
+					val_ += M[2][1] * ptr[1];
+					val_ += M[2][2] * ptr[2];
+					val_ += M[2][3] * ptr[3];
+          val_j0[3] += val_ * M[1][3];
+          query_values[i]  = M[0][0]*val_j0[0] + M[0][1]*val_j0[1] + M[0][2]*val_j0[2] + M[0][3]*val_j0[3];
 	}
 
 	if (query_values_already_scaled == false) {
@@ -462,8 +3349,8 @@ void par_interp3_ghost_xyz_p(Real* ghost_reg_grid_vals, int data_dof,
 	free(all_query_points);
 	free(all_f_cubic);
 	free(f_cubic_unordered);
-	delete (s_request);
-	delete (request);
+	delete[] s_request;
+	delete[] request;
 	//vector
 	for (int proc = 0; proc < nprocs; ++proc) {
 		std::vector<int>().swap(f_index[proc]);
@@ -472,64 +3359,6 @@ void par_interp3_ghost_xyz_p(Real* ghost_reg_grid_vals, int data_dof,
 	return;
 } // end of par_interp3_ghost_xyz_p
 
-/*
- * Rescales the query points to [0,1) range for the parallel case. Note that the input query_points are initially
- * in the global range, however, each parallel process needs to rescale it to [0,1) for its local interpolation.
- * Since interpolation is scale invariant, this would not affect the interpolation result.
- * This function assumes that the ghost padding was done only in x, y, and z directions.
- *
- * @param[in] g_size: The ghost padding size
- * @param[in] N_reg: The original (unpadded) global size
- * @param[in] N_reg_g: The padded global size
- * @param[in] istart: The original isize for each process
- * @param[in] N_pts: The number of query points
- * @param[in,out]: query_points: The query points coordinates
- *
- */
-void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
-		const int N_pts, Real* query_points) {
-
-	if (g_size == 0)
-		return;
-	Real hp[3];
-	Real h[3];
-	hp[0] = 1. / N_reg_g[0]; // New mesh size
-	hp[1] = 1. / N_reg_g[1]; // New mesh size
-	hp[2] = 1. / N_reg_g[2]; // New mesh size
-
-	h[0] = 1. / (N_reg[0]); // old mesh size
-	h[1] = 1. / (N_reg[1]); // old mesh size
-	h[2] = 1. / (N_reg[2]); // old mesh size
-
-	Real factor[3];
-	factor[0] = (1. - (2. * g_size + 1.) * hp[0]) / (1. - h[0]);
-	factor[1] = (1. - (2. * g_size + 1.) * hp[1]) / (1. - h[1]);
-	factor[2] = (1. - (2. * g_size + 1.) * hp[2]) / (1. - h[2]);
-	for (int i = 0; i < N_pts; i++) {
-		query_points[0 + COORD_DIM * i] = (query_points[0 + COORD_DIM * i]
-				- istart[0] * h[0]) * factor[0] + g_size * hp[0];
-		query_points[1 + COORD_DIM * i] = (query_points[1 + COORD_DIM * i]
-				- istart[1] * h[1]) * factor[1] + g_size * hp[1];
-		query_points[2 + COORD_DIM * i] = (query_points[2 + COORD_DIM * i]
-				- istart[2] * h[2]) * factor[2] + g_size * hp[2];
-	}
-	return;
-} // end of rescale_xyz
-
-/*
- * Rescales the query points to [0,1) range for the parallel case. Note that the input query_points are initially
- * in the global range, however, each parallel process needs to rescale it to [0,1) for its local interpolation.
- * Since interpolation is scale invariant, this would not affect the interpolation result.
- * This function assumes that the ghost padding was done only in x, and y directions and the z direction is not padded.
- *
- * @param[in] g_size: The ghost padding size
- * @param[in] N_reg: The original (unpadded) global size
- * @param[in] N_reg_g: The padded global size
- * @param[in] istart: The original isize for each process
- * @param[in] N_pts: The number of query points
- * @param[in,out]: query_points: The query points coordinates
- *
- */
 void rescale(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		const int N_pts, Real* query_points) {
 

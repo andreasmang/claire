@@ -4,23 +4,33 @@
 
 #include <accfft.h>
 #include <accfftf.h>
+#define FAST_INTERP
+//#define FAST_INTERPV // enable ONLY for single precision
+#define FAST_INTERP_BINNING
 
-         typedef double Real;
-         #define MPI_T MPI_DOUBLE
-         #define TC Complex
-         #define PL fftw_plan
 
- //  typedef float Real;
- //  #define MPI_T MPI_FLOAT
- //  #define TC Complexf
- //  #define PL fftwf_plan
+
+
+  //typedef double Real;
+  //#define MPI_T MPI_DOUBLE
+  //#define TC Complex
+  //#define PL fftw_plan
+  //
+  typedef float Real;
+  #define MPI_T MPI_FLOAT
+  #define TC Complexf
+  #define PL fftwf_plan
+
+#ifndef __INTEL_COMPILER
+#undef FAST_INTERPV
+#endif
 
 #define COORD_DIM 3
 #include <mpi.h>
 #include <vector>
 #include <interp3_common.hpp>
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
-		const int N_pts, Real* query_points);
+		int* isize, int* isize_g, const int N_pts, Real* Q_);
 void interp3_p_col(Real* reg_grid_vals, int data_dof, int N_reg,
 		const int N_pts, Real* query_points, Real* query_values);
 void interp3_p(Real* reg_grid_vals, int data_dof, int N_reg, const int N_pts,
@@ -28,6 +38,16 @@ void interp3_p(Real* reg_grid_vals, int data_dof, int N_reg, const int N_pts,
 
 void interp3_p(Real* reg_grid_vals, int data_dof, int* N_reg, const int N_pts,
 		Real* query_points, Real* query_values);
+
+// void vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
+// 		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
+// 		Real* query_points, Real* query_values,
+// 		bool query_values_already_scaled = false); // cubic interpolation
+
+void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
+		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
+		bool query_values_already_scaled = false);
 
 void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
@@ -67,9 +87,12 @@ public:
 	void scatter(int data_dof, int* N_reg, int * isize, int* istart,
 			const int N_pts, const int g_size, Real* query_points_in,
 			int* c_dims, MPI_Comm c_comm, double * timings);
-	void interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
-			int * isize, int* istart, const int N_pts, const int g_size,
-			Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings);
+	// void interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
+	// 		int * isize, int* istart, const int N_pts, const int g_size,
+	// 		Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings);
+  void interpolate(Real* __restrict ghost_reg_grid_vals, int data_dof,
+		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
+		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings);
 	void high_order_interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order);
