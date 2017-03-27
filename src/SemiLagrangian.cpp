@@ -72,8 +72,6 @@ PetscErrorCode SemiLagrangian::Initialize() {
     this->m_WorkVecField = NULL;
 
     this->m_X = NULL;
-    this->m_XA = NULL;
-    this->m_XS = NULL;
 
     this->m_StatePlan = NULL;
     this->m_AdjointPlan = NULL;
@@ -104,14 +102,6 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
         delete [] this->m_X;
         this->m_X = NULL;
     }
-    if (this->m_XS != NULL) {
-        delete [] this->m_XS;
-        this->m_XS = NULL;
-    }
-    if (this->m_XA != NULL) {
-        delete [] this->m_XA;
-        this->m_XA = NULL;
-    }
 
     if (this->m_AdjointPlan != NULL) {
         delete this->m_AdjointPlan;
@@ -129,7 +119,7 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
         delete this->m_AdjointPlanVec;
         this->m_AdjointPlanVec = NULL;
     }
-    if (this->m_VecFieldPlan!=NULL) {
+    if (this->m_VecFieldPlan != NULL) {
         delete this->m_VecFieldPlan;
         this->m_VecFieldPlan = NULL;
     }
@@ -194,7 +184,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
     IntType isize[3], istart[3], l, i1, i2, i3, nl;
     std::stringstream ss;
-    ScalarType* X = NULL;
 
     PetscFunctionBegin;
 
@@ -206,35 +195,18 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {
-        if (this->m_XS == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
-            try {this->m_XS = new ScalarType[3*nl];}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-        X = this->m_XS;
-        scale = 1.0;
+        scale =  1.0;
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        if (this->m_XA == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
-            try {this->m_XA = new ScalarType[3*nl];}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-        X = this->m_XA;
         scale = -1.0;
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
+    }
+
+    if (this->m_X == NULL) {
+        try {this->m_X = new ScalarType[3*nl];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
     }
 
     ht = this->m_Opt->GetTimeStepSize();
@@ -259,9 +231,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
-                X[l*3+0] = (x1 - scale*ht*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                X[l*3+1] = (x2 - scale*ht*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                X[l*3+2] = (x3 - scale*ht*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+0] = (x1 - scale*ht*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+1] = (x2 - scale*ht*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+2] = (x3 - scale*ht*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
             }  // i1
         }  // i2
     }  // i3
@@ -284,9 +256,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
-                X[l*3+0] = (x1 - scale*hthalf*(p_vX1[l] + p_v1[l]))/(2.0*PETSC_PI); // normalized to [0,1]
-                X[l*3+1] = (x2 - scale*hthalf*(p_vX2[l] + p_v2[l]))/(2.0*PETSC_PI); // normalized to [0,1]
-                X[l*3+2] = (x3 - scale*hthalf*(p_vX3[l] + p_v3[l]))/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+0] = (x1 - scale*hthalf*(p_vX1[l] + p_v1[l]))/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+1] = (x2 - scale*hthalf*(p_vX2[l] + p_v2[l]))/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+2] = (x3 - scale*hthalf*(p_vX3[l] + p_v3[l]))/(2.0*PETSC_PI); // normalized to [0,1]
 
             }  // i1
         }  // i2
@@ -392,7 +364,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     accfft_get_ghost_xyz(plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
 
     if (strcmp(flag.c_str(), "state") == 0) {
-        ierr = Assert(this->m_XS != NULL, "state X is null pointer"); CHKERRQ(ierr);
         this->m_StatePlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
                                        neval, nghost, xo, c_dims,
                                        this->m_Opt->GetFFT().mpicomm, timers);
@@ -400,7 +371,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
  //                                      neval, nghost, xo, c_dims,
  //                                      this->m_Opt->GetFFT().mpicomm, timers, order);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        ierr = Assert(this->m_XA != NULL, "adjoint X is null pointer"); CHKERRQ(ierr);
         this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
                                          neval, nghost, xo, c_dims,
                                          this->m_Opt->GetFFT().mpicomm, timers);
@@ -493,12 +463,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     if (this->m_X == NULL) {
-        ierr = Assert(3*nl > 0 && 3*nl < std::numeric_limits<IntType>::max(), "allocation error"); CHKERRQ(ierr);
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
         try {this->m_X = new ScalarType [3*nl];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -543,8 +507,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     }
 
     if (strcmp(flag.c_str(),"state") == 0) {
-        ierr = Assert(this->m_XS != NULL, "state X null pointer"); CHKERRQ(ierr);
-        ierr = Assert(this->m_StatePlanVec != NULL, "state X null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_StatePlanVec != NULL, "null pointer"); CHKERRQ(ierr);
         this->m_StatePlanVec->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
                                           nl, nghost, this->m_X, c_dims,
                                           this->m_Opt->GetFFT().mpicomm, timers);
@@ -552,9 +515,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
  //                                         nl, nghost, this->m_X, c_dims,
  //                                         this->m_Opt->GetFFT().mpicomm, timers, order);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
-        ierr = Assert(this->m_XA != NULL, "adjoint X null pointer"); CHKERRQ(ierr);
-        ierr = Assert(this->m_AdjointPlanVec != NULL, "state X null pointer"); CHKERRQ(ierr);
-
+        ierr = Assert(this->m_AdjointPlanVec != NULL, "null pointer"); CHKERRQ(ierr);
         this->m_AdjointPlanVec->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
                                             nl, nghost, this->m_X, c_dims,
                                             this->m_Opt->GetFFT().mpicomm, timers);
@@ -631,12 +592,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     if (this->m_X == NULL) {
-        ierr = Assert(3*nl > 0 && 3*nl < std::numeric_limits<IntType>::max(), "allocation error"); CHKERRQ(ierr);
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << " >> " << __func__ << ": allocation (size = " << 3*nl << ")";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
         try {this->m_X = new ScalarType [3*nl];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -645,11 +600,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
 
     // create planer
     if (this->m_VecFieldPlan == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << " >> " << __func__ << ": allocation of plan";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
         try {this->m_VecFieldPlan = new Interp3_Plan;}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -685,12 +635,6 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
 
     // deal with ghost points
     if (this->m_VecFieldGhost == NULL) {
-        ierr = Assert(3*nalloc > 0 && 3*nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << " >> " << __func__ << ": allocation (size = " << 3*nalloc << ")";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
         this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*nalloc));
     }
 
@@ -760,14 +704,9 @@ PetscErrorCode SemiLagrangian::CommunicateCoordScaField(std::string flag) {
 
     if (strcmp(flag.c_str(), "state") == 0) {
         // characteristic for state equation should have been computed already
-        ierr = Assert(this->m_XS != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_StatePlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (state, nl=" << nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
             try {this->m_StatePlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -776,19 +715,14 @@ PetscErrorCode SemiLagrangian::CommunicateCoordScaField(std::string flag) {
         }
 
         // communicate query points
-        this->m_StatePlan->scatter(1, nx, isize, istart, nl, nghost, this->m_XS,
+        this->m_StatePlan->scatter(1, nx, isize, istart, nl, nghost, this->m_X,
                                    c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
         // characteristic for adjoint equation should have been computed already
-        ierr = Assert(this->m_XA != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
 
         // create planer
         if (this->m_AdjointPlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (adjoint, nl=" << nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
             try {this->m_AdjointPlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -797,7 +731,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoordScaField(std::string flag) {
         }
 
         // scatter
-        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl, nghost, this->m_XA,
+        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl, nghost, this->m_X,
                                      c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else {
         ierr = ThrowError("user did not set correct flag"); CHKERRQ(ierr);
@@ -849,14 +783,9 @@ PetscErrorCode SemiLagrangian::CommunicateCoordVecField(std::string flag) {
 
     if (strcmp(flag.c_str(),"state") == 0) {
         // characteristic for state equation should have been computed already
-        ierr = Assert(this->m_XS != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_StatePlanVec == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (state; vector field, nl=" << nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
             try {this->m_StatePlanVec = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -865,20 +794,13 @@ PetscErrorCode SemiLagrangian::CommunicateCoordVecField(std::string flag) {
         }
 
         // scatter
-        this->m_StatePlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_XS,
+        this->m_StatePlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_X,
                                       c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
-        // characteristic for adjoint equation should
-        // have been computed already
-        ierr = Assert(this->m_XA != NULL, "null pointer"); CHKERRQ(ierr);
-
+        // characteristic for adjoint equation should have been computed already
+        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_AdjointPlanVec == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
-                ss << " >> " << __func__ << ": allocation of plan (adjoint; vector field, nl=" << nl << ")";
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
             try {this->m_AdjointPlanVec = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -887,7 +809,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoordVecField(std::string flag) {
         }
 
         // communicate coordinates
-        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_XA,
+        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_X,
                                         c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);

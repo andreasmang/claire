@@ -80,10 +80,7 @@ class SemiLagrangian {
     Interp3_Plan* m_StatePlanVec;
     Interp3_Plan* m_VecFieldPlan;
 
-    ScalarType* m_XA;
-    ScalarType* m_XS;
     ScalarType* m_X;
-
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
 
