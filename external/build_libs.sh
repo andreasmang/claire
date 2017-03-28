@@ -593,13 +593,13 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}
 M_LIB_DIR=${BUILD_DIR}/libmorton
 SRC_DIR=${M_LIB_DIR}
 if [ ! ${cleanup} -eq 1 ]; then
-	if [ ! -d ${M_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
-		mkdir -p ${SRC_DIR}
+	if [ ! -d ${M_LIB_DIR} -o ! -d ${SRC_DIR}/libmorton ]; then
+		mkdir -p ${SRC_DIR}/libmorton
 		echo ""
 		echo "----------------------------------------------------------------------------------"
 		echo extracting morton library...
 		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/morton.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/morton.tar.gz -C ${SRC_DIR}/libmorton --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${M_LIB_DIR} == ${HOME} ]; then
