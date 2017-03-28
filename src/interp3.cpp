@@ -17,109 +17,33 @@
 #define sleep(x) ;
 
 /*
- * Rescales the query points to [0,1) range for the parallel case. Note that the input query_points are initially
- * in the global range, however, each parallel process needs to rescale it to [0,1) for its local interpolation.
- * Since interpolation is scale invariant, this would not affect the interpolation result.
- * This function assumes that the ghost padding was done only in x, y, and z directions.
- *
- * @param[in] g_size: The ghost padding size
- * @param[in] N_reg: The original (unpadded) global size
- * @param[in] N_reg_g: The padded global size
- * @param[in] istart: The original isize for each process
- * @param[in] N_pts: The number of query points
- * @param[in,out]: query_points: The query points coordinates
- *
+ * multiply and shift query points based on each proc's domain
  */
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		int* isize, int* isize_g, const int N_pts, Real* Q_) {
 
 	if (g_size == 0)
 		return;
-	Real hp[3];
 	Real h[3];
-	hp[0] = 1. / N_reg_g[0]; // New mesh size
-	hp[1] = 1. / N_reg_g[1]; // New mesh size
-	hp[2] = 1. / N_reg_g[2]; // New mesh size
 
-	h[0] = 1. / (N_reg[0]); // old mesh size
-	h[1] = 1. / (N_reg[1]); // old mesh size
-	h[2] = 1. / (N_reg[2]); // old mesh size
-
-	const Real factor0 = (1. - (2. * g_size + 1.) * hp[0]) / (1. - h[0]);
-	const Real factor1 = (1. - (2. * g_size + 1.) * hp[1]) / (1. - h[1]);
-	const Real factor2 = (1. - (2. * g_size + 1.) * hp[2]) / (1. - h[2]);
+	h[0] = 1. / (N_reg[0]);
+	h[1] = 1. / (N_reg[1]);
+	h[2] = 1. / (N_reg[2]);
 
   const Real iX0 = istart[0]*h[0];
   const Real iX1 = istart[1]*h[1];
   const Real iX2 = istart[2]*h[2];
-  const Real iY0 = (istart[0]+isize[0])*h[0];
-  const Real iY1 = (istart[1]+isize[1])*h[1];
-  const Real iY2 = (istart[2]+isize[2])*h[2];
+  const Real N0 = N_reg[0];
+  const Real N1 = N_reg[1];
+  const Real N2 = N_reg[2];
 
-  if(0)
 	for (int i = 0; i < N_pts; i++) {
-		Q_[0 + COORD_DIM * i] = (Q_[0 + COORD_DIM * i] + (g_size*h[0]-iX0)) / (iY0-iX0 + 2.*g_size*h[0]);
-		Q_[1 + COORD_DIM * i] = (Q_[1 + COORD_DIM * i] + (g_size*h[1]-iX1)) / (iY1-iX1 + 2.*g_size*h[1]);
-		Q_[2 + COORD_DIM * i] = (Q_[2 + COORD_DIM * i] + (g_size*h[2]-iX2)) / (iY2-iX2 + 2.*g_size*h[2]);
-	}
-	for (int i = 0; i < N_pts; i++) {
-		Q_[0 + COORD_DIM * i] = (Q_[0 + COORD_DIM * i]
-				- iX0) * factor0 + g_size * hp[0];
-		Q_[1 + COORD_DIM * i] = (Q_[1 + COORD_DIM * i]
-				- iX1) * factor1 + g_size * hp[1];
-		Q_[2 + COORD_DIM * i] = (Q_[2 + COORD_DIM * i]
-				- iX2) * factor2 + g_size * hp[2];
+    Real* Q_ptr = &Q_[COORD_DIM * i];
+    Q_ptr[0] = (Q_ptr[0]-iX0)*N0+g_size;
+    Q_ptr[1] = (Q_ptr[1]-iX1)*N1+g_size;
+    Q_ptr[2] = (Q_ptr[2]-iX2)*N2+g_size;
 	}
 
-  /*
-  int grid_indx[3];
-	for (int i = 0; i < N_pts; i++) {
-    Real* Qptr = &Q_[COORD_DIM * i];
-
-		Qptr[0] = Qptr[0] * N_reg_g[0];
-		grid_indx[0] = ((int)(Qptr[0])) - 1;
-		Qptr[0] -= grid_indx[0];
-
-		Qptr[1] = Qptr[1] * N_reg_g[1];
-		grid_indx[1] = ((int)(Qptr[1])) - 1;
-		Qptr[1] -= grid_indx[1];
-
-		Qptr[2] = Qptr[2] * N_reg_g[2];
-		grid_indx[2] = ((int)(Qptr[2])) - 1;
-		Qptr[2] -= grid_indx[2];
-
-    //if(Q[0]>=2)
-    //std::cout << Q[0] << std::endl;
-		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
-    const Real tmp = Qptr[0];
-    Real tt;
-    tt = (int)(indxx/(int)512); 
-
-    if( i<= 2 | i == 266461){
-      std::cout << "i = " << i << " multiplier = " << tt << " remainder = " << indxx%512 << std::endl;
-      std::cout << "q[0] = " << Qptr[0] << " q[1] = " << Qptr[1] << std::endl;
-      std::cout << "indxx = " << indxx << std::endl;
-    }
-    Qptr[0] = Qptr[0]/4;
-    Qptr[0] += tt;
-    Qptr[1] = Qptr[1]/4;
-    Qptr[1] += (int)(indxx % 512);
-    Qptr[2] = indxx;
-    //if(indxx != ((int)Q[0])*16 + ((int)Q[1]) )
-    //std::cout << "*** " << (int)Q[0] - 1 << '\t' << indxx << '\t' << Q[0]-indxx<< std::endl;
-    //if(tmp != (Q[0]-((int)Q[0]))*8 )
-    //if(tmp != (Q[0]-tt)*4 )
-    //std::cout << "*** " << tmp-(Q[0]-tt)*4  << '\t' <<  (Q[0]-((int)Q[0]))*4 << std::endl;
-    //if(indxx != ((int)Q[0]-1))
-    //std::cout << (int)Q[0] - 1 << '\t' << indxx << '\t' << Q[0]-indxx<< std::endl;
-	}
-  int i = 0;
-    Real* Qptr = &Q_[COORD_DIM * i];
-    if( i<= 2 | i == 266461){
-      std::cout << "after q[0] = " << Qptr[0] << " q[1] = " << Qptr[1] << std::endl;
-    }
-
-*/
 	return;
 } // end of rescale_xyz
 
@@ -190,57 +114,66 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
   const __m256  l0l1 = _mm256_set_ps (-0.1666666667,-0.1666666667,-0.1666666667,-0.1666666667,+0.5,+0.5,+0.5,+0.5);
   const __m256  l2l3 = _mm256_setr_ps(+0.1666666667,+0.1666666667,+0.1666666667,+0.1666666667,-0.5,-0.5,-0.5,-0.5);
   const int isize_g2 = isize_g[2];
-  const int two_isize_g2 = 2*isize_g[2];
+  const int two_isize_g2 = 2*isize_g2;
   const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+  const int NzNy = isize_g2 * isize_g[1];
+  Real* Q_ptr = query_points;
+  //_mm_prefetch( (char*)Q_ptr,_MM_HINT_NTA);
 	for (int i = 0; i < N_pts; i++) {
 		Real point[COORD_DIM];
 		int grid_indx[COORD_DIM];
 
-		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+		point[0] = Q_ptr[0];
 		grid_indx[0] = ((int)(point[0])) - 1;
 		point[0] -= grid_indx[0];
 
-		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+		point[1] = Q_ptr[1];
 		grid_indx[1] = ((int)(point[1])) - 1;
 		point[1] -= grid_indx[1];
 
-		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+		point[2] = Q_ptr[2];
 		grid_indx[2] = ((int)(point[2])) - 1;
 		point[2] -= grid_indx[2];
+    Q_ptr += 3;
 
-		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
-    //Real* point_ = &query_points[COORD_DIM * i];
-    //Real point[3];
-    //point[0] = point_[0];
-    //point[1] = point_[1];
-    //point[2] = point_[2];
-
-
-    //int indxx = ((int) point[0]);
-    //indxx *= 512;
-    //indxx += (int)point[1];
-    ////if(indxx>=N_reg_g[0]*N_reg_g[1]*N_reg_g[2] || i <=2){
-    ////if(indxx-(int)point[2]!=0){
-    ////std::cout << "=== i = " << i << " multiplier = " << ((int) point[0]) << " remainder = " << ((int) point[1]) << std::endl;
-    ////std::cout << "=== q[0] = " << point[0] << " q[1] = " << point[1] << std::endl;
-    ////std::cout << "=== indx = " << indxx << " q2 = " << point[2] <<std::endl;
-    ////do{}while(1);
-    ////}
-    //point[0] = point[0] - ((int) point[0]);
-    //point[0] *= 4;
-    ////indxx = point[2];
-    //point[2] = 1;
-    //if(i==2)
-    //do{}while(1);
-    //point[1] =point[1] - (int)point[1];
-    //point[1]*=4;
-
-    //std::cout << "=== i = " << i << " multiplier = " << ((int) point[0]) << " remainder = " << ((int) point[1]) << std::endl;
-    //std::cout << "=== q[0] = " << point[0] << " q[1] = " << point[1] << std::endl;
+		const int indxx = NzNy * grid_indx[0] + grid_indx[2] + isize_g2 * grid_indx[1] ;
+    //_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
 
     int indx = 0;
-    Real* reg_ptr = &reg_grid_vals[indxx];
+    Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
+    //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
 		Real val = 0;
+
+
+
+//  _mm_prefetch( (char*)reg_ptr,_MM_HINT_T1 );
+//  _mm_prefetch( (char*)reg_ptr+isize_g2,_MM_HINT_T1 );
+//  reg_ptr += two_isize_g2;
+//  _mm_prefetch( (char*)reg_ptr,_MM_HINT_T0 );
+//  _mm_prefetch( (char*)reg_ptr+isize_g2,_MM_HINT_T0 );
+//  reg_ptr += reg_plus;
+//           const __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr +=  reg_plus;
+// 
+//           const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr +=  reg_plus;
+// 
+//           const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr +=  reg_plus;
+// 
+//           const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           reg_ptr += two_isize_g2;
+//           const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+//           // reg_ptr +=  reg_plus;
+
+
+
 
     __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
@@ -295,63 +228,63 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
           const __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr += two_isize_g2;
 
-          const __m256 vt_i0_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i0_j01);
+          const __m256 vt_i0_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i0_j01); //8
 
           const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr +=  reg_plus;
-          const __m256 vt_i0_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i0_j23);
+          const __m256 vt_i0_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i0_j23);//8
 
-          const __m256 vt_i0 = _mm256_add_ps(vt_i0_j01, vt_i0_j23);
+          const __m256 vt_i0 = _mm256_add_ps(vt_i0_j01, vt_i0_j23);//8
 
           //
           const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr += two_isize_g2;
 
-          const __m256 vt_i1_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i1_j01);
+          const __m256 vt_i1_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i1_j01);//8
 
           const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr +=  reg_plus;
-          const __m256 vt_i1_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i1_j23);
+          const __m256 vt_i1_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i1_j23);//8
 
-          const __m256 vt_i1 = _mm256_add_ps(vt_i1_j01, vt_i1_j23);
+          const __m256 vt_i1 = _mm256_add_ps(vt_i1_j01, vt_i1_j23);//8
 
           //
           const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr += two_isize_g2;
 
-          const __m256 vt_i2_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i2_j01);
+          const __m256 vt_i2_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i2_j01);//8
 
           const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr +=  reg_plus;
 
-          const __m256 vt_i2_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i2_j23);
-          const __m256 vt_i2 = _mm256_add_ps(vt_i2_j01, vt_i2_j23);
+          const __m256 vt_i2_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i2_j23);//8
+          const __m256 vt_i2 = _mm256_add_ps(vt_i2_j01, vt_i2_j23);//8
 
           //
           const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr += two_isize_g2;
           // reg_ptr +=  reg_plus;
 
-          const __m256 vt_i3_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i3_j01);
+          const __m256 vt_i3_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i3_j01);//8
           const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
-          const __m256 vt_i3_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i3_j23);
-          const __m256 vt_i3 = _mm256_add_ps(vt_i3_j01, vt_i3_j23);
+          const __m256 vt_i3_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i3_j23);//8
+          const __m256 vt_i3 = _mm256_add_ps(vt_i3_j01, vt_i3_j23);//8
 
-          const __m256 vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111), vt_i0);
-          const __m256 vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010), vt_i1);
-          const __m256 vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101), vt_i2);
-          const __m256 vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000), vt_i3);
+          const __m256 vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111), vt_i0);//8
+          const __m256 vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010), vt_i1);//8
+          const __m256 vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101), vt_i2);//8
+          const __m256 vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000), vt_i3);//8
           //const __m256 vt0 = _mm256_mul_ps(vM0_tttt[0], vt_i0);
           //const __m256 vt1 = _mm256_mul_ps(vM0_tttt[1], vt_i1);
           //const __m256 vt2 = _mm256_mul_ps(vM0_tttt[2], vt_i2);
           //const __m256 vt3 = _mm256_mul_ps(vM0_tttt[3], vt_i3);
 
-          __m256 vt = _mm256_add_ps(vt0, vt1);
-          vt = _mm256_add_ps(vt, vt2);
-          vt = _mm256_add_ps(vt, vt3);
+          __m256 vt = _mm256_add_ps(vt0, vt1);//8
+          vt = _mm256_add_ps(vt, vt2);//8
+          vt = _mm256_add_ps(vt, vt3);//8
 
-          vt = _mm256_mul_ps(vM2, vt);
-          val = sum8(vt);
+          vt = _mm256_mul_ps(vM2, vt);//8
+          val = sum8(vt);//7
 		      query_values[i] = val;
 	}
 
@@ -559,15 +492,15 @@ void vec_torized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_do
 		Real point[COORD_DIM];
 		int grid_indx[COORD_DIM];
 
-		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+		point[0] = query_points[COORD_DIM * i + 0];
 		grid_indx[0] = ((int)(point[0])) - 1;
 		point[0] -= grid_indx[0];
 
-		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+		point[1] = query_points[COORD_DIM * i + 1];
 		grid_indx[1] = ((int)(point[1])) - 1;
 		point[1] -= grid_indx[1];
 
-		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+		point[2] = query_points[COORD_DIM * i + 2];
 		grid_indx[2] = ((int)(point[2])) - 1;
 		point[2] -= grid_indx[2];
 
@@ -773,13 +706,6 @@ void _vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_r
 		query_points = query_points_in;
 	}
 	Real lagr_denom[4];
-	//for (int i = 0; i < 4; i++) {
-	//	lagr_denom[i] = 1;
-	//	for (int j = 0; j < 4; j++) {
-	//		if (i != j)
-	//			lagr_denom[i] /= (Real) (i - j);
-	//	}
-	// }
   lagr_denom[0] = -1.0/6.0;
   lagr_denom[1] = 0.5;
   lagr_denom[2] = -0.5;
@@ -797,7 +723,7 @@ void _vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_r
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -890,7 +816,7 @@ void __vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -1226,7 +1152,7 @@ void ____vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* 
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -1468,47 +1394,17 @@ void _v2_ectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N
 		Real point[COORD_DIM];
 		int grid_indx[COORD_DIM];
 
-		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
+		point[0] = query_points[COORD_DIM * i + 0];
 		grid_indx[0] = ((int)(point[0])) - 1;
 		point[0] -= grid_indx[0];
 
-		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
+		point[1] = query_points[COORD_DIM * i + 1];
 		grid_indx[1] = ((int)(point[1])) - 1;
 		point[1] -= grid_indx[1];
 
-		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
+		point[2] = query_points[COORD_DIM * i + 2];
 		grid_indx[2] = ((int)(point[2])) - 1;
 		point[2] -= grid_indx[2];
-
-		// for (int j = 0; j < COORD_DIM; j++) {
-		//	Real x = point[j];
-		//	for (int k = 0; k < 4; k++) {
-		//		M[j][k] = lagr_denom[k];
-		//		for (int l = 0; l < 4; l++) {
-		//			if (k != l)
-		//				M[j][k] *= (x - l);
-		//		}
-		//	}
-		// }
-    //M[0][0] = lagr_denom[0];
-    //M[0][1] = lagr_denom[1];
-    //M[0][2] = lagr_denom[2];
-    //M[0][3] = lagr_denom[3];
-
-    //M[0][0] *= (x-1);
-    //M[0][1] *= (x-0);
-    //M[0][2] *= (x-0);
-    //M[0][3] *= (x-0);
-
-    //M[0][0] *= (x-2);
-    //M[0][1] *= (x-2);
-    //M[0][2] *= (x-1);
-    //M[0][3] *= (x-1);
-
-    //M[0][0] *= (x-3);
-    //M[0][1] *= (x-3);
-    //M[0][2] *= (x-3);
-    //M[0][3] *= (x-2);
 
     __m128 vx;
     vx = _mm_set1_ps(point[0]);
@@ -1670,22 +1566,10 @@ void _v1_ectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N
 		query_points = query_points_in;
 	}
 	Real lagr_denom[4];
-	//for (int i = 0; i < 4; i++) {
-	//	lagr_denom[i] = 1;
-	//	for (int j = 0; j < 4; j++) {
-	//		if (i != j)
-	//			lagr_denom[i] /= (Real) (i - j);
-	//	}
-	// }
   lagr_denom[0] = -1.0/6.0;
   lagr_denom[1] = 0.5;
   lagr_denom[2] = -0.5;
   lagr_denom[3] = 1.0/6.0;
-  //std::cout << " lagr_denom[0] = " << lagr_denom[0]
-  //          << " lagr_denom[1] = " << lagr_denom[1]
-  //          << " lagr_denom[2] = " << lagr_denom[2]
-  //          << " lagr_denom[3] = " << lagr_denom[3] << std::endl;
-  //do{}while(1);
 
 	for (int i = 0; i < N_pts; i++) {
     {
@@ -1699,7 +1583,7 @@ void _v1_ectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -1919,7 +1803,7 @@ void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -2148,7 +2032,7 @@ void gold_optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* 
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -2367,7 +2251,7 @@ void ___optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -2616,7 +2500,7 @@ void _v4_optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -2842,7 +2726,7 @@ void _optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_re
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			//while (grid_indx[j] < 0)
@@ -3359,6 +3243,9 @@ void par_interp3_ghost_xyz_p(Real* ghost_reg_grid_vals, int data_dof,
 	return;
 } // end of par_interp3_ghost_xyz_p
 
+// the factor is computed by the following transform:
+// X=0 -> Y = ghp
+// X=1-h -> Y = 1-hp - ghp
 void rescale(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		const int N_pts, Real* query_points) {
 
@@ -3430,48 +3317,23 @@ void interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 		query_points = query_points_in;
 	}
 	Real lagr_denom[4];
-	//for (int i = 0; i < 4; i++) {
-	//	lagr_denom[i] = 1;
-	//	for (int j = 0; j < 4; j++) {
-	//		if (i != j)
-	//			lagr_denom[i] /= (Real) (i - j);
-	//	}
-	// }
   lagr_denom[0] = -1.0/6.0;
   lagr_denom[1] = 0.5;
   lagr_denom[2] = -0.5;
   lagr_denom[3] = 1.0/6.0;
-  //std::cout << " lagr_denom[0] = " << lagr_denom[0]
-  //          << " lagr_denom[1] = " << lagr_denom[1]
-  //          << " lagr_denom[2] = " << lagr_denom[2]
-  //          << " lagr_denom[3] = " << lagr_denom[3] << std::endl;
-  //do{}while(1);
 	int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
 
 	for (int i = 0; i < N_pts; i++) {
-#ifdef VERBOSE2
-		std::cout<<"q[0]="<<query_points[i*3+0]<<std::endl;
-		std::cout<<"q[1]="<<query_points[i*3+1]<<std::endl;
-		std::cout<<"q[2]="<<query_points[i*3+2]<<std::endl;
-#endif
 		Real point[COORD_DIM];
 		int grid_indx[COORD_DIM];
 
 		for (int j = 0; j < COORD_DIM; j++) {
-			point[j] = query_points[COORD_DIM * i + j] * N_reg_g[j];
+			point[j] = query_points[COORD_DIM * i + j];// * N_reg_g[j];
 			grid_indx[j] = (floor(point[j])) - 1;
 			point[j] -= grid_indx[j];
 			while (grid_indx[j] < 0)
 				grid_indx[j] += N_reg_g[j];
 		}
-
-#ifdef VERBOSE2
-		std::cout<<"***** grid_index="<<grid_indx[0]<<" "<<grid_indx[1]<<" "<<grid_indx[2]<<std::endl;
-		std::cout<<"***** point="<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
-		std::cout<<"f @grid_index="<<reg_grid_vals[grid_indx[0]*isize_g[1]*isize_g[2]+grid_indx[1]*isize_g[2]+grid_indx[2]]<<std::endl;
-		std::cout<<"hp= "<<1./N_reg_g[0]<<std::endl;
-		std::cout<<"N_reg_g= "<<N_reg_g[0]<<" "<<N_reg_g[1]<<" "<<N_reg_g[2]<<std::endl;
-#endif
 
 		Real M[3][4];
 		for (int j = 0; j < COORD_DIM; j++) {

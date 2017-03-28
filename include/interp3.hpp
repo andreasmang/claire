@@ -5,7 +5,7 @@
 #include <accfft.h>
 #include <accfftf.h>
 #define FAST_INTERP
-//#define FAST_INTERPV // enable ONLY for single precision
+#define FAST_INTERPV // enable ONLY for single precision
 #define FAST_INTERP_BINNING
 
 
@@ -29,6 +29,8 @@
 #include <mpi.h>
 #include <vector>
 #include <interp3_common.hpp>
+#include <set>
+
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		int* isize, int* isize_g, const int N_pts, Real* Q_);
 void interp3_p_col(Real* reg_grid_vals, int data_dof, int N_reg,
@@ -40,9 +42,9 @@ void interp3_p(Real* reg_grid_vals, int data_dof, int* N_reg, const int N_pts,
 		Real* query_points, Real* query_values);
 
 // void vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
-// 		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
-// 		Real* query_points, Real* query_values,
-// 		bool query_values_already_scaled = false); // cubic interpolation
+//		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
+//		Real* query_points, Real* query_values,
+//		bool query_values_already_scaled = false); // cubic interpolation
 
 void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
@@ -105,6 +107,7 @@ public:
 	MPI_Datatype *stype, *rtype;
 
 	Real * all_query_points;
+  std::vector<Real> all_query_points_v;
 	Real* all_f_cubic;
 	Real * f_cubic_unordered;
 	int* f_index_procs_others_offset; // offset in the all_query_points array
@@ -120,6 +123,10 @@ public:
 
 	bool allocate_baked;
 	bool scatter_baked;
+
+  std::vector<int> procs_i_send_to_; // procs who i have to send my q
+  std::vector<int> procs_i_recv_from_; // procs whose q I have to recv
+  int procs_i_send_to_size_, procs_i_recv_from_size_;
 
 	~Interp3_Plan();
 
