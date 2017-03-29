@@ -843,9 +843,11 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
                *p_mt = NULL, hx[3], xc1, xc2, xc3, x,
                 sigma, maxval, minval, nvx1, nvx2, nvx3;
     ScalarType x1, x2, x3;
-    int vcase = 2;
+    //int vcase = 2;
+    int vcase = 0;
     int icase = 0;
-    ScalarType v0 = 0.2;
+    //ScalarType v0 = 0.2;
+    ScalarType v0 = PETSC_PI/12.0;
     std::stringstream ss;
 
     PetscFunctionBegin;
