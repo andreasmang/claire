@@ -1021,12 +1021,15 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         ss.str(std::string()); ss.clear();
     }
 
-    // reset velocity field
-    //ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    // reset velocity field (to avoid memory leak)
     if (this->m_VelocityField != NULL) {
         delete this->m_VelocityField;
         this->m_VelocityField = NULL;
     }
+
+    // reset all the clocks we have used so far
+    ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
+    ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
