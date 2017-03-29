@@ -47,7 +47,6 @@ void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 	return;
 } // end of rescale_xyz
 
-
 // acknowledgemet to http://stackoverflow.com/questions/13219146/how-to-sum-m256-horizontally
 // x = ( x7, x6, x5, x4, x3, x2, x1, x0 )
 float sum8(__m256 x) {
@@ -96,7 +95,147 @@ void print256(__m256 x, const char* name) {
 
 
 #ifdef FAST_INTERPV
+#if defined(__AVX2__) || defined(HASWELL)
+void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
+		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
+		bool query_values_already_scaled) {
 
+  const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
+  const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
+  const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);
+
+  const __m256 vlagr = _mm256_set_ps(-0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667);
+  const __m256  c33332222 = _mm256_set_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
+  const __m256  c22223333 = _mm256_setr_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
+  const __m256  c11110000 = _mm256_set_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
+  const __m256  c00001111 = _mm256_setr_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
+  const __m256  l0l1 = _mm256_set_ps (-0.1666666667,-0.1666666667,-0.1666666667,-0.1666666667,+0.5,+0.5,+0.5,+0.5);
+  const __m256  l2l3 = _mm256_setr_ps(+0.1666666667,+0.1666666667,+0.1666666667,+0.1666666667,-0.5,-0.5,-0.5,-0.5);
+  const int isize_g2 = isize_g[2];
+  const int two_isize_g2 = 2*isize_g2;
+  const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+  const int NzNy = isize_g2 * isize_g[1];
+  Real* Q_ptr = query_points;
+  //std::cout << "AVX2" << std::endl;
+  //_mm_prefetch( (char*)Q_ptr,_MM_HINT_NTA);
+	for (int i = 0; i < N_pts; i++) {
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		point[0] = Q_ptr[0];
+		grid_indx[0] = ((int)(point[0])) - 1;
+		point[0] -= grid_indx[0];
+
+		point[1] = Q_ptr[1];
+		grid_indx[1] = ((int)(point[1])) - 1;
+		point[1] -= grid_indx[1];
+
+		point[2] = Q_ptr[2];
+		grid_indx[2] = ((int)(point[2])) - 1;
+		point[2] -= grid_indx[2];
+    Q_ptr += 3;
+
+		const int indxx = NzNy * grid_indx[0] + grid_indx[2] + isize_g2 * grid_indx[1] ;
+    //_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
+
+    int indx = 0;
+    Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
+    //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
+		Real val = 0;
+
+
+
+    __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
+    __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
+
+
+    {
+    const __m256 vx0 = _mm256_set1_ps(point[0]);
+    vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c1000));
+    vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c2211));
+    vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c3332));
+
+    const __m256 vx1 = _mm256_set1_ps(point[1]);
+    __m256 tmp = _mm256_add_ps(vx1,c33332222); // x-3,...;x-2,...
+    tmp = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c11110000));
+    vM1_0000_1111 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c22223333));
+    vM1_0000_1111 = _mm256_mul_ps(vM1_0000_1111, l0l1);
+    vM1_2222_3333 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c00001111));
+    vM1_2222_3333  = _mm256_mul_ps(vM1_2222_3333, l2l3);
+    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c1000));
+    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c2211));
+    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c3332));
+
+    const __m256 vx2 = _mm256_set1_ps(point[2]);
+    vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c1000));
+    vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c2211));
+    vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c3332));
+    // todo remove permute completely by using different c's in the beginning
+    vM2 = _mm256_permute_ps(vM2,0b00011011);
+    //vM2 = _mm256_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
+
+    //const Real* M1 = (Real*)&vM1;
+    //vM1_0000_1111 = _mm256_set_ps(M1[7],M1[7],M1[7],M1[7],M1[6],M1[6],M1[6],M1[6]);
+    //vM1_2222_3333 = _mm256_set_ps(M1[5],M1[5],M1[5],M1[5],M1[4],M1[4],M1[4],M1[4]);
+    // vM1_0000_1111 = _mm256_set_ps(M1[3],M1[3],M1[3],M1[3],M1[2],M1[2],M1[2],M1[2]);
+    // vM1_2222_3333 = _mm256_set_ps(M1[1],M1[1],M1[1],M1[1],M1[0],M1[0],M1[0],M1[0]);
+    //vM0_tttt[0] = _mm256_permute_ps(vM0,0b11111111); // last element
+    //vM0_tttt[1] = _mm256_permute_ps(vM0,0b10101010);
+    //vM0_tttt[2] = _mm256_permute_ps(vM0,0b01010101);
+    //vM0_tttt[3] = _mm256_permute_ps(vM0,0b00000000);
+    }
+
+
+    // load all vfij
+          __m256 vt;
+          vt = _mm256_setzero_ps();
+          const __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
+
+          //__m256 vt0, vt1, vt2, vt3;
+          //vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111),_mm256_fmadd_ps(vM1_0000_1111, vf_i0_j01, _mm256_mul_ps(vM1_2222_3333, vf_i0_j23)));
+          //vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010),_mm256_fmadd_ps(vM1_0000_1111, vf_i1_j01, _mm256_mul_ps(vM1_2222_3333, vf_i1_j23)));
+          //vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101),_mm256_fmadd_ps(vM1_0000_1111, vf_i2_j01, _mm256_mul_ps(vM1_2222_3333, vf_i2_j23)));
+          //vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000),_mm256_fmadd_ps(vM1_0000_1111, vf_i3_j01, _mm256_mul_ps(vM1_2222_3333, vf_i3_j23)));
+
+          vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b11111111),_mm256_fmadd_ps(vM1_0000_1111, vf_i0_j01, _mm256_mul_ps(vM1_2222_3333, vf_i0_j23)) , vt);
+          vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b10101010),_mm256_fmadd_ps(vM1_0000_1111, vf_i1_j01, _mm256_mul_ps(vM1_2222_3333, vf_i1_j23)) , vt);
+          vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b01010101),_mm256_fmadd_ps(vM1_0000_1111, vf_i2_j01, _mm256_mul_ps(vM1_2222_3333, vf_i2_j23)) , vt);
+          vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b00000000),_mm256_fmadd_ps(vM1_0000_1111, vf_i3_j01, _mm256_mul_ps(vM1_2222_3333, vf_i3_j23)) , vt);
+
+          vt = _mm256_mul_ps(vM2, vt);
+          val = sum8(vt);
+		      query_values[i] = val;
+
+
+
+
+	}
+
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+#else
 void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
@@ -291,6 +430,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 	return;
 
 }  // end of interp3_ghost_xyz_p
+#endif
 
 #endif
 

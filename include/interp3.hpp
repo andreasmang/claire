@@ -7,6 +7,7 @@
 #define FAST_INTERP
 #define FAST_INTERPV // enable ONLY for single precision
 #define FAST_INTERP_BINNING
+#define HASWELL
 
 
 
