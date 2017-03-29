@@ -162,6 +162,8 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! function that checks bounds in parameter continuation */
     virtual PetscErrorCode CheckBounds(Vec, bool&);
 
+    /*! allocate all the memory we need */
+    virtual PetscErrorCode InitializeSolver() = 0;
 
  protected:
     PetscErrorCode Initialize(void);

@@ -791,7 +791,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
     int nx[3], isize[3], istart[3], osize[3], ostart[3], rank, nalloc, iporder;
     std::stringstream ss;
-    ScalarType *u = NULL, fftsetuptime;
+    ScalarType *u = NULL;
+    ScalarType fftsetuptime;
     ComplexType *uk = NULL;
 
     PetscFunctionBegin;
@@ -814,7 +815,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Domain.nx[i]);
+        nx[i]                = static_cast<int>(this->m_Domain.nx[i]);
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
 
@@ -823,7 +824,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
     ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
 
-    MPI_Barrier(PETSC_COMM_WORLD);
     iporder = this->m_PDESolver.interpolationorder;
     if (this->m_PDESolver.type == SL) {
         if (isize[0] <= iporder+1 || isize[1] <= iporder+1) {
@@ -831,15 +831,9 @@ PetscErrorCode RegOpt::InitializeFFT() {
                << isize[0] << "," << isize[1] << "," << isize[2]
                << ") < 3) -> reduce number of mpi tasks\x1b[0m\n";
             std::cout << ss.str() << std::endl;
-            //SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, ss.str().c_str());
             PetscFunctionReturn(PETSC_ERR_ARG_SIZ);
-            //ss.clear(); ss.str(std::string());
-            //ierr = ThrowError(" error"); CHKERRQ(ierr);
-            //ierr = PetscFinalize(); CHKERRQ(ierr);
-            //ierr = PetscFinalize(); CHKERRQ(ierr);
         }
     }
-    MPI_Barrier(PETSC_COMM_WORLD);
 
     if (this->m_Verbosity > 2) {
         ss << "data distribution: nx=("
@@ -867,8 +861,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
     uk = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     ierr = Assert(uk != NULL, "allocation failed"); CHKERRQ(ierr);
-
-    MPI_Barrier(PETSC_COMM_WORLD);
 
     if (this->m_FFT.plan != NULL) {
         if (this->m_Verbosity > 2) {

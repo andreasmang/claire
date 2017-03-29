@@ -90,6 +90,9 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! compute initial condition via piccard iteration */
     PetscErrorCode ComputeInitialCondition(Vec, Vec);
 
+    /*! allocate all the memory we need */
+    PetscErrorCode InitializeSolver();
+
  protected:
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);

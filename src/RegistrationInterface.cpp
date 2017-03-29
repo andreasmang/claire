@@ -638,6 +638,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
+    ierr = this->m_RegProblem->InitializeSolver(); CHKERRQ(ierr);
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 

@@ -131,6 +131,87 @@ PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
 
 
 /********************************************************************
+ * @brief setup solver (to not have to allocate things on the
+ * fly)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
+    PetscErrorCode ierr = 0;
+    IntType nt, nl, nc, ng;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->GetDomainPara().nc;
+    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
+
+    if (this->m_StateVariable == NULL) {
+        ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        if (this->m_AdjointVariable == NULL) {
+            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        }
+        if (this->m_IncAdjointVariable == NULL) {
+            ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        }
+        if (this->m_IncStateVariable == NULL) {
+            ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+        }
+    } else {
+        if (this->m_AdjointVariable == NULL) {
+            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
+        if (this->m_IncAdjointVariable == NULL) {
+            ierr = VecCreate(this->m_IncAdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
+        if (this->m_IncStateVariable == NULL) {
+            ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_Opt->GetPDESolverPara().type == SL) {
+        if (this->m_SemiLagrangianMethod == NULL) {
+            try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+        }
+    }
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL) {
+        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+/********************************************************************
  * @brief initialize the optimization (we essentially evaluate
  * the objective functional and the gradient for a given initial
  * guess)
