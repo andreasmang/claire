@@ -171,14 +171,6 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
         }
     }
 
-    if (this->m_Opt->GetPDESolverPara().type == SL) {
-        if (this->m_SemiLagrangianMethod == NULL) {
-            try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-    }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc& err) {
@@ -190,6 +182,18 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
+    }
+    if (this->m_Opt->GetPDESolverPara().type == SL) {
+        if (this->m_SemiLagrangianMethod == NULL) {
+            try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
+            }
+        }
+        ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
     if (this->m_WorkScaField1 == NULL) {
