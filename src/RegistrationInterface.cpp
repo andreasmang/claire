@@ -632,10 +632,6 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
 
-    // reset all the clocks we have used so far
-    ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
-    ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
-
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
@@ -646,6 +642,10 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     // init solver
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
+
+    // reset all the clocks we have used so far
+    ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
+    ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
 
     // run the optimization
     ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
