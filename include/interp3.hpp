@@ -4,10 +4,13 @@
 
 #include <accfft.h>
 #include <accfftf.h>
+#include "libmorton/libmorton/include/morton.h"
+
 #define FAST_INTERP
 #define FAST_INTERPV // enable ONLY for single precision
 #define FAST_INTERP_BINNING
 #define HASWELL
+//#define KNL
 
 
 
@@ -31,6 +34,7 @@
 #include <vector>
 #include <interp3_common.hpp>
 #include <set>
+#include <compact_mem_mgr.hpp>
 
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		int* isize, int* isize_g, const int N_pts, Real* Q_);
@@ -41,11 +45,6 @@ void interp3_p(Real* reg_grid_vals, int data_dof, int N_reg, const int N_pts,
 
 void interp3_p(Real* reg_grid_vals, int data_dof, int* N_reg, const int N_pts,
 		Real* query_points, Real* query_values);
-
-// void vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
-//		int * N_reg_g, int* isize_g, int* istart, const int N_pts, int g_size,
-//		Real* query_points, Real* query_values,
-//		bool query_values_already_scaled = false); // cubic interpolation
 
 void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
@@ -78,7 +77,7 @@ void par_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 struct Interp3_Plan {
 public:
 	Interp3_Plan();
-	Real * query_points;
+  pvfmm::Iterator<Real> query_points;
 	void allocate(int N_pts, int data_dof);
 	void slow_run(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 			int * isize, int* istart, const int N_pts, const int g_size,
@@ -107,17 +106,17 @@ public:
 	size_t all_query_points_allocation;
 	MPI_Datatype *stype, *rtype;
 
-	Real * all_query_points;
-  std::vector<Real> all_query_points_v;
-	Real* all_f_cubic;
-	Real * f_cubic_unordered;
-	int* f_index_procs_others_offset; // offset in the all_query_points array
-	int* f_index_procs_self_offset; // offset in the query_outside array
-	int* f_index_procs_self_sizes; // sizes of the number of interpolations that need to be sent to procs
-	int* f_index_procs_others_sizes; // sizes of the number of interpolations that need to be received from procs
+  pvfmm::Iterator<Real> all_query_points;
+  pvfmm::Iterator<Real> all_f_cubic;
+  pvfmm::Iterator<Real> f_cubic_unordered;
 
-	MPI_Request * s_request;
-	MPI_Request * request;
+  pvfmm::Iterator<int> f_index_procs_others_offset; // offset in the all_query_points array
+	pvfmm::Iterator<int> f_index_procs_self_offset; // offset in the query_outside array
+	pvfmm::Iterator<int> f_index_procs_self_sizes; // sizes of the number of interpolations that need to be sent to procs
+	pvfmm::Iterator<int> f_index_procs_others_sizes; // sizes of the number of interpolations that need to be received from procs
+
+  pvfmm::Iterator<MPI_Request> s_request;
+	pvfmm::Iterator<MPI_Request> request;
 
 	std::vector<int> *f_index;
 	std::vector<Real> *query_outside;

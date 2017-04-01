@@ -17,7 +17,7 @@
  * local data size
  * @param[in] plan: AccFFT R2C plan
  */
-void ghost_left_right(Real *padded_data, Real* data, int g_size,
+void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
 		accfft_plan_t<Real, TC, PL> * plan) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
@@ -91,7 +91,6 @@ void ghost_left_right(Real *padded_data, Real* data, int g_size,
 			std::cout<<"\n";
 		}
 	}
-	MPI_Barrier(c_comm);
 	PCOUT<<"\nGR Row Communication\n";
 #endif
 
@@ -157,7 +156,6 @@ void ghost_left_right(Real *padded_data, Real* data, int g_size,
 				&GR[i * g_size * isize[2]], g_size * isize[2] * sizeof(Real));
 	}
 
-	MPI_Barrier(c_comm);
 #ifdef VERBOSE2
 	if(procid==0) {
 		std::cout<<"procid= "<<procid<<" padded_array=\n";
@@ -169,7 +167,6 @@ void ghost_left_right(Real *padded_data, Real* data, int g_size,
 	}
 #endif
 
-	MPI_Barrier(c_comm);
 	accfft_free(LS);
 	accfft_free(GR);
 	accfft_free(RS);
@@ -187,7 +184,7 @@ void ghost_left_right(Real *padded_data, Real* data, int g_size,
  * local data size
  * @param[in] plan: AccFFT R2C plan
  */
-void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
+void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> padded_data, int g_size,
 		accfft_plan_t<Real, TC, PL> * plan) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
@@ -216,12 +213,11 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
 #endif
 	int bs_buf_size = g_size * isize[2] * (isize[1] + 2 * g_size); // isize[1] now includes two side ghost cells
 	//Real *BS=(Real*)accfft_alloc(bs_buf_size*sizeof(Real)); // Stores local right ghost data to be sent
-	Real *GT = (Real*) accfft_alloc(bs_buf_size * sizeof(Real)); // Left Ghost cells to be received
+  pvfmm::Iterator<Real> GT = pvfmm::aligned_new<Real>(bs_buf_size); // Left Ghost cells to be received
 	// snafu: not really necessary to do memcpy, you can simply use padded_data directly
 	//memcpy(BS,&padded_data[(isize[0]-g_size)*isize[2]*(isize[1]+2*g_size)],bs_buf_size*sizeof(Real));
-	Real* BS = &padded_data[(isize[0] - g_size) * isize[2]
-			* (isize[1] + 2 * g_size)];
-
+  Real* BS = &padded_data[(isize[0] - g_size) * isize[2]
+                            * (isize[1] + 2 * g_size)];
 	/* Phase 2: Send your data to your bottom process
 	 * First question is who is your bottom process?
 	 */
@@ -231,8 +227,8 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
 		dst_r = nprocs_c - 1;
 	MPI_Request bs_s_request, bs_r_request;
 	MPI_Status ierr;
-	MPI_Isend(BS, bs_buf_size, MPI_T, dst_s, 0, col_comm, &bs_s_request);
-	MPI_Irecv(GT, bs_buf_size, MPI_T, dst_r, 0, col_comm, &bs_r_request);
+	MPI_Isend(&BS[0], bs_buf_size, MPI_T, dst_s, 0, col_comm, &bs_s_request);
+	MPI_Irecv(&GT[0], bs_buf_size, MPI_T, dst_r, 0, col_comm, &bs_r_request);
 	MPI_Wait(&bs_s_request, &ierr);
 	MPI_Wait(&bs_r_request, &ierr);
 
@@ -262,17 +258,16 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
 		}
 	}
 
-	MPI_Barrier(c_comm);
 	PCOUT<<"\nGB Col Communication\n";
 #endif
 
 	/* Phase 3: Now do the exact same thing for the right ghost side */
 	int ts_buf_size = g_size * isize[2] * (isize[1] + 2 * g_size); // isize[1] now includes two side ghost cells
 	//Real *TS=(Real*)accfft_alloc(ts_buf_size*sizeof(Real)); // Stores local right ghost data to be sent
-	Real *GB = (Real*) accfft_alloc(ts_buf_size * sizeof(Real)); // Left Ghost cells to be received
+  pvfmm::Iterator<Real> GB = pvfmm::aligned_new<Real>(ts_buf_size); // Left Ghost cells to be received
 	// snafu: not really necessary to do memcpy, you can simply use padded_data directly
 	//memcpy(TS,padded_data,ts_buf_size*sizeof(Real));
-	Real *TS = padded_data;
+	Real *TS = &padded_data[0];
 
 	/* Phase 4: Send your data to your right process
 	 * First question is who is your right process?
@@ -282,8 +277,8 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
 	dst_r = (procid_c + 1) % nprocs_c;
 	if (procid_c == 0)
 		dst_s = nprocs_c - 1;
-	MPI_Isend(TS, ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
-	MPI_Irecv(GB, ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
+	MPI_Isend(&TS[0], ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
+	MPI_Irecv(&GB[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
 	MPI_Wait(&ts_s_request, &ierr);
 	MPI_Wait(&ts_r_request, &ierr);
 
@@ -315,14 +310,14 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
 #endif
 
 	// Phase 5: Pack the data GT+ padded_data + GB
-	memcpy(ghost_data, GT,
+	memcpy(&ghost_data[0], &GT[0],
 			g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
 	memcpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)],
-			padded_data,
+			&padded_data[0],
 			isize[0] * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
 	memcpy(
 			&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)
-					+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], GB,
+					+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], &GB[0],
 			g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
 
 #ifdef VERBOSE2
@@ -337,9 +332,10 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
 #endif
 
 	//accfft_free(TS);
-	accfft_free(GB);
+  pvfmm::aligned_delete<Real>(GB);
 	//accfft_free(BS);
-	accfft_free(GT);
+	//accfft_free(GT);
+  pvfmm::aligned_delete<Real>(GT);
 }
 
 /*
@@ -354,7 +350,7 @@ void ghost_top_bottom(Real *ghost_data, Real* padded_data, int g_size,
  * @param[in] isize_g: An integer array specifying ghost cell padded local sizes.
  * @param[in] plan: AccFFT R2C plan
  */
-void ghost_z(Real *ghost_data_z, Real* ghost_data, int g_size, int* isize_g,
+void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, int* isize_g,
 		accfft_plan_t<Real, TC, PL>* plan) {
 
 	int * isize = plan->isize;
@@ -468,11 +464,11 @@ void accfft_get_ghost(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_
 		return;
 	}
 
-	Real *padded_data = (Real*) accfft_alloc(
-			plan->alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real));
+  pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real>
+    (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
 	ghost_left_right(padded_data, data, g_size, plan);
 	ghost_top_bottom(ghost_data, padded_data, g_size, plan);
-	accfft_free(padded_data);
+  pvfmm::aligned_delete<Real>(padded_data);
 	return;
 
 }
@@ -581,14 +577,15 @@ void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* is
 		return;
 	}
 
-	Real *padded_data = (Real*) accfft_alloc(
-			plan->alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real));
-	Real * ghost_data_xy = (Real*) accfft_alloc(
-			plan->alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real)
-					+ 2 * g_size * isize[2] * isize_g[1] * sizeof(Real));
+  pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real>
+    (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
+  pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real>(
+			plan->alloc_max + 2 * g_size * isize[2] * isize[0]
+					+ 2 * g_size * isize[2] * isize_g[1]);
+
 	ghost_left_right(padded_data, data, g_size, plan);
 	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan);
-	ghost_z(ghost_data, ghost_data_xy, g_size, isize_g, plan);
+	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -608,8 +605,8 @@ void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* is
 	}
 #endif
 
-	accfft_free(padded_data);
-	accfft_free(ghost_data_xy);
+  pvfmm::aligned_delete<Real>(padded_data);
+  pvfmm::aligned_delete<Real>(ghost_data_xy);
 	return;
 }
 
