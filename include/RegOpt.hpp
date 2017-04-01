@@ -699,6 +699,10 @@ class RegOpt {
     double m_FFTAccumTime;
     double m_InterpTimers[4][NVALTYPES];
     double m_IPAccumTime;
+    double m_IPSlowest;
+    double m_TTSSlowest;
+    double m_FFTSlowest;
+    int m_IDSlowest;
 
     int m_CartGridDims[2];
     unsigned int m_NumThreads;

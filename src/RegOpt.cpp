@@ -2302,6 +2302,7 @@ PetscErrorCode RegOpt::StopTimer(TimerType id) {
 PetscErrorCode RegOpt::ProcessTimers() {
     PetscErrorCode ierr = 0;
     int rval, rank, nproc;
+    double *fftall = NULL, *interpall = NULL, *ttsall = NULL;
     double ival = 0.0, xval = 0.0, ivalsum = 0.0;
 
     PetscFunctionBegin;
@@ -2370,6 +2371,7 @@ PetscErrorCode RegOpt::ProcessTimers() {
     ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
     this->m_FFTAccumTime = xval;
 
+
     ivalsum = 0.0;
     for (int i = 0; i < 4; ++i) {
         // remember input value
@@ -2396,10 +2398,55 @@ PetscErrorCode RegOpt::ProcessTimers() {
         }
     }
 
+    // get the timings that correspond to the slowest proc
+    if (rank == 0) {
+        try {ttsall = new double[nproc];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        try {fftall = new double[nproc];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        try {interpall = new double[nproc];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+
+    ival = this->m_Timer[FFTSELFEXEC][LOG];
+    rval = MPI_Gather(&ival, 1, MPI_DOUBLE, fftall, 1, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    ival = this->m_Timer[IPSELFEXEC][LOG];
+    rval = MPI_Gather(&ival, 1, MPI_DOUBLE, interpall, 1, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    ival = this->m_Timer[T2SEXEC][LOG];
+    rval = MPI_Gather(&ival, 1, MPI_DOUBLE, ttsall, 1, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
+    ierr = MPIERRQ(rval); CHKERRQ(ierr);
+
+    this->m_TTSSlowest = 0.0;
+    if (rank == 0) {
+        for (int i = 0; i < nproc; ++i) {
+            if (this->m_TTSSlowest < ttsall[i]) {
+                this->m_IPSlowest  = interpall[i];
+                this->m_FFTSlowest = fftall[i];
+                this->m_TTSSlowest = ttsall[i];
+                this->m_IDSlowest  = i;
+            }
+        }
+    }
+
+
     // get max of accumulated time accross all procs
     rval = MPI_Reduce(&ivalsum, &xval, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
     this->m_IPAccumTime = xval;
+
+    if (ttsall != NULL) {delete [] ttsall; ttsall = NULL;}
+    if (fftall != NULL) {delete [] fftall; fftall = NULL;}
+    if (interpall != NULL) {delete [] interpall; interpall = NULL;}
 
 
     this->Exit(__func__);
@@ -2742,6 +2789,38 @@ PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
                   << " " << this->m_InterpTimers[3][MAX]
                   << " " << this->m_InterpTimers[3][AVG]
                   << " " << this->m_InterpTimers[3][MAX] / static_cast<double>(count)
+                  << std::endl;
+
+        logwriter << "\"slowest proc tts\""
+                  << " " << 0 << std::scientific
+                  << " " << 0
+                  << " " << this->m_TTSSlowest
+                  << " " << 0
+                  << " " << 0
+                  << std::endl;
+
+        logwriter << "\"slowest proc id\""
+                  << " " << 0 << std::scientific
+                  << " " << 0
+                  << " " << this->m_IDSlowest
+                  << " " << 0
+                  << " " << 0
+                  << std::endl;
+
+        logwriter << "\"slowest proc fft\""
+                  << " " << 0 << std::scientific
+                  << " " << 0
+                  << " " << this->m_FFTSlowest
+                  << " " << 0
+                  << " " << 0
+                  << std::endl;
+
+        logwriter << "\"slowest proc iterp\""
+                  << " " << 0 << std::scientific
+                  << " " << 0
+                  << " " << this->m_IPSlowest
+                  << " " << 0
+                  << " " << 0
                   << std::endl;
     }
 
