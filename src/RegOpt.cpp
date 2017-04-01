@@ -727,6 +727,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         }
     }
 
+    this->m_Timer[FFTSETUP][LOG] = 0.0;
     // set number of threads
     ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                       this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
