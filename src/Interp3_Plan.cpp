@@ -10,13 +10,6 @@
 #include <stdint.h>
 #include <limits.h>
 
-void print_set(std::set<int> set, const char* name){
-  std::cout << name << ": ";
-  if(!set.empty())
-  for(  std::set<int>::iterator it = set.begin(); it != set.end(); ++it)
-    std::cout << *it << std::endl;
-}
-
 Interp3_Plan::Interp3_Plan() {
 	this->allocate_baked = false;
 	this->scatter_baked = false;
@@ -27,27 +20,33 @@ void Interp3_Plan::allocate(int N_pts, int data_dof) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-	query_points = (Real*) accfft_alloc(N_pts * COORD_DIM * sizeof(Real));
-  memset(query_points,0, N_pts * sizeof(Real)*COORD_DIM);
+#ifdef INTERP_DEBUG
+  PCOUT << "entered allocate\n";
+#endif
+	query_points = pvfmm::aligned_new<Real>(N_pts * COORD_DIM);
+  memset(&query_points[0],0, N_pts * sizeof(Real)*COORD_DIM);
 
-	f_index_procs_others_offset = (int*) accfft_alloc(nprocs * sizeof(int)); // offset in the all_query_points array
-	f_index_procs_self_offset = (int*) accfft_alloc(nprocs * sizeof(int)); // offset in the query_outside array
-	f_index_procs_self_sizes = (int*) accfft_alloc(nprocs * sizeof(int)); // sizes of the number of interpolations that need to be sent to procs
-	f_index_procs_others_sizes = (int*) accfft_alloc(nprocs * sizeof(int)); // sizes of the number of interpolations that need to be received from procs
+	f_index_procs_others_offset = pvfmm::aligned_new<int>(nprocs); // offset in the all_query_points array
+	f_index_procs_self_offset   = pvfmm::aligned_new<int>(nprocs); // offset in the query_outside array
+	f_index_procs_self_sizes    = pvfmm::aligned_new<int>(nprocs); // sizes of the number of interpolations that need to be sent to procs
+	f_index_procs_others_sizes  = pvfmm::aligned_new<int>(nprocs); // sizes of the number of interpolations that need to be received from procs
 
-	s_request = new MPI_Request[nprocs];
-	request = new MPI_Request[2*nprocs];
+	s_request = pvfmm::aligned_new<MPI_Request>(nprocs);
+	request = pvfmm::aligned_new<MPI_Request>(2*nprocs);
 
 	f_index = new std::vector<int>[nprocs];
 	query_outside = new std::vector<Real>[nprocs];
 
-	f_cubic_unordered = (Real*) accfft_alloc(N_pts * sizeof(Real) * data_dof); // The reshuffled semi-final interpolated values are stored here
-  memset(f_cubic_unordered,0, N_pts * sizeof(Real) * data_dof);
+	f_cubic_unordered = pvfmm::aligned_new<Real>(N_pts * data_dof); // The reshuffled semi-final interpolated values are stored here
+  memset(&f_cubic_unordered[0],0, N_pts * sizeof(Real) * data_dof);
 
 	stype = new MPI_Datatype[nprocs];
 	rtype = new MPI_Datatype[nprocs];
 	this->data_dof = data_dof;
 	this->allocate_baked = true;
+#ifdef INTERP_DEBUG
+  PCOUT << "allocate done\n";
+#endif
 }
 
 class Trip {
@@ -102,8 +101,8 @@ static void sort_queries(std::vector<Real>* query_outside,
 	return;
 }
 
-
 #include "libmorton/libmorton/include/morton.h"
+
 class zTrip {
 public:
 	zTrip() {
@@ -251,6 +250,9 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 	MPI_Comm_rank(c_comm, &procid);
 	MPI_Comm_size(c_comm, &nprocs);
 
+#ifdef INTERP_DEBUG
+  PCOUT << "entered fast scatter\n";
+#endif
 	if (this->allocate_baked == false) {
 		std::cout
 				<< "ERROR Interp3_Plan Scatter called before calling allocate.\n";
@@ -282,7 +284,10 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 		h[2] = 1. / N_reg[2];
 
 		// We copy query_points_in to query_points to aviod overwriting the input coordinates
-		memcpy(query_points, query_points_in, N_pts * COORD_DIM * sizeof(Real));
+		memcpy(&query_points[0], query_points_in, N_pts * COORD_DIM * sizeof(Real));
+#ifdef INTERP_DEBUG
+  PCOUT << "enforcing periodicity\n";
+#endif
 		// Enforce periodicity
 		for (int i = 0; i < N_pts; i++) {
       Real* Q_ptr = &query_points[i * COORD_DIM];
@@ -330,6 +335,9 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 		// than others. With this approach we always use the right isize0 for all procs.
 		int isize0 = std::ceil(N_reg[0] * 1. / c_dims[0]);
 		int isize1 = std::ceil(N_reg[1] * 1. / c_dims[1]);
+#ifdef INTERP_DEBUG
+  PCOUT << "sorting\n";
+#endif
 
     int bsize_xyz[COORD_DIM];
     const int bsize = 16;
@@ -424,6 +432,7 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
       }
     }
     delete [] trip;
+    //pvfmm::aligned_delete<Real>(query_points);
 		// Now sort the query points in zyx order
 #ifdef SORT_QUERIES
 		//timings[3]+=-MPI_Wtime();
@@ -440,6 +449,9 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 		// command as well as memory allocation for received data.
 		// So we first do an alltoall to get the f_index[proc].size from all processes.
 
+#ifdef INTERP_DEBUG
+  PCOUT << "Communicating sizes\n";
+#endif
 		for (int proc = 0; proc < nprocs; proc++) {
 			if (!f_index[proc].empty()){
 				f_index_procs_self_sizes[proc] = f_index[proc].size();
@@ -448,8 +460,8 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 				f_index_procs_self_sizes[proc] = 0;
 		}
 		timings[0] += -MPI_Wtime();
-		MPI_Alltoall(f_index_procs_self_sizes, 1, MPI_INT,
-				f_index_procs_others_sizes, 1, MPI_INT, c_comm);
+		MPI_Alltoall(&f_index_procs_self_sizes[0], 1, MPI_INT,
+				&f_index_procs_others_sizes[0], 1, MPI_INT, c_comm);
 		timings[0] += +MPI_Wtime();
 
 		for (int proc = 0; proc < nprocs; proc++) {
@@ -488,19 +500,22 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 		// This if condition is to allow multiple calls to scatter fucntion with different query points
 		// without having to create a new plan
 		if (this->scatter_baked == true) {
-			free(this->all_query_points);
-			free(this->all_f_cubic);
-			all_query_points = (Real*) accfft_alloc(
-					all_query_points_allocation * sizeof(Real));
-			all_f_cubic = (Real*) accfft_alloc(
-					total_query_points * sizeof(Real) * data_dof);
+      pvfmm::aligned_delete<Real>(this->all_query_points);
+      pvfmm::aligned_delete<Real>(this->all_f_cubic);
+			all_query_points = pvfmm::aligned_new<Real>(
+					all_query_points_allocation);
+			all_f_cubic = pvfmm::aligned_new<Real>(
+					total_query_points * data_dof);
 		} else {
-			all_query_points = (Real*) accfft_alloc(
-					all_query_points_allocation * sizeof(Real));
-			all_f_cubic = (Real*) accfft_alloc(
-					total_query_points * sizeof(Real) * data_dof);
+			all_query_points = pvfmm::aligned_new<Real>(
+					all_query_points_allocation);
+			all_f_cubic = pvfmm::aligned_new<Real>(
+					total_query_points * data_dof);
 		}
 
+#ifdef INTERP_DEBUG
+  PCOUT << "communicating query points\n";
+#endif
 		// Now perform the allotall to send/recv query_points
 		timings[0] += -MPI_Wtime();
 		{
@@ -562,6 +577,9 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 
 	}
 
+#ifdef INTERP_DEBUG
+  PCOUT << "done with comm\n";
+#endif
 	for (int i = 0; i < nprocs; ++i) {
 		MPI_Type_vector(data_dof, f_index_procs_self_sizes[i], N_pts, MPI_T,
 				&rtype[i]);
@@ -571,12 +589,285 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 		MPI_Type_commit(&rtype[i]);
 	}
 
+  if(total_query_points !=0)
 	rescale_xyz(g_size, N_reg, N_reg_g, istart, isize, isize_g, total_query_points,
-			all_query_points);
+			&all_query_points[0]);
 	this->scatter_baked = true;
+#ifdef INTERP_DEBUG
+  PCOUT << "scatter DONE\n";
+#endif
 	return;
 }
 
+
+/*
+ * Phase 2 of the parallel interpolation: This function must be called after the scatter function is called.
+ * It performs local interpolation for all the points that the processor has for itself, as well as the interpolations
+ * that it has to send to other processors. After the local interpolation is performed, a sparse
+ * alltoall is performed so that all the interpolated results are sent/received.
+ *
+ */
+void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals, int data_dof,
+		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
+		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings) {
+	int nprocs, procid;
+	MPI_Comm_rank(c_comm, &procid);
+	MPI_Comm_size(c_comm, &nprocs);
+#ifdef INTERP_DEBUG
+  PCOUT << "entered interpolate\n";
+#endif
+	if (this->allocate_baked == false) {
+		std::cout
+				<< "ERROR Interp3_Plan interpolate called before calling allocate.\n";
+		return;
+	}
+	if (this->scatter_baked == false) {
+		std::cout
+				<< "ERROR Interp3_Plan interpolate called before calling scatter.\n";
+		return;
+	}
+
+	timings[1] += -MPI_Wtime();
+#ifdef FAST_INTERP
+#ifdef FAST_INTERPV
+  const int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
+  const int* N_reg_c = N_reg;
+  const int* N_reg_g_c = N_reg_g;
+  const int* istart_c = istart;
+  const int* isize_g_c = isize_g;
+  const int total_query_points_c = total_query_points;
+  if(total_query_points!=0)
+    for (int k = 0; k < data_dof; ++k)
+	    vectorized_interp3_ghost_xyz_p(&ghost_reg_grid_vals[k*N_reg3], 1, N_reg_c, N_reg_g_c, isize_g_c,
+			  istart_c, total_query_points_c, g_size, &all_query_points[0], &all_f_cubic[k*total_query_points],
+			  true);
+#else
+  const int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
+  if(total_query_points!=0)
+    for (int k = 0; k < data_dof; ++k)
+	  optimized_interp3_ghost_xyz_p(&ghost_reg_grid_vals[k*N_reg3], 1, N_reg, N_reg_g, isize_g,
+			istart, total_query_points, g_size, &all_query_points[0], &all_f_cubic[k*total_query_points],
+			true);
+#endif
+#else
+  if(total_query_points!=0)
+	 interp3_ghost_xyz_p(ghost_reg_grid_vals, data_dof, N_reg, N_reg_g, isize_g,
+			istart, total_query_points, g_size, &all_query_points[0], &all_f_cubic[0],
+			true);
+#endif
+	timings[1] += +MPI_Wtime();
+
+	// Now we have to do an alltoall to distribute the interpolated data from all_f_cubic to
+	// f_cubic_unordered.
+#ifdef INTERP_DEBUG
+  PCOUT << "finished interpolation, starting comm\n";
+#endif
+  double shuffle_time =0;
+	timings[0] += -MPI_Wtime();
+	{
+		int dst_r, dst_s;
+
+		//for (int i = 0; i < procs_i_send_to_size_; ++i) {
+		for (int i = procs_i_send_to_size_-1; i >=0; --i) {
+			//dst_r = (procid+i)%nprocs;
+			dst_r = procs_i_send_to_[i];    //(procid-i+nprocs)%nprocs;
+			request[dst_r] = MPI_REQUEST_NULL; //recv
+			int roffset = f_index_procs_self_offset[dst_r];
+
+			MPI_Irecv(&f_cubic_unordered[roffset], 1, rtype[dst_r], dst_r, 0,
+					c_comm, &request[dst_r]);
+		}
+		for (int i = 0; i < procs_i_recv_from_size_; ++i) {
+			// dst_s = (procid-i+nprocs)%nprocs;
+			dst_s = procs_i_recv_from_[i];    //(procid+i)%nprocs;
+			s_request[dst_s] = MPI_REQUEST_NULL; //send
+			int soffset = f_index_procs_others_offset[dst_s];
+
+			MPI_Isend(&all_f_cubic[soffset], 1, stype[dst_s], dst_s, 0, c_comm,
+					&s_request[dst_s]);
+		}
+    // wait to receive your part
+			for (int i = 0; i < procs_i_send_to_size_; ++i) {
+				int proc = procs_i_send_to_[i];    //(procid+i)%nprocs;
+				if (request[proc] != MPI_REQUEST_NULL)
+					MPI_Wait(&request[proc], MPI_STATUS_IGNORE);
+          shuffle_time += -MPI_Wtime();
+	        for (int dof = 0; dof < data_dof; ++dof) {
+            Real* ptr = &f_cubic_unordered[f_index_procs_self_offset[proc]+dof*N_pts];
+#pragma omp parallel for
+                for (int i = 0; i < f_index[proc].size(); ++i) {
+                  int ind = f_index[proc][i];
+                  query_values[ind + dof * N_pts] =ptr[i];
+                }
+          }
+          shuffle_time += +MPI_Wtime();
+     }
+   // wait for send
+			for (int i = 0; i < procs_i_recv_from_size_; ++i) {
+				int proc = procs_i_recv_from_[i];    //(procid+i)%nprocs;
+				if (s_request[proc] != MPI_REQUEST_NULL)
+					MPI_Wait(&s_request[proc], MPI_STATUS_IGNORE);
+     }
+
+		// for (int i = 0; i < nprocs; ++i) {
+		//	dst_r = (procid+i)%nprocs;
+		//	dst_s = (procid-i+nprocs)%nprocs;
+		//	// s_request[dst_s] = MPI_REQUEST_NULL;
+		//	request[2*dst_s] = MPI_REQUEST_NULL; //send
+		//	request[2*dst_r+1] = MPI_REQUEST_NULL; //recv
+		//	// Notice that this is the adjoint of the first comm part
+		//	// because now you are sending others f and receiving your part of f
+		//	int soffset = f_index_procs_others_offset[dst_s];
+		//	int roffset = f_index_procs_self_offset[dst_r];
+
+		//	if (f_index_procs_self_sizes[dst_r] != 0)
+		//		MPI_Irecv(&f_cubic_unordered[roffset], 1, rtype[dst_r], dst_r, 0,
+		//				c_comm, &request[2*dst_r+1]);
+		//	if (f_index_procs_others_sizes[dst_s] != 0)
+		//		MPI_Isend(&all_f_cubic[soffset], 1, stype[dst_s], dst_s, 0, c_comm,
+		//				&request[2*dst_s]);
+		// }
+    // MPI_Waitall(2*nprocs, request, MPI_STATUSES_IGNORE);
+	}
+	timings[0] += +MPI_Wtime();
+  timings[0] -= shuffle_time;
+
+	// Now copy back f_cubic_unordered to f_cubic in the correct f_index
+	//for (int dof = 0; dof < data_dof; ++dof) {
+	//	for (int proc = 0; proc < nprocs; ++proc) {
+	//		if (!f_index[proc].empty())
+	//			for (int i = 0; i < f_index[proc].size(); ++i) {
+	//				int ind = f_index[proc][i];
+	//				//f_cubic[ind]=all_f_cubic[f_index_procs_others_offset[proc]+i];
+	//				query_values[ind + dof * N_pts] =
+	//						f_cubic_unordered[f_index_procs_self_offset[proc]
+	//								+ i + dof * N_pts];
+	//			}
+	//	}
+	//}
+
+#ifdef INTERP_DEBUG
+  PCOUT << "interpolation done\n";
+#endif
+	return;
+}
+
+Interp3_Plan::~Interp3_Plan() {
+	int nprocs, procid;
+	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
+	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+	if (this->allocate_baked) {
+    //if(this->scatter_baked == false)
+      pvfmm::aligned_delete<Real>(query_points);
+
+    pvfmm::aligned_delete<int>(f_index_procs_others_offset);
+		pvfmm::aligned_delete<int>(f_index_procs_self_offset);
+		pvfmm::aligned_delete<int>(f_index_procs_self_sizes);
+		pvfmm::aligned_delete<int>(f_index_procs_others_sizes);
+
+    pvfmm::aligned_delete<MPI_Request>(s_request);
+		pvfmm::aligned_delete<MPI_Request>(request);
+		//vectors
+		for (int proc = 0; proc < nprocs; ++proc) {
+			std::vector<int>().swap(f_index[proc]);
+			std::vector<Real>().swap(query_outside[proc]);
+		}
+    pvfmm::aligned_delete<Real>(f_cubic_unordered);
+
+	}
+
+	if (this->scatter_baked) {
+		for (int i = 0; i < nprocs; ++i) {
+			MPI_Type_free(&stype[i]);
+			MPI_Type_free(&rtype[i]);
+		}
+    pvfmm::aligned_delete<Real>(all_query_points);
+    pvfmm::aligned_delete<Real>(all_f_cubic);
+	}
+
+	if (this->allocate_baked) {
+		delete[] stype;
+		delete[] rtype;
+	}
+	return;
+}
+
+//void Interp3_Plan::high_order_interpolate(Real* ghost_reg_grid_vals, int data_dof,
+//		int* N_reg, int * isize, int* istart, const int N_pts, const int g_size,
+//		Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order) {
+//	int nprocs, procid;
+//	MPI_Comm_rank(c_comm, &procid);
+//	MPI_Comm_size(c_comm, &nprocs);
+//	if (this->allocate_baked == false) {
+//		std::cout
+//				<< "ERROR Interp3_Plan interpolate called before calling allocate.\n";
+//		return;
+//	}
+//	if (this->scatter_baked == false) {
+//		std::cout
+//				<< "ERROR Interp3_Plan interpolate called before calling scatter.\n";
+//		return;
+//	}
+//
+//	timings[1] += -MPI_Wtime();
+//	interp3_ghost_xyz_p(ghost_reg_grid_vals, data_dof, N_reg, N_reg_g, isize_g,
+//			istart, total_query_points, g_size, all_query_points, all_f_cubic, interp_order,
+//			true);
+//	timings[1] += +MPI_Wtime();
+//
+//	// Now we have to do an alltoall to distribute the interpolated data from all_f_cubic to
+//	// f_cubic_unordered.
+//	timings[0] += -MPI_Wtime();
+//	{
+//		int dst_r, dst_s;
+//		for (int i = 0; i < nprocs; ++i) {
+//			dst_r = i;  //(procid+i)%nprocs;
+//			dst_s = i;  //(procid-i+nprocs)%nprocs;
+//			s_request[dst_s] = MPI_REQUEST_NULL;
+//			request[dst_r] = MPI_REQUEST_NULL;
+//			// Notice that this is the adjoint of the first comm part
+//			// because now you are sending others f and receiving your part of f
+//			int soffset = f_index_procs_others_offset[dst_r];
+//			int roffset = f_index_procs_self_offset[dst_s];
+//
+//			if (f_index_procs_self_sizes[dst_r] != 0)
+//				MPI_Irecv(&f_cubic_unordered[roffset], 1, rtype[i], dst_r, 0,
+//						c_comm, &request[dst_r]);
+//			if (f_index_procs_others_sizes[dst_s] != 0)
+//				MPI_Isend(&all_f_cubic[soffset], 1, stype[i], dst_s, 0, c_comm,
+//						&s_request[dst_s]);
+//		}
+//		MPI_Status ierr;
+//		for (int proc = 0; proc < nprocs; ++proc) {
+//			if (request[proc] != MPI_REQUEST_NULL)
+//				MPI_Wait(&request[proc], &ierr);
+//			if (s_request[proc] != MPI_REQUEST_NULL)
+//				MPI_Wait(&s_request[proc], &ierr);
+//		}
+//	}
+//	timings[0] += +MPI_Wtime();
+//
+//	// Now copy back f_cubic_unordered to f_cubic in the correct f_index
+//	for (int dof = 0; dof < data_dof; ++dof) {
+//		for (int proc = 0; proc < nprocs; ++proc) {
+//			if (!f_index[proc].empty())
+//				for (int i = 0; i < f_index[proc].size(); ++i) {
+//					int ind = f_index[proc][i];
+//					//f_cubic[ind]=all_f_cubic[f_index_procs_others_offset[proc]+i];
+//					query_values[ind + dof * N_pts] =
+//							f_cubic_unordered[f_index_procs_self_offset[proc]
+//									+ i + dof * N_pts];
+//				}
+//		}
+//	}
+//
+//	return;
+//}
+//
+//
+//
+//
 void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
 		const int N_pts, const int g_size, Real* query_points_in, int* c_dims,
 		MPI_Comm c_comm, double * timings) {
@@ -584,6 +875,7 @@ void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
   return fast_scatter(data_dof, N_reg, isize, istart, N_pts,
       g_size, query_points_in, c_dims, c_comm, timings);
 #else
+  std::cout << "SCATTER CALLED!\n" << std::endl;
 	int nprocs, procid;
 	MPI_Comm_rank(c_comm, &procid);
 	MPI_Comm_size(c_comm, &nprocs);
@@ -761,17 +1053,17 @@ void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
 		// This if condition is to allow multiple calls to scatter fucntion with different query points
 		// without having to create a new plan
 		if (this->scatter_baked == true) {
-			free(this->all_query_points);
-			free(this->all_f_cubic);
-			all_query_points = (Real*) accfft_alloc(
-					all_query_points_allocation * sizeof(Real));
-			all_f_cubic = (Real*) accfft_alloc(
-					total_query_points * sizeof(Real) * data_dof);
+      pvfmm::aligned_delete<Real>(this->all_query_points);
+      pvfmm::aligned_delete<Real>(this->all_f_cubic);
+			all_query_points = pvfmm::aligned_new<Real>(
+					all_query_points_allocation);
+			all_f_cubic = pvfmm::aligned_new<Real>(
+					total_query_points * data_dof);
 		} else {
-			all_query_points = (Real*) accfft_alloc(
-					all_query_points_allocation * sizeof(Real));
-			all_f_cubic = (Real*) accfft_alloc(
-					total_query_points * sizeof(Real) * data_dof);
+			all_query_points = pvfmm::aligned_new<Real>(
+					all_query_points_allocation);
+			all_f_cubic = pvfmm::aligned_new<Real>(
+					total_query_points * data_dof);
 		}
 
 		// Now perform the allotall to send/recv query_points
@@ -822,251 +1114,4 @@ void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
 	this->scatter_baked = true;
 	return;
 #endif
-}
-
-/*
- * Phase 2 of the parallel interpolation: This function must be called after the scatter function is called.
- * It performs local interpolation for all the points that the processor has for itself, as well as the interpolations
- * that it has to send to other processors. After the local interpolation is performed, a sparse
- * alltoall is performed so that all the interpolated results are sent/received.
- *
- */
-void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals, int data_dof,
-		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
-		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings) {
-	int nprocs, procid;
-	MPI_Comm_rank(c_comm, &procid);
-	MPI_Comm_size(c_comm, &nprocs);
-	if (this->allocate_baked == false) {
-		std::cout
-				<< "ERROR Interp3_Plan interpolate called before calling allocate.\n";
-		return;
-	}
-	if (this->scatter_baked == false) {
-		std::cout
-				<< "ERROR Interp3_Plan interpolate called before calling scatter.\n";
-		return;
-	}
-
-	timings[1] += -MPI_Wtime();
-#ifdef FAST_INTERP
-#ifdef FAST_INTERPV
-  const int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
-  const int* N_reg_c = N_reg;
-  const int* N_reg_g_c = N_reg_g;
-  const int* istart_c = istart;
-  const int* isize_g_c = isize_g;
-  const int total_query_points_c = total_query_points;
-  for (int k = 0; k < data_dof; ++k)
-	vectorized_interp3_ghost_xyz_p(&ghost_reg_grid_vals[k*N_reg3], 1, N_reg_c, N_reg_g_c, isize_g_c,
-			istart_c, total_query_points_c, g_size, all_query_points, &all_f_cubic[k*total_query_points],
-			true);
-#else
-  const int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
-  for (int k = 0; k < data_dof; ++k)
-	optimized_interp3_ghost_xyz_p(&ghost_reg_grid_vals[k*N_reg3], 1, N_reg, N_reg_g, isize_g,
-			istart, total_query_points, g_size, all_query_points, &all_f_cubic[k*total_query_points],
-			true);
-#endif
-#else
-	 interp3_ghost_xyz_p(ghost_reg_grid_vals, data_dof, N_reg, N_reg_g, isize_g,
-			istart, total_query_points, g_size, all_query_points, all_f_cubic,
-			true);
-#endif
-	timings[1] += +MPI_Wtime();
-
-	// Now we have to do an alltoall to distribute the interpolated data from all_f_cubic to
-	// f_cubic_unordered.
-	timings[0] += -MPI_Wtime();
-	{
-		int dst_r, dst_s;
-
-		//for (int i = 0; i < procs_i_send_to_size_; ++i) {
-		for (int i = procs_i_send_to_size_-1; i >=0; --i) {
-			//dst_r = (procid+i)%nprocs;
-			dst_r = procs_i_send_to_[i];    //(procid-i+nprocs)%nprocs;
-			request[dst_r] = MPI_REQUEST_NULL; //recv
-			int roffset = f_index_procs_self_offset[dst_r];
-
-			MPI_Irecv(&f_cubic_unordered[roffset], 1, rtype[dst_r], dst_r, 0,
-					c_comm, &request[dst_r]);
-		}
-		for (int i = 0; i < procs_i_recv_from_size_; ++i) {
-			// dst_s = (procid-i+nprocs)%nprocs;
-			dst_s = procs_i_recv_from_[i];    //(procid+i)%nprocs;
-			s_request[dst_s] = MPI_REQUEST_NULL; //send
-			int soffset = f_index_procs_others_offset[dst_s];
-
-			MPI_Isend(&all_f_cubic[soffset], 1, stype[dst_s], dst_s, 0, c_comm,
-					&s_request[dst_s]);
-		}
-    // wait to receive your part
-			for (int i = 0; i < procs_i_send_to_size_; ++i) {
-				int proc = procs_i_send_to_[i];    //(procid+i)%nprocs;
-				if (request[proc] != MPI_REQUEST_NULL)
-					MPI_Wait(&request[proc], MPI_STATUS_IGNORE);
-	        for (int dof = 0; dof < data_dof; ++dof) {
-            Real* ptr = &f_cubic_unordered[f_index_procs_self_offset[proc]+dof*N_pts];
-                for (int i = 0; i < f_index[proc].size(); ++i) {
-                  int ind = f_index[proc][i];
-                  query_values[ind + dof * N_pts] =ptr[i];
-                }
-          }
-     }
-   // wait for send
-			for (int i = 0; i < procs_i_recv_from_size_; ++i) {
-				int proc = procs_i_recv_from_[i];    //(procid+i)%nprocs;
-				if (s_request[proc] != MPI_REQUEST_NULL)
-					MPI_Wait(&s_request[proc], MPI_STATUS_IGNORE);
-     }
-
-		// for (int i = 0; i < nprocs; ++i) {
-		//	dst_r = (procid+i)%nprocs;
-		//	dst_s = (procid-i+nprocs)%nprocs;
-		//	// s_request[dst_s] = MPI_REQUEST_NULL;
-		//	request[2*dst_s] = MPI_REQUEST_NULL; //send
-		//	request[2*dst_r+1] = MPI_REQUEST_NULL; //recv
-		//	// Notice that this is the adjoint of the first comm part
-		//	// because now you are sending others f and receiving your part of f
-		//	int soffset = f_index_procs_others_offset[dst_s];
-		//	int roffset = f_index_procs_self_offset[dst_r];
-
-		//	if (f_index_procs_self_sizes[dst_r] != 0)
-		//		MPI_Irecv(&f_cubic_unordered[roffset], 1, rtype[dst_r], dst_r, 0,
-		//				c_comm, &request[2*dst_r+1]);
-		//	if (f_index_procs_others_sizes[dst_s] != 0)
-		//		MPI_Isend(&all_f_cubic[soffset], 1, stype[dst_s], dst_s, 0, c_comm,
-		//				&request[2*dst_s]);
-		// }
-    // MPI_Waitall(2*nprocs, request, MPI_STATUSES_IGNORE);
-	}
-	timings[0] += +MPI_Wtime();
-
-	// Now copy back f_cubic_unordered to f_cubic in the correct f_index
-	//for (int dof = 0; dof < data_dof; ++dof) {
-	//	for (int proc = 0; proc < nprocs; ++proc) {
-	//		if (!f_index[proc].empty())
-	//			for (int i = 0; i < f_index[proc].size(); ++i) {
-	//				int ind = f_index[proc][i];
-	//				//f_cubic[ind]=all_f_cubic[f_index_procs_others_offset[proc]+i];
-	//				query_values[ind + dof * N_pts] =
-	//						f_cubic_unordered[f_index_procs_self_offset[proc]
-	//								+ i + dof * N_pts];
-	//			}
-	//	}
-	//}
-
-	return;
-}
-
-Interp3_Plan::~Interp3_Plan() {
-	int nprocs, procid;
-	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
-	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-
-	if (this->allocate_baked) {
-		free(query_points);
-
-		free(f_index_procs_others_offset);
-		free(f_index_procs_self_offset);
-		free(f_index_procs_self_sizes);
-		free(f_index_procs_others_sizes);
-
-		delete[] s_request;
-		delete[] request;
-		//vectors
-		for (int proc = 0; proc < nprocs; ++proc) {
-			std::vector<int>().swap(f_index[proc]);
-			std::vector<Real>().swap(query_outside[proc]);
-		}
-		free(f_cubic_unordered);
-
-	}
-
-	if (this->scatter_baked) {
-		for (int i = 0; i < nprocs; ++i) {
-			MPI_Type_free(&stype[i]);
-			MPI_Type_free(&rtype[i]);
-		}
-		free(all_query_points);
-		free(all_f_cubic);
-	}
-
-	if (this->allocate_baked) {
-		delete[] stype;
-		delete[] rtype;
-	}
-	return;
-}
-
-//void Interp3_Plan::high_order_interpolate(Real* ghost_reg_grid_vals, int data_dof,
-//		int* N_reg, int * isize, int* istart, const int N_pts, const int g_size,
-//		Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order) {
-//	int nprocs, procid;
-//	MPI_Comm_rank(c_comm, &procid);
-//	MPI_Comm_size(c_comm, &nprocs);
-//	if (this->allocate_baked == false) {
-//		std::cout
-//				<< "ERROR Interp3_Plan interpolate called before calling allocate.\n";
-//		return;
-//	}
-//	if (this->scatter_baked == false) {
-//		std::cout
-//				<< "ERROR Interp3_Plan interpolate called before calling scatter.\n";
-//		return;
-//	}
-//
-//	timings[1] += -MPI_Wtime();
-//	interp3_ghost_xyz_p(ghost_reg_grid_vals, data_dof, N_reg, N_reg_g, isize_g,
-//			istart, total_query_points, g_size, all_query_points, all_f_cubic, interp_order,
-//			true);
-//	timings[1] += +MPI_Wtime();
-//
-//	// Now we have to do an alltoall to distribute the interpolated data from all_f_cubic to
-//	// f_cubic_unordered.
-//	timings[0] += -MPI_Wtime();
-//	{
-//		int dst_r, dst_s;
-//		for (int i = 0; i < nprocs; ++i) {
-//			dst_r = i;  //(procid+i)%nprocs;
-//			dst_s = i;  //(procid-i+nprocs)%nprocs;
-//			s_request[dst_s] = MPI_REQUEST_NULL;
-//			request[dst_r] = MPI_REQUEST_NULL;
-//			// Notice that this is the adjoint of the first comm part
-//			// because now you are sending others f and receiving your part of f
-//			int soffset = f_index_procs_others_offset[dst_r];
-//			int roffset = f_index_procs_self_offset[dst_s];
-//
-//			if (f_index_procs_self_sizes[dst_r] != 0)
-//				MPI_Irecv(&f_cubic_unordered[roffset], 1, rtype[i], dst_r, 0,
-//						c_comm, &request[dst_r]);
-//			if (f_index_procs_others_sizes[dst_s] != 0)
-//				MPI_Isend(&all_f_cubic[soffset], 1, stype[i], dst_s, 0, c_comm,
-//						&s_request[dst_s]);
-//		}
-//		MPI_Status ierr;
-//		for (int proc = 0; proc < nprocs; ++proc) {
-//			if (request[proc] != MPI_REQUEST_NULL)
-//				MPI_Wait(&request[proc], &ierr);
-//			if (s_request[proc] != MPI_REQUEST_NULL)
-//				MPI_Wait(&s_request[proc], &ierr);
-//		}
-//	}
-//	timings[0] += +MPI_Wtime();
-//
-//	// Now copy back f_cubic_unordered to f_cubic in the correct f_index
-//	for (int dof = 0; dof < data_dof; ++dof) {
-//		for (int proc = 0; proc < nprocs; ++proc) {
-//			if (!f_index[proc].empty())
-//				for (int i = 0; i < f_index[proc].size(); ++i) {
-//					int ind = f_index[proc][i];
-//					//f_cubic[ind]=all_f_cubic[f_index_procs_others_offset[proc]+i];
-//					query_values[ind + dof * N_pts] =
-//							f_cubic_unordered[f_index_procs_self_offset[proc]
-//									+ i + dof * N_pts];
-//				}
-//		}
-//	}
-//
-//	return;
-//}
+} // end scatter
