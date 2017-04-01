@@ -101,6 +101,7 @@ static void sort_queries(std::vector<Real>* query_outside,
 	return;
 }
 
+#include "libmorton/libmorton/include/morton.h"
 
 class zTrip {
 public:

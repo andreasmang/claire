@@ -4,7 +4,6 @@
 
 #include <accfft.h>
 #include <accfftf.h>
-#include "libmorton/libmorton/include/morton.h"
 
 #define FAST_INTERP
 #define FAST_INTERPV // enable ONLY for single precision
