@@ -257,10 +257,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             ierr = this->Usage(true); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-nx") == 0) {
             argc--; argv++;
-            const std::string nxinput = argv[1];
+            std::string nxinput(argv[1]);
 
             // strip the "x" in the string to get the numbers
-            values = String2Vec(nxinput);
+            values = String2Vec(static_cast<const std::string>(nxinput));
 
             if (values.size() == 1) {
                 for (int i = 0; i < 3; ++i) {
@@ -284,10 +284,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Domain.nc = static_cast<IntType>(atoi(argv[1]));
         } else if (strcmp(argv[1], "-sigma") == 0) {
             argc--; argv++;
-            const std::string sigmainput = argv[1];
+            std::string sigmainput(argv[1]);
 
             // strip the "x" in the string to get the numbers
-            values = String2Vec(sigmainput);
+            values = String2Vec(static_cast<const std::string>(sigmainput));
 
             if (values.size() == 1) {
                 for (int i = 0; i < 3; ++i) {
@@ -774,9 +774,9 @@ PetscErrorCode RegOpt::DestroyFFT() {
         this->m_FFT.plan = NULL;
     }
 
-    if (this->m_FFT.mpicommexists) {
+//    if (this->m_FFT.mpicommexists) {
         MPI_Comm_free(&this->m_FFT.mpicomm);
-    }
+//    }
 
     PetscFunctionReturn(ierr);
 }
@@ -804,11 +804,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // if communicator is not set up
-    if (this->m_FFT.mpicommexists == false) {
+//    if (this->m_FFT.mpicommexists == false) {
         ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                           this->m_FFT.mpicomm, false); CHKERRQ(ierr);
         this->m_FFT.mpicommexists = true;
-    }
+//    }
 
     //PETSC_COMM_WORLD = this->m_FFT.mpicomm;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
