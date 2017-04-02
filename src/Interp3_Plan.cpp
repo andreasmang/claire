@@ -40,6 +40,7 @@ Interp3_Plan::Interp3_Plan() {
   procs_i_recv_from_size_ = 0;
   procs_i_send_to_size_ = 0;
 }
+
 void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
@@ -70,16 +71,17 @@ void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
     max = std::max(max, data_dofs[i]);
     this->data_dofs_[i] = data_dofs[i];
   }
-  this->data_dof = max;
+  this->data_dof_max = max;
 
-	f_cubic_unordered = pvfmm::aligned_new<Real>(N_pts * data_dof); // The reshuffled semi-final interpolated values are stored here
-  memset(&f_cubic_unordered[0],0, N_pts * sizeof(Real) * data_dof);
+	f_cubic_unordered = pvfmm::aligned_new<Real>(N_pts * data_dof_max); // The reshuffled semi-final interpolated values are stored here
+  memset(&f_cubic_unordered[0],0, N_pts * sizeof(Real) * data_dof_max);
 
 	stypes = pvfmm::aligned_new<MPI_Datatype>(nprocs*nplans_); // strided for multiple plan calls
 	rtypes = pvfmm::aligned_new<MPI_Datatype>(nprocs*nplans_);
 	this->allocate_baked = true;
 #ifdef INTERP_DEBUG
   PCOUT << "allocate done\n";
+  ParLOG << "nplans_ = " << nplans_ << " data_dof_max = " << data_dof_max << std::endl;
 #endif
 }
 
@@ -279,7 +281,7 @@ static void zsort_queries(std::vector<Real>* query_outside,
  * optimizations performed which assumes that the query_points do not change. For repeated interpolation you should
  * just call this function once, and instead repeatedly call Interp3_Plan::interpolate function.
  */
-void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* istart,
+void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
 		const int N_pts, const int g_size, Real* query_points_in, int* c_dims,
 		MPI_Comm c_comm, double * timings) {
 	int nprocs, procid;
@@ -565,7 +567,7 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 		all_query_points = pvfmm::aligned_new<Real>(
 				all_query_points_allocation+16*COORD_DIM); // 16 for blocking in interp
 		all_f_cubic = pvfmm::aligned_new<Real>(
-				total_query_points * data_dof + (16*isize_g[2]*isize_g[1]+16*isize_g[1]+16));
+				total_query_points * data_dof_max + (16*isize_g[2]*isize_g[1]+16*isize_g[1]+16));
 
 #ifdef INTERP_DEBUG
     //parallel_print(total_query_points, "total_q_points");
@@ -637,16 +639,19 @@ void Interp3_Plan::fast_scatter(int data_dof, int* N_reg, int * isize, int* ista
 #ifdef INTERP_DEBUG
   PCOUT << "done with comm\n";
 #endif
-  for(int rep = 0; rep < nplans_; ++rep)
+  // ParLOG << "nplans_ = " << nplans_ << " data_dof_max = " << data_dof_max << std::endl;
+  // ParLOG << "data_dofs[0] = " << data_dofs_[0] << " [1] = " << data_dofs_[1] << std::endl;
+  for(int ver = 0; ver < nplans_; ++ver){
+    PCOUT << "ver = " << ver << std::endl;
 	for (int i = 0; i < nprocs; ++i) {
-		MPI_Type_vector(data_dof, f_index_procs_self_sizes[i], N_pts, MPI_T,
-				&rtypes[i+rep*nplans_]);
-		MPI_Type_vector(data_dof, f_index_procs_others_sizes[i],
-				total_query_points, MPI_T, &stypes[i+rep*nplans_]);
-		MPI_Type_commit(&stypes[i+rep*nplans_]);
-		MPI_Type_commit(&rtypes[i+rep*nplans_]);
+		MPI_Type_vector(data_dofs_[ver], f_index_procs_self_sizes[i], N_pts, MPI_T,
+				&rtypes[i+ver*nprocs]);
+		MPI_Type_vector(data_dofs_[ver], f_index_procs_others_sizes[i],
+				total_query_points, MPI_T, &stypes[i+ver*nprocs]);
+		MPI_Type_commit(&stypes[i+ver*nprocs]);
+		MPI_Type_commit(&rtypes[i+ver*nprocs]);
 	}
-
+  }
   if(total_query_points !=0)
 	rescale_xyz(g_size, N_reg, N_reg_g, istart, isize, isize_g, total_query_points,
 			&all_query_points[0]);
@@ -842,8 +847,8 @@ Interp3_Plan::~Interp3_Plan() {
 	if (this->scatter_baked) {
 		for (int ver = 0; ver < nplans_; ++ver)
 		for (int i = 0; i < nprocs; ++i) {
-			MPI_Type_free(&stypes[i+ver*nplans_]);
-			MPI_Type_free(&rtypes[i+ver*nplans_]);
+			MPI_Type_free(&stypes[i+ver*nprocs]);
+			MPI_Type_free(&rtypes[i+ver*nprocs]);
 		}
     pvfmm::aligned_delete<Real>(all_query_points);
     pvfmm::aligned_delete<Real>(all_f_cubic);
@@ -933,11 +938,11 @@ Interp3_Plan::~Interp3_Plan() {
 //
 //
 //
-void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
+void Interp3_Plan::scatter(int* N_reg, int * isize, int* istart,
 		const int N_pts, const int g_size, Real* query_points_in, int* c_dims,
 		MPI_Comm c_comm, double * timings) {
 #ifdef FAST_INTERP
-  return fast_scatter(data_dof, N_reg, isize, istart, N_pts,
+  return fast_scatter(N_reg, isize, istart, N_pts,
       g_size, query_points_in, c_dims, c_comm, timings);
 #else
   std::cout << "SCATTER CALLED!\n" << std::endl;
@@ -1123,12 +1128,12 @@ void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
 			all_query_points = pvfmm::aligned_new<Real>(
 					all_query_points_allocation);
 			all_f_cubic = pvfmm::aligned_new<Real>(
-					total_query_points * data_dof);
+					total_query_points * data_dof_max);
 		} else {
 			all_query_points = pvfmm::aligned_new<Real>(
 					all_query_points_allocation);
 			all_f_cubic = pvfmm::aligned_new<Real>(
-					total_query_points * data_dof);
+					total_query_points * data_dof_max);
 		}
 
 		// Now perform the allotall to send/recv query_points
@@ -1163,14 +1168,17 @@ void Interp3_Plan::scatter(int data_dof, int* N_reg, int * isize, int* istart,
 		timings[0] += +MPI_Wtime();
 	}
 
+  for(int ver = 0; ver < nplans_; ++ver){
+    PCOUT << "ver = " << ver << std::endl;
 	for (int i = 0; i < nprocs; ++i) {
-		MPI_Type_vector(data_dof, f_index_procs_self_sizes[i], N_pts, MPI_T,
-				&rtype[i]);
-		MPI_Type_vector(data_dof, f_index_procs_others_sizes[i],
-				total_query_points, MPI_T, &stype[i]);
-		MPI_Type_commit(&stype[i]);
-		MPI_Type_commit(&rtype[i]);
+		MPI_Type_vector(data_dofs_[ver], f_index_procs_self_sizes[i], N_pts, MPI_T,
+				&rtypes[i+ver*nprocs]);
+		MPI_Type_vector(data_dofs_[ver], f_index_procs_others_sizes[i],
+				total_query_points, MPI_T, &stypes[i+ver*nprocs]);
+		MPI_Type_commit(&stypes[i+ver*nprocs]);
+		MPI_Type_commit(&rtypes[i+ver*nprocs]);
 	}
+  }
 
 	rescale_xyz(g_size, N_reg, N_reg_g, istart, isize, isize_g, total_query_points,
 			all_query_points);
