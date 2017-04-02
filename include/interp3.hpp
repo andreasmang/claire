@@ -4,12 +4,15 @@
 
 #include <accfft.h>
 #include <accfftf.h>
-
+#include <glog/logging.h>
+#undef PCOUT
+#define ParLOG if(procid==0) LOG(INFO)
+#define PCOUT if(procid==0) std::cerr
 #define FAST_INTERP
 #define FAST_INTERPV // enable ONLY for single precision
 #define FAST_INTERP_BINNING
 #define HASWELL
-//#define KNL
+// #define KNL
 
 
 
@@ -82,10 +85,10 @@ public:
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_points_in, Real* query_values, int* c_dims,
 			MPI_Comm c_comm);
-	void fast_scatter(int data_dof, int* N_reg, int * isize, int* istart,
+	void fast_scatter(int* N_reg, int * isize, int* istart,
 			const int N_pts, const int g_size, Real* query_points_in,
 			int* c_dims, MPI_Comm c_comm, double * timings);
-	void scatter(int data_dof, int* N_reg, int * isize, int* istart,
+	void scatter(int* N_reg, int * isize, int* istart,
 			const int N_pts, const int g_size, Real* query_points_in,
 			int* c_dims, MPI_Comm c_comm, double * timings);
 	// void interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
@@ -101,7 +104,7 @@ public:
 	int N_reg_g[3];
 	int isize_g[3];
 	int total_query_points;
-	int data_dof;
+	int data_dof_max;
   int nplans_;
   pvfmm::Iterator<int> data_dofs_;
 	size_t all_query_points_allocation;
