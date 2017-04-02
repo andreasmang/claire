@@ -4,9 +4,9 @@
 
 #include <accfft.h>
 #include <accfftf.h>
-#include <glog/logging.h>
+// #include <glog/logging.h>
 #undef PCOUT
-#define ParLOG if(procid==0) LOG(INFO)
+//#define ParLOG if(procid==0) LOG(INFO)
 #define PCOUT if(procid==0) std::cerr
 #define FAST_INTERP
 #define FAST_INTERPV // enable ONLY for single precision

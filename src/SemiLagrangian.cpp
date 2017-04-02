@@ -75,15 +75,14 @@ PetscErrorCode SemiLagrangian::Initialize() {
 
     this->m_StatePlan = NULL;
     this->m_AdjointPlan = NULL;
-    this->m_StatePlanVec = NULL;
-    this->m_AdjointPlanVec = NULL;
-
-    this->m_VecFieldPlan = NULL;
+//    this->m_VecFieldPlan = NULL;
 
     this->m_ScaFieldGhost = NULL;
     this->m_VecFieldGhost = NULL;
 
     this->m_Opt = NULL;
+    this->m_Dofs[0] = 1;
+    this->m_Dofs[1] = 3;
 
     PetscFunctionReturn(ierr);
 }
@@ -111,18 +110,10 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
         delete this->m_StatePlan;
         this->m_StatePlan = NULL;
     }
-    if (this->m_StatePlanVec != NULL) {
-        delete this->m_StatePlanVec;
-        this->m_StatePlanVec = NULL;
-    }
-    if (this->m_AdjointPlanVec != NULL) {
-        delete this->m_AdjointPlanVec;
-        this->m_AdjointPlanVec = NULL;
-    }
-    if (this->m_VecFieldPlan != NULL) {
-        delete this->m_VecFieldPlan;
-        this->m_VecFieldPlan = NULL;
-    }
+//    if (this->m_VecFieldPlan != NULL) {
+//        delete this->m_VecFieldPlan;
+//        this->m_VecFieldPlan = NULL;
+//    }
 
     if (this->m_ScaFieldGhost != NULL) {
         accfft_free(this->m_ScaFieldGhost);
@@ -240,7 +231,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // interpolate velocity field v(X)
-    ierr = this->CommunicateCoordVecField(flag); CHKERRQ(ierr);
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField, v, flag); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
@@ -267,10 +258,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // only communicate vector field if we run the inversion
-    if (this->m_Opt->GetRegFlags().runninginversion) {
-        ierr = this->CommunicateCoordVecField(flag); CHKERRQ(ierr);
-    }
-    ierr = this->CommunicateCoordScaField(flag); CHKERRQ(ierr);
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -319,7 +307,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     IntType nl, g_alloc_max;
     std::stringstream ss;
     accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;  ///< accfft plan
-//    accfft_plan* plan = NULL;
     double timers[4] = {0, 0, 0, 0};
 
     PetscFunctionBegin;
@@ -364,19 +351,11 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     accfft_get_ghost_xyz(plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
 
     if (strcmp(flag.c_str(), "state") == 0) {
-        this->m_StatePlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
-                                       neval, nghost, xo, c_dims,
-                                       this->m_Opt->GetFFT().mpicomm, timers);
- //       this->m_StatePlan->high_order_interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
- //                                      neval, nghost, xo, c_dims,
- //                                      this->m_Opt->GetFFT().mpicomm, timers, order);
+        this->m_StatePlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
+                                       neval, nghost, xo, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 0);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
-                                         neval, nghost, xo, c_dims,
-                                         this->m_Opt->GetFFT().mpicomm, timers);
- //       this->m_AdjointPlan->high_order_interpolate(this->m_ScaFieldGhost, 1, nx, isize, istart,
- //                                      neval, nghost, xo, c_dims,
- //                                      this->m_Opt->GetFFT().mpicomm, timers, order);
+        this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
+                                       neval, nghost, xo, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 0);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
@@ -507,21 +486,13 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     }
 
     if (strcmp(flag.c_str(),"state") == 0) {
-        ierr = Assert(this->m_StatePlanVec != NULL, "null pointer"); CHKERRQ(ierr);
-        this->m_StatePlanVec->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
-                                          nl, nghost, this->m_X, c_dims,
-                                          this->m_Opt->GetFFT().mpicomm, timers);
- //       this->m_StatePlanVec->high_order_interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
- //                                         nl, nghost, this->m_X, c_dims,
- //                                         this->m_Opt->GetFFT().mpicomm, timers, order);
+        ierr = Assert(this->m_StatePlan != NULL, "null pointer"); CHKERRQ(ierr);
+        this->m_StatePlan->interpolate(this->m_VecFieldGhost, nx, isize, istart,
+                                       nl, nghost, this->m_X, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 1);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
-        ierr = Assert(this->m_AdjointPlanVec != NULL, "null pointer"); CHKERRQ(ierr);
-        this->m_AdjointPlanVec->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
-                                            nl, nghost, this->m_X, c_dims,
-                                            this->m_Opt->GetFFT().mpicomm, timers);
- //       this->m_AdjointPlanVec->high_order_interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
- //                                         nl, nghost, this->m_X, c_dims,
- //                                         this->m_Opt->GetFFT().mpicomm, timers, order);
+        ierr = Assert(this->m_AdjointPlan != NULL, "null pointer"); CHKERRQ(ierr);
+        this->m_AdjointPlan->interpolate(this->m_VecFieldGhost, nx, isize, istart,
+                                         nl, nghost, this->m_X, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 1);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
@@ -552,7 +523,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
                                             ScalarType* vx1, ScalarType* vx2, ScalarType* vx3,
                                             ScalarType* yx1, ScalarType* yx2, ScalarType* yx3) {
     PetscErrorCode ierr = 0;
-    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nghost, order;
+    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nghost, order, ddofs = 3;
     double timers[4] = {0, 0, 0, 0};
     std::stringstream ss;
     IntType nl, nlghost, nalloc;
@@ -560,7 +531,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
+/*
     ierr = Assert(vx1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vx3 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -604,7 +575,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
-        this->m_VecFieldPlan->allocate(nl, 3);
+        this->m_VecFieldPlan->allocate(nl, &ddofs);
     }
 
     for (IntType i = 0; i < nl; ++i) {
@@ -614,7 +585,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     }
 
     // scatter
-    this->m_VecFieldPlan->scatter(3, nx, isize, istart, nl, nghost,
+    this->m_VecFieldPlan->scatter(nx, isize, istart, nl, nghost,
                                   this->m_X, c_dims, this->m_Opt->GetFFT().mpicomm, timers);
 
     for (IntType i = 0; i < nl; ++i) {
@@ -645,12 +616,15 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
                              &this->m_X[i*nl], &this->m_VecFieldGhost[i*nlghost]);
     }
 
-    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
+    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost, nx, isize, istart,
                                       nl, nghost, this->m_X, c_dims,
                                       this->m_Opt->GetFFT().mpicomm, timers);
- //   this->m_VecFieldPlan->high_order_interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
- //                                     nl, nghost, this->m_X, c_dims,
- //                                     this->m_Opt->GetFFT().mpicomm, timers, order);
+//    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
+//                                      nl, nghost, this->m_X, c_dims,
+//                                      this->m_Opt->GetFFT().mpicomm, timers);
+//    this->m_VecFieldPlan->high_order_interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
+//                                      nl, nghost, this->m_X, c_dims,
+//                                      this->m_Opt->GetFFT().mpicomm, timers, order);
 
     for (IntType i = 0; i < nl; ++i) {
         wx1[i] = this->m_X[0*nl+i];
@@ -659,7 +633,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
     }
 
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
-
+*/
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 
@@ -675,85 +649,7 @@ PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, Sc
  * @brief communicate the coordinate vector (query points)
  * @param flag to switch between forward and adjoint solves
  *******************************************************************/
-PetscErrorCode SemiLagrangian::CommunicateCoordScaField(std::string flag) {
-    PetscErrorCode ierr;
-    int nx[3], nl, isize[3], istart[3], nghost;
-    int c_dims[2];
-    double timers[4] = {0, 0, 0, 0};
-    std::stringstream ss;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    // get sizes
-    ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
-
-    for (int i = 0; i < 3; ++i) {
-        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
-    }
-    c_dims[0] = this->m_Opt->GetNetworkDims(0);
-    c_dims[1] = this->m_Opt->GetNetworkDims(1);
-
-    nl     = static_cast<int>(this->m_Opt->GetDomainPara().nl);
-    nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
-
-    // measure my own timings
-    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
-
-    if (strcmp(flag.c_str(), "state") == 0) {
-        // characteristic for state equation should have been computed already
-        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
-        // create planer
-        if (this->m_StatePlan == NULL) {
-            try {this->m_StatePlan = new Interp3_Plan();}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-            this->m_StatePlan->allocate(nl, 1);
-        }
-
-        // communicate query points
-        this->m_StatePlan->scatter(1, nx, isize, istart, nl, nghost, this->m_X,
-                                   c_dims, this->m_Opt->GetFFT().mpicomm, timers);
-    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        // characteristic for adjoint equation should have been computed already
-        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // create planer
-        if (this->m_AdjointPlan == NULL) {
-            try {this->m_AdjointPlan = new Interp3_Plan();}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-            this->m_AdjointPlan->allocate(nl, 1);
-        }
-
-        // scatter
-        this->m_AdjointPlan->scatter(1, nx, isize, istart, nl, nghost, this->m_X,
-                                     c_dims, this->m_Opt->GetFFT().mpicomm, timers);
-    } else {
-        ierr = ThrowError("user did not set correct flag"); CHKERRQ(ierr);
-    }
-
-    // measure my own timings
-    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
-    this->m_Opt->IncreaseInterpTimers(timers);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief communicate the coordinate vector (query points)
- * @param flag to switch between forward and adjoint solves
- *******************************************************************/
-PetscErrorCode SemiLagrangian::CommunicateCoordVecField(std::string flag) {
+PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
     PetscErrorCode ierr;
     int nx[3], nl, isize[3], istart[3], nghost;
     int c_dims[2];
@@ -785,32 +681,32 @@ PetscErrorCode SemiLagrangian::CommunicateCoordVecField(std::string flag) {
         // characteristic for state equation should have been computed already
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
-        if (this->m_StatePlanVec == NULL) {
-            try {this->m_StatePlanVec = new Interp3_Plan();}
+        if (this->m_StatePlan == NULL) {
+            try {this->m_StatePlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
-            this->m_StatePlanVec->allocate(nl, 3);
+            this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
         }
 
         // scatter
-        this->m_StatePlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_X,
-                                      c_dims, this->m_Opt->GetFFT().mpicomm, timers);
+        this->m_StatePlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
+                                   c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         // characteristic for adjoint equation should have been computed already
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
-        if (this->m_AdjointPlanVec == NULL) {
-            try {this->m_AdjointPlanVec = new Interp3_Plan();}
+        if (this->m_AdjointPlan == NULL) {
+            try {this->m_AdjointPlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
-            this->m_AdjointPlanVec->allocate(nl, 3);
+            this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
         }
 
         // communicate coordinates
-        this->m_AdjointPlanVec->scatter(3, nx, isize, istart, nl, nghost, this->m_X,
-                                        c_dims, this->m_Opt->GetFFT().mpicomm, timers);
+        this->m_AdjointPlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
+                                     c_dims, this->m_Opt->GetFFT().mpicomm, timers);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
