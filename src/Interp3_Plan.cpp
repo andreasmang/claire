@@ -642,7 +642,6 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
   // ParLOG << "nplans_ = " << nplans_ << " data_dof_max = " << data_dof_max << std::endl;
   // ParLOG << "data_dofs[0] = " << data_dofs_[0] << " [1] = " << data_dofs_[1] << std::endl;
   for(int ver = 0; ver < nplans_; ++ver){
-    PCOUT << "ver = " << ver << std::endl;
 	for (int i = 0; i < nprocs; ++i) {
 		MPI_Type_vector(data_dofs_[ver], f_index_procs_self_sizes[i], N_pts, MPI_T,
 				&rtypes[i+ver*nprocs]);
@@ -741,7 +740,7 @@ void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals,
 			request[dst_r] = MPI_REQUEST_NULL; //recv
 			int roffset = f_index_procs_self_offset[dst_r];
 
-			MPI_Irecv(&f_cubic_unordered[roffset], 1, rtypes[dst_r+version*nplans_], dst_r, 0,
+			MPI_Irecv(&f_cubic_unordered[roffset], 1, rtypes[dst_r+version*nprocs], dst_r, 0,
 					c_comm, &request[dst_r]);
 		}
 		for (int i = 0; i < procs_i_recv_from_size_; ++i) {
@@ -750,7 +749,7 @@ void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals,
 			s_request[dst_s] = MPI_REQUEST_NULL; //send
 			int soffset = f_index_procs_others_offset[dst_s];
 
-			MPI_Isend(&all_f_cubic[soffset], 1, stypes[dst_s+version*nplans_], dst_s, 0, c_comm,
+			MPI_Isend(&all_f_cubic[soffset], 1, stypes[dst_s+version*nprocs], dst_s, 0, c_comm,
 					&s_request[dst_s]);
 		}
     // wait to receive your part
@@ -1169,7 +1168,6 @@ void Interp3_Plan::scatter(int* N_reg, int * isize, int* istart,
 	}
 
   for(int ver = 0; ver < nplans_; ++ver){
-    PCOUT << "ver = " << ver << std::endl;
 	for (int i = 0; i < nprocs; ++i) {
 		MPI_Type_vector(data_dofs_[ver], f_index_procs_self_sizes[i], N_pts, MPI_T,
 				&rtypes[i+ver*nprocs]);
