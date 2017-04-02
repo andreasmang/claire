@@ -77,7 +77,7 @@ struct Interp3_Plan {
 public:
 	Interp3_Plan();
   pvfmm::Iterator<Real> query_points;
-	void allocate(int N_pts, int data_dof);
+	void allocate(int N_pts, int* data_dofs = NULL,int nplans = 1);
 	void slow_run(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_points_in, Real* query_values, int* c_dims,
@@ -91,9 +91,9 @@ public:
 	// void interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 	// 		int * isize, int* istart, const int N_pts, const int g_size,
 	// 		Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings);
-  void interpolate(Real* __restrict ghost_reg_grid_vals, int data_dof,
+  void interpolate(Real* __restrict ghost_reg_grid_vals,
 		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
-		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings);
+		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings, int version =0);
 	void high_order_interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order);
@@ -102,8 +102,10 @@ public:
 	int isize_g[3];
 	int total_query_points;
 	int data_dof;
+  int nplans_;
+  pvfmm::Iterator<int> data_dofs_;
 	size_t all_query_points_allocation;
-	MPI_Datatype *stype, *rtype;
+  pvfmm::Iterator<MPI_Datatype> stypes, rtypes;
 
   pvfmm::Iterator<Real> all_query_points;
   pvfmm::Iterator<Real> all_f_cubic;

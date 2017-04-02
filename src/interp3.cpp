@@ -39,6 +39,7 @@ void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
   const Real N1 = N_reg[1];
   const Real N2 = N_reg[2];
 
+#pragma omp parallel for
 	for (int i = 0; i < N_pts; i++) {
     Real* Q_ptr = &Q_[COORD_DIM * i];
     Q_ptr[0] = (Q_ptr[0]-iX0)*N0+g_size;
@@ -46,6 +47,15 @@ void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
     Q_ptr[2] = (Q_ptr[2]-iX2)*N2+g_size;
 	}
 
+  //std::cout <<std::floor(N_pts/16.0)*16<< '\t' <<std::ceil(N_pts/16.0)*16 << std::endl;
+  // set Q to be one so that for the peeled loop we only access grid indxx =0
+  if(N_pts%16 != 0)
+	for (int i = std::floor(N_pts/16.0)*16+N_pts%16; i < std::ceil(N_pts/16.0)*16; i++) {
+    Real* Q_ptr = &Q_[COORD_DIM * i];
+    Q_ptr[0] = 1;
+    Q_ptr[1] = 1;
+    Q_ptr[2] = 1;
+	}
 	return;
 } // end of rescale_xyz
 
@@ -124,11 +134,232 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
 
+#ifdef INTERP_DEBUG
+	int nprocs, procid;
+	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
+  PCOUT << "In KNL kernel\n";
+#endif
+  const __m512  c1000_512 = _mm512_broadcast_f32x4(_mm_setr_ps(-1.0,-0.0,-0.0,-0.0));
+  const __m512  c2211_512 = _mm512_broadcast_f32x4(_mm_setr_ps(-2.0,-2.0,-1.0,-1.0));
+  const __m512  c3332_512 = _mm512_broadcast_f32x4(_mm_setr_ps(-3.0,-3.0,-3.0,-2.0));
+
+  const __m512  c0010_512 = _mm512_set_ps(
+      -0.0,-0.0,-0.0,-0.0,
+      -0.0,-0.0,-0.0,-0.0,
+      -1.0,-1.0,-1.0,-1.0,
+      -0.0,-0.0,-0.0,-0.0
+      );
+  const __m512  c1122_512 = _mm512_set_ps(
+      -1.0,-1.0,-1.0,-1.0,
+      -1.0,-1.0,-1.0,-1.0,
+      -2.0,-2.0,-2.0,-2.0,
+      -2.0,-2.0,-2.0,-2.0
+      );
+  const __m512  c3233_512 = _mm512_set_ps(
+      -3.0,-3.0,-3.0,-3.0,
+      -2.0,-2.0,-2.0,-2.0,
+      -3.0,-3.0,-3.0,-3.0,
+      -3.0,-3.0,-3.0,-3.0
+      );
+  const __m512 vlagr_3333_2222_0000_1111_512  = _mm512_set_ps(
+      -0.5,-0.5,-0.5,-0.5,
+      +0.1666666667,0.1666666667,0.1666666667,0.1666666667,
+      -0.1666666667,-0.1666666667,-0.1666666667,-0.1666666667,
+       0.5,0.5,0.5,0.5
+      );
+  //print512(c1000_512,"512");
+  //print512(c3332_512,"");
+  //do{}while(1);
+
+  const __m512 vlagr_512 = _mm512_set_ps(
+      -0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667,
+      -0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667
+      );
+  const int isize_g2 = isize_g[2];
+  const int two_isize_g2 = 2*isize_g2;
+  const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
+  const int NzNy = isize_g2 * isize_g[1];
+  Real* Q_ptr = query_points;
+
+
+  // std::cout << "KNL" << std::endl;
+  //_mm_prefetch( (char*)Q_ptr,_MM_HINT_NTA);
+
+
+  int CHUNK=16;
+
+//#pragma omp parallel for
+//	for (int ii = 0; ii < (int)std::ceil(N_pts/(float)CHUNK); ii++) {
+#pragma omp parallel for
+	for (int i = 0; i < N_pts; i++) {
+
+		//Real val[CHUNK];
+	//for (int jj = 0; jj < CHUNK; jj++) {
+    //int i = ii*CHUNK + jj;
+    //std::cout << "i = " << i << std::endl;
+		Real point[COORD_DIM];
+		int grid_indx[COORD_DIM];
+
+		point[0] = Q_ptr[i*3+0];
+		grid_indx[0] = ((int)(point[0])) - 1;
+		point[0] -= grid_indx[0];
+
+		point[1] = Q_ptr[i*3+1];
+		grid_indx[1] = ((int)(point[1])) - 1;
+		point[1] -= grid_indx[1];
+
+		point[2] = Q_ptr[i*3+2];
+		grid_indx[2] = ((int)(point[2])) - 1;
+		point[2] -= grid_indx[2];
+
+		const int indxx = NzNy * grid_indx[0] + grid_indx[2] + isize_g2 * grid_indx[1] ;
+    //_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
+
+    __m512 vM1_2222_3333_0000_1111(vlagr_3333_2222_0000_1111_512);
+    __m512 vM2_512(vlagr_512);
+    __m512 vM0_512(vlagr_512);
+
+    {
+    const __m512 vx0_512 =  _mm512_set1_ps(point[0]);
+    vM0_512  = _mm512_mul_ps(vM0_512 , _mm512_add_ps(vx0_512,c1000_512));
+    vM0_512  = _mm512_mul_ps(vM0_512 , _mm512_add_ps(vx0_512,c2211_512));
+    vM0_512  = _mm512_mul_ps(vM0_512 , _mm512_add_ps(vx0_512,c3332_512));
+
+    const __m512 vx1_512 =  _mm512_set1_ps(point[1]);
+    vM1_2222_3333_0000_1111  = _mm512_mul_ps(vM1_2222_3333_0000_1111 , _mm512_add_ps(vx1_512,c0010_512));
+    vM1_2222_3333_0000_1111  = _mm512_mul_ps(vM1_2222_3333_0000_1111 , _mm512_add_ps(vx1_512,c1122_512));
+    vM1_2222_3333_0000_1111  = _mm512_mul_ps(vM1_2222_3333_0000_1111 , _mm512_add_ps(vx1_512,c3233_512));
+
+    const __m512 vx2_512 =  _mm512_set1_ps(point[2]);
+    vM2_512  = _mm512_mul_ps(vM2_512 , _mm512_add_ps(vx2_512,c1000_512));
+    vM2_512  = _mm512_mul_ps(vM2_512 , _mm512_add_ps(vx2_512,c2211_512));
+    vM2_512  = _mm512_mul_ps(vM2_512 , _mm512_add_ps(vx2_512,c3332_512));
+    }
+
+    int indx = 0;
+    Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
+    //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
+
+    // load all vfij
+
+          __m512 vf_i0_j0123 = _mm512_setzero_ps();
+          //std::cout << "indxx = " << indxx << std::endl;
+          //std::cout <<  "grid indx[0] = " << grid_indx[0] <<
+          //              "grid indx[1] = " << grid_indx[1] <<
+          //              "grid indx[2] = " << grid_indx[2] <<
+          //  std::endl;
+          vf_i0_j0123 = _mm512_mask_expandloadu_ps(vf_i0_j0123, 0b0000000011110000, reg_ptr);
+          vf_i0_j0123 = _mm512_mask_expandloadu_ps(vf_i0_j0123, 0b0000000000001111, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vf_i0_j0123 = _mm512_mask_expandloadu_ps(vf_i0_j0123, 0b1111000000000000, reg_ptr);
+          vf_i0_j0123 = _mm512_mask_expandloadu_ps(vf_i0_j0123, 0b0000111100000000, reg_ptr+isize_g2);
+           reg_ptr +=  reg_plus;
+
+          __m512 vf_i1_j0123 = _mm512_setzero_ps();
+          vf_i1_j0123 = _mm512_mask_expandloadu_ps(vf_i1_j0123, 0b0000000011110000, reg_ptr);
+          vf_i1_j0123 = _mm512_mask_expandloadu_ps(vf_i1_j0123, 0b0000000000001111, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vf_i1_j0123 = _mm512_mask_expandloadu_ps(vf_i1_j0123, 0b1111000000000000, reg_ptr);
+          vf_i1_j0123 = _mm512_mask_expandloadu_ps(vf_i1_j0123, 0b0000111100000000, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          __m512 vf_i2_j0123 = _mm512_setzero_ps();
+          vf_i2_j0123 = _mm512_mask_expandloadu_ps(vf_i2_j0123, 0b0000000011110000, reg_ptr);
+          vf_i2_j0123 = _mm512_mask_expandloadu_ps(vf_i2_j0123, 0b0000000000001111, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vf_i2_j0123 = _mm512_mask_expandloadu_ps(vf_i2_j0123, 0b1111000000000000, reg_ptr);
+          vf_i2_j0123 = _mm512_mask_expandloadu_ps(vf_i2_j0123, 0b0000111100000000, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          __m512 vf_i3_j0123 = _mm512_setzero_ps();
+          vf_i3_j0123 = _mm512_mask_expandloadu_ps(vf_i3_j0123, 0b0000000011110000, reg_ptr);
+          vf_i3_j0123 = _mm512_mask_expandloadu_ps(vf_i3_j0123, 0b0000000000001111, reg_ptr+isize_g2);
+          reg_ptr += two_isize_g2;
+          vf_i3_j0123 = _mm512_mask_expandloadu_ps(vf_i3_j0123, 0b1111000000000000, reg_ptr);
+          vf_i3_j0123 = _mm512_mask_expandloadu_ps(vf_i3_j0123, 0b0000111100000000, reg_ptr+isize_g2);
+          reg_ptr +=  reg_plus;
+
+          const __m512 vt_i0_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i0_j0123);
+          const __m512 vt_i1_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i1_j0123);
+          const __m512 vt_i2_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i2_j0123);
+          const __m512 vt_i3_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i3_j0123);
+
+                __m512 vt0_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b00000000), vt_i0_512);
+          const __m512 vt1_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b01010101), vt_i1_512);
+                __m512 vt2_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b10101010), vt_i2_512);
+          const __m512 vt3_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b11111111), vt_i3_512);
+
+
+           //__m512 vt_512 = vt0_512;
+           //vt0_512 = _mm512_add_ps(vt1_512, vt1_512);
+           //vt2_512 = _mm512_add_ps(vt2_512, vt3_512);
+           //vt_512 = _mm512_add_ps(vt0_512, vt2_512);
+           //vt_512 = _mm512_mul_ps(vt_512, vM2_512);
+
+           __m512 vt_512 = vt0_512;
+           vt_512 = _mm512_add_ps(vt_512, vt1_512);
+           vt_512 = _mm512_add_ps(vt_512, vt2_512);
+           vt_512 = _mm512_add_ps(vt_512, vt3_512);
+           vt_512 = _mm512_mul_ps(vt_512, vM2_512);
+
+
+           //val[jj] = _mm512_reduce_add_ps (vt_512);
+           Real val = _mm512_reduce_add_ps (vt_512);
+		       query_values[i] = val;
+	  } //end jj loop
+  //__m512 tmp = _mm512_loadu_ps(val);
+  //_mm512_stream_ps (&query_values[ii*CHUNK],tmp);
+	//} //end ii loop
+
+	return;
+
+}  // end of interp3_ghost_xyz_p
+
+void ectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
+		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
+		bool query_values_already_scaled) {
+
   const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
   const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
   const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);
+  const __m512  c1000_512 = _mm512_broadcast_f32x4(_mm_setr_ps(-1.0,-0.0,-0.0,-0.0));
+  const __m512  c2211_512 = _mm512_broadcast_f32x4(_mm_setr_ps(-2.0,-2.0,-1.0,-1.0));
+  const __m512  c3332_512 = _mm512_broadcast_f32x4(_mm_setr_ps(-3.0,-3.0,-3.0,-2.0));
+
+  const __m512  c0010_512 = _mm512_set_ps(
+      -0.0,-0.0,-0.0,-0.0,
+      -0.0,-0.0,-0.0,-0.0,
+      -1.0,-1.0,-1.0,-1.0,
+      -0.0,-0.0,-0.0,-0.0
+      );
+  const __m512  c1122_512 = _mm512_set_ps(
+      -1.0,-1.0,-1.0,-1.0,
+      -1.0,-1.0,-1.0,-1.0,
+      -2.0,-2.0,-2.0,-2.0,
+      -2.0,-2.0,-2.0,-2.0
+      );
+  const __m512  c3233_512 = _mm512_set_ps(
+      -3.0,-3.0,-3.0,-3.0,
+      -2.0,-2.0,-2.0,-2.0,
+      -3.0,-3.0,-3.0,-3.0,
+      -3.0,-3.0,-3.0,-3.0
+      );
+  const __m512 vlagr_3333_2222_0000_1111_512  = _mm512_set_ps(
+      -0.5,-0.5,-0.5,-0.5,
+      +0.1666666667,0.1666666667,0.1666666667,0.1666666667,
+      -0.1666666667,-0.1666666667,-0.1666666667,-0.1666666667,
+       0.5,0.5,0.5,0.5
+      );
+  //print512(c1000_512,"512");
+  //print512(c3332_512,"");
+  //do{}while(1);
 
   const __m256 vlagr = _mm256_set_ps(-0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667);
+  const __m512 vlagr_512 = _mm512_set_ps(
+      -0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667,
+      -0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667
+      );
   const __m256  c33332222 = _mm256_set_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
   const __m256  c22223333 = _mm256_setr_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
   const __m256  c11110000 = _mm256_set_ps(-1.0,-1.0,-1.0,-1.0,0,0,0,0);
@@ -140,50 +371,61 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
   const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
   const int NzNy = isize_g2 * isize_g[1];
   Real* Q_ptr = query_points;
+
+
   // std::cout << "KNL" << std::endl;
   //_mm_prefetch( (char*)Q_ptr,_MM_HINT_NTA);
 #pragma omp parallel for
 	for (int i = 0; i < N_pts; i++) {
+
 		Real point[COORD_DIM];
 		int grid_indx[COORD_DIM];
 
-		point[0] = Q_ptr[0];
+		point[0] = Q_ptr[i*3+0];
 		grid_indx[0] = ((int)(point[0])) - 1;
 		point[0] -= grid_indx[0];
 
-		point[1] = Q_ptr[1];
+		point[1] = Q_ptr[i*3+1];
 		grid_indx[1] = ((int)(point[1])) - 1;
 		point[1] -= grid_indx[1];
 
-		point[2] = Q_ptr[2];
+		point[2] = Q_ptr[i*3+2];
 		grid_indx[2] = ((int)(point[2])) - 1;
 		point[2] -= grid_indx[2];
-    Q_ptr += 3;
 
 		const int indxx = NzNy * grid_indx[0] + grid_indx[2] + isize_g2 * grid_indx[1] ;
     //_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
-
-    int indx = 0;
-    Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
-    //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
-		Real val = 0;
-
-
 
     __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
 
-    __m512 vM1_0000_1111_2222_3333;
-    __m512 vM2_512;
-    __m512 vM0_512;
+    __m512 vM1_2222_3333_0000_1111(vlagr_3333_2222_0000_1111_512);
+    __m512 vM2_512(vlagr_512);
+    __m512 vM0_512(vlagr_512);
 
     {
     const __m256 vx0 = _mm256_set1_ps(point[0]);
     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c1000));
     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c2211));
     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c3332));
+
+    Real* dum, *dum2;
+    const __m512 vx1_512 =  _mm512_set1_ps(point[1]);
+    vM1_2222_3333_0000_1111  = _mm512_mul_ps(vM1_2222_3333_0000_1111 , _mm512_add_ps(vx1_512,c0010_512));
+    vM1_2222_3333_0000_1111  = _mm512_mul_ps(vM1_2222_3333_0000_1111 , _mm512_add_ps(vx1_512,c1122_512));
+    vM1_2222_3333_0000_1111  = _mm512_mul_ps(vM1_2222_3333_0000_1111 , _mm512_add_ps(vx1_512,c3233_512));
+
+    const __m512 vx0_512 =  _mm512_set1_ps(point[0]);
+    vM0_512  = _mm512_mul_ps(vM0_512 , _mm512_add_ps(vx0_512,c1000_512));
+    vM0_512  = _mm512_mul_ps(vM0_512 , _mm512_add_ps(vx0_512,c2211_512));
+    vM0_512  = _mm512_mul_ps(vM0_512 , _mm512_add_ps(vx0_512,c3332_512));
+
+    const __m512 vx2_512 =  _mm512_set1_ps(point[2]);
+    vM2_512  = _mm512_mul_ps(vM2_512 , _mm512_add_ps(vx2_512,c1000_512));
+    vM2_512  = _mm512_mul_ps(vM2_512 , _mm512_add_ps(vx2_512,c2211_512));
+    vM2_512  = _mm512_mul_ps(vM2_512 , _mm512_add_ps(vx2_512,c3332_512));
 
     const __m256 vx1 = _mm256_set1_ps(point[1]);
     __m256 tmp = _mm256_add_ps(vx1,c33332222); // x-3,...;x-2,...
@@ -192,26 +434,6 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
     vM1_0000_1111 = _mm256_mul_ps(vM1_0000_1111, l0l1);
     vM1_2222_3333 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c00001111));
     vM1_2222_3333  = _mm256_mul_ps(vM1_2222_3333, l2l3);
-    Real* dum, *dum2;
-    dum = (Real*)&vM1_0000_1111;
-    dum2 = (Real*)&vM1_2222_3333;
-    //vM1_0000_1111_2222_3333 = _mm512_set_ps(
-    //    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
-    //print512(vM1_0000_1111_2222_3333,"");
-    vM1_0000_1111_2222_3333 = _mm512_set_ps(
-        dum2[4],dum2[5],dum2[6],dum2[7],
-        dum2[0],dum2[1],dum2[2], dum2[3],
-        dum[4],dum[5],dum[6],dum[7],
-        dum[0],dum[1],dum[2], dum[3]
-        );
-    //print256(vM1_0000_1111,"");
-    //print256(vM1_2222_3333,"");
-    //print256(l0l1,"");
-    //print256(l2l3,"");
-    //print512(vM1_0000_1111_2222_3333,"");
-    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c1000));
-    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c2211));
-    //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c3332));
 
     const __m256 vx2 = _mm256_set1_ps(point[2]);
     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c1000));
@@ -219,44 +441,21 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c3332));
     // todo remove permute completely by using different c's in the beginning
     vM2 = _mm256_permute_ps(vM2,0b00011011);
-    dum = (Real*)&vM2;
-    vM2_512 = _mm512_setr_ps(
-        dum[0],dum[1],dum[2],dum[3],
-        dum[0],dum[1],dum[2],dum[3],
-        dum[0],dum[1],dum[2],dum[3],
-        dum[0],dum[1],dum[2],dum[3]
-        );
-    //print256(vM2,"");
-    //print512(vM2_512,"");
-    dum = (Real*)&vM0;
-    vM0_512 = _mm512_setr_ps(
-        dum[0],dum[1],dum[2],dum[3],
-        dum[0],dum[1],dum[2],dum[3],
-        dum[0],dum[1],dum[2],dum[3],
-        dum[0],dum[1],dum[2],dum[3]
-        );
-    //print256(vM0,"");
-    //print512(vM0_512,"");
-    //vM2 = _mm256_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
-
-    //const Real* M1 = (Real*)&vM1;
-    //vM1_0000_1111 = _mm256_set_ps(M1[7],M1[7],M1[7],M1[7],M1[6],M1[6],M1[6],M1[6]);
-    //vM1_2222_3333 = _mm256_set_ps(M1[5],M1[5],M1[5],M1[5],M1[4],M1[4],M1[4],M1[4]);
-    // vM1_0000_1111 = _mm256_set_ps(M1[3],M1[3],M1[3],M1[3],M1[2],M1[2],M1[2],M1[2]);
-    // vM1_2222_3333 = _mm256_set_ps(M1[1],M1[1],M1[1],M1[1],M1[0],M1[0],M1[0],M1[0]);
-    //vM0_tttt[0] = _mm256_permute_ps(vM0,0b11111111); // last element
-    //vM0_tttt[1] = _mm256_permute_ps(vM0,0b10101010);
-    //vM0_tttt[2] = _mm256_permute_ps(vM0,0b01010101);
-    //vM0_tttt[3] = _mm256_permute_ps(vM0,0b00000000);
+    ///print256(vM2,"256");
+    ///print512(vM2_512,"256");
+    ///print256(vM0,"256");
+    ///print512(vM0_512,"256");
+    ///do{}while(1);
     }
 
+    int indx = 0;
+    Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
+    //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
+		Real val = 0;
 
     // load all vfij
           __m256 vt;
           vt = _mm256_setzero_ps();
-
-         // print256(vf_i0_j01 ,"");
-         // print256(vf_i0_j23 ,"");
 
           __m512 vf_i0_j0123 = _mm512_setzero_ps();
           vf_i0_j0123 = _mm512_mask_expandloadu_ps(vf_i0_j0123, 0b0000000011110000, reg_ptr);
@@ -290,18 +489,6 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
           vf_i3_j0123 = _mm512_mask_expandloadu_ps(vf_i3_j0123, 0b0000111100000000, reg_ptr+isize_g2);
           reg_ptr +=  reg_plus;
 
-
-         //print512(vf_i0_j0123 ,"st2");
-         //std::cout << reg_ptr[0] << "\n"
-         //  << reg_ptr[1] << "\n"
-         //  << reg_ptr[2] << "\n"
-         //  << reg_ptr[3] << "\n";
-         // reg_ptr += isize_g2;
-         //std::cout << reg_ptr[0] << "\n"
-         //  << reg_ptr[1] << "\n"
-         //  << reg_ptr[2] << "\n"
-         //  << reg_ptr[3] << "\n";
-
           reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
           __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
           reg_ptr += two_isize_g2;
@@ -321,60 +508,37 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
           reg_ptr += two_isize_g2;
           const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 
-          //__m256 vt0, vt1, vt2, vt3;
-          //vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111),_mm256_fmadd_ps(vM1_0000_1111, vf_i0_j01, _mm256_mul_ps(vM1_2222_3333, vf_i0_j23)));
-          //vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010),_mm256_fmadd_ps(vM1_0000_1111, vf_i1_j01, _mm256_mul_ps(vM1_2222_3333, vf_i1_j23)));
-          //vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101),_mm256_fmadd_ps(vM1_0000_1111, vf_i2_j01, _mm256_mul_ps(vM1_2222_3333, vf_i2_j23)));
-          //vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000),_mm256_fmadd_ps(vM1_0000_1111, vf_i3_j01, _mm256_mul_ps(vM1_2222_3333, vf_i3_j23)));
-          //
-
-          //__m512 vf_i0_j0123;
-          //vf_i0_j0123 = _mm512_set_m256(vf_i0_j23,vf_i0_j01);
-          //vf_i0_j0123 = _mm512_insertf32x8(vf_i0_j0123,vf_i0_j01,1);
-          //print256(vf_i0_j01, "");
-          //print256(vf_i0_j23, "");
-          //print512(vf_i0_j0123, "");
-          //do{}while(1);
-          //__m512 vf_i1_j0123 = _mm512_set_m256(vf_i1_j23,vf_i1_j01);
-          //__m512 vf_i2_j0123 = _mm512_set_m256(vf_i2_j23,vf_i2_j01);
-          //__m512 vf_i3_j0123 = _mm512_set_m256(vf_i3_j23,vf_i3_j01);
-
 
           const __m256 vt_i0_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i0_j01);
           const __m256 vt_i0_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i0_j23);
           const __m256 vt_i0 = _mm256_add_ps(vt_i0_j01, vt_i0_j23);
-          const __m512 vt_i0_512 = _mm512_mul_ps(vM1_0000_1111_2222_3333,vf_i0_j0123);
+          const __m512 vt_i0_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i0_j0123);
 
           const __m256 vt_i1_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i1_j01);
           const __m256 vt_i1_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i1_j23);
           const __m256 vt_i1 = _mm256_add_ps(vt_i1_j01, vt_i1_j23);
-          const __m512 vt_i1_512 = _mm512_mul_ps(vM1_0000_1111_2222_3333,vf_i1_j0123);
+          const __m512 vt_i1_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i1_j0123);
 
           const __m256 vt_i2_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i2_j01);
           const __m256 vt_i2_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i2_j23);
           const __m256 vt_i2 = _mm256_add_ps(vt_i2_j01, vt_i2_j23);
-          const __m512 vt_i2_512 = _mm512_mul_ps(vM1_0000_1111_2222_3333,vf_i2_j0123);
+          const __m512 vt_i2_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i2_j0123);
 
           const __m256 vt_i3_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i3_j01);
           const __m256 vt_i3_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i3_j23);
           const __m256 vt_i3 = _mm256_add_ps(vt_i3_j01, vt_i3_j23);
-          const __m512 vt_i3_512 = _mm512_mul_ps(vM1_0000_1111_2222_3333,vf_i3_j0123);
+          const __m512 vt_i3_512 = _mm512_mul_ps(vM1_2222_3333_0000_1111,vf_i3_j0123);
 
           const __m256 vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111), vt_i0);
           const __m256 vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010), vt_i1);
           const __m256 vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101), vt_i2);
           const __m256 vt3 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b00000000), vt_i3);
 
-          const __m512 vt0_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b11111111), vt_i0_512);
-          const __m512 vt1_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b10101010), vt_i1_512);
-          const __m512 vt2_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b01010101), vt_i2_512);
-          const __m512 vt3_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b00000000), vt_i3_512);
+          const __m512 vt0_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b00000000), vt_i0_512);
+          const __m512 vt1_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b01010101), vt_i1_512);
+          const __m512 vt2_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b10101010), vt_i2_512);
+          const __m512 vt3_512 = _mm512_mul_ps(_mm512_permute_ps(vM0_512,0b11111111), vt_i3_512);
 
-
-          //const __m256 vt0 = _mm256_mul_ps(vM0_tttt[0], vt_i0);
-          //const __m256 vt1 = _mm256_mul_ps(vM0_tttt[1], vt_i1);
-          //const __m256 vt2 = _mm256_mul_ps(vM0_tttt[2], vt_i2);
-          //const __m256 vt3 = _mm256_mul_ps(vM0_tttt[3], vt_i3);
 
            __m512 vt_512 = vt0_512;
            vt_512 = _mm512_add_ps(vt_512, vt1_512);
@@ -394,24 +558,8 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
            //print256(vt,"");
            //print512(vt_512,"");
            //do{}while(1);
-           Real* dum = (Real*)&vt_512;
-           val = sum8(vt);
-           val = 0;
-           for(int j = 0; j < 16; ++j)
-            val += dum[j];
+           val = _mm512_reduce_add_ps (vt_512);
 		       query_values[i] = val;
-
-
-
-          //vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b11111111),_mm256_fmadd_ps(vM1_0000_1111, vf_i0_j01, _mm256_mul_ps(vM1_2222_3333, vf_i0_j23)) , vt);
-          //vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b10101010),_mm256_fmadd_ps(vM1_0000_1111, vf_i1_j01, _mm256_mul_ps(vM1_2222_3333, vf_i1_j23)) , vt);
-          //vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b01010101),_mm256_fmadd_ps(vM1_0000_1111, vf_i2_j01, _mm256_mul_ps(vM1_2222_3333, vf_i2_j23)) , vt);
-          //vt = _mm256_fmadd_ps(_mm256_permute_ps(vM0,0b00000000),_mm256_fmadd_ps(vM1_0000_1111, vf_i3_j01, _mm256_mul_ps(vM1_2222_3333, vf_i3_j23)) , vt);
-
-
-
-
-
 	}
 
 	return;
@@ -424,6 +572,11 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
 
+#ifdef INTERP_DEBUG
+	int nprocs, procid;
+	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
+  PCOUT << "In Haswel kernel\n";
+#endif
   const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
   const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
   const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);
@@ -564,6 +717,11 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
 
+#ifdef INTERP_DEBUG
+	int nprocs, procid;
+	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
+  PCOUT << "In ivybridge  kernel\n";
+#endif
   const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
   const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
   const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);

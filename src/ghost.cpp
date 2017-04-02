@@ -513,9 +513,11 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, in
 	isize_g[0] = isize[0] + 2 * g_size;
 	isize_g[1] = isize[1] + 2 * g_size;
 	isize_g[2] = isize[2] + 2 * g_size;
-	return (alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real)
+  size_t alloc_max_g = alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real)
 			+ 2 * g_size * isize[2] * isize_g[1] * sizeof(Real)
-			+ 2 * g_size * isize_g[0] * isize_g[1] * sizeof(Real));
+			+ 2 * g_size * isize_g[0] * isize_g[1] * sizeof(Real);
+  alloc_max_g += (16*isize_g[2]*isize_g[1]+16*isize_g[1]+16)*sizeof(Real); // to account for padding required for peeled loop in interp
+  return alloc_max_g;
 }
 
 size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_planf* plan, int g_size,
