@@ -5,14 +5,18 @@
 #include <accfft.h>
 #include <accfftf.h>
 // #include <glog/logging.h>
+// #define ParLOG if(procid==0) LOG(INFO)
 #undef PCOUT
-//#define ParLOG if(procid==0) LOG(INFO)
 #define PCOUT if(procid==0) std::cerr
 #define FAST_INTERP
 #define FAST_INTERPV // enable ONLY for single precision
 #define FAST_INTERP_BINNING
 #define HASWELL
-// #define KNL
+//#define KNL
+
+#if defined(KNL)
+#define INTERP_USE_MORE_MEM_L1
+#endif
 
 
 
@@ -40,6 +44,8 @@
 
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		int* isize, int* isize_g, const int N_pts, Real* Q_);
+void rescale_xyzgrid(const int g_size, int* N_reg, int* N_reg_g, int* istart,
+		int* isize, int* isize_g, const int N_pts, pvfmm::Iterator<Real> Q_);
 void interp3_p_col(Real* reg_grid_vals, int data_dof, int N_reg,
 		const int N_pts, Real* query_points, Real* query_values);
 void interp3_p(Real* reg_grid_vals, int data_dof, int N_reg, const int N_pts,

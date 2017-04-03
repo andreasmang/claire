@@ -81,7 +81,6 @@ void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
 	this->allocate_baked = true;
 #ifdef INTERP_DEBUG
   PCOUT << "allocate done\n";
-  ParLOG << "nplans_ = " << nplans_ << " data_dof_max = " << data_dof_max << std::endl;
 #endif
 }
 
@@ -327,6 +326,7 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
   PCOUT << "enforcing periodicity\n";
 #endif
 		// Enforce periodicity
+#pragma omp parallel for
 		for (int i = 0; i < N_pts; i++) {
       pvfmm::Iterator<Real> Q_ptr = query_points+(i * COORD_DIM);
       //Real* Q_ptr = &query_points[i * COORD_DIM];
@@ -564,8 +564,13 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
       pvfmm::aligned_delete<Real>(this->all_query_points);
       pvfmm::aligned_delete<Real>(this->all_f_cubic);
 		}
+#ifdef INTERP_USE_MORE_MEM_L1
 		all_query_points = pvfmm::aligned_new<Real>(
-				all_query_points_allocation+16*COORD_DIM); // 16 for blocking in interp
+				(total_query_points+16)*(COORD_DIM+1)); // 16 for blocking in interp
+#else
+		all_query_points = pvfmm::aligned_new<Real>(
+				(total_query_points+16)*(COORD_DIM)); // 16 for blocking in interp
+#endif
 		all_f_cubic = pvfmm::aligned_new<Real>(
 				total_query_points * data_dof_max + (16*isize_g[2]*isize_g[1]+16*isize_g[1]+16));
 
@@ -651,9 +656,15 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
 		MPI_Type_commit(&rtypes[i+ver*nprocs]);
 	}
   }
+#ifdef INTERP_USE_MORE_MEM_L1
+  if(total_query_points !=0)
+	rescale_xyzgrid(g_size, N_reg, N_reg_g, istart, isize, isize_g, total_query_points,
+			all_query_points);
+#else
   if(total_query_points !=0)
 	rescale_xyz(g_size, N_reg, N_reg_g, istart, isize, isize_g, total_query_points,
 			&all_query_points[0]);
+#endif
 	this->scatter_baked = true;
 #ifdef INTERP_DEBUG
   PCOUT << "scatter DONE\n";
