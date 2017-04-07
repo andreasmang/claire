@@ -266,7 +266,6 @@ PetscErrorCode PrecondReg::Reset() {
         case NOPC:
         {
             // no need to do anything
-            std::cout<< " herer " << std::endl;
             break;
         }
         case INVREG:
@@ -419,11 +418,10 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     }
 
     // allocate state and adjoint variables
+    ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
     if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
         ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
     } else {
-        ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, nc*this->m_CoarseGrid.nl(), nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
         ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, nc*this->m_CoarseGrid.nl(), nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
     }
 
@@ -555,7 +553,7 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
 
     // allocate vector field
     if (this->m_WorkVecField == NULL) {
-        try{ this->m_WorkVecField = new VecField(this->m_Opt); }
+        try {this->m_WorkVecField = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -635,6 +633,7 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     Vec m = NULL, lambda = NULL;
     ScalarType *p_mj = NULL, *p_m = NULL, *p_mjcoarse = NULL, *p_mcoarse = NULL,
                 *p_lj = NULL, *p_l = NULL, *p_ljcoarse = NULL, *p_lcoarse = NULL;
+    bool applyrestriction = true;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -690,6 +689,9 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
             l_f = j*nl_f*nc + k*nl_f;
             lnext_f = j*nl_f*nc + (k+1)*nl_f;
 
+            /////////////////////////////////////////////////////////////////////
+            ////// state variable
+            /////////////////////////////////////////////////////////////////////
             // get time point of state variable on fine grid
             ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
             try {std::copy(p_m+l_f, p_m+lnext_f, p_mj); }
@@ -713,27 +715,39 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
             }
             ierr = VecRestoreArray(this->m_CoarseGrid.m_WorkScaField1, &p_mjcoarse); CHKERRQ(ierr);
 
-            // get time point of adjoint variable on fine grid
-            ierr = VecGetArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
-            try {std::copy(p_l+l_f, p_l+lnext_f, p_lj);}
-            catch(std::exception&) {
-                ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+            /////////////////////////////////////////////////////////////////////
+            ////// adjoint variable
+            /////////////////////////////////////////////////////////////////////
+            if (j > 0) { // we do not store the time history for gauss newton
+                if (this->m_Opt->GetOptPara().method == GAUSSNEWTON) {  // gauss newton approximation
+                    applyrestriction = false;
+                }
             }
-            ierr = VecRestoreArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
 
-            // apply restriction operator
-            ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid.m_WorkScaField2,
-                                              this->m_WorkScaField2,
-                                              this->m_CoarseGrid.m_Opt->GetDomainPara().nx,
-                                              this->m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+            if (applyrestriction) {
+                // get time point of adjoint variable on fine grid
+                ierr = VecGetArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
+                try {std::copy(p_l+l_f, p_l+lnext_f, p_lj);}
+                catch(std::exception&) {
+                    ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+                }
+                ierr = VecRestoreArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
 
-            // store restricted adjoint variable
-            ierr = VecGetArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
-            try {std::copy(p_ljcoarse, p_ljcoarse+nl_c, p_lcoarse+l_c);}
-            catch (std::exception&) {
-                ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+                // apply restriction operator
+                ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid.m_WorkScaField2,
+                                                  this->m_WorkScaField2,
+                                                  this->m_CoarseGrid.m_Opt->GetDomainPara().nx,
+                                                  this->m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+
+                // store restricted adjoint variable
+                ierr = VecGetArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
+                try {std::copy(p_ljcoarse, p_ljcoarse+nl_c, p_lcoarse+l_c);}
+                catch (std::exception&) {
+                    ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+                }
+                ierr = VecRestoreArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
             }
-            ierr = VecRestoreArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
+
         }  // for all components
     }  // for all time points
 

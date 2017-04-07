@@ -351,12 +351,12 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     }
 
     if (this->m_XHatCoarse == NULL) {
-        this->m_XHatCoarse = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc_c));
+        this->m_XHatCoarse = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_c));
     }
     ierr = Assert(this->m_XHatCoarse != NULL,"allocation failed"); CHKERRQ(ierr);
 
     if (this->m_XHatFine == NULL) {
-        this->m_XHatFine = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc_f));
+        this->m_XHatFine = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_f));
     }
     ierr = Assert(this->m_XHatFine != NULL,"allocation failed"); CHKERRQ(ierr);
 
@@ -497,6 +497,8 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
         ierr = this->SetupGridChangeOps(nx_f, nx_c); CHKERRQ(ierr);
     }
 
+    ierr = Assert(this->m_FFTFinePlan != NULL, "null pointer"); CHKERRQ(ierr);
+
     n  = this->m_osizeC[0];
     n *= this->m_osizeC[1];
     n *= this->m_osizeC[2];
@@ -513,7 +515,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 
     // compute fft of data on fine grid
     ierr = VecGetArray(x_f, &p_xf); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTFinePlan, p_xf, this->m_XHatFine, timer);
+    accfft_execute_r2c_t(this->m_FFTFinePlan, p_xf, this->m_XHatFine, timer);
     ierr = VecRestoreArray(x_f, &p_xf); CHKERRQ(ierr);
 
     // compute indices
@@ -575,7 +577,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     }
 
     ierr = VecGetArray(*x_c,&p_xc); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTCoarsePlan, this->m_XHatCoarse, p_xc, timer);
+    accfft_execute_c2r_t(this->m_FFTCoarsePlan, this->m_XHatCoarse, p_xc, timer);
     ierr = VecRestoreArray(*x_c,&p_xc); CHKERRQ(ierr);
 
     // set fft timers
@@ -1083,6 +1085,7 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
         }
     }
 
+
     // send and recv fourier coefficients on fine grid
     for (int i = 0; i < nprocs; ++i) {
         i_send = i; i_recv = i;
@@ -1092,14 +1095,14 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
         os_send = this->m_OffsetSend[i];
         ns = this->m_NumSend[i];
         if (ns > 0) {
-            merr = MPI_Isend(&this->m_FourierCoeffSendF[2*os_send], 2*ns, MPI_DOUBLE, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierCoeffSendF[2*os_send], 2*ns, MPIU_REAL, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         os_recv = this->m_OffsetRecv[i];
         nr = this->m_NumRecv[i];
         if (nr > 0) {
-            merr = MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv], 2*nr, MPI_DOUBLE, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv], 2*nr, MPIU_REAL, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
@@ -1147,13 +1150,13 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
     ierr = Assert(this->m_OffsetSend != NULL, "error in setup"); CHKERRQ(ierr);
     ierr = Assert(this->m_OffsetRecv != NULL, "error in setup"); CHKERRQ(ierr);
 
-    if (this->m_SendRequest==NULL) {
+    if (this->m_SendRequest == NULL) {
         try{this->m_SendRequest = new MPI_Request[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    if (this->m_RecvRequest==NULL) {
+    if (this->m_RecvRequest == NULL) {
         try{this->m_RecvRequest = new MPI_Request[nprocs];}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -1228,14 +1231,14 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
         os_send = this->m_OffsetRecv[i];
         ns = this->m_NumRecv[i];
         if (ns > 0) {
-            merr = MPI_Isend(&this->m_FourierCoeffSendC[2*os_send], 2*ns, MPI_DOUBLE, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierCoeffSendC[2*os_send], 2*ns, MPIU_REAL, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         os_recv = this->m_OffsetSend[i];
         nr = this->m_NumSend[i];
         if (nr > 0) {
-            merr = MPI_Irecv(&this->m_FourierCoeffRecvC[2*os_recv], 2*nr, MPI_DOUBLE, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierCoeffRecvC[2*os_recv], 2*nr, MPIU_REAL, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
@@ -1356,7 +1359,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 
     // compute fft of data on fine grid
     ierr = VecGetArray(x_c, &p_xc); CHKERRQ(ierr);
-    accfft_execute_r2c_t<ScalarType,ScalarTypeFD>(this->m_FFTCoarsePlan, p_xc, this->m_XHatCoarse, timer);
+    accfft_execute_r2c_t(this->m_FFTCoarsePlan, p_xc, this->m_XHatCoarse, timer);
     ierr = VecRestoreArray(x_c, &p_xc); CHKERRQ(ierr);
 
     // compute indices for mapping from coarse grid to fine grid
@@ -1419,10 +1422,10 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 
 
     ierr = VecGetArray(*x_f, &p_xf); CHKERRQ(ierr);
-    accfft_execute_c2r_t<ScalarTypeFD,ScalarType>(this->m_FFTFinePlan, this->m_XHatFine, p_xf, timer);
+    accfft_execute_c2r_t(this->m_FFTFinePlan, this->m_XHatFine, p_xf, timer);
     ierr = VecRestoreArray(*x_f, &p_xf); CHKERRQ(ierr);
 
-    // set fft timers
+    // set fft timeri
     this->m_Opt->IncreaseFFTTimers(timer);
 
     // increment counter
@@ -1631,7 +1634,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     nalloc = this->m_Opt->GetFFT().nalloc;
 
     if (this->m_xhat == NULL) {
-        this->m_xhat = reinterpret_cast<ScalarTypeFD*>(accfft_alloc(nalloc));
+        this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
     // get parameters

@@ -32,9 +32,8 @@ namespace reg {
 
 
 struct GridData {
-    typedef ScalarType DataType[2];
-    DataType* xhat;
-    DataType* yhat;
+    ComplexType* xhat;
+    ComplexType* yhat;
     std::vector< std::vector<IntType> > idx;
     ScalarType* datasend;
     ScalarType* datarecv;
@@ -61,7 +60,6 @@ struct GridData {
 class Preprocessing {
  public:
     typedef Preprocessing Self;
-    typedef ScalarType ScalarTypeFD[2];
     typedef ReadWriteReg ReadWriteType;
 
     Preprocessing();
@@ -97,8 +95,8 @@ class Preprocessing {
     PetscErrorCode SetupGridChangeOps(IntType*, IntType*);
 
     RegOpt* m_Opt;
-    ScalarTypeFD* m_xhat;
-    ScalarTypeFD* m_yhat;
+    ComplexType* m_xhat;
+    ComplexType* m_yhat;
     ReadWriteType* m_ReadWrite;
 
     std::vector< std::vector<IntType> > m_IndicesF;
@@ -119,8 +117,8 @@ class Preprocessing {
     //accfft_plan* m_FFTFinePlan;
     //accfft_plan* m_FFTCoarsePlan;
 
-    ScalarTypeFD* m_XHatFine;
-    ScalarTypeFD* m_XHatCoarse;
+    ComplexType* m_XHatFine;
+    ComplexType* m_XHatCoarse;
 
     IntType m_nxC[3];
     IntType m_nxF[3];

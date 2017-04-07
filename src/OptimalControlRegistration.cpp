@@ -2908,7 +2908,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
         if (this->m_VelocityIsZero) {
             // since we're already in gauss newton mode, we do not
             // need to copy anything
-
             // copy terminal condition \tilde{\lambda}_1 = -\tilde{m}_1 to all time points
             ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
 
@@ -2929,7 +2928,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
             ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
             // m and \lambda are constant in time
-            ierr = VecGetArray(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
+            ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
             ierr = this->m_WorkVecField2->GetArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
 
@@ -2951,7 +2950,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
             }
             ierr = this->m_WorkVecField2->RestoreArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-            ierr = VecRestoreArray(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
+            ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
             ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
 
