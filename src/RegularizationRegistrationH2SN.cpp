@@ -76,6 +76,9 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v1hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
     sqrtbeta = static_cast<double>(sqrt(this->m_Opt->GetRegNorm().beta[0]));
@@ -86,7 +89,6 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     if (sqrtbeta != 0.0) {
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr = this->Allocate(); CHKERRQ(ierr);
 
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
@@ -192,6 +194,9 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(dvR != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v1hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta = static_cast<double>(this->m_Opt->GetRegNorm().beta[0]);
 
@@ -201,8 +206,6 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
         ierr = VecSet(dvR->m_X2, 0.0); CHKERRQ(ierr);
         ierr = VecSet(dvR->m_X3, 0.0); CHKERRQ(ierr);
     } else {
-        ierr = this->Allocate(); CHKERRQ(ierr);
-
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
         nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
@@ -334,6 +337,9 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(Ainvv != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v1hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta = this->m_Opt->GetRegNorm().beta[0];
 
@@ -343,8 +349,6 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
         ierr = VecCopy(v->m_X2, Ainvv->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(v->m_X3, Ainvv->m_X3); CHKERRQ(ierr);
     } else {
-        ierr = this->Allocate(); CHKERRQ(ierr);
-
         nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
         nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));

@@ -636,6 +636,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     // for zero velocity field)
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
 
+    // allocate all the memory
     ierr = this->m_RegProblem->InitializeSolver(); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
 

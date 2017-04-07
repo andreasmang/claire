@@ -179,6 +179,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode ComputeDefMapFromDisplacement();  ///< compute deformation map from displacement
     PetscErrorCode ApplyInvRegOpSqrt(Vec);
     PetscErrorCode ComputeRegularGrid(VecField*);  ///< compute coordinates for regular grid
+    PetscErrorCode AllocateSpectralData();
 
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
@@ -215,6 +216,10 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     bool m_VelocityIsZero;
     bool m_ComputeInverseDefMap;
     bool m_StoreTimeHistory;
+
+    ComplexType *m_x1hat;
+    ComplexType *m_x2hat;
+    ComplexType *m_x3hat;
 
  private:
     PetscErrorCode ComputeDefGradSL();                  ///< implemented via SL time integrator

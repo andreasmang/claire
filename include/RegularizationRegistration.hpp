@@ -42,6 +42,7 @@ class RegularizationRegistration {
     virtual ~RegularizationRegistration(void);
 
     PetscErrorCode SetWorkVecField(VecField*);
+    PetscErrorCode SetSpectralData(ComplexType*, ComplexType*, ComplexType*);
 
     virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*) = 0;
     virtual PetscErrorCode EvaluateGradient(VecField*, VecField*) = 0;
@@ -49,11 +50,9 @@ class RegularizationRegistration {
     virtual PetscErrorCode ApplyInvOp(VecField*, VecField*, bool applysqrt = false) = 0;
     virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&) = 0;
 
-
  protected:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
-    PetscErrorCode Allocate();
 
     RegOpt* m_Opt;
     VecField* m_WorkVecField;

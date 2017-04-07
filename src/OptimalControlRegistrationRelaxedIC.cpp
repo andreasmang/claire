@@ -67,10 +67,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_x1hat = NULL;
-    this->m_x2hat = NULL;
-    this->m_x3hat = NULL;
-
     PetscFunctionReturn(ierr);
 }
 
@@ -83,19 +79,6 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void) {
 PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-
-    if (this->m_x1hat != NULL) {
-        accfft_free(this->m_x1hat);
-        this->m_x1hat = NULL;
-    }
-    if (this->m_x2hat != NULL) {
-        accfft_free(this->m_x2hat);
-        this->m_x2hat = NULL;
-    }
-    if (this->m_x3hat != NULL) {
-        accfft_free(this->m_x3hat);
-        this->m_x3hat = NULL;
-    }
 
     PetscFunctionReturn(ierr);
 }
@@ -323,17 +306,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
     nx[2] = static_cast<long int>(this->m_Opt->GetNumGridPoints(2));
 
     scale = this->m_Opt->ComputeFFTScale();
-    nalloc = this->m_Opt->GetFFT().nalloc;
 
-    if (this->m_x1hat == NULL) {
-        this->m_x1hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
-    }
-    if (this->m_x2hat == NULL) {
-        this->m_x2hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
-    }
-    if (this->m_x3hat == NULL) {
-        this->m_x3hat = reinterpret_cast<FFTScaType*>(accfft_alloc(nalloc));
-    }
+    // allocate spectral data
+    ierr = this->AllocateSpectralData(); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);

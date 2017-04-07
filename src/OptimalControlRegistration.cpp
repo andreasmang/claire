@@ -132,7 +132,7 @@ PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
 
 /********************************************************************
  * @brief setup solver (to not have to allocate things on the
- * fly)
+ * fly; this allows us to essentially do a warm start)
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
     PetscErrorCode ierr = 0;
@@ -183,6 +183,17 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
+
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+
     if (this->m_Opt->GetPDESolverPara().type == SL) {
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -196,14 +207,9 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+
+    if (this->m_Regularization == NULL) {
+        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -802,7 +808,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         if (this->m_Opt->GetVerbosity() > 2) {
             ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
         }
-
         if (g != NULL) {
             ierr = this->m_WorkVecField2->GetComponents(g); CHKERRQ(ierr);
         }

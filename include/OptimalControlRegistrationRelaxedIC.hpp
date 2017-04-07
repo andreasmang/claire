@@ -34,7 +34,6 @@ class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
  public:
     typedef OptimalControlRegistrationRelaxedIC Self;
     typedef OptimalControlRegistration SuperClass;
-    typedef ScalarType FFTScaType[2];
 
     OptimalControlRegistrationRelaxedIC();
     OptimalControlRegistrationRelaxedIC(RegOpt*);
@@ -62,10 +61,6 @@ class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
 
  private:
     PetscErrorCode EvaluteRegFunctionalW(ScalarType*);
-
-    FFTScaType *m_x1hat;
-    FFTScaType *m_x2hat;
-    FFTScaType *m_x3hat;
 };
 
 

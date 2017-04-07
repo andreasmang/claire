@@ -20,6 +20,7 @@
 #ifndef _REGULARIZATIONREGISTRATIONH1_H_
 #define _REGULARIZATIONREGISTRATIONH1_H_
 
+#include "RegOpt.hpp"
 #include "RegularizationRegistration.hpp"
 
 namespace reg {

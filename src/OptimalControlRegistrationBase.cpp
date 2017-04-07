@@ -97,6 +97,10 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     this->m_WorkTenField3 = NULL;
     this->m_WorkTenField4 = NULL;
 
+    this->m_x1hat = NULL;
+    this->m_x2hat = NULL;
+    this->m_x3hat = NULL;
+
     // objects
     this->m_ReadWrite = NULL;               ///< read / write object
     this->m_Regularization = NULL;          ///< pointer for regularization class
@@ -208,6 +212,45 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
     if (this->m_WorkTenField4 != NULL) {
         delete this->m_WorkTenField4;
         this->m_WorkTenField4 = NULL;
+    }
+
+    if (this->m_x1hat != NULL) {
+        accfft_free(this->m_x1hat);
+        this->m_x1hat = NULL;
+    }
+    if (this->m_x2hat != NULL) {
+        accfft_free(this->m_x2hat);
+        this->m_x2hat = NULL;
+    }
+    if (this->m_x3hat != NULL) {
+        accfft_free(this->m_x3hat);
+        this->m_x3hat = NULL;
+    }
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set read write operator
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::AllocateSpectralData() {
+    PetscErrorCode ierr = 0;
+    IntType nalloc;
+    PetscFunctionBegin;
+
+    nalloc = this->m_Opt->GetFFT().nalloc;
+
+    if (this->m_x1hat == NULL) {
+        this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+    }
+    if (this->m_x2hat == NULL) {
+        this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+    }
+    if (this->m_x3hat == NULL) {
+        this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
     PetscFunctionReturn(ierr);
@@ -548,6 +591,13 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             ierr = reg::ThrowError("regularization model not defined"); CHKERRQ(ierr);
         }
     }
+
+
+    // set the containers for the spectral data
+    ierr = this->AllocateSpectralData(); CHKERRQ(ierr);
+    ierr = this->m_Regularization->SetSpectralData(this->m_x1hat,
+                                                   this->m_x2hat,
+                                                   this->m_x3hat); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

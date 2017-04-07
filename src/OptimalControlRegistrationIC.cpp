@@ -424,16 +424,10 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     nalloc = this->m_Opt->GetFFT().nalloc;
     scale = this->m_Opt->ComputeFFTScale();
 
-    if (this->m_x1hat == NULL) {
-        this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
-    if (this->m_x2hat == NULL) {
-        this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
-    if (this->m_x3hat == NULL) {
-        this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
+    // allocate fields for spectral operations
+    ierr = this->AllocateSpectralData(); CHKERRQ(ierr);
 
+    // copy input
     ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
@@ -517,7 +511,6 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
                 // compute x1 gradient of lab^{-1} div(b)
                 this->m_x1hat[i][0] *= -gradik1;
                 this->m_x1hat[i][1] *=  gradik1;
-
             }
         }
     }

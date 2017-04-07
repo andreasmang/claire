@@ -64,9 +64,6 @@ class OptimalControlRegistrationIC : public OptimalControlRegistration {
     virtual PetscErrorCode ApplyProjection();
 
  private:
-    ComplexType* m_x1hat;
-    ComplexType* m_x2hat;
-    ComplexType* m_x3hat;
 };
 
 

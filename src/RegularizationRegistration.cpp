@@ -78,6 +78,27 @@ PetscErrorCode RegularizationRegistration::Initialize(void) {
 }
 
 
+/********************************************************************
+ * @brief init variables
+ *******************************************************************/
+PetscErrorCode RegularizationRegistration::SetSpectralData(ComplexType* xhat1,
+                                                           ComplexType* xhat2,
+                                                           ComplexType* xhat3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(xhat1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xhat2 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xhat3 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    this->m_v1hat = xhat1;
+    this->m_v2hat = xhat2;
+    this->m_v3hat = xhat3;
+
+    PetscFunctionReturn(ierr);
+}
+
+
 
 
 /********************************************************************
@@ -102,43 +123,7 @@ PetscErrorCode RegularizationRegistration::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_v1hat != NULL) {
-        accfft_free(this->m_v1hat);
-        this->m_v1hat = NULL;
-    }
-    if (this->m_v2hat != NULL) {
-        accfft_free(this->m_v2hat);
-        this->m_v2hat = NULL;
-    }
-    if (this->m_v3hat != NULL) {
-        accfft_free(this->m_v3hat);
-        this->m_v3hat = NULL;
-    }
-
     PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief allocate arrays for fft (we might have to do this
- * in several functions, so we do it collectively here)
- *******************************************************************/
-PetscErrorCode RegularizationRegistration::Allocate() {
-    PetscFunctionBegin;
-
-    if (this->m_v1hat == NULL) {
-        this->m_v1hat = reinterpret_cast<ComplexType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
-    }
-    if (this->m_v2hat == NULL) {
-        this->m_v2hat = reinterpret_cast<ComplexType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
-    }
-    if (this->m_v3hat == NULL) {
-        this->m_v3hat = reinterpret_cast<ComplexType*>(accfft_alloc(this->m_Opt->GetFFT().nalloc));
-    }
-
-    PetscFunctionReturn(0);
 }
 
 
