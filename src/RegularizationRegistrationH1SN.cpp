@@ -156,40 +156,97 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
+    int nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
-    ScalarType beta;
+    ScalarType beta, scale;
     double timer[NFFTTIMERS] = {0};
+    double applytime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(dvR != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v1hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta = this->m_Opt->GetRegNorm().beta[0];
+
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-        ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
+        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
+        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
+        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
+        // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_laplace_t(p_bv1, p_v1, this->m_Opt->GetFFT().plan, timer);
-        accfft_laplace_t(p_bv2, p_v2, this->m_Opt->GetFFT().plan, timer);
-        accfft_laplace_t(p_bv3, p_v3, this->m_Opt->GetFFT().plan, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-
+        ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-        ierr = dvR->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
-        this->m_Opt->IncrementCounter(FFT, 6);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
-        ierr = dvR->Scale(-beta); CHKERRQ(ierr);
+        scale = this->m_Opt->ComputeFFTScale();
+
+        applytime = -MPI_Wtime();
+#pragma omp parallel
+{
+        long int w[3];
+        ScalarType lapik, regop;
+        IntType i, i1, i2, i3;
+#pragma omp for
+        for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
+            for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
+                for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
+                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+
+                    CheckWaveNumbers(w, nx);
+
+                    // compute bilaplacian operator
+                    lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+
+                    // compute regularization operator
+                    regop = -scale*beta*lapik;
+
+                    // get linear index
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+
+                    // apply to individual components
+                    this->m_v1hat[i][0] *= regop;
+                    this->m_v1hat[i][1] *= regop;
+
+                    this->m_v2hat[i][0] *= regop;
+                    this->m_v2hat[i][1] *= regop;
+
+                    this->m_v3hat[i][0] *= regop;
+                    this->m_v3hat[i][1] *= regop;
+                }
+            }
+        }
+}  // pragma omp parallel
+        applytime += MPI_Wtime();
+        timer[FFTHADAMARD] += applytime;
+
+        // compute inverse fft
+        ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
+        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
+        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
+        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        ierr = dvR->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
+
     }
 
     this->m_Opt->Exit(__func__);
@@ -236,11 +293,11 @@ PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, Vec
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* lx, VecField* x, bool applysqrt) {
+PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr;
     int nx[3];
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
-                *p_lx1 = NULL, *p_lx2 = NULL, *p_lx3 = NULL;
+                *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
     double timer[NFFTTIMERS] = {0};
     double applytime;
@@ -249,32 +306,87 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* lx, VecField
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(x  != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(lx != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(Ainvx != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v1hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta = this->m_Opt->GetRegNorm().beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
-        ierr = VecCopy(x->m_X1, lx->m_X1); CHKERRQ(ierr);
-        ierr = VecCopy(x->m_X2, lx->m_X2); CHKERRQ(ierr);
-        ierr = VecCopy(x->m_X3, lx->m_X3); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X1, Ainvx->m_X1); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
+        ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
+        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
+        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
+        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
+        // compute forward fft
         ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-        ierr = lx->GetArrays(p_lx1, p_lx2, p_lx3); CHKERRQ(ierr);
-
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_inv_laplace_t(p_lx1, p_x1, this->m_Opt->GetFFT().plan, timer);
-        accfft_inv_laplace_t(p_lx2, p_x2, this->m_Opt->GetFFT().plan, timer);
-        accfft_inv_laplace_t(p_lx3, p_x3, this->m_Opt->GetFFT().plan, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-
-        ierr = lx->RestoreArrays(p_lx1, p_lx2, p_lx3); CHKERRQ(ierr);
+        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x1, this->m_v1hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x2, this->m_v2hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x3, this->m_v3hat, timer);
         ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-        this->m_Opt->IncrementCounter(FFT, 6);
+        this->m_Opt->IncrementCounter(FFT, 3);
 
-        ierr = lx->Scale(-beta); CHKERRQ(ierr);
+        scale = this->m_Opt->ComputeFFTScale();
+
+        applytime = -MPI_Wtime();
+#pragma omp parallel
+{
+        long int w[3];
+        ScalarType lapik, regop;
+        IntType i, i1, i2, i3;
+#pragma omp for
+        for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
+            for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
+                for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
+                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
+                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
+                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+
+                    CheckWaveNumbersInv(w, nx);
+
+                    // compute bilaplacian operator
+                    lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+
+                    // compute regularization operator
+                    regop = (fabs(lapik) == 0.0) ? beta : -beta*lapik;
+
+                    if (applysqrt) regop = sqrt(regop);
+                    regop = scale/regop;
+
+                    i=GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+
+                    // apply to individual components
+                    this->m_v1hat[i][0] *= regop;
+                    this->m_v1hat[i][1] *= regop;
+
+                    this->m_v2hat[i][0] *= regop;
+                    this->m_v2hat[i][1] *= regop;
+
+                    this->m_v3hat[i][0] *= regop;
+                    this->m_v3hat[i][1] *= regop;
+                }
+            }
+        }
+}  // pragma omp parallel
+        applytime += MPI_Wtime();
+        timer[FFTHADAMARD] += applytime;
+
+        // compute inverse fft
+        ierr = Ainvx->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
+        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
+        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
+        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        ierr = Ainvx->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
+        this->m_Opt->IncrementCounter(FFT, 3);
+
         // increase fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
     }
