@@ -1696,6 +1696,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " Parallel Algorithms for Data Analysis and Simulation Group" << std::endl;
         std::cout << " The Institute of Computational Engineering and Sciences" << std::endl;
         std::cout << " The University of Texas at Austin" << std::endl;
+        std::time_t result = std::time(NULL);
+#ifdef GIT_VERSION
+        std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
+#else
+        std::cout << " " << std::asctime(std::localtime(&result));
+#endif
         std::cout << line << std::endl;
         std::cout << " problem setup" << std::endl;
         std::cout << line << std::endl;
@@ -2584,6 +2590,11 @@ PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
 
     // write out logfile
     if (rank == 0) {
+        std::time_t result = std::time(NULL);
+        logwriter << "# run finished on " << std::asctime(std::localtime(&result));
+#ifdef GIT_VERSION
+        logwriter << "# git version " << GIT_VERSION << std::endl;
+#endif
         logwriter << "# problem size (nx1,nx2,nx3,nc,nt,nl,ng)=("
                   << this->m_Domain.nx[0] << ","
                   << this->m_Domain.nx[1] << ","
@@ -2892,6 +2903,12 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable(std::ostream& logwriter) {
         line = std::string(this->m_LineLength, '-');
         nnum = 20; nstr = 20;
 
+        logwriter << line << std::endl;
+        std::time_t result = std::time(NULL);
+        logwriter << "# run finished on " << std::asctime(std::localtime(&result));
+#ifdef GIT_VERSION
+        logwriter << "# git version " << GIT_VERSION << std::endl;
+#endif
         logwriter << std::scientific;
         logwriter << line << std::endl;
         logwriter << "# problem setup" << std::endl;

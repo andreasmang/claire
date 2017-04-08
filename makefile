@@ -2,12 +2,12 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=yes
-DBGCODE=yes
-PEDANTIC=yes
+BUILDTOOLS=no
+DBGCODE=no
+PEDANTIC=no
 USEPNETCDF=yes
 USENIFTI=no
-USESINGLE=no
+USESINGLE=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -52,6 +52,9 @@ OBJDIR = ./obj
 INCDIR = ./include
 APPDIR = ./apps
 
+GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
 COLD_INC = -I$(INCDIR)
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
@@ -69,6 +72,7 @@ endif
 COLD_INC += -I$(ACCFFT_DIR)/include
 COLD_INC += -I$(FFTW_DIR)/include
 COLD_INC += -I$(MORTON_DIR)
+COLD_INC += -I./3rdparty
 ifeq ($(USENIFTI),yes)
 	COLD_INC += -I$(NIFTI_DIR)/include/nifti
 endif
