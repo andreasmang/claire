@@ -328,7 +328,7 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
     omp_set_num_threads(nthreads);
 
     // check if number of threads is consistent with user options
-    ompthreads=omp_get_max_threads();
+    ompthreads = omp_get_max_threads();
     ss << "openmp threads (user,set)=("
        << nthreads <<"," << ompthreads << ")\n";
     ierr = Assert(ompthreads == nthreads, ss.str().c_str()); CHKERRQ(ierr);
