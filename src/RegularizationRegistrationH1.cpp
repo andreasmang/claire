@@ -220,7 +220,11 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
+//                    regop = -beta[0]*lapik;
+//                    if ((w[0] == 0) && (w[1] == 0) && (w[2] == 0)) regop += beta[1];
+//                    regop *= scale;
                     regop = scale*(-beta[0]*lapik + beta[1]);
+
 
                     // get linear index
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
@@ -364,11 +368,14 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
+//                    regop = -beta[0]*lapik;
+//                    if ((w[0] == 0) && (w[1] == 0) && (w[2] == 0)) regop += beta[1];
                     regop = -beta[0]*lapik + beta[1];
+
                     if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
 
-                    i = GetLinearIndex(i1,i2,i3,this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;

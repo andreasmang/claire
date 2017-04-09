@@ -44,7 +44,7 @@ OptimalControlRegistrationIC::OptimalControlRegistrationIC() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistrationIC::~OptimalControlRegistrationIC(void) {
+OptimalControlRegistrationIC::~OptimalControlRegistrationIC() {
     this->ClearMemory();
 }
 
@@ -64,7 +64,7 @@ OptimalControlRegistrationIC::OptimalControlRegistrationIC(RegOpt* opt) : SuperC
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::Initialize(void) {
+PetscErrorCode OptimalControlRegistrationIC::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -81,7 +81,7 @@ PetscErrorCode OptimalControlRegistrationIC::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::ClearMemory(void) {
+PetscErrorCode OptimalControlRegistrationIC::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -294,7 +294,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL(void) {
+PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL() {
     PetscErrorCode ierr = 0;
     IntType nl, nt, nc, lm, ll;
     ScalarType *p_ltilde = NULL, *p_m = NULL,

@@ -43,7 +43,7 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : Sup
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC(void) {
+OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC() {
     this->ClearMemory();
 }
 
@@ -63,9 +63,13 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt*
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void) {
+PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    this->m_x1hat = NULL;
+    this->m_x2hat = NULL;
+    this->m_x3hat = NULL;
 
     PetscFunctionReturn(ierr);
 }
@@ -76,9 +80,22 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory(void) {
+PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    if (this->m_x1hat != NULL) {
+        accfft_free(this->m_x1hat);
+        this->m_x1hat = NULL;
+    }
+    if (this->m_x2hat != NULL) {
+        accfft_free(this->m_x2hat);
+        this->m_x2hat = NULL;
+    }
+    if (this->m_x3hat != NULL) {
+        accfft_free(this->m_x3hat);
+        this->m_x3hat = NULL;
+    }
 
     PetscFunctionReturn(ierr);
 }

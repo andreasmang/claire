@@ -404,8 +404,7 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* Ainvv, VecFi
                 }
             }
         }
-
-}// pragma omp parallel
+}  // pragma omp parallel
         applytime += MPI_Wtime();
         timer[FFTHADAMARD] += applytime;
 
