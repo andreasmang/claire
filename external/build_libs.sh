@@ -162,6 +162,7 @@ COPTFLAGS='-O3'
 --CXXFLAGS=${CXXFLAGS}
 --download-f2cblaslapack
 CXXOPTFLAGS='-O3'
+--with-ssl=0
 --with-debugging=0
 --with-64-bit-indices
 --with-shared=0
@@ -173,6 +174,7 @@ PETSC_DBG_OPTIONS="
 --CFLAGS=${CFLAGS}
 --with-cxx=${MPI_CXX}
 --CXXFLAGS=${CXXFLAGS}
+--with-ssl=0
 --download-f2cblaslapack
 --with-debugging=1
 --with-64-bit-indices
