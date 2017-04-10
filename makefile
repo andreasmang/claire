@@ -81,13 +81,6 @@ ifeq ($(USEPNETCDF),yes)
 endif
 
 
-
-LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
-LDFLAGS += -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads
-ifeq ($(USESINGLE),yes)
-	LDFLAGS += -L$(FFTW_DIR)/lib -lfftw3f -lfftw3f_threads
-endif
-
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
 		LDFLAGS += -L$(PETSC_DBG_DIR_SINGLE)/lib -L$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/lib
@@ -112,7 +105,7 @@ ifeq ($(USEPNETCDF),yes)
 endif
 
 
-#LDFLAGS+= -lcrypto -lssl -ldl
+LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS += -limf
 endif
@@ -122,6 +115,20 @@ ifeq ($(USEINTELMPI),yes)
 #	LDFLAGS += -lmpi_mt
 endif
 LDFLAGS += -lm
+
+
+# FFT LIBRARIES
+LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
+ifeq ($(USESINGLE),yes)
+	LDFLAGS += -L$(FFTW_DIR)/lib
+endif
+LDFLAGS += -L$(FFTW_DIR)/lib
+
+ifeq ($(USESINGLE),yes)
+	LDFLAGS += -lfftw3f_threads -lfftw3f
+endif
+LDFLAGS += -lfftw3_threads -lfftw3
+
 
 BIN += $(BINDIR)/runcoldreg
 ifeq ($(BUILDTOOLS),yes)
