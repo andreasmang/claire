@@ -2,12 +2,12 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=no
+BUILDTOOLS=yes
 DBGCODE=no
 PEDANTIC=no
 USEPNETCDF=yes
 USENIFTI=no
-USESINGLE=yes
+USESINGLE=no
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -58,15 +58,15 @@ CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 COLD_INC = -I$(INCDIR)
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
-		COLD_INC += -isystem$(PETSC_DBG_DIR_SINGLE)/include -isystem$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/include
+		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_SINGLE)/include
 	else 
-		COLD_INC += -isystem$(PETSC_DBG_DIR)/include -isystem$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/include
+		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_DOUBLE)/include
 	endif
 else
 	ifeq ($(USESINGLE),yes)
-		COLD_INC += -isystem$(PETSC_DIR_SINGLE)/include -isystem$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/include
+		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_SINGLE)/include
 	else
-		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH)/include
+		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/include
 	endif
 endif
 COLD_INC += -I$(ACCFFT_DIR)/include
@@ -83,15 +83,15 @@ endif
 
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
-		LDFLAGS += -L$(PETSC_DBG_DIR_SINGLE)/lib -L$(PETSC_DBG_DIR_SINGLE)/$(PETSC_DBG_ARCH_SINGLE)/lib
+		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_DBG_SINGLE)/lib
 	else
-		LDFLAGS += -L$(PETSC_DBG_DIR)/lib -L$(PETSC_DBG_DIR)/$(PETSC_DBG_ARCH)/lib 
+		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_DBG_DOUBLE)/lib
 	endif
 else
 	ifeq ($(USESINGLE),yes)
-		LDFLAGS += -L$(PETSC_DIR_SINGLE)/lib -L$(PETSC_DIR_SINGLE)/$(PETSC_ARCH_SINGLE)/lib
+		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_SINGLE)/lib
 	else
-		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
+		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/lib
 	endif
 endif
 LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
@@ -105,7 +105,7 @@ ifeq ($(USEPNETCDF),yes)
 endif
 
 
-LDFLAGS+= -lcrypto -lssl -ldl
+#LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS += -limf
 endif
