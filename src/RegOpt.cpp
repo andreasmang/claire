@@ -969,7 +969,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.tol[0] = 1E-12;     ///< relative tolerance
     this->m_KrylovSolverPara.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovSolverPara.tol[2] = 1E+06;     ///< divergence tolerance
-    this->m_KrylovSolverPara.maxit = 1000;       ///< max number of iterations
+    //this->m_KrylovSolverPara.maxit = 1000;       ///< max number of iterations
+    this->m_KrylovSolverPara.maxit = 10;         ///< max number of iterations
     this->m_KrylovSolverPara.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
     this->m_KrylovSolverPara.fseqtype = QDFS;
     this->m_KrylovSolverPara.pctype = INVREG;
@@ -980,6 +981,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovSolverPara.iter = 0;           ///< divergence tolerance
     this->m_KrylovSolverPara.pcsolver = PCG;
     this->m_KrylovSolverPara.pctolscale = 1E-1;
+    //this->m_KrylovSolverPara.pcmaxit = 1000;
     this->m_KrylovSolverPara.pcmaxit = 10;
     this->m_KrylovSolverPara.pcgridscale = 2;
     this->m_KrylovSolverPara.pctol[0] = 1E-12;   ///< relative tolerance
@@ -999,7 +1001,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxit = 1E3;                    ///< max number of iterations
+    //this->m_OptPara.maxit = 1E3;                    ///< max number of iterations
+    this->m_OptPara.maxit = 10;                     ///< max number of iterations
     this->m_OptPara.minit = 0;                      ///< min number of iterations
     this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
     this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
