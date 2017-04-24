@@ -2617,6 +2617,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
     ScalarType ht, hthalf;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     double timer[NFFTTIMERS] = {0};
+    bool fullnewton = false;
 
     PetscFunctionBegin;
 
@@ -2653,6 +2654,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
         }
     }
 
+    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {   // gauss newton
+        fullnewton = true;
+    }
+
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);
 
@@ -2670,14 +2675,20 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
-#pragma omp parallel
-{
-#pragma omp for
+            //
+            if (!fullnewton) nt = 1;
+
             // compute incremental state variable for all time points
             for (IntType j = 0; j < nt; ++j) {
                 l = j*nl*nc + k*nl;
-                lnext = (j+1)*nl*nc + k*nl;
-
+                if (fullnewton) {
+                    lnext = (j+1)*nl*nc + k*nl;
+                } else {
+                    lnext = l;
+                }
+#pragma omp parallel
+{
+#pragma omp for
                 // the right hand side remains constant;
                 // we can reduce the 2 RK2 steps to a single one
                 for (IntType i = 0; i < nl; ++i) {
@@ -2685,9 +2696,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
                                                     +p_gmx2[i]*p_vtx2[i]
                                                     +p_gmx3[i]*p_vtx3[i]);
                 }
-            }
 }  // omp
-        }  // for all time points
+            }  // for all time points
+        }  // for all image components
     } else {  // velocity field is non-zero
         ierr = VecGetArray(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
         ierr = VecGetArray(this->m_WorkScaField2, &p_rhs0); CHKERRQ(ierr);
@@ -2879,9 +2890,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
 #pragma omp for
             // second part of time integration
             for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lmtnext+ k*nl + i] -= hthalf*(p_gm1[i]*p_vtilde1[i]
-                                                     + p_gm2[i]*p_vtilde2[i]
-                                                     + p_gm3[i]*p_vtilde3[i]);
+                p_mtilde[lmtnext + k*nl + i] -= hthalf*(p_gm1[i]*p_vtilde1[i]
+                                                      + p_gm2[i]*p_vtilde2[i]
+                                                      + p_gm3[i]*p_vtilde3[i]);
             }
         }  // for all image components
 }  // omp

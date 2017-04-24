@@ -312,7 +312,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_NumThreads = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
-            const std::string npinput = argv[1];
+            const std::string npinput(argv[1]);
 
             // strip the "x" in the string to get the numbers
             values = String2Vec(npinput);
@@ -805,11 +805,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // if communicator is not set up
-//    if (this->m_FFT.mpicommexists == false) {
+    if (this->m_FFT.mpicommexists == false) {
         ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                           this->m_FFT.mpicomm, false); CHKERRQ(ierr);
         this->m_FFT.mpicommexists = true;
-//    }
+    }
 
     //PETSC_COMM_WORLD = this->m_FFT.mpicomm;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -822,16 +822,16 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     // get sizes (n is an integer, so it can overflow)
     nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
-    ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
+    //ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
 
     iporder = this->m_PDESolver.interpolationorder;
     if (this->m_PDESolver.type == SL) {
-        if (isize[0] <= iporder+1 || isize[1] <= iporder+1) {
+        if (isize[0] < iporder+1 || isize[1] < iporder+1) {
             ss << "\n\x1b[31m local size smaller than padding size (isize=("
                << isize[0] << "," << isize[1] << "," << isize[2]
                << ") < 3) -> reduce number of mpi tasks\x1b[0m\n";
-            std::cout << ss.str() << std::endl;
+            ierr = PetscPrintf(PETSC_COMM_WORLD, ss.str().c_str(), NULL); CHKERRQ(ierr);
             PetscFunctionReturn(PETSC_ERR_ARG_SIZ);
         }
     }
@@ -893,8 +893,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // check if sizes are ok
-    ierr = reg::Assert(this->m_Domain.nl > 0 && this->m_Domain.nl < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
-    ierr = reg::Assert(this->m_Domain.ng > 0 && this->m_Domain.ng < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
+    //ierr = reg::Assert(this->m_Domain.nl > 0 && this->m_Domain.nl < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
+    //ierr = reg::Assert(this->m_Domain.ng > 0 && this->m_Domain.ng < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
 
     // clean up
     if (u != NULL) {accfft_free(u); u = NULL;}
@@ -943,9 +943,11 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
-    this->m_RegModel = COMPRESSIBLE;
+    //this->m_RegModel = COMPRESSIBLE;
+    this->m_RegModel = RELAXEDSTOKES,
 
-    this->m_RegNorm.type = H2SN;
+    //this->m_RegNorm.type = H2SN;
+    this->m_RegNorm.type = H1SN;
     this->m_RegNorm.beta[0] = 1E-2;
     this->m_RegNorm.beta[1] = 1E-2;
     this->m_RegNorm.beta[2] = 1E-4;
@@ -1708,26 +1710,26 @@ PetscErrorCode RegOpt::DisplayOptions() {
 
         if (this->m_Domain.nc == 1) {
             std::cout << std::left << std::setw(indent) << " problem dimensions"
-                        << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] << ","
-                        <<  this->m_Domain.nx[1] << ","
-                        <<  this->m_Domain.nx[2] << ","
-                        <<  this->m_Domain.nt << ")" << std::endl;
+                      << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] << ","
+                      <<  this->m_Domain.nx[1] << ","
+                      <<  this->m_Domain.nx[2] << ","
+                      <<  this->m_Domain.nt << ")" << std::endl;
         } else {
             std::cout << std::left << std::setw(indent) << " problem dimensions"
-                        << "(nx1,nx2,nx3,nc,nt)=(" << this->m_Domain.nx[0] << ","
-                        <<  this->m_Domain.nx[1] << ","
-                        <<  this->m_Domain.nx[2] << ","
-                        <<  this->m_Domain.nc << ","
-                        <<  this->m_Domain.nt << ")" << std::endl;
+                      << "(nx1,nx2,nx3,nc,nt)=(" << this->m_Domain.nx[0] << ","
+                      <<  this->m_Domain.nx[1] << ","
+                      <<  this->m_Domain.nx[2] << ","
+                      <<  this->m_Domain.nc << ","
+                      <<  this->m_Domain.nt << ")" << std::endl;
         }
         std::cout << std::left << std::setw(indent) <<" network dimensions"
-                    << this->m_CartGridDims[0] << "x"
-                    << this->m_CartGridDims[1] << std::endl;
+                  << this->m_CartGridDims[0] << "x"
+                  << this->m_CartGridDims[1] << std::endl;
         std::cout << std::left << std::setw(indent) << " threads"
-                    << this->m_NumThreads<< std::endl;
+                  << this->m_NumThreads<< std::endl;
         std::cout << std::left << std::setw(indent) << " (ng,nl)"
-                    << "(" << this->m_Domain.ng
-                    << "," << this->m_Domain.nl << ")" << std::endl;
+                  << "(" << this->m_Domain.ng
+                  << "," << this->m_Domain.nl << ")" << std::endl;
 
         std::cout << line << std::endl;
         std::cout << " parameters" << std::endl;

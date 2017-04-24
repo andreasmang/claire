@@ -1732,9 +1732,8 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
         ierr = this->SetupRegProblem(); CHKERRQ(ierr);
     }
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // user needs to set template and reference image and the solution
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
+
     if (this->m_Opt->GetRegFlags().applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {

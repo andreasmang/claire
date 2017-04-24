@@ -381,6 +381,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     this->m_VelocityField = v;
@@ -402,6 +403,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetIncControlVariable(VecField* v
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     this->m_IncVelocityField = v;
@@ -1720,8 +1722,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     }
 
     // compute trajectory
-    ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries) {
@@ -2074,6 +2076,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
     if (this->m_WorkTenField2 == NULL) {
@@ -2618,6 +2621,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    if (this->m_WorkVecField5 == NULL) {
+        try{this->m_WorkVecField5 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
 
     // allocate semi-lagrangian solver
     if(this->m_SemiLagrangianMethod == NULL) {
@@ -2626,6 +2635,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField5); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
 
