@@ -258,7 +258,7 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo "----------------------------------------------------------------------------------"
 		echo extracting FFTW lib...
 		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/fftw-3.3.4.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/fftw-3.3.6-pl1.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${FFTW_LIB_DIR} == ${HOME} ]; then
@@ -322,8 +322,7 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo "----------------------------------------------------------------------------------"
 		echo extracting ACCFFT lib...
 		echo "----------------------------------------------------------------------------------"
-		#tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
-		tar -xzf ${LIB_DIR}/accfft-master.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a  ! ${ACCFFT_LIB_DIR} == ${HOME} ]; then

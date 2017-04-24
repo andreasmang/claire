@@ -19,7 +19,7 @@ if [[ ! -e libmorton.tar.gz ]]; then
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading morton library"
 	echo "----------------------------------------------------------------------------------"
-	wget http://users.ices.utexas.edu/~andreas/libs/libmorton.tar.gz
+	wget http://users.ices.utexas.edu/~andreas/libs/morton.tar.gz
 fi
 
 if [[ ! -e nifticlib-2.0.0.tar.gz ]]; then
