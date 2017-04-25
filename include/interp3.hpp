@@ -1,6 +1,7 @@
 #ifndef _INTERP3_HPP_
 #define _INTERP3_HPP_
 
+#include "petsc.h"
 
 #include <accfft.h>
 #include <accfftf.h>
@@ -9,9 +10,13 @@
 #undef PCOUT
 #define PCOUT if(procid==0) std::cerr
 #define FAST_INTERP
+
+#if defined(PETSC_USE_REAL_SINGLE)
 #define FAST_INTERPV // enable ONLY for single precision
+#endif
+
 #define FAST_INTERP_BINNING
-#define HASWELL
+//#define HASWELL
 //#define KNL
 
 #if defined(KNL)
@@ -21,15 +26,17 @@
 
 
 
-  //typedef double Real;
-  //#define MPI_T MPI_DOUBLE
-  //#define TC Complex
-  //#define PL fftw_plan
-  //
+#if defined(PETSC_USE_REAL_SINGLE)
   typedef float Real;
   #define MPI_T MPI_FLOAT
   #define TC Complexf
   #define PL fftwf_plan
+#else
+  typedef double Real;
+  #define MPI_T MPI_DOUBLE
+  #define TC Complex
+  #define PL fftw_plan
+#endif
 
 #ifndef __INTEL_COMPILER
 #undef FAST_INTERPV
