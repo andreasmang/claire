@@ -25,6 +25,7 @@ buildpnetcdf=0
 buildzlib=0
 cleanup=0
 
+myline="----------------------------------------------------------------------------------"
 
 for i in "$@"
 do
@@ -97,42 +98,42 @@ case $i in
     --clean)
     cleanup=1
     echo ""
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     echo " cleaning up"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     ;;
     --help)
     echo "script to build dependencies (libraries)" 
-    echo "----------------------------------------------------------------------------------"
-    echo " the libraries are: FFTW; ACCFFT; NIFTICLIB; PETSc;"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
+    echo " the libraries are: FFTW; ACCFFT; NIFTICLIB; PETSc; MORTON, PNETCDF"
+    echo ${myline}
     echo " options for this script are"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     echo "     --help          print this message"
     echo "     --build         build all libraries"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     echo "     --cxx=<CXX>     MPI C++ compiler (typically mpicxx; mpicxx is used if not set)"
     echo "     --c=<CC>        MPI C compiler (typically mpicc; mpicc is used if not set)"
     echo "     --bldir=<DIR>   path to your local lapack and blas installation (PETSc)"
     echo "     --useIMPI       flag: use intel MPI (instead ov MVAPICH and OpenMPI)"
     #echo "     --enableOMP     flag: use OpenMP"
     echo "     --enableAVX     flag: use AVX"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     echo " build libraries"
-    echo "----------------------------------------------------------------------------------"
-    echo "     --bfftw         build FFTW library"
-    echo "     --baccfft       build ACCFFT library (depends on FFTW)"
-    echo "     --bnifti        build NIFTI library"
-    echo "     --bpetscsgl     build PETSc library (single precision)"
+    echo ${myline}
+    echo "     --bfftw         build FFTW library (mandatory)"
+    echo "     --baccfft       build ACCFFT library (mandatory; depends on FFTW)"
+    echo "     --bnifti        build NIFTI library (default)"
+    echo "     --bpetscsgl     build PETSc library (mandatory; default; single precision)"
     echo "     --bpetscdbl     build PETSc library (double precision)"
-    echo "     --bpetscdbgsgl  build PETSc library (single precision; debug mode)"
-    echo "     --bpetscdbgdbl  build PETSc library (double precision; debug mode)"
-    echo "     --bpnetcdf      build pnetCDF library"
-    echo "----------------------------------------------------------------------------------"
+    echo "     --bpetscdbgsgl  build PETSc library (for developers; single precision; debug mode)"
+    echo "     --bpetscdbgdbl  build PETSc library (for developers; double precision; debug mode)"
+    echo "     --bpnetcdf      build pnetCDF library (optional)"
+    echo ${myline}
     echo " clean libraries"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     echo "     --clean        remove all libraries (deletes all subfolders)"
-    echo "----------------------------------------------------------------------------------"
+    echo ${myline}
     echo ""
     exit;
     shift # past argument=value
@@ -154,6 +155,7 @@ CXXFLAGS+=''
 if [ ${useIMPI} -eq 1 ]; then
 CXXFLAGS+=-mt_mpi
 fi
+
 
 
 ### PETSC OPTIONS
@@ -258,10 +260,10 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${FFTW_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting FFTW lib...
-		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/fftw-3.3.6-pl1.tar.gz -C ${SRC_DIR} --strip-components=1
+		echo ${myline} 
+		tar -xzf ${LIB_DIR}/fftw.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${FFTW_LIB_DIR} == ${HOME} ]; then
@@ -271,9 +273,9 @@ fi
 
 if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring FFTW (double precision)"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
 		rm -rf ${BLD_DIR}
 	fi
@@ -283,23 +285,23 @@ if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then
 	./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} CFLAGS='-O3'
 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building FFTW (double precision)" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make
 	make install
 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring FFTW (float precision)"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo ./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float CFLAGS='-O3'
 	./configure --prefix=${BLD_DIR} ${FFTW_OPTIONS} --enable-float CFLAGS='-O3'
 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building FFTW (float precision)" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make
 	make install
 
@@ -323,10 +325,10 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${PETSC_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting PETSC lib...
-		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/petsc-lite-3.7.3.tar.gz -C ${SRC_DIR} --strip-components=1
+		echo ${myline} 
+		tar -xzf ${LIB_DIR}/petsc.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
@@ -337,9 +339,9 @@ fi
 PETSC_ARCH=cxx_opt_dbl
 if [ ${builddep} -eq 1 -o ${buildpetscdbl} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring PETSC (double precision)"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
 		rm -rf ${SRC_DIR}/${PETSC_ARCH}
 	fi
@@ -350,9 +352,9 @@ if [ ${builddep} -eq 1 -o ${buildpetscdbl} -eq 1 ]; then
 	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}/${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_OPTIONS}
 	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_OPTIONS}
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building PETSC" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
 else
@@ -372,9 +374,9 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >
 PETSC_ARCH=cxx_opt_sgl
 if [ ${builddep} -eq 1 -o ${buildpetscsgl} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring PETSC (single precision)"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
 		rm -rf ${SRC_DIR}/${PETSC_ARCH}
 	fi
@@ -385,9 +387,9 @@ if [ ${builddep} -eq 1 -o ${buildpetscsgl} -eq 1 ]; then
 	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_OPTIONS} --with-precision=single
 	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_OPTIONS} --with-precision=single
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building PETSC" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
 else
@@ -406,11 +408,11 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >
 # PETSC DBG
 ################################
 PETSC_ARCH=cxx_dbg_dbl
-if [ ${builddep} -eq 1 -o ${buildpetscdgbdbl} -eq 1 ]; then 
+if [ ${buildpetscdgbdbl} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring PETSC (double precision; debug)"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
 		rm -rf ${SRC_DIR}/${PETSC_ARCH}
 	fi
@@ -421,9 +423,9 @@ if [ ${builddep} -eq 1 -o ${buildpetscdgbdbl} -eq 1 ]; then
 	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS}
 	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS}
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building PETSC" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
 else
@@ -440,11 +442,11 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >
 # PETSC DBG SINGLE PRECISION
 ################################
 PETSC_ARCH=cxx_dbg_sgl
-if [ ${builddep} -eq 1 -o ${buildpetscdbgsgl} -eq 1 ]; then 
+if [ ${buildpetscdbgsgl} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring PETSC (single precision; debug)"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
 		rm -rf ${SRC_DIR}/${PETSC_ARCH}
 	fi
@@ -455,9 +457,9 @@ if [ ${builddep} -eq 1 -o ${buildpetscdbgsgl} -eq 1 ]; then
 	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS} --with-precision=single
 	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS} --with-precision=single
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building PETSC" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
 else
@@ -479,9 +481,9 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${M_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting morton library...
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		tar -xzf ${LIB_DIR}/morton.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
@@ -505,9 +507,9 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${ACCFFT_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${ACCFFT_LIB_DIR}/src
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting ACCFFT lib...
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
@@ -519,9 +521,9 @@ fi
 
 if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring ACCFFT"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
 		rm -rf ${BLD_DIR}
 	fi
@@ -531,9 +533,9 @@ if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then
 	echo cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building ACCFFT"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make -j
 	make install
 fi
@@ -554,10 +556,10 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${Z_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting zlib...
-		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/zlib-1.2.8.tar.gz -C ${SRC_DIR} --strip-components=1
+		echo ${myline} 
+		tar -xzf ${LIB_DIR}/zlib.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${Z_LIB_DIR} == ${HOME} ]; then
@@ -567,9 +569,9 @@ fi
 
 if [ ${builddep} -eq 1 -o ${buildzlib} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring zlib" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
 		rm -rf ${BLD_DIR}
 	fi
@@ -578,9 +580,9 @@ if [ ${builddep} -eq 1 -o ${buildzlib} -eq 1 ]; then
 	echo ./configure --prefix=${BLD_DIR} --static
 	./configure --prefix=${BLD_DIR} --static
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building zlib" 
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make 
 	make install
 else
@@ -609,10 +611,10 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${NIFTI_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting NIFTI lib...
-		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/nifticlib-2.0.0.tar.gz -C ${SRC_DIR} --strip-components=1
+		echo ${myline} 
+		tar -xzf ${LIB_DIR}/nifticlib.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${NIFTI_LIB_DIR} == ${HOME} ]; then
@@ -622,9 +624,9 @@ fi
 
 if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring NIFTICLIB"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
 		rm -rf ${BLD_DIR}
 	fi
@@ -637,9 +639,9 @@ if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
 	cmake ${SRC_DIR} -DCMAKE_INSTALL_PREFIX:PATH=${BLD_DIR} ${NIFTICLIB_OPTIONS} -DZLIB_ROOT=${Z_LIB_DIR}/build
 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building NIFTICLIB"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make
 	make install
 fi
@@ -664,11 +666,10 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${PNETCDF_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${SRC_DIR}
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting PNETCDF lib...
-		echo "----------------------------------------------------------------------------------"
-		tar -xzf ${LIB_DIR}/parallel-netcdf-1.7.0.tar.gz -C ${SRC_DIR} --strip-components=1
-		#tar -xzf ${LIB_DIR}/parallel-netcdf-1.6.1.tar.gz -C ${SRC_DIR} --strip-components=1
+		echo ${myline} 
+		tar -xzf ${LIB_DIR}/parallel-netcdf.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${PNETCDF_LIB_DIR} == ${HOME} ]; then
@@ -679,9 +680,9 @@ fi
 #if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
 if [ ${buildpnetcdf} -eq 1 ]; then
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring PNETCDF lib..."
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
 		rm -rf ${BLD_DIR}
 	fi
@@ -692,9 +693,9 @@ if [ ${buildpnetcdf} -eq 1 ]; then
 	./configure --prefix=${BLD_DIR} FFLAGS='-O3' CFLAGS='-O3'
 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building PNETCDF lib"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make
 	make install
 fi
@@ -718,9 +719,9 @@ if [ ! ${cleanup} -eq 1 ]; then
 	if [ ! -d ${ACCFFT_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
 		mkdir -p ${ACCFFT_LIB_DIR}/src
 		echo ""
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		echo extracting ACCFFT lib...
-		echo "----------------------------------------------------------------------------------"
+		echo ${myline} 
 		tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
@@ -732,9 +733,9 @@ fi
 
 if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then 
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "configuring ACCFFT"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
 		rm -rf ${BLD_DIR}
 	fi
@@ -744,9 +745,9 @@ if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then
 	echo cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
 	echo ""
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	echo "building ACCFFT"
-	echo "----------------------------------------------------------------------------------"
+	echo ${myline} 
 	make -j
 	make install
 fi
