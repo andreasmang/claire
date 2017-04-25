@@ -2249,6 +2249,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
             for (IntType i = 0; i < nl; ++i) {  // for all grid points
                 // compute \bar{\lambda} = \lambda_j + ht*\idiv(\lambda\vect{v})
                 lambdabar = p_l[ll + k*nl +i] + ht*p_rhs0[i];
+
                 // scale \vect{v} by \bar{\lambda}
                 p_vec1[i] = p_v1[i]*lambdabar;
                 p_vec2[i] = p_v2[i]*lambdabar;
@@ -2566,7 +2567,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
         case SL:
         {
             ierr = this->SolveIncStateEquationSL(); CHKERRQ(ierr);
-            //ierr = this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
             break;
         }
         default:
@@ -2608,7 +2608,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, l, lnext;
+    IntType nl, ng, nc, nt, lm, lmnext, lmt, lmtnext;
     ScalarType *p_m = NULL, *p_mt = NULL, *p_mtbar = NULL,
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                 *p_gmx1 = NULL, *p_gmx2 = NULL, *p_gmx3 = NULL,
@@ -2671,20 +2671,18 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
         for (IntType k = 0; k < nc; ++k) {
             // template image is constant in time
             this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m+k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
+            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
-            //
-            if (!fullnewton) nt = 1;
-
             // compute incremental state variable for all time points
+            // note: we do not need to store the time history for
+            // \tilde{m} if we consider a Gauss--Newton approximation
             for (IntType j = 0; j < nt; ++j) {
-                l = j*nl*nc + k*nl;
                 if (fullnewton) {
-                    lnext = (j+1)*nl*nc + k*nl;
+                    lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
                 } else {
-                    lnext = l;
+                    lmt = 0; lmtnext = 0;
                 }
 #pragma omp parallel
 {
@@ -2692,9 +2690,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
                 // the right hand side remains constant;
                 // we can reduce the 2 RK2 steps to a single one
                 for (IntType i = 0; i < nl; ++i) {
-                     p_mt[lnext+i] = p_mt[l+i] - ht*(p_gmx1[i]*p_vtx1[i]
-                                                    +p_gmx2[i]*p_vtx2[i]
-                                                    +p_gmx3[i]*p_vtx3[i]);
+                     p_mt[lmtnext + k*nl + i] = p_mt[lmt + k*nl + i] - ht*(p_gmx1[i]*p_vtx1[i]
+                                                                         + p_gmx2[i]*p_vtx2[i]
+                                                                         + p_gmx3[i]*p_vtx3[i]);
                 }
 }  // omp
             }  // for all time points
@@ -2709,18 +2707,22 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
         // compute numerical time integration
         for (IntType j = 0; j < nt; ++j) {
             for (IntType k = 0; k < nc; ++k) {
-                l = j*nl*nc + k*nl;
-                lnext = (j+1)*nl*nc + k*nl;
+                lm = j*nl*nc; lmnext = (j+1)*nl*nc;
+                if (fullnewton) {
+                    lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
+                } else {
+                    lmt = 0; lmtnext = 0;
+                }
 
                 // compute gradient of m_j
                 this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m+l, this->m_Opt->GetFFT().plan, &XYZ, timer);
+                accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + lm + k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
                 this->m_Opt->StopTimer(FFTSELFEXEC);
                 this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
                 // compute gradient of \tilde{m}_j
                 this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmtx1, p_gmtx2, p_gmtx3, p_mt+l, this->m_Opt->GetFFT().plan, &XYZ, timer);
+                accfft_grad_t(p_gmtx1, p_gmtx2, p_gmtx3, p_mt + lmt + k*nl, this->m_Opt->GetFFT().plan, &XYZ, timer);
                 this->m_Opt->StopTimer(FFTSELFEXEC);
                 this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -2728,12 +2730,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
                      p_rhs0[i] = -p_gmtx1[i]*p_vx1[i] - p_gmtx2[i]*p_vx2[i] - p_gmtx3[i]*p_vx3[i]
                                  -p_gmx1[i]*p_vtx1[i] - p_gmx2[i]*p_vtx2[i] - p_gmx3[i]*p_vtx3[i];
                      // compute intermediate result
-                     p_mtbar[i] = p_mt[l+i] + ht*p_rhs0[i];
+                     p_mtbar[i] = p_mt[lmt + k*nl + i] + ht*p_rhs0[i];
                 }
 
                 // compute gradient of m_{j+1}
                 this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m+lnext, this->m_Opt->GetFFT().plan, &XYZ, timer);
+                accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + lmnext, this->m_Opt->GetFFT().plan, &XYZ, timer);
                 this->m_Opt->StopTimer(FFTSELFEXEC);
                 this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -2752,7 +2754,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
                                       -p_gmx1[i]*p_vtx1[i] - p_gmx2[i]*p_vtx2[i] - p_gmx3[i]*p_vtx3[i];
 
                     // compute intermediate result
-                    p_mt[lnext+i] = p_mt[l+i] + hthalf*(rhs1 + p_rhs0[i]);
+                    p_mt[lmtnext + k*nl + i] = p_mt[lmt + k*nl + i] + hthalf*(rhs1 + p_rhs0[i]);
                 }
             }  // for all image components
 }  // omp
@@ -3122,11 +3124,14 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, l, lnext;
-    ScalarType *p_lt = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
+    IntType nl, ng, nc, nt, ll, lm;
+    ScalarType *p_ltilde = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL, *p_m = NULL,
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
-    ScalarType ht, hthalf;
+                *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
+                *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL,
+                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
+    std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
+    ScalarType ht, hthalf, scale, ltilde;
     double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
@@ -3138,6 +3143,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     nl = this->m_Opt->GetDomainPara().nl;
     ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
+    scale = ht;
     hthalf = 0.5*ht;
 
     if (this->m_WorkScaField1 == NULL) {
@@ -3146,25 +3152,49 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
     if (this->m_WorkScaField2 == NULL) {
         ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
     }
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField2 == NULL) {
+        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField3 == NULL) {
+        try {this->m_WorkVecField3 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
 
-    ierr = VecGetArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
+    // init body force for numerical integration
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
+
+    ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField3->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {  // for all time points
+        lm = (nt-j)*nc*nl;
+        if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            l = (nt-j)*nc*nl + k*nl;
-            lnext = (nt-(j+1))*nc*nl + k*nl;
-
+            ll = k*nl;
 #pragma omp parallel
 {
 #pragma omp for
             // scale \vect{v} by \lambda
             for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                ScalarType lt = p_lt[l+i];
+                ScalarType lt = p_ltilde[ll + i];
 
                 p_ltjvx1[i] = p_vx1[i]*lt;
                 p_ltjvx2[i] = p_vx2[i]*lt;
@@ -3182,7 +3212,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {  // for all grid points
                 // compute \bar{\tilde{\lambda}} = \tilde{\lambda}^j + ht*\idiv(\tilde{\lambda}^j\vect{v})
-                ScalarType ltbar = p_lt[l+i] + ht*p_rhs0[i];
+                ScalarType ltbar = p_ltilde[ll + i] + ht*p_rhs0[i];
 
                 // scale \vect{v} by \bar{\lambda}
                 p_ltjvx1[i] = p_vx1[i]*ltbar;
@@ -3196,21 +3226,62 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
+            // compute gradient of m^j
+            this->m_Opt->StartTimer(FFTSELFEXEC);
+            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm + k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);
+            this->m_Opt->StopTimer(FFTSELFEXEC);
+            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+
 #pragma omp parallel
 {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                p_lt[lnext+i] = p_lt[l+i] + hthalf*(p_rhs0[i]+p_rhs1[i]);
+                ltilde = p_ltilde[ll + i];    // get \tilde{\lambda}(x)
+
+                // compute integration
+                p_ltilde[ll + i] = ltilde + hthalf*(p_rhs0[i]+p_rhs1[i]);
+
+                // compute incremental body force
+                p_bt1[i] += scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
+                p_bt2[i] += scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
+                p_bt3[i] += scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
             }
 }  // omp
         }  // for all image components
+        if (j == 0) scale *= 2.0;
     }  // for all time points
+
+    // compute body force for last time point t = 0 (i.e., for j = nt)
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        ll = k*nl; lm = k*nl;
+
+        // compute gradient of m (for incremental body force)
+        this->m_Opt->StartTimer(FFTSELFEXEC);
+        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+        this->m_Opt->StopTimer(FFTSELFEXEC);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+
+#pragma omp parallel
+{
+#pragma omp for
+        for (IntType i = 0; i < nl; ++i) {  // for all grid points
+            ltilde = p_ltilde[ll + i];
+            // compute bodyforce
+            p_bt1[i] += 0.5*scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
+            p_bt2[i] += 0.5*scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
+            p_bt3[i] += 0.5*scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
+        }
+}  // omp
+    }
 
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField3->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
 
@@ -3478,25 +3549,23 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
 
     for (IntType j = 0; j < nt; ++j) {
         lm = (nt-j)*nc*nl;
-
         if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {
             ll = k*nl;
-
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildex, p_ltilde + ll, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m^j
             this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm + k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTDIV);
+            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
 #pragma omp parallel
 {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {
                 ltilde = p_ltilde[ll + i];    // get \tilde{\lambda}(x)
-                ltildex = p_ltildex[i];     // get \tilde{\lambda}(X)
+                ltildex = p_ltildex[i];       // get \tilde{\lambda}(X)
 
                 // scale div(v)(X) by \tilde{\lambda}(X)
                 rhs0 = ltildex*p_divvx[i];
@@ -3524,7 +3593,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
         this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTDIV);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
 #pragma omp parallel
 {
