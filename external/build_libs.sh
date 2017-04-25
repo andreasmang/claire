@@ -452,8 +452,8 @@ if [ ${builddep} -eq 1 -o ${buildpetscdbgsgl} -eq 1 ]; then
 		rm -rf ${BLD_DIR}/${PETSC_ARCH}
 	fi
 	cd ${SRC_DIR}
-	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}/${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_DBG_OPTIONS} --with-precision=single
-	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}/${PETSC_ARCH} --prefix=${BLD_DIR} ${PETSC_DBG_OPTIONS} --with-precision=single
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS} --with-precision=single
+	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS} --with-precision=single
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "building PETSC" 
