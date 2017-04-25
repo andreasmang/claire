@@ -18,7 +18,7 @@ DDIR=/scratch/data/medical_images/brain/nirep/netcdf
 ext=nc
 np=16
 
-defpara='-pdesolver sl -regnorm h1s -opttol 1.000000e-01 -nt 4 -xresult -usenc -logworkload -verbosity 2 -ric -betaw 1.000000e-04'
+defpara='-pdesolver sl -regnorm h1s -opttol 1.000000e-01 -nt 4 -xresult -usenc -verbosity 2 -ric -betaw 1.000000e-04'
 
 # directory for binary
 BDIR=~/code/develop/cold/bin
@@ -42,7 +42,7 @@ fi
 
 if [[ ! -e ${RDIR}/velocity-field-x1.${ext} ]]; then
 	mpirun -n ${np} ${BDIR}/runcoldreg	-x ${RDIR}/ -mr ${DDIR}/${mR}-nx-256x300x256.${ext} -mt ${DDIR}/${mT}-nx-256x300x256.${ext} \
-								-nx 256x300x256 ${defpara} -betav ${betav}  -betaw ${betaw} -maxit ${maxit} -krylovmaxit ${krylovmaxit} > ${RDIR}/log.txt
+								-nx 256x300x256 ${defpara} -betav ${betav}  -betaw ${betaw} -maxit ${maxit} -krylovmaxit ${krylovmaxit} -gridcont > ${RDIR}/log.txt
 fi
 
 nt=4
