@@ -69,8 +69,6 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
 
     // pointer for container of velocity field
     this->m_VelocityField = NULL;
-
-    // pointer for container of incremental velocity field
     this->m_IncVelocityField = NULL;
 
     // pointers to images (set from outside; not to be deleted)
@@ -384,8 +382,17 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
-    this->m_VelocityField = v;
-    this->m_DeleteControlVariable = false;
+    if (this->m_VelocityField == NULL) {
+        try {this->m_VelocityField = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+//    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+
+//    this->m_VelocityField = v;
+//    this->m_DeleteControlVariable = false;
 
     this->m_Opt->Exit(__func__);
 
@@ -900,6 +907,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     int icase = 0;
     //ScalarType v0 = 0.2;
     ScalarType v0 = PETSC_PI/12.0;
+    bool velocityallocated = false;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -925,6 +933,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+        velocityallocated = true;
     }
 
     if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
@@ -1074,7 +1083,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     }
 
     // reset velocity field (to avoid memory leak)
-    if (this->m_VelocityField != NULL) {
+    if (velocityallocated) {
         delete this->m_VelocityField;
         this->m_VelocityField = NULL;
     }
@@ -2590,6 +2599,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 
     PetscFunctionBegin;
 
+    // TODO: fix this
+    ierr = ThrowError("not implemented"); CHKERRQ(ierr);
+
     this->m_Opt->Enter(__func__);
 
     ext = this->m_Opt->GetReadWriteFlags().extension;
@@ -2666,9 +2678,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         // evaluate v(y)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3,
-                                                         p_v1, p_v2, p_v3,
-                                                         p_y1, p_y2, p_y3 ); CHKERRQ(ierr);
+//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3,
+//                                                         p_v1, p_v2, p_v3,
+//                                                         p_y1, p_y2, p_y3 ); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK2)
 #pragma omp parallel
@@ -2682,9 +2694,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 }// end of pragma omp parallel
 
         // evaluate v(ytilde)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vytilde1, p_vytilde2, p_vytilde3,
-                                                         p_v1, p_v2, p_v3,
-                                                         p_ytilde1, p_ytilde2, p_ytilde3 ); CHKERRQ(ierr);
+//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vytilde1, p_vytilde2, p_vytilde3,
+//                                                         p_v1, p_v2, p_v3,
+//                                                         p_ytilde1, p_ytilde2, p_ytilde3 ); CHKERRQ(ierr);
 
         // update deformation map (second stage of RK2)
 #pragma omp parallel
@@ -2741,6 +2753,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
                 *p_ytilde1 = NULL, *p_ytilde2 = NULL, *p_ytilde3 = NULL;
 
     PetscFunctionBegin;
+
+    // TODO: fix this
+    ierr = ThrowError("not implemented"); CHKERRQ(ierr);
 
     this->m_Opt->Enter(__func__);
 
@@ -2810,8 +2825,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         // evaluate right hand side v(y) (i.e., F0)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-                                                         p_y1, p_y2, p_y3); CHKERRQ(ierr);
+//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
+//                                                         p_y1, p_y2, p_y3); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK4); F0
 #pragma omp parallel
@@ -2830,8 +2845,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // evaluate right hand side v(ytilde) (i.e., F1)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
+//                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
 
         // compute intermediate variable (sedond stage of RK4)
 #pragma omp parallel
@@ -2850,8 +2865,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // evaluate right hand side v(ytilde) (i.e., F2)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
+//                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
 
         // compute intermediate variable (sedond stage of RK4)
 #pragma omp parallel
@@ -2870,8 +2885,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // evaluate right hand side v(ytilde) (i.e., F3)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
+//                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
 
         // compute intermediate variable (sedond stage of RK4)
 #pragma omp parallel

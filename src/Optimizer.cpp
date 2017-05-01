@@ -124,6 +124,8 @@ PetscErrorCode Optimizer::ClearMemory(void) {
  *******************************************************************/
 PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     PetscErrorCode ierr = 0;
+    std::stringstream ss;
+    ScalarType value;
     IntType nlu, ngu;
 
     PetscFunctionBegin;
@@ -140,6 +142,12 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     // the input better is not zero
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+
+    if (this->m_Opt->GetVerbosity() > 1) {
+        ierr = VecNorm(this->m_Solution, NORM_2, &value); CHKERRQ(ierr);
+        ss << "norm of initial guess " << std::scientific << value;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 

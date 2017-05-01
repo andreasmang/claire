@@ -44,7 +44,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     virtual ~OptimalControlRegistration(void);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
-    PetscErrorCode InitializeOptimization(VecField* v0 = NULL);
+    PetscErrorCode InitializeOptimization();
 
     /*! evaluate distance between observed and predicted state */
     PetscErrorCode EvaluateDistanceMeasure(ScalarType*);

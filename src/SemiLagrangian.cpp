@@ -75,7 +75,6 @@ PetscErrorCode SemiLagrangian::Initialize() {
 
     this->m_StatePlan = NULL;
     this->m_AdjointPlan = NULL;
-//    this->m_VecFieldPlan = NULL;
 
     this->m_ScaFieldGhost = NULL;
     this->m_VecFieldGhost = NULL;
@@ -110,10 +109,6 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
         delete this->m_StatePlan;
         this->m_StatePlan = NULL;
     }
-//    if (this->m_VecFieldPlan != NULL) {
-//        delete this->m_VecFieldPlan;
-//        this->m_VecFieldPlan = NULL;
-//    }
 
     if (this->m_ScaFieldGhost != NULL) {
         accfft_free(this->m_ScaFieldGhost);
@@ -183,6 +178,16 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->GetDomainPara().nl;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    // if trajectory has not yet been allocated, allocate
+    if (this->m_X == NULL) {
+        try {this->m_X = new ScalarType[3*nl];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
 
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -193,15 +198,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
-    if (this->m_X == NULL) {
-        try {this->m_X = new ScalarType[3*nl];}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
 
     for (int i = 0; i < 3; ++i) {
         hx[i]     = this->m_Opt->GetDomainPara().hx[i];
@@ -230,8 +226,11 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     }  // i3
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-    // interpolate velocity field v(X)
+
+    // communicate the characteristic
     ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
+
+    // interpolate velocity field v(X)
     ierr = this->Interpolate(this->m_WorkVecField, v, flag); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
@@ -257,7 +256,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = this->m_WorkVecField->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-    // only communicate vector field if we run the inversion
+    // communicate the characteristic
     ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
@@ -318,6 +317,11 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
+    nl     = this->m_Opt->GetDomainPara().nl;
+    order  = this->m_Opt->GetPDESolverPara().interpolationorder;
+    nghost = order;
+    neval  = static_cast<int>(nl);
+
     for (int i = 0; i < 3; ++i) {
         nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
         isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
@@ -327,29 +331,20 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    order = this->m_Opt->GetPDESolverPara().interpolationorder;
-    nghost = order;
-
-    neval = static_cast<int>(nl);
-    ierr = Assert(neval != 0, "size problem"); CHKERRQ(ierr);
 
     // deal with ghost points
     plan = this->m_Opt->GetFFT().plan;
     g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, nghost, isize_g, istart_g);
+
+    // if scalar field with ghost points has not been allocated
     if (this->m_ScaFieldGhost == NULL) {
-        ierr = Assert(g_alloc_max > 0 && g_alloc_max < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << " >> " << __func__ << ": allocation (size = " << g_alloc_max << ")";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
         this->m_ScaFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
     }
 
-    // compute interpolation for all components of the input scalar field
+    // assign ghost points based on input scalar field
     accfft_get_ghost_xyz(plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
 
+    // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
         this->m_StatePlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
                                        neval, nghost, xo, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 0);
@@ -410,8 +405,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nghost, order;
     double timers[4] = {0, 0, 0, 0};
-    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;  ///< accfft plan
-//    accfft_plan* plan;
+    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;
     std::stringstream ss;
     IntType nl, nlghost, g_alloc_max;
 
@@ -448,6 +442,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         }
     }
 
+    // copy data to a flat vector
     for (IntType i = 0; i < nl; ++i) {
         this->m_X[0*nl+i] = vx1[i];
         this->m_X[1*nl+i] = vx2[i];
@@ -459,7 +454,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     // get ghost sizes
     plan = this->m_Opt->GetFFT().plan;
     g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, nghost, isize_g, istart_g);
-    ierr = Assert(g_alloc_max != 0, "alloc problem"); CHKERRQ(ierr);
 
     // get nl for ghosts
     nlghost = 1;
@@ -469,12 +463,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     // deal with ghost points
     if (this->m_VecFieldGhost == NULL) {
-        ierr = Assert(g_alloc_max > 0 && g_alloc_max < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
-        if (this->m_Opt->GetVerbosity() > 2) {
-            ss << " >> " << __func__ << ": allocation (size = " << g_alloc_max << ")";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-        }
         this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*g_alloc_max));
     }
 
@@ -505,135 +493,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         wx3[i] = this->m_X[2*nl+i];
     }
 
-    this->m_Opt->IncreaseInterpTimers(timers);
-    this->m_Opt->IncrementCounter(IPVEC);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief interpolate vector field
- *******************************************************************/
-PetscErrorCode SemiLagrangian::Interpolate( ScalarType* wx1, ScalarType* wx2, ScalarType* wx3,
-                                            ScalarType* vx1, ScalarType* vx2, ScalarType* vx3,
-                                            ScalarType* yx1, ScalarType* yx2, ScalarType* yx3) {
-    PetscErrorCode ierr = 0;
-    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nghost, order, ddofs = 3;
-    double timers[4] = {0, 0, 0, 0};
-    std::stringstream ss;
-    IntType nl, nlghost, nalloc;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-/*
-    ierr = Assert(vx1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vx2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vx3 != NULL, "null pointer"); CHKERRQ(ierr);
-
-    ierr = Assert(wx1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
-
-    ierr = Assert(yx1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(yx2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(yx3 != NULL, "null pointer"); CHKERRQ(ierr);
-
-    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
-
-    nl = this->m_Opt->GetDomainPara().nl;
-    order = this->m_Opt->GetPDESolverPara().interpolationorder;
-    nghost = order;
-
-    ierr = ThrowError("dont use during SC writeup"); CHKERRQ(ierr);
-
-    for (int i = 0; i < 3; ++i) {
-        nx[i]     = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
-        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
-    }
-
-    // get network dimensions
-    c_dims[0] = this->m_Opt->GetNetworkDims(0);
-    c_dims[1] = this->m_Opt->GetNetworkDims(1);
-
-    if (this->m_X == NULL) {
-        try {this->m_X = new ScalarType [3*nl];}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-
-    // create planer
-    if (this->m_VecFieldPlan == NULL) {
-        try {this->m_VecFieldPlan = new Interp3_Plan;}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-        this->m_VecFieldPlan->allocate(nl, &ddofs);
-    }
-
-    for (IntType i = 0; i < nl; ++i) {
-        this->m_X[i*3+0] = yx1[i]/(2*PETSC_PI);
-        this->m_X[i*3+1] = yx2[i]/(2*PETSC_PI);
-        this->m_X[i*3+2] = yx3[i]/(2*PETSC_PI);
-    }
-
-    // scatter
-    this->m_VecFieldPlan->scatter(nx, isize, istart, nl, nghost,
-                                  this->m_X, c_dims, this->m_Opt->GetFFT().mpicomm, timers);
-
-    for (IntType i = 0; i < nl; ++i) {
-        this->m_X[0*nl+i] = vx1[i];
-        this->m_X[1*nl+i] = vx2[i];
-        this->m_X[2*nl+i] = vx3[i];
-    }
-
-    // get ghost sizes
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->GetFFT().plan,
-                                                 nghost, isize_g, istart_g);
-
-    // get nl for ghosts
-    nlghost = 1;
-    for (int i = 0; i < 3; ++i) {
-        nlghost *= static_cast<IntType>(isize_g[i]);
-    }
-
-    // deal with ghost points
-    if (this->m_VecFieldGhost == NULL) {
-        this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*nalloc));
-    }
-
-
-    // do the communication for the ghost points
-    for (int i = 0; i < 3; i++) {
-        accfft_get_ghost_xyz(this->m_Opt->GetFFT().plan, nghost, isize_g,
-                             &this->m_X[i*nl], &this->m_VecFieldGhost[i*nlghost]);
-    }
-
-    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost, nx, isize, istart,
-                                      nl, nghost, this->m_X, c_dims,
-                                      this->m_Opt->GetFFT().mpicomm, timers);
-//    this->m_VecFieldPlan->interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
-//                                      nl, nghost, this->m_X, c_dims,
-//                                      this->m_Opt->GetFFT().mpicomm, timers);
-//    this->m_VecFieldPlan->high_order_interpolate(this->m_VecFieldGhost, 3, nx, isize, istart,
-//                                      nl, nghost, this->m_X, c_dims,
-//                                      this->m_Opt->GetFFT().mpicomm, timers, order);
-
-    for (IntType i = 0; i < nl; ++i) {
-        wx1[i] = this->m_X[0*nl+i];
-        wx2[i] = this->m_X[1*nl+i];
-        wx3[i] = this->m_X[2*nl+i];
-    }
-
-    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
-*/
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
 

@@ -590,6 +590,8 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
     bool boundreached;
+    std::stringstream ss;
+    ScalarType vn1, vn2, vn3;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -632,13 +634,20 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
 
-    // initialize registration problem (evaluate objective and gradient
-    // for zero velocity field)
-    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+    if (this->m_Opt->GetVerbosity() > 0) {
+        ierr = VecNorm(this->m_Solution->m_X1, NORM_2, &vn1); CHKERRQ(ierr);
+        ierr = VecNorm(this->m_Solution->m_X2, NORM_2, &vn2); CHKERRQ(ierr);
+        ierr = VecNorm(this->m_Solution->m_X3, NORM_2, &vn3); CHKERRQ(ierr);
+        ss  << "norm of initial guess: "
+            << std::scientific << "(" << vn1 << " " << vn2 << " " << vn3 << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
 
-    // allocate all the memory
+    // initialize registration problem
+    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeSolver(); CHKERRQ(ierr);
-    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     // init solver
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
@@ -821,7 +830,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
     this->m_Opt->SetRegularizationWeight(1, beta);
-    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 0) {
         ierr = DbgMsg("starting coarse search for regularization weight"); CHKERRQ(ierr);
@@ -842,8 +851,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ss.str(std::string()); ss.clear();
 
         if (this->m_Opt->GetOptPara().fastsolve) {
-            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
-//            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+//            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
 
         // set initial guess for current level
@@ -931,8 +940,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ss.str(std::string()); ss.clear();
 
         if (this->m_Opt->GetOptPara().fastsolve) {
-            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
-//            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+//            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
 
         // set initial guess for current level
@@ -1056,7 +1065,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
     this->m_Opt->SetRegularizationWeight(1, beta);
-    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+    //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     // reduce regularization parameter by one order of magnitude until
     // we hit user defined tolerances (which either is a lower bound
@@ -1160,7 +1170,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
     this->m_Opt->SetRegularizationWeight(1, beta);
-    ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+    //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     while (beta > betastar) {
         // set regularization weight
@@ -1304,7 +1315,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
 
             // compute gradient, distance measure, and initial objective
             // value for zero velocity field, but updated images
-            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
             // run the optimization
             ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);

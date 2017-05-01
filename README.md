@@ -19,8 +19,11 @@ If there are issues with compiling the code, take a look at [doc/README-INSTALL.
 
 #### Build Dependencies
 
+The following explains how to get the libraries, build them, and set the environmental variables.
+
 ```bash
 cd external
+./get_libs.sh
 ./build_libs.sh --build
 source libs/environment_vars.sh
 cd ..
@@ -28,8 +31,6 @@ cd ..
 
 #### Build COLDREG
 
-* Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
-* Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
 
 In the *top level directory* of the code, do
 
@@ -37,6 +38,14 @@ In the *top level directory* of the code, do
 make -j
 ```
 
+To user can change some options in the makefile:
+
+* Are you going to run the code in single precision? Set `USESINGLE` in the [makefile](makefile) to `yes` or `no`.
+* Are you going to use the toolbox (e.g., compute jacobians)? Set `BUILDTOOLS` in the [makefile](makefile) to `yes` or `no`.
+* Are your input files netcdf files (.nc)? Set `USEPNETCDF` in the [makefile](makefile) to `yes` or `no`.
+* Are your input files nifti files (.nii)? Set `USENIFTI` in the [makefile](makefile) to `yes` or `no`.
+* Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
+* Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
 
 ## Run COLDREG
 

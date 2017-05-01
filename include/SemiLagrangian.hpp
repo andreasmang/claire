@@ -42,25 +42,21 @@ class SemiLagrangian {
     SemiLagrangian(RegOpt*);
     ~SemiLagrangian();
 
-    PetscErrorCode ComputeTrajectory(VecField*,std::string);
+    PetscErrorCode ComputeTrajectory(VecField*, std::string);
 
     /*! interpolate vector field */
-    PetscErrorCode Interpolate(VecField*,VecField*,std::string);
+    PetscErrorCode Interpolate(VecField*, VecField*, std::string);
 
     /*! interpolate scalar field */
-    PetscErrorCode Interpolate(Vec*,Vec,std::string);
+    PetscErrorCode Interpolate(Vec*, Vec, std::string);
 
     /*! interpolate scalar field */
-    virtual PetscErrorCode Interpolate(ScalarType*,ScalarType*,std::string);
+    virtual PetscErrorCode Interpolate(ScalarType*, ScalarType*, std::string);
 
     /*! interpolate vector field */
-    virtual PetscErrorCode Interpolate(ScalarType*,ScalarType*,ScalarType*,
-                                       ScalarType*,ScalarType*,ScalarType*,
+    virtual PetscErrorCode Interpolate(ScalarType*, ScalarType*, ScalarType*,
+                                       ScalarType*, ScalarType*, ScalarType*,
                                        std::string);
-    /*! interpolate vector field */
-    virtual PetscErrorCode Interpolate(ScalarType*,ScalarType*,ScalarType*,
-                                       ScalarType*,ScalarType*,ScalarType*,
-                                       ScalarType*,ScalarType*,ScalarType*);
 
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetWorkVecField(VecField*);
@@ -75,7 +71,6 @@ class SemiLagrangian {
 
     Interp3_Plan* m_AdjointPlan;
     Interp3_Plan* m_StatePlan;
-//    Interp3_Plan* m_VecFieldPlan;
 
     ScalarType* m_X;
     ScalarType* m_ScaFieldGhost;

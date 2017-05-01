@@ -2,12 +2,15 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-BUILDTOOLS=yes
+USESINGLE=yes
+USEPNETCDF=yes
+USENIFTI=yes
+BUILDTOOLS=no
+
+
+# developer flags (ignore)
 DBGCODE=no
 PEDANTIC=no
-USEPNETCDF=no
-USENIFTI=yes
-USESINGLE=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -76,6 +79,7 @@ COLD_INC += -I./3rdparty
 ifeq ($(USENIFTI),yes)
 	COLD_INC += -I$(NIFTI_DIR)/include/nifti
 endif
+
 ifeq ($(USEPNETCDF),yes)
 	COLD_INC += -I$(PNETCDF_DIR)/include
 endif
@@ -100,11 +104,6 @@ ifeq ($(USENIFTI),yes)
 	LDFLAGS += -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
 endif
 
-ifeq ($(USEPNETCDF),yes)
-	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
-endif
-
-
 #LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS += -limf
@@ -119,6 +118,10 @@ LDFLAGS += -lm
 
 # FFT LIBRARIES
 LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
+ifeq ($(USEPNETCDF),yes)
+	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
+endif
+
 ifeq ($(USESINGLE),yes)
 	LDFLAGS += -L$(FFTW_DIR)/lib
 endif

@@ -226,13 +226,13 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
  * the objective functional and the gradient for a given initial
  * guess)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) {
+PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     std::stringstream ss;
     ScalarType value, hd, alpha, jvt, jv, lsred, descent;
     Vec g = NULL, dv = NULL, v = NULL, vtilde = NULL;
-    bool lssuccess;
+    bool lssuccess, restoreinitialguess = false;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -249,6 +249,18 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
         try {this->m_VelocityField = new VecField(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    } else { // user might have provided initial guess
+        ierr = this->IsVelocityZero(); CHKERRQ(ierr);
+        if (!this->m_VelocityIsZero) {
+            restoreinitialguess = true;
+            if (this->m_WorkVecField1 == NULL) {
+                try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+                catch (std::bad_alloc& err) {
+                    ierr = reg::ThrowError(err); CHKERRQ(ierr);
+                }
+            }
+            ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
         }
     }
     ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
@@ -334,12 +346,9 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization(VecField* v0) 
         ss.clear(); ss.str(std::string());
     }
 
-    if (v0 != NULL) {
-//      TODO: what's going on here
-//    ierr = VecSet(v, 0.0); CHKERRQ(ierr);
-//    ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
-//    ierr = v0->Copy(this->m_VelocityField); CHKERRQ(ierr);
-//    ierr = v0->SetValue(0.0); CHKERRQ(ierr);
+    // if we had a non-zero initial velocity, we'll restore it
+    if (restoreinitialguess) {
+        ierr = this->m_VelocityField->Copy(this->m_WorkVecField1); CHKERRQ(ierr);
     }
 
     // clean up

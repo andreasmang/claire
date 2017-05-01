@@ -137,7 +137,10 @@ int main(int argc, char **argv) {
     }
 
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+//    for (int i = 0; i < 20; ++i) {
     ierr = registration->Run(); CHKERRQ(ierr);
+//    }
 
     if (regopt->GetLogger().memoryusage) {
         PetscLogDouble mem;

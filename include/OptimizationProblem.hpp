@@ -57,7 +57,7 @@ class OptimizationProblem {
     inline void IncrementIterations() {this->m_Opt->IncrementCounter(ITERATIONS);}
 
     /*! evaluate objective, gradient and distance measure for initial guess */
-    virtual PetscErrorCode InitializeOptimization(VecField* v0 = NULL) = 0;
+    virtual PetscErrorCode InitializeOptimization() = 0;
 
     /*! evaluate distance between observed and predicted state */
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;

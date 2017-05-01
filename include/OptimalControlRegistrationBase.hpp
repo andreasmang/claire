@@ -115,7 +115,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode SetupSyntheticProb(Vec&, Vec&);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
-    virtual PetscErrorCode InitializeOptimization(VecField* v0 = NULL) = 0;
+    virtual PetscErrorCode InitializeOptimization() = 0;
 
     /*! evaluate l2-distance between observed and predicted state */
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
