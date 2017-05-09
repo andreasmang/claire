@@ -493,6 +493,65 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
 
 
 
+/********************************************************************
+ * @brief rescale data to [xminout,xmaxout]
+ *******************************************************************/
+PetscErrorCode VecNorm(Vec x, IntType nc) {
+    PetscErrorCode ierr = 0;
+    ScalarType minval, maxval, value, xmin_g, xmax_g, xscale, xshift, *p_x = NULL;
+    IntType nl, l;
+    int rval;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    if (nc == 1) {
+        // get max and min values
+        ierr = VecMin(x, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(x, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecNorm(x, NORM_2, &value); CHKERRQ(ierr);
+        ss << "(norm,min,max) = (" << std::scientific << value
+           << "," << minval << "," << maxval << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    } else {
+        // compute local size from input vector
+        ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+        nl /= nc;
+        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        for (IntType k = 0; k < nc; ++k) {
+            minval = std::numeric_limits<ScalarType>::max();
+            maxval = std::numeric_limits<ScalarType>::min();
+
+            // get min and max values
+            for (IntType i = 0; i < nl; ++i) {
+                l = k*nl + i;
+                if (p_x[l] < minval) {minval = p_x[l];}
+                if (p_x[l] > maxval) {maxval = p_x[l];}
+            }
+
+            // get min accross all procs
+            rval = MPI_Allreduce(&minval, &xmin_g, 1, MPIU_REAL, MPI_MIN, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // get max accross all procs
+            rval = MPI_Allreduce(&maxval, &xmax_g, 1, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // TODO: compute norm
+            ss << "(norm,min,max) = (" << std::scientific << 0.0
+               << "," << xmin_g << "," << xmax_g << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+
+        }  // for all components
+        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    }  // if else
+
+    PetscFunctionReturn(ierr);
+}
+
+
 
 /********************************************************************
  * @brief parse string of NUMxNUMxNUM into a vector

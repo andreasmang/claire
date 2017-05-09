@@ -92,6 +92,7 @@ PetscErrorCode VecCreate(Vec&, IntType, IntType);
 /*! display scalar field */
 PetscErrorCode VecView(Vec);
 
+PetscErrorCode VecNorm(Vec, IntType);
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType, IntType nc = 1);
 PetscErrorCode GetFileName(std::string&, std::string);
 PetscErrorCode GetFileName(std::string&, std::string&, std::string&, std::string);
@@ -128,7 +129,7 @@ inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
 /********************************************************************
  * @brief check wave numbers
  *******************************************************************/
-inline void CheckWaveNumbersInv(long int w[3],int n[3]) {
+inline void CheckWaveNumbersInv(long int w[3], int n[3]) {
     if (w[0] > n[0]/2) w[0] -= n[0];
     if (w[1] > n[1]/2) w[1] -= n[1];
     if (w[2] > n[2]/2) w[2] -= n[2];
