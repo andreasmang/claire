@@ -1020,8 +1020,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_SolveType = NOTSET;
 
     // flags
-    this->m_ReadWriteFlags.templateim = false;
-    this->m_ReadWriteFlags.referenceim = false;
+    this->m_ReadWriteFlags.templateim = false;      ///< read template image from file
+    this->m_ReadWriteFlags.referenceim = false;     ///< read reference image from file
     this->m_ReadWriteFlags.readfiles = false;       ///< read images from file
     this->m_ReadWriteFlags.readvelocity = false;    ///< read velocity from file
     this->m_ReadWriteFlags.timeseries = false;      ///< write time series to file (time dependent variables; use with caution) to file

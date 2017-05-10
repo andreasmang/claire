@@ -905,8 +905,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     //int vcase = 2;
     int vcase = 0;
     int icase = 0;
-    //ScalarType v0 = 0.2;
-    ScalarType v0 = PETSC_PI/12.0;
+    ScalarType v0 = 0.2;
+    //ScalarType v0 = PETSC_PI/12.0;
     bool velocityallocated = false;
     std::stringstream ss;
 
@@ -982,13 +982,12 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
                     p_mt[i] = PetscExpReal(-x*x);
                 }
 
+                // compute the velocity field
                 if (vcase == 0) {
-                    // compute the velocity field
                     p_vx1[i] = v0*PetscSinReal(x3)*PetscCosReal(x2)*PetscSinReal(x2);
                     p_vx2[i] = v0*PetscSinReal(x1)*PetscCosReal(x3)*PetscSinReal(x3);
                     p_vx3[i] = v0*PetscSinReal(x2)*PetscCosReal(x1)*PetscSinReal(x1);
                 } else if (vcase == 1) {
-                    // compute the velocity field
                     p_vx1[i] = PetscSinReal(2*x1)*PetscCosReal(2*x2)*PetscSinReal(2*x3);
                     p_vx2[i] = PetscSinReal(2*x1)*PetscCosReal(2*x2)*PetscSinReal(2*x3);
                     p_vx3[i] = PetscSinReal(2*x1)*PetscCosReal(2*x2)*PetscSinReal(2*x3);

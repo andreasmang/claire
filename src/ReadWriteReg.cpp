@@ -272,6 +272,7 @@ PetscErrorCode ReadWriteReg::ReadR(Vec* x, std::vector< std::string > filenames)
     ierr = this->Read(x, filenames); CHKERRQ(ierr);
 
     this->m_ReferenceImage.read = false;
+
     ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
     this->m_ReferenceImage.minval = minval;
@@ -306,6 +307,7 @@ PetscErrorCode ReadWriteReg::ReadT(Vec* x, std::vector< std::string > filenames)
     ierr = this->Read(x, filenames); CHKERRQ(ierr);
 
     this->m_TemplateImage.read = false;
+
     ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
     this->m_TemplateImage.minval = minval;
@@ -528,8 +530,8 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
     this->m_Opt->Enter(__func__);
 
     nc = this->m_Opt->GetDomainPara().nc;
-    this->m_ReferenceImage.write = true;
 
+    this->m_ReferenceImage.write = true;
     if (this->m_Opt->GetRegFlags().applyrescaling) {
         if (this->m_ReferenceImage.minval != -1.0 && this->m_ReferenceImage.maxval != -1.0) {
             minval = this->m_ReferenceImage.minval;
@@ -573,6 +575,7 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+
 
     this->m_TemplateImage.write = true;
 
@@ -1467,9 +1470,9 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x) {
     ierr = VecLoad(*x, viewer); CHKERRQ(ierr);
 
     // clean up
-    if (viewer!=NULL) {
+    if (viewer != NULL) {
         ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-        viewer=NULL;
+        viewer = NULL;
     }
 
     PetscFunctionReturn(ierr);
@@ -1530,7 +1533,7 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     // query info about field named "data"
-    ncerr=ncmpi_inq(fileid, &ndims, &nvars, &ngatts, &unlimited);
+    ncerr = ncmpi_inq(fileid, &ndims, &nvars, &ngatts, &unlimited);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
     ncerr = ncmpi_inq_varid(fileid, "data", &varid[0]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);

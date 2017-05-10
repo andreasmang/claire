@@ -293,19 +293,21 @@ PetscErrorCode Optimizer::SetupTao() {
         maxit  = std::max(static_cast<IntType>(0), maxit-1);
         ierr = KSPSetTolerances(this->m_KrylovMethod, reltol, abstol, divtol, maxit); CHKERRQ(ierr);
         ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
-//        ierr = KSPSetInitialGuessNonzero(krylovmethod,PETSC_TRUE); CHKERRQ(ierr);
+//        ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_TRUE); CHKERRQ(ierr);
 
         // KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
         // KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
         // KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
         ierr = KSPSetNormType(this->m_KrylovMethod, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
 //        ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
+//        ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_NATURAL); CHKERRQ(ierr);
 
         // set the kylov method
         if (this->m_Opt->GetKrylovSolverPara().solver == GMRES) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPGMRES); CHKERRQ(ierr);
         } else if (this->m_Opt->GetKrylovSolverPara().solver == PCG) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
+//            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
         } else {
             ierr = ThrowError("interface for solver not provided"); CHKERRQ(ierr);
         }

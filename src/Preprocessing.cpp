@@ -1619,6 +1619,7 @@ PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x) {
 PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
+    std::stringstream ss;
     ScalarType *p_x = NULL, *p_xs = NULL, c[3], scale; //, nx[3];
     int nx[3];
     double timer[NFFTTIMERS] = {0};
@@ -1635,6 +1636,15 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     if (this->m_xhat == NULL) {
         this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+    }
+
+    if (this->m_Opt->GetVerbosity() > 1) {
+        ss << "applying smoothing: ("
+           << this->m_Opt->GetSigma(0)
+           << ", " << this->m_Opt->GetSigma(1)
+           << ", " << this->m_Opt->GetSigma(2) << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
     }
 
     // get parameters

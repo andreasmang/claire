@@ -141,16 +141,26 @@ inline void CheckWaveNumbersInv(long int w[3], int n[3]) {
 /********************************************************************
  * @brief check wave numbers
  *******************************************************************/
-inline void CheckWaveNumbers(long int w[3], int n[3]) {
+inline void CheckWaveNumbers(IntType w[3], int n[3]) {
     if      (w[0] >  n[0]/2) w[0] -= n[0];
     else if (w[0] == n[0]/2) w[0]  = 0;
-
     if      (w[1] >  n[1]/2) w[1] -= n[1];
     else if (w[1] == n[1]/2) w[1]  = 0;
-
     if      (w[2] >  n[2]/2) w[2] -= n[2];
     else if (w[2] == n[2]/2) w[2]  = 0;
 };
+
+
+/********************************************************************
+ * @brief check wave numbers
+ *******************************************************************/
+inline void ComputeWaveNumber(IntType w[3], IntType n[3]) {
+    if      (w[0] >  n[0]/2) w[0] -= n[0];
+    if      (w[1] >  n[1]/2) w[1] -= n[1];
+    if      (w[2] >  n[2]/2) w[2] -= n[2];
+};
+
+
 
 
 /********************************************************************

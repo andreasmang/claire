@@ -634,7 +634,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 0) {
+    if (this->m_Opt->GetVerbosity() > 1) {
         ierr = VecNorm(this->m_Solution->m_X1, NORM_2, &vn1); CHKERRQ(ierr);
         ierr = VecNorm(this->m_Solution->m_X2, NORM_2, &vn2); CHKERRQ(ierr);
         ierr = VecNorm(this->m_Solution->m_X3, NORM_2, &vn3); CHKERRQ(ierr);

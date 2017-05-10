@@ -1056,10 +1056,10 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
             ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
         }
 
-        gamma = this->m_Opt->GetKrylovSolverPara().hessshift;
-        if (gamma > 0.0) {
-            ierr = VecAXPY(Hvtilde, gamma, vtilde); CHKERRQ(ierr);
-        }
+//        gamma = this->m_Opt->GetKrylovSolverPara().hessshift;
+//        if (gamma > 0.0) {
+//            ierr = VecAXPY(Hvtilde, gamma, vtilde); CHKERRQ(ierr);
+//        }
     }
 
     // stop hessian matvec timer
@@ -1135,6 +1135,8 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
     if (Hvtilde != NULL) {
         ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
     }
+
+
 
     this->m_Opt->Exit(__func__);
 
@@ -3573,8 +3575,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
 {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {
-                ltilde = p_ltilde[ll + i];    // get \tilde{\lambda}(x)
-                ltildex = p_ltildex[i];       // get \tilde{\lambda}(X)
+                ltilde  = p_ltilde[ll + i];   // get \tilde{\lambda}(x)
+                ltildex = p_ltildex[i];       // get \tilde{\lambda}(X) (interpolated)
 
                 // scale div(v)(X) by \tilde{\lambda}(X)
                 rhs0 = ltildex*p_divvx[i];
