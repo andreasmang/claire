@@ -68,7 +68,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     int nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
-    ScalarType sqrtbeta, ipxi, scale, value;
+    ScalarType beta, ipxi, scale, value;
     double applytime;
     double timer[NFFTTIMERS] = {0};
 
@@ -81,12 +81,12 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
-    sqrtbeta = static_cast<double>(sqrt(this->m_Opt->GetRegNorm().beta[0]));
+    beta = static_cast<ScalarType>(this->m_Opt->GetRegNorm().beta[0]);
 
     *R = 0.0; value = 0.0;
 
     // if regularization weight is zero, do noting
-    if (sqrtbeta != 0.0) {
+    if (beta != 0.0) {
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -94,7 +94,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
         nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
 
-        scale = static_cast<double>(this->m_Opt->ComputeFFTScale());
+        scale = static_cast<ScalarType>(this->m_Opt->ComputeFFTScale());
 
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -109,7 +109,7 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
 #pragma omp parallel
 {
         long int w[3];
-        double lapik, regop;
+        ScalarType lapik, regop;
         IntType i, i1, i2, i3;
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
@@ -122,12 +122,12 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
                     CheckWaveNumbers(w, nx);
 
                     // compute bilaplacian operator
-                    lapik = -static_cast<double>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+                    lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                     // compute regularization operator
-                    regop = scale*sqrtbeta*lapik;
+                    regop = scale*lapik;
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;
@@ -155,12 +155,12 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         this->m_Opt->IncrementCounter(FFT, 3);
 
         // compute inner product
-        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); value += static_cast<double>(ipxi);
-        ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &ipxi); CHKERRQ(ierr); value += static_cast<double>(ipxi);
-        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &ipxi); CHKERRQ(ierr); value += static_cast<double>(ipxi);
+        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); value += ipxi;
+        ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &ipxi); CHKERRQ(ierr); value += ipxi;
+        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &ipxi); CHKERRQ(ierr); value += ipxi;
 
         // multiply with regularization weight
-        *R = static_cast<ScalarType>(0.5*value);
+        *R = static_cast<ScalarType>(0.5*beta*value);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
