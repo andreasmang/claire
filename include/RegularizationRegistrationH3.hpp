@@ -17,7 +17,6 @@
  *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-
 #ifndef _REGULARIZATIONREGISTRATIONH3_H_
 #define _REGULARIZATIONREGISTRATIONH3_H_
 

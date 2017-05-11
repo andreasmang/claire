@@ -23,7 +23,13 @@
 #include "RegOpt.hpp"
 #include "RegularizationRegistration.hpp"
 
+
+
+
 namespace reg {
+
+
+
 
 class RegularizationRegistrationH1 : public RegularizationRegistration {
  public:
@@ -39,13 +45,14 @@ class RegularizationRegistrationH1 : public RegularizationRegistration {
     PetscErrorCode HessianMatVec(VecField*,VecField*);
     PetscErrorCode ApplyInvOp(VecField*,VecField*,bool applysqrt=false);
     PetscErrorCode GetExtremeEigValsInvOp(ScalarType&,ScalarType&);
-
- protected:
-
- private:
 };
 
+
+
+
 }  // end of namespace
+
+
 
 
 #endif
