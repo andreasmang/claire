@@ -66,9 +66,8 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType sqrtbeta[2], ipxi, scale;
-    int nx[3];
-    double timer[NFFTTIMERS] = {0};
-    double applytime;
+    IntType nx[3];
+    double timer[NFFTTIMERS] = {0}, applytime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -84,13 +83,14 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
     *R = 0.0;
 
     // if regularization weight is zero, do noting
-    if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0) {
+    //if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0) {
+    if (sqrtbeta[0] != 0.0) {
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
-        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -106,18 +106,18 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        long int w[3];
+        IntType w[3];
         ScalarType lapik, regop;
         IntType i,i1,i2,i3;
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
                 for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
+                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
+                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
 
-                    CheckWaveNumbers(w, nx);
+                    ComputeWaveNumber(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
@@ -125,7 +125,7 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                     // compute regularization operator
-                    regop = scale*(sqrtbeta[0]*lapik + sqrtbeta[1]);
+                    regop = scale*sqrtbeta[0]*(lapik + sqrtbeta[1]);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;
@@ -177,12 +177,11 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr;
-    int nx[3];
-    ScalarType *p_v1=NULL,*p_v2=NULL,*p_v3=NULL,
-                *p_bv1=NULL,*p_bv2 = NULL, *p_bv3=NULL;
+    IntType nx[3];
+    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
+                *p_bv1 = NULL,*p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta[2], scale;
-    double timer[NFFTTIMERS] = {0};
-    double applytime;
+    double timer[NFFTTIMERS] = {0}, applytime;
 
     PetscFunctionBegin;
 
@@ -199,12 +198,13 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
     beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
-    if ((beta[0] == 0.0) && (beta[1] == 0.0)) {
+    //if ((beta[0] == 0.0) && (beta[1] == 0.0)) {
+    if (beta[0] == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -220,24 +220,24 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        long int w[3];
+        IntType w[3];
         ScalarType lapik, regop;
         IntType i, i1, i2, i3;
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
                 for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
+                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
+                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
 
-                    CheckWaveNumbers(w,nx);
+                    ComputeWaveNumber(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = scale*(beta[0]*(lapik*lapik) + beta[1]);
+                    regop = scale*beta[0]*(lapik*lapik + beta[1]);
 
                     // get linear index
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
@@ -257,7 +257,6 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
 }// pragma omp parallel
         applytime += MPI_Wtime();
         timer[FFTHADAMARD] += applytime;
-
 
         // compute inverse fft
         ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
@@ -318,12 +317,11 @@ PetscErrorCode RegularizationRegistrationH2::HessianMatVec(VecField* dvvR, VecFi
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr;
-    int nx[3];
+    IntType nx[3];
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL,*p_bv3 = NULL;
     ScalarType beta[2], scale;
-    double timer[NFFTTIMERS] = {0};
-    double applytime;
+    double timer[NFFTTIMERS] = {0}, applytime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -338,14 +336,15 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
     beta[1] = this->m_Opt->GetRegNorm().beta[1];
 
     // if regularization weight is zero, do noting
-    if (beta[0] == 0.0 && beta[1] == 0.0) {
+    //if (beta[0] == 0.0 && beta[1] == 0.0) {
+    if (beta[0] == 0.0) {
         ierr = VecCopy(x->m_X1, Ainvx->m_X1); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -359,33 +358,31 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
         this->m_Opt->IncrementCounter(FFT, 3);
 
         applytime = -MPI_Wtime();
-
 #pragma omp parallel
 {
-        long int w[3];
+        IntType w[3];
         ScalarType lapik,regop;
         IntType i,i1,i2,i3;
-
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
                 for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
+                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
+                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
 
-                    CheckWaveNumbersInv(w, nx);
+                    ComputeWaveNumber(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = beta[0]*(lapik*lapik) + beta[1];
+                    regop = beta[0]*(lapik*lapik + beta[1]);
 
                     if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
 
-                    i=GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;
