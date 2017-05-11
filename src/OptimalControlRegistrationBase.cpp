@@ -559,7 +559,6 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
-/*
         case H3:
         {
             try {this->m_Regularization = new RegularizationRegistrationH3(this->m_Opt);}
@@ -568,7 +567,6 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
-*/
         case H1SN:
         {
             try {this->m_Regularization = new RegularizationRegistrationH1SN(this->m_Opt);}
@@ -585,7 +583,6 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
-/*
         case H3SN:
         {
             try {this->m_Regularization = new RegularizationRegistrationH3SN(this->m_Opt);}
@@ -594,7 +591,6 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
             }
             break;
         }
-*/
         default:
         {
             ierr = reg::ThrowError("regularization model not defined"); CHKERRQ(ierr);
@@ -957,12 +953,13 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
-//#pragma omp parallel
-//{
-//#pragma omp for
-    for (IntType i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (IntType i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (IntType i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+#pragma omp parallel
+{
+    IntType i1, i2, i3;
+#pragma omp for
+    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
                 x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
                 x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
@@ -1007,7 +1004,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
             }  // i1
         }  // i2
     }  // i3
-//}  // pragma omp parallel
+}  // pragma omp parallel
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 

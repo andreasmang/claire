@@ -1064,7 +1064,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
-    this->m_Opt->SetRegularizationWeight(1, beta);
+//    this->m_Opt->SetRegularizationWeight(1, beta);
     //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
@@ -1076,7 +1076,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     while (level < maxsteps) {
         // set regularization weight
         this->m_Opt->SetRegularizationWeight(0, beta);
-        this->m_Opt->SetRegularizationWeight(1, beta);
+//        this->m_Opt->SetRegularizationWeight(1, beta);
 
         // display message to user
         ss << std::scientific << std::setw(3) << "level " << level << " (beta=" << beta << ")";
@@ -1169,14 +1169,14 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
     this->m_Opt->SetRegularizationWeight(0, beta);
-    this->m_Opt->SetRegularizationWeight(1, beta);
+//    this->m_Opt->SetRegularizationWeight(1, beta);
     //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     while (beta > betastar) {
         // set regularization weight
         this->m_Opt->SetRegularizationWeight(0, beta);
-        this->m_Opt->SetRegularizationWeight(1, beta);
+//        this->m_Opt->SetRegularizationWeight(1, beta);
 
         // display message to user
         ss << std::scientific << std::setw(3) << "level "
@@ -1196,7 +1196,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
 
     // set regularization weight
     this->m_Opt->SetRegularizationWeight(0, beta);
-    this->m_Opt->SetRegularizationWeight(1, beta);
+//    this->m_Opt->SetRegularizationWeight(1, beta);
 
     // display message to user
     ss << std::scientific << std::setw(3)
@@ -1298,8 +1298,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
 
         // solve problem
         if (solve) {
-            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
             ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
 
             // rescale images (TODO: has to be removed, cause gaussian should be
             // scale invariant)
@@ -1522,8 +1522,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             ierr = this->SetupSolver(); CHKERRQ(ierr);
 
             // set images
-            ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
             ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+            ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
 
             // compute initial gradient, objective and
             // distance mesure for zero velocity field
