@@ -651,7 +651,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-betav") == 0) {
             argc--; argv++;
             this->m_RegNorm.beta[0] = atof(argv[1]);
-            this->m_RegNorm.beta[1] = atof(argv[1]);
+//            this->m_RegNorm.beta[1] = atof(argv[1]);
         } else if (strcmp(argv[1], "-betaw") == 0) {
             argc--; argv++;
             this->m_RegNorm.beta[2] = atof(argv[1]);
@@ -949,7 +949,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.type = H2SN;
     //this->m_RegNorm.type = H1SN;
     this->m_RegNorm.beta[0] = 1E-2;
-    this->m_RegNorm.beta[1] = 1E-2;
+    this->m_RegNorm.beta[1] = 1E-4;
     this->m_RegNorm.beta[2] = 1E-4;
 
     this->m_Verbosity = 0;
