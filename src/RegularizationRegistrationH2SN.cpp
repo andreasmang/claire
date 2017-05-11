@@ -108,9 +108,8 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        IntType w[3];
         ScalarType lapik, regop;
-        IntType i, i1, i2, i3;
+        IntType i, i1, i2, i3, w[3];
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
@@ -224,9 +223,8 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateGradient(VecField* dvR, V
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        IntType w[3];
         ScalarType lapik, regop;
-        IntType i, i1, i2, i3;
+        IntType i, i1, i2, i3, w[3];
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
@@ -369,9 +367,8 @@ PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* ainvv, VecFi
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        IntType w[3];
         ScalarType lapik, regop;
-        IntType i, i1, i2, i3;
+        IntType i, i1, i2, i3, w[3];
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {

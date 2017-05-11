@@ -67,7 +67,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
                 *p_gv11 = NULL, *p_gv12 = NULL, *p_gv13 = NULL,
                 *p_gv21 = NULL, *p_gv22 = NULL, *p_gv23 = NULL,
                 *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
-    std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
+    std::bitset<3> xyz = 0; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     ScalarType beta, value;
     double timer[NFFTTIMERS] = {0};
 
@@ -92,7 +92,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
         // X1 gradient
         ierr = this->m_WorkVecField->GetArrays(p_gv11, p_gv12, p_gv13); CHKERRQ(ierr);
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_gv11, p_gv12, p_gv13); CHKERRQ(ierr);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
@@ -106,7 +106,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
         // X2 gradient
         ierr = this->m_WorkVecField->GetArrays(p_gv21, p_gv22, p_gv23); CHKERRQ(ierr);
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_gv21, p_gv22, p_gv23); CHKERRQ(ierr);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
@@ -120,7 +120,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
         // X3 gradient
         ierr = this->m_WorkVecField->GetArrays(p_gv31, p_gv32, p_gv33); CHKERRQ(ierr);
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->GetFFT().plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         ierr = this->m_WorkVecField->RestoreArrays(p_gv31, p_gv32, p_gv33); CHKERRQ(ierr);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
@@ -156,12 +156,11 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
-    int nx[3];
+    IntType nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[NFFTTIMERS] = {0};
-    double applytime;
+    double timer[NFFTTIMERS] = {0}, applytime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -179,9 +178,9 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -197,18 +196,17 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        long int w[3];
         ScalarType lapik, regop;
-        IntType i, i1, i2, i3;
+        IntType i, i1, i2, i3, w[3];
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
                 for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
+                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
+                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
 
-                    CheckWaveNumbers(w, nx);
+                    ComputeWaveNumber(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
@@ -295,12 +293,11 @@ PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, Vec
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr;
-    int nx[3];
+    IntType nx[3];
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     ScalarType beta, scale;
-    double timer[NFFTTIMERS] = {0};
-    double applytime;
+    double timer[NFFTTIMERS] = {0}, applytime;
 
     PetscFunctionBegin;
 
@@ -320,9 +317,9 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nx[0] = static_cast<int>(this->m_Opt->GetNumGridPoints(0));
-        nx[1] = static_cast<int>(this->m_Opt->GetNumGridPoints(1));
-        nx[2] = static_cast<int>(this->m_Opt->GetNumGridPoints(2));
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         // compute forward fft
         ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
@@ -338,18 +335,17 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
         applytime = -MPI_Wtime();
 #pragma omp parallel
 {
-        long int w[3];
         ScalarType lapik, regop;
-        IntType i, i1, i2, i3;
+        IntType i, i1, i2, i3, w[3];
 #pragma omp for
         for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
             for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
                 for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                    w[0] = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                    w[1] = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                    w[2] = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
+                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
+                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
 
-                    CheckWaveNumbersInv(w, nx);
+                    ComputeWaveNumber(w, nx);
 
                     // compute bilaplacian operator
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
@@ -360,7 +356,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
                     if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
 
-                    i=GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;
