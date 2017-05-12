@@ -797,7 +797,7 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
         if (!this->m_IndicesF[p].empty()) {
             n_f=this->m_IndicesF[p].size();
             n_c=this->m_IndicesC[p].size();
-            ierr = Assert(n_f==n_c,"error in setup"); CHKERRQ(ierr);
+            ierr = Assert(n_f == n_c,"error in setup"); CHKERRQ(ierr);
             this->m_NumSend[p] = n_f/3;
         }
 

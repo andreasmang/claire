@@ -310,7 +310,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
     ScalarType beta[3], scale;
     long int nx[3];
-    IntType nalloc;
+    //IntType nalloc;
     double applytime;
     ComplexType x1hat, x2hat, x3hat;
     double timer[NFFTTIMERS] = {0};

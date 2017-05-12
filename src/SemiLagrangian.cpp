@@ -249,7 +249,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
                 this->m_X[l*3+0] = (x1 - scale*hthalf*(p_vX1[l] + p_v1[l]))/(2.0*PETSC_PI); // normalized to [0,1]
                 this->m_X[l*3+1] = (x2 - scale*hthalf*(p_vX2[l] + p_v2[l]))/(2.0*PETSC_PI); // normalized to [0,1]
                 this->m_X[l*3+2] = (x3 - scale*hthalf*(p_vX3[l] + p_v3[l]))/(2.0*PETSC_PI); // normalized to [0,1]
-
             }  // i1
         }  // i2
     }  // i3
@@ -318,6 +317,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl     = this->m_Opt->GetDomainPara().nl;
+
     order  = this->m_Opt->GetPDESolverPara().interpolationorder;
     nghost = order;
     neval  = static_cast<int>(nl);
@@ -354,7 +354,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);
@@ -420,14 +419,13 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
-
     nl = this->m_Opt->GetDomainPara().nl;
     order = this->m_Opt->GetPDESolverPara().interpolationorder;
     nghost = order;
 
     for (int i = 0; i < 3; ++i) {
-        nx[i]     = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
-        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 
@@ -518,16 +516,14 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
     this->m_Opt->Enter(__func__);
 
-
     ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
-
 
     // get sizes
     nl     = static_cast<int>(this->m_Opt->GetDomainPara().nl);
     nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
     for (int i = 0; i < 3; ++i) {
-        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
+        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }
 
@@ -541,6 +537,9 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_StatePlan == NULL) {
+            if (this->m_Opt->GetVerbosity() > 1) {
+                ierr = DbgMsg("allocating state plan"); CHKERRQ(ierr);
+            }
             try {this->m_StatePlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -556,6 +555,9 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_AdjointPlan == NULL) {
+            if (this->m_Opt->GetVerbosity() > 1) {
+                ierr = DbgMsg("allocating adjoint plan"); CHKERRQ(ierr);
+            }
             try {this->m_AdjointPlan = new Interp3_Plan();}
             catch (std::bad_alloc& err) {
                 ierr = reg::ThrowError(err); CHKERRQ(ierr);

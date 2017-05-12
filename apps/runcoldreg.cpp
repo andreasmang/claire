@@ -138,9 +138,7 @@ int main(int argc, char **argv) {
 
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
 
-//    for (int i = 0; i < 20; ++i) {
     ierr = registration->Run(); CHKERRQ(ierr);
-//    }
 
     if (regopt->GetLogger().memoryusage) {
         PetscLogDouble mem;
@@ -149,8 +147,6 @@ int main(int argc, char **argv) {
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
-
-
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}

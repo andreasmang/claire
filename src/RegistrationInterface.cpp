@@ -624,7 +624,6 @@ PetscErrorCode RegistrationInterface::RunSolver() {
             ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
             ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
         }
-
         ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
     } else {
@@ -931,7 +930,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     while (!stop) {
         // set regularization parameter
         this->m_Opt->SetRegularizationWeight(0, beta);
-        this->m_Opt->SetRegularizationWeight(1, beta);
+//        this->m_Opt->SetRegularizationWeight(1, beta);
 
         // display regularization parameter to user
         ss << std::setw(3) << "level " << level << " ( betav="

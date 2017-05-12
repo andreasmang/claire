@@ -1009,7 +1009,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscErrorCode ierr = 0;
-    ScalarType hd, gamma;
+    ScalarType hd; //, gamma;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -2119,6 +2119,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
             case SL:
             {
                 ierr = this->SolveAdjointEquationSL(); CHKERRQ(ierr);
+                //ierr = this->SolveAdjointEquationRK2(); CHKERRQ(ierr);
                 break;
             }
             default:
@@ -2578,6 +2579,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
         case SL:
         {
             ierr = this->SolveIncStateEquationSL(); CHKERRQ(ierr);
+            //ierr = this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
             break;
         }
         default:
@@ -3066,6 +3068,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
                 case SL:
                 {
                     ierr = this->SolveIncAdjointEquationGNSL(); CHKERRQ(ierr);
+                    //ierr = this->SolveIncAdjointEquationGNRK2(); CHKERRQ(ierr);
                     break;
                 }
                 default:

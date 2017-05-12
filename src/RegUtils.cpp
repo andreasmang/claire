@@ -498,7 +498,7 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
  *******************************************************************/
 PetscErrorCode VecNorm(Vec x, IntType nc) {
     PetscErrorCode ierr = 0;
-    ScalarType minval, maxval, value, xmin_g, xmax_g, xscale, xshift, *p_x = NULL;
+    ScalarType minval, maxval, value, xmin_g, xmax_g, *p_x = NULL;
     IntType nl, l;
     int rval;
     std::stringstream ss;
