@@ -665,6 +665,10 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
 	rescale_xyz(g_size, N_reg, N_reg_g, istart, isize, isize_g, total_query_points,
 			&all_query_points[0]);
 #endif
+
+    procs_i_recv_from_.clear();
+    procs_i_send_to_.clear();
+
 	this->scatter_baked = true;
 #ifdef INTERP_DEBUG
   PCOUT << "scatter DONE\n";
