@@ -97,10 +97,15 @@ public:
 	Real* h;
 
 };
+
+#ifdef SORT_QUERIES
 static bool ValueCmp(Trip const & a, Trip const & b) {
 	return a.z + a.y / a.h[1] * a.N[2] + a.x / a.h[0] * a.N[1] * a.N[2]
 			< b.z + b.y / b.h[1] * b.N[2] + b.x / b.h[0] * b.N[1] * b.N[2];
 }
+#endif
+
+#ifdef SORT_QUERIES
 static void sort_queries(std::vector<Real>* query_outside,
 		std::vector<int>* f_index, int* N_reg, Real* h, MPI_Comm c_comm) {
 
@@ -135,6 +140,7 @@ static void sort_queries(std::vector<Real>* query_outside,
 	}
 	return;
 }
+#endif
 
 #include "libmorton/libmorton/include/morton.h"
 
@@ -154,11 +160,15 @@ inline uint64_t mortonEncode_for(unsigned int x, unsigned int y, unsigned int z)
     }
     return answer;
 }
-static bool zValueCmp(zTrip const & a, zTrip const & b) {
 
+#ifdef SORT_QUERIES
+static bool zValueCmp(zTrip const & a, zTrip const & b) {
   return (a.mortid_ < b.mortid_);
 }
+#endif
 
+
+#ifdef SORT_QUERIES
 static void zsort_queries(std::vector<Real>* query_outside,
 		std::vector<int>* f_index, int* N_reg, Real* h, MPI_Comm c_comm) {
 
@@ -211,7 +221,7 @@ static void zsort_queries(std::vector<Real>* query_outside,
 
 		query_outside[proc].clear();
 		f_index[proc].clear();
-		for (int i = 0; i < total_bsize; ++i) {
+		for (int i = 0; i < (int)total_bsize; ++i) {
       int bindx = trip[i].i_;
       if(!bins_Q[bindx].empty()){
         query_outside[proc].insert(query_outside[proc].end(), bins_Q[bindx].begin(), bins_Q[bindx].end());
@@ -268,7 +278,7 @@ static void zsort_queries(std::vector<Real>* query_outside,
 #endif
 	return;
 }
-
+#endif
 
 /*
  * Phase 1 of the parallel interpolation: This function computes which query_points needs to be sent to
@@ -379,12 +389,12 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
   PCOUT << "sorting\n";
 #endif
 
-    int bsize_xyz[COORD_DIM];
-    const int bsize = 16;
-    bsize_xyz[0] = std::ceil(N_reg[0] / (Real)bsize);
-    bsize_xyz[1] = std::ceil(N_reg[1] / (Real)bsize);
-    bsize_xyz[2] = std::ceil(N_reg[2] / (Real)bsize);
-    const size_t total_bsize = bsize_xyz[0] * bsize_xyz[1] * bsize_xyz[2];
+    //int bsize_xyz[COORD_DIM];
+    //const int bsize = 16;
+    //bsize_xyz[0] = std::ceil(N_reg[0] / (Real)bsize);
+    //bsize_xyz[1] = std::ceil(N_reg[1] / (Real)bsize);
+    //bsize_xyz[2] = std::ceil(N_reg[2] / (Real)bsize);
+    //const size_t total_bsize = bsize_xyz[0] * bsize_xyz[1] * bsize_xyz[2];
     //pvfmm::Iterator<zTrip> trip = pvfmm::aligned_new<zTrip>(total_bsize);
     //pvfmm::Iterator<std::vector<Real>> bins_Q =
     //  pvfmm::aligned_new<std::vector<Real>>(total_bsize*nprocs);
@@ -406,10 +416,10 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
 		for (int i = 0; i < N_pts; i++) {
       // Real* Q_ptr = &query_points[i * COORD_DIM];
       pvfmm::Iterator<Real> Q_ptr = query_points+(i * COORD_DIM);
-			const int x = (int) std::abs(std::floor(Q_ptr[0] / h[0]) / bsize);
-			const int y = (int) std::abs(std::floor(Q_ptr[1] / h[1]) / bsize);
-			const int z = (int) std::abs(std::floor(Q_ptr[2] / h[2]) / bsize);
-      const int indx = z + y * bsize_xyz[2] + x * bsize_xyz[2] * bsize_xyz[1];
+			//const int x = (int) std::abs(std::floor(Q_ptr[0] / h[0]) / bsize);
+			//const int y = (int) std::abs(std::floor(Q_ptr[1] / h[1]) / bsize);
+			//const int z = (int) std::abs(std::floor(Q_ptr[2] / h[2]) / bsize);
+      //const int indx = z + y * bsize_xyz[2] + x * bsize_xyz[2] * bsize_xyz[1];
 			// The if condition checks whether the query points fall into the locally owned domain or not
 			//if (iX0[0] - h[0] <= Q_ptr[0]
 			//		&& Q_ptr[0] <= iX1[0] + h[0]
@@ -595,7 +605,7 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
 			for (int i = 0; i < procs_i_send_to_size_; ++i) {
 				dst_s = procs_i_send_to_[i];    //(procid-i+nprocs)%nprocs;
 				s_request[dst_s] = MPI_REQUEST_NULL;
-				int soffset = f_index_procs_self_offset[dst_s] * COORD_DIM;
+				//int soffset = f_index_procs_self_offset[dst_s] * COORD_DIM;
 				MPI_Isend(&query_outside[dst_s][0],
 						f_index_procs_self_sizes[dst_s] * COORD_DIM, MPI_T,
 						dst_s, 0, c_comm, &s_request[dst_s]);
@@ -776,7 +786,7 @@ void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals,
 	        for (int dof = 0; dof < data_dofs_[version]; ++dof) {
             Real* ptr = &f_cubic_unordered[f_index_procs_self_offset[proc]+dof*N_pts];
 #pragma omp parallel for
-                for (int i = 0; i < f_index[proc].size(); ++i) {
+                for (int i = 0; i < (int)f_index[proc].size(); ++i) {
                   int ind = f_index[proc][i];
                   query_values[ind + dof * N_pts] =ptr[i];
                 }

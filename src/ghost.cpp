@@ -22,15 +22,15 @@ void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-	MPI_Comm c_comm = plan->c_comm;
+//	MPI_Comm c_comm = plan->c_comm;
 
 	/* Get the local pencil size and the allocation size */
 	//int isize[3],osize[3],istart[3],ostart[3];
 	int * isize = plan->isize;
-	int * osize = plan->isize;
-	int * istart = plan->istart;
-	int * ostart = plan->ostart;
-	int alloc_max = plan->alloc_max;
+//	int * osize = plan->isize;
+//	int * istart = plan->istart;
+//	int * ostart = plan->ostart;
+//	int alloc_max = plan->alloc_max;
 
 	MPI_Comm row_comm = plan->row_comm;
 	int nprocs_r, procid_r;
@@ -190,15 +190,15 @@ void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> pa
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-	MPI_Comm c_comm = plan->c_comm;
+//	MPI_Comm c_comm = plan->c_comm;
 
 	/* Get the local pencil size and the allocation size */
 	//int isize[3],osize[3],istart[3],ostart[3];
 	int * isize = plan->isize;
-	int * osize = plan->isize;
-	int * istart = plan->istart;
-	int * ostart = plan->ostart;
-	int alloc_max = plan->alloc_max;
+//	int * osize = plan->isize;
+//	int * istart = plan->istart;
+//	int * ostart = plan->ostart;
+//	int alloc_max = plan->alloc_max;
 
 	MPI_Comm col_comm = plan->col_comm;
 	int nprocs_c, procid_c;
@@ -455,8 +455,8 @@ void accfft_get_ghost(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_
 	}
 
 	int *isize = plan->isize;
-	int *istart = plan->istart;
-	int *n = plan->N;
+	//int *istart = plan->istart;
+	//int *n = plan->N;
 	if (g_size > isize[0] || g_size > isize[1]) {
 		std::cout
 				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
@@ -570,8 +570,8 @@ void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* is
 	}
 
 	int *isize = plan->isize;
-	int *istart = plan->istart;
-	int *n = plan->N;
+//	int *istart = plan->istart;
+//	int *n = plan->N;
 	if (g_size > isize[0] || g_size > isize[1]) {
 		std::cout
 				<< "accfft_get_ghost_r2c does not support g_size greater than isize."

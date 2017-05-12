@@ -281,13 +281,17 @@ namespace pvfmm{
 
   inline void MemoryManager::free(Iterator<char> p) const{
     if(p==NULL) return;
+    #ifdef PVFMM_MEMDEBUG
     static uintptr_t alignment=MEM_ALIGN-1;
     static uintptr_t header_size=(uintptr_t)(sizeof(MemHead)+alignment) & ~(uintptr_t)alignment;
+    #endif
 
     MemHead& mem_head=GetMemHead(&p[0]);
     Long n_indx=mem_head.n_indx;
+    #ifdef PVFMM_MEMDEBUG
     Long n_elem=mem_head.n_elem;
     Long type_size=mem_head.type_size;
+    #endif
     char* base=(char*)&mem_head;
 
     { // Verify header check_sum; set array to init_mem_val
@@ -327,7 +331,7 @@ namespace pvfmm{
       #endif
       return ::free(p_);
     }else{
-      assert(n_indx<=node_buff.size());
+      assert(n_indx<=(Long)node_buff.size());
       omp_set_lock(&omp_lock);
       MemNode& n=node_buff[n_indx-1];
       assert(!n.free && n.size>0 && n.mem_ptr==base);
@@ -461,7 +465,7 @@ namespace pvfmm{
 
   inline void MemoryManager::delete_node(Long indx) const{
     assert(indx);
-    assert(indx<=node_buff.size());
+    assert(indx<=(Long)node_buff.size());
     MemNode& n=node_buff[indx-1];
     n.free=false;
     n.size=0;

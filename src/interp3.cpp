@@ -864,17 +864,17 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
@@ -1009,11 +1009,11 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 // 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 // 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 // 		bool query_values_already_scaled) {
-// 
+//
 //   const __m256  c1000 = _mm256_set_ps(-1.0,-0.0,-0.0,-0.0,-1.0,-0.0,-0.0,-0.0);
 //   const __m256  c2211 = _mm256_set_ps(-2.0,-2.0,-1.0,-1.0,-2.0,-2.0,-1.0,-1.0);
 //   const __m256  c3332 = _mm256_set_ps(-3.0,-3.0,-3.0,-2.0,-3.0,-3.0,-3.0,-2.0);
-// 
+//
 //   const __m256 vlagr = _mm256_set_ps(-0.1666666667,0.5,-0.5, 0.1666666667,-0.1666666667,0.5,-0.5, 0.1666666667);
 //   const __m256  c33332222 = _mm256_set_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
 //   const __m256  c22223333 = _mm256_setr_ps(-3.0,-3.0,-3.0,-3.0,-2.0,-2.0,-2.0,-2.0);
@@ -1024,19 +1024,19 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 // 	for (int i = 0; i < N_pts; i++) {
 // 		Real point[COORD_DIM];
 // 		int grid_indx[COORD_DIM];
-// 
+//
 // 		point[0] = query_points[COORD_DIM * i + 0] * N_reg_g[0];
 // 		grid_indx[0] = ((int)(point[0])) - 1;
 // 		point[0] -= grid_indx[0];
-// 
+//
 // 		point[1] = query_points[COORD_DIM * i + 1] * N_reg_g[1];
 // 		grid_indx[1] = ((int)(point[1])) - 1;
 // 		point[1] -= grid_indx[1];
-// 
+//
 // 		point[2] = query_points[COORD_DIM * i + 2] * N_reg_g[2];
 // 		grid_indx[2] = ((int)(point[2])) - 1;
 // 		point[2] -= grid_indx[2];
-// 
+//
 // 		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
 //     Real* reg_ptr = &reg_grid_vals[indxx];
 // 		Real val = 0;
@@ -1044,15 +1044,15 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 //     const int isize_g2 = isize_g[2];
 //     const int two_isize_g2 = 2*isize_g[2];
 //     const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
-// 
-// 
+//
+//
 //     __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
 //     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
 //     __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
 //     __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
 //     __m256 vM0_tttt[4];
-// 
-// 
+//
+//
 //     {
 //     const __m256 vx0 = _mm256_set1_ps(point[0]);
 //     const __m256 vx1 = _mm256_set1_ps(point[1]);
@@ -1060,7 +1060,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 //     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c1000));
 //     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c2211));
 //     vM0 = _mm256_mul_ps(vM0, _mm256_add_ps(vx0,c3332));
-// 
+//
 //     __m256 tmp = _mm256_add_ps(vx1,c33332222); // x-3,...;x-2,...
 //     tmp = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c11110000));
 //     vM1_0000_1111 = _mm256_mul_ps(tmp, _mm256_add_ps(vx1,c22223333));
@@ -1070,14 +1070,14 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 //     //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c1000));
 //     //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c2211));
 //     //vM1 = _mm256_mul_ps(vM1, _mm256_add_ps(vx1,c3332));
-// 
+//
 //     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c1000));
 //     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c2211));
 //     vM2 = _mm256_mul_ps(vM2, _mm256_add_ps(vx2,c3332));
 //     // todo remove permute completely by using different c's in the beginning
 //     vM2 = _mm256_permute_ps(vM2,0b00011011);
 //     //vM2 = _mm256_shuffle_ps(vM2,vM2,_MM_SHUFFLE(0, 1, 2, 3));
-// 
+//
 //     //const Real* M1 = (Real*)&vM1;
 //     //vM1_0000_1111 = _mm256_set_ps(M1[7],M1[7],M1[7],M1[7],M1[6],M1[6],M1[6],M1[6]);
 //     //vM1_2222_3333 = _mm256_set_ps(M1[5],M1[5],M1[5],M1[5],M1[4],M1[4],M1[4],M1[4]);
@@ -1088,45 +1088,45 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 //     vM0_tttt[2] = _mm256_permute_ps(vM0,0b01010101);
 //     vM0_tttt[3] = _mm256_permute_ps(vM0,0b00000000);
 //     }
-// 
-// 
+//
+//
 //     // load all vfij
 //           const __m256 vf_i0_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i0_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vf_i1_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i1_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vf_i2_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i2_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vf_i3_j01 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           reg_ptr += two_isize_g2;
 //           const __m256 vf_i3_j23 = _mm256_loadu2_m128(reg_ptr, reg_ptr+isize_g2);
 //           // reg_ptr +=  reg_plus;
-// 
+//
 //           const __m256 vt_i0_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i0_j01);
 //           const __m256 vt_i0_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i0_j23);
 //           const __m256 vt_i0 = _mm256_add_ps(vt_i0_j01, vt_i0_j23);
-// 
+//
 //           const __m256 vt_i1_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i1_j01);
 //           const __m256 vt_i1_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i1_j23);
 //           const __m256 vt_i1 = _mm256_add_ps(vt_i1_j01, vt_i1_j23);
-// 
+//
 //           const __m256 vt_i2_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i2_j01);
 //           const __m256 vt_i2_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i2_j23);
 //           const __m256 vt_i2 = _mm256_add_ps(vt_i2_j01, vt_i2_j23);
-// 
+//
 //           const __m256 vt_i3_j01 = _mm256_mul_ps(vM1_0000_1111, vf_i3_j01);
 //           const __m256 vt_i3_j23 = _mm256_mul_ps(vM1_2222_3333, vf_i3_j23);
 //           const __m256 vt_i3 = _mm256_add_ps(vt_i3_j01, vt_i3_j23);
-// 
+//
 //           const __m256 vt0 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b11111111), vt_i0);
 //           const __m256 vt1 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b10101010), vt_i1);
 //           const __m256 vt2 = _mm256_mul_ps(_mm256_permute_ps(vM0,0b01010101), vt_i2);
@@ -1135,18 +1135,18 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 //           //const __m256 vt1 = _mm256_mul_ps(vM0_tttt[1], vt_i1);
 //           //const __m256 vt2 = _mm256_mul_ps(vM0_tttt[2], vt_i2);
 //           //const __m256 vt3 = _mm256_mul_ps(vM0_tttt[3], vt_i3);
-// 
+//
 //           __m256 vt = _mm256_add_ps(vt0, vt1);
 //           vt = _mm256_add_ps(vt, vt2);
 //           vt = _mm256_add_ps(vt, vt3);
-// 
+//
 //           vt = _mm256_mul_ps(vM2, vt);
 //           val = sum8(vt);
 // 		      query_values[i] = val;
 // 	}
-// 
+//
 // 	return;
-// 
+//
 // }  // end of interp3_ghost_xyz_p
 
 
@@ -2540,7 +2540,7 @@ void optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg
 		//for (int j0 = 0; j0 < 4; j0++) {
       // ------------------------------------ //
           Real M0M1;
-          register Real val_;
+          //register Real val_;
 
           ptr = &reg_grid_vals[indx + indxx];
           indx += isize_g[2];
@@ -2990,7 +2990,7 @@ void ___optimized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_
           M0M1_[0] = M[0][0]*M[1][0];
           M0M1_[1] = M[0][0]*M[1][1];
           vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
-          register Real val_;
+          //register Real val_;
           Real vVal[8]={0};
           Real vVal2[8]={0};
           Real* ptr = &reg_grid_vals[indx + indxx];
@@ -3819,7 +3819,7 @@ void par_interp3_ghost_xyz_p(Real* ghost_reg_grid_vals, int data_dof,
 			s_request[dst_s] = MPI_REQUEST_NULL;
 			request[dst_r] = MPI_REQUEST_NULL;
 			int roffset = f_index_procs_others_offset[dst_r] * COORD_DIM; // notice that COORD_DIM is needed because query_points are 3 times f
-			int soffset = f_index_procs_self_offset[dst_s] * COORD_DIM;
+			//int soffset = f_index_procs_self_offset[dst_s] * COORD_DIM;
 			if (f_index_procs_others_sizes[dst_r] != 0)
 				MPI_Irecv(&all_query_points[roffset],
 						f_index_procs_others_sizes[dst_r] * COORD_DIM, MPI_T,
@@ -3928,7 +3928,7 @@ void par_interp3_ghost_xyz_p(Real* ghost_reg_grid_vals, int data_dof,
 	for (int dof = 0; dof < data_dof; ++dof) {
 		for (int proc = 0; proc < nprocs; ++proc) {
 			if (!f_index[proc].empty())
-				for (int i = 0; i < f_index[proc].size(); ++i) {
+				for (int i = 0; i < (int)f_index[proc].size(); ++i) {
 					int ind = f_index[proc][i];
 					//f_cubic[ind]=all_f_cubic[f_index_procs_others_offset[proc]+i];
 					query_values[ind + dof * N_pts] =

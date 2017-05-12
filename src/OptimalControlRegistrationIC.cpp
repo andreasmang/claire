@@ -408,7 +408,6 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
-    IntType nalloc;
     double applytime;
     ComplexType x1hat, x2hat, x3hat;
     double timer[NFFTTIMERS] = {0};
@@ -421,7 +420,6 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
     nx[2] = static_cast<long int>(this->m_Opt->GetNumGridPoints(2));
 
-    nalloc = this->m_Opt->GetFFT().nalloc;
     scale = this->m_Opt->ComputeFFTScale();
 
     // allocate fields for spectral operations
