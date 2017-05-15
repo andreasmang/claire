@@ -660,8 +660,8 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
 
     // if parameter continuation is enabled, parse regularization weight
     if (this->m_Opt->GetParaCont().enabled) {
-        this->m_CoarseGrid.m_Opt->SetRegularizationWeight(0, this->m_Opt->GetRegNorm().beta[0]);
-        this->m_CoarseGrid.m_Opt->SetRegularizationWeight(1, this->m_Opt->GetRegNorm().beta[1]);
+        this->m_CoarseGrid.m_Opt->SetBeta(0, this->m_Opt->GetRegNorm().beta[0]);
+        this->m_CoarseGrid.m_Opt->SetBeta(1, this->m_Opt->GetRegNorm().beta[1]);
     }
 
     // get variables from optimization problem on fine level

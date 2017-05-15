@@ -57,12 +57,10 @@ class RegistrationInterface {
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetReferenceImage(Vec);
     PetscErrorCode SetSolutionVector(VecField*);
-
-    PetscErrorCode SolveForwardProblem(Vec, Vec);
-    PetscErrorCode SolveAdjointProblem(Vec, Vec);
     PetscErrorCode SetInitialGuess(VecField*, bool copy = false);
     PetscErrorCode GetSolution(VecField*, bool copy = false);
-    //PetscErrorCode EvaluateDistance(ScalarType&, VecField*);  // TODO
+
+//    PetscErrorCode EvaluateDistance(ScalarType&, VecField*);  // TODO
     PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*);
 
     PetscErrorCode GetResidual(Vec);
@@ -72,6 +70,9 @@ class RegistrationInterface {
     PetscErrorCode ComputeDefFields();
     PetscErrorCode ComputeDetDefGrad(Vec);
     PetscErrorCode ComputeDeformationMap(VecField*);
+
+    PetscErrorCode SolveForwardProblem(Vec, Vec);
+    PetscErrorCode SolveAdjointProblem(Vec, Vec);
 
  private:
     PetscErrorCode Initialize(void);

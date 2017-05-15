@@ -827,8 +827,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
 
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
-    this->m_Opt->SetRegularizationWeight(0, beta);
-    this->m_Opt->SetRegularizationWeight(1, beta);
+    this->m_Opt->SetBeta(0, beta);
+//    this->m_Opt->SetBeta(1, beta);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 0) {
@@ -839,8 +839,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     // we hit tolerance
     stop = false; level = 0;
     while (level < maxsteps) {
-        this->m_Opt->SetRegularizationWeight(0, beta);
-        this->m_Opt->SetRegularizationWeight(1, beta);
+        this->m_Opt->SetBeta(0, beta);
+//        this->m_Opt->SetBeta(1, beta);
         //this->m_Opt->InitialGradNormSet(false);
 
         ss << std::scientific << std::setw(3)
@@ -929,8 +929,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
 
     while (!stop) {
         // set regularization parameter
-        this->m_Opt->SetRegularizationWeight(0, beta);
-//        this->m_Opt->SetRegularizationWeight(1, beta);
+        this->m_Opt->SetBeta(0, beta);
+//        this->m_Opt->SetBeta(1, beta);
 
         // display regularization parameter to user
         ss << std::setw(3) << "level " << level << " ( betav="
@@ -1062,8 +1062,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
 
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
-    this->m_Opt->SetRegularizationWeight(0, beta);
-//    this->m_Opt->SetRegularizationWeight(1, beta);
+    this->m_Opt->SetBeta(0, beta);
+//    this->m_Opt->SetBeta(1, beta);
     //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
@@ -1074,8 +1074,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     level = 0;
     while (level < maxsteps) {
         // set regularization weight
-        this->m_Opt->SetRegularizationWeight(0, beta);
-//        this->m_Opt->SetRegularizationWeight(1, beta);
+        this->m_Opt->SetBeta(0, beta);
+//        this->m_Opt->SetBeta(1, beta);
 
         // display message to user
         ss << std::scientific << std::setw(3) << "level " << level << " (beta=" << beta << ")";
@@ -1167,15 +1167,15 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
 
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
-    this->m_Opt->SetRegularizationWeight(0, beta);
-//    this->m_Opt->SetRegularizationWeight(1, beta);
+    this->m_Opt->SetBeta(0, beta);
+//    this->m_Opt->SetBeta(1, beta);
     //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     while (beta > betastar) {
         // set regularization weight
-        this->m_Opt->SetRegularizationWeight(0, beta);
-//        this->m_Opt->SetRegularizationWeight(1, beta);
+        this->m_Opt->SetBeta(0, beta);
+//        this->m_Opt->SetBeta(1, beta);
 
         // display message to user
         ss << std::scientific << std::setw(3) << "level "
@@ -1194,8 +1194,8 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
     beta = betastar;
 
     // set regularization weight
-    this->m_Opt->SetRegularizationWeight(0, beta);
-//    this->m_Opt->SetRegularizationWeight(1, beta);
+    this->m_Opt->SetBeta(0, beta);
+//    this->m_Opt->SetBeta(1, beta);
 
     // display message to user
     ss << std::scientific << std::setw(3)

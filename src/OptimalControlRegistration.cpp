@@ -839,7 +839,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
 
     if (g != NULL) {
         ierr = VecScale(g, hd); CHKERRQ(ierr);
-
         if (this->m_Opt->GetVerbosity() > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
             ss << "||g||_2 = " << std::scientific << value;

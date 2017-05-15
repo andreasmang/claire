@@ -499,52 +499,29 @@ class RegOpt {
     PetscErrorCode SetupGridCont();
 
     // regularization
-    inline RegNorm GetRegNorm() {
-        return this->m_RegNorm;
-    }
-    inline void SetRegNormType(RegNormType flag) {
-        this->m_RegNorm.type = flag;
-    }
-    inline void SetRegularizationWeight(int i, ScalarType beta) {
-        this->m_RegNorm.beta[i] = beta;
-    }
-
-    // smoothing
-    inline ScalarType GetSigma(int i) {return this->m_Sigma[i];}
+    inline RegNorm GetRegNorm() {return this->m_RegNorm;}
+    inline void SetRegNormType(RegNormType flag) {this->m_RegNorm.type = flag;}
+    inline void SetBeta(int i, ScalarType beta) {this->m_RegNorm.beta[i] = beta;}
+    inline ScalarType GetBeta(int i) {return this->m_RegNorm.beta[i];}
     inline void SetSigma(int i, ScalarType sigma) {this->m_Sigma[i] = sigma;}
+    inline ScalarType GetSigma(int i) {return this->m_Sigma[i];}
 
     // solver flags
-    inline PDESolver GetPDESolverPara(void) {
-        return this->m_PDESolver;
-    }
-    inline void SetPDESolverType(PDESolverType flag) {
-        this->m_PDESolver.type = flag;
-    }
-    inline KrylovSolver GetKrylovSolverPara() {
-        return this->m_KrylovSolverPara;
-    }
-    inline void PrecondSetupDone(bool flag) {
-        this->m_KrylovSolverPara.pcsetupdone = flag;
-    }
-    inline void SetRelTolKrylovMethod(ScalarType value) {
-        this->m_KrylovSolverPara.reltol = value;
-    }
-    inline void SetKrylovIter(IntType value) {
-        this->m_KrylovSolverPara.iter = value;
-    }
+    inline PDESolver GetPDESolverPara(void) {return this->m_PDESolver;}
+    inline void SetPDESolverType(PDESolverType flag) {this->m_PDESolver.type = flag;}
+
+    // krylov method
+    inline KrylovSolver GetKrylovSolverPara() {return this->m_KrylovSolverPara;}
+    inline void SetRelTolKrylovMethod(ScalarType value) {this->m_KrylovSolverPara.reltol = value;}
+    inline void SetMaxItKrylovMethod(int value) {this->m_KrylovSolverPara.maxit = value;}
+    inline void SetKrylovIter(IntType value) {this->m_KrylovSolverPara.iter = value;}
     inline void SetInitialGradNormKrylovMethod(ScalarType value) {
         this->m_KrylovSolverPara.g0norm = value;
         this->m_KrylovSolverPara.g0normset = true;
     }
-    inline void InitialGradNormSet(bool flag) {
-        this->m_KrylovSolverPara.g0normset = flag;
-    }
-    inline void KrylovMethodEigValsEstimated(bool flag) {
-        this->m_KrylovSolverPara.eigvalsestimated = flag;
-    }
-    inline void SetMaxItKrylovMethod(int value) {
-        this->m_KrylovSolverPara.maxit = value;
-    }
+//    inline void InitialGradNormSet(bool flag) {this->m_KrylovSolverPara.g0normset = flag;}
+    inline void KrylovMethodEigValsEstimated(bool flag) {this->m_KrylovSolverPara.eigvalsestimated = flag;}
+    inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
 
     // jacobians
     inline void SetJacMin(ScalarType value) {
