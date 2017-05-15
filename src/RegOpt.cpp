@@ -884,12 +884,12 @@ PetscErrorCode RegOpt::InitializeFFT() {
     this->m_Domain.nl = 1;
     this->m_Domain.ng = 1;
     for (int i = 0; i < 3; ++i) {
-        this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
-        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
         this->m_FFT.osize[i]  = static_cast<IntType>(osize[i]);
         this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
         this->m_Domain.nl *= static_cast<IntType>(isize[i]);
         this->m_Domain.ng *= this->m_Domain.nx[i];
+        this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
+        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
     }
 
     // check if sizes are ok
@@ -1050,9 +1050,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.runninginversion = true;           ///< flag indicating that we run the inversion (switches on storage of m)
 
     // parameter continuation
-    this->m_ParaCont.strategy = PCONTOFF;       ///< no continuation
-    this->m_ParaCont.enabled = false;           ///< flag for parameter continuation
-    this->m_ParaCont.targetbeta = 0.0;          ///< has to be set by user
+    this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
+    this->m_ParaCont.enabled = false;         ///< flag for parameter continuation
+    this->m_ParaCont.targetbeta = 0.0;        ///< has to be set by user
     this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
 
     // grid continuation

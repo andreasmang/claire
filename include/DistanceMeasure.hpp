@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2016.
+ *  Copyright (c) 2017.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -17,8 +17,8 @@
  *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONREGISTRATION_H_
-#define _REGULARIZATIONREGISTRATION_H_
+#ifndef _DISTANCEMEASURE_H_
+#define _DISTANCEMEASURE_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -32,33 +32,27 @@ namespace reg {
 
 
 
-class RegularizationRegistration {
+class DistanceMeasure {
  public:
-    typedef RegularizationRegistration Self;
+    typedef DistanceMeasure Self;
 
-    RegularizationRegistration(void);
-    RegularizationRegistration(RegOpt*);
-    virtual ~RegularizationRegistration(void);
+    DistanceMeasure(void);
+    DistanceMeasure(RegOpt*);
+    virtual ~DistanceMeasure(void);
 
-    PetscErrorCode SetWorkVecField(VecField*);
-    PetscErrorCode SetSpectralData(ComplexType*, ComplexType*, ComplexType*);
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*, Vec) = 0;
 
-    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*) = 0;
-    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*) = 0;
-    virtual PetscErrorCode HessianMatVec(VecField*, VecField*) = 0;
-    virtual PetscErrorCode ApplyInvOp(VecField*, VecField*, bool applysqrt = false) = 0;
-    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&) = 0;
+    PetscErrorCode SetReferenceImage(Vec);
+    PetscErrorCode SetTemplateImage(Vec);
 
  protected:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
 
-    RegOpt* m_Opt;
-    VecField* m_WorkVecField;
+    Vec m_ReferenceImage;
+    Vec m_TemplateImage;
 
-    ComplexType *m_v1hat;
-    ComplexType *m_v2hat;
-    ComplexType *m_v3hat;
+    RegOpt* m_Opt;
 };
 
 

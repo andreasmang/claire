@@ -27,6 +27,7 @@
 #include "Preprocessing.hpp"
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
+#include "DistanceMeasure.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistrationL2.hpp"
@@ -209,9 +210,10 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     TenField* m_WorkTenField3;  ///< data container for tensor field (temporary variable)
     TenField* m_WorkTenField4;  ///< data container for tensor field (temporary variable)
 
-    ReadWriteType* m_ReadWrite;  ///< io; set from outside (not to be delted)
-    RegularizationType* m_Regularization;   ///< regularization functional
-    SemiLagrangianType* m_SemiLagrangianMethod;   ///< semi-lagrangian method
+    ReadWriteType* m_ReadWrite;                  ///< io; set from outside (not to be delted)
+    RegularizationType* m_Regularization;        ///< regularization functional
+    DistanceMeasure* m_DistanceMeasure;          ///< disntance measure
+    SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
 
     bool m_VelocityIsZero;
     bool m_ComputeInverseDefMap;

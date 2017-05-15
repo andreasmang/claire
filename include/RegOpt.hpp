@@ -441,6 +441,7 @@ class RegOpt {
     inline ScaleCont GetScaleContPara() {return this->m_ScaleCont;}
     inline ParCont GetParaCont() {return this->m_ParaCont;}
     ScalarType GetBetaMinParaCont();
+
     inline FourierTransform GetFFT() {return this->m_FFT;}
     inline RegFlags GetRegFlags() {return this->m_RegFlags;}
     inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}

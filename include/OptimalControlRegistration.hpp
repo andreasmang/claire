@@ -159,7 +159,6 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     Vec m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
     Vec m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
     Vec m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
-
  private:
     /*! compute the initial guess for the velocity field */
     PetscErrorCode ComputeInitialVelocity(void);
