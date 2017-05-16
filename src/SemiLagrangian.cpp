@@ -424,7 +424,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     nghost = order;
 
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetNumGridPoints(i));
+        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
         isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
         istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
     }

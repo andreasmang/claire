@@ -254,13 +254,16 @@ struct Optimization {
     int minit;                          ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];                  ///< tolerances for optimization
     OptMeth method;                     ///< optimization method
-    GlobalMethType glmethod;            ///< optimization method
-    StopCondType stopcond;              ///< optimization method
+    GlobalMethType glmethod;            ///< method for globalization (line search; trust region; ...)
+    StopCondType stopcond;              ///< stopping conditions
     bool fastpresolve;                  ///< flag to switch on fast presolve
     bool fastsolve;                     ///< flag to switch on fast (inaccurate) solve
     ScalarType presolvetol[3];          ///< tolerances for presolve
     int presolvemaxit;                  ///< maximal iterations for presolve
     bool usezeroinitialguess;           ///< use zero initial guess for computing the initial gradient
+    int solutionstatus;
+
+    // debug
     bool derivativecheckenabled;        ///< use zero initial guess for computing the initial gradient
 };
 
@@ -296,8 +299,8 @@ struct KrylovSolver {
 
 /* parameter for parameter continuation (regularization parameter) */
 struct ParCont {
-//    static constexpr ScalarType betavminh1 = 1E-4;      ///< minimal regularization parameter for h1 type norm
-//    static constexpr ScalarType betavminh2 = 1E-7;      ///< minimal regularization parameter for h2 type norm
+//    static constexpr ScalarType betavminh1 = 1E-4;    ///< minimal regularization parameter for h1 type norm
+//    static constexpr ScalarType betavminh2 = 1E-7;    ///< minimal regularization parameter for h2 type norm
     static constexpr ScalarType betavminh1 = 1E-9;      ///< minimal regularization parameter for h1 type norm
     static constexpr ScalarType betavminh2 = 1E-9;      ///< minimal regularization parameter for h2 type norm
     static constexpr ScalarType betascale = 1E-1;       ///< default reduction factor (one order of magnitude)
@@ -307,6 +310,7 @@ struct ParCont {
     bool enabled;                                       ///< flag: parameter continuation using different strategies
     ScalarType targetbeta;                              ///< target regularization parameter
     ScalarType beta0;                                   ///< initial regularization parameter
+    ScalarType stepsize;
 };
 
 
@@ -337,22 +341,22 @@ struct GridCont {
 };
 
 
-/* parameters for parameter continuation */
+/* parameters/containers for monitoring registration */
 struct RegMonitor {
-    bool JAC;               ///< flag to monitor jacobian during iterations
-    ScalarType jacmin;      ///< min value of jacobian
-    ScalarType jacmax;      ///< max value of jacobian
-    ScalarType jacmean;     ///< mean value of jacobian
-    ScalarType jacbound;    ///< lower bound for jacobian
-    bool boundreached;
-    ScalarType jval;  ///< value of objective functional
-    ScalarType dval;  ///< value of distance measure
-    ScalarType rval;  ///< value of regularization functional
+    bool detdgradenabled;       ///< flag to monitor jacobian during iterations
+    ScalarType detdgradmin;     ///< min value of determinant of deformation gradient det(grad(y))
+    ScalarType detdgradmax;     ///< max value of determinant of deformation gradient det(grad(y))
+    ScalarType detdgradmean;    ///< mean value of determinant of deformation gradient det(grad(y))
+    ScalarType detdgradbound;   ///< lower bound of determinant of deformation gradient det(grad(y))
+    ScalarType jval;            ///< value of objective functional
+    ScalarType dval;            ///< value of distance measure
+    ScalarType rval;            ///< value of regularization functional
 };
 
 
+/* regularization operators */
 struct RegNorm {
-    ScalarType beta[3];  ///< regularization parameter
+    ScalarType beta[4];  ///< regularization parameter
     RegNormType type;    ///< flag for regularization norm
 };
 
@@ -427,9 +431,6 @@ class RegOpt {
     inline void SetNumGridPoints(int i, IntType nx) {
         this->m_Domain.nx[i] = nx;
     }
-    inline IntType GetNumGridPoints(int i) {
-        return this->m_Domain.nx[i];
-    }
     inline ScalarType GetLebesqueMeasure(void) {
         return  this->m_Domain.hx[0]
                *this->m_Domain.hx[1]
@@ -444,28 +445,26 @@ class RegOpt {
 
     inline FourierTransform GetFFT() {return this->m_FFT;}
     inline RegFlags GetRegFlags() {return this->m_RegFlags;}
+
+    // monitor functions
     inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}
-    inline void JacBoundReached(bool flag) {this->m_RegMonitor.boundreached = flag;}
-    inline bool JacBoundReached() {return this->m_RegMonitor.boundreached;}
-    inline void SetJacBound(ScalarType value) {this->m_RegMonitor.jacbound = value;}
-
-    inline void DisableInversion() {this->m_RegFlags.runninginversion = false;}
-    inline void EnableInversion() {this->m_RegFlags.runninginversion = true;}
-
+    inline void SetDetDefGradBound(ScalarType value) {this->m_RegMonitor.detdgradbound = value;}
+    inline void SetDetDGradMin(ScalarType value) {this->m_RegMonitor.detdgradmin = value;}
+    inline void SetDetDGradMax(ScalarType value) {this->m_RegMonitor.detdgradmax = value;}
+    inline void SetDetDGradMean(ScalarType value) {this->m_RegMonitor.detdgradmean = value;}
+    inline void EnableBoundOnDetDGrad() {this->m_RegMonitor.detdgradenabled = true;}
+    inline void DisableBoundOnDetDGrad() {this->m_RegMonitor.detdgradenabled = false;}
     inline void SetJVal(ScalarType value){this->m_RegMonitor.jval = value;}
     inline void SetRVal(ScalarType value){this->m_RegMonitor.rval = value;}
     inline void SetDVal(ScalarType value){this->m_RegMonitor.dval = value;}
 
+    inline void DisableInversion() {this->m_RegFlags.runninginversion = false;}
+    inline void EnableInversion() {this->m_RegFlags.runninginversion = true;}
+
     inline Optimization GetOptPara() {return this->m_OptPara;}
     inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
     inline void SetOptMaxIter(int value) {this->m_OptPara.maxit = value;}
-
-    inline void EnableJacobianBound() {
-        this->m_RegMonitor.JAC = true;
-    }
-    inline void DisableJacobianBound() {
-        this->m_RegMonitor.JAC = false;
-    }
+    inline void SetSolutionStatus(int value) {this->m_OptPara.solutionstatus = value;}
 
     inline void ComputeInvDetDefGrad(bool flag) {
         this->m_RegFlags.invdefgrad = flag;
@@ -522,17 +521,6 @@ class RegOpt {
 //    inline void InitialGradNormSet(bool flag) {this->m_KrylovSolverPara.g0normset = flag;}
     inline void KrylovMethodEigValsEstimated(bool flag) {this->m_KrylovSolverPara.eigvalsestimated = flag;}
     inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
-
-    // jacobians
-    inline void SetJacMin(ScalarType value) {
-        this->m_RegMonitor.jacmin = value;
-    }
-    inline void SetJacMax(ScalarType value) {
-        this->m_RegMonitor.jacmax = value;
-    }
-    inline void SetJacMean(ScalarType value) {
-        this->m_RegMonitor.jacmean = value;
-    }
 
     // flag for setup
     inline bool SetupDone() {

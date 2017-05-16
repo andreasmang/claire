@@ -75,22 +75,23 @@ class RegistrationInterface {
     PetscErrorCode SolveAdjointProblem(Vec, Vec);
 
  private:
-    PetscErrorCode Initialize(void);
-    PetscErrorCode ClearMemory(void);
-    PetscErrorCode SetupSolver(void);
-    PetscErrorCode SetupRegProblem(void);
+    PetscErrorCode Initialize();
+    PetscErrorCode ClearMemory();
+    PetscErrorCode SetupData(Vec&, Vec&);
+    PetscErrorCode SetupSolver();
+    PetscErrorCode SetupRegProblem();
 
-    PetscErrorCode DispLevelMsg(std::string,int);
+    PetscErrorCode DispLevelMsg(std::string, int);
 
-    PetscErrorCode RunSolver(void);
-    PetscErrorCode RunSolverGridCont(void);
-    PetscErrorCode RunSolverScaleCont(void);
-    PetscErrorCode RunSolverRegParaCont(void);
-    PetscErrorCode RunSolverRegParaContBinarySearch(void);
-    PetscErrorCode RunSolverRegParaContReductSearch(void);
-    PetscErrorCode RunSolverRegParaContReduction(void);
+    PetscErrorCode RunSolver();
+    PetscErrorCode RunSolverGridCont();
+    PetscErrorCode RunSolverScaleCont();
+    PetscErrorCode RunSolverRegParaCont();
+    PetscErrorCode RunSolverRegParaContBinarySearch();
+    PetscErrorCode RunSolverRegParaContReductSearch();
+    PetscErrorCode RunSolverRegParaContReduction();
 
-    PetscErrorCode ProlongVelocityField(VecField*&,int);
+    PetscErrorCode ProlongVelocityField(VecField*&, int);
 
     RegOpt* m_Opt;
     PreProcType* m_PreProc;
@@ -102,13 +103,13 @@ class RegistrationInterface {
     MultiLevelPyramid *m_TemplatePyramid;
     MultiLevelPyramid *m_ReferencePyramid;
 
-    bool m_IsTemplateSet;   ///< flag: delete the template image (allocated locally)
-    bool m_IsReferenceSet;  ///< flag: delete the reference image (allocated locally)
-    bool m_DeleteSolution;  ///< flag: delete the solution vector (allocated locally)
-
     Vec m_TemplateImage;    ///< original template image (not overwritten)
     Vec m_ReferenceImage;   ///< original reference image (not overwritten)
     VecField* m_Solution;   ///< initial guess
+
+    bool m_IsTemplateSet;   ///< flag: delete the template image (allocated locally)
+    bool m_IsReferenceSet;  ///< flag: delete the reference image (allocated locally)
+    bool m_DeleteSolution;  ///< flag: delete the solution vector (allocated locally)
 };
 
 

@@ -318,9 +318,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
-    nx[0] = static_cast<long int>(this->m_Opt->GetNumGridPoints(0));
-    nx[1] = static_cast<long int>(this->m_Opt->GetNumGridPoints(1));
-    nx[2] = static_cast<long int>(this->m_Opt->GetNumGridPoints(2));
+    nx[0] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[0]);
+    nx[1] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[1]);
+    nx[2] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[2]);
 
     scale = this->m_Opt->ComputeFFTScale();
 

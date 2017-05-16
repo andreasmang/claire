@@ -407,6 +407,8 @@ PetscErrorCode RegistrationInterface
  ********************************************************************/
 PetscErrorCode RegistrationInterface::SetupSolver() {
     PetscErrorCode ierr = 0;
+    std::stringstream ss;
+    ScalarType vn1, vn2, vn3;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -442,7 +444,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 
     if (this->m_Opt->GetKrylovSolverPara().pctype != NOPC) {
         if (this->m_Opt->GetVerbosity() > 2) {
-            ierr = DbgMsg(" >> allocation of preconditioner"); CHKERRQ(ierr);
+            ierr = DbgMsg("allocating preconditioner"); CHKERRQ(ierr);
         }
         // reset/setup preconditioner
         if (this->m_Precond != NULL) {
@@ -460,13 +462,71 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     // set up initial condition
     if (this->m_Solution == NULL) {
         if (this->m_Opt->GetVerbosity() > 2) {
-            ierr = DbgMsg(" >> allocation of solution vector"); CHKERRQ(ierr);
+            ierr = DbgMsg("allocating solution vector"); CHKERRQ(ierr);
         }
         try {this->m_Solution = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
         ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
+    }
+
+    if (this->m_Opt->GetVerbosity() > 1) {
+        ierr = VecNorm(this->m_Solution->m_X1, NORM_2, &vn1); CHKERRQ(ierr);
+        ierr = VecNorm(this->m_Solution->m_X2, NORM_2, &vn2); CHKERRQ(ierr);
+        ierr = VecNorm(this->m_Solution->m_X3, NORM_2, &vn3); CHKERRQ(ierr);
+        ss  << "norm of initial guess: "
+            << std::scientific << "(" << vn1 << " " << vn2 << " " << vn3 << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set up the data (e.g., apply preprocessing)
+ ********************************************************************/
+PetscErrorCode RegistrationInterface::SetupData(Vec& mR, Vec& mT) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    // presmoothing, if necessary
+    if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
+        ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+        // allocate
+        ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
+        ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
+
+        if (this->m_Opt->GetRegFlags().applysmoothing) {
+            if (this->m_PreProc == NULL) {
+                try{this->m_PreProc = new Preprocessing(this->m_Opt);}
+                catch (std::bad_alloc&) {
+                    ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+                }
+            }
+            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
+        } else {
+            ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
+            ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
+        }
+        ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
+        ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+    } else {
+        // set up synthetic test problem
+        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
+        ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -589,9 +649,10 @@ PetscErrorCode RegistrationInterface::Run() {
 PetscErrorCode RegistrationInterface::RunSolver() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
-    bool boundreached;
+    ScalarType beta, betastar;
+    bool boundreached, monitor;
+    int level = 0;
     std::stringstream ss;
-    ScalarType vn1, vn2, vn3;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -602,79 +663,93 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
-    // presmoothing, if necessary
-    if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
-        ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // allocate
-        ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
-        ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
-
-        if (this->m_Opt->GetRegFlags().applysmoothing) {
-            if (this->m_PreProc == NULL) {
-                try{this->m_PreProc = new Preprocessing(this->m_Opt);}
-                catch (std::bad_alloc&) {
-                    ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-                }
-            }
-            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
-        } else {
-            ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
-            ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
-        }
-        ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
-    } else {
-        // set up synthetic test problem
-        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
-    }
-
-    if (this->m_Opt->GetVerbosity() > 1) {
-        ierr = VecNorm(this->m_Solution->m_X1, NORM_2, &vn1); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_Solution->m_X2, NORM_2, &vn2); CHKERRQ(ierr);
-        ierr = VecNorm(this->m_Solution->m_X3, NORM_2, &vn3); CHKERRQ(ierr);
-        ss  << "norm of initial guess: "
-            << std::scientific << "(" << vn1 << " " << vn2 << " " << vn3 << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.clear(); ss.str(std::string());
-    }
+    ierr = SetupData(mR, mT); CHKERRQ(ierr);
 
     // initialize registration problem
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeSolver(); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
+    monitor = this->m_Opt->GetRegMonitor().detdgradenabled;
+
     // init solver
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
-    ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // reset all the clocks we have used so far
     ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
+    this->m_Opt->SetSolutionStatus(0); // assume everything is good
 
-    // run the optimization
-    ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+    if (monitor) {
+        boundreached = true; // enter search
+        betastar = this->m_Opt->GetBeta(3);
+        beta     = this->m_Opt->GetBeta(0);
 
-    // get the solution
-    ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+        // if not set by user, assume something
+        if (betastar == 0.0 || betastar == beta) betastar = beta/1E-1;
+        ierr = Assert(betastar > beta, "parameter error"); CHKERRQ(ierr);
 
-    // check bounds on jacobian
-    if (this->m_Opt->GetRegMonitor().JAC) {
-        boundreached = false;
-        ierr = this->m_RegProblem->CheckBounds(x, boundreached); CHKERRQ(ierr);
-        this->m_Opt->JacBoundReached(boundreached);
+        // we will always enter here
+        while (boundreached && level < 10) {
+            // set initial guess
+            ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
+
+            // run the optimization
+            ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+
+            // get the solution
+            ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+
+            // check bounds on determinant of deformation gradient
+            ierr = this->m_RegProblem->CheckBounds(x, boundreached); CHKERRQ(ierr);
+
+            if (boundreached) {
+                beta += (betastar - beta) / 2.0;
+
+                ss << "increasing beta from " << this->m_Opt->GetBeta(0) << " to " << beta;
+                ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+
+                this->m_Opt->SetBeta(0, beta);
+                ++ level;
+            }
+        }
+
+        if (level == 0) {
+            // nothing happened (solution and beta are valid)
+            if (boundreached == false) {
+                this->m_Opt->SetSolutionStatus(0);
+                ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
+            } else {
+                ierr = ThrowError("should never happen"); CHKERRQ(ierr);
+            }
+        } else {
+            if (boundreached == false) {
+                // search for beta worked, so accept the solution
+                this->m_Opt->SetSolutionStatus(1);
+                ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
+            } else {
+                this->m_Opt->SetSolutionStatus(2);
+                this->m_Opt->SetBeta(0, betastar);
+            }
+        }
+
+    } else {
+        // set initial guess
+        ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
+
+        // run optimization
+        ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
+
+        // get solution
+        ierr = this->m_Optimizer->GetSolution(x); CHKERRQ(ierr);
+        ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
     }
 
-    ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
-
-    // finalize the registration
+    // finalize registration
     ierr = this->m_RegProblem->Finalize(this->m_Solution); CHKERRQ(ierr);
 
-    // destroy vectors
+    // destroy vectors if they were allocated
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
@@ -704,38 +779,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
-    // presmoothing, if necessary
-    if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
-        ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // allocate
-        ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
-        ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
-
-        if (this->m_Opt->GetRegFlags().applysmoothing) {
-            if (this->m_PreProc == NULL) {
-                try{this->m_PreProc = new Preprocessing(this->m_Opt);}
-                catch (std::bad_alloc&) {
-                    ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-                }
-            }
-            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
-        } else {
-            ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
-            ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);
-        }
-
-        // rescale images
-        ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
-    } else {
-        // set up synthetic test problem
-        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
-    }
+    ierr = SetupData(mR, mT); CHKERRQ(ierr);
 
     // reset all the clocks we have used so far
     ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
@@ -818,7 +862,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
 
     // set initial guess for current level
-    //ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // initialize parameters (can be user defined)
@@ -858,7 +901,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
         // run the optimization
-        // TODO: revert this or make it optional (we use a coarse solve here)
         ierr = this->m_Optimizer->Run(); CHKERRQ(ierr);
 
         // if we did not converge, we do not want to decrease
@@ -1064,7 +1106,6 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
     // for zero velocity field)
     this->m_Opt->SetBeta(0, beta);
 //    this->m_Opt->SetBeta(1, beta);
-    //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
     // reduce regularization parameter by one order of magnitude until

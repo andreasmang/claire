@@ -90,9 +90,9 @@ PetscErrorCode RegularizationRegistrationH2SN::EvaluateFunctional(ScalarType* R,
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
-        nx[0] = this->m_Opt->GetNumGridPoints(0);
-        nx[1] = this->m_Opt->GetNumGridPoints(1);
-        nx[2] = this->m_Opt->GetNumGridPoints(2);
+        nx[0] = this->m_Opt->GetDomainPara().nx[0];
+        nx[1] = this->m_Opt->GetDomainPara().nx[1];
+        nx[2] = this->m_Opt->GetDomainPara().nx[2];
 
         scale = static_cast<ScalarType>(this->m_Opt->ComputeFFTScale());
 

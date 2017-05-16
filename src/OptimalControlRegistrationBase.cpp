@@ -902,7 +902,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     //int vcase = 2;
     int vcase = 0;
     int icase = 0;
-    ScalarType v0 = 0.2;
+    ScalarType v0 = 0.5;
     //ScalarType v0 = PETSC_PI/12.0;
     bool velocityallocated = false;
     std::stringstream ss;
@@ -1233,7 +1233,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundreached) {
     PetscErrorCode ierr = 0;
-    ScalarType jmin, jmax, jbound;
+    ScalarType detdgradmin, detdgradmax, bound;
     bool minboundreached, maxboundreached;
     std::stringstream ss;
 
@@ -1257,13 +1257,13 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     // compute determinant of deformation gradient
     ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
-    jmin   = this->m_Opt->GetRegMonitor().jacmin;
-    jmax   = this->m_Opt->GetRegMonitor().jacmax;
-    jbound = this->m_Opt->GetRegMonitor().jacbound;
+    detdgradmin = this->m_Opt->GetRegMonitor().detdgradmin;
+    detdgradmax = this->m_Opt->GetRegMonitor().detdgradmax;
+    bound       = this->m_Opt->GetRegMonitor().detdgradbound;
 
     // check if jmin < bound and 1/jmax < bound
-    minboundreached = jmin <= jbound;
-    maxboundreached = 1.0/jmax <= jbound;
+    minboundreached = detdgradmin     <= bound;
+    maxboundreached = 1.0/detdgradmax <= bound;
 
     boundreached = (minboundreached || maxboundreached) ? true : false;
     if (boundreached) {
@@ -1274,13 +1274,13 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     if (this->m_Opt->GetVerbosity() > 1) {
         if (minboundreached) {
             ss << std::scientific
-            << "min(det(grad(y^{-1}))) = "<< jmin << " <= " << jbound;
+            << "min(det(grad(y^{-1}))) = " << detdgradmin << " <= " << bound;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
         if (maxboundreached) {
             ss << std::scientific
-            << "max(det(grad(y^{-1}))) = "<< jmax << " >= " << 1.0/jbound
+            << "max(det(grad(y^{-1}))) = " << detdgradmax << " >= " << 1.0/bound
             << " ( = 1/bound )";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
@@ -1377,11 +1377,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     meanddg /= static_cast<ScalarType>(this->m_Opt->GetDomainPara().ng);
 
     // remember
-    this->m_Opt->SetJacMin(minddg);
-    this->m_Opt->SetJacMax(maxddg);
-    this->m_Opt->SetJacMean(meanddg);
+    this->m_Opt->SetDetDGradMin(minddg);
+    this->m_Opt->SetDetDGradMax(maxddg);
+    this->m_Opt->SetDetDGradMean(meanddg);
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().JAC) {
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().detdgradenabled) {
         ss  << std::scientific << detstr << " : (min, mean, max)="
             << "(" << minddg << ", " << meanddg << ", " << maxddg << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -2010,11 +2010,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     meanj /= static_cast<ScalarType>(ng);
 
     // remember
-    this->m_Opt->SetJacMin(minj);
-    this->m_Opt->SetJacMax(maxj);
-    this->m_Opt->SetJacMean(meanj);
+    this->m_Opt->SetDetDGradMin(minj);
+    this->m_Opt->SetDetDGradMax(maxj);
+    this->m_Opt->SetDetDGradMean(meanj);
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().JAC) {
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().detdgradenabled) {
         ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
             << "(" << minj << ", " << meanj << ", " << maxj<<")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);

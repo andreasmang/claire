@@ -3774,7 +3774,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
 
     // compute determinant of deformation gradient and write it to file
-    if (this->m_Opt->GetRegMonitor().JAC) {
+    if (this->m_Opt->GetRegMonitor().detdgradenabled) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
         // if user enabled the logger
         if (this->m_Opt->GetLogger().enabled[LOGJAC]) {
@@ -3788,12 +3788,12 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
                 ss  << std::scientific
                     <<  "iter = "     << this->m_Opt->GetCounter(ITERATIONS)
                     <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
-                    << std::left << std::setw(20) << this->m_Opt->GetRegMonitor().jacmin << " "
-                                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmean <<" "
-                                 << std::setw(20) << this->m_Opt->GetRegMonitor().jacmax;
+                    << std::left << std::setw(20) << this->m_Opt->GetRegMonitor().detdgradmin << " "
+                                 << std::setw(20) << this->m_Opt->GetRegMonitor().detdgradmean <<" "
+                                 << std::setw(20) << this->m_Opt->GetRegMonitor().detdgradmax;
                 logwriter << ss.str() << std::endl;
                 ss.str(std::string()); ss.clear();
-            }   // if on master rank
+            }  // if on master rank
         }
     }
 
@@ -3904,7 +3904,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->WriteT(this->m_WorkScaFieldMC, "deformed-template-image"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->WriteT(this->m_WorkScaFieldMC, "deformed-template-image" + ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write residual images to file
@@ -3918,7 +3918,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
 
         // copy memory for m_1
         ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
@@ -3933,20 +3933,20 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
             p_dr[i] = 1.0 - PetscAbs(p_mr[i] - p_dr[i]);
         }
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
 
         ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     }
 
     // write velocity field to file
     if (this->m_Opt->GetReadWriteFlags().results) {
-        ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field" + ext); CHKERRQ(ierr);
     }
 
     // write norm of velocity field to file
     if (this->m_Opt->GetReadWriteFlags().velnorm) {
         ierr = this->m_VelocityField->Norm(this->m_WorkScaField1); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, "velocity-field-norm"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, "velocity-field-norm" + ext); CHKERRQ(ierr);
     }
 
     // write determinant of deformation gradient to file

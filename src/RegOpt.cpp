@@ -106,9 +106,10 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_RegNorm.type = opt.m_RegNorm.type;
 
-    this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];
-    this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];
-    this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];
+    this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];  // weight for regularization operator A[v]
+    this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];  // weight for identity operator in regularization norms (constant)
+    this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[w] (incompressibility)
+    this->m_RegNorm.beta[3] = opt.m_RegNorm.beta[3];  // former regularization weight (for monitor)
 
     this->m_PDESolver.type = opt.m_PDESolver.type;
     this->m_PDESolver.rungekuttaorder = opt.m_PDESolver.rungekuttaorder;
@@ -206,11 +207,11 @@ void RegOpt::Copy(const RegOpt& opt) {
     }
 
     // monitor for registration
-    this->m_RegMonitor.JAC = opt.m_RegMonitor.JAC;
-    this->m_RegMonitor.jacmin = opt.m_RegMonitor.jacmin;
-    this->m_RegMonitor.jacmax = opt.m_RegMonitor.jacmax;
-    this->m_RegMonitor.jacmean = opt.m_RegMonitor.jacmean;
-    this->m_RegMonitor.jacbound = opt.m_RegMonitor.jacbound;
+    this->m_RegMonitor.detdgradenabled = opt.m_RegMonitor.detdgradenabled;
+    this->m_RegMonitor.detdgradmin = opt.m_RegMonitor.detdgradmin;
+    this->m_RegMonitor.detdgradmax = opt.m_RegMonitor.detdgradmax;
+    this->m_RegMonitor.detdgradmean = opt.m_RegMonitor.detdgradmean;
+    this->m_RegMonitor.detdgradbound = opt.m_RegMonitor.detdgradbound;
     this->m_RegMonitor.jval = 0;
     this->m_RegMonitor.dval = 0;
     this->m_RegMonitor.rval = 0;
@@ -512,7 +513,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
-            this->m_RegMonitor.jacbound = atof(argv[1]);
+            this->m_RegMonitor.detdgradbound = atof(argv[1]);
         } else if (strcmp(argv[1], "-krylovsolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
@@ -699,7 +700,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
         } else if (strcmp(argv[1], "-mdefgrad") == 0) {
-            this->m_RegMonitor.JAC = true;
+            this->m_RegMonitor.detdgradenabled = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
             this->m_RegFlags.invdefgrad = true;
         } else {
@@ -951,6 +952,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[0] = 1E-2;
     this->m_RegNorm.beta[1] = 1E-4;
     this->m_RegNorm.beta[2] = 1E-4;
+    this->m_RegNorm.beta[3] = 0;
 
     this->m_Verbosity = 0;
 
@@ -1010,6 +1012,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
     this->m_OptPara.derivativecheckenabled = false; ///< use zero initial guess for optimization
     this->m_OptPara.glmethod = ARMIJOLS;
+    this->m_OptPara.solutionstatus = 0;
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
@@ -1071,12 +1074,11 @@ PetscErrorCode RegOpt::Initialize() {
     }
 
     // monitor for registration
-    this->m_RegMonitor.JAC = false;
-    this->m_RegMonitor.jacmin = 0.0;
-    this->m_RegMonitor.jacmax = 0.0;
-    this->m_RegMonitor.jacmean = 0.0;
-    this->m_RegMonitor.jacbound = 2E-1;
-    this->m_RegMonitor.boundreached = false;
+    this->m_RegMonitor.detdgradmin = 0.0;
+    this->m_RegMonitor.detdgradmax = 0.0;
+    this->m_RegMonitor.detdgradmean = 0.0;
+    this->m_RegMonitor.detdgradbound = 2E-1;
+    this->m_RegMonitor.detdgradenabled = false;
     this->m_RegMonitor.jval = 0.0;
     this->m_RegMonitor.dval = 0.0;
     this->m_RegMonitor.rval = 0.0;
@@ -1794,7 +1796,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
             std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "bound det(grad(y))"
-                      << this->m_RegMonitor.jacbound << std::endl;
+                      << this->m_RegMonitor.detdgradbound << std::endl;
         } else {
             switch (this->m_RegNorm.type) {
                 case L2:
