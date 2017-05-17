@@ -2805,12 +2805,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, nt, nc, lm, lmnext, lmt, lmtnext;
+    IntType nl, ng, nt, nc, lm, lmnext, lmt, lmtnext;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, hthalf;
     ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
-                *p_mtilde = NULL, *p_m = NULL;
-    const ScalarType *p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL,
+                *p_mtilde = NULL, *p_m = NULL, *p_mtbar = NULL;
+    const ScalarType //*p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL,
                      *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL;
     double timer[NFFTTIMERS] = {0};
     bool fullnewton = false;
@@ -2821,6 +2821,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     nt = this->m_Opt->GetDomainPara().nt;
     nc = this->m_Opt->GetDomainPara().nc;
     nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->GetDomainPara().ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2828,6 +2829,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
@@ -2853,13 +2857,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
         fullnewton = true;
     }
 
-    // compute \tilde{\vect{v}}(X)
-    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_IncVelocityField, "state"); CHKERRQ(ierr);
-
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
     ierr = this->m_IncVelocityField->GetArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
@@ -2880,17 +2881,24 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
+            // compute inner product
+#pragma omp parallel
+{
+#pragma omp for
+            for (IntType i = 0; i < nl; ++i) {
+                p_mtbar[i] = p_gm1[i]*p_vtilde1[i] + p_gm2[i]*p_vtilde2[i] + p_gm3[i]*p_vtilde3[i];
+            }
+}  // omp
+
             // interpolate gradient of state variable
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_gm1, p_gm2, p_gm3,
-                                                             p_gm1, p_gm2, p_gm3, "state");
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtbar, p_mtbar, "state");
+
             // first part of time integration
 #pragma omp parallel
 {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lmtnext + k*nl + i] -= hthalf*(p_gm1[i]*p_vtildex1[i]
-                                                      + p_gm2[i]*p_vtildex2[i]
-                                                      + p_gm3[i]*p_vtildex3[i]);
+                p_mtilde[lmtnext + k*nl + i] -= hthalf*p_mtbar[i];
             }
 }  // omp
             // compute gradient for state variable at next time time point
@@ -2913,9 +2921,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     }  // for all time points
 
     ierr = this->m_IncVelocityField->RestoreArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
