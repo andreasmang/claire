@@ -676,8 +676,8 @@ void Interp3_Plan::fast_scatter(int* N_reg, int * isize, int* istart,
 			&all_query_points[0]);
 #endif
 
-    procs_i_recv_from_.clear();
-    procs_i_send_to_.clear();
+    if (procs_i_recv_from_.size() != 0) procs_i_recv_from_.clear();
+    if (procs_i_send_to_.size() != 0) procs_i_send_to_.clear();
 
 	this->scatter_baked = true;
 #ifdef INTERP_DEBUG
