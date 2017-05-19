@@ -102,7 +102,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     // objects
     this->m_ReadWrite = NULL;               ///< read / write object
     this->m_Regularization = NULL;          ///< pointer for regularization class
-    this->m_DistanceMeasure = NULL;         ///< distance measure
+    //this->m_DistanceMeasure = NULL;         ///< distance measure
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
 
     this->m_VelocityIsZero = false;         ///< flag: is velocity zero
