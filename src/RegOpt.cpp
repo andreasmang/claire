@@ -1,4 +1,5 @@
-/************************************************************************* *  Copyright (c) 2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -13,7 +14,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
 #ifndef _REGOPT_CPP_
@@ -250,8 +251,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     PetscFunctionBegin;
 
     while (argc > 1) {
-        if (   (strcmp(argv[1], "-help") == 0)
-            || (strcmp(argv[1], "-h")    == 0)
+        if (   (strcmp(argv[1], "-h")    == 0)
+            || (strcmp(argv[1], "-help") == 0)
             || (strcmp(argv[1], "-HELP") == 0) ) {
             ierr = this->Usage(); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-advanced") == 0) {
