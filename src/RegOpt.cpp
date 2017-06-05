@@ -193,10 +193,10 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ParaCont.beta0 = opt.m_ParaCont.beta0;
 
     // grid continuation
+    this->m_GridCont.nxmin = opt.m_GridCont.nxmin;
     this->m_GridCont.enabled = opt.m_GridCont.enabled;
     this->m_GridCont.nlevels = opt.m_GridCont.nlevels;
     this->m_GridCont.minlevel = opt.m_GridCont.minlevel;
-    this->m_GridCont.nxmin = opt.m_GridCont.nxmin;
 
     // scale continuation
     this->m_ScaleCont.enabled = opt.m_ScaleCont.enabled;

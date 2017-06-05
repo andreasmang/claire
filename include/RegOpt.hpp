@@ -523,12 +523,8 @@ class RegOpt {
     inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
 
     // flag for setup
-    inline bool SetupDone() {
-        return this->m_SetupDone;
-    }
-    inline bool StoreCheckPoints() {
-        return this->m_StoreCheckPoints;
-    }
+    inline bool SetupDone() {return this->m_SetupDone;}
+    inline bool StoreCheckPoints() {return this->m_StoreCheckPoints;}
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id) {
@@ -547,9 +543,7 @@ class RegOpt {
         wtime[2] = this->m_Timer[id][AVG];
     }
 
-    unsigned int GetNumThreads() {
-        return this->m_NumThreads;
-    }
+    unsigned int GetNumThreads() {return this->m_NumThreads;}
     inline int GetNetworkDims(const int i) {return this->m_CartGridDims[i];}
     inline void IncreaseFFTTimers(const double timers[NFFTTIMERS]) {
         for (int i = 0; i < NFFTTIMERS; ++i) {
@@ -642,6 +636,7 @@ class RegOpt {
     PDESolver m_PDESolver;              ///< flag for PDE solver
     Optimization m_OptPara;             ///< optimization parameters
     KrylovSolver m_KrylovSolverPara;    ///< parameters for krylov solver
+    ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
     RegMonitor m_RegMonitor;            ///< monitor for registration
     RegNorm m_RegNorm;                  ///< parameters for regularization model
     ParCont m_ParaCont;                 ///< flags for parameter continuation
@@ -651,7 +646,6 @@ class RegOpt {
     RegModel m_RegModel;                ///< flag for particular registration model
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
     RegFlags m_RegFlags;                ///< flags for registration
-    ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
     SolveType m_SolveType;              ///< solver
     Logger m_Log;                       ///< log
 
