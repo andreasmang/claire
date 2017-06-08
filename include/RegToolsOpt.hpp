@@ -28,8 +28,6 @@
 namespace reg {
 
 
-
-
 struct ResamplingPara {
     ScalarType gridscale;
     IntType nx[3];
@@ -38,15 +36,10 @@ struct ResamplingPara {
 
 struct RegToolFlags {
     bool computesynprob;        ///< compute synthetic test problem
-    bool checkfwdsolveerr;      ///< perform test to check numerical error for forward solve
-    bool checkfwdsolvetts;      ///< perform test to analyze time to solution for forward solve
-    bool checkadjsolve;         ///< perform test for adjoint solve
-    bool checkdetdefgradsolve;  ///< perform test for computation of jacobian
     bool readvecfield;          ///< read vector field
     bool resample;              ///< resample scalar / vector field
     bool readscafield;          ///< read scalar field
     bool computedeffields;      ///< compute deformation fields (deformation gradient, displacement field, ...)
-    bool computegrad;           ///< compute gradient of scalar field
     bool computesynvel;         ///< compute synthetic velocity field
     bool computeresidual;       ///< compute residual between two images
     bool computeerror;          ///< compute difference / error between two scalar fields
@@ -55,8 +48,6 @@ struct RegToolFlags {
     bool convert;               ///< convert image data
     bool computeanalytics;      ///< compute analytics of scalar field
     bool applysmoothing;        ///< convert image data
-    int problemid;
-    int numrepeat;
 };
 
 
@@ -87,19 +78,6 @@ class RegToolsOpt : public RegOpt {
 
     RegToolFlags m_RegToolFlags;
     ResamplingPara m_ResamplingPara;
-
-    std::string m_RFN;
-    std::string m_TFN;
-
-    std::string m_iVecFieldX1FN;    ///< x1 vector field file name
-    std::string m_iVecFieldX2FN;    ///< x2 vector field file name
-    std::string m_iVecFieldX3FN;    ///< x3 vector field file name
-    std::string m_iScaFieldFN;      ///< input file name
-
-    std::string m_xVecFieldX1FN;    ///< x1 vector field file name
-    std::string m_xVecFieldX2FN;    ///< x2 vector field file name
-    std::string m_xVecFieldX3FN;    ///< x3 vector field file name
-    std::string m_xScaFieldFN;      ///< input file name
 };
 
 

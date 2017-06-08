@@ -176,10 +176,12 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_FileNames.mr = opt.m_FileNames.mr;
     this->m_FileNames.mt = opt.m_FileNames.mt;
-    this->m_FileNames.v1 = opt.m_FileNames.v1;
-    this->m_FileNames.v2 = opt.m_FileNames.v2;
-    this->m_FileNames.v3 = opt.m_FileNames.v3;
-
+    this->m_FileNames.iv1 = opt.m_FileNames.iv1;
+    this->m_FileNames.iv2 = opt.m_FileNames.iv2;
+    this->m_FileNames.iv3 = opt.m_FileNames.iv3;
+    this->m_FileNames.xv1 = opt.m_FileNames.xv1;
+    this->m_FileNames.xv2 = opt.m_FileNames.xv2;
+    this->m_FileNames.xv3 = opt.m_FileNames.xv3;
 
     this->m_RegFlags.applysmoothing = opt.m_RegFlags.applysmoothing;
     this->m_RegFlags.applyrescaling = opt.m_RegFlags.applyrescaling;
@@ -367,13 +369,13 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-v1") == 0) {
             argc--; argv++;
-            this->m_FileNames.v1 = argv[1];
+            this->m_FileNames.iv1 = argv[1];
         } else if (strcmp(argv[1], "-v2") == 0) {
             argc--; argv++;
-            this->m_FileNames.v2 = argv[1];
+            this->m_FileNames.iv2 = argv[1];
         } else if (strcmp(argv[1], "-v3") == 0) {
             argc--; argv++;
-            this->m_FileNames.v3 = argv[1];
+            this->m_FileNames.iv3 = argv[1];
         } else if (strcmp(argv[1], "-x") == 0) {
             argc--; argv++;
             this->m_FileNames.xfolder = argv[1];
@@ -1042,9 +1044,12 @@ PetscErrorCode RegOpt::Initialize() {
 
     this->m_FileNames.mr.clear();
     this->m_FileNames.mt.clear();
-    this->m_FileNames.v1.clear();
-    this->m_FileNames.v2.clear();
-    this->m_FileNames.v3.clear();
+    this->m_FileNames.iv1.clear();
+    this->m_FileNames.iv2.clear();
+    this->m_FileNames.iv3.clear();
+    this->m_FileNames.xv1.clear();
+    this->m_FileNames.xv2.clear();
+    this->m_FileNames.xv3.clear();
     this->m_FileNames.extension = ".nii.gz";   ///< file extension for output
 
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
@@ -1330,9 +1335,9 @@ PetscErrorCode RegOpt::CheckArguments() {
     if (!this->m_FileNames.mt.empty()) {readmT = true;}
     if (!this->m_FileNames.mr.empty()) {readmR = true;}
 
-    if (!this->m_FileNames.v1.empty()) {readvx1 = true;}
-    if (!this->m_FileNames.v2.empty()) {readvx2 = true;}
-    if (!this->m_FileNames.v3.empty()) {readvx3 = true;}
+    if (!this->m_FileNames.iv1.empty()) {readvx1 = true;}
+    if (!this->m_FileNames.iv2.empty()) {readvx2 = true;}
+    if (!this->m_FileNames.iv3.empty()) {readvx3 = true;}
 
     if (readmT && readmR) {
         // check if files exist
@@ -1358,12 +1363,12 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     if (readvx1 && readvx2 && readvx3) {
         // check if files exist
-        msg = "file " + this->m_FileNames.v1 + " does not exist";
-        ierr = Assert(FileExists(this->m_FileNames.v1), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_FileNames.v2 + " does not exist";
-        ierr = Assert(FileExists(this->m_FileNames.v2), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_FileNames.v3 + " does not exist";
-        ierr = Assert(FileExists(this->m_FileNames.v3), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.iv1 + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.iv1), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.iv2 + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.iv2), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.iv3 + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.iv3), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readvelocity = true;
     } else {
         this->m_ReadWriteFlags.readvelocity = false;

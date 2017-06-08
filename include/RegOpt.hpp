@@ -226,15 +226,21 @@ struct ReadWriteFlags {
 
 
 struct FileNames {
-    std::string v1;                     ///< filename for vector field component x1
-    std::string v2;                     ///< filename for vector field component x2
-    std::string v3;                     ///< filename for vector field component x3
+    std::string iv1;                    ///< filename for vector field component x1
+    std::string iv2;                    ///< filename for vector field component x2
+    std::string iv3;                    ///< filename for vector field component x3
+    std::string xv1;                    ///< filename for vector field component x1
+    std::string xv2;                    ///< filename for vector field component x2
+    std::string xv3;                    ///< filename for vector field component x3
     std::string xfolder;                ///< identifier for folder to write results to
     std::string ifolder;                ///< identifier for folder to read in results from
     std::vector < std::string > mt;     ///< template image file name
     std::vector < std::string > mr;     ///< reference image file name
-    std::string extension;
+    std::string isc;                    ///< filename for input scalar field
+    std::string xsc;                    ///< filename for output scalar field
+    std::string extension;              ///< identifier for file extension
 };
+
 
 /* parameters for domain */
 struct Domain {

@@ -28,19 +28,17 @@
 #include "SynProbRegistration.hpp"
 #include "RegistrationInterface.hpp"
 
-PetscErrorCode RunPostProcessing(reg::RegToolsOpt*);
 PetscErrorCode ResampleVecField(reg::RegToolsOpt*);
 PetscErrorCode ResampleScaField(reg::RegToolsOpt*);
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt*);
-PetscErrorCode ComputeGrad(reg::RegToolsOpt*);
 PetscErrorCode ComputeResidual(reg::RegToolsOpt*);
 PetscErrorCode ComputeError(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
-PetscErrorCode SolveForwardProblem(reg::RegToolsOpt*);
-PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt*);
-PetscErrorCode CheckForwardSolve(reg::RegToolsOpt*);
-PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt*);
-PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt*);
+
+PetscErrorCode TransportImage(reg::RegToolsOpt*);
+//PetscErrorCode TransportLabelMap(reg::RegToolsOpt*);
+
+
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 PetscErrorCode ApplySmoothing(reg::RegToolsOpt*);
 PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt*);
@@ -70,8 +68,6 @@ int main(int argc, char **argv) {
 
     if (regopt->GetFlags().computedeffields) {
         ierr = ComputeDefFields(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().computegrad) {
-        ierr = ComputeGrad(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().resample) {
         if (regopt->GetFlags().readvecfield) {
             ierr = ResampleVecField(regopt); CHKERRQ(ierr);
@@ -80,25 +76,15 @@ int main(int argc, char **argv) {
             ierr = ResampleScaField(regopt); CHKERRQ(ierr);
         }
     } else if (regopt->GetFlags().tscafield) {
-        ierr = SolveForwardProblem(regopt); CHKERRQ(ierr);
+        ierr = TransportImage(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().tlabelmap) {
-        ierr = SolveForwardProblem(regopt); CHKERRQ(ierr);
+//        ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computeresidual) {
         ierr = ComputeResidual(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computeerror) {
         ierr = ComputeError(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computesynvel) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().checkfwdsolveerr) {
-        ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().checkfwdsolvetts) {
-        ierr = CheckForwardSolve(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().checkadjsolve) {
-        ierr = CheckAdjointSolve(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().checkdetdefgradsolve) {
-        ierr = CheckDetDefGradSolve(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetRegFlags().checkdefmapsolve) {
-        ierr = CheckDefMapSolve(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().convert) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().applysmoothing) {
@@ -108,179 +94,10 @@ int main(int argc, char **argv) {
     }
 
     // clean up
-    if (regopt != NULL) {
-        delete regopt; regopt = NULL;
-    }
-
-    // clean up petsc
+    if (regopt != NULL) {delete regopt; regopt = NULL;}
     ierr = PetscFinalize(); CHKERRQ(ierr);
 
     return 0;
-}
-
-
-
-
-/********************************************************************
- * @brief compute gradient of scalar field
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode ComputeGrad(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    std::vector <std::string> filename;
-    std::string fnx1, fnx2, fnx3;
-    std::stringstream ss;
-    int rank;
-    double timer[7] = {0};
-    ScalarType *p_m = NULL, *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL;
-    Vec m = NULL;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    reg::VecField* grad = NULL;
-    reg::ReadWriteReg* readwrite = NULL;
-
-    PetscFunctionBegin;
-
-    regopt->Enter(__func__);
-
-    // allocate class for io
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
-    if (regopt->GetFlags().readscafield) {
-        // read velocity components
-        filename.push_back(regopt->GetScaFieldFN(0));
-        ierr = readwrite->ReadR(&m, filename); CHKERRQ(ierr);
-        ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
-
-        if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
-
-        try {grad = new reg::VecField(regopt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-
-        // computing gradient of m
-        ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
-        ierr = grad->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-        accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m, regopt->GetFFT().plan, &XYZ, timer);
-        ierr = grad->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-        ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
-
-        // write to file
-        // TODO fix this
-        fnx1 = regopt->GetVecFieldFN(0, 1);
-//        fnx2 = regopt->GetVecFieldFN(1, 1);
-//        fnx3 = regopt->GetVecFieldFN(2, 1);
-        ierr = readwrite->Write(grad, fnx1); CHKERRQ(ierr);
-
-    } else if (regopt->GetFlags().readvecfield) {
-    }
-
-    if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr);}
-    if (grad != NULL) {delete grad; grad = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-
-    regopt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief post process image registration results
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode RunPostProcessing(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    std::string ifolder, xfolder, ext;
-    std::vector <std::string> filenames;
-    std::string filename;
-    Vec mT = NULL, mR = NULL, vx1 = NULL, vx2 = NULL, vx3 = NULL;
-    reg::VecField *v = NULL;
-    reg::ReadWriteReg* readwrite = NULL;
-    reg::RegistrationInterface* registration = NULL;
-
-    PetscFunctionBegin;
-
-    // allocate class for io
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    ierr = reg::Msg("processing results"); CHKERRQ(ierr);
-
-    ext = regopt->GetReadWriteFlags().extension;
-    ifolder = regopt->GetReadWriteFlags().ifolder;
-    ierr = reg::Assert(ifolder.empty() != true, "input folder needs to be provided"); CHKERRQ(ierr);
-
-    // read reference image
-    filenames.push_back(ifolder + "reference-image" + ext);
-    ierr = readwrite->ReadR(&mR, filenames); CHKERRQ(ierr);
-    ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-
-    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
-
-    // read template image
-    filenames.clear();
-    filenames.push_back(ifolder + "template-image" + ext);
-    ierr = readwrite->ReadT(&mT, filenames); CHKERRQ(ierr);
-    ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-
-    if ( !regopt->SetupDone() ) { ierr = regopt->DoSetup(); CHKERRQ(ierr); }
-
-    // allocate container for velocity field
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // read velocity components
-    filename = ifolder + "velocity-field-x1" + ext;
-    ierr = readwrite->Read(&vx1, filename); CHKERRQ(ierr);
-    ierr = VecCopy(vx1, v->m_X1); CHKERRQ(ierr);
-
-    filename = ifolder + "velocity-field-x2" + ext;
-    ierr = readwrite->Read(&vx2, filename); CHKERRQ(ierr);
-    ierr = VecCopy(vx2, v->m_X2); CHKERRQ(ierr);
-
-    filename = ifolder + "velocity-field-x3" + ext;
-    ierr = readwrite->Read(&vx3, filename); CHKERRQ(ierr);
-    ierr = VecCopy(vx3, v->m_X3); CHKERRQ(ierr);
-
-    // allocate class for registration interface
-    try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // set all we need
-    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-    ierr = registration->SetReferenceImage(mR); CHKERRQ(ierr);
-    ierr = registration->SetTemplateImage(mT); CHKERRQ(ierr);
-    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
-
-    // run post processing
-    ierr = registration->RunPostProcessing(); CHKERRQ(ierr);
-
-    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
-    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
-
-    if (vx1 != NULL) {ierr = VecDestroy(&vx1); CHKERRQ(ierr); vx1 = NULL;}
-    if (vx2 != NULL) {ierr = VecDestroy(&vx2); CHKERRQ(ierr); vx2 = NULL;}
-    if (vx3 != NULL) {ierr = VecDestroy(&vx3); CHKERRQ(ierr); vx3 = NULL;}
-
-    if (v != NULL) {delete v; v = NULL;}
-
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
-
-    PetscFunctionReturn(ierr);
 }
 
 
@@ -297,7 +114,6 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     Vec vxi = NULL;
     reg::VecField* v = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::SynProbRegistration* synprob = NULL;
     reg::RegistrationInterface* registration = NULL;
 
     PetscFunctionBegin;
@@ -308,63 +124,31 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    ext = regopt->GetReadWriteFlags().extension;
-    ifolder = regopt->GetReadWriteFlags().ifolder;
-    if (!ifolder.empty()) {
-        // read velocity components
-        filename.push_back(ifolder + "velocity-field-x1" + ext);
-        ierr = readwrite->ReadR(&vxi, filename); CHKERRQ(ierr);
-        filename.clear();
-        if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+    // read velocity components
+    filename.push_back(regopt->GetFileNames().iv1);
+    ierr = readwrite->ReadR(&vxi, filename); CHKERRQ(ierr);
+    filename.clear();
+    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
-        // allocate container for velocity field
-        try {v = new reg::VecField(regopt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
-        if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-        filename.push_back(ifolder + "velocity-field-x2" + ext);
-        ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
-        filename.clear();
-        ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
-        if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-        filename.push_back(ifolder + "velocity-field-x3" + ext);
-        ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
-        filename.clear();
-        ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
-        if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-    } else {
-        // allocate container for velocity field
-        if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
-        try {v = new reg::VecField(regopt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        try {synprob = new reg::SynProbRegistration(regopt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        // allocate container for velocity field
-        try {v = new reg::VecField(regopt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr = reg::DbgMsg("computing synthetic velocity field"); CHKERRQ(ierr);
-        if (regopt->GetFlags().problemid == 0) {
-            ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-        } else if (regopt->GetFlags().problemid == 1) {
-            ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-        } else if (regopt->GetFlags().problemid == 2) {
-            ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-        } else if (regopt->GetFlags().problemid == 3) {
-            ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
-        } else {
-            ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-        }
+    // allocate container for velocity field
+    try {v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
+    ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+
+    filename.push_back(regopt->GetFileNames().iv2);
+    ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+    filename.clear();
+    ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+
+    filename.push_back(regopt->GetFileNames().iv3);
+    ierr = readwrite->Read(&vxi, filename); CHKERRQ(ierr);
+    filename.clear();
+    ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
     // allocate class for registration interface
     try {registration = new reg::RegistrationInterface(regopt);}
@@ -382,7 +166,82 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     if (v != NULL) {delete v; v = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
-    if (synprob != NULL) {delete synprob; synprob = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief solve forward problem
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::vector <std::string> filename;
+    reg::VecField* v = NULL;
+    Vec m0 = NULL, m1 = NULL, vxi = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    reg::RegistrationInterface* registration = NULL;
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    // allocate class for io
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read velocity components
+    filename.push_back(regopt->GetFileNames().isc);
+    ierr = readwrite->ReadT(&m0, filename); CHKERRQ(ierr);
+    ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
+    if (!regopt->SetupDone()) {
+        ierr = regopt->DoSetup(); CHKERRQ(ierr);
+    }
+    ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
+
+    try {v = new reg::VecField(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // read the velocity field
+    ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv1); CHKERRQ(ierr);
+    ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+
+    ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv2); CHKERRQ(ierr);
+    ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+
+    ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv3); CHKERRQ(ierr);
+    ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
+    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+
+    // allocate class for registration interface
+    try {registration = new reg::RegistrationInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // solve forward problem
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+
+    // write resampled scalar field to file
+    ierr = readwrite->WriteT(m1, regopt->GetFileNames().xsc); CHKERRQ(ierr);
+
+    if (v != NULL) {delete v; v = NULL;}
+    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
+    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+
+    regopt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
@@ -624,30 +483,28 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
 
 
     ierr = VecTDot(v->m_X2, v->m_X2, &value); CHKERRQ(ierr);
-    ss << std::scientific << "norm x1 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
+    ss << std::scientific << "norm x2 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
     ierr = VecTDot(vl->m_X2, vl->m_X2, &value); CHKERRQ(ierr);
-    ss << std::scientific << "norm x1 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
+    ss << std::scientific << "norm x2 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
 
     ierr = VecTDot(v->m_X3, v->m_X3, &value); CHKERRQ(ierr);
-    ss << std::scientific << "norm x1 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
+    ss << std::scientific << "norm x3 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
     ierr = VecTDot(vl->m_X3, vl->m_X3, &value); CHKERRQ(ierr);
-    ss << std::scientific << "norm x1 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
+    ss << std::scientific << "norm x3 (" << nxl[0] << " " << nxl[1] << " " << nxl[2] << "): " << value*hdl;
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
     // reset io
-    if (readwrite != NULL) {
-        delete readwrite; readwrite = NULL;
-    }
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     for (int i = 0; i < 3; ++i) {
         regopt->SetNumGridPoints(i, nxl[i]);
     }
@@ -682,129 +539,6 @@ PetscErrorCode ResampleVecField(reg::RegToolsOpt* regopt) {
 
 
 
-/********************************************************************
- * @brief solve forward problem
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode SolveForwardProblem(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    IntType nl;
-    std::string fn;
-    std::vector <std::string> filename;
-    std::stringstream ss;
-    reg::VecField* v = NULL;
-    Vec m0 = NULL, m1 = NULL, vxi = NULL;
-    ScalarType *p_m1 = NULL, *p_m0 = NULL;
-    reg::ReadWriteReg* readwrite = NULL;
-    reg::Preprocessing* preproc = NULL;
-    reg::RegistrationInterface* registration = NULL;
-    PetscFunctionBegin;
-
-    regopt->Enter(__func__);
-
-    // allocate class for io
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // read velocity components
-    filename.push_back(regopt->GetScaFieldFN(0));
-    ierr = readwrite->ReadT(&m0, filename); CHKERRQ(ierr);
-    ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
-    if (!regopt->SetupDone()) {
-        ierr = regopt->DoSetup(); CHKERRQ(ierr);
-    }
-    ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
-
-    nl = regopt->GetDomainPara().nl;
-
-    // if we consider a lable map, we want to truncate the values
-    if (regopt->GetFlags().tlabelmap) {
-        // map to integer
-        ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
-        for (IntType i = 0; i < nl; ++i) {
-            if (p_m0[i] > 0.5) {
-                p_m0[i] = 1.0;
-            } else {
-                p_m0[i] = 0.0;
-            }
-        }
-        ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
-
-        try {preproc = new reg::Preprocessing(regopt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr = preproc->Smooth(m1, m0); CHKERRQ(ierr);
-        ierr = VecCopy(m1, m0); CHKERRQ(ierr);
-    } else {
-        ierr = reg::Rescale(m0, 0.0, 1.0); CHKERRQ(ierr);
-    }
-
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // read the individual components of the vector fields
-    fn = regopt->GetVecFieldFN(0, 0);
-    ierr = readwrite->Read(&vxi, fn); CHKERRQ(ierr);
-    ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-    fn = regopt->GetVecFieldFN(1, 0);
-    ierr = readwrite->Read(&vxi, fn); CHKERRQ(ierr);
-    ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-    fn = regopt->GetVecFieldFN(2, 0);
-    ierr = readwrite->Read(&vxi, fn); CHKERRQ(ierr);
-    ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-
-    // allocate class for registration interface
-    try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // set all we need
-    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
-
-    // run post processing
-    ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
-
-    // if we consider a lable map, we want to truncate the values
-    if (regopt->GetFlags().tlabelmap) {
-        // map to integer
-        ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
-        for (IntType i = 0; i < nl; ++i) {
-            if (p_m1[i] > 0.5) {
-                p_m1[i] = 1.0;
-            } else {
-                p_m1[i] = 0.0;
-            }
-        }
-        ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
-    }
-
-    // write resampled scalar field to file
-    fn = regopt->GetScaFieldFN(1);
-    ierr = readwrite->WriteT(m1, fn); CHKERRQ(ierr);
-
-    if (v != NULL) {delete v; v = NULL;}
-    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
-    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (preproc != NULL) {delete preproc; preproc = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
-
-    regopt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
 
 
 
@@ -1109,7 +843,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     // write computed vectorfield to file
-    filename = "velocity-field" + regopt->GetReadWriteFlags().extension;
+    filename = "velocity-field" + regopt->GetFileNames().extension;
     ierr = readwrite->Write(v, filename); CHKERRQ(ierr);
 
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
@@ -1119,483 +853,6 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
-
-/********************************************************************
- * @brief check the forward solver
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode CheckForwardSolve(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    IntType nc, nl, ng, n;
-    Vec m0 = NULL, m1 = NULL, m0tilde = NULL;
-    reg::VecField *v = NULL;
-    reg::RegistrationInterface* registration = NULL;
-    reg::SynProbRegistration* synprob = NULL;
-    reg::ReadWriteReg* readwrite = NULL;
-    ScalarType errval, normval, minval, maxval;
-    std::vector <std::string> filename;
-    std::stringstream ss;
-    PetscFunctionBegin;
-
-    regopt->Enter(__func__);
-
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    if (regopt->GetFlags().readscafield) {
-        if (regopt->GetVerbosity() > 1) {
-            ierr = reg::DbgMsg("reading m0"); CHKERRQ(ierr);
-        }
-        filename.push_back(regopt->GetScaFieldFN(0));
-        ierr = readwrite->ReadT(&m0, filename); CHKERRQ(ierr);
-        filename.clear();
-        ierr = reg::Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
-    } else {
-        ierr = regopt->DoSetup(); CHKERRQ(ierr);
-    }
-
-    nc = regopt->GetDomainPara().nc;
-    nl = regopt->GetDomainPara().nl;
-    ng = regopt->GetDomainPara().ng;
-
-    // allocation
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-
-    try {synprob = new reg::SynProbRegistration(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // allocate the data
-    if (m0 == NULL) {
-        ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
-        if (regopt->GetFlags().problemid == 0) {
-            ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
-        } else if (regopt->GetFlags().problemid == 1) {
-            ierr = synprob->ComputeSmoothScalarField(m0, 8); CHKERRQ(ierr);
-        } else if (regopt->GetFlags().problemid == 2) {
-            ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
-        } else if (regopt->GetFlags().problemid == 3) {
-            ierr = synprob->ComputeSmoothScalarField(m0, 11); CHKERRQ(ierr);
-        } else {
-            ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-        }
-    }
-
-    ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
-
-    // set up smooth problem
-    if (regopt->GetFlags().problemid == 0) {
-        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 1) {
-        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 2) {
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 3) {
-        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
-    } else {
-        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-    }
-
-    // make sure we do not apply any smoothing
-    regopt->DisableSmoothing();
-
-    if (regopt->GetFlags().checkfwdsolvetts) {
-        // set initial guess and solve forward problem
-        ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-        ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-        n = regopt->GetFlags().numrepeat;
-        for (IntType i = 0; i < n; ++i) {
-            ss << "forward solve "<< std::setw(3)
-               << i << " of " << std::setw(3) << n;
-            ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.str(std::string()); ss.clear();
-            ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
-        }
-        ierr = regopt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
-        ierr = regopt->ProcessTimers(); CHKERRQ(ierr);
-        ierr = regopt->DisplayTimeToSolution(); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().checkfwdsolveerr) {
-        // set initial guess and solve forward problem
-        ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-        ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
-
-        ierr = v->Scale(-1.0); CHKERRQ(ierr);
-        ierr = reg::VecCreate(m0tilde, nc*nl, nc*ng); CHKERRQ(ierr);
-        ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-        ierr = registration->SolveForwardProblem(m0tilde, m1); CHKERRQ(ierr);
-
-        if (regopt->GetReadWriteFlags().results) {
-            ierr = readwrite->WriteT(m0, "m0" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-            ierr = readwrite->WriteT(m1, "m1" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-            ierr = readwrite->WriteT(m0tilde, "m0tilde" + regopt->GetReadWriteFlags().extension, nc > 1); CHKERRQ(ierr);
-            ierr = readwrite->Write(v, "velocity-field" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-        }
-        ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
-        ierr = VecMax(m0, NULL, &maxval); CHKERRQ(ierr);
-        ierr = VecMin(m0, NULL, &minval); CHKERRQ(ierr);
-        ss  << "m(t=0)                    (min,max,norm)=("
-            << std::scientific << minval << "," << maxval << "," << normval << ")";
-        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-
-        ierr = VecNorm(m1, NORM_2, &normval); CHKERRQ(ierr);
-        ierr = VecMax(m1, NULL, &maxval); CHKERRQ(ierr);
-        ierr = VecMin(m1, NULL, &minval); CHKERRQ(ierr);
-        ss << "m(t=1) = m(t=0) o v       (min,max,norm)=("
-           << std::scientific << minval << "," << maxval << "," << normval << ")";
-        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-
-        ierr = VecNorm(m0tilde, NORM_2, &normval); CHKERRQ(ierr);
-        ierr = VecMax(m0tilde, NULL, &maxval); CHKERRQ(ierr);
-        ierr = VecMin(m0tilde, NULL, &minval); CHKERRQ(ierr);
-        ss << "m(t=0) = m(t=1) o (-v)    (min,max,norm)=("
-           << std::scientific << minval << "," << maxval << "," << normval << ")";
-        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-
-        ierr = VecAXPY(m0tilde, -1.0, m0); CHKERRQ(ierr);
-        ierr = VecNorm(m0tilde, NORM_2, &errval); CHKERRQ(ierr);
-        ierr = VecNorm(m0, NORM_2, &normval); CHKERRQ(ierr);
-        ss << "error " << std::scientific
-           << errval/normval << " (" << errval << ")";
-        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-    }
-
-    regopt->Exit(__func__);
-
-    if (v != NULL) {delete v; v = NULL;}
-    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
-    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    if (m0tilde != NULL) {ierr = VecDestroy(&m0tilde); CHKERRQ(ierr); m0tilde = NULL;}
-    if (synprob != NULL) {delete synprob; synprob = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief check the adjoint solver
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode CheckAdjointSolve(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    IntType nc, nl, ng, n;
-    std::stringstream ss;
-    Vec l0 = NULL, m1 = NULL, m0 = NULL;
-    reg::VecField *v = NULL;
-    reg::RegistrationInterface* registration = NULL;
-    reg::SynProbRegistration* synprob = NULL;
-    reg::ReadWriteReg* readwrite = NULL;
-    PetscFunctionBegin;
-
-    regopt->Enter(__func__);
-
-    ierr = regopt->DoSetup(); CHKERRQ(ierr);
-    regopt->DisableSmoothing();
-
-    nc = regopt->GetDomainPara().nc;
-    nl = regopt->GetDomainPara().nl;
-    ng = regopt->GetDomainPara().ng;
-
-    // allocation
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-
-    try {synprob = new reg::SynProbRegistration(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // allocate the data
-    ierr = reg::VecCreate(m0, nc*nl, nc*ng); CHKERRQ(ierr);
-    ierr = reg::VecCreate(m1, nc*nl, nc*ng); CHKERRQ(ierr);
-    ierr = reg::VecCreate(l0, nc*nl, nc*ng); CHKERRQ(ierr);
-
-    if (regopt->GetFlags().problemid == 0) {
-        ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 1) {
-        ierr = synprob->ComputeSmoothScalarField(m0, 8); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 2) {
-        ierr = synprob->ComputeSmoothScalarField(m0, 0); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 3) {
-        ierr = synprob->ComputeSmoothScalarField(m0, 11); CHKERRQ(ierr);
-    } else {
-        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-    }
-    ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
-    ierr = VecSet(l0, 0.0); CHKERRQ(ierr);
-
-    // set up smooth problem
-    if (regopt->GetFlags().problemid == 0) {
-        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 1) {
-        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 2) {
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 3) {
-        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
-    } else {
-        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-    }
-
-    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-    ierr = registration->SetReferenceImage(m0); CHKERRQ(ierr);
-    ierr = regopt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
-    n = regopt->GetFlags().numrepeat;
-    for (IntType i = 0; i < n; ++i) {
-        ss  << "adjoint solve "<< std::setw(3)
-            << i << " of " << std::setw(3) << n;
-        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
-        ierr = registration->SolveAdjointProblem(l0, m1); CHKERRQ(ierr);
-    }
-
-
-    ierr = regopt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
-    ierr = regopt->ProcessTimers(); CHKERRQ(ierr);
-    ierr = regopt->DisplayTimeToSolution(); CHKERRQ(ierr);
-    if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(l0, "initial-adjoint-variable.nc", nc > 1); CHKERRQ(ierr);
-    }
-    regopt->Exit(__func__);
-
-    if (v != NULL) {delete v; v = NULL;}
-    if (l0 != NULL) {ierr = VecDestroy(&l0); CHKERRQ(ierr); l0 = NULL;}
-    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
-    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    if (synprob != NULL) {delete synprob; synprob = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief check the jacobian solver
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode CheckDetDefGradSolve(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng;
-    Vec detj = NULL, invdetj = NULL;
-    reg::VecField *v = NULL;
-    reg::RegistrationInterface* registration = NULL;
-    reg::SynProbRegistration* synprob = NULL;
-    reg::ReadWriteReg* readwrite = NULL;
-    ScalarType minval, maxval, normval, errval;
-    std::stringstream ss;
-
-    PetscFunctionBegin;
-
-    regopt->Enter(__func__);
-
-    ierr = regopt->DoSetup(); CHKERRQ(ierr);
-
-    regopt->DisableSmoothing();
-
-    nl = regopt->GetDomainPara().nl;
-    ng = regopt->GetDomainPara().ng;
-
-    // allocation
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-
-    try {synprob = new reg::SynProbRegistration(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    ierr = reg::VecCreate(detj, nl, ng); CHKERRQ(ierr);
-    ierr = reg::VecCreate(invdetj, nl, ng); CHKERRQ(ierr);
-
-    // set up smooth problem
-    if (regopt->GetFlags().problemid == 0) {
-        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 1) {
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 2) {
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 3) {
-        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
-    } else {
-        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-    }
-    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-    ierr = registration->ComputeDetDefGrad(detj); CHKERRQ(ierr);
-
-    regopt->ComputeInvDetDefGrad(true);
-    ierr = registration->ComputeDetDefGrad(invdetj); CHKERRQ(ierr);
-
-    ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
-    ierr = VecMax(detj, NULL, &maxval); CHKERRQ(ierr);
-    ierr = VecMin(detj, NULL, &minval); CHKERRQ(ierr);
-    ss  << "det(grad(y))         (min,max,norm)=("
-        << std::scientific << minval << "," << maxval << "," << normval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
-    ierr = VecNorm(invdetj, NORM_2, &normval); CHKERRQ(ierr);
-    ierr = VecMax(invdetj, NULL, &maxval); CHKERRQ(ierr);
-    ierr = VecMin(invdetj, NULL, &minval); CHKERRQ(ierr);
-    ss  << "det(grad(inv(y)))    (min,max,norm)=("
-        << std::scientific << minval << "," << maxval << "," << normval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
-    if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(detj, "detj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-        ierr = readwrite->Write(invdetj, "invdetj" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-    }
-
-    ierr = VecReciprocal(invdetj); CHKERRQ(ierr);
-
-    if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(invdetj, "detj-inverted" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-    }
-
-    ierr = VecAXPY(invdetj, -1.0, detj); CHKERRQ(ierr);
-    ierr = VecNorm(invdetj, NORM_2, &errval); CHKERRQ(ierr);
-    ierr = VecNorm(detj, NORM_2, &normval); CHKERRQ(ierr);
-    ss  << "error " << std::scientific
-        << errval/normval << " (" << errval << ")";
-    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
-
-    regopt->Exit(__func__);
-
-    if (v != NULL) {delete v; v = NULL;}
-    if (detj != NULL) {ierr = VecDestroy(&detj); CHKERRQ(ierr); detj = NULL;}
-    if (invdetj != NULL) {ierr = VecDestroy(&invdetj); CHKERRQ(ierr); invdetj = NULL;}
-    if (synprob != NULL) {delete synprob; synprob = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief check the jacobian solver
- * @param[in] regopt container for user defined options
- *******************************************************************/
-PetscErrorCode CheckDefMapSolve(reg::RegToolsOpt* regopt) {
-    PetscErrorCode ierr = 0;
-    reg::VecField *v = NULL;
-    reg::VecField *y = NULL;
-    reg::RegistrationInterface *registration = NULL;
-    reg::SynProbRegistration *synprob = NULL;
-    reg::ReadWriteReg *readwrite = NULL;
-    std::stringstream ss;
-
-    PetscFunctionBegin;
-
-    regopt->Enter(__func__);
-
-    ierr = regopt->DoSetup(); CHKERRQ(ierr);
-
-    // allocation
-    try {v = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {y = new reg::VecField(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {readwrite = new reg::ReadWriteReg(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    try {registration = new reg::RegistrationInterface(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-
-    try {synprob = new reg::SynProbRegistration(regopt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-    }
-
-    // set up smooth problem
-    if (regopt->GetFlags().problemid == 0) {
-        ierr = synprob->ComputeSmoothVectorField(v, 5); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 1) {
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 2) {
-        ierr = synprob->ComputeSmoothVectorField(v, 2); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().problemid == 3) {
-        ierr = synprob->ComputeSmoothVectorField(v, 6); CHKERRQ(ierr);
-    } else {
-        ierr = reg::ThrowError("id invalid"); CHKERRQ(ierr);
-    }
-    ierr = registration->SetInitialGuess(v, true); CHKERRQ(ierr);
-
-    ierr = registration->ComputeDeformationMap(y); CHKERRQ(ierr);
-
-    if (regopt->GetReadWriteFlags().results) {
-        ierr = readwrite->Write(y, "deformation-map" + regopt->GetReadWriteFlags().extension); CHKERRQ(ierr);
-    }
-
-
-    regopt->Exit(__func__);
-
-    if (v != NULL) {delete v; v = NULL;}
-    if (y != NULL) {delete y; y = NULL;}
-    if (synprob != NULL) {delete synprob; synprob = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
-
-    PetscFunctionReturn(ierr);
-}
-
 
 
 
@@ -1626,7 +883,7 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     //if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
     ierr = reg::GetFileName(path, filename, extension, filenames[0]); CHKERRQ(ierr);
-    filename = path + "/" + filename + "_converted" + regopt->GetReadWriteFlags().extension;
+    filename = path + "/" + filename + "_converted" + regopt->GetFileNames().extension;
     ierr = readwrite->WriteR(m, filename); CHKERRQ(ierr);
 
     regopt->Exit(__func__);
@@ -1678,7 +935,7 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     ierr = preproc->Smooth(m, m); CHKERRQ(ierr);
 
     ierr = reg::GetFileName(path, filename, extension, filenames[0]); CHKERRQ(ierr);
-    filename = path + "/" + filename + "_test" + regopt->GetReadWriteFlags().extension;
+    filename = path + "/" + filename + "_test" + regopt->GetFileNames().extension;
     ierr = readwrite->WriteT(m, filename); CHKERRQ(ierr);
 
     regopt->Exit(__func__);

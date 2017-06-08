@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading velocity field"); CHKERRQ(ierr);
         }
-        ierr = readwrite->Read(&vxi, regopt->GetFileNames().v1); CHKERRQ(ierr);
+        ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv1); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
         }
 
         //std::cout << regopt->GetReadWriteFlags().vx2 << std::endl;
-        ierr = readwrite->Read(&vxi, regopt->GetFileNames().v2); CHKERRQ(ierr);
+        ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv2); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
         }
 
         //std::cout << regopt->GetReadWriteFlags().vx3 << std::endl;
-        ierr = readwrite->Read(&vxi, regopt->GetFileNames().v3); CHKERRQ(ierr);
+        ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv3); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
