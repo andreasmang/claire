@@ -222,17 +222,19 @@ struct ReadWriteFlags {
     bool deftemplate;
     bool deffield;
     bool results;
-    std::string extension;
+};
 
+
+struct FileNames {
+    std::string v1;                     ///< filename for vector field component x1
+    std::string v2;                     ///< filename for vector field component x2
+    std::string v3;                     ///< filename for vector field component x3
     std::string xfolder;                ///< identifier for folder to write results to
     std::string ifolder;                ///< identifier for folder to read in results from
     std::vector < std::string > mt;     ///< template image file name
     std::vector < std::string > mr;     ///< reference image file name
-    std::string vx1;                    ///< x1-velocity field file name
-    std::string vx2;                    ///< x2-velocity field file name
-    std::string vx3;                    ///< x3-velocity field file name
+    std::string extension;
 };
-
 
 /* parameters for domain */
 struct Domain {
@@ -442,6 +444,7 @@ class RegOpt {
     inline ScaleCont GetScaleContPara() {return this->m_ScaleCont;}
     inline ParCont GetParaCont() {return this->m_ParaCont;}
     ScalarType GetBetaMinParaCont();
+    FileNames GetFileNames(){return this->m_FileNames;}
 
     inline FourierTransform GetFFT() {return this->m_FFT;}
     inline RegFlags GetRegFlags() {return this->m_RegFlags;}
@@ -648,6 +651,7 @@ class RegOpt {
     RegFlags m_RegFlags;                ///< flags for registration
     SolveType m_SolveType;              ///< solver
     Logger m_Log;                       ///< log
+    FileNames m_FileNames;
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];

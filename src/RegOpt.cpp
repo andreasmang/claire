@@ -174,11 +174,11 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
     this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
 
-    this->m_ReadWriteFlags.mr = opt.m_ReadWriteFlags.mr;
-    this->m_ReadWriteFlags.mt = opt.m_ReadWriteFlags.mt;
-    this->m_ReadWriteFlags.vx1 = opt.m_ReadWriteFlags.vx1;
-    this->m_ReadWriteFlags.vx2 = opt.m_ReadWriteFlags.vx2;
-    this->m_ReadWriteFlags.vx3 = opt.m_ReadWriteFlags.vx3;
+    this->m_FileNames.mr = opt.m_FileNames.mr;
+    this->m_FileNames.mt = opt.m_FileNames.mt;
+    this->m_FileNames.v1 = opt.m_FileNames.v1;
+    this->m_FileNames.v2 = opt.m_FileNames.v2;
+    this->m_FileNames.v3 = opt.m_FileNames.v3;
 
 
     this->m_RegFlags.applysmoothing = opt.m_RegFlags.applysmoothing;
@@ -335,11 +335,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             values.clear();
         } else if (strcmp(argv[1], "-mr") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.mr.push_back(argv[1]);
+            this->m_FileNames.mr.push_back(argv[1]);
             this->m_Domain.nc = 1;
         } else if (strcmp(argv[1], "-mt") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.mt.push_back(argv[1]);
+            this->m_FileNames.mt.push_back(argv[1]);
             this->m_Domain.nc = 1;
         } else if (strcmp(argv[1], "-mrc") == 0) {
             argc--; argv++;
@@ -351,7 +351,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
             for (IntType i = 0; i < this->m_Domain.nc; ++i) {
                 argc--; argv++;
-                this->m_ReadWriteFlags.mr.push_back(argv[1]);
+                this->m_FileNames.mr.push_back(argv[1]);
             }
         } else if (strcmp(argv[1], "-mtc") == 0) {
             argc--; argv++;
@@ -363,29 +363,29 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
             for (IntType i = 0; i < this->m_Domain.nc; ++i) {
                 argc--; argv++;
-                this->m_ReadWriteFlags.mt.push_back(argv[1]);
+                this->m_FileNames.mt.push_back(argv[1]);
             }
-        } else if (strcmp(argv[1], "-vx1") == 0) {
+        } else if (strcmp(argv[1], "-v1") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.vx1 = argv[1];
-        } else if (strcmp(argv[1], "-vx2") == 0) {
+            this->m_FileNames.v1 = argv[1];
+        } else if (strcmp(argv[1], "-v2") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.vx2 = argv[1];
-        } else if (strcmp(argv[1], "-vx3") == 0) {
+            this->m_FileNames.v2 = argv[1];
+        } else if (strcmp(argv[1], "-v3") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.vx3 = argv[1];
+            this->m_FileNames.v3 = argv[1];
         } else if (strcmp(argv[1], "-x") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.xfolder = argv[1];
+            this->m_FileNames.xfolder = argv[1];
         } else if (strcmp(argv[1], "-i") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.ifolder = argv[1];
+            this->m_FileNames.ifolder = argv[1];
         } else if (strcmp(argv[1], "-usenc") == 0) {
-            this->m_ReadWriteFlags.extension = ".nc";
+            this->m_FileNames.extension = ".nc";
         } else if (strcmp(argv[1], "-usebin") == 0) {
-            this->m_ReadWriteFlags.extension = ".bin";
+            this->m_FileNames.extension = ".bin";
         } else if (strcmp(argv[1], "-usehdf5") == 0) {
-            this->m_ReadWriteFlags.extension = ".hdf5";
+            this->m_FileNames.extension = ".hdf5";
         } else if (strcmp(argv[1], "-xresult") == 0) {
             this->m_ReadWriteFlags.results = true;
         } else if (strcmp(argv[1], "-xdeftemplate") == 0) {
@@ -1038,13 +1038,14 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.deffield = false;        ///< write deformation field / displacement field to file
     this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
     this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
-    this->m_ReadWriteFlags.extension = ".nii.gz";   ///< file extension for output
 
-    this->m_ReadWriteFlags.mr.clear();
-    this->m_ReadWriteFlags.mt.clear();
-    this->m_ReadWriteFlags.vx1.clear();
-    this->m_ReadWriteFlags.vx2.clear();
-    this->m_ReadWriteFlags.vx3.clear();
+
+    this->m_FileNames.mr.clear();
+    this->m_FileNames.mt.clear();
+    this->m_FileNames.v1.clear();
+    this->m_FileNames.v2.clear();
+    this->m_FileNames.v3.clear();
+    this->m_FileNames.extension = ".nii.gz";   ///< file extension for output
 
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
     this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling
@@ -1130,9 +1131,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -vx1 <file>                 x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
-        std::cout << " -vx2 <file>                 x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
-        std::cout << " -vx3 <file>                 x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -v1 <file>                  x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -v2 <file>                  x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -v3 <file>                  x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -mrc <int> <files>          list of reference images (*.nii, *.nii.gz, *.hdr)" << std::endl;
         std::cout << " -mtc <int> <files>          list of template images (*.nii, *.nii.gz, *.hdr)" << std::endl;
         std::cout << " -sigma <int>x<int>x<int>    size of gaussian smoothing kernel applied to input images" << std::endl;
@@ -1326,19 +1327,19 @@ PetscErrorCode RegOpt::CheckArguments() {
     std::string msg;
     PetscFunctionBegin;
 
-    if (!this->m_ReadWriteFlags.mt.empty()) {readmT = true;}
-    if (!this->m_ReadWriteFlags.mr.empty()) {readmR = true;}
+    if (!this->m_FileNames.mt.empty()) {readmT = true;}
+    if (!this->m_FileNames.mr.empty()) {readmR = true;}
 
-    if (!this->m_ReadWriteFlags.vx1.empty()) {readvx1 = true;}
-    if (!this->m_ReadWriteFlags.vx2.empty()) {readvx2 = true;}
-    if (!this->m_ReadWriteFlags.vx3.empty()) {readvx3 = true;}
+    if (!this->m_FileNames.v1.empty()) {readvx1 = true;}
+    if (!this->m_FileNames.v2.empty()) {readvx2 = true;}
+    if (!this->m_FileNames.v3.empty()) {readvx3 = true;}
 
     if (readmT && readmR) {
         // check if files exist
-        msg = "file " + this->m_ReadWriteFlags.mt[0] + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.mt[0]), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_ReadWriteFlags.mr[0] + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.mr[0]), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.mt[0] + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.mt[0]), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.mr[0] + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.mr[0]), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readfiles = true;
     } else if ( (readmT == false) && readmR ) {
         msg = "\x1b[31m you need to also assign a template image\x1b[0m\n";
@@ -1357,12 +1358,12 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     if (readvx1 && readvx2 && readvx3) {
         // check if files exist
-        msg = "file " + this->m_ReadWriteFlags.vx1 + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.vx1), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_ReadWriteFlags.vx2 + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.vx2), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_ReadWriteFlags.vx3 + " does not exist";
-        ierr = Assert(FileExists(this->m_ReadWriteFlags.vx3), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.v1 + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.v1), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.v2 + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.v2), msg); CHKERRQ(ierr);
+        msg = "file " + this->m_FileNames.v3 + " does not exist";
+        ierr = Assert(FileExists(this->m_FileNames.v3), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readvelocity = true;
     } else {
         this->m_ReadWriteFlags.readvelocity = false;
@@ -1403,7 +1404,7 @@ PetscErrorCode RegOpt::CheckArguments() {
         || this->m_ReadWriteFlags.residual
         || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates ) {
-        if (this->m_ReadWriteFlags.xfolder.empty()) {
+        if (this->m_FileNames.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
@@ -1418,7 +1419,7 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     // check output arguments
     if (loggingenabled) {
-        if (this->m_ReadWriteFlags.xfolder.empty()) {
+        if (this->m_FileNames.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
@@ -2558,7 +2559,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    path = this->m_ReadWriteFlags.xfolder;
+    path = this->m_FileNames.xfolder;
 
     // write out logfile
     if (rank == 0) {
@@ -2594,7 +2595,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
     MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
 
     line = std::string(this->m_LineLength, '-');
-    path = this->m_ReadWriteFlags.xfolder;
+    path = this->m_FileNames.xfolder;
 
     // write out logfile
     if (rank == 0) {
@@ -2869,7 +2870,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable() {
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    path = this->m_ReadWriteFlags.xfolder;
+    path = this->m_FileNames.xfolder;
 
     // write out logfile
     if (rank == 0) {
@@ -3314,7 +3315,7 @@ PetscErrorCode RegOpt::WriteFinalResidualLog() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     nnum = 20;
-    path = this->m_ReadWriteFlags.xfolder;
+    path = this->m_FileNames.xfolder;
 
     if (rank == 0) {
         // create output file
@@ -3388,7 +3389,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    path = this->m_ReadWriteFlags.xfolder;
+    path = this->m_FileNames.xfolder;
 
     if (rank == 0) {
         // create output file
@@ -3464,7 +3465,7 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    path = this->m_ReadWriteFlags.xfolder;
+    path = this->m_FileNames.xfolder;
 
     if (rank == 0) {
         // create output file

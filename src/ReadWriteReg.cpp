@@ -639,7 +639,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
     }
 
     if (multicomponent == false) {
-        this->m_FileName = this->m_Opt->GetReadWriteFlags().xfolder + filename;
+        this->m_FileName = this->m_Opt->GetFileNames().xfolder + filename;
         ierr = this->Write(x); CHKERRQ(ierr);
     } else {
         ierr = GetFileName(path, file, ext, filename); CHKERRQ(ierr);
@@ -668,7 +668,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
 
             // construct file name and write out component
             ss  << filename << "-" << std::setw(3) << std::setfill('0') << k << ext;
-            this->m_FileName = this->m_Opt->GetReadWriteFlags().xfolder + ss.str();
+            this->m_FileName = this->m_Opt->GetFileNames().xfolder + ss.str();
             ierr = this->Write(xk); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }

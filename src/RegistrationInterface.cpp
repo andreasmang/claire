@@ -994,9 +994,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     ss.str(std::string()); ss.clear();
 
     // if output folder is set
-    if (!this->m_Opt->GetReadWriteFlags().xfolder.empty()) {
+    if (!this->m_Opt->GetFileNames().xfolder.empty()) {
         if (rank == 0) {
-            filename = this->m_Opt->GetReadWriteFlags().xfolder;
+            filename = this->m_Opt->GetFileNames().xfolder;
             filename += "parameter-continuation-estimated-beta.log";
             // create output file or append to output file
             logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
@@ -1492,7 +1492,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
             // store intermediate results
             if (this->m_Opt->GetReadWriteFlags().iterates) {
-                ext = this->m_Opt->GetReadWriteFlags().extension;
+                ext = this->m_Opt->GetFileNames().extension;
                 ss << "reference-image-level=" << level << ext;
                 ierr = this->m_ReadWrite->Write(mR, ss.str()); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
