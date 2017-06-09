@@ -68,9 +68,10 @@ PetscErrorCode SemiLagrangian::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-
     this->m_X = NULL;
-    this->m_WorkVecField = NULL;
+    this->m_rkorder = 4;
+    this->m_WorkVecField1 = NULL;
+    this->m_WorkVecField2 = NULL;
 
     this->m_StatePlan = NULL;
     this->m_AdjointPlan = NULL;
@@ -119,6 +120,11 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
         this->m_VecFieldGhost = NULL;
     }
 
+    if (this->m_WorkVecField2 != NULL) {
+        delete this->m_WorkVecField2;
+        this->m_WorkVecField2 = NULL;
+    }
+
     PetscFunctionReturn(ierr);
 }
 
@@ -128,17 +134,15 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
 /********************************************************************
  * @brief set work vector field to not have to allocate it locally
  *******************************************************************/
-PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* v) {
+PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_WorkVecField = v;
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_WorkVecField1 = x;
 
     PetscFunctionReturn(ierr);
 }
-
-
 
 
 
@@ -148,21 +152,12 @@ PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* v) {
  *******************************************************************/
 PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale;
-    const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
-    ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
-    IntType isize[3], istart[3], l, i1, i2, i3, nl;
-    std::stringstream ss;
-
+    IntType nl;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
-
     nl = this->m_Opt->GetDomainPara().nl;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
 
     // if trajectory has not yet been allocated, allocate
     if (this->m_X == NULL) {
@@ -171,6 +166,44 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
+
+    // compute trajectory
+    if (this->m_rkorder == 2) {
+        ierr = this->ComputeTrajectoryRK2(v, flag); CHKERRQ(ierr);
+    } else if (this->m_rkorder == 4) {
+        ierr = this->ComputeTrajectoryRK4(v, flag); CHKERRQ(ierr);
+    } else {
+        ierr = ThrowError("rk order not implemented"); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief compute the trajectory from the velocity field based
+ * on an rk2 scheme (todo: make the velocity field a const vector)
+ *******************************************************************/
+PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string flag) {
+    PetscErrorCode ierr = 0;
+    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale;
+    const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
+    ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
+    IntType isize[3], istart[3], l, i1, i2, i3;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
 
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -214,11 +247,11 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
 
     // interpolate velocity field v(X)
-    ierr = this->Interpolate(this->m_WorkVecField, v, flag); CHKERRQ(ierr);
+    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
@@ -235,7 +268,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
             }  // i1
         }  // i2
     }  // i3
-    ierr = this->m_WorkVecField->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     // communicate the characteristic
@@ -246,6 +279,176 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     PetscFunctionReturn(ierr);
 }
 
+
+
+
+/********************************************************************
+ * @brief compute the trajectory from the velocity field based
+ * on an rk2 scheme (todo: make the velocity field a const vector)
+ *******************************************************************/
+PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string flag) {
+    PetscErrorCode ierr = 0;
+    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale;
+    const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
+    ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL,
+               *p_f1 = NULL, *p_f2 = NULL, *p_f3 = NULL;
+    IntType isize[3], istart[3], l, i1, i2, i3;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+    if (this->m_WorkVecField2 == NULL) {
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    // switch between state and adjoint variable
+    if (strcmp(flag.c_str(), "state") == 0) {
+        scale =  1.0;
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+        scale = -1.0;
+    } else {
+        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
+    }
+
+
+    for (int i = 0; i < 3; ++i) {
+        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
+        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
+        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+    }
+
+    ierr = this->m_WorkVecField2->GetArrays(p_f1, p_f2, p_f3); CHKERRQ(ierr);
+
+    // first stage of rk4
+    ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
+        for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
+            for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, isize);
+
+                p_f1[l] = p_v1[l];
+                p_f2[l] = p_v2[l];
+                p_f3[l] = p_v3[l];
+
+                this->m_X[l*3+0] = (x1 - scale*hthalf*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+1] = (x2 - scale*hthalf*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+2] = (x3 - scale*hthalf*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
+            }  // i1
+        }  // i2
+    }  // i3
+    ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+
+    // evaluate right hand side
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
+    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
+
+    // second stage of rk4
+    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, isize);
+
+                p_f1[l] += 2.0*p_vX1[l];
+                p_f2[l] += 2.0*p_vX2[l];
+                p_f3[l] += 2.0*p_vX3[l];
+
+                this->m_X[l*3+0] = (x1 - scale*hthalf*p_vX1[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+1] = (x2 - scale*hthalf*p_vX2[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+2] = (x3 - scale*hthalf*p_vX3[l])/(2.0*PETSC_PI); // normalized to [0,1]
+            }  // i1
+        }  // i2
+    }  // i3
+    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+
+    // evaluate right hand side
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
+    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
+
+    // third stage of rk4
+    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, isize);
+
+                p_f1[l] += 2.0*p_vX1[l];
+                p_f2[l] += 2.0*p_vX2[l];
+                p_f3[l] += 2.0*p_vX3[l];
+
+                this->m_X[l*3+0] = (x1 - scale*ht*p_vX1[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+1] = (x2 - scale*ht*p_vX2[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+2] = (x3 - scale*ht*p_vX3[l])/(2.0*PETSC_PI); // normalized to [0,1]
+            }  // i1
+        }  // i2
+    }  // i3
+    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+
+    // evaluate right hand side
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
+    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
+
+    // fourth stage of rk4
+    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
+
+                // compute linear / flat index
+                l = GetLinearIndex(i1, i2, i3, isize);
+
+                p_f1[l] += p_vX1[l];
+                p_f2[l] += p_vX2[l];
+                p_f3[l] += p_vX3[l];
+
+                this->m_X[l*3+0] = (x1 - scale*(ht/6.0)*p_f1[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+1] = (x2 - scale*(ht/6.0)*p_f2[l])/(2.0*PETSC_PI); // normalized to [0,1]
+                this->m_X[l*3+2] = (x3 - scale*(ht/6.0)*p_f3[l])/(2.0*PETSC_PI); // normalized to [0,1]
+            }  // i1
+        }  // i2
+    }  // i3
+    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+
+    ierr = this->m_WorkVecField2->RestoreArrays(p_f1, p_f2, p_f3); CHKERRQ(ierr);
+
+    // communicate the final characteristic
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 
@@ -509,12 +712,12 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
-    if (strcmp(flag.c_str(),"state") == 0) {
+    if (strcmp(flag.c_str(), "state") == 0) {
         // characteristic for state equation should have been computed already
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_StatePlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 1) {
+            if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("allocating state plan"); CHKERRQ(ierr);
             }
             try {this->m_StatePlan = new Interp3_Plan();}
@@ -527,12 +730,12 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
         // scatter
         this->m_StatePlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
                                    c_dims, this->m_Opt->GetFFT().mpicomm, timers);
-    } else if (strcmp(flag.c_str(),"adjoint") == 0) {
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
         // characteristic for adjoint equation should have been computed already
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_AdjointPlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 1) {
+            if (this->m_Opt->GetVerbosity() > 2) {
                 ierr = DbgMsg("allocating adjoint plan"); CHKERRQ(ierr);
             }
             try {this->m_AdjointPlan = new Interp3_Plan();}

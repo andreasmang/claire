@@ -66,10 +66,13 @@ class SemiLagrangian {
     PetscErrorCode ClearMemory();
 
     virtual PetscErrorCode CommunicateCoord(std::string);
+    PetscErrorCode ComputeTrajectoryRK2(VecField*, std::string);
+    PetscErrorCode ComputeTrajectoryRK4(VecField*, std::string);
 
     RegOpt* m_Opt;
 
-    VecField* m_WorkVecField;
+    VecField* m_WorkVecField1;
+    VecField* m_WorkVecField2;
 
     Interp3_Plan* m_AdjointPlan;
     Interp3_Plan* m_StatePlan;
@@ -78,7 +81,6 @@ class SemiLagrangian {
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
 
-
     int m_Dofs[2];
 
     struct GhostPoints {
@@ -86,6 +88,8 @@ class SemiLagrangian {
         int istart[3];
         int nghost;
     };
+
+    unsigned int m_rkorder;
 };
 
 

@@ -2645,7 +2645,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
         }
     }
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField5); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
 
     // store time series
@@ -2793,7 +2792,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    ierr = this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries ) {
@@ -3040,7 +3038,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    ierr = this->m_SemiLagrangianMethod->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
