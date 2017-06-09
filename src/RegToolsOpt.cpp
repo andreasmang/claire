@@ -239,10 +239,10 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.computesynvel = true;
         } else if (strcmp(argv[1], "-analyze") == 0) {
             this->m_RegToolFlags.computeanalytics = true;
-        } else if (strcmp(argv[1], "-rscale") == 0) {
+        } else if (strcmp(argv[1], "-scale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
-        } else if (strcmp(argv[1], "-nxr") == 0) {
+        } else if (strcmp(argv[1], "-nxnew") == 0) {
             argc--; argv++;
             const std::string nxinput = argv[1];
 
@@ -436,8 +436,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " -resample                   resample data (requires input scalar or vector field;" << std::endl;
         std::cout << "                             output is input_resampled.ext)" << std::endl;
-        std::cout << " -rscale                     scale for resampling (multiplier applied to number of grid points)" << std::endl;
-        std::cout << " -nxr                        number of grid points for output" << std::endl;
+        std::cout << " -scale                      scale for resampling (multiplier applied to number of grid points)" << std::endl;
+        std::cout << " -nxnew                      number of grid points for output" << std::endl;
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
@@ -570,6 +570,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
     PetscErrorCode ierr;
     std::string msg, path, filename, extension;
     bool cdeffield;
+    int flag;
     PetscFunctionBegin;
 
     cdeffield =  this->m_ReadWriteFlags.defgrad
@@ -627,14 +628,22 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
-        if (!this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield) {
-            msg = "\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
-            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
-            ierr = this->Usage(true); CHKERRQ(ierr);
+        flag = this->m_FileNames.isc.empty() ? 0 : 1;
+        if (flag != 1) {
+            flag = this->m_FileNames.iv1.empty()
+                || this->m_FileNames.iv2.empty()
+                || this->m_FileNames.iv3.empty() ? 0 : 2;
         }
 
+
         // construct output name for resampling
-        if (this->m_RegToolFlags.readvecfield) {
+        if (flag == 1) {
+            ierr = GetFileName(path, filename, extension, this->m_FileNames.isc); CHKERRQ(ierr);
+            if (this->m_FileNames.extension != ".nii.gz") {
+                extension = this->m_FileNames.extension;
+            }
+            this->m_FileNames.xsc = path + "/" + "resampled_" + filename + extension;
+        } else if (flag == 2) {
             ierr = GetFileName(path, filename, extension, this->m_FileNames.iv1); CHKERRQ(ierr);
             if (this->m_FileNames.extension != ".nii.gz") {
                 extension = this->m_FileNames.extension;
@@ -652,14 +661,10 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
                 extension = this->m_FileNames.extension;
             }
             this->m_FileNames.xv3 = path + "/" + "resampled_" + filename + extension;
-        }
-
-        if (this->m_RegToolFlags.readscafield) {
-            ierr = GetFileName(path, filename, extension, this->m_FileNames.isc); CHKERRQ(ierr);
-            if (this->m_FileNames.extension != ".nii.gz") {
-                extension = this->m_FileNames.extension;
-            }
-            this->m_FileNames.xsc = path + "/" + "resampled_" + filename + extension;
+        } else {
+            msg = "\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
 
