@@ -69,7 +69,7 @@ PetscErrorCode SemiLagrangian::Initialize() {
     PetscFunctionBegin;
 
     this->m_X = NULL;
-    this->m_rkorder = 4;
+    this->m_rkorder = 2;
     this->m_WorkVecField1 = NULL;
     this->m_WorkVecField2 = NULL;
 
