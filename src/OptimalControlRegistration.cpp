@@ -1323,7 +1323,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     nl = this->m_Opt->GetDomainPara().nl;
     ng = this->m_Opt->GetDomainPara().ng;
 
-    ext = this->m_Opt->GetReadWriteFlags().extension;
+    ext = this->m_Opt->GetFileNames().extension;
 
     // allocate container for incremental velocity field
     if (this->m_VelocityField == NULL) {
@@ -1743,7 +1743,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     // store time series
     if (this->m_Opt->GetReadWriteFlags().timeseries) {
-        ext = this->m_Opt->GetReadWriteFlags().extension;
+        ext = this->m_Opt->GetFileNames().extension;
 
         if (this->m_WorkScaField1 == NULL) {
             ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
@@ -3704,7 +3704,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     ng = this->m_Opt->GetDomainPara().ng;
 
     // parse extension
-    ext = this->m_Opt->GetReadWriteFlags().extension;
+    ext = this->m_Opt->GetFileNames().extension;
 
     // if not yet allocted, do so
     if (this->m_VelocityField == NULL) {
@@ -3787,7 +3787,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
         // if user enabled the logger
         if (this->m_Opt->GetLogger().enabled[LOGJAC]) {
             if (rank == 0) {
-                filename  = this->m_Opt->GetReadWriteFlags().xfolder;
+                filename  = this->m_Opt->GetFileNames().xfolder;
                 filename += "registration-performance-detdefgrad.log";
 
                 // create output file or append to output file
@@ -3866,7 +3866,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     ierr = this->m_Opt->ProcessTimers(); CHKERRQ(ierr);
 
     // parse extension
-    ext = this->m_Opt->GetReadWriteFlags().extension;
+    ext = this->m_Opt->GetFileNames().extension;
 
     // compute residuals
     if (this->m_Opt->GetLogger().enabled[LOGRES]) {

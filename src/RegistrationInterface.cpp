@@ -311,68 +311,6 @@ PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
 
 
 /********************************************************************
- * @brief get the residual at t=1 for current iterate v
- * (stored in adjoint variable)
- *******************************************************************/
-PetscErrorCode RegistrationInterface::GetResidual(Vec residual) {
-    PetscErrorCode ierr = 0;
-    Vec lambda = NULL, m = NULL;
-    IntType nl, nc, nt, l0, l1, l;
-    ScalarType *p_l = NULL, *p_res = NULL, *p_m = NULL, *p_mr = NULL;
-    PetscFunctionBegin;
-
-    ierr = Assert(residual != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
-
-
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    nt = this->m_Opt->GetDomainPara().nt;
-
-    // get array for residual
-    ierr = VecGetArray(residual, &p_res); CHKERRQ(ierr);
-
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
-        // get lambda
-        ierr = this->m_RegProblem->GetAdjointVariable(lambda); CHKERRQ(ierr);
-        ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
-
-        ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
-        l0 =  nt*nc*nl; l1 = (nt+1)*nc*nl;
-        try {std::copy(p_l+l0, p_l+l1, p_res);}
-        catch (std::exception&) {
-            ierr = ThrowError("copy failed"); CHKERRQ(ierr);
-        }
-        ierr = VecRestoreArray(lambda, &p_l); CHKERRQ(ierr);
-    } else {
-        l = nt*nc*nl;  // index for final condition
-        // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
-        ierr = this->m_RegProblem->GetStateVariable(m); CHKERRQ(ierr);
-        ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
-
-        ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nc*nl; ++i) {
-            p_res[i] = p_mr[i] - p_m[l+i];  // compute initial condition
-        }
-}  // omp
-        ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-        ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
-    }
-
-
-    ierr = VecRestoreArray(residual, &p_res); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
  * @brief set read/write object
  *******************************************************************/
 PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
@@ -1056,9 +994,9 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     ss.str(std::string()); ss.clear();
 
     // if output folder is set
-    if (!this->m_Opt->GetReadWriteFlags().xfolder.empty()) {
+    if (!this->m_Opt->GetFileNames().xfolder.empty()) {
         if (rank == 0) {
-            filename = this->m_Opt->GetReadWriteFlags().xfolder;
+            filename = this->m_Opt->GetFileNames().xfolder;
             filename += "parameter-continuation-estimated-beta.log";
             // create output file or append to output file
             logwriter.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
@@ -1554,7 +1492,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
             // store intermediate results
             if (this->m_Opt->GetReadWriteFlags().iterates) {
-                ext = this->m_Opt->GetReadWriteFlags().extension;
+                ext = this->m_Opt->GetFileNames().extension;
                 ss << "reference-image-level=" << level << ext;
                 ierr = this->m_ReadWrite->Write(mR, ss.str()); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();

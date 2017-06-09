@@ -1390,7 +1390,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     if (write2file) {
         filename = inverse ? "inverse-det-deformation-grad" : "det-deformation-grad";
-        filename += this->m_Opt->GetReadWriteFlags().extension;
+        filename += this->m_Opt->GetFileNames().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, filename); CHKERRQ(ierr);
     }
 
@@ -1697,7 +1697,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 
     this->m_Opt->Enter(__func__);
 
-    ext = this->m_Opt->GetReadWriteFlags().extension;
+    ext = this->m_Opt->GetFileNames().extension;
 
     nt = this->m_Opt->GetDomainPara().nt;
     nl = this->m_Opt->GetDomainPara().nl;
@@ -2023,7 +2023,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
 
 
     if (write2file) {
-        ext = this->m_Opt->GetReadWriteFlags().extension;
+        ext = this->m_Opt->GetFileNames().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkTenField1->m_X11, "deformation-grad-x11"+ext); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->Write(this->m_WorkTenField1->m_X12, "deformation-grad-x12"+ext); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->Write(this->m_WorkTenField1->m_X13, "deformation-grad-x13"+ext); CHKERRQ(ierr);
@@ -2361,7 +2361,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
     }
 
     if (write2file) {
-        ext = this->m_Opt->GetReadWriteFlags().extension;
+        ext = this->m_Opt->GetFileNames().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "deformation-map"+ext); CHKERRQ(ierr);
     }
 
@@ -2601,7 +2601,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 
     this->m_Opt->Enter(__func__);
 
-    ext = this->m_Opt->GetReadWriteFlags().extension;
+    ext = this->m_Opt->GetFileNames().extension;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -2756,7 +2756,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 
     this->m_Opt->Enter(__func__);
 
-    ext = this->m_Opt->GetReadWriteFlags().extension;
+    ext = this->m_Opt->GetFileNames().extension;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -2968,7 +2968,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
     }
 
     if (write2file) {
-        ext = this->m_Opt->GetReadWriteFlags().extension;
+        ext = this->m_Opt->GetFileNames().extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "displacement-field"+ext); CHKERRQ(ierr);
     }
 
