@@ -67,6 +67,8 @@ class SemiLagrangian {
 
     virtual PetscErrorCode CommunicateCoord(std::string);
 
+    RegOpt* m_Opt;
+
     VecField* m_WorkVecField;
 
     Interp3_Plan* m_AdjointPlan;
@@ -76,8 +78,6 @@ class SemiLagrangian {
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
 
-    ReadWriteReg* m_ReadWrite;
-    RegOpt* m_Opt;
 
     int m_Dofs[2];
 

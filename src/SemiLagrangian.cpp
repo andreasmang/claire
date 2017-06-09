@@ -68,10 +68,9 @@ PetscErrorCode SemiLagrangian::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_ReadWrite = NULL;
-    this->m_WorkVecField = NULL;
 
     this->m_X = NULL;
+    this->m_WorkVecField = NULL;
 
     this->m_StatePlan = NULL;
     this->m_AdjointPlan = NULL;
@@ -119,22 +118,6 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
         accfft_free(this->m_VecFieldGhost);
         this->m_VecFieldGhost = NULL;
     }
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief set read write operator
- *******************************************************************/
-PetscErrorCode SemiLagrangian::SetReadWrite(ReadWriteReg* readwrite) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    ierr = Assert(readwrite != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
 }
@@ -302,9 +285,8 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
 PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval, order, nghost;
-    IntType nl, g_alloc_max;
+    IntType nl, nalloc;
     std::stringstream ss;
-    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;  ///< accfft plan
     double timers[4] = {0, 0, 0, 0};
 
     PetscFunctionBegin;
@@ -317,7 +299,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl     = this->m_Opt->GetDomainPara().nl;
-
     order  = this->m_Opt->GetPDESolverPara().interpolationorder;
     nghost = order;
     neval  = static_cast<int>(nl);
@@ -331,18 +312,16 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
-
     // deal with ghost points
-    plan = this->m_Opt->GetFFT().plan;
-    g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->GetFFT().plan, nghost, isize_g, istart_g);
 
     // if scalar field with ghost points has not been allocated
     if (this->m_ScaFieldGhost == NULL) {
-        this->m_ScaFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
+        this->m_ScaFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
     }
 
     // assign ghost points based on input scalar field
-    accfft_get_ghost_xyz(plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
+    accfft_get_ghost_xyz(this->m_Opt->GetFFT().plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
 
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -404,9 +383,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     PetscErrorCode ierr = 0;
     int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nghost, order;
     double timers[4] = {0, 0, 0, 0};
-    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan = NULL;
     std::stringstream ss;
-    IntType nl, nlghost, g_alloc_max;
+    IntType nl, nlghost, nalloc;
 
     PetscFunctionBegin;
 
@@ -450,8 +428,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     // get ghost sizes
-    plan = this->m_Opt->GetFFT().plan;
-    g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->GetFFT().plan, nghost, isize_g, istart_g);
 
     // get nl for ghosts
     nlghost = 1;
@@ -461,13 +438,13 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     // deal with ghost points
     if (this->m_VecFieldGhost == NULL) {
-        this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*g_alloc_max));
+        this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*nalloc));
     }
 
 
     // do the communication for the ghost points
     for (int i = 0; i < 3; i++) {
-        accfft_get_ghost_xyz(plan, nghost, isize_g, &this->m_X[i*nl],
+        accfft_get_ghost_xyz(this->m_Opt->GetFFT().plan, nghost, isize_g, &this->m_X[i*nl],
                              &this->m_VecFieldGhost[i*nlghost]);
     }
 
