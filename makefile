@@ -21,6 +21,7 @@ else
 	CXXFLAGS = -O3 -ansi
 endif
 
+
 ifeq ($(USEINTEL),yes)
 	CXXFLAGS += -xhost -parallel
 	#CXXFLAGS += -openmp
@@ -164,6 +165,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2.cpp \
 		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
 		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
+		$(SRCDIR)/RegularizationRegistrationH3.cpp \
+		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/OptimalControlRegistrationBase.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \

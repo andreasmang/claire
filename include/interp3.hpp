@@ -17,7 +17,7 @@
 
 #define FAST_INTERP_BINNING
 //#define HASWELL
-//#define KNL
+#define KNL
 
 #if defined(KNL)
 #define INTERP_USE_MORE_MEM_L1

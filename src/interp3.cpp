@@ -244,6 +244,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
   //_mm_prefetch( (char*)Q_ptr,_MM_HINT_NTA);
 
 
+
   int CHUNK=16;
 
 //#pragma omp parallel for
