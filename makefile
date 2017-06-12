@@ -2,9 +2,10 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-USESINGLE=yes
+USESINGLE=no
 USEPNETCDF=yes
 USENIFTI=yes
+USEKNL=no
 BUILDTOOLS=no
 
 
@@ -31,6 +32,10 @@ else
 endif
 CXXFLAGS += -std=c++11
 
+
+ifeq ($(USEKNL),yes)
+	CXXFLAGS += -DKNL
+endif
 
 ifeq ($(PEDANTIC),yes)
 	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
