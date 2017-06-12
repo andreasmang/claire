@@ -2962,7 +2962,6 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable(std::ostream& logwriter) {
 
         logwriter << std::left
                   << std::setw(nstr) << " num threads" << std::right
-        std::cout << std::left << std::setw(indent) << " threads"
                   //<< this->m_NumThreads << std::endl;
                   << omp_get_max_threads() << std::endl;
 
