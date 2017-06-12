@@ -157,9 +157,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
             this->m_RegFlags.applysmoothing = false;
-        } else if (strcmp(argv[1], "-nthreads") == 0) {
-            argc--; argv++;
-            this->m_NumThreads = atoi(argv[1]);
+//        } else if (strcmp(argv[1], "-nthreads") == 0) {
+//            argc--; argv++;
+//            this->m_NumThreads = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
             const std::string npinput = argv[1];
@@ -281,7 +281,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+//    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+    ierr = InitializeDataDistribution(0, this->m_CartGridDims,
                                       this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -502,7 +503,8 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
                   << this->m_CartGridDims[0] << "x"
                   << this->m_CartGridDims[1] << std::endl;
         std::cout << std::left << std::setw(indent) << " threads"
-                  << this->m_NumThreads << std::endl;
+                  //<< this->m_NumThreads << std::endl;
+                  << omp_get_max_threads() << std::endl;
         std::cout << std::left << std::setw(indent) << " (ng,nl)"
                   << "(" << this->m_Domain.ng << ", "
                   << this->m_Domain.nl << ")" << std::endl;
@@ -720,7 +722,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         this->m_FileNames.xsc = path + "/residual" + extension;
     }
 
-    ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

@@ -86,7 +86,7 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
             ierr = this->Usage(true); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-x") == 0) {
             argc--; argv++;
-            this->m_ReadWriteFlags.xfolder = argv[1];
+            this->m_FileNames.xfolder = argv[1];
         } else if (strcmp(argv[1], "-nt") == 0) {
             argc--; argv++;
             this->m_Domain.nt = static_cast<IntType>(atoi(argv[1]));
@@ -131,9 +131,9 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-interpolationorder") == 0) {
             argc--; argv++;
             this->m_PDESolver.interpolationorder = atoi(argv[1]);
-        } else if (strcmp(argv[1], "-nthreads") == 0) {
-            argc--; argv++;
-            this->m_NumThreads = atoi(argv[1]);
+//        } else if (strcmp(argv[1], "-nthreads") == 0) {
+//            argc--; argv++;
+//            this->m_NumThreads = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
             const std::string npinput = argv[1];
@@ -181,7 +181,8 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+//    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+    ierr = InitializeDataDistribution(0, this->m_CartGridDims,
                                       this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -341,7 +342,8 @@ PetscErrorCode RegBenchmarkOpt::DisplayOptions() {
                   << this->m_CartGridDims[0] << "x"
                   << this->m_CartGridDims[1] << std::endl;
         std::cout << std::left << std::setw(indent) << " threads"
-                  << this->m_NumThreads << std::endl;
+                  //<< this->m_NumThreads << std::endl;
+                  << omp_get_max_threads() << std::endl;
         std::cout << std::left << std::setw(indent) << " (ng,nl)"
                   << "(" << this->m_Domain.ng << ", "
                   << this->m_Domain.nl << ")" << std::endl;
@@ -365,7 +367,7 @@ PetscErrorCode RegBenchmarkOpt::CheckArguments() {
     bool log = false;
     PetscFunctionBegin;
 
-    ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
+//    ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
 
     if (this->m_BenchmarkID == -1) {
         msg = "\x1b[31m you need to define a benchmark test\x1b[0m\n";
@@ -380,7 +382,7 @@ PetscErrorCode RegBenchmarkOpt::CheckArguments() {
     }
 
     if (log) {
-        if (this->m_ReadWriteFlags.xfolder.empty()) {
+        if (this->m_FileNames.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);

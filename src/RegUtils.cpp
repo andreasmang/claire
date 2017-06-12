@@ -319,20 +319,19 @@ void isleep(unsigned int nanosec) {
  *******************************************************************/
 PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c_comm, bool c_exists) {
     PetscErrorCode ierr = 0;
-    int nprocs, ompthreads, np, rval;
+    int nprocs, np, rval;// ompthreads,
     std::stringstream ss;
 
     PetscFunctionBegin;
 
-    omp_set_dynamic(0);
-    omp_set_num_threads(nthreads);
-
+//    omp_set_dynamic(0);
+//    omp_set_num_threads(nthreads);
     // check if number of threads is consistent with user options
-    ompthreads = omp_get_max_threads();
-    ss << "openmp threads (user,set)=("
-       << nthreads <<"," << ompthreads << ")\n";
-    ierr = Assert(ompthreads == nthreads, ss.str().c_str()); CHKERRQ(ierr);
-    ss.str(std::string()); ss.clear();
+//    ompthreads = omp_get_max_threads();
+//    ss << "openmp threads (user,set)=("
+//       << nthreads <<"," << ompthreads << ")\n";
+//    ierr = Assert(ompthreads == nthreads, ss.str().c_str()); CHKERRQ(ierr);
+//    ss.str(std::string()); ss.clear();
 
     // set up MPI/cartesian grid
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
@@ -351,7 +350,8 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
 
     // initialize accfft
     accfft_create_comm(PETSC_COMM_WORLD, c_grid, &c_comm);
-    accfft_init(nthreads);
+    //accfft_init(nthreads);
+    accfft_init();
 
     PetscFunctionReturn(ierr);
 }
