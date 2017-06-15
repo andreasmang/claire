@@ -30,9 +30,13 @@
 #include <sys/stat.h>
 #include <omp.h>
 #include <cstdlib>
+#include <string>
+#include <vector>
+#include <ctime>
 
 // local includes
 #include "petsc.h"
+#include "petscsys.h"
 #include "accfft.h"
 #include "accfftf.h"
 #include "accfft_operators.h"

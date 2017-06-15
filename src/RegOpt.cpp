@@ -20,12 +20,6 @@
 #ifndef _REGOPT_CPP_
 #define _REGOPT_CPP_
 
-#include <petscsys.h>
-#include <string>
-#include <vector>
-#include "accfft.h"
-#include "accfftf.h"
-
 #include "RegOpt.hpp"
 
 
