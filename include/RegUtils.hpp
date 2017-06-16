@@ -24,15 +24,19 @@
 // #define _REG_DEBUG_
 
 // global includes
+#include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <omp.h>
+#include <omp>
 #include <cstdlib>
 #include <string>
 #include <vector>
 #include <ctime>
+#include <limits>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 // local includes
 #include "petsc.h"
