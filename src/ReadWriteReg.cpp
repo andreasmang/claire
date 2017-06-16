@@ -532,7 +532,7 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
     nc = this->m_Opt->m_Domain.nc;
 
     this->m_ReferenceImage.write = true;
-    if (this->m_Opt->GetRegFlags().applyrescaling) {
+    if (this->m_Opt->m_RegFlags.applyrescaling) {
         if (this->m_ReferenceImage.minval != -1.0 && this->m_ReferenceImage.maxval != -1.0) {
             minval = this->m_ReferenceImage.minval;
             maxval = this->m_ReferenceImage.maxval;
@@ -579,7 +579,7 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
 
     this->m_TemplateImage.write = true;
 
-    if (this->m_Opt->GetRegFlags().applyrescaling) {
+    if (this->m_Opt->m_RegFlags.applyrescaling) {
         if (this->m_TemplateImage.minval != -1.0 && this->m_TemplateImage.maxval != -1.0) {
             nc = this->m_Opt->m_Domain.nc;
             minval = this->m_TemplateImage.minval;

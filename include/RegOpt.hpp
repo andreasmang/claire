@@ -350,7 +350,7 @@ struct GridCont {
 
 
 /* parameters/containers for monitoring registration */
-struct RegMonitor {
+struct Monitor {
     bool detdgradenabled;       ///< flag to monitor jacobian during iterations
     ScalarType detdgradmin;     ///< min value of determinant of deformation gradient det(grad(y))
     ScalarType detdgradmax;     ///< max value of determinant of deformation gradient det(grad(y))
@@ -447,19 +447,19 @@ class RegOpt {
     FileNames GetFileNames(){return this->m_FileNames;}
 
     inline FourierTransform GetFFT() {return this->m_FFT;}
-    inline RegFlags GetRegFlags() {return this->m_RegFlags;}
+//    inline RegFlags GetRegFlags() {return this->m_RegFlags;}
 
     // monitor functions
-    inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}
-    inline void SetDetDefGradBound(ScalarType value) {this->m_RegMonitor.detdgradbound = value;}
-    inline void SetDetDGradMin(ScalarType value) {this->m_RegMonitor.detdgradmin = value;}
-    inline void SetDetDGradMax(ScalarType value) {this->m_RegMonitor.detdgradmax = value;}
-    inline void SetDetDGradMean(ScalarType value) {this->m_RegMonitor.detdgradmean = value;}
-    inline void EnableBoundOnDetDGrad() {this->m_RegMonitor.detdgradenabled = true;}
-    inline void DisableBoundOnDetDGrad() {this->m_RegMonitor.detdgradenabled = false;}
-    inline void SetJVal(ScalarType value){this->m_RegMonitor.jval = value;}
-    inline void SetRVal(ScalarType value){this->m_RegMonitor.rval = value;}
-    inline void SetDVal(ScalarType value){this->m_RegMonitor.dval = value;}
+//    inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}
+    inline void SetDetDefGradBound(ScalarType value) {this->m_Monitor.detdgradbound = value;}
+    inline void SetDetDGradMin(ScalarType value) {this->m_Monitor.detdgradmin = value;}
+    inline void SetDetDGradMax(ScalarType value) {this->m_Monitor.detdgradmax = value;}
+    inline void SetDetDGradMean(ScalarType value) {this->m_Monitor.detdgradmean = value;}
+    inline void EnableBoundOnDetDGrad() {this->m_Monitor.detdgradenabled = true;}
+    inline void DisableBoundOnDetDGrad() {this->m_Monitor.detdgradenabled = false;}
+    inline void SetJVal(ScalarType value){this->m_Monitor.jval = value;}
+    inline void SetRVal(ScalarType value){this->m_Monitor.rval = value;}
+    inline void SetDVal(ScalarType value){this->m_Monitor.dval = value;}
 
     inline void DisableInversion() {this->m_RegFlags.runninginversion = false;}
     inline void EnableInversion() {this->m_RegFlags.runninginversion = true;}
@@ -581,7 +581,9 @@ class RegOpt {
     Optimization m_OptPara;             ///< optimization parameters
     ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
     PDESolver m_PDESolver;              ///< flag for PDE solver
-    KrylovMethod m_KrylovMethod;    ///< parameters for krylov solver
+    KrylovMethod m_KrylovMethod;        ///< parameters for krylov solver
+    RegFlags m_RegFlags;                ///< flags for registration
+    Monitor m_Monitor;                  ///< monitor for registration
 
     int m_Verbosity;
 
@@ -604,11 +606,9 @@ class RegOpt {
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
 
-    RegMonitor m_RegMonitor;            ///< monitor for registration
     RegNorm m_RegNorm;                  ///< parameters for regularization model
     ParCont m_ParaCont;                 ///< flags for parameter continuation
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
-    RegFlags m_RegFlags;                ///< flags for registration
     SolveType m_SolveType;              ///< solver
     Logger m_Log;                       ///< log
     FileNames m_FileNames;

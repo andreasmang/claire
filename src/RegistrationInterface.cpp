@@ -463,7 +463,7 @@ PetscErrorCode RegistrationInterface::SetupData(Vec& mR, Vec& mT) {
         ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
         ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
-        if (this->m_Opt->GetRegFlags().applysmoothing) {
+        if (this->m_Opt->m_RegFlags.applysmoothing) {
             if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new Preprocessing(this->m_Opt);}
                 catch (std::bad_alloc&) {
@@ -626,7 +626,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     ierr = this->m_RegProblem->InitializeSolver(); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
-    monitor = this->m_Opt->GetRegMonitor().detdgradenabled;
+    monitor = this->m_Opt->m_Monitor.detdgradenabled;
 
     // init solver
     ierr = this->m_Optimizer->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
@@ -1686,7 +1686,7 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
     ierr = VecDuplicate(this->m_TemplateImage, &mT); CHKERRQ(ierr);
     ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetRegFlags().applysmoothing) {
+    if (this->m_Opt->m_RegFlags.applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try{this->m_PreProc = new Preprocessing(this->m_Opt);}
@@ -1743,7 +1743,7 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetRegFlags().applysmoothing) {
+    if (this->m_Opt->m_RegFlags.applysmoothing) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try {this->m_PreProc = new Preprocessing(this->m_Opt);}
@@ -1895,7 +1895,7 @@ PetscErrorCode RegistrationInterface::ComputeDeformationMap(VecField* y) {
     ierr = Msg("computing deformation map"); CHKERRQ(ierr);
     ierr = this->m_RegProblem->ComputeDeformationMap(false, y); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetRegFlags().checkdefmapsolve) {
+    if (this->m_Opt->m_RegFlags.checkdefmapsolve) {
         ierr = this->m_RegProblem->CheckDefMapConsistency(); CHKERRQ(ierr);
     }
 

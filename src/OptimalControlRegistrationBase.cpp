@@ -288,7 +288,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     nc = this->m_Opt->m_Domain.nc;
 
     // by default we rescale the intensity range to [0,1]
-    if (this->m_Opt->GetRegFlags().applyrescaling) {
+    if (this->m_Opt->m_RegFlags.applyrescaling) {
         ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
     }
 
@@ -317,7 +317,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     nc = this->m_Opt->m_Domain.nc;
 
     // by default we rescale the intensity range to [0,1]
-    if (this->m_Opt->GetRegFlags().applyrescaling) {
+    if (this->m_Opt->m_RegFlags.applyrescaling) {
         ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
     }
 
@@ -1257,9 +1257,9 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     // compute determinant of deformation gradient
     ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
 
-    detdgradmin = this->m_Opt->GetRegMonitor().detdgradmin;
-    detdgradmax = this->m_Opt->GetRegMonitor().detdgradmax;
-    bound       = this->m_Opt->GetRegMonitor().detdgradbound;
+    detdgradmin = this->m_Opt->m_Monitor.detdgradmin;
+    detdgradmax = this->m_Opt->m_Monitor.detdgradmax;
+    bound       = this->m_Opt->m_Monitor.detdgradbound;
 
     // check if jmin < bound and 1/jmax < bound
     minboundreached = detdgradmin     <= bound;
@@ -1310,7 +1310,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     this->m_Opt->Enter(__func__);
 
-    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    inverse = this->m_Opt->m_RegFlags.invdefgrad;
     detstr = inverse ? "det(grad(inv(y)))" : "det(grad(y))";
 
     if (this->m_Opt->GetVerbosity() > 2) {
@@ -1343,7 +1343,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero == false) {
         // call the solver
-        if (this->m_Opt->GetRegFlags().detdefgradfromdeffield) {
+        if (this->m_Opt->m_RegFlags.detdefgradfromdeffield) {
             ierr = this->ComputeDetDefGradViaDispField(); CHKERRQ(ierr);
         } else {
             switch (this->m_Opt->m_PDESolver.type) {
@@ -1381,7 +1381,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     this->m_Opt->SetDetDGradMax(maxddg);
     this->m_Opt->SetDetDGradMean(meanddg);
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().detdgradenabled) {
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << detstr << " : (min, mean, max)="
             << "(" << minddg << ", " << meanddg << ", " << maxddg << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1446,7 +1446,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
         ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
     }
 
-    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    inverse = this->m_Opt->m_RegFlags.invdefgrad;
     alpha = inverse ? -1.0 : 1.0;
 
     // get pointers
@@ -1578,7 +1578,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
-    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    inverse = this->m_Opt->m_RegFlags.invdefgrad;
     alpha = inverse ? -1.0 : 1.0;
 
 #pragma omp parallel
@@ -1746,7 +1746,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
-    inverse = this->m_Opt->GetRegFlags().invdefgrad;
+    inverse = this->m_Opt->m_RegFlags.invdefgrad;
     alpha = inverse ? -1.0 : 1.0;
 
     // compute div(v)
@@ -1950,7 +1950,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero == false) {
         // call the solver
-        if (this->m_Opt->GetRegFlags().detdefgradfromdeffield) {
+        if (this->m_Opt->m_RegFlags.detdefgradfromdeffield) {
             ierr = this->ComputeDetDefGradViaDispField(); CHKERRQ(ierr);
         } else {
             switch (this->m_Opt->m_PDESolver.type) {
@@ -2014,7 +2014,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     this->m_Opt->SetDetDGradMax(maxj);
     this->m_Opt->SetDetDGradMean(meanj);
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->GetRegMonitor().detdgradenabled) {
+    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
             << "(" << minj << ", " << meanj << ", " << maxj<<")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);

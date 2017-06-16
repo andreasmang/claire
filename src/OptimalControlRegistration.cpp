@@ -1670,7 +1670,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     // allocate state and adjoint variables
     if (this->m_StateVariable == NULL) {
-        if (this->m_Opt->GetRegFlags().runninginversion) {
+        if (this->m_Opt->m_RegFlags.runninginversion) {
             ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
         } else {
             ierr = VecCreate(this->m_StateVariable, nl*nc, ng*nc); CHKERRQ(ierr);
@@ -1691,7 +1691,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // we copy m_0 to all t for v=0
-        if (this->m_Opt->GetRegFlags().runninginversion) {
+        if (this->m_Opt->m_RegFlags.runninginversion) {
             ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
             for (IntType j = 1; j <= nt; ++j) {
                 try {std::copy(p_m, p_m+nc*nl, p_m+j*nl*nc);}
@@ -1809,7 +1809,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
     this->m_Opt->Enter(__func__);
 
     // flag to identify if we store the time history
-    store = this->m_Opt->GetRegFlags().runninginversion;
+    store = this->m_Opt->m_RegFlags.runninginversion;
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -1926,7 +1926,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     this->m_Opt->Enter(__func__);
 
     // flag to identify if we store the time history
-    store = this->m_Opt->GetRegFlags().runninginversion;
+    store = this->m_Opt->m_RegFlags.runninginversion;
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -3782,7 +3782,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
 
     // compute determinant of deformation gradient and write it to file
-    if (this->m_Opt->GetRegMonitor().detdgradenabled) {
+    if (this->m_Opt->m_Monitor.detdgradenabled) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
         // if user enabled the logger
         if (this->m_Opt->GetLogger().enabled[LOGJAC]) {
@@ -3796,9 +3796,9 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
                 ss  << std::scientific
                     <<  "iter = "     << this->m_Opt->GetCounter(ITERATIONS)
                     <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
-                    << std::left << std::setw(20) << this->m_Opt->GetRegMonitor().detdgradmin << " "
-                                 << std::setw(20) << this->m_Opt->GetRegMonitor().detdgradmean <<" "
-                                 << std::setw(20) << this->m_Opt->GetRegMonitor().detdgradmax;
+                    << std::left << std::setw(20) << this->m_Opt->m_Monitor.detdgradmin << " "
+                                 << std::setw(20) << this->m_Opt->m_Monitor.detdgradmean <<" "
+                                 << std::setw(20) << this->m_Opt->m_Monitor.detdgradmax;
                 logwriter << ss.str() << std::endl;
                 ss.str(std::string()); ss.clear();
             }  // if on master rank

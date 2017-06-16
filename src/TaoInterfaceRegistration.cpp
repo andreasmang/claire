@@ -518,7 +518,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     }
 
     // compute l2 distance at current iteration
-    D = optprob->GetOptions()->GetRegMonitor().dval;
+    D = optprob->GetOptions()->m_Monitor.dval;
 
     // get initial gradient
     gnorm0 = optprob->GetInitialGradientNorm();

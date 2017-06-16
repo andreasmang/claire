@@ -204,14 +204,14 @@ void RegOpt::Copy(const RegOpt& opt) {
     }
 
     // monitor for registration
-    this->m_RegMonitor.detdgradenabled = opt.m_RegMonitor.detdgradenabled;
-    this->m_RegMonitor.detdgradmin = opt.m_RegMonitor.detdgradmin;
-    this->m_RegMonitor.detdgradmax = opt.m_RegMonitor.detdgradmax;
-    this->m_RegMonitor.detdgradmean = opt.m_RegMonitor.detdgradmean;
-    this->m_RegMonitor.detdgradbound = opt.m_RegMonitor.detdgradbound;
-    this->m_RegMonitor.jval = 0;
-    this->m_RegMonitor.dval = 0;
-    this->m_RegMonitor.rval = 0;
+    this->m_Monitor.detdgradenabled = opt.m_Monitor.detdgradenabled;
+    this->m_Monitor.detdgradmin = opt.m_Monitor.detdgradmin;
+    this->m_Monitor.detdgradmax = opt.m_Monitor.detdgradmax;
+    this->m_Monitor.detdgradmean = opt.m_Monitor.detdgradmean;
+    this->m_Monitor.detdgradbound = opt.m_Monitor.detdgradbound;
+    this->m_Monitor.jval = 0;
+    this->m_Monitor.dval = 0;
+    this->m_Monitor.rval = 0;
 
     for (IntType i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = opt.m_Log.enabled[i];
@@ -510,7 +510,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
-            this->m_RegMonitor.detdgradbound = atof(argv[1]);
+            this->m_Monitor.detdgradbound = atof(argv[1]);
         } else if (strcmp(argv[1], "-krylovsolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
@@ -697,7 +697,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
         } else if (strcmp(argv[1], "-mdefgrad") == 0) {
-            this->m_RegMonitor.detdgradenabled = true;
+            this->m_Monitor.detdgradenabled = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
             this->m_RegFlags.invdefgrad = true;
         } else {
@@ -1076,14 +1076,14 @@ PetscErrorCode RegOpt::Initialize() {
     }
 
     // monitor for registration
-    this->m_RegMonitor.detdgradmin = 0.0;
-    this->m_RegMonitor.detdgradmax = 0.0;
-    this->m_RegMonitor.detdgradmean = 0.0;
-    this->m_RegMonitor.detdgradbound = 2E-1;
-    this->m_RegMonitor.detdgradenabled = false;
-    this->m_RegMonitor.jval = 0.0;
-    this->m_RegMonitor.dval = 0.0;
-    this->m_RegMonitor.rval = 0.0;
+    this->m_Monitor.detdgradmin = 0.0;
+    this->m_Monitor.detdgradmax = 0.0;
+    this->m_Monitor.detdgradmean = 0.0;
+    this->m_Monitor.detdgradbound = 2E-1;
+    this->m_Monitor.detdgradenabled = false;
+    this->m_Monitor.jval = 0.0;
+    this->m_Monitor.dval = 0.0;
+    this->m_Monitor.rval = 0.0;
 
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;
@@ -1799,7 +1799,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
             std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "bound det(grad(y))"
-                      << this->m_RegMonitor.detdgradbound << std::endl;
+                      << this->m_Monitor.detdgradbound << std::endl;
         } else {
             switch (this->m_RegNorm.type) {
                 case L2:
