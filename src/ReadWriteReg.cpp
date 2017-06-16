@@ -373,7 +373,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
             ss.clear(); ss.str(std::string());
         }
 
-        ierr = Assert(this->m_Opt->SetupDone(), "error in setup"); CHKERRQ(ierr);
+        ierr = Assert(this->m_Opt->m_SetupDone, "error in setup"); CHKERRQ(ierr);
         nl = this->m_Opt->m_Domain.nl;
         ng = this->m_Opt->m_Domain.ng;
 
@@ -639,7 +639,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
     }
 
     if (multicomponent == false) {
-        this->m_FileName = this->m_Opt->GetFileNames().xfolder + filename;
+        this->m_FileName = this->m_Opt->m_FileNames.xfolder + filename;
         ierr = this->Write(x); CHKERRQ(ierr);
     } else {
         ierr = GetFileName(path, file, ext, filename); CHKERRQ(ierr);
@@ -668,7 +668,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
 
             // construct file name and write out component
             ss  << filename << "-" << std::setw(3) << std::setfill('0') << k << ext;
-            this->m_FileName = this->m_Opt->GetFileNames().xfolder + ss.str();
+            this->m_FileName = this->m_Opt->m_FileNames.xfolder + ss.str();
             ierr = this->Write(xk); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
@@ -859,7 +859,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 
     // do the setup before running the code (this essentially
     // concerns the memory distribution/the setup of accfft
-    if (!this->m_Opt->SetupDone()) {
+    if (!this->m_Opt->m_SetupDone) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
 
@@ -1457,7 +1457,7 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x) {
         *x = NULL;
     }
 
-    if (!this->m_Opt->SetupDone()) {
+    if (!this->m_Opt->m_SetupDone) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
     nl = this->m_Opt->m_Domain.nl;
@@ -1521,7 +1521,7 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
 
     if ((*x) != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;}
 
-    if (!this->m_Opt->SetupDone()) {
+    if (!this->m_Opt->m_SetupDone) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
     nl = this->m_Opt->m_Domain.nl;
@@ -1585,7 +1585,7 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
         mode = NC_CLOBBER | NC_64BIT_OFFSET;
     }
 
-    c_comm = this->m_Opt->GetFFT().mpicomm;
+    c_comm = this->m_Opt->m_FFT.mpicomm;
 
     // create netcdf file
     ncerr = ncmpi_create(c_comm, this->m_FileName.c_str(), mode, MPI_INFO_NULL, &fileid);

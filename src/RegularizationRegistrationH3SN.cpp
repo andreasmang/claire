@@ -96,9 +96,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timer);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timer);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_v1, this->m_v1hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_v2, this->m_v2hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_v3, this->m_v3hat, timer);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
         this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -108,12 +108,12 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         ScalarType lapik, regop[6], gradik[3];
         IntType i, i1, i2, i3, w[3];
 #pragma omp for
-        for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
-            for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){
-                for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){
-                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
-                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
-                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
+        for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1){
+            for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2){
+                for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3){
+                    w[0] = i1 + this->m_Opt->m_FFT.ostart[0];
+                    w[1] = i2 + this->m_Opt->m_FFT.ostart[1];
+                    w[2] = i3 + this->m_Opt->m_FFT.ostart[2];
 
                     ComputeWaveNumber(w, nx);
 
@@ -135,7 +135,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
                     regop[4] =  scale*gradik[2]*lapik;
                     regop[5] = -scale*gradik[2]*lapik;
 
-                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop[0];
@@ -155,9 +155,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
 
         // compute inverse fft
         ierr = this->m_WorkVecField->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v1hat, p_bv1, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v2hat, p_bv2, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v3hat, p_bv3, timer);
         ierr = this->m_WorkVecField->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, 3);
@@ -220,9 +220,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v1, this->m_v1hat, timer);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v2, this->m_v2hat, timer);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_v3, this->m_v3hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_v1, this->m_v1hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_v2, this->m_v2hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_v3, this->m_v3hat, timer);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
         this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -232,12 +232,12 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
         ScalarType trihik, regop;
         IntType i, i1, i2, i3, w[3];
 #pragma omp for
-        for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1){
-            for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2){
-                for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3){
-                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
-                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
-                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
+        for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1){
+            for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2){
+                for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3){
+                    w[0] = i1 + this->m_Opt->m_FFT.ostart[0];
+                    w[1] = i2 + this->m_Opt->m_FFT.ostart[1];
+                    w[2] = i3 + this->m_Opt->m_FFT.ostart[2];
 
                     ComputeWaveNumber(w, nx);
 
@@ -249,7 +249,7 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
                     regop = -scale*beta*trihik;
 
                     // get linear index
-                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;
@@ -269,9 +269,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
 
         // compute inverse fft
         ierr = dvR->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v1hat, p_bv1, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v2hat, p_bv2, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v3hat, p_bv3, timer);
         ierr = dvR->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, 3);
@@ -361,9 +361,9 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
         ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x1, this->m_v1hat, timer);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x2, this->m_v2hat, timer);
-        accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x3, this->m_v3hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x1, this->m_v1hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x2, this->m_v2hat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x3, this->m_v3hat, timer);
         ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
         this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -373,12 +373,12 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
         ScalarType lapik, regop;
         IntType i, i1, i2, i3, w[3];
 #pragma omp for
-        for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
-            for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
-                for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                    w[0] = i1 + this->m_Opt->GetFFT().ostart[0];
-                    w[1] = i2 + this->m_Opt->GetFFT().ostart[1];
-                    w[2] = i3 + this->m_Opt->GetFFT().ostart[2];
+        for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {
+            for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {
+                for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {
+                    w[0] = i1 + this->m_Opt->m_FFT.ostart[0];
+                    w[1] = i2 + this->m_Opt->m_FFT.ostart[1];
+                    w[2] = i3 + this->m_Opt->m_FFT.ostart[2];
 
                     ComputeWaveNumber(w, nx);
 
@@ -389,7 +389,7 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
                     if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
 
-                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                     // apply to individual components
                     this->m_v1hat[i][0] *= regop;
@@ -409,9 +409,9 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
 
         // compute inverse fft
         ierr = Ainvx->GetArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v1hat, p_bv1, timer);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v2hat, p_bv2, timer);
-        accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_v3hat, p_bv3, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v1hat, p_bv1, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v2hat, p_bv2, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_v3hat, p_bv3, timer);
         ierr = Ainvx->RestoreArrays(p_bv1, p_bv2, p_bv3); CHKERRQ(ierr);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, 3);

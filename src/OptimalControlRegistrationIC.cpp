@@ -234,7 +234,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             // compute gradient of m
             this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->GetFFT().plan, &xyz, timer);
+            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -260,7 +260,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 
         // compute gradient of m (for incremental body force)
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->m_FFT.plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -351,7 +351,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL() {
 
             // compute gradient of m (for incremental body force)
             this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->m_FFT.plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -374,7 +374,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL() {
 
         // compute gradient of m (for incremental body force)
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->GetFFT().plan, &xyz, timer);
+        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->m_FFT.plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -431,9 +431,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
 
     // compute forward fft
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x1, this->m_x1hat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x2, this->m_x2hat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -444,12 +444,12 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     ScalarType lapinvik, gradik1, gradik2, gradik3;
     IntType i, i1, i2, i3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
-        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
-            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                x1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                x2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                x3 = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+    for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {
+        for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {
+            for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {
+                x1 = static_cast<long int>(i1 + this->m_Opt->m_FFT.ostart[0]);
+                x2 = static_cast<long int>(i2 + this->m_Opt->m_FFT.ostart[1]);
+                x3 = static_cast<long int>(i3 + this->m_Opt->m_FFT.ostart[2]);
 
                 // set wavenumber
                 wx1 = x1;
@@ -474,7 +474,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
                 gradik2 = static_cast<ScalarType>(wx2);
                 gradik3 = static_cast<ScalarType>(wx3);
 
-                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                 x1hat[0] = this->m_x1hat[i][0];
                 x1hat[1] = this->m_x1hat[i][1];
@@ -518,9 +518,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
 
     // compute inverse fft
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_x1hat, p_x1, timer);
-    accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_x2hat, p_x2, timer);
-    accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_x3hat, p_x3, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x1hat, p_x1, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x2hat, p_x2, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x3hat, p_x3, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 

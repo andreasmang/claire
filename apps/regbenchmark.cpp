@@ -115,7 +115,8 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
     double runtime;
     PetscFunctionBegin;
 
-    opt->DisableInversion(); // make sure we do not store time history
+    // make sure we do not store time history
+    opt->m_RegFlags.runninginversion = false;
 
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);

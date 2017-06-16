@@ -442,31 +442,7 @@ class RegOpt {
     }
 
 
-    inline ParCont GetParaCont() {return this->m_ParaCont;}
     ScalarType GetBetaMinParaCont();
-    FileNames GetFileNames(){return this->m_FileNames;}
-
-    inline FourierTransform GetFFT() {return this->m_FFT;}
-//    inline RegFlags GetRegFlags() {return this->m_RegFlags;}
-
-    // monitor functions
-//    inline RegMonitor GetRegMonitor() {return this->m_RegMonitor;}
-    inline void SetDetDefGradBound(ScalarType value) {this->m_Monitor.detdgradbound = value;}
-    inline void SetDetDGradMin(ScalarType value) {this->m_Monitor.detdgradmin = value;}
-    inline void SetDetDGradMax(ScalarType value) {this->m_Monitor.detdgradmax = value;}
-    inline void SetDetDGradMean(ScalarType value) {this->m_Monitor.detdgradmean = value;}
-    inline void EnableBoundOnDetDGrad() {this->m_Monitor.detdgradenabled = true;}
-    inline void DisableBoundOnDetDGrad() {this->m_Monitor.detdgradenabled = false;}
-    inline void SetJVal(ScalarType value){this->m_Monitor.jval = value;}
-    inline void SetRVal(ScalarType value){this->m_Monitor.rval = value;}
-    inline void SetDVal(ScalarType value){this->m_Monitor.dval = value;}
-
-    inline void DisableInversion() {this->m_RegFlags.runninginversion = false;}
-    inline void EnableInversion() {this->m_RegFlags.runninginversion = true;}
-
-    inline void ComputeInvDetDefGrad(bool flag) {
-        this->m_RegFlags.invdefgrad = flag;
-    }
 
     PetscErrorCode GetSizes(IntType*, IntType&, IntType&);
     PetscErrorCode GetSizes(IntType*, IntType*, IntType*);
@@ -478,18 +454,6 @@ class RegOpt {
 
     /* do setup for grid continuation */
     PetscErrorCode SetupGridCont();
-
-    // regularization
-//    inline RegNorm GetRegNorm() {return this->m_RegNorm;}
-    inline void SetRegNormType(RegNormType flag) {this->m_RegNorm.type = flag;}
-    inline void SetBeta(int i, ScalarType beta) {this->m_RegNorm.beta[i] = beta;}
-    inline ScalarType GetBeta(int i) {return this->m_RegNorm.beta[i];}
-    inline void SetSigma(int i, ScalarType sigma) {this->m_Sigma[i] = sigma;}
-    inline ScalarType GetSigma(int i) {return this->m_Sigma[i];}
-
-    // flag for setup
-    inline bool SetupDone() {return this->m_SetupDone;}
-    inline bool StoreCheckPoints() {return this->m_StoreCheckPoints;}
 
     // timers and counters
     inline unsigned int GetCounter(CounterType id) {
@@ -521,9 +485,8 @@ class RegOpt {
         }
     }
 
-    inline Logger GetLogger() {
-        return this->m_Log;
-    }
+    inline Logger GetLogger() {return this->m_Log;}
+
     inline void LogKSPResidual(const int i, const ScalarType value){
         this->m_Log.kspresidual.push_back(value);
         this->m_Log.kspiterations.push_back(i);
@@ -585,7 +548,15 @@ class RegOpt {
     RegFlags m_RegFlags;                ///< flags for registration
     Monitor m_Monitor;                  ///< monitor for registration
     RegNorm m_RegNorm;                  ///< parameters for regularization model
+    FourierTransform m_FFT;             ///< parameters for FFT/accfft
+    ParCont m_ParaCont;                 ///< flags for parameter continuation
+    SolveType m_SolveType;              ///< solver
+    ScalarType m_Sigma[3];
+    FileNames m_FileNames;
+    Logger m_Log;                       ///< log
 
+    bool m_SetupDone;
+    bool m_StoreCheckPoints;
     int m_Verbosity;
 
  protected:
@@ -607,11 +578,6 @@ class RegOpt {
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
 
-    ParCont m_ParaCont;                 ///< flags for parameter continuation
-    FourierTransform m_FFT;             ///< parameters for FFT/accfft
-    SolveType m_SolveType;              ///< solver
-    Logger m_Log;                       ///< log
-    FileNames m_FileNames;
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];
@@ -630,10 +596,6 @@ class RegOpt {
 //    unsigned int m_NumThreads;
 //    const unsigned int m_LineLength = 101; //C++ 11 feature
     unsigned int m_LineLength;
-
-    bool m_SetupDone;
-    bool m_StoreCheckPoints;
-    ScalarType m_Sigma[3];
 
     int m_Indent;
 };

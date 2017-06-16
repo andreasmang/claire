@@ -162,9 +162,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
     *J = hd*(D + Rv + Rw);
 
     // store for access
-    this->m_Opt->SetJVal(*J);
-    this->m_Opt->SetDVal(hd*D);
-    this->m_Opt->SetRVal(hd*(Rv + Rw));
+    this->m_Opt->m_Monitor.jval = *J;
+    this->m_Opt->m_Monitor.rval = hd*D;
+    this->m_Opt->m_Monitor.dval = hd*(Rv + Rw);
 
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
 
@@ -216,7 +216,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     // compute \idiv(\vect{v})
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->GetFFT().plan, timer);
+    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
@@ -225,7 +225,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     // compute gradient of div(v)
     ierr = this->m_WorkVecField1->GetArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(p_gdv3, p_gdv2, p_gdv1, p_divv, this->m_Opt->GetFFT().plan, &XYZ, timer);
+    accfft_grad_t(p_gdv3, p_gdv2, p_gdv1, p_divv, this->m_Opt->m_FFT.plan, &XYZ, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
@@ -332,9 +332,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
 
     // compute forward fft
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x1, this->m_x1hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x2, this->m_x2hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->GetFFT().plan, p_x3, this->m_x3hat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x1, this->m_x1hat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x2, this->m_x2hat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -349,12 +349,12 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
     long int i;
     IntType i1, i2, i3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {
-        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {
-            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {
-                x1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                x2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                x3 = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+    for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {
+        for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {
+            for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {
+                x1 = static_cast<long int>(i1 + this->m_Opt->m_FFT.ostart[0]);
+                x2 = static_cast<long int>(i2 + this->m_Opt->m_FFT.ostart[1]);
+                x3 = static_cast<long int>(i3 + this->m_Opt->m_FFT.ostart[2]);
 
                 // set wavenumber
                 wx1 = x1;
@@ -380,7 +380,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
                 gradik2 = static_cast<ScalarType>(wx2);
                 gradik3 = static_cast<ScalarType>(wx3);
 
-                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                 x1hat[0] = this->m_x1hat[i][0];
                 x1hat[1] = this->m_x1hat[i][1];
@@ -428,9 +428,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
 
     // compute inverse fft
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_x1hat, p_x1, timer);
-    accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_x2hat, p_x2, timer);
-    accfft_execute_c2r_t(this->m_Opt->GetFFT().plan, this->m_x3hat, p_x3, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x1hat, p_x1, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x2hat, p_x2, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x3hat, p_x3, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 

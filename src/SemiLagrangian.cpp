@@ -516,7 +516,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     c_dims[1] = this->m_Opt->GetNetworkDims(1);
 
     // deal with ghost points
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->GetFFT().plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.plan, nghost, isize_g, istart_g);
 
     // if scalar field with ghost points has not been allocated
     if (this->m_ScaFieldGhost == NULL) {
@@ -524,15 +524,15 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     }
 
     // assign ghost points based on input scalar field
-    accfft_get_ghost_xyz(this->m_Opt->GetFFT().plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
+    accfft_get_ghost_xyz(this->m_Opt->m_FFT.plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
 
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
         this->m_StatePlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
-                                       neval, nghost, xo, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 0);
+                                       neval, nghost, xo, c_dims, this->m_Opt->m_FFT.mpicomm, timers, 0);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
         this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
-                                       neval, nghost, xo, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 0);
+                                       neval, nghost, xo, c_dims, this->m_Opt->m_FFT.mpicomm, timers, 0);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
@@ -631,7 +631,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     // get ghost sizes
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->GetFFT().plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.plan, nghost, isize_g, istart_g);
 
     // get nl for ghosts
     nlghost = 1;
@@ -647,18 +647,18 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     // do the communication for the ghost points
     for (int i = 0; i < 3; i++) {
-        accfft_get_ghost_xyz(this->m_Opt->GetFFT().plan, nghost, isize_g, &this->m_X[i*nl],
+        accfft_get_ghost_xyz(this->m_Opt->m_FFT.plan, nghost, isize_g, &this->m_X[i*nl],
                              &this->m_VecFieldGhost[i*nlghost]);
     }
 
     if (strcmp(flag.c_str(),"state") == 0) {
         ierr = Assert(this->m_StatePlan != NULL, "null pointer"); CHKERRQ(ierr);
         this->m_StatePlan->interpolate(this->m_VecFieldGhost, nx, isize, istart,
-                                       nl, nghost, this->m_X, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 1);
+                                       nl, nghost, this->m_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers, 1);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         ierr = Assert(this->m_AdjointPlan != NULL, "null pointer"); CHKERRQ(ierr);
         this->m_AdjointPlan->interpolate(this->m_VecFieldGhost, nx, isize, istart,
-                                         nl, nghost, this->m_X, c_dims, this->m_Opt->GetFFT().mpicomm, timers, 1);
+                                         nl, nghost, this->m_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers, 1);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
@@ -696,7 +696,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Opt->m_FFT.mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
     nl     = static_cast<int>(this->m_Opt->m_Domain.nl);
@@ -729,7 +729,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
         // scatter
         this->m_StatePlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
-                                   c_dims, this->m_Opt->GetFFT().mpicomm, timers);
+                                   c_dims, this->m_Opt->m_FFT.mpicomm, timers);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
         // characteristic for adjoint equation should have been computed already
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
@@ -747,7 +747,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
         // communicate coordinates
         this->m_AdjointPlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
-                                     c_dims, this->m_Opt->GetFFT().mpicomm, timers);
+                                     c_dims, this->m_Opt->m_FFT.mpicomm, timers);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }

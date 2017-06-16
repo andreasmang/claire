@@ -75,12 +75,12 @@ int main(int argc, char **argv) {
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading reference image"); CHKERRQ(ierr);
         }
-        ierr = readwrite->ReadR(&mR, regopt->GetFileNames().mr); CHKERRQ(ierr);
+        ierr = readwrite->ReadR(&mR, regopt->m_FileNames.mr); CHKERRQ(ierr);
         ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading template image"); CHKERRQ(ierr);
         }
-        ierr = readwrite->ReadT(&mT, regopt->GetFileNames().mt); CHKERRQ(ierr);
+        ierr = readwrite->ReadT(&mT, regopt->m_FileNames.mt); CHKERRQ(ierr);
         ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
         // pass to registration
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
         if (regopt->GetVerbosity() > 1) {
             ierr = reg::DbgMsg("reading velocity field"); CHKERRQ(ierr);
         }
-        ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv1); CHKERRQ(ierr);
+        ierr = readwrite->Read(&vxi, regopt->m_FileNames.iv1); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
         }
 
         //std::cout << regopt->m_ReadWriteFlags.vx2 << std::endl;
-        ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv2); CHKERRQ(ierr);
+        ierr = readwrite->Read(&vxi, regopt->m_FileNames.iv2); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
         }
 
         //std::cout << regopt->m_ReadWriteFlags.vx3 << std::endl;
-        ierr = readwrite->Read(&vxi, regopt->GetFileNames().iv3); CHKERRQ(ierr);
+        ierr = readwrite->Read(&vxi, regopt->m_FileNames.iv3); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}

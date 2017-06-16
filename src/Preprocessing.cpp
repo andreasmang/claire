@@ -307,7 +307,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     this->m_FFTCoarseScale = 1.0/this->m_FFTCoarseScale;
 
     // get communicator
-    mpicomm = this->m_Opt->GetFFT().mpicomm;
+    mpicomm = this->m_Opt->m_FFT.mpicomm;
 
     nalloc_c = accfft_local_size_dft_r2c_t<ScalarType>(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
     nalloc_f = accfft_local_size_dft_r2c_t<ScalarType>(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
@@ -373,7 +373,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         ierr = Assert(p_xfdhat != NULL, "malloc failed"); CHKERRQ(ierr);
 
         this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f, p_xfd, reinterpret_cast<ScalarType*>(p_xfdhat),
-                                                     this->m_Opt->GetFFT().mpicomm, ACCFFT_MEASURE);
+                                                     this->m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
         ierr = Assert(this->m_FFTFinePlan != NULL, "malloc failed"); CHKERRQ(ierr);
 
         if (p_xfd != NULL) {accfft_free(p_xfd); p_xfd = NULL;}
@@ -392,7 +392,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         ierr = Assert(p_xcdhat != NULL, "malloc failed"); CHKERRQ(ierr);
 
         this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c, p_xcd, reinterpret_cast<ScalarType*>(p_xcdhat),
-                                                       this->m_Opt->GetFFT().mpicomm, ACCFFT_MEASURE);
+                                                       this->m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
         ierr = Assert(this->m_FFTCoarsePlan != NULL, "malloc failed"); CHKERRQ(ierr);
 
         if (p_xcd != NULL) {accfft_free(p_xcd); p_xcd = NULL;}
@@ -1506,7 +1506,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     }
 
     // get local pencil size and allocation size
-    nalloc = this->m_Opt->GetFFT().nalloc;
+    nalloc = this->m_Opt->m_FFT.nalloc;
 
     // allocate
     if (this->m_xhat == NULL) {
@@ -1522,7 +1522,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute fft
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
+    accfft_execute_r2c(this->m_Opt->m_FFT.plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
     // compute cutoff frequency
@@ -1539,13 +1539,13 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     long int w[3];
     IntType li,i1,i2,i3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {  // x3
+    for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
-                w[0] = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                w[1] = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                w[2] = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                w[0] = static_cast<ScalarType>(i1 + this->m_Opt->m_FFT.ostart[0]);
+                w[1] = static_cast<ScalarType>(i2 + this->m_Opt->m_FFT.ostart[1]);
+                w[2] = static_cast<ScalarType>(i3 + this->m_Opt->m_FFT.ostart[2]);
 
                 bool inside = true;
                 inside = ( ( (w[0] < cfreq[0][0]) || (w[0] > cfreq[0][1]) ) && inside ) ? true : false;
@@ -1555,7 +1555,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
                 indic = inside ? indicator[0] : indicator[1];
 
                 // compute linear / flat index
-                li = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                li = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                 if (indic == 0) {
                     this->m_xhat[li][0] = 0.0;
@@ -1573,7 +1573,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute inverse fft
     ierr = VecGetArray(xflt, &p_xflt); CHKERRQ(ierr);
-    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_xhat, p_xflt, timer);
+    accfft_execute_c2r(this->m_Opt->m_FFT.plan, this->m_xhat, p_xflt, timer);
     ierr = VecRestoreArray(xflt, &p_xflt); CHKERRQ(ierr);
 
     // increment fft timer
@@ -1632,7 +1632,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get local pencil size and allocation size
-    nalloc = this->m_Opt->GetFFT().nalloc;
+    nalloc = this->m_Opt->m_FFT.nalloc;
 
     if (this->m_xhat == NULL) {
         this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
@@ -1640,9 +1640,9 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     if (this->m_Opt->GetVerbosity() > 1) {
         ss << "applying smoothing: ("
-           << this->m_Opt->GetSigma(0)
-           << ", " << this->m_Opt->GetSigma(1)
-           << ", " << this->m_Opt->GetSigma(2) << ")";
+           << this->m_Opt->m_Sigma[0]
+           << ", " << this->m_Opt->m_Sigma[1]
+           << ", " << this->m_Opt->m_Sigma[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -1652,7 +1652,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
         //nx[i] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         // sigma is provided by user in # of grid points
-        c[i] = this->m_Opt->GetSigma(i)*this->m_Opt->m_Domain.hx[i];
+        c[i] = this->m_Opt->m_Sigma[i]*this->m_Opt->m_Domain.hx[i];
         c[i] *= c[i];
     }
 
@@ -1660,7 +1660,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     // compute fft
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c(this->m_Opt->GetFFT().plan, p_x, this->m_xhat, timer);
+    accfft_execute_r2c(this->m_Opt->m_FFT.plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
 #pragma omp parallel
@@ -1671,17 +1671,17 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     long int k1, k2, k3;
 //    bool flagx1, flagx2, flagx3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetFFT().osize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetFFT().osize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetFFT().osize[2]; ++i3) {  // x3
+    for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {  // x3
 
                 // compute coordinates (nodal grid)
-                //k1 = static_cast<ScalarType>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                //k2 = static_cast<ScalarType>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                //k3 = static_cast<ScalarType>(i3 + this->m_Opt->GetFFT().ostart[2]);
-                k1 = static_cast<long int>(i1 + this->m_Opt->GetFFT().ostart[0]);
-                k2 = static_cast<long int>(i2 + this->m_Opt->GetFFT().ostart[1]);
-                k3 = static_cast<long int>(i3 + this->m_Opt->GetFFT().ostart[2]);
+                //k1 = static_cast<ScalarType>(i1 + this->m_Opt->m_FFT.ostart[0]);
+                //k2 = static_cast<ScalarType>(i2 + this->m_Opt->m_FFT.ostart[1]);
+                //k3 = static_cast<ScalarType>(i3 + this->m_Opt->m_FFT.ostart[2]);
+                k1 = static_cast<long int>(i1 + this->m_Opt->m_FFT.ostart[0]);
+                k2 = static_cast<long int>(i2 + this->m_Opt->m_FFT.ostart[1]);
+                k3 = static_cast<long int>(i3 + this->m_Opt->m_FFT.ostart[2]);
 
                 // check if grid index is larger or smaller then
                 // half of the total grid size
@@ -1699,7 +1699,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
                 sik = exp(-sik);
 
                 // compute linear / flat index
-                li = GetLinearIndex(i1, i2, i3, this->m_Opt->GetFFT().osize);
+                li = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                 this->m_xhat[li][0] *= scale*sik;
                 this->m_xhat[li][1] *= scale*sik;
@@ -1710,7 +1710,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     // compute inverse fft
     ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
-    accfft_execute_c2r(this->m_Opt->GetFFT().plan, this->m_xhat, p_xs, timer);
+    accfft_execute_c2r(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs, timer);
     ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
 
     // increment fft timer

@@ -240,7 +240,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateSpectralData() {
     IntType nalloc;
     PetscFunctionBegin;
 
-    nalloc = this->m_Opt->GetFFT().nalloc;
+    nalloc = this->m_Opt->m_FFT.nalloc;
 
     if (this->m_x1hat == NULL) {
         this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
@@ -1377,9 +1377,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     meanddg /= static_cast<ScalarType>(this->m_Opt->m_Domain.ng);
 
     // remember
-    this->m_Opt->SetDetDGradMin(minddg);
-    this->m_Opt->SetDetDGradMax(maxddg);
-    this->m_Opt->SetDetDGradMean(meanddg);
+    this->m_Opt->m_Monitor.detdgradmin  = minddg;
+    this->m_Opt->m_Monitor.detdgradmax  = maxddg;
+    this->m_Opt->m_Monitor.detdgradmean = meanddg;
 
     if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << detstr << " : (min, mean, max)="
@@ -1390,7 +1390,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     if (write2file) {
         filename = inverse ? "inverse-det-deformation-grad" : "det-deformation-grad";
-        filename += this->m_Opt->GetFileNames().extension;
+        filename += this->m_Opt->m_FileNames.extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, filename); CHKERRQ(ierr);
     }
 
@@ -1460,14 +1460,14 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
 
     // compute div(v)
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timer);
+    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->m_FFT.plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -1478,7 +1478,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
         }
 
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->m_FFT.plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -1574,7 +1574,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 
     // compute div(v)
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timer);
+    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -1598,13 +1598,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     for (IntType j = 0; j <= nt; ++j) {
         // compute grad(\phi_j)
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phi, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phi, this->m_Opt->m_FFT.plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute div(\vect{v}\phi_j)
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timer);
+        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->m_FFT.plan, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTDIV);
 #pragma omp parallel
@@ -1628,13 +1628,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 } // pragma omp
 
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->GetFFT().plan, &XYZ, timer);
+        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->m_FFT.plan, &XYZ, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute div(\vect{v}\bar{\phi}_j)
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->GetFFT().plan, timer);
+        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->m_FFT.plan, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTDIV);
 #pragma omp parallel
@@ -1697,7 +1697,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 
     this->m_Opt->Enter(__func__);
 
-    ext = this->m_Opt->GetFileNames().extension;
+    ext = this->m_Opt->m_FileNames.extension;
 
     nt = this->m_Opt->m_Domain.nt;
     nl = this->m_Opt->m_Domain.nl;
@@ -1751,7 +1751,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 
     // compute div(v)
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->GetFFT().plan, timer);
+    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
@@ -1864,9 +1864,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
 
     // compute gradient of components of displacement field
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
-    accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
-    accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
+    accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->m_FFT.plan,&XYZ,timer);
+    accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->m_FFT.plan,&XYZ,timer);
+    accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->m_FFT.plan,&XYZ,timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);
 
@@ -2010,9 +2010,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     meanj /= static_cast<ScalarType>(ng);
 
     // remember
-    this->m_Opt->SetDetDGradMin(minj);
-    this->m_Opt->SetDetDGradMax(maxj);
-    this->m_Opt->SetDetDGradMean(meanj);
+    this->m_Opt->m_Monitor.detdgradmin  = minj;
+    this->m_Opt->m_Monitor.detdgradmax  = maxj;
+    this->m_Opt->m_Monitor.detdgradmean = meanj;
 
     if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
@@ -2023,7 +2023,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
 
 
     if (write2file) {
-        ext = this->m_Opt->GetFileNames().extension;
+        ext = this->m_Opt->m_FileNames.extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkTenField1->m_X11, "deformation-grad-x11"+ext); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->Write(this->m_WorkTenField1->m_X12, "deformation-grad-x12"+ext); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->Write(this->m_WorkTenField1->m_X13, "deformation-grad-x13"+ext); CHKERRQ(ierr);
@@ -2123,9 +2123,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
                                             p_gv31X, p_gv32X, p_gv33X); CHKERRQ(ierr);
 
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X1 gradient
-    accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X2 gradient
-    accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->GetFFT().plan, &XYZ, timer);  ///< X3 gradient
+    accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->m_FFT.plan, &XYZ, timer);  ///< X1 gradient
+    accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->m_FFT.plan, &XYZ, timer);  ///< X2 gradient
+    accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->m_FFT.plan, &XYZ, timer);  ///< X3 gradient
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);
 
@@ -2361,7 +2361,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
     }
 
     if (write2file) {
-        ext = this->m_Opt->GetFileNames().extension;
+        ext = this->m_Opt->m_FileNames.extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "deformation-map"+ext); CHKERRQ(ierr);
     }
 
@@ -2468,7 +2468,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
 
     // compute div(v)
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timer);
+    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->m_FFT.plan,timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, DIV);
 
@@ -2489,17 +2489,17 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
 
         // compute gradient of m_j
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->GetFFT().plan,&XYZ,timer);
+        accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->m_FFT.plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->GetFFT().plan,&XYZ,timer);
+        accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->m_FFT.plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->GetFFT().plan,&XYZ,timer);
+        accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->m_FFT.plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -2520,14 +2520,14 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
 
         // compute div(v)
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->GetFFT().plan,timer);
+        accfft_divergence_t(p_divv, p_v1, p_v2, p_v3,this->m_Opt->m_FFT.plan,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
 
         // compute gradient of \bar{m}
         this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_mbar,this->m_Opt->GetFFT().plan,&XYZ,timer);
+        accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_mbar,this->m_Opt->m_FFT.plan,&XYZ,timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
         this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
@@ -2601,7 +2601,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 
     this->m_Opt->Enter(__func__);
 
-    ext = this->m_Opt->GetFileNames().extension;
+    ext = this->m_Opt->m_FileNames.extension;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -2755,7 +2755,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 
     this->m_Opt->Enter(__func__);
 
-    ext = this->m_Opt->GetFileNames().extension;
+    ext = this->m_Opt->m_FileNames.extension;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -2966,7 +2966,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
     }
 
     if (write2file) {
-        ext = this->m_Opt->GetFileNames().extension;
+        ext = this->m_Opt->m_FileNames.extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "displacement-field"+ext); CHKERRQ(ierr);
     }
 

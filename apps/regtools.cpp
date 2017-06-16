@@ -111,11 +111,11 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m)
 
     PetscFunctionBegin;
 
-    if (!regopt->GetFileNames().isc.empty()) {
-        filename.push_back(regopt->GetFileNames().isc);
+    if (!regopt->m_FileNames.isc.empty()) {
+        filename.push_back(regopt->m_FileNames.isc);
         ierr = rw->ReadT(&m, filename); CHKERRQ(ierr);
         ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
-        if (!regopt->SetupDone()) {
+        if (!regopt->m_SetupDone) {
             ierr = regopt->DoSetup(); CHKERRQ(ierr);
         }
     }
@@ -137,15 +137,15 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::Ve
 
     PetscFunctionBegin;
 
-    if (   !regopt->GetFileNames().iv1.empty()
-        && !regopt->GetFileNames().iv2.empty()
-        && !regopt->GetFileNames().iv3.empty() ) {
+    if (   !regopt->m_FileNames.iv1.empty()
+        && !regopt->m_FileNames.iv2.empty()
+        && !regopt->m_FileNames.iv3.empty() ) {
 
         // read velocity components
-        filename.push_back(regopt->GetFileNames().iv1);
+        filename.push_back(regopt->m_FileNames.iv1);
         ierr = rw->ReadR(&vxi, filename); CHKERRQ(ierr);
         filename.clear();
-        if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+        if (!regopt->m_SetupDone) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
         // allocate container for velocity field
         try {v = new reg::VecField(regopt);}
@@ -155,13 +155,13 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::Ve
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
-        filename.push_back(regopt->GetFileNames().iv2);
+        filename.push_back(regopt->m_FileNames.iv2);
         ierr = rw->Read(&vxi, filename); CHKERRQ(ierr);
         filename.clear();
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
-        filename.push_back(regopt->GetFileNames().iv3);
+        filename.push_back(regopt->m_FileNames.iv3);
         ierr = rw->Read(&vxi, filename); CHKERRQ(ierr);
         filename.clear();
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
@@ -259,7 +259,7 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
     // write transported scalar field to file
-    ierr = readwrite->WriteT(m1, regopt->GetFileNames().xsc); CHKERRQ(ierr);
+    ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc); CHKERRQ(ierr);
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}
@@ -378,7 +378,7 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
                 }
 
                 // write resampled scalar field to file
-                filename = regopt->GetFileNames().xsc;
+                filename = regopt->m_FileNames.xsc;
                 ierr = readwrite->Write(ml, filename); CHKERRQ(ierr);
 
                 ierr = VecTDot(m, m, &value); CHKERRQ(ierr);
@@ -415,9 +415,9 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
                 catch (std::bad_alloc&) {
                     ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
                 }
-                ierr = readwrite->Write(vl->m_X1, regopt->GetFileNames().xv1); CHKERRQ(ierr);
-                ierr = readwrite->Write(vl->m_X2, regopt->GetFileNames().xv2); CHKERRQ(ierr);
-                ierr = readwrite->Write(vl->m_X3, regopt->GetFileNames().xv3); CHKERRQ(ierr);
+                ierr = readwrite->Write(vl->m_X1, regopt->m_FileNames.xv1); CHKERRQ(ierr);
+                ierr = readwrite->Write(vl->m_X2, regopt->m_FileNames.xv2); CHKERRQ(ierr);
+                ierr = readwrite->Write(vl->m_X3, regopt->m_FileNames.xv3); CHKERRQ(ierr);
 
                 ierr = VecTDot(v->m_X1, v->m_X1, &value); CHKERRQ(ierr);
                 ss << std::scientific << "norm x1 (" << nx[0] << " " << nx[1] << " " << nx[2] << "): " << value*hd[0];
@@ -555,14 +555,14 @@ PetscErrorCode ComputeError(reg::RegToolsOpt* regopt) {
     }
 
     // read reference image
-    ierr = readwrite->ReadR(&mR, regopt->GetFileNames().mr); CHKERRQ(ierr);
+    ierr = readwrite->ReadR(&mR, regopt->m_FileNames.mr); CHKERRQ(ierr);
     ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-    if (!regopt->SetupDone()) {
+    if (!regopt->m_SetupDone) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
 
     // read template image
-    ierr = readwrite->ReadT(&mT, regopt->GetFileNames().mt); CHKERRQ(ierr);
+    ierr = readwrite->ReadT(&mT, regopt->m_FileNames.mt); CHKERRQ(ierr);
     ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = VecNorm(mR, NORM_2, &ell2norm); CHKERRQ(ierr);
@@ -632,16 +632,16 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     // read reference image
-    ierr = readwrite->ReadR(&mR, regopt->GetFileNames().mr); CHKERRQ(ierr);
+    ierr = readwrite->ReadR(&mR, regopt->m_FileNames.mr); CHKERRQ(ierr);
     ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (!regopt->SetupDone()) {
+    if (!regopt->m_SetupDone) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
     nl = regopt->m_Domain.nl;
 
     // read template image
-    ierr = readwrite->ReadT(&mT, regopt->GetFileNames().mt); CHKERRQ(ierr);
+    ierr = readwrite->ReadT(&mT, regopt->m_FileNames.mt); CHKERRQ(ierr);
     ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = reg::Rescale(mR, 0, 1); CHKERRQ(ierr);
@@ -660,7 +660,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
 
     // write resampled scalar field to file
-    ierr = readwrite->Write(mT, regopt->GetFileNames().xsc); CHKERRQ(ierr);
+    ierr = readwrite->Write(mT, regopt->m_FileNames.xsc); CHKERRQ(ierr);
 
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
@@ -755,7 +755,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     // write computed vectorfield to file
-    filename = "velocity-field" + regopt->GetFileNames().extension;
+    filename = "velocity-field" + regopt->m_FileNames.extension;
     ierr = readwrite->Write(v, filename); CHKERRQ(ierr);
 
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
@@ -791,8 +791,8 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     ierr = ReadData(regopt, readwrite, m); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = reg::GetFileName(path, filename, extension, regopt->GetFileNames().isc); CHKERRQ(ierr);
-    filename = path + "/" + filename + "_converted" + regopt->GetFileNames().extension;
+    ierr = reg::GetFileName(path, filename, extension, regopt->m_FileNames.isc); CHKERRQ(ierr);
+    filename = path + "/" + filename + "_converted" + regopt->m_FileNames.extension;
     ierr = readwrite->WriteR(m, filename); CHKERRQ(ierr);
 
     regopt->Exit(__func__);
@@ -828,7 +828,7 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
 
     ierr = ReadData(regopt, readwrite, m); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "set input scalar field"); CHKERRQ(ierr);
-    if (!regopt->SetupDone()) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+    if (!regopt->m_SetupDone) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
     // allocate preprocessing class
     try {preproc = new reg::Preprocessing(regopt);}
@@ -840,14 +840,14 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     ierr = preproc->Smooth(m, m); CHKERRQ(ierr);
 
     // construct filename
-    ierr = reg::GetFileName(path, filename, extension, regopt->GetFileNames().isc); CHKERRQ(ierr);
+    ierr = reg::GetFileName(path, filename, extension, regopt->m_FileNames.isc); CHKERRQ(ierr);
 
     // if user set output path
-    if (!regopt->GetFileNames().xfolder.empty()){
-        path = regopt->GetFileNames().xfolder;
+    if (!regopt->m_FileNames.xfolder.empty()){
+        path = regopt->m_FileNames.xfolder;
     }
 
-    filename = path + "/" + filename + "_smooth" + regopt->GetFileNames().extension;
+    filename = path + "/" + filename + "_smooth" + regopt->m_FileNames.extension;
 
     // write smooth image to file
     ierr = readwrite->WriteT(m, filename); CHKERRQ(ierr);
