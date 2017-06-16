@@ -47,7 +47,7 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (optprob->GetOptions()->GetVerbosity() > 0) {
+    if (optprob->GetOptions()->m_Verbosity > 0) {
         kspmeth = optprob->GetOptions()->m_KrylovMethod.name;
         itss << std::setw(5) << it;
         rnss << std::scientific << rnorm;
@@ -122,7 +122,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
         }
 
         if (!optprob->GetOptions()->m_KrylovMethod.g0normset) {
-            if (optprob->GetOptions()->GetVerbosity() > 1) {
+            if (optprob->GetOptions()->m_Verbosity > 1) {
                 ss << std::fixed << std::scientific << gnorm;
                 msg = optprob->GetOptions()->m_KrylovMethod.name +
                     ": setting initial ||g|| in krylov method (" + ss.str() + ")";
@@ -160,7 +160,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     // pass tolerance to optimization problem (for preconditioner)
     optprob->GetOptions()->m_KrylovMethod.reltol = reltol;
 
-    if (optprob->GetOptions()->GetVerbosity() > 0) {
+    if (optprob->GetOptions()->m_Verbosity > 0) {
         ss << std::fixed << std::scientific << reltol;
         msg = optprob->GetOptions()->m_KrylovMethod.name +
               ": computing solution of hessian system (tol=" + ss.str() + ")";
@@ -207,7 +207,7 @@ PetscErrorCode PostKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     // apply hessian
     ierr = optprob->PostKrylovSolve(b, x); CHKERRQ(ierr);
 
-    if (optprob->GetOptions()->GetVerbosity() > 0) {
+    if (optprob->GetOptions()->m_Verbosity > 0) {
         ierr = KSPGetConvergedReason(krylovmethod, &reason);
         ierr = DispKSPConvReason(reason); CHKERRQ(ierr);
     }
@@ -499,7 +499,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     // set tolerances
     ierr = KSPSetTolerances(krylovmethod, reltol, abstol, divtol, maxits); CHKERRQ(ierr);
 
-    if (precond->GetOptions()->GetVerbosity() > 1) {
+    if (precond->GetOptions()->m_Verbosity > 1) {
         rnss << std::fixed << std::scientific << reltol;
         itss << maxits;
         msg = precond->GetOptions()->m_KrylovMethod.pcname

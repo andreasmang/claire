@@ -265,7 +265,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss  << "setup gridchange operator ( (" << nx_c[0]
             << "," << nx_c[1] << "," << nx_c[2]
             << ") <=> (" << nx_f[0] << "," << nx_f[1]
@@ -311,7 +311,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     nalloc_c = accfft_local_size_dft_r2c_t<ScalarType>(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
     nalloc_f = accfft_local_size_dft_r2c_t<ScalarType>(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "sizes on coarse grid: isize=("
            << _isize_c[0] << "," << _isize_c[1] << "," << _isize_c[2]
            << ") istart=(" << _istart_c[0] << "," << _istart_c[1]
@@ -329,7 +329,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         this->m_ostartF[i] = static_cast<IntType>(_ostart_f[i]);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss  << "coarse: osize=(" << this->m_osizeC[0]
             << "," << this->m_osizeC[1]
             << "," << this->m_osizeC[2]
@@ -362,7 +362,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     // allocate plan for fine grid
     if (this->m_FFTFinePlan == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("initializing fft plan (fine grid)"); CHKERRQ(ierr);
         }
 
@@ -382,7 +382,7 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     // allocate plan for coarse grid
     if (this->m_FFTCoarsePlan == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("initializing fft plan (coarse grid)"); CHKERRQ(ierr);
         }
         p_xcd = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc_c));
@@ -459,7 +459,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "applying restriction operator ["
            << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]"
            << " -> [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]";
@@ -1314,7 +1314,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     ierr = Assert(x_c != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(x_f != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "applying prolongation operator [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]"
            << " -> [" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1638,7 +1638,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
         this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     }
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ss << "applying smoothing: ("
            << this->m_Opt->m_Sigma[0]
            << ", " << this->m_Opt->m_Sigma[1]

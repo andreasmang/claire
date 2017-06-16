@@ -243,7 +243,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
     // if velocity field is null pointer, we did not set
     // any initial guess
     if (this->m_VelocityField == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("allocating velocity field"); CHKERRQ(ierr);
         }
         try {this->m_VelocityField = new VecField(this->m_Opt);}
@@ -303,14 +303,14 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
                 alpha /= 2.0;
             }
             if (lssuccess) {
-                if (this->m_Opt->GetVerbosity() > 1) {
+                if (this->m_Opt->m_Verbosity > 1) {
                     ss << "line search successful (initialization; alpha=" << std::scientific << alpha << ")";
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                     ss.clear(); ss.str(std::string());
                 }
                 ierr = VecCopy(vtilde, v); CHKERRQ(ierr);
             } else {
-                if (this->m_Opt->GetVerbosity() > 1) {
+                if (this->m_Opt->m_Verbosity > 1) {
                     ss << "line search failed (initialization; alpha=" << std::scientific << alpha << ")";
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                     ss.clear(); ss.str(std::string());
@@ -340,7 +340,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
     ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
     this->m_InitGradientNorm = value;
 
-    if (this->m_Opt->GetVerbosity() > 0) {
+    if (this->m_Opt->m_Verbosity > 0) {
         ss << "initial gradient norm: "<< std::scientific << value;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
@@ -786,7 +786,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         ierr = this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
     }
 
@@ -798,7 +798,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
         ss  << "||v||_2 = (" << std::scientific
             << nvx1 << "," << nvx2 << "," << nvx3 << ")";
@@ -815,7 +815,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // \vect{g}_v = \D{K}[\vect{b}]
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
         }
         if (g != NULL) {
@@ -839,7 +839,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
 
     if (g != NULL) {
         ierr = VecScale(g, hd); CHKERRQ(ierr);
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
             ss << "||g||_2 = " << std::scientific << value;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -919,7 +919,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
-        if (this->m_Opt->GetVerbosity() > 1) {
+        if (this->m_Opt->m_Verbosity > 1) {
             ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
         }
         // m and \lambda are constant in time
@@ -983,7 +983,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = this->m_WorkVecField2->Norm(value); CHKERRQ(ierr);
         ss << "norm of momentum ||b||_2 = " << std::scientific << value;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1013,7 +1013,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing hessian matvec"); CHKERRQ(ierr);
     }
 
@@ -1352,7 +1352,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
         }
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("piccard iteration"); CHKERRQ(ierr);
     }
 
@@ -1423,7 +1423,7 @@ PetscErrorCode OptimalControlRegistration::EvaluatePrecondGradient(Vec g, Vec v)
         ierr = this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("evaluating preconditioned gradient"); CHKERRQ(ierr);
     }
 
@@ -1656,7 +1656,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving state equation (nx1,nx2,nx3,nc,nt) = ("
                   << this->m_Opt->m_Domain.nx[0]
            << "," << this->m_Opt->m_Domain.nx[1]
@@ -1724,7 +1724,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval, nvx1, nvx2, nvx3;
         ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
@@ -2001,7 +2001,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving adjoint equation (nx1,nx2,nx3,nc,nt) = ("
                   << this->m_Opt->m_Domain.nx[0]
            << "," << this->m_Opt->m_Domain.nx[1]
@@ -2132,7 +2132,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMin(this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
@@ -2541,7 +2541,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving incremental state equation (nx1,nx2,nx3,nc,nt) = ("
                   << this->m_Opt->m_Domain.nx[0]
            << "," << this->m_Opt->m_Domain.nx[1]
@@ -2588,7 +2588,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
         }
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(this->m_IncStateVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_IncStateVariable, NULL, &minval); CHKERRQ(ierr);
@@ -2967,7 +2967,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving incremental adjoint equation (nx1,nx2,nx3,nc,nt) = ("
                   << this->m_Opt->m_Domain.nx[0]
            << "," << this->m_Opt->m_Domain.nx[1]
@@ -3113,7 +3113,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     // apply K[\tilde{b}]
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_IncAdjointVariable, NULL, &minval); CHKERRQ(ierr);
@@ -3842,7 +3842,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
 
-    if (this->m_Opt->GetVerbosity() >= 2) {
+    if (this->m_Opt->m_Verbosity >= 2) {
         ierr = DbgMsg("finalizing registration"); CHKERRQ(ierr);
     }
 

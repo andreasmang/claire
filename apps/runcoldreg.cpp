@@ -72,12 +72,12 @@ int main(int argc, char **argv) {
     }
 
     if (regopt->m_ReadWriteFlags.readfiles) {
-        if (regopt->GetVerbosity() > 1) {
+        if (regopt->m_Verbosity > 1) {
             ierr = reg::DbgMsg("reading reference image"); CHKERRQ(ierr);
         }
         ierr = readwrite->ReadR(&mR, regopt->m_FileNames.mr); CHKERRQ(ierr);
         ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-        if (regopt->GetVerbosity() > 1) {
+        if (regopt->m_Verbosity > 1) {
             ierr = reg::DbgMsg("reading template image"); CHKERRQ(ierr);
         }
         ierr = readwrite->ReadT(&mT, regopt->m_FileNames.mt); CHKERRQ(ierr);
@@ -96,14 +96,14 @@ int main(int argc, char **argv) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
 
-        if (regopt->GetVerbosity() > 1) {
+        if (regopt->m_Verbosity > 1) {
             ierr = reg::DbgMsg("reading velocity field"); CHKERRQ(ierr);
         }
         ierr = readwrite->Read(&vxi, regopt->m_FileNames.iv1); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X1); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-        if (regopt->GetVerbosity() > 2) {
+        if (regopt->m_Verbosity > 2) {
             ierr = VecNorm(v->m_X1, NORM_2, &value); CHKERRQ(ierr);
             ss << "velocity norm x1: " << value;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-        if (regopt->GetVerbosity() > 2) {
+        if (regopt->m_Verbosity > 2) {
             ierr = VecNorm(v->m_X2, NORM_2, &value); CHKERRQ(ierr);
             ss << "velocity norm x2: " << value;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
-        if (regopt->GetVerbosity() > 2) {
+        if (regopt->m_Verbosity > 2) {
             ierr = VecNorm(v->m_X3, NORM_2, &value); CHKERRQ(ierr);
             ss << "velocity norm x3: " << value;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);

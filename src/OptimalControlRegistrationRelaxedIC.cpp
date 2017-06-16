@@ -126,7 +126,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
         ierr = this->AllocateRegularization(); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("evaluating objective functional"); CHKERRQ(ierr);
     }
 

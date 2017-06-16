@@ -207,7 +207,7 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
         nl = this->m_Opt->m_GridCont.nl[level];
         ng = this->m_Opt->m_GridCont.ng[level];
 
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ss << std::scientific << "allocating ML data: level " << std::setw(3) << level + 1
                << " of "  << nlevels
                << "      nx=(" << this->m_Opt->m_GridCont.nx[level][0]

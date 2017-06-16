@@ -352,7 +352,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
         ss.clear(); ss.str(std::string());
 
         // display what we are doing
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ss << "reading " << file;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
@@ -363,7 +363,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
         ierr = this->Read(&xk); CHKERRQ(ierr);
 
         // display how we are doing
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(xk, NORM_2, &value); CHKERRQ(ierr);
             ierr = VecMax(xk, NULL, &maxval); CHKERRQ(ierr);
             ierr = VecMin(xk, NULL, &minval); CHKERRQ(ierr);
@@ -425,7 +425,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::string filename) {
     ierr = Assert(FileExists(filename), msg); CHKERRQ(ierr);
 
     // display what we are doing
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         msg = "reading " + file;
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
@@ -633,7 +633,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
     ierr = GetFileName(file, filename); CHKERRQ(ierr);
 
     // display what we are doing
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         msg = "writing " + file;
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
@@ -810,7 +810,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     nx[0] = static_cast<IntType>(image->nz);
 
     if (this->m_ReferenceImage.read) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ss << "reading reference image " + file;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
@@ -820,7 +820,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
         this->m_ReferenceImage.nx[1] = nx[1];
         this->m_ReferenceImage.nx[2] = nx[2];
     } else if (this->m_TemplateImage.read) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ss << "reading template image " + file;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
@@ -839,7 +839,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
         for (int i = 0; i < 3; ++i) {
             this->m_nx[i] = nx[i];
         }
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ss << "reading image with grid size (" << nx[0] << "," << nx[1] << "," << nx[2] << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
@@ -929,7 +929,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
     switch (image->datatype) {
         case NIFTI_TYPE_UINT8:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type uint8 (uchar)"); CHKERRQ(ierr);
             }
             datatype = UCHAR;
@@ -938,7 +938,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_INT8:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type int8 (char)"); CHKERRQ(ierr);
             }
             datatype = CHAR;
@@ -947,7 +947,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_UINT16:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type uint16 (unsigned short)"); CHKERRQ(ierr);
             }
             datatype = USHORT;
@@ -956,7 +956,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_INT16:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type int16 (short)"); CHKERRQ(ierr);
             }
             datatype = SHORT;
@@ -965,7 +965,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_UINT32:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type uint32 (unsigned int)"); CHKERRQ(ierr);
             }
             datatype = UINT;
@@ -974,7 +974,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_INT32:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type int32 (int)"); CHKERRQ(ierr);
             }
             datatype = INT;
@@ -983,7 +983,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_FLOAT32:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type float32 (float)"); CHKERRQ(ierr);
             }
             datatype = FLOAT;
@@ -992,7 +992,7 @@ PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
         }
         case NIFTI_TYPE_FLOAT64:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("reading data of type float64 (double)"); CHKERRQ(ierr);
             }
             datatype = DOUBLE;
@@ -1244,7 +1244,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
         // will also create a standard header file; not tested (might need
         // to parse the dimensions of the data)
         if ((*image) == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("allocating nifti image buffer"); CHKERRQ(ierr);
             }
             ierr = this->AllocateImage(image, x); CHKERRQ(ierr);
@@ -1331,7 +1331,7 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
 
 
     if (deleteimage) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("deleting nifti image buffer"); CHKERRQ(ierr);
         }
         nifti_image_free(*image); *image = NULL;

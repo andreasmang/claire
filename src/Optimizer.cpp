@@ -143,7 +143,7 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ierr = VecNorm(this->m_Solution, NORM_2, &value); CHKERRQ(ierr);
         ss << "norm of initial guess " << std::scientific << value;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -317,7 +317,7 @@ PetscErrorCode Optimizer::SetupTao() {
         ierr = KSPSetPreSolve(this->m_KrylovMethod, PreKrylovSolve, this->m_OptimizationProblem); CHKERRQ(ierr);
 
         // set krylov monitor
-        if (this->m_Opt->GetVerbosity() > 0) {  /// || (this->m_Opt->GetLogger()->IsEnabled(LOGKSPRES))) {
+        if (this->m_Opt->m_Verbosity > 0) {  /// || (this->m_Opt->GetLogger()->IsEnabled(LOGKSPRES))) {
             ierr = KSPMonitorSet(this->m_KrylovMethod, KrylovMonitor, this->m_OptimizationProblem, NULL); CHKERRQ(ierr);
         }
 
@@ -452,7 +452,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     if (presolve) {
         gtol = this->m_Opt->m_OptPara.presolvetol[2];
         maxit = this->m_Opt->m_OptPara.presolvemaxit;
-        if (this->m_Opt->GetVerbosity() > 1) {
+        if (this->m_Opt->m_Verbosity > 1) {
             ss << "presolve: relative gradient tolerance: " << std::scientific << gtol;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
@@ -623,10 +623,10 @@ PetscErrorCode Optimizer::Finalize() {
         ierr = WrngMsg(msg); CHKERRQ(ierr);
     }
 
-    linelength = this->m_Opt->GetLineLength();
+    linelength = this->m_Opt->m_LineLength;
     line = std::string(linelength, '-');
     indent = 25; numindent = 5;
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         if (this->m_OptimizationProblem->Converged() && !rank) {
             std::cout << line << std::endl;
         }

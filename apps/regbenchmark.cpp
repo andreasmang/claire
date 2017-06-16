@@ -140,7 +140,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
     ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
     runtime = -MPI_Wtime(); // start timer
     for (IntType i = 0; i < n; ++i) {
-        if (opt->GetVerbosity() > 1) {
+        if (opt->m_Verbosity > 1) {
             ss  << "forward solve "<< std::setw(3)
                 << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -198,7 +198,7 @@ PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
     ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
     runtime = -MPI_Wtime(); // start timer
     for (IntType i = 0; i < n; ++i) {
-        if (opt->GetVerbosity() > 1) {
+        if (opt->m_Verbosity > 1) {
             ss  << "gradient evaluation "<< std::setw(3)
                 << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -260,7 +260,7 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt *opt) {
     ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
     runtime = -MPI_Wtime();
     for (IntType i = 0; i < n; ++i) {
-        if (opt->GetVerbosity() > 1) {
+        if (opt->m_Verbosity > 1) {
             ss  << "hessian matvec evaluation "<< std::setw(3)
                 << i << " of " << std::setw(3) << n;
             ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);

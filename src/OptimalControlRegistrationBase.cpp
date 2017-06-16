@@ -911,7 +911,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("setting up synthetic problem"); CHKERRQ(ierr);
     }
     nc = this->m_Opt->m_Domain.nc;
@@ -1009,7 +1009,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
         ss  << "velocity norm: (" << std::scientific
             << nvx1 << "," << nvx2 << "," << nvx3 <<")";
@@ -1056,7 +1056,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     }
     ierr = Rescale(mT, 0, 1, nc); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = VecMin(mT, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(mT, NULL, &maxval); CHKERRQ(ierr);
         ss << "template image: (" << minval << "," << maxval <<")";
@@ -1071,7 +1071,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = Rescale(mR, 0, 1, nc); CHKERRQ(ierr);
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = VecMin(mR, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(mR, NULL, &maxval); CHKERRQ(ierr);
         ss << "reference image: (" << minval << "," << maxval <<")";
@@ -1209,7 +1209,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
 
     if (this->m_Opt->m_PDESolver.adapttimestep) {
         if (ntcfl > nt) {
-            if (this->m_Opt->GetVerbosity() > 1) {
+            if (this->m_Opt->m_Verbosity > 1) {
                 ss << "changing time step: " << nt << " -> " << ntcfl;
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
@@ -1271,7 +1271,7 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
     }
 
     // display what's going on
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         if (minboundreached) {
             ss << std::scientific
             << "min(det(grad(y^{-1}))) = " << detdgradmin << " <= " << bound;
@@ -1313,7 +1313,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     inverse = this->m_Opt->m_RegFlags.invdefgrad;
     detstr = inverse ? "det(grad(inv(y)))" : "det(grad(y))";
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing " + detstr); CHKERRQ(ierr);
     }
 
@@ -1381,7 +1381,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     this->m_Opt->m_Monitor.detdgradmax  = maxddg;
     this->m_Opt->m_Monitor.detdgradmean = meanddg;
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
+    if (this->m_Opt->m_Verbosity > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << detstr << " : (min, mean, max)="
             << "(" << minddg << ", " << meanddg << ", " << maxddg << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1921,7 +1921,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
     }
 
@@ -2014,7 +2014,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     this->m_Opt->m_Monitor.detdgradmax  = maxj;
     this->m_Opt->m_Monitor.detdgradmean = meanj;
 
-    if (this->m_Opt->GetVerbosity() > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
+    if (this->m_Opt->m_Verbosity > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << "det(grad(y)) : (min, mean, max)="
             << "(" << minj << ", " << meanj << ", " << maxj<<")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -2310,7 +2310,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         }
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing deformation map"); CHKERRQ(ierr);
     }
 
@@ -2940,7 +2940,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing displacement field"); CHKERRQ(ierr);
     }
 
@@ -3108,7 +3108,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing displacement field"); CHKERRQ(ierr);
     }
 

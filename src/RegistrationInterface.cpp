@@ -318,13 +318,13 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
     PetscFunctionBegin;
 
     if (rank == 0) {
-        std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+        std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
     }
 
     ierr = Msg(msg); CHKERRQ(ierr);
 
     if (rank == 0) {
-        std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+        std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
     }
 
     PetscFunctionReturn(ierr);
@@ -369,11 +369,11 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("setting up solver"); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg(" >> allocation of optimizer"); CHKERRQ(ierr);
     }
     // reset optimizer
@@ -399,7 +399,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
     }
 
     if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("allocating preconditioner"); CHKERRQ(ierr);
         }
         // reset/setup preconditioner
@@ -417,7 +417,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 
     // set up initial condition
     if (this->m_Solution == NULL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("allocating solution vector"); CHKERRQ(ierr);
         }
         try {this->m_Solution = new VecField(this->m_Opt);}
@@ -427,7 +427,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
         ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ierr = VecNorm(this->m_Solution->m_X1, NORM_2, &vn1); CHKERRQ(ierr);
         ierr = VecNorm(this->m_Solution->m_X2, NORM_2, &vn2); CHKERRQ(ierr);
         ierr = VecNorm(this->m_Solution->m_X3, NORM_2, &vn3); CHKERRQ(ierr);
@@ -556,11 +556,11 @@ PetscErrorCode RegistrationInterface::Run() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
     ierr = Msg("starting optimization"); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    if (rank == 0) std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
     ierr = PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n",
                        "iter", "objective (rel)", "mismatch (rel)",
                        "||gradient||_2,rel", "||gradient||_2", "step"); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    if (rank == 0) std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
 
     // switch between solvers we have to solve optimization problem
     if (this->m_Opt->m_ParaCont.enabled) {
@@ -829,7 +829,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
     this->m_Opt->m_RegNorm.beta[0] = beta;
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 0) {
+    if (this->m_Opt->m_Verbosity > 0) {
         ierr = DbgMsg("starting coarse search for regularization weight"); CHKERRQ(ierr);
     }
 
@@ -890,7 +890,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         // if regularization parameter is smaller than
         // lower bound, let's stop this
         if (beta < betamin) {
-            if (this->m_Opt->GetVerbosity() > 0) {
+            if (this->m_Opt->m_Verbosity > 0) {
                 ss << std::scientific
                    << "regularization parameter smaller than lower bound (betav="
                    << beta << " < " << betamin << "=betavmin)";
@@ -902,7 +902,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ++level;
     }  ///< until we hit the tolerance
 
-    if (this->m_Opt->GetVerbosity() > 0) {
+    if (this->m_Opt->m_Verbosity > 0) {
         ierr = DbgMsg("starting fine search for regularization weight"); CHKERRQ(ierr);
     }
 
@@ -974,7 +974,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         beta = betastar - dbeta;
         if (fabs(dbeta) < dbetamin) {
             stop = true;
-            if (this->m_Opt->GetVerbosity() > 0) {
+            if (this->m_Opt->m_Verbosity > 0) {
                 ss  << std::setw(3) << "update for beta too small ( dbeta="
                     << fabs(dbeta) << " < " << dbetamin << "=dbetamin )";
                 ierr = DbgMsg(ss.str());
@@ -984,10 +984,10 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ++level;
     }
 
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    if (rank == 0) std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
     ss << std::scientific << "estimated regularization parameter betav=" << betastar;
     ierr = Msg(ss.str()); CHKERRQ(ierr);
-    if (rank == 0) std::cout << std::string(this->m_Opt->GetLineLength(), '-') << std::endl;
+    if (rank == 0) std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
     ss.str(std::string()); ss.clear();
 
     // if output folder is set
@@ -1100,7 +1100,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
         // if the regularization parameter is smaller than
         // the lower bound, we're done
         if (beta < betamin) {
-            if (this->m_Opt->GetVerbosity() > 0) {
+            if (this->m_Opt->m_Verbosity > 0) {
                 ss << "regularization parameter smaller than lower bound (betav="
                    << beta << " < " << betamin << "=betavmin)";
                 ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1383,7 +1383,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // allocate multilevel pyramid for reference image
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ierr = DbgMsg("setup: reference image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_ReferencePyramid == NULL) {
@@ -1397,7 +1397,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     ierr = this->m_ReferencePyramid->DoSetup(this->m_ReferenceImage); CHKERRQ(ierr);
 
     // allocate multilevel pyramid for template image
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ierr = DbgMsg("setup: template image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_TemplatePyramid == NULL) {
@@ -1428,7 +1428,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     greltol = this->m_Opt->m_OptPara.tol[2];
 
     if (greltol < 0.01) {
-        if (this->m_Opt->GetVerbosity() > 1) {
+        if (this->m_Opt->m_Verbosity > 1) {
             ss  << std::scientific << "increasing tolerance for gradient: "
                 << greltol << " >> " << tolscale*greltol;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1500,7 +1500,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
                 int l = this->m_Opt->m_GridCont.maxit.size() - 1;
                 l = computelevel > l ? l : computelevel;
                 int maxit = this->m_Opt->m_GridCont.maxit[l];
-                if (this->m_Opt->GetVerbosity() > 1) {
+                if (this->m_Opt->m_Verbosity > 1) {
                     ss  <<"setting max number of iterations to " << maxit;
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                     ss.str(std::string()); ss.clear();
@@ -1525,7 +1525,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
             // reset tolerances
             if ((level == (nlevels-1)) && (greltol < 0.01)) {
-                if (this->m_Opt->GetVerbosity() > 1) {
+                if (this->m_Opt->m_Verbosity > 1) {
                     ss  << std::scientific << "reseting tolerance for gradient: "
                         << tolscale*greltol << " >> " << greltol;
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1583,7 +1583,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("prolonging velocity field"); CHKERRQ(ierr);
     }
 

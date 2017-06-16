@@ -361,7 +361,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
-    verbosity = optprob->GetOptions()->GetVerbosity();
+    verbosity = optprob->GetOptions()->m_Verbosity;
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
@@ -501,7 +501,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     // reinit the initialization of the preconditioner
     optprob->GetOptions()->m_KrylovMethod.pcsetupdone = false;
 
-    if (optprob->GetOptions()->GetVerbosity() > 1) {
+    if (optprob->GetOptions()->m_Verbosity > 1) {
         ierr = DispLSConvReason(tao, optprob); CHKERRQ(ierr);
     }
 
@@ -513,7 +513,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     optprob->IncrementIterations();
 
     // tao: display convergence reason
-    if (optprob->GetOptions()->GetVerbosity() > 0) {
+    if (optprob->GetOptions()->m_Verbosity > 0) {
         ierr = DispTaoConvReason(convreason); CHKERRQ(ierr);
     }
 

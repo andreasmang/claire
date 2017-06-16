@@ -717,7 +717,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_StatePlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("allocating state plan"); CHKERRQ(ierr);
             }
             try {this->m_StatePlan = new Interp3_Plan();}
@@ -735,7 +735,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
         ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
         // create planer
         if (this->m_AdjointPlan == NULL) {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("allocating adjoint plan"); CHKERRQ(ierr);
             }
             try {this->m_AdjointPlan = new Interp3_Plan();}

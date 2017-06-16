@@ -501,9 +501,6 @@ class RegOpt {
         this->m_Log.finalresidual[i] = value;
     }
 
-    inline int GetVerbosity() {return this->m_Verbosity;}
-    int GetLineLength() {return this->m_LineLength;}
-
     ScalarType ComputeFFTScale();
 
     PetscErrorCode StartTimer(TimerType);
@@ -557,6 +554,9 @@ class RegOpt {
 
     bool m_SetupDone;
     bool m_StoreCheckPoints;
+
+    unsigned int m_LineLength;
+    unsigned int m_Indent;
     int m_Verbosity;
 
  protected:
@@ -595,9 +595,7 @@ class RegOpt {
     int m_CartGridDims[2];
 //    unsigned int m_NumThreads;
 //    const unsigned int m_LineLength = 101; //C++ 11 feature
-    unsigned int m_LineLength;
 
-    int m_Indent;
 };
 
 

@@ -366,7 +366,7 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     }
     ierr = this->m_CoarseGrid.m_Opt->DoSetup(false); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ss  << "setup of preconditioner (data allocation) "
             << "nx (f): (" << this->m_Opt->m_Domain.nx[0]
             << "," << this->m_Opt->m_Domain.nx[1]
@@ -646,7 +646,7 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     nt  = this->m_Opt->m_Domain.nt;
     nc  = this->m_Opt->m_Domain.nc;
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ss  << "applying restriction to variables "
             << " (" << this->m_Opt->m_Domain.nx[0]
             << ","  << this->m_Opt->m_Domain.nx[1]
@@ -783,14 +783,14 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
     ierr = Assert(this->m_KrylovMethod == NULL, "expecting null pointer"); CHKERRQ(ierr);
     ierr = KSPCreate(PETSC_COMM_WORLD, &this->m_KrylovMethod); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 2) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("preconditioner: setup krylovmethod"); CHKERRQ(ierr);
     }
 
     switch (this->m_Opt->m_KrylovMethod.pcsolver) {
         case CHEB:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("preconditioner: semi-iterative chebyshev method selected"); CHKERRQ(ierr);
             }
             // chebyshev iteration
@@ -802,7 +802,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         }
         case PCG:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("preconditioner: cg selected"); CHKERRQ(ierr);
             }
             // preconditioned conjugate gradient
@@ -811,7 +811,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         }
         case FCG:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("preconditioner: flexible cg selected"); CHKERRQ(ierr);
             }
             // flexible conjugate gradient
@@ -820,7 +820,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         }
         case GMRES:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("preconditioner: gmres selected"); CHKERRQ(ierr);
             }
             // generalized minimal residual method
@@ -829,7 +829,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         }
         case FGMRES:
         {
-            if (this->m_Opt->GetVerbosity() > 2) {
+            if (this->m_Opt->m_Verbosity > 2) {
                 ierr = DbgMsg("preconditioner: flexible gmres selected"); CHKERRQ(ierr);
             }
             // flexible generalized minimal residual method
@@ -873,7 +873,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
     ierr = MatSetOption(this->m_MatVec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
     //ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetVerbosity() > 1) {
+    if (this->m_Opt->m_Verbosity > 1) {
         ierr = KSPMonitorSet(this->m_KrylovMethod, InvertPrecondKrylovMonitor, this, NULL); CHKERRQ(ierr);
     }
 
@@ -905,7 +905,7 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
 
     // apply hessian (hessian matvec)
     if (this->m_Opt->m_KrylovMethod.pctype == TWOLEVEL) {
-        if (this->m_Opt->GetVerbosity() > 2) {
+        if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("preconditioner: (H^coarse + Q^coarse)[x^coarse]"); CHKERRQ(ierr);
         }
         ierr = this->m_CoarseGrid.m_OptimizationProblem->HessianMatVec(Hx, x, false); CHKERRQ(ierr);
@@ -958,7 +958,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
 */
     if (!this->m_Opt->m_KrylovMethod.eigvalsestimated) {
         if (this->m_Opt->m_KrylovMethod.usepetsceigest) {
-            if (this->m_Opt->GetVerbosity() > 1) {
+            if (this->m_Opt->m_Verbosity > 1) {
                 ierr = DbgMsg("estimating eigenvalues (petsc)"); CHKERRQ(ierr);
             }
             // default interface for chebyshev method to estimate eigenvalues
@@ -967,7 +967,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
                                                                PETSC_DECIDE,
                                                                PETSC_DECIDE); CHKERRQ(ierr);
         } else {
-            if (this->m_Opt->GetVerbosity() > 1) {
+            if (this->m_Opt->m_Verbosity > 1) {
                 ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);
             }
             // get sizes
