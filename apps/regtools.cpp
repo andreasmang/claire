@@ -317,7 +317,7 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
         // compute grid size
         scale = regopt->GetResamplingPara().gridscale;
         for (int i = 0; i < 3; ++i) {
-            nx[i]  = regopt->GetDomainPara().nx[i];
+            nx[i]  = regopt->m_Domain.nx[i];
             nxl[i] = regopt->GetResamplingPara().nx[i];
         }
 
@@ -368,7 +368,7 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
                 // reset io
                 if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
                 for (int i = 0; i < 3; ++i) {
-                    regopt->SetNumGridPoints(i, nxl[i]);
+                    regopt->m_Domain.nx[i] = nxl[i];
                 }
                 ierr = regopt->DoSetup(false); CHKERRQ(ierr);
 
@@ -408,7 +408,7 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
                 // reset io
                 if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
                 for (int i = 0; i < 3; ++i) {
-                    regopt->SetNumGridPoints(i, nxl[i]);
+                    regopt->m_Domain.nx[i] = nxl[i];
                 }
                 ierr = regopt->DoSetup(false); CHKERRQ(ierr);
                 try {readwrite = new reg::ReadWriteReg(regopt);}
@@ -510,7 +510,7 @@ PetscErrorCode AnalyzeScalarField(reg::RegToolsOpt* regopt) {
     // compute mean
     ierr = VecSum(m, &value); CHKERRQ(ierr);
     ss  << std::scientific << std::setw(14) << std::left << "mean value"
-        << value / static_cast<ScalarType>(regopt->GetDomainPara().ng);
+        << value / static_cast<ScalarType>(regopt->m_Domain.ng);
     ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
@@ -638,7 +638,7 @@ PetscErrorCode ComputeResidual(reg::RegToolsOpt* regopt) {
     if (!regopt->SetupDone()) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
-    nl = regopt->GetDomainPara().nl;
+    nl = regopt->m_Domain.nl;
 
     // read template image
     ierr = readwrite->ReadT(&mT, regopt->GetFileNames().mt); CHKERRQ(ierr);
@@ -705,7 +705,7 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     }
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = regopt->GetDomainPara().hx[i];
+        hx[i] = regopt->m_Domain.hx[i];
     }
 
     ierr = v->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
@@ -714,16 +714,16 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt* regopt) {
     ScalarType x1, x2, x3;
     IntType i1, i2, i3, i;
 #pragma omp for
-    for (i1 = 0; i1 < regopt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < regopt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < regopt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (i1 = 0; i1 < regopt->m_Domain.isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < regopt->m_Domain.isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < regopt->m_Domain.isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + regopt->GetDomainPara().istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + regopt->GetDomainPara().istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + regopt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + regopt->m_Domain.istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + regopt->m_Domain.istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + regopt->m_Domain.istart[2]);
 
                 // compute linear / flat index
-                i = reg::GetLinearIndex(i1, i2, i3, regopt->GetDomainPara().isize);
+                i = reg::GetLinearIndex(i1, i2, i3, regopt->m_Domain.isize);
                 // compute the velocity field
                 if (problem == 0) {
                     ScalarType v0 = 0.5;

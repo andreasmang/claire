@@ -297,13 +297,13 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::RegBenchmarkOpt* opt) {
     opt->Enter(__func__);
 
     // get local and global size
-    nl = opt->GetDomainPara().nl;
-    ng = opt->GetDomainPara().ng;
+    nl = opt->m_Domain.nl;
+    ng = opt->m_Domain.ng;
 
     // get grid size
-    hx[0] = opt->GetDomainPara().hx[0];
-    hx[1] = opt->GetDomainPara().hx[1];
-    hx[2] = opt->GetDomainPara().hx[2];
+    hx[0] = opt->m_Domain.hx[0];
+    hx[1] = opt->m_Domain.hx[1];
+    hx[2] = opt->m_Domain.hx[2];
 
     // allocate data
     if (m == NULL) {
@@ -311,16 +311,16 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::RegBenchmarkOpt* opt) {
     }
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
-    for (IntType i1 = 0; i1 < opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (IntType i2 = 0; i2 < opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (IntType i3 = 0; i3 < opt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + opt->GetDomainPara().istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + opt->GetDomainPara().istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + opt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + opt->m_Domain.istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + opt->m_Domain.istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + opt->m_Domain.istart[2]);
 
                 // compute linear / flat index
-                i = reg::GetLinearIndex(i1, i2, i3, opt->GetDomainPara().isize);
+                i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
                 p_m[i] =  (PetscSinReal(x1)*PetscSinReal(x1)
                           + PetscSinReal(x2)*PetscSinReal(x2)
                           + PetscSinReal(x3)*PetscSinReal(x3))/3.0;
@@ -350,9 +350,9 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::RegBenchmarkOpt* opt
     opt->Enter(__func__);
 
     // get grid size
-    hx[0] = opt->GetDomainPara().hx[0];
-    hx[1] = opt->GetDomainPara().hx[1];
-    hx[2] = opt->GetDomainPara().hx[2];
+    hx[0] = opt->m_Domain.hx[0];
+    hx[1] = opt->m_Domain.hx[1];
+    hx[2] = opt->m_Domain.hx[2];
 
     // allocate velocity field
     if (v == NULL) {
@@ -363,17 +363,17 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::RegBenchmarkOpt* opt
     }
 
     ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    for (IntType i1 = 0; i1 < opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (IntType i2 = 0; i2 < opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (IntType i3 = 0; i3 < opt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
 
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + opt->GetDomainPara().istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + opt->GetDomainPara().istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + opt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + opt->m_Domain.istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + opt->m_Domain.istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + opt->m_Domain.istart[2]);
 
                 // compute linear / flat index
-                i = reg::GetLinearIndex(i1, i2, i3, opt->GetDomainPara().isize);
+                i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
 
                 if (vcase == 0) {
                     // compute the velocity field
