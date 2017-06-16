@@ -497,55 +497,6 @@ echo "export MORTON_DIR=${SRC_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 
 ################################
-# ACCFFT
-################################
-ACCFFT_LIB_DIR=${BUILD_DIR}/accfft
-SRC_DIR=${ACCFFT_LIB_DIR}/src
-BLD_DIR=${ACCFFT_LIB_DIR}/build
-
-if [ ! ${cleanup} -eq 1 ]; then
-	if [ ! -d ${ACCFFT_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
-		mkdir -p ${ACCFFT_LIB_DIR}/src
-		echo ""
-		echo ${myline} 
-		echo extracting ACCFFT lib...
-		echo ${myline} 
-		tar -xzf ${LIB_DIR}/accfft.tar.gz -C ${SRC_DIR} --strip-components=1
-	fi
-else
-	if [ ${cleanup} -eq 1 -a  ! ${ACCFFT_LIB_DIR} == ${HOME} ]; then
-		rm -rf ${ACCFFT_LIB_DIR}
-	fi
-fi
-
-
-if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then 
-	echo ""
-	echo ${myline} 
-	echo "configuring ACCFFT"
-	echo ${myline} 
-	if [ -d ${BLD_DIR} -a ! ${BLD_DIR} == ${HOME} ]; then
-		rm -rf ${BLD_DIR}
-	fi
-	mkdir ${BLD_DIR}
-	mkdir ${BLD_DIR}/config
-	cd ${BLD_DIR}/config
-	echo cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
-	cmake ${SRC_DIR} ${ACCFFT_OPTIONS} -DCMAKE_INSTALL_PREFIX=${BLD_DIR} -DFFTW_ROOT=${FFTW_LIB_DIR}/build -DCFLAGS='-O3'
-	echo ""
-	echo ${myline} 
-	echo "building ACCFFT"
-	echo ${myline} 
-	make -j
-	make install
-fi
-
-echo "export ACCFFT_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
-
-
-
-
-################################
 # zlib
 ################################
 Z_LIB_DIR=${BUILD_DIR}/zlib
@@ -655,7 +606,6 @@ fi
 
 
 
-
 ################################
 # PNETCDF
 ################################
@@ -705,6 +655,7 @@ echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 if [ ${cleanup} -eq 1 ]; then
 	rm -f ${BUILD_DIR}/environment_vars.sh
 fi
+
 
 
 
