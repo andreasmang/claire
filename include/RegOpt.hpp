@@ -480,7 +480,7 @@ class RegOpt {
     PetscErrorCode SetupGridCont();
 
     // regularization
-    inline RegNorm GetRegNorm() {return this->m_RegNorm;}
+//    inline RegNorm GetRegNorm() {return this->m_RegNorm;}
     inline void SetRegNormType(RegNormType flag) {this->m_RegNorm.type = flag;}
     inline void SetBeta(int i, ScalarType beta) {this->m_RegNorm.beta[i] = beta;}
     inline ScalarType GetBeta(int i) {return this->m_RegNorm.beta[i];}
@@ -584,6 +584,7 @@ class RegOpt {
     KrylovMethod m_KrylovMethod;        ///< parameters for krylov solver
     RegFlags m_RegFlags;                ///< flags for registration
     Monitor m_Monitor;                  ///< monitor for registration
+    RegNorm m_RegNorm;                  ///< parameters for regularization model
 
     int m_Verbosity;
 
@@ -606,7 +607,6 @@ class RegOpt {
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
 
-    RegNorm m_RegNorm;                  ///< parameters for regularization model
     ParCont m_ParaCont;                 ///< flags for parameter continuation
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
     SolveType m_SolveType;              ///< solver
