@@ -535,7 +535,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
     }
 
     // switch between regularization norms
-    switch (this->m_Opt->GetRegNorm().type) {
+    switch (this->m_Opt->m_RegNorm.type) {
         case L2:
         {
             try {this->m_Regularization = new RegularizationRegistrationL2(this->m_Opt);}

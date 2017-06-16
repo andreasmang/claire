@@ -72,7 +72,7 @@ PetscErrorCode RegularizationRegistrationL2
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     *R = 0.0;
 
@@ -109,7 +109,7 @@ PetscErrorCode RegularizationRegistrationL2
     ierr = Assert(dvR != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization weight
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
@@ -151,7 +151,7 @@ PetscErrorCode RegularizationRegistrationL2
     ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
@@ -186,7 +186,7 @@ PetscErrorCode RegularizationRegistrationL2
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(Ainvx != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
@@ -227,7 +227,7 @@ PetscErrorCode RegularizationRegistrationL2
 
     this->m_Opt->Enter(__func__);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     // compute largest value for operator
     emin = 1.0/beta;

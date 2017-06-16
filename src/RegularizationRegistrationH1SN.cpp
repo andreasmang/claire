@@ -78,7 +78,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get regularization parameter
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     *R = 0.0;
 
@@ -171,7 +171,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
     ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
 
     // if regularization weight is zero, do noting
@@ -269,7 +269,7 @@ PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, Vec
     ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
@@ -309,7 +309,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
     ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
+    beta = this->m_Opt->m_RegNorm.beta[0];
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
@@ -407,8 +407,8 @@ PetscErrorCode RegularizationRegistrationH1SN::GetExtremeEigValsInvOp(ScalarType
 
     this->m_Opt->Enter(__func__);
 
-    beta1=this->m_Opt->GetRegNorm().beta[0];
-    beta2=this->m_Opt->GetRegNorm().beta[1];
+    beta1=this->m_Opt->m_RegNorm.beta[0];
+    beta2=this->m_Opt->m_RegNorm.beta[1];
 
     // get max value
     w[0] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[0])/2.0;

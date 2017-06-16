@@ -3795,7 +3795,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
                 ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
                 ss  << std::scientific
                     <<  "iter = "     << this->m_Opt->GetCounter(ITERATIONS)
-                    <<  "   betav = " << this->m_Opt->GetRegNorm().beta[0] << "    "
+                    <<  "   betav = " << this->m_Opt->m_RegNorm.beta[0] << "    "
                     << std::left << std::setw(20) << this->m_Opt->m_Monitor.detdgradmin << " "
                                  << std::setw(20) << this->m_Opt->m_Monitor.detdgradmean <<" "
                                  << std::setw(20) << this->m_Opt->m_Monitor.detdgradmax;

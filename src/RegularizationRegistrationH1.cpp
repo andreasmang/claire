@@ -77,8 +77,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateFunctional(ScalarType* R, V
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegNorm().beta[0];
-    beta[1] = this->m_Opt->GetRegNorm().beta[1];
+    beta[0] = this->m_Opt->m_RegNorm.beta[0];
+    beta[1] = this->m_Opt->m_RegNorm.beta[1];
 
     *R= 0.0;
 
@@ -178,8 +178,8 @@ PetscErrorCode RegularizationRegistrationH1::EvaluateGradient(VecField* dvR, Vec
     ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegNorm().beta[0];
-    beta[1] = this->m_Opt->GetRegNorm().beta[1];
+    beta[0] = this->m_Opt->m_RegNorm.beta[0];
+    beta[1] = this->m_Opt->m_RegNorm.beta[1];
 
     // if regularization weight is zero, do noting
     //if ( (beta[0] == 0.0)  && (beta[1] == 0.0) ) {
@@ -283,9 +283,9 @@ PetscErrorCode RegularizationRegistrationH1::HessianMatVec(VecField* dvvR, VecFi
     ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta = this->m_Opt->GetRegNorm().beta[0];
-//    beta[0] = this->m_Opt->GetRegNorm().beta[0];
-//    beta[1] = this->m_Opt->GetRegNorm().beta[1];
+    beta = this->m_Opt->m_RegNorm.beta[0];
+//    beta[0] = this->m_Opt->m_RegNorm.beta[0];
+//    beta[1] = this->m_Opt->m_RegNorm.beta[1];
 
     // if regularization weight is zero, do noting
 //    if ( (beta[0] == 0.0)  && (beta[1] == 0.0) ) {
@@ -326,8 +326,8 @@ PetscErrorCode RegularizationRegistrationH1::ApplyInvOp(VecField* Ainvx, VecFiel
     ierr = Assert(this->m_v2hat != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
-    beta[0] = this->m_Opt->GetRegNorm().beta[0];
-    beta[1] = this->m_Opt->GetRegNorm().beta[1];
+    beta[0] = this->m_Opt->m_RegNorm.beta[0];
+    beta[1] = this->m_Opt->m_RegNorm.beta[1];
 
     // if regularization weight is zero, do noting
 //    if ((beta[0] == 0.0)  && (beta[1] == 0.0)) {
@@ -430,8 +430,8 @@ PetscErrorCode RegularizationRegistrationH1::GetExtremeEigValsInvOp(ScalarType& 
 
     this->m_Opt->Enter(__func__);
 
-    beta1=this->m_Opt->GetRegNorm().beta[0];
-    beta2=this->m_Opt->GetRegNorm().beta[1];
+    beta1 = this->m_Opt->m_RegNorm.beta[0];
+    beta2 = this->m_Opt->m_RegNorm.beta[1];
 
     // get max value
     w[0] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[0])/2.0;
