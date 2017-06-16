@@ -286,10 +286,10 @@ PetscErrorCode Optimizer::SetupTao() {
         }
 
         // set tolerances for krylov subspace method
-        reltol = this->m_Opt->GetKrylovSolverPara().tol[0];     // 1E-12;
-        abstol = this->m_Opt->GetKrylovSolverPara().tol[1];     // 1E-12;
-        divtol = this->m_Opt->GetKrylovSolverPara().tol[2];     // 1E+06;
-        maxit  = this->m_Opt->GetKrylovSolverPara().maxit;      // 1000;
+        reltol = this->m_Opt->m_KrylovMethod.tol[0];     // 1E-12;
+        abstol = this->m_Opt->m_KrylovMethod.tol[1];     // 1E-12;
+        divtol = this->m_Opt->m_KrylovMethod.tol[2];     // 1E+06;
+        maxit  = this->m_Opt->m_KrylovMethod.maxit;      // 1000;
         maxit  = std::max(static_cast<IntType>(0), maxit-1);
         ierr = KSPSetTolerances(this->m_KrylovMethod, reltol, abstol, divtol, maxit); CHKERRQ(ierr);
         ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
@@ -303,9 +303,9 @@ PetscErrorCode Optimizer::SetupTao() {
 //        ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_NATURAL); CHKERRQ(ierr);
 
         // set the kylov method
-        if (this->m_Opt->GetKrylovSolverPara().solver == GMRES) {
+        if (this->m_Opt->m_KrylovMethod.solver == GMRES) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPGMRES); CHKERRQ(ierr);
-        } else if (this->m_Opt->GetKrylovSolverPara().solver == PCG) {
+        } else if (this->m_Opt->m_KrylovMethod.solver == PCG) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
 //            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
         } else {
@@ -326,7 +326,7 @@ PetscErrorCode Optimizer::SetupTao() {
         ierr = KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
 
         // switch between different preconditioners
-        if (this->m_Opt->GetKrylovSolverPara().pctype == NOPC) {
+        if (this->m_Opt->m_KrylovMethod.pctype == NOPC) {
             ierr = PCSetType(preconditioner, PCNONE); CHKERRQ(ierr);
         } else {
             ierr = Assert(this->m_Precond != NULL, "null pointer"); CHKERRQ(ierr);
@@ -353,9 +353,9 @@ PetscErrorCode Optimizer::SetupTao() {
     ierr = TaoSetMonitor(this->m_Tao, OptimizationMonitor, this->m_OptimizationProblem, NULL); CHKERRQ(ierr);
 
     // set function to test stopping conditions
-    if (this->m_Opt->GetOptPara().stopcond == GRAD) {
+    if (this->m_Opt->m_OptPara.stopcond == GRAD) {
         ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGrad, this->m_OptimizationProblem); CHKERRQ(ierr);
-    } else if (this->m_Opt->GetOptPara().stopcond == GRADOBJ) {
+    } else if (this->m_Opt->m_OptPara.stopcond == GRADOBJ) {
         ierr = TaoSetConvergenceTest(this->m_Tao, CheckConvergenceGradObj, this->m_OptimizationProblem); CHKERRQ(ierr);
     } else {
         ierr = ThrowError("stop condition not defined"); CHKERRQ(ierr);
@@ -363,7 +363,7 @@ PetscErrorCode Optimizer::SetupTao() {
 
     ierr = TaoGetLineSearch(this->m_Tao, &linesearch); CHKERRQ(ierr);
 
-    switch(this->m_Opt->GetOptPara().glmethod) {
+    switch(this->m_Opt->m_OptPara.glmethod) {
         case NOGM:
         {
             ierr = TaoLineSearchSetType(linesearch, "unit"); CHKERRQ(ierr);
@@ -400,16 +400,16 @@ PetscErrorCode Optimizer::SetupTao() {
         }
     }
     // set tolerances for optimizer
-    gatol = this->m_Opt->GetOptPara().tol[0];   // ||g(x)||             <= gatol
-    grtol = this->m_Opt->GetOptPara().tol[1];   // ||g(x)|| / |J(x)|    <= grtol
-    gttol = this->m_Opt->GetOptPara().tol[2];   // ||g(x)|| / ||g(x0)|| <= gttol
+    gatol = this->m_Opt->m_OptPara.tol[0];   // ||g(x)||             <= gatol
+    grtol = this->m_Opt->m_OptPara.tol[1];   // ||g(x)|| / |J(x)|    <= grtol
+    gttol = this->m_Opt->m_OptPara.tol[2];   // ||g(x)|| / ||g(x0)|| <= gttol
 
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr = TaoSetTolerances(this->m_Tao, gatol, grtol, gttol); CHKERRQ(ierr);
 #else
     ierr = TaoSetTolerances(this->m_Tao, 1E-12, 1E-12, gatol, grtol, gttol); CHKERRQ(ierr);
 #endif
-    ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->GetOptPara().maxit-1); CHKERRQ(ierr);
+    ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->m_OptPara.maxit-1); CHKERRQ(ierr);
     ierr = TaoSetFunctionLowerBound(this->m_Tao, 1E-6); CHKERRQ(ierr);
 
     ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu, optprob, &this->m_MatVec); CHKERRQ(ierr);
@@ -450,16 +450,16 @@ PetscErrorCode Optimizer::Run(bool presolve) {
 
     // modify tolerance if requestged ||g(x)|| / ||g(x0)|| <= gttol
     if (presolve) {
-        gtol = this->m_Opt->GetOptPara().presolvetol[2];
-        maxit = this->m_Opt->GetOptPara().presolvemaxit;
+        gtol = this->m_Opt->m_OptPara.presolvetol[2];
+        maxit = this->m_Opt->m_OptPara.presolvemaxit;
         if (this->m_Opt->GetVerbosity() > 1) {
             ss << "presolve: relative gradient tolerance: " << std::scientific << gtol;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
     } else {
-        gtol = this->m_Opt->GetOptPara().tol[2];
-        maxit = this->m_Opt->GetOptPara().maxit;
+        gtol = this->m_Opt->m_OptPara.tol[2];
+        maxit = this->m_Opt->m_OptPara.maxit;
     }
 
     // set tolerance
@@ -475,7 +475,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     ierr = this->SetInitialGuess(); CHKERRQ(ierr);
     ierr = TaoSetUp(this->m_Tao); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetKrylovSolverPara().pctype != NOPC) {
+    if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {
         // in case we call the optimizer/solver several times
         // we have to make sure that the preconditioner is reset
         ierr = this->m_Precond->Reset(); CHKERRQ(ierr);

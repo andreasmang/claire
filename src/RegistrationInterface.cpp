@@ -398,7 +398,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetKrylovSolverPara().pctype != NOPC) {
+    if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {
         if (this->m_Opt->GetVerbosity() > 2) {
             ierr = DbgMsg("allocating preconditioner"); CHKERRQ(ierr);
         }
@@ -565,9 +565,9 @@ PetscErrorCode RegistrationInterface::Run() {
     // switch between solvers we have to solve optimization problem
     if (this->m_Opt->GetParaCont().enabled) {
         ierr = this->RunSolverRegParaCont(); CHKERRQ(ierr);
-    } else if (this->m_Opt->GetScaleContPara().enabled) {
+    } else if (this->m_Opt->m_ScaleCont.enabled) {
         ierr = this->RunSolverScaleCont(); CHKERRQ(ierr);
-    } else if (this->m_Opt->GetGridContPara().enabled) {
+    } else if (this->m_Opt->m_GridCont.enabled) {
         nxmax = PETSC_MIN_INT;
         for (int i = 0; i < 3; ++i) {
             nx = this->m_Opt->m_Domain.nx[i];
@@ -634,7 +634,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
     // reset all the clocks we have used so far
     ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
-    this->m_Opt->SetSolutionStatus(0); // assume everything is good
+    this->m_Opt->m_OptPara.solutionstatus = 0; // assume everything is good
 
     if (monitor) {
         boundreached = true; // enter search
@@ -674,7 +674,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         if (level == 0) {
             // nothing happened (solution and beta are valid)
             if (boundreached == false) {
-                this->m_Opt->SetSolutionStatus(0);
+                this->m_Opt->m_OptPara.solutionstatus = 0; // assume everything is good
                 ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
             } else {
                 ierr = ThrowError("should never happen"); CHKERRQ(ierr);
@@ -682,10 +682,10 @@ PetscErrorCode RegistrationInterface::RunSolver() {
         } else {
             if (boundreached == false) {
                 // search for beta worked, so accept the solution
-                this->m_Opt->SetSolutionStatus(1);
+                this->m_Opt->m_OptPara.solutionstatus = 1;
                 ierr = this->m_Solution->SetComponents(x); CHKERRQ(ierr);
             } else {
-                this->m_Opt->SetSolutionStatus(2);
+                this->m_Opt->m_OptPara.solutionstatus = 2;
                 this->m_Opt->SetBeta(0, betastar);
             }
         }
@@ -848,7 +848,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
-        if (this->m_Opt->GetOptPara().fastsolve) {
+        if (this->m_Opt->m_OptPara.fastsolve) {
 //            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
             ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
@@ -936,7 +936,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
         ierr = this->DispLevelMsg(ss.str(), rank); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
-        if (this->m_Opt->GetOptPara().fastsolve) {
+        if (this->m_Opt->m_OptPara.fastsolve) {
 //            ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
             ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
         }
@@ -1284,8 +1284,8 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
         solve = true;
         for (int i = 0; i < 3; ++i) {
             // get and set sigma for current level
-            sigma[i] = this->m_Opt->GetScaleContPara().sigma[i][level];
-            this->m_Opt->SetSigma(i,sigma[i]);
+            sigma[i] = this->m_Opt->m_ScaleCont.sigma[i][level];
+            this->m_Opt->SetSigma(i, sigma[i]);
 
             // if sigma is bigger than half of the grid size, don't compute
             nxhalf = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i])/2.0;
@@ -1419,7 +1419,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
     // get grid size
     for (int i = 0; i < 3; ++i) {
-        nx[i] = this->m_Opt->GetGridContPara().nx[0][i];
+        nx[i] = this->m_Opt->m_GridCont.nx[0][i];
     }
     ierr = this->m_Opt->GetSizes(nx, nl, ng); CHKERRQ(ierr);
 
@@ -1432,7 +1432,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
     // reset tolerance for gradient (optimization); we do not want
     // to solve as accurately when we solve on the coarse grid
-    greltol = this->m_Opt->GetOptPara().tol[2];
+    greltol = this->m_Opt->m_OptPara.tol[2];
 
     if (greltol < 0.01) {
         if (this->m_Opt->GetVerbosity() > 1) {
@@ -1441,7 +1441,8 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
-        this->m_Opt->SetOptTol(2, tolscale*greltol);
+        this->m_Opt->m_OptPara.tol[2] = tolscale*greltol;
+
     }
 
     // reset all the clocks we have used so far
@@ -1449,19 +1450,19 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
 
     // get number of levels
-    nlevels = this->m_Opt->GetGridContPara().nlevels;
+    nlevels = this->m_Opt->m_GridCont.nlevels;
 
     // run multi-level solver
     computelevel = 0;
-    level = 0; // this->m_Opt->GetGridContPara().minlevel;
+    level = 0; // this->m_Opt->m_GridCont.minlevel;
     while (level < nlevels) {
         // get number of grid points for current level
         for (int i = 0; i < 3; ++i) {
-            nx[i] = this->m_Opt->GetGridContPara().nx[level][i];
-            isize[i] = this->m_Opt->GetGridContPara().isize[level][i];
+            nx[i] = this->m_Opt->m_GridCont.nx[level][i];
+            isize[i] = this->m_Opt->m_GridCont.isize[level][i];
         }
-        nl = this->m_Opt->GetGridContPara().nl[level];
-        ng = this->m_Opt->GetGridContPara().ng[level];
+        nl = this->m_Opt->m_GridCont.nl[level];
+        ng = this->m_Opt->m_GridCont.ng[level];
 
         // display user message
         ss << std::scientific << "level " << std::setw(3) << level
@@ -1473,7 +1474,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
          ss.str(std::string()); ss.clear();
 
         solve = true;
-        if (this->m_Opt->GetPDESolverPara().type == SL) {
+        if (this->m_Opt->m_PDESolver.type == SL) {
             if (isize[0] < 6 || isize[1] < 6) solve = false;
         }
 
@@ -1491,7 +1492,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
             ierr = this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
             // store intermediate results
-            if (this->m_Opt->GetReadWriteFlags().iterates) {
+            if (this->m_Opt->m_ReadWriteFlags.iterates) {
                 ext = this->m_Opt->GetFileNames().extension;
                 ss << "reference-image-level=" << level << ext;
                 ierr = this->m_ReadWrite->Write(mR, ss.str()); CHKERRQ(ierr);
@@ -1502,16 +1503,16 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
                 ss.str(std::string()); ss.clear();
             }
 
-            if (!this->m_Opt->GetGridContPara().maxit.empty()) {
-                int l = this->m_Opt->GetGridContPara().maxit.size() - 1;
+            if (!this->m_Opt->m_GridCont.maxit.empty()) {
+                int l = this->m_Opt->m_GridCont.maxit.size() - 1;
                 l = computelevel > l ? l : computelevel;
-                int maxit = this->m_Opt->GetGridContPara().maxit[l];
+                int maxit = this->m_Opt->m_GridCont.maxit[l];
                 if (this->m_Opt->GetVerbosity() > 1) {
                     ss  <<"setting max number of iterations to " << maxit;
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                     ss.str(std::string()); ss.clear();
                 }
-                this->m_Opt->SetOptMaxIter(maxit);
+                this->m_Opt->m_OptPara.maxit = maxit;
             }
 
             // do the setup
@@ -1537,7 +1538,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                     ss.str(std::string()); ss.clear();
                 }
-                this->m_Opt->SetOptTol(2, greltol);
+                this->m_Opt->m_OptPara.tol[2] = greltol;
             }
 
             // run the optimizer
@@ -1604,8 +1605,8 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 
     // get number of grid points for current level
     for (int i = 0; i < 3; ++i) {
-        nx_f[i] = this->m_Opt->GetGridContPara().nx[level  ][i];
-        nx_c[i] = this->m_Opt->GetGridContPara().nx[level-1][i];
+        nx_f[i] = this->m_Opt->m_GridCont.nx[level  ][i];
+        nx_c[i] = this->m_Opt->m_GridCont.nx[level-1][i];
     }
 
     // get number of points to allocate
@@ -1819,19 +1820,19 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
     // compute stuff
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetReadWriteFlags().detdefgrad) {
+    if (this->m_Opt->m_ReadWriteFlags.detdefgrad) {
         ierr = Msg("computing determinant of deformation gradient"); CHKERRQ(ierr);
         ierr = this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
     }
-    if (this->m_Opt->GetReadWriteFlags().defgrad) {
+    if (this->m_Opt->m_ReadWriteFlags.defgrad) {
         ierr = Msg("computing deformation gradient"); CHKERRQ(ierr);
         ierr = this->m_RegProblem->ComputeDefGrad(true); CHKERRQ(ierr);
     }
-    if (this->m_Opt->GetReadWriteFlags().defmap) {
+    if (this->m_Opt->m_ReadWriteFlags.defmap) {
         ierr = Msg("computing deformation map"); CHKERRQ(ierr);
         ierr = this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
-    if (this->m_Opt->GetReadWriteFlags().deffield) {
+    if (this->m_Opt->m_ReadWriteFlags.deffield) {
         ierr = Msg("computing displacement field"); CHKERRQ(ierr);
         ierr = this->m_RegProblem->ComputeDisplacementField(true); CHKERRQ(ierr);
     }

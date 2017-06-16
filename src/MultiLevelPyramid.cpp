@@ -200,23 +200,23 @@ PetscErrorCode MultiLevelPyramid::AllocatePyramid() {
     ierr = this->m_Opt->SetupGridCont(); CHKERRQ(ierr);
 
     // get number of levels
-    nlevels = this->m_Opt->GetGridContPara().nlevels;
+    nlevels = this->m_Opt->m_GridCont.nlevels;
 
     level = 0;
     while (level < nlevels) {
-        nl = this->m_Opt->GetGridContPara().nl[level];
-        ng = this->m_Opt->GetGridContPara().ng[level];
+        nl = this->m_Opt->m_GridCont.nl[level];
+        ng = this->m_Opt->m_GridCont.ng[level];
 
         if (this->m_Opt->GetVerbosity() > 2) {
             ss << std::scientific << "allocating ML data: level " << std::setw(3) << level + 1
                << " of "  << nlevels
-               << "      nx=(" << this->m_Opt->GetGridContPara().nx[level][0]
-               << ","     << this->m_Opt->GetGridContPara().nx[level][1]
-               << ","     << this->m_Opt->GetGridContPara().nx[level][2]
+               << "      nx=(" << this->m_Opt->m_GridCont.nx[level][0]
+               << ","     << this->m_Opt->m_GridCont.nx[level][1]
+               << ","     << this->m_Opt->m_GridCont.nx[level][2]
                << "); (nl,ng)=(" << nl << "," << ng
-               << "); isize=(" << this->m_Opt->GetGridContPara().isize[level][0] << ","
-               << this->m_Opt->GetGridContPara().isize[level][1] << ","
-               << this->m_Opt->GetGridContPara().isize[level][2] << ")";
+               << "); isize=(" << this->m_Opt->m_GridCont.isize[level][0] << ","
+               << this->m_Opt->m_GridCont.isize[level][1] << ","
+               << this->m_Opt->m_GridCont.isize[level][2] << ")";
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
@@ -377,7 +377,7 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     ierr = this->AllocatePyramid(); CHKERRQ(ierr);
 
     // get number of levels
-    nlevels = this->m_Opt->GetGridContPara().nlevels;
+    nlevels = this->m_Opt->m_GridCont.nlevels;
 
     // set data on finest grid
     ierr = this->SetData(x, nlevels-1); CHKERRQ(ierr);
@@ -385,13 +385,13 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     nx[0] = this->m_Opt->m_Domain.nx[0];
     nx[1] = this->m_Opt->m_Domain.nx[1];
     nx[2] = this->m_Opt->m_Domain.nx[2];
-    minlevel = 0; //this->m_Opt->GetGridContPara().minlevel;
+    minlevel = 0; //this->m_Opt->m_GridCont.minlevel;
 
     if (minlevel >= nlevels) minlevel = nlevels-1;
 
     for (int l = minlevel; l < nlevels-1; ++l) {  // for all levels
         for (int i = 0; i < 3; ++i) {  // get grid size
-            nxlevel[i] = this->m_Opt->GetGridContPara().nx[l][i];
+            nxlevel[i] = this->m_Opt->m_GridCont.nx[l][i];
         }
         // get pointer to level
         ierr = this->GetData(&xlevel, l); CHKERRQ(ierr);

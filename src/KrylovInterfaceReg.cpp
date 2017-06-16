@@ -48,7 +48,7 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (optprob->GetOptions()->GetVerbosity() > 0) {
-        kspmeth = optprob->GetOptions()->GetKrylovSolverPara().name;
+        kspmeth = optprob->GetOptions()->m_KrylovMethod.name;
         itss << std::setw(5) << it;
         rnss << std::scientific << rnorm;
         msg = kspmeth + "   " + itss.str() + "  ||r||_2 = " + rnss.str();
@@ -62,7 +62,7 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
         optprob->GetOptions()->LogKSPResidual(it, rnorm);
     }
 
-    optprob->GetOptions()->SetKrylovIter(it);
+    optprob->GetOptions()->m_KrylovMethod.iter = it;
 
     PetscFunctionReturn(ierr);
 }
@@ -98,42 +98,43 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set the iteration count to zero
-    optprob->GetOptions()->SetKrylovIter(0);
+    optprob->GetOptions()->m_KrylovMethod.iter = 0;
 
-    if ((optprob->GetOptions()->GetKrylovSolverPara().matvectype == PRECONDMATVEC)
-     || (optprob->GetOptions()->GetKrylovSolverPara().matvectype == PRECONDMATVECSYM))  {
+    if ((optprob->GetOptions()->m_KrylovMethod.matvectype == PRECONDMATVEC)
+     || (optprob->GetOptions()->m_KrylovMethod.matvectype == PRECONDMATVECSYM))  {
         // get current gradient and compute norm
         // before we apply the preconditioner to the right hand side
         ierr = VecNorm(b, NORM_2, &gnorm); CHKERRQ(ierr);
     }
 
     // use default tolreance
-    reltol = optprob->GetOptions()->GetKrylovSolverPara().tol[0];
+    reltol = optprob->GetOptions()->m_KrylovMethod.tol[0];
 
     // apply preprocessing to right hand side and initial condition
     ierr = optprob->PreKrylovSolve(b, x); CHKERRQ(ierr);
 
     // user forcing sequence to estimate adequate tolerance
     // for solution of KKT system (Eisenstat-Walker)
-    if (optprob->GetOptions()->GetKrylovSolverPara().fseqtype != NOFS) {
+    if (optprob->GetOptions()->m_KrylovMethod.fseqtype != NOFS) {
         if (gnorm == 0.0) {
             // get current gradient and compute norm
             ierr = VecNorm(b, NORM_2, &gnorm); CHKERRQ(ierr);
         }
 
-        if (!optprob->GetOptions()->GetKrylovSolverPara().g0normset) {
+        if (!optprob->GetOptions()->m_KrylovMethod.g0normset) {
             if (optprob->GetOptions()->GetVerbosity() > 1) {
                 ss << std::fixed << std::scientific << gnorm;
-                msg = optprob->GetOptions()->GetKrylovSolverPara().name +
+                msg = optprob->GetOptions()->m_KrylovMethod.name +
                     ": setting initial ||g|| in krylov method (" + ss.str() + ")";
                 ierr = DbgMsg(msg); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
-            optprob->GetOptions()->SetInitialGradNormKrylovMethod(gnorm);
+            optprob->GetOptions()->m_KrylovMethod.g0norm = gnorm;
+            optprob->GetOptions()->m_KrylovMethod.g0normset = true;
         }
 
         // get initial value for gradient
-        g0norm = optprob->GetOptions()->GetKrylovSolverPara().g0norm;
+        g0norm = optprob->GetOptions()->m_KrylovMethod.g0norm;
         ierr = Assert(g0norm > 0.0, "initial gradient is zero"); CHKERRQ(ierr);
 
         // normalize
@@ -142,7 +143,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
         // get current tolerances
         ierr = KSPGetTolerances(krylovmethod, &reltol, &abstol, &divtol, &maxit); CHKERRQ(ierr);
 
-        if (optprob->GetOptions()->GetKrylovSolverPara().fseqtype == QDFS) {
+        if (optprob->GetOptions()->m_KrylovMethod.fseqtype == QDFS) {
             // assuming quadratic convergence (we do not solver more
             // accurately than 12 digits)
             reltol = PetscMax(lowergradbound, PetscMin(uppergradbound, gnorm));
@@ -157,22 +158,22 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     }
 
     // pass tolerance to optimization problem (for preconditioner)
-    optprob->GetOptions()->SetRelTolKrylovMethod(reltol);
+    optprob->GetOptions()->m_KrylovMethod.reltol = reltol;
 
     if (optprob->GetOptions()->GetVerbosity() > 0) {
         ss << std::fixed << std::scientific << reltol;
-        msg = optprob->GetOptions()->GetKrylovSolverPara().name +
+        msg = optprob->GetOptions()->m_KrylovMethod.name +
               ": computing solution of hessian system (tol=" + ss.str() + ")";
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
 
     // we might want to recompute eigenvalues at every iteration
-    if (optprob->GetOptions()->GetKrylovSolverPara().reesteigvals) {
-        optprob->GetOptions()->KrylovMethodEigValsEstimated(false);
+    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals) {
+        optprob->GetOptions()->m_KrylovMethod.eigvalsestimated = false;
     }
 
     // check symmetry of hessian
-    if (optprob->GetOptions()->GetKrylovSolverPara().checkhesssymmetry) {
+    if (optprob->GetOptions()->m_KrylovMethod.checkhesssymmetry) {
         ierr = optprob->HessianSymmetryCheck(); CHKERRQ(ierr);
     }
 
@@ -380,7 +381,7 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
     precond = reinterpret_cast<PrecondReg*>(ptr);
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
-    kspmeth = " >> PC " + precond->GetOptions()->GetKrylovSolverPara().pcname;
+    kspmeth = " >> PC " + precond->GetOptions()->m_KrylovMethod.pcname;
     itss << std::setw(5) << it;
     rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
@@ -438,22 +439,22 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
     // setup preconditioner
-    if (!precond->GetOptions()->GetKrylovSolverPara().pcsetupdone) {
+    if (!precond->GetOptions()->m_KrylovMethod.pcsetupdone) {
         ierr = precond->DoSetup(); CHKERRQ(ierr);
     }
 
     // set the default values
     maxits = 1E3;
-    reltol = precond->GetOptions()->GetKrylovSolverPara().pctol[0];
-    abstol = precond->GetOptions()->GetKrylovSolverPara().pctol[1];
-    divtol = precond->GetOptions()->GetKrylovSolverPara().pctol[2];
-    scale  = precond->GetOptions()->GetKrylovSolverPara().pctolscale;
+    reltol = precond->GetOptions()->m_KrylovMethod.pctol[0];
+    abstol = precond->GetOptions()->m_KrylovMethod.pctol[1];
+    divtol = precond->GetOptions()->m_KrylovMethod.pctol[2];
+    scale  = precond->GetOptions()->m_KrylovMethod.pctolscale;
 
-    switch (precond->GetOptions()->GetKrylovSolverPara().pcsolver) {
+    switch (precond->GetOptions()->m_KrylovMethod.pcsolver) {
         case CHEB:
         {
             // chebyshev iteration
-            maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
+            maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
             // estimate the eigenvalues
             ierr = precond->EstimateEigenValues(); CHKERRQ(ierr);
             break;
@@ -461,25 +462,25 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
         case PCG:
         {
             // preconditioned conjugate gradient
-            reltol = scale*precond->GetOptions()->GetKrylovSolverPara().reltol;
+            reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
             break;
         }
         case FCG:
         {
             // flexible conjugate gradient
-            maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
+            maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
             break;
         }
         case GMRES:
         {
             // GMRES
-            reltol = scale*precond->GetOptions()->GetKrylovSolverPara().reltol;
+            reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
             break;
         }
         case FGMRES:
         {
             // flexible GMRES
-            maxits = precond->GetOptions()->GetKrylovSolverPara().pcmaxit;
+            maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
             break;
         }
         default:
@@ -501,7 +502,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     if (precond->GetOptions()->GetVerbosity() > 1) {
         rnss << std::fixed << std::scientific << reltol;
         itss << maxits;
-        msg = precond->GetOptions()->GetKrylovSolverPara().pcname
+        msg = precond->GetOptions()->m_KrylovMethod.pcname
             + ": inverting preconditioner (tol=" + rnss.str()
             + ", maxit=" + itss.str() + ")";
         ierr = DbgMsg(msg); CHKERRQ(ierr);

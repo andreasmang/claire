@@ -112,7 +112,7 @@ enum FSeqType {
 
 
 // flags for preconditioners
-enum KrylovSolverType {
+enum KrylovMethodType {
     PCG,     ///< pcg
     FCG,     ///< flexible cg
     CHEB,    ///< chebyshev method
@@ -277,7 +277,7 @@ struct Optimization {
 
 
 /* parameters for krylov solver */
-struct KrylovSolver {
+struct KrylovMethod {
     int maxit;                ///< max number of iterations for krylov solver
     IntType iter;             ///< current number of iterations for krylov solver
     ScalarType tol[3];        ///< tolerances for krylov method
@@ -286,14 +286,14 @@ struct KrylovSolver {
     ScalarType reltol;        ///< relative tolerance for krylov solver
     ScalarType g0norm;        ///< initial norm of gradient (to normalize stopping condition)
     bool g0normset;           ///< flag to identify if initial norm of gradient has been set
-    KrylovSolverType solver;  ///< flag for krylov solver
+    KrylovMethodType solver;  ///< flag for krylov solver
 
     ScalarType pctol[3];            ///< tolerances for krylov method (preconditioner)
     IntType pcmaxit;                ///< tolerances for krylov method (preconditioner)
     PrecondMeth pctype;             ///< flag for type of preconditioner
     HessianMatVecType matvectype;   ///< flag for the type of hessian matvec
     std::string pcname;             ///< name of preconditioner
-    KrylovSolverType pcsolver;      ///< solver for preconditioner
+    KrylovMethodType pcsolver;      ///< solver for preconditioner
     bool pcsetupdone;               ///< flag to indicate if setup of preconditioner is done
     ScalarType pctolscale;          ///< tolerance scaling for preconditioner; default: 1E-1
     ScalarType pcgridscale;         ///< this is for the two level preconditioner; defines scale for grid size change; default: 2
@@ -441,8 +441,7 @@ class RegOpt {
                *this->m_Domain.hx[2];
     }
 
-    inline GridCont GetGridContPara() {return this->m_GridCont;}
-    inline ScaleCont GetScaleContPara() {return this->m_ScaleCont;}
+
     inline ParCont GetParaCont() {return this->m_ParaCont;}
     ScalarType GetBetaMinParaCont();
     FileNames GetFileNames(){return this->m_FileNames;}
@@ -465,20 +464,9 @@ class RegOpt {
     inline void DisableInversion() {this->m_RegFlags.runninginversion = false;}
     inline void EnableInversion() {this->m_RegFlags.runninginversion = true;}
 
-    inline Optimization GetOptPara() {return this->m_OptPara;}
-    inline void SetOptTol(int i, ScalarType value) {this->m_OptPara.tol[i] = value;}
-    inline void SetOptMaxIter(int value) {this->m_OptPara.maxit = value;}
-    inline void SetSolutionStatus(int value) {this->m_OptPara.solutionstatus = value;}
-
     inline void ComputeInvDetDefGrad(bool flag) {
         this->m_RegFlags.invdefgrad = flag;
     }
-
-    inline void EnableRescaling() {this->m_RegFlags.applyrescaling = true;}
-    inline void DisableRescaling() {this->m_RegFlags.applyrescaling = false;}
-
-    inline void EnableSmoothing() {this->m_RegFlags.applysmoothing = true;}
-    inline void DisableSmoothing() {this->m_RegFlags.applysmoothing = false;}
 
     PetscErrorCode GetSizes(IntType*, IntType&, IntType&);
     PetscErrorCode GetSizes(IntType*, IntType*, IntType*);
@@ -487,8 +475,6 @@ class RegOpt {
         return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
     }
-
-    inline ReadWriteFlags GetReadWriteFlags() {return this->m_ReadWriteFlags;}
 
     /* do setup for grid continuation */
     PetscErrorCode SetupGridCont();
@@ -500,23 +486,6 @@ class RegOpt {
     inline ScalarType GetBeta(int i) {return this->m_RegNorm.beta[i];}
     inline void SetSigma(int i, ScalarType sigma) {this->m_Sigma[i] = sigma;}
     inline ScalarType GetSigma(int i) {return this->m_Sigma[i];}
-
-    // solver flags
-    inline PDESolver GetPDESolverPara(void) {return this->m_PDESolver;}
-    inline void SetPDESolverType(PDESolverType flag) {this->m_PDESolver.type = flag;}
-
-    // krylov method
-    inline KrylovSolver GetKrylovSolverPara() {return this->m_KrylovSolverPara;}
-    inline void SetRelTolKrylovMethod(ScalarType value) {this->m_KrylovSolverPara.reltol = value;}
-    inline void SetMaxItKrylovMethod(int value) {this->m_KrylovSolverPara.maxit = value;}
-    inline void SetKrylovIter(IntType value) {this->m_KrylovSolverPara.iter = value;}
-    inline void SetInitialGradNormKrylovMethod(ScalarType value) {
-        this->m_KrylovSolverPara.g0norm = value;
-        this->m_KrylovSolverPara.g0normset = true;
-    }
-//    inline void InitialGradNormSet(bool flag) {this->m_KrylovSolverPara.g0normset = flag;}
-    inline void KrylovMethodEigValsEstimated(bool flag) {this->m_KrylovSolverPara.eigvalsestimated = flag;}
-    inline void PrecondSetupDone(bool flag) {this->m_KrylovSolverPara.pcsetupdone = flag;}
 
     // flag for setup
     inline bool SetupDone() {return this->m_SetupDone;}
@@ -607,6 +576,12 @@ class RegOpt {
 
     RegModel m_RegModel;                ///< flag for particular registration model
     Domain m_Domain;                    ///< parameters for spatial domain
+    GridCont m_GridCont;                ///< flags for grid continuation
+    ScaleCont m_ScaleCont;              ///< flags for scale continuation
+    Optimization m_OptPara;             ///< optimization parameters
+    ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
+    PDESolver m_PDESolver;              ///< flag for PDE solver
+    KrylovMethod m_KrylovMethod;    ///< parameters for krylov solver
 
     int m_Verbosity;
 
@@ -629,15 +604,9 @@ class RegOpt {
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
 
-    PDESolver m_PDESolver;              ///< flag for PDE solver
-    Optimization m_OptPara;             ///< optimization parameters
-    KrylovSolver m_KrylovSolverPara;    ///< parameters for krylov solver
-    ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
     RegMonitor m_RegMonitor;            ///< monitor for registration
     RegNorm m_RegNorm;                  ///< parameters for regularization model
     ParCont m_ParaCont;                 ///< flags for parameter continuation
-    GridCont m_GridCont;                ///< flags for grid continuation
-    ScaleCont m_ScaleCont;              ///< flags for scale continuation
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
     RegFlags m_RegFlags;                ///< flags for registration
     SolveType m_SolveType;              ///< solver

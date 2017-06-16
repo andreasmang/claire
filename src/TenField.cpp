@@ -185,8 +185,8 @@ PetscErrorCode TenField::Allocate(int level) {
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetGridContPara().nl[level];
-    ng = this->m_Opt->GetGridContPara().ng[level];
+    nl = this->m_Opt->m_GridCont.nl[level];
+    ng = this->m_Opt->m_GridCont.ng[level];
 
     ierr = this->Allocate(nl, ng); CHKERRQ(ierr);
 

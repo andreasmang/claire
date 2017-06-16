@@ -149,7 +149,7 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
     if (this->m_StateVariable == NULL) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
     }
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         if (this->m_AdjointVariable == NULL) {
             ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
@@ -194,7 +194,7 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
         ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetPDESolverPara().type == SL) {
+    if (this->m_Opt->m_PDESolver.type == SL) {
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
             catch (std::bad_alloc& err) {
@@ -269,7 +269,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
     // if we use a non-zero initial guess, we compute
     // the first velocity using a steepest descent approach
-    if (!this->m_Opt->GetOptPara().usezeroinitialguess) {
+    if (!this->m_Opt->m_OptPara.usezeroinitialguess) {
         ierr = VecCreate(dv, 3*nl, 3*ng); CHKERRQ(ierr);
         ierr = VecCreate(vtilde, 3*nl, 3*ng); CHKERRQ(ierr);
 
@@ -506,7 +506,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
 
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
-    if (this->m_Opt->GetPDESolverPara().type == SL) {
+    if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -577,7 +577,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external pointer
     if (this->m_AdjointVariable == NULL) {
-        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
             ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         } else {
             ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
@@ -585,7 +585,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     }
     ierr = VecCopy(lambda, this->m_AdjointVariable); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetPDESolverPara().type == SL) {
+    if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         if (this->m_SemiLagrangianMethod == NULL) {
             try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -1020,7 +1020,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
     ierr = this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
 
     // switch between hessian operators
-    switch (this->m_Opt->GetKrylovSolverPara().matvectype) {
+    switch (this->m_Opt->m_KrylovMethod.matvectype) {
         case DEFAULTMATVEC:
         {
             // apply hessian H to \tilde{v}
@@ -1055,7 +1055,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
             ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
         }
 
-//        gamma = this->m_Opt->GetKrylovSolverPara().hessshift;
+//        gamma = this->m_Opt->m_KrylovMethod.hessshift;
 //        if (gamma > 0.0) {
 //            ierr = VecAXPY(Hvtilde, gamma, vtilde); CHKERRQ(ierr);
 //        }
@@ -1345,7 +1345,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     // allocate state and adjoint variables
     if (this->m_AdjointVariable == NULL) {
-        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
             ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         } else {
             ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
@@ -1513,7 +1513,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);  // incremental adjoint variable for all t^j
 
     // TODO(andreas): add case for zero velocity field
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -1573,7 +1573,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
         ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);  // adjoint variable for all t^j
         ierr = VecRestoreArray(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);  // incremental state variable for all t^j
         ierr = this->m_WorkVecField3->RestoreArrays(p_gradmt1, p_gradmt2, p_gradmt3); CHKERRQ(ierr);
-    } else if (this->m_Opt->GetOptPara().method == GAUSSNEWTON) {  // gauss newton approximation
+    } else if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {  // gauss newton approximation
         // compute numerical integration (trapezoidal rule)
         for (IntType j = 0; j <= nt; ++j) {  // for all time points
             // trapezoidal rule (apply scaling)
@@ -1645,8 +1645,8 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // check cfl condition / update time step
-    if (this->m_Opt->GetPDESolverPara().monitorcflnumber ||
-        this->m_Opt->GetPDESolverPara().adapttimestep) {
+    if (this->m_Opt->m_PDESolver.monitorcflnumber ||
+        this->m_Opt->m_PDESolver.adapttimestep) {
         ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
     }
 
@@ -1703,7 +1703,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         }
     } else {
         // call the solver
-        switch (this->m_Opt->GetPDESolverPara().type) {
+        switch (this->m_Opt->m_PDESolver.type) {
             case RK2:
             {
                 ierr = this->SolveStateEquationRK2(); CHKERRQ(ierr);
@@ -1742,7 +1742,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
 
     // store time series
-    if (this->m_Opt->GetReadWriteFlags().timeseries) {
+    if (this->m_Opt->m_ReadWriteFlags.timeseries) {
         ext = this->m_Opt->GetFileNames().extension;
 
         if (this->m_WorkScaField1 == NULL) {
@@ -2011,7 +2011,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         ss.str(std::string()); ss.clear();
     }
 
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         if (this->m_AdjointVariable == NULL) {
             ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
@@ -2047,7 +2047,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
         // adjoint variable is constant in time
-        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
             for (IntType j = 1; j <= nt; ++j) {
                 try {std::copy(p_l + nt*nc*nl, p_l + (nt+1)*nc*nl, p_l + (nt-j)*nl*nc);}
                 catch (std::exception& err) {
@@ -2109,7 +2109,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     } else {
         // call the solver
-        switch (this->m_Opt->GetPDESolverPara().type) {
+        switch (this->m_Opt->m_PDESolver.type) {
             case RK2:
             {
                 ierr = this->SolveAdjointEquationRK2(); CHKERRQ(ierr);
@@ -2211,7 +2211,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
     // for full newton we store $\lambda$
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
     }
     ierr = VecGetArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
@@ -2406,7 +2406,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
     // for full newton we store the adjoint variable
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
     }
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -2553,7 +2553,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
 
     // allocate variables
     if (this->m_IncStateVariable == NULL) {
-        if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
             ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         } else {
             ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
@@ -2569,7 +2569,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
 
 
     // call the solver
-    switch (this->m_Opt->GetPDESolverPara().type) {
+    switch (this->m_Opt->m_PDESolver.type) {
         case RK2:
         {
             ierr = this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
@@ -2666,7 +2666,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
         }
     }
 
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {   // gauss newton
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
         fullnewton = true;
     }
 
@@ -2853,7 +2853,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {   // gauss newton
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
         fullnewton = true;
     }
 
@@ -2980,7 +2980,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // allocate state and adjoint variables
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
@@ -3007,7 +3007,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
 
     // check if velocity field is zero
-    if (this->m_Opt->GetOptPara().method == GAUSSNEWTON) {   // gauss newton
+    if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {   // gauss newton
         ierr = this->IsVelocityZero(); CHKERRQ(ierr);
         if (this->m_VelocityIsZero) {
             // since we're already in gauss newton mode, we do not
@@ -3066,7 +3066,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
             this->m_Opt->IncreaseFFTTimers(timer);
         } else {
             // call the solver
-            switch (this->m_Opt->GetPDESolverPara().type) {
+            switch (this->m_Opt->m_PDESolver.type) {
                 case RK2:
                 {
                     ierr = this->SolveIncAdjointEquationGNRK2(); CHKERRQ(ierr);
@@ -3085,9 +3085,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
                 }
             }
         }  // zero velocity field
-    } else if (this->m_Opt->GetOptPara().method == FULLNEWTON) {   // full newton
+    } else if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // full newton
         // call the solver
-        switch (this->m_Opt->GetPDESolverPara().type) {
+        switch (this->m_Opt->m_PDESolver.type) {
             case RK2:
             {
                 ierr = ThrowError("not tested"); CHKERRQ(ierr);
@@ -3743,7 +3743,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
 
     // store iterates
-    if (this->m_Opt->GetReadWriteFlags().iterates) {
+    if (this->m_Opt->m_ReadWriteFlags.iterates) {
         // allocate
         if (this->m_WorkScaFieldMC == NULL) {
             ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
@@ -3902,7 +3902,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write deformed template image to file
-    if (this->m_Opt->GetReadWriteFlags().deftemplate) {
+    if (this->m_Opt->m_ReadWriteFlags.deftemplate) {
         // copy memory for m_1
         ierr = VecGetArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
         ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -3916,7 +3916,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write residual images to file
-    if (this->m_Opt->GetReadWriteFlags().residual) {
+    if (this->m_Opt->m_ReadWriteFlags.residual) {
         ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
         ierr = VecGetArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
@@ -3947,41 +3947,41 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write velocity field to file
-    if (this->m_Opt->GetReadWriteFlags().results) {
+    if (this->m_Opt->m_ReadWriteFlags.results) {
         ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field" + ext); CHKERRQ(ierr);
     }
 
     // write norm of velocity field to file
-    if (this->m_Opt->GetReadWriteFlags().velnorm) {
+    if (this->m_Opt->m_ReadWriteFlags.velnorm) {
         ierr = this->m_VelocityField->Norm(this->m_WorkScaField1); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, "velocity-field-norm" + ext); CHKERRQ(ierr);
     }
 
     // write determinant of deformation gradient to file
-    if (this->m_Opt->GetReadWriteFlags().detdefgrad) {
+    if (this->m_Opt->m_ReadWriteFlags.detdefgrad) {
         ierr = this->ComputeDetDefGrad(true); CHKERRQ(ierr);
     }
 
     // write determinant of deformation gradient to file
-    if (this->m_Opt->GetReadWriteFlags().defgrad) {
+    if (this->m_Opt->m_ReadWriteFlags.defgrad) {
         ierr = this->ComputeDefGrad(true); CHKERRQ(ierr);
     }
 
     // write deformation map to file
-    if (this->m_Opt->GetReadWriteFlags().defmap) {
+    if (this->m_Opt->m_ReadWriteFlags.defmap) {
         ierr = this->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
 
     // write deformation field to file
-    if (this->m_Opt->GetReadWriteFlags().deffield) {
+    if (this->m_Opt->m_ReadWriteFlags.deffield) {
         ierr = this->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
     // write template and reference image
-    if (this->m_Opt->GetReadWriteFlags().templateim) {
+    if (this->m_Opt->m_ReadWriteFlags.templateim) {
         ierr = this->m_ReadWrite->WriteT(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
-    if (this->m_Opt->GetReadWriteFlags().referenceim) {
+    if (this->m_Opt->m_ReadWriteFlags.referenceim) {
         ierr = this->m_ReadWrite->WriteR(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 

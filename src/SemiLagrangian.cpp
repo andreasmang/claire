@@ -502,7 +502,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl     = this->m_Opt->m_Domain.nl;
-    order  = this->m_Opt->GetPDESolverPara().interpolationorder;
+    order  = this->m_Opt->m_PDESolver.interpolationorder;
     nghost = order;
     neval  = static_cast<int>(nl);
 
@@ -601,7 +601,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->m_Domain.nl;
-    order = this->m_Opt->GetPDESolverPara().interpolationorder;
+    order = this->m_Opt->m_PDESolver.interpolationorder;
     nghost = order;
 
     for (int i = 0; i < 3; ++i) {
@@ -700,7 +700,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
     // get sizes
     nl     = static_cast<int>(this->m_Opt->m_Domain.nl);
-    nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
+    nghost = this->m_Opt->m_PDESolver.interpolationorder;
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         isize[i] = static_cast<int>(this->m_Opt->m_Domain.isize[i]);

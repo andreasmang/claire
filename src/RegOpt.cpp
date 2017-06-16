@@ -119,18 +119,18 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Sigma[1] = opt.m_Sigma[1];
     this->m_Sigma[2] = opt.m_Sigma[2];
 
-    this->m_KrylovSolverPara.tol[0] = opt.m_KrylovSolverPara.tol[0];
-    this->m_KrylovSolverPara.tol[1] = opt.m_KrylovSolverPara.tol[1];
-    this->m_KrylovSolverPara.tol[2] = opt.m_KrylovSolverPara.tol[2];
-    this->m_KrylovSolverPara.pcmaxit = opt.m_KrylovSolverPara.pcmaxit;
-    this->m_KrylovSolverPara.reesteigvals = opt.m_KrylovSolverPara.reesteigvals;
-    this->m_KrylovSolverPara.usepetsceigest = opt.m_KrylovSolverPara.usepetsceigest;
-    this->m_KrylovSolverPara.pctol[0] = opt.m_KrylovSolverPara.pctol[0];
-    this->m_KrylovSolverPara.pctol[1] = opt.m_KrylovSolverPara.pctol[1];
-    this->m_KrylovSolverPara.pctol[2] = opt.m_KrylovSolverPara.pctol[2];
-    this->m_KrylovSolverPara.matvectype = opt.m_KrylovSolverPara.matvectype;
-    this->m_KrylovSolverPara.checkhesssymmetry = opt.m_KrylovSolverPara.checkhesssymmetry;
-    this->m_KrylovSolverPara.hessshift = opt.m_KrylovSolverPara.hessshift;
+    this->m_KrylovMethod.tol[0] = opt.m_KrylovMethod.tol[0];
+    this->m_KrylovMethod.tol[1] = opt.m_KrylovMethod.tol[1];
+    this->m_KrylovMethod.tol[2] = opt.m_KrylovMethod.tol[2];
+    this->m_KrylovMethod.pcmaxit = opt.m_KrylovMethod.pcmaxit;
+    this->m_KrylovMethod.reesteigvals = opt.m_KrylovMethod.reesteigvals;
+    this->m_KrylovMethod.usepetsceigest = opt.m_KrylovMethod.usepetsceigest;
+    this->m_KrylovMethod.pctol[0] = opt.m_KrylovMethod.pctol[0];
+    this->m_KrylovMethod.pctol[1] = opt.m_KrylovMethod.pctol[1];
+    this->m_KrylovMethod.pctol[2] = opt.m_KrylovMethod.pctol[2];
+    this->m_KrylovMethod.matvectype = opt.m_KrylovMethod.matvectype;
+    this->m_KrylovMethod.checkhesssymmetry = opt.m_KrylovMethod.checkhesssymmetry;
+    this->m_KrylovMethod.hessshift = opt.m_KrylovMethod.hessshift;
 
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
     this->m_OptPara.minit = opt.m_OptPara.minit;
@@ -514,11 +514,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-krylovsolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
-                this->m_KrylovSolverPara.solver = PCG;
-                this->m_KrylovSolverPara.name = "PCG";
+                this->m_KrylovMethod.solver = PCG;
+                this->m_KrylovMethod.name = "PCG";
             } else if (strcmp(argv[1], "gmres") == 0) {
-                this->m_KrylovSolverPara.solver = GMRES;
-                this->m_KrylovSolverPara.name = "GMRES";
+                this->m_KrylovMethod.solver = GMRES;
+                this->m_KrylovMethod.name = "GMRES";
             } else {
                 msg = "\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -526,18 +526,18 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-krylovmaxit") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.maxit = atoi(argv[1]);
+            this->m_KrylovMethod.maxit = atoi(argv[1]);
         } else if (strcmp(argv[1], "-krylovtol") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.tol[0] = atof(argv[1]);
+            this->m_KrylovMethod.tol[0] = atof(argv[1]);
         } else if (strcmp(argv[1], "-krylovfseq") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "none") == 0) {
-                this->m_KrylovSolverPara.fseqtype = NOFS;
+                this->m_KrylovMethod.fseqtype = NOFS;
             } else if (strcmp(argv[1], "quadratic") == 0) {
-                this->m_KrylovSolverPara.fseqtype = QDFS;
+                this->m_KrylovMethod.fseqtype = QDFS;
             } else if (strcmp(argv[1], "suplinear") == 0) {
-                this->m_KrylovSolverPara.fseqtype = SLFS;
+                this->m_KrylovMethod.fseqtype = SLFS;
             } else {
                 msg = "\n\x1b[31m forcing sequence not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -546,18 +546,18 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-precond") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "none") == 0) {
-                this->m_KrylovSolverPara.pctype = NOPC;
-                this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
+                this->m_KrylovMethod.pctype = NOPC;
+                this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
             } else if (strcmp(argv[1], "invreg") == 0) {
-                this->m_KrylovSolverPara.pctype = INVREG;
-                this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
-//                this->m_KrylovSolverPara.pctype = NOPC;
-//                this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+                this->m_KrylovMethod.pctype = INVREG;
+                this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
+//                this->m_KrylovMethod.pctype = NOPC;
+//                this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "2level") == 0) {
-                this->m_KrylovSolverPara.pctype = TWOLEVEL;
-                this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+                this->m_KrylovMethod.pctype = TWOLEVEL;
+                this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
                 this->m_GridCont.nxmin = 64;
-//                 this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
+//                 this->m_KrylovMethod.matvectype = PRECONDMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -565,42 +565,42 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-gridscale") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.pcgridscale = atof(argv[1]);
+            this->m_KrylovMethod.pcgridscale = atof(argv[1]);
         } else if (strcmp(argv[1], "-pcsolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
-                this->m_KrylovSolverPara.pcsolver = PCG;
-                //this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+                this->m_KrylovMethod.pcsolver = PCG;
+                //this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "fpcg") == 0) {
-                this->m_KrylovSolverPara.pcsolver = FCG;
-                //this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+                this->m_KrylovMethod.pcsolver = FCG;
+                //this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "gmres") == 0) {
-                this->m_KrylovSolverPara.pcsolver = GMRES;
-                this->m_KrylovSolverPara.name = "GMRES";
-                //this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
+                this->m_KrylovMethod.pcsolver = GMRES;
+                this->m_KrylovMethod.name = "GMRES";
+                //this->m_KrylovMethod.matvectype = PRECONDMATVEC;
             } else if (strcmp(argv[1], "fgmres") == 0) {
-                this->m_KrylovSolverPara.pcsolver = FGMRES;
-                this->m_KrylovSolverPara.name = "FGMRES";
-                //this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
+                this->m_KrylovMethod.pcsolver = FGMRES;
+                this->m_KrylovMethod.name = "FGMRES";
+                //this->m_KrylovMethod.matvectype = PRECONDMATVEC;
             } else if (strcmp(argv[1], "cheb") == 0) {
-                this->m_KrylovSolverPara.pcsolver = CHEB;
-                this->m_KrylovSolverPara.name = "CHEB";
-                //this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
+                this->m_KrylovMethod.pcsolver = CHEB;
+                this->m_KrylovMethod.name = "CHEB";
+                //this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else {
                 msg = "\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
         } else if (strcmp(argv[1], "-reesteigvals") == 0) {
-            this->m_KrylovSolverPara.reesteigvals = true;
+            this->m_KrylovMethod.reesteigvals = true;
         } else if (strcmp(argv[1], "-pctolscale") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.pctolscale = atof(argv[1]);
+            this->m_KrylovMethod.pctolscale = atof(argv[1]);
         } else if (strcmp(argv[1], "-pcsolvermaxit") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.pcmaxit = atoi(argv[1]);
+            this->m_KrylovMethod.pcmaxit = atoi(argv[1]);
         } else if (strcmp(argv[1], "-checksymmetry") == 0) {
-            this->m_KrylovSolverPara.checkhesssymmetry = true;
+            this->m_KrylovMethod.checkhesssymmetry = true;
         } else if (strcmp(argv[1], "-pdesolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
@@ -624,7 +624,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_PDESolver.interpolationorder = atoi(argv[1]);
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
-            this->m_KrylovSolverPara.hessshift = atof(argv[1]);
+            this->m_KrylovMethod.hessshift = atof(argv[1]);
         } else if (strcmp(argv[1], "-regnorm") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "h1s") == 0) {
@@ -966,35 +966,35 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
-    this->m_KrylovSolverPara.tol[0] = 1E-12;     ///< relative tolerance
-    this->m_KrylovSolverPara.tol[1] = 1E-16;     ///< absolute tolerance
-    this->m_KrylovSolverPara.tol[2] = 1E+06;     ///< divergence tolerance
-    //this->m_KrylovSolverPara.maxit = 1000;       ///< max number of iterations
-    this->m_KrylovSolverPara.maxit = 30;         ///< max number of iterations
-    this->m_KrylovSolverPara.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
-    this->m_KrylovSolverPara.fseqtype = QDFS;
-    this->m_KrylovSolverPara.pctype = INVREG;
-    this->m_KrylovSolverPara.solver = PCG;
-    this->m_KrylovSolverPara.pcsetupdone = false;
-    this->m_KrylovSolverPara.g0norm = 0;
-    this->m_KrylovSolverPara.g0normset = false;
-    this->m_KrylovSolverPara.iter = 0;           ///< divergence tolerance
-    this->m_KrylovSolverPara.pcsolver = PCG;
-    this->m_KrylovSolverPara.pctolscale = 1E-1;
-    //this->m_KrylovSolverPara.pcmaxit = 1000;
-    this->m_KrylovSolverPara.pcmaxit = 10;
-    this->m_KrylovSolverPara.pcgridscale = 2;
-    this->m_KrylovSolverPara.pctol[0] = 1E-12;   ///< relative tolerance
-    this->m_KrylovSolverPara.pctol[1] = 1E-16;   ///< absolute tolerance
-    this->m_KrylovSolverPara.pctol[2] = 1E+06;   ///< divergence tolerance
-    this->m_KrylovSolverPara.usepetsceigest = true;
-    this->m_KrylovSolverPara.matvectype = DEFAULTMATVEC;
-//    this->m_KrylovSolverPara.matvectype = PRECONDMATVEC;
-//    this->m_KrylovSolverPara.matvectype = PRECONDMATVECSYM;
-    this->m_KrylovSolverPara.reesteigvals = false;
-    this->m_KrylovSolverPara.eigvalsestimated = false;
-    this->m_KrylovSolverPara.checkhesssymmetry = false;
-    this->m_KrylovSolverPara.hessshift = 0.0;
+    this->m_KrylovMethod.tol[0] = 1E-12;     ///< relative tolerance
+    this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
+    this->m_KrylovMethod.tol[2] = 1E+06;     ///< divergence tolerance
+    //this->m_KrylovMethod.maxit = 1000;       ///< max number of iterations
+    this->m_KrylovMethod.maxit = 30;         ///< max number of iterations
+    this->m_KrylovMethod.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
+    this->m_KrylovMethod.fseqtype = QDFS;
+    this->m_KrylovMethod.pctype = INVREG;
+    this->m_KrylovMethod.solver = PCG;
+    this->m_KrylovMethod.pcsetupdone = false;
+    this->m_KrylovMethod.g0norm = 0;
+    this->m_KrylovMethod.g0normset = false;
+    this->m_KrylovMethod.iter = 0;           ///< divergence tolerance
+    this->m_KrylovMethod.pcsolver = PCG;
+    this->m_KrylovMethod.pctolscale = 1E-1;
+    //this->m_KrylovMethod.pcmaxit = 1000;
+    this->m_KrylovMethod.pcmaxit = 10;
+    this->m_KrylovMethod.pcgridscale = 2;
+    this->m_KrylovMethod.pctol[0] = 1E-12;   ///< relative tolerance
+    this->m_KrylovMethod.pctol[1] = 1E-16;   ///< absolute tolerance
+    this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
+    this->m_KrylovMethod.usepetsceigest = true;
+    this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
+//    this->m_KrylovMethod.matvectype = PRECONDMATVEC;
+//    this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
+    this->m_KrylovMethod.reesteigvals = false;
+    this->m_KrylovMethod.eigvalsestimated = false;
+    this->m_KrylovMethod.checkhesssymmetry = false;
+    this->m_KrylovMethod.hessshift = 0.0;
 
     // tolerances for optimization
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
@@ -1426,8 +1426,8 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
 
-    if (this->m_KrylovSolverPara.pctolscale < 0.0
-        || this->m_KrylovSolverPara.pctolscale >= 1.0) {
+    if (this->m_KrylovMethod.pctolscale < 0.0
+        || this->m_KrylovMethod.pctolscale >= 1.0) {
         msg = "\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
         ierr = this->Usage(); CHKERRQ(ierr);
@@ -1506,8 +1506,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
     if (this->m_SolveType == FAST_AGG) {
         // use fast and aggressive method
         this->m_RegNorm.type = H1SN;
-        this->m_KrylovSolverPara.fseqtype = QDFS;
-        this->m_KrylovSolverPara.maxit = 5;
+        this->m_KrylovMethod.fseqtype = QDFS;
+        this->m_KrylovMethod.maxit = 5;
         this->m_OptPara.maxit = 20;
         this->m_OptPara.presolvemaxit = 10;
         this->m_OptPara.tol[2] = 5E-2;  // use 5E-2 if results are not acceptable reduce; 1E-1 and 2.5E-1
@@ -1515,8 +1515,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
     } else if (this->m_SolveType == ACC_AGG) {
         // use slow and aggressive method
         this->m_RegNorm.type = H1SN;
-        this->m_KrylovSolverPara.fseqtype = QDFS;
-        this->m_KrylovSolverPara.maxit = 50;
+        this->m_KrylovMethod.fseqtype = QDFS;
+        this->m_KrylovMethod.maxit = 50;
         this->m_OptPara.maxit = 50;
         this->m_OptPara.presolvemaxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
@@ -1525,8 +1525,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         // use fast and smooth method
         //this->m_RegNorm.type = H2SN;
         this->m_RegNorm.type = H2;
-        this->m_KrylovSolverPara.fseqtype = QDFS;
-        this->m_KrylovSolverPara.maxit = 5;
+        this->m_KrylovMethod.fseqtype = QDFS;
+        this->m_KrylovMethod.maxit = 5;
         this->m_OptPara.maxit = 20;
         this->m_OptPara.presolvemaxit = 10;
         this->m_OptPara.tol[2] = 5E-2;
@@ -1535,8 +1535,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         // use slow and smooth method
         //this->m_RegNorm.type = H2SN;
         this->m_RegNorm.type = H2;
-        this->m_KrylovSolverPara.fseqtype = QDFS;
-        this->m_KrylovSolverPara.maxit = 50;
+        this->m_KrylovMethod.fseqtype = QDFS;
+        this->m_KrylovMethod.maxit = 50;
         this->m_OptPara.maxit = 50;
         this->m_OptPara.presolvemaxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
@@ -1979,33 +1979,33 @@ PetscErrorCode RegOpt::DisplayOptions() {
                       << " hessian system"
                       << std::setw(align) << "solver";
 
-            switch (this->m_KrylovSolverPara.solver) {
+            switch (this->m_KrylovMethod.solver) {
                 case PCG:
-                    this->m_KrylovSolverPara.name = "PCG";
+                    this->m_KrylovMethod.name = "PCG";
                     break;
                 case GMRES:
-                    this->m_KrylovSolverPara.name = "GMRES";
+                    this->m_KrylovMethod.name = "GMRES";
                     break;
                 default:
                     ierr = ThrowError("solver not defined"); CHKERRQ(ierr);
                     break;
             }
 
-            std::cout << this->m_KrylovSolverPara.name << std::endl;
+            std::cout << this->m_KrylovMethod.name << std::endl;
 
             std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) << "forcing sequence";
 
-            switch (this->m_KrylovSolverPara.fseqtype) {
+            switch (this->m_KrylovMethod.fseqtype) {
                 case NOFS:
                 {
                     std::cout << std::setw(align) << "disabled" << std::endl;
                     std::cout << std::left << std::setw(indent) << " "
                               << std::setw(align) << "absolute"
-                              << this->m_KrylovSolverPara.tol[0] << std::endl;
+                              << this->m_KrylovMethod.tol[0] << std::endl;
                     std::cout << std::left << std::setw(indent) << " "
                               << std::setw(align) << "relative"
-                              << this->m_KrylovSolverPara.tol[1] << std::endl;
+                              << this->m_KrylovMethod.tol[1] << std::endl;
                     break;
                 }
                 case QDFS:
@@ -2027,13 +2027,13 @@ PetscErrorCode RegOpt::DisplayOptions() {
 
             std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "maxit"
-                      << this->m_KrylovSolverPara.maxit << std::endl;
+                      << this->m_KrylovMethod.maxit << std::endl;
 
             bool twolevel = false;
             std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "preconditioner";
 
-            switch (this->m_KrylovSolverPara.pctype) {
+            switch (this->m_KrylovMethod.pctype) {
                 case INVREG:
                 {
                     std::cout << "regularization operator" << std::endl;
@@ -2061,30 +2061,30 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 std::cout << std::left << std::setw(indent) << " "
                           << std::setw(align) << "solver (preconditioner)";
 
-                switch (this->m_KrylovSolverPara.pcsolver) {
+                switch (this->m_KrylovMethod.pcsolver) {
                     case PCG:
                     {
-                        this->m_KrylovSolverPara.pcname = "PCG";
+                        this->m_KrylovMethod.pcname = "PCG";
                         break;
                     }
                     case FCG:
                     {
-                        this->m_KrylovSolverPara.pcname = "FPCG";
+                        this->m_KrylovMethod.pcname = "FPCG";
                         break;
                     }
                     case GMRES:
                     {
-                        this->m_KrylovSolverPara.pcname = "GMRES";
+                        this->m_KrylovMethod.pcname = "GMRES";
                         break;
                     }
                     case FGMRES:
                     {
-                        this->m_KrylovSolverPara.pcname = "FGMRES";
+                        this->m_KrylovMethod.pcname = "FGMRES";
                         break;
                     }
                     case CHEB:
                     {
-                        this->m_KrylovSolverPara.pcname = "CHEB";
+                        this->m_KrylovMethod.pcname = "CHEB";
                         break;
                     }
                     default:
@@ -2093,11 +2093,11 @@ PetscErrorCode RegOpt::DisplayOptions() {
                         break;
                     }
                 }
-                std::cout << this->m_KrylovSolverPara.pcname << std::endl;
+                std::cout << this->m_KrylovMethod.pcname << std::endl;
             }
 /*          std::cout << std::left << std::setw(indent) <<" "
                       << std::setw(align) <<"divergence"
-                      << this->m_KrylovSolverPara.tol[2] << std::endl;*/
+                      << this->m_KrylovMethod.tol[2] << std::endl;*/
         }
         std::cout << line << std::endl;
     }

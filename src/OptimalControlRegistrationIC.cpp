@@ -212,7 +212,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
     }
 

@@ -262,7 +262,7 @@ PetscErrorCode PrecondReg::Reset() {
     this->m_Opt->Enter(__func__);
 
     // switch case for choice of preconditioner
-    switch(this->m_Opt->GetKrylovSolverPara().pctype) {
+    switch(this->m_Opt->m_KrylovMethod.pctype) {
         case NOPC:
         {
             // no need to do anything
@@ -279,7 +279,7 @@ PetscErrorCode PrecondReg::Reset() {
             // instance when we do parameter continuation) without
             // destroying the preconditioner, it is necessary to
             // recompute eigenvalues
-            this->m_Opt->KrylovMethodEigValsEstimated(false);
+            this->m_Opt->m_KrylovMethod.eigvalsestimated = false;
             break;
         }
         default:
@@ -310,11 +310,11 @@ PetscErrorCode PrecondReg::DoSetup() {
     ierr = this->m_Opt->StartTimer(PMVSETUP); CHKERRQ(ierr);
 
     // switch case for choice of preconditioner
-    if (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) {
+    if (this->m_Opt->m_KrylovMethod.pctype == TWOLEVEL) {
         // apply restriction to adjoint, state and control variable
         ierr = this->ApplyRestriction(); CHKERRQ(ierr);
     }
-    this->m_Opt->PrecondSetupDone(true);
+    this->m_Opt->m_KrylovMethod.pcsetupdone = true;
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVSETUP); CHKERRQ(ierr);
@@ -359,7 +359,7 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     }
 
     // get grid scale and compute number of grid points
-    scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
+    scale = this->m_Opt->m_KrylovMethod.pcgridscale;
     for (int i = 0; i < 3; ++i) {
         value = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i])/scale;
         this->m_CoarseGrid.m_Opt->m_Domain.nx[i] = static_cast<IntType>(std::ceil(value));
@@ -419,7 +419,7 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
 
     // allocate state and adjoint variables
     ierr = VecCreate(this->m_CoarseGrid.m_StateVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
-    if (this->m_Opt->GetOptPara().method == FULLNEWTON) {
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, (nt+1)*nc*this->m_CoarseGrid.nl(), (nt+1)*nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
     } else {
         ierr = VecCreate(this->m_CoarseGrid.m_AdjointVariable, nc*this->m_CoarseGrid.nl(), nc*this->m_CoarseGrid.ng()); CHKERRQ(ierr);
@@ -460,7 +460,7 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
     this->m_Opt->Enter(__func__);
 
     // switch case for choice of preconditioner
-    switch(this->m_Opt->GetKrylovSolverPara().pctype) {
+    switch(this->m_Opt->m_KrylovMethod.pctype) {
         case NOPC:
         {
             ierr = WrngMsg("no preconditioner used"); CHKERRQ(ierr);
@@ -719,7 +719,7 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
             ////// adjoint variable
             /////////////////////////////////////////////////////////////////////
             if (j > 0) { // we do not store the time history for gauss newton
-                if (this->m_Opt->GetOptPara().method == GAUSSNEWTON) {  // gauss newton approximation
+                if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {  // gauss newton approximation
                     applyrestriction = false;
                 }
             }
@@ -787,7 +787,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         ierr = DbgMsg("preconditioner: setup krylovmethod"); CHKERRQ(ierr);
     }
 
-    switch (this->m_Opt->GetKrylovSolverPara().pcsolver) {
+    switch (this->m_Opt->m_KrylovMethod.pcsolver) {
         case CHEB:
         {
             if (this->m_Opt->GetVerbosity() > 2) {
@@ -865,8 +865,8 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
 
     // TODO: make sure this make sense; we will have to switch the hessian
     // operator, which currently is not done
-//   if (     (this->m_Opt->GetKrylovSolverPara().pcsolver == GMRES)
-//        ||  (this->m_Opt->GetKrylovSolverPara().pcsolver == FGMRES) ) {
+//   if (     (this->m_Opt->m_KrylovMethod.pcsolver == GMRES)
+//        ||  (this->m_Opt->m_KrylovMethod.pcsolver == FGMRES) ) {
 //        ierr = MatSetOption(this->m_MatVec, MAT_SYMMETRIC, PETSC_FALSE); CHKERRQ(ierr);
 //    }
 
@@ -904,7 +904,7 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
     this->m_Opt->Enter(__func__);
 
     // apply hessian (hessian matvec)
-    if (this->m_Opt->GetKrylovSolverPara().pctype == TWOLEVEL) {
+    if (this->m_Opt->m_KrylovMethod.pctype == TWOLEVEL) {
         if (this->m_Opt->GetVerbosity() > 2) {
             ierr = DbgMsg("preconditioner: (H^coarse + Q^coarse)[x^coarse]"); CHKERRQ(ierr);
         }
@@ -944,7 +944,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
 
     // get iteration number; if we need to many iterations, we
     // might want to reestimate the eigenvalues
-    n = this->m_Opt->GetKrylovSolverPara().iter;
+    n = this->m_Opt->m_KrylovMethod.iter;
     if ( n > itermax ) {
 
         ss << "iter="<< n << " > itermax=" << itermax <<" re-estimating eigenvalues";
@@ -956,8 +956,8 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
 
     }
 */
-    if (!this->m_Opt->GetKrylovSolverPara().eigvalsestimated) {
-        if (this->m_Opt->GetKrylovSolverPara().usepetsceigest) {
+    if (!this->m_Opt->m_KrylovMethod.eigvalsestimated) {
+        if (this->m_Opt->m_KrylovMethod.usepetsceigest) {
             if (this->m_Opt->GetVerbosity() > 1) {
                 ierr = DbgMsg("estimating eigenvalues (petsc)"); CHKERRQ(ierr);
             }
@@ -1011,7 +1011,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
         }   // switch between eigenvalue estimators
 
         // set flag
-        this->m_Opt->KrylovMethodEigValsEstimated(true);
+        this->m_Opt->m_KrylovMethod.eigvalsestimated = true;
     }
 
     if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr);}

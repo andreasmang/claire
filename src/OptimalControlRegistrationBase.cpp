@@ -467,7 +467,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
     }
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
-    if (!this->m_Opt->GetOptPara().usezeroinitialguess) {
+    if (!this->m_Opt->m_OptPara.usezeroinitialguess) {
         nl = this->m_Opt->m_Domain.nl;
         ng = this->m_Opt->m_Domain.ng;
         ierr = VecCreate(v, nl, ng); CHKERRQ(ierr);
@@ -769,7 +769,7 @@ PetscErrorCode OptimalControlRegistrationBase
     this->m_Opt->Enter(__func__);
 
     // switch between hessian operators
-    switch (this->m_Opt->GetKrylovSolverPara().matvectype) {
+    switch (this->m_Opt->m_KrylovMethod.matvectype) {
         case DEFAULTMATVEC:
         {
             // do nothing
@@ -811,7 +811,7 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x) {
     this->m_Opt->Enter(__func__);
 
     // switch between hessian operators
-    switch (this->m_Opt->GetKrylovSolverPara().matvectype) {
+    switch (this->m_Opt->m_KrylovMethod.matvectype) {
         case DEFAULTMATVEC:
         {
             // do nothing
@@ -1193,13 +1193,13 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
     // if we have a zero velocity field, we do not have to worry
     ntcfl = nt;
     if (vmaxscaled != 0.0) {
-        cflnum  = this->m_Opt->GetPDESolverPara().cflnumber;
+        cflnum  = this->m_Opt->m_PDESolver.cflnumber;
         // compute min number of time steps
         ntcfl  = static_cast<IntType>(ceil(vmaxscaled/cflnum));
         cflnum = vmaxscaled/static_cast<ScalarType>(nt);
     }
 
-    if (this->m_Opt->GetPDESolverPara().monitorcflnumber) {
+    if (this->m_Opt->m_PDESolver.monitorcflnumber) {
         ss << "||v||_infty = " << std::scientific
            << vmax << " (cflnum = " << cflnum
            << " -> nt = " << std::setw(3) << ntcfl << ")";
@@ -1207,7 +1207,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
         ss.str(std::string()); ss.clear();
     }
 
-    if (this->m_Opt->GetPDESolverPara().adapttimestep) {
+    if (this->m_Opt->m_PDESolver.adapttimestep) {
         if (ntcfl > nt) {
             if (this->m_Opt->GetVerbosity() > 1) {
                 ss << "changing time step: " << nt << " -> " << ntcfl;
@@ -1329,7 +1329,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     }
 
     // check cfl condition / update time step
-    if (this->m_Opt->GetPDESolverPara().adapttimestep) {
+    if (this->m_Opt->m_PDESolver.adapttimestep) {
         ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
     }
 
@@ -1346,7 +1346,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
         if (this->m_Opt->GetRegFlags().detdefgradfromdeffield) {
             ierr = this->ComputeDetDefGradViaDispField(); CHKERRQ(ierr);
         } else {
-            switch (this->m_Opt->GetPDESolverPara().type) {
+            switch (this->m_Opt->m_PDESolver.type) {
                 case RK2:
                 {
                     ierr = this->ComputeDetDefGradRK2(); CHKERRQ(ierr);
@@ -1732,7 +1732,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     // store time series
-    if (this->m_Opt->GetReadWriteFlags().timeseries) {
+    if (this->m_Opt->m_ReadWriteFlags.timeseries) {
         ss.str(std::string()); ss.clear();
         ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
         ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
@@ -1776,7 +1776,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 }  // pragma omp
 
         // store time series
-        if (this->m_Opt->GetReadWriteFlags().timeseries) {
+        if (this->m_Opt->m_ReadWriteFlags.timeseries) {
             ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
@@ -1953,7 +1953,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
         if (this->m_Opt->GetRegFlags().detdefgradfromdeffield) {
             ierr = this->ComputeDetDefGradViaDispField(); CHKERRQ(ierr);
         } else {
-            switch (this->m_Opt->GetPDESolverPara().type) {
+            switch (this->m_Opt->m_PDESolver.type) {
                 case RK2:
                 {
                     ierr = ThrowError("not implemented");CHKERRQ(ierr);
@@ -2315,7 +2315,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
     }
 
     // check cfl condition / update time step
-    if (this->m_Opt->GetPDESolverPara().adapttimestep) {
+    if (this->m_Opt->m_PDESolver.adapttimestep) {
         ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
     }
 
@@ -2327,7 +2327,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
     }
 
     // call the solver
-    switch (this->m_Opt->GetPDESolverPara().type) {
+    switch (this->m_Opt->m_PDESolver.type) {
         case RK2:
         {
             ierr = this->ComputeDeformationMapRK2(); CHKERRQ(ierr);
@@ -2335,7 +2335,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         }
         case SL:
         {
-            switch (this->m_Opt->GetPDESolverPara().rungekuttaorder) {
+            switch (this->m_Opt->m_PDESolver.rungekuttaorder) {
                 case 2:
                 {
                     ierr = this->ComputeDeformationMapSLRK2(); CHKERRQ(ierr);
@@ -2648,7 +2648,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 
 
     // store time series
-    if (this->m_Opt->GetReadWriteFlags().timeseries ) {
+    if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
@@ -2706,7 +2706,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 }// end of pragma omp parallel
 
         // store time series
-        if (this->m_Opt->GetReadWriteFlags().timeseries ) {
+        if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
@@ -2794,7 +2794,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     }
 
     // store time series
-    if (this->m_Opt->GetReadWriteFlags().timeseries ) {
+    if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
@@ -2896,7 +2896,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // store time series
-        if (this->m_Opt->GetReadWriteFlags().timeseries) {
+        if (this->m_Opt->m_ReadWriteFlags.timeseries) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
@@ -2945,7 +2945,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
     }
 
     // call the solver
-    switch (this->m_Opt->GetPDESolverPara().type) {
+    switch (this->m_Opt->m_PDESolver.type) {
         case RK2:
         {
             // compute displacement field using rk2 time integrator
@@ -3113,7 +3113,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
     }
 
     // call the solver
-    switch (this->m_Opt->GetPDESolverPara().type) {
+    switch (this->m_Opt->m_PDESolver.type) {
         case RK2:
         {
             // compute displacement field using rk2 time integrator

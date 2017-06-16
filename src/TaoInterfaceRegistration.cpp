@@ -203,7 +203,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
-    miniter = optprob->GetOptions()->GetOptPara().minit;
+    miniter = optprob->GetOptions()->m_OptPara.minit;
 
     // get initial gradient
     g0norm = optprob->GetInitialGradientNorm();
@@ -326,7 +326,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     optprob->SetObjectiveValue(J);
 
     // perform derivative check
-    if (optprob->GetOptions()->GetOptPara().derivativecheckenabled) {
+    if (optprob->GetOptions()->m_OptPara.derivativecheckenabled) {
         ierr = optprob->DerivativeCheck(); CHKERRQ(ierr);
     }
 
@@ -365,7 +365,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
-    miniter = optprob->GetOptions()->GetOptPara().minit;
+    miniter = optprob->GetOptions()->m_OptPara.minit;
 
     // get initial gradient
     g0norm = optprob->GetInitialGradientNorm();
@@ -464,7 +464,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     }
 
     // perform derivative check
-    if (optprob->GetOptions()->GetOptPara().derivativecheckenabled) {
+    if (optprob->GetOptions()->m_OptPara.derivativecheckenabled) {
         ierr = optprob->DerivativeCheck(); CHKERRQ(ierr);
     }
 
@@ -499,7 +499,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     // reinit the initialization of the preconditioner
-    optprob->GetOptions()->PrecondSetupDone(false);
+    optprob->GetOptions()->m_KrylovMethod.pcsetupdone = false;
 
     if (optprob->GetOptions()->GetVerbosity() > 1) {
         ierr = DispLSConvReason(tao, optprob); CHKERRQ(ierr);
