@@ -88,9 +88,9 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateFunctional(ScalarType* R, V
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -201,9 +201,9 @@ PetscErrorCode RegularizationRegistrationH2::EvaluateGradient(VecField* dvR, Vec
     if (beta[0] == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -340,9 +340,9 @@ PetscErrorCode RegularizationRegistrationH2::ApplyInvOp(VecField* Ainvx, VecFiel
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -434,9 +434,9 @@ PetscErrorCode RegularizationRegistrationH2::GetExtremeEigValsInvOp(ScalarType& 
     beta2 = this->m_Opt->GetRegNorm().beta[1];
 
     // get max value
-    w[0] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[0])/2.0;
-    w[1] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[1])/2.0;
-    w[2] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[2])/2.0;
+    w[0] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[0])/2.0;
+    w[1] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[1])/2.0;
+    w[2] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[2])/2.0;
 
     // compute largest value for operator
     regop = -(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]); // laplacian

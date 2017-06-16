@@ -2611,7 +2611,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
                   << this->m_Domain.nx[2] << ","
                   << this->m_Domain.nc << ","
                   << this->m_Domain.nt << ","
-                  << this->GetDomainPara().nl << ","
+                  << this->m_Domain.nl << ","
                   << this->m_Domain.ng << ")"
                   << std::endl;
 
@@ -2938,11 +2938,11 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable(std::ostream& logwriter) {
 
         logwriter << std::left
                   << std::setw(nstr) << " n" << std::right
-                  << std::setw(nnum) << this->GetDomainPara().ng << std::endl;
+                  << std::setw(nnum) << this->m_Domain.ng << std::endl;
 
         logwriter << std::left
                   << std::setw(nstr) << " nl" << std::right
-                  << std::setw(nnum) << this->GetDomainPara().nl << std::endl;
+                  << std::setw(nnum) << this->m_Domain.nl << std::endl;
 
         logwriter << std::left
                   << std::setw(nstr) << " nmpi" << std::right

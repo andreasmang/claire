@@ -344,8 +344,8 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt  = this->m_Opt->GetDomainPara().nt;
-    nc  = this->m_Opt->GetDomainPara().nc;
+    nt  = this->m_Opt->m_Domain.nt;
+    nc  = this->m_Opt->m_Domain.nc;
 
     // set up options for coarse grid (copy all parameters
     // but the grid resolution and do setup of all plans)
@@ -361,19 +361,19 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     // get grid scale and compute number of grid points
     scale = this->m_Opt->GetKrylovSolverPara().pcgridscale;
     for (int i = 0; i < 3; ++i) {
-        value = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i])/scale;
-        this->m_CoarseGrid.m_Opt->SetNumGridPoints(i,static_cast<IntType>(std::ceil(value)));
+        value = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i])/scale;
+        this->m_CoarseGrid.m_Opt->m_Domain.nx[i] = static_cast<IntType>(std::ceil(value));
     }
     ierr = this->m_CoarseGrid.m_Opt->DoSetup(false); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss  << "setup of preconditioner (data allocation) "
-            << "nx (f): (" << this->m_Opt->GetDomainPara().nx[0]
-            << "," << this->m_Opt->GetDomainPara().nx[1]
-            << "," << this->m_Opt->GetDomainPara().nx[2] << "); "
-            << "nx (c): (" << this->m_CoarseGrid.m_Opt->GetDomainPara().nx[0]
-            << "," << this->m_CoarseGrid.m_Opt->GetDomainPara().nx[1]
-            << "," << this->m_CoarseGrid.m_Opt->GetDomainPara().nx[2] << ")";
+            << "nx (f): (" << this->m_Opt->m_Domain.nx[0]
+            << "," << this->m_Opt->m_Domain.nx[1]
+            << "," << this->m_Opt->m_Domain.nx[2] << "); "
+            << "nx (c): (" << this->m_CoarseGrid.m_Opt->m_Domain.nx[0]
+            << "," << this->m_CoarseGrid.m_Opt->m_Domain.nx[1]
+            << "," << this->m_CoarseGrid.m_Opt->m_Domain.nx[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -385,17 +385,17 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     }
 
     // allocate class for registration
-    if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
+    if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
         try {this->m_CoarseGrid.m_OptimizationProblem = new OptimalControlRegistration(this->m_CoarseGrid.m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-    } else if (this->m_Opt->GetRegModel() == STOKES) {
+    } else if (this->m_Opt->m_RegModel == STOKES) {
         try {this->m_CoarseGrid.m_OptimizationProblem = new OptimalControlRegistrationIC(this->m_CoarseGrid.m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-    } else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
+    } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
         try {this->m_CoarseGrid.m_OptimizationProblem  = new OptimalControlRegistrationRelaxedIC(this->m_CoarseGrid.m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -405,8 +405,8 @@ PetscErrorCode PrecondReg::SetupCoarseGrid() {
     }
 
     // create vector fields
-    ierr = VecCreate(this->m_WorkScaField1, this->m_Opt->GetDomainPara().nl, this->m_Opt->GetDomainPara().ng); CHKERRQ(ierr);
-    ierr = VecCreate(this->m_WorkScaField2, this->m_Opt->GetDomainPara().nl, this->m_Opt->GetDomainPara().ng); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkScaField1, this->m_Opt->m_Domain.nl, this->m_Opt->m_Domain.ng); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkScaField2, this->m_Opt->m_Domain.nl, this->m_Opt->m_Domain.ng); CHKERRQ(ierr);
 
     try {this->m_ControlVariable = new VecField(this->m_Opt);}
     catch (std::bad_alloc&) {
@@ -561,8 +561,8 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
 
     pct = 0; // set to zero, cause we search for a max
     for (int i = 0; i < 3; ++i) {
-        value = static_cast<ScalarType>(this->m_CoarseGrid.m_Opt->GetDomainPara().nx[i])
-                            /static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i]);
+        value = static_cast<ScalarType>(this->m_CoarseGrid.m_Opt->m_Domain.nx[i])
+                            /static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);
         pct = value > pct ? value : pct;
     }
 
@@ -577,8 +577,8 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
     // apply restriction operator to incremental control variable
     ierr = this->m_PreProc->Restrict(this->m_CoarseGrid.m_IncControlVariable,
                                      this->m_IncControlVariable,
-                                     this->m_CoarseGrid.m_Opt->GetDomainPara().nx,
-                                     this->m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+                                     this->m_CoarseGrid.m_Opt->m_Domain.nx,
+                                     this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 
     // get the components to interface hessian mat vec
     ierr = this->m_CoarseGrid.m_IncControlVariable->GetComponents(this->m_CoarseGrid.x); CHKERRQ(ierr);
@@ -596,8 +596,8 @@ PetscErrorCode PrecondReg::Apply2LevelPrecond(Vec Px, Vec x) {
     // apply prolongation operator
     ierr = this->m_PreProc->Prolong(this->m_IncControlVariable,
                                     this->m_CoarseGrid.m_IncControlVariable,
-                                    this->m_Opt->GetDomainPara().nx,
-                                    this->m_CoarseGrid.m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+                                    this->m_Opt->m_Domain.nx,
+                                    this->m_CoarseGrid.m_Opt->m_Domain.nx); CHKERRQ(ierr);
 
     // apply low pass filter to output of hessian matvec
     ierr = this->m_PreProc->ApplyRectFreqFilter(this->m_IncControlVariable,
@@ -643,17 +643,17 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     ierr = Assert(this->m_PreProc != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_CoarseGrid.m_Opt != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt  = this->m_Opt->GetDomainPara().nt;
-    nc  = this->m_Opt->GetDomainPara().nc;
+    nt  = this->m_Opt->m_Domain.nt;
+    nc  = this->m_Opt->m_Domain.nc;
 
     if (this->m_Opt->GetVerbosity() > 1) {
         ss  << "applying restriction to variables "
-            << " (" << this->m_Opt->GetDomainPara().nx[0]
-            << ","  << this->m_Opt->GetDomainPara().nx[1]
-            << ","  << this->m_Opt->GetDomainPara().nx[2] << ") ->"
-            << " (" << this->m_CoarseGrid.m_Opt->GetDomainPara().nx[0]
-            << ","  << this->m_CoarseGrid.m_Opt->GetDomainPara().nx[1]
-            << ","  << this->m_CoarseGrid.m_Opt->GetDomainPara().nx[2] << ")";
+            << " (" << this->m_Opt->m_Domain.nx[0]
+            << ","  << this->m_Opt->m_Domain.nx[1]
+            << ","  << this->m_Opt->m_Domain.nx[2] << ") ->"
+            << " (" << this->m_CoarseGrid.m_Opt->m_Domain.nx[0]
+            << ","  << this->m_CoarseGrid.m_Opt->m_Domain.nx[1]
+            << ","  << this->m_CoarseGrid.m_Opt->m_Domain.nx[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -672,16 +672,16 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     // restrict control variable
     ierr = this->m_PreProc->Restrict(this->m_CoarseGrid.m_ControlVariable,
                                      this->m_ControlVariable,
-                                     this->m_CoarseGrid.m_Opt->GetDomainPara().nx,
-                                     this->m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+                                     this->m_CoarseGrid.m_Opt->m_Domain.nx,
+                                     this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_CoarseGrid.m_StateVariable, &p_mcoarse); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_CoarseGrid.m_AdjointVariable, &p_lcoarse); CHKERRQ(ierr);
 
-    nl_c = this->m_CoarseGrid.m_Opt->GetDomainPara().nl;
-    nl_f = this->m_Opt->GetDomainPara().nl;
+    nl_c = this->m_CoarseGrid.m_Opt->m_Domain.nl;
+    nl_f = this->m_Opt->m_Domain.nl;
 
     // apply restriction operator to time series of images
     for (IntType j = 0; j <= nt; ++j) {  // for all time points
@@ -703,8 +703,8 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
             // apply restriction operator to m_j
             ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid.m_WorkScaField1,
                                               this->m_WorkScaField1,
-                                              this->m_CoarseGrid.m_Opt->GetDomainPara().nx,
-                                              this->m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+                                              this->m_CoarseGrid.m_Opt->m_Domain.nx,
+                                              this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 
             // store restricted state variable
             l_c = j*nl_c*nc + k*nl_c;
@@ -736,8 +736,8 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
                 // apply restriction operator
                 ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid.m_WorkScaField2,
                                                   this->m_WorkScaField2,
-                                                  this->m_CoarseGrid.m_Opt->GetDomainPara().nx,
-                                                  this->m_Opt->GetDomainPara().nx); CHKERRQ(ierr);
+                                                  this->m_CoarseGrid.m_Opt->m_Domain.nx,
+                                                  this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 
                 // store restricted adjoint variable
                 ierr = VecGetArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
@@ -971,8 +971,8 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
                 ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);
             }
             // get sizes
-            nl = this->m_Opt->GetDomainPara().nl;
-            ng = this->m_Opt->GetDomainPara().ng;
+            nl = this->m_Opt->m_Domain.nl;
+            ng = this->m_Opt->m_Domain.ng;
 
             ierr = VecCreate(x, 3*nl, 3*ng); CHKERRQ(ierr);
             ierr = VecCreate(b, 3*nl, 3*ng); CHKERRQ(ierr);
@@ -1035,8 +1035,8 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
     this->m_Opt->Enter(__func__);
 
     // get sizes
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // create krylov method
     if (this->m_KrylovMethodEigEst != NULL) {

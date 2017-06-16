@@ -163,8 +163,8 @@ PetscErrorCode TenField::Allocate() {
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     ierr = this->Allocate(nl, ng); CHKERRQ(ierr);
 
@@ -444,7 +444,7 @@ PetscErrorCode TenField::SetComponents(Vec w) {
 
     //compute size of each individual component
     nl = n / 9;
-    //ierr = Assert(nl==this->m_Opt->GetDomainPara().nl,"dimension mismatch"); CHKERRQ(ierr);
+    //ierr = Assert(nl==this->m_Opt->m_Domain.nl,"dimension mismatch"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -510,7 +510,7 @@ PetscErrorCode TenField::GetComponents(Vec w) {
 
     //compute size of each individual component
     nl = n / 9;
-    //ierr = Assert(nl==this->m_Opt->GetDomainPara().nl,"dimension mismatch"); CHKERRQ(ierr);
+    //ierr = Assert(nl==this->m_Opt->m_Domain.nl,"dimension mismatch"); CHKERRQ(ierr);
 
 #pragma omp parallel
 {

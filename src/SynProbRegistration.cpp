@@ -98,13 +98,13 @@ PetscErrorCode SynProbRegistration::ComputeSmoothScalarField(Vec m, int id) {
     ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
 #pragma omp parallel
@@ -227,23 +227,23 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
     this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
     }
 
     ierr = v->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (IntType i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (IntType i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (IntType i1 = 0; i1 < this->m_Opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (IntType i2 = 0; i2 < this->m_Opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (IntType i3 = 0; i3 < this->m_Opt->m_Domain.isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->m_Domain.istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->m_Domain.istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->m_Domain.istart[2]);
 
                 // compute linear / flat index
-                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_Domain.isize);
 
                 if (id == 0) {
                     // compute the velocity field
@@ -304,9 +304,9 @@ PetscErrorCode SynProbRegistration::ComputeSquare(Vec m) {
     this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
     ierr = VecGetArray(m,&p_m); CHKERRQ(ierr);
@@ -360,9 +360,9 @@ PetscErrorCode SynProbRegistration::ComputeSphere(Vec m) {
     this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
@@ -420,9 +420,9 @@ PetscErrorCode SynProbRegistration::ComputeHollowSphere(Vec m) {
     this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
@@ -491,9 +491,9 @@ PetscErrorCode SynProbRegistration::ComputeExpSin(Vec m) {
     this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
@@ -557,9 +557,9 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m, int id) {
     this->m_Opt->Enter(__func__);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        isize[i] = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);

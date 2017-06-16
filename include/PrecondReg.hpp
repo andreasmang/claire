@@ -104,8 +104,8 @@ class PrecondReg {
         Vec m_WorkScaField1;                  ///< temporary scalar field
         Vec m_WorkScaField2;                  ///< temprary scalar field
 
-        inline IntType nl(){return this->m_Opt->GetDomainPara().nl;};
-        inline IntType ng(){return this->m_Opt->GetDomainPara().ng;};
+        inline IntType nl(){return this->m_Opt->m_Domain.nl;};
+        inline IntType ng(){return this->m_Opt->m_Domain.ng;};
         bool setupdone;
     };
 

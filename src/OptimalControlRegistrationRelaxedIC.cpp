@@ -195,8 +195,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(Scalar
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_WorkVecField1 == NULL) {
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -318,9 +318,9 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
-    nx[0] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[0]);
-    nx[1] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[1]);
-    nx[2] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[2]);
+    nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
+    nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
+    nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
 
     scale = this->m_Opt->ComputeFFTScale();
 

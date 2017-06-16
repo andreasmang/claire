@@ -285,7 +285,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-    nc = this->m_Opt->GetDomainPara().nc;
+    nc = this->m_Opt->m_Domain.nc;
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
@@ -314,7 +314,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-    nc = this->m_Opt->GetDomainPara().nc;
+    nc = this->m_Opt->m_Domain.nc;
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->GetRegFlags().applyrescaling) {
@@ -468,8 +468,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     if (!this->m_Opt->GetOptPara().usezeroinitialguess) {
-        nl = this->m_Opt->GetDomainPara().nl;
-        ng = this->m_Opt->GetDomainPara().ng;
+        nl = this->m_Opt->m_Domain.nl;
+        ng = this->m_Opt->m_Domain.ng;
         ierr = VecCreate(v, nl, ng); CHKERRQ(ierr);
         ierr = VecCreate(g, nl, ng); CHKERRQ(ierr);
 
@@ -629,7 +629,7 @@ PetscErrorCode OptimalControlRegistrationBase
 
     // get grid size
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
     }
 
     // compute initial condition
@@ -639,16 +639,16 @@ PetscErrorCode OptimalControlRegistrationBase
 {
     IntType l,i1,i2,i3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (i1 = 0; i1 < this->m_Opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->m_Domain.isize[2]; ++i3) {  // x3
                 // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
+                l = GetLinearIndex(i1, i2, i3, this->m_Opt->m_Domain.isize);
 
                 // compute coordinates (nodal grid)
-                p_x1[l] = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                p_x2[l] = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                p_x3[l] = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+                p_x1[l] = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->m_Domain.istart[0]);
+                p_x2[l] = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->m_Domain.istart[1]);
+                p_x3[l] = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->m_Domain.istart[2]);
             } // i1
         } // i2
     } // i3
@@ -914,13 +914,13 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("setting up synthetic problem"); CHKERRQ(ierr);
     }
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
-        nx[i] = this->m_Opt->GetDomainPara().nx[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        nx[i] = this->m_Opt->m_Domain.nx[i];
     }
 
     // allocate vector fields
@@ -933,7 +933,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         velocityallocated = true;
     }
 
-    if (this->m_Opt->GetRegModel() == STOKES) {vcase = 3;}
+    if (this->m_Opt->m_RegModel == STOKES) {vcase = 3;}
 
     // allocate reference image
     if (mR == NULL) {
@@ -954,20 +954,20 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
-#pragma omp parallel
-{
+//#pragma omp parallel
+//{
     IntType i1, i2, i3;
-#pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+//#pragma omp for
+    for (i1 = 0; i1 < this->m_Opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->m_Domain.isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->m_Domain.istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->m_Domain.istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->m_Domain.istart[2]);
 
                 // compute linear / flat index
-                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_Domain.isize);
 
                 if (icase == 0) {
                     p_mt[i] =  (PetscSinReal(x1)*PetscSinReal(x1)
@@ -1005,7 +1005,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
             }  // i1
         }  // i2
     }  // i3
-}  // pragma omp parallel
+//}  // pragma omp parallel
     ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
@@ -1109,9 +1109,9 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
 
     // get pointers
     ierr = VecGetArray(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
@@ -1151,9 +1151,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
-    nt = this->m_Opt->GetDomainPara().nt;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+    nt = this->m_Opt->m_Domain.nt;
 
     if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
@@ -1169,7 +1169,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
 
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
     }
 
     ierr = VecAbs(this->m_WorkVecField1->m_X1); CHKERRQ(ierr);
@@ -1216,7 +1216,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
             }
             // reset variables
             ierr = this->ClearVariables(); CHKERRQ(ierr);
-            this->m_Opt->SetNumTimePoints(ntcfl);
+            this->m_Opt->m_Domain.nt = ntcfl;
         }
     }
 
@@ -1317,8 +1317,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
         ierr = DbgMsg("computing " + detstr); CHKERRQ(ierr);
     }
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_VelocityField == NULL) {
        try {this->m_VelocityField = new VecField(this->m_Opt);}
@@ -1374,7 +1374,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
     ierr = VecMin(this->m_WorkScaField1, NULL, &minddg); CHKERRQ(ierr);
     ierr = VecMax(this->m_WorkScaField1, NULL, &maxddg); CHKERRQ(ierr);
     ierr = VecSum(this->m_WorkScaField1, &meanddg); CHKERRQ(ierr);
-    meanddg /= static_cast<ScalarType>(this->m_Opt->GetDomainPara().ng);
+    meanddg /= static_cast<ScalarType>(this->m_Opt->m_Domain.ng);
 
     // remember
     this->m_Opt->SetDetDGradMin(minddg);
@@ -1424,9 +1424,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1524,9 +1524,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1699,9 +1699,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 
     ext = this->m_Opt->GetFileNames().extension;
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1822,8 +1822,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_WorkVecField1 == NULL) {
        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -1918,8 +1918,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ierr = DbgMsg("computing deformation gradient"); CHKERRQ(ierr);
@@ -2072,8 +2072,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkTenField1 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2414,9 +2414,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2656,8 +2656,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     }
 
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2801,8 +2801,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1,ss.str()); CHKERRQ(ierr);
     }
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
     htby6  = ht/6.0;
@@ -3042,8 +3042,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -3135,7 +3135,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
 
     // get spatial step size
     for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->GetDomainPara().hx[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
     }
 
     ierr = this->m_WorkVecField1->GetArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
@@ -3144,16 +3144,16 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
     IntType i, i1, i2, i3;
     ScalarType x1, x2, x3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->GetDomainPara().isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->GetDomainPara().isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->GetDomainPara().isize[2]; ++i3) {  // x3
+    for (i1 = 0; i1 < this->m_Opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (i2 = 0; i2 < this->m_Opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (i3 = 0; i3 < this->m_Opt->m_Domain.isize[2]; ++i3) {  // x3
                 // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->GetDomainPara().istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->GetDomainPara().istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->GetDomainPara().istart[2]);
+                x1 = hx[0]*static_cast<ScalarType>(i1 + this->m_Opt->m_Domain.istart[0]);
+                x2 = hx[1]*static_cast<ScalarType>(i2 + this->m_Opt->m_Domain.istart[1]);
+                x3 = hx[2]*static_cast<ScalarType>(i3 + this->m_Opt->m_Domain.istart[2]);
 
                 // compute linear / flat index
-                i = GetLinearIndex(i1, i2, i3, this->m_Opt->GetDomainPara().isize);
+                i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_Domain.isize);
 
                 // assign values
                 p_u1[i] = x1 + p_u1[i];

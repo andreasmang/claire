@@ -87,9 +87,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateFunctional(ScalarType* R,
         ierr = Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
 
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -211,9 +211,9 @@ PetscErrorCode RegularizationRegistrationH3SN::EvaluateGradient(VecField* dvR, V
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -352,9 +352,9 @@ PetscErrorCode RegularizationRegistrationH3SN::ApplyInvOp(VecField* Ainvx, VecFi
         ierr=VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr=VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         scale = this->m_Opt->ComputeFFTScale();
 
@@ -442,9 +442,9 @@ PetscErrorCode RegularizationRegistrationH3SN::GetExtremeEigValsInvOp(ScalarType
     beta = this->m_Opt->GetRegNorm().beta[0];
 
     // get max value
-    w[0] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[0])/2.0;
-    w[1] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[1])/2.0;
-    w[2] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[2])/2.0;
+    w[0] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[0])/2.0;
+    w[1] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[1])/2.0;
+    w[2] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[2])/2.0;
 
     trihik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
     trihik = std::pow(trihik, 3);

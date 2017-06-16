@@ -184,13 +184,13 @@ PetscErrorCode ReadWriteReg::CollectSizes() {
 
     this->m_NumProcs = nprocs;
 
-    isize[0] = this->m_Opt->GetDomainPara().isize[0];
-    isize[1] = this->m_Opt->GetDomainPara().isize[1];
-    isize[2] = this->m_Opt->GetDomainPara().isize[2];
+    isize[0] = this->m_Opt->m_Domain.isize[0];
+    isize[1] = this->m_Opt->m_Domain.isize[1];
+    isize[2] = this->m_Opt->m_Domain.isize[2];
 
-    istart[0] = this->m_Opt->GetDomainPara().istart[0];
-    istart[1] = this->m_Opt->GetDomainPara().istart[1];
-    istart[2] = this->m_Opt->GetDomainPara().istart[2];
+    istart[0] = this->m_Opt->m_Domain.istart[0];
+    istart[1] = this->m_Opt->m_Domain.istart[1];
+    istart[2] = this->m_Opt->m_Domain.istart[2];
 
     // read data only on master rank
     if (rank == 0) {
@@ -337,7 +337,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
 
     //ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
 
-    nc = this->m_Opt->GetDomainPara().nc;
+    nc = this->m_Opt->m_Domain.nc;
     ierr = Assert(filenames.size() == nc, "size mismatch"); CHKERRQ(ierr);
 
     for (IntType k = 0; k < nc; ++k) {
@@ -374,8 +374,8 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
         }
 
         ierr = Assert(this->m_Opt->SetupDone(), "error in setup"); CHKERRQ(ierr);
-        nl = this->m_Opt->GetDomainPara().nl;
-        ng = this->m_Opt->GetDomainPara().ng;
+        nl = this->m_Opt->m_Domain.nl;
+        ng = this->m_Opt->m_Domain.ng;
 
         if (*x == NULL) {
             ierr = VecCreate(*x, nc*nl, nc*ng); CHKERRQ(ierr);
@@ -529,7 +529,7 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
 
     this->m_Opt->Enter(__func__);
 
-    nc = this->m_Opt->GetDomainPara().nc;
+    nc = this->m_Opt->m_Domain.nc;
 
     this->m_ReferenceImage.write = true;
     if (this->m_Opt->GetRegFlags().applyrescaling) {
@@ -581,7 +581,7 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
 
     if (this->m_Opt->GetRegFlags().applyrescaling) {
         if (this->m_TemplateImage.minval != -1.0 && this->m_TemplateImage.maxval != -1.0) {
-            nc = this->m_Opt->GetDomainPara().nc;
+            nc = this->m_Opt->m_Domain.nc;
             minval = this->m_TemplateImage.minval;
             maxval = this->m_TemplateImage.maxval;
             if (multicomponent) {
@@ -649,9 +649,9 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
             filename = path + "/" + file;
         }
 
-        nc = this->m_Opt->GetDomainPara().nc;
-        nl = this->m_Opt->GetDomainPara().nl;
-        ng = this->m_Opt->GetDomainPara().ng;
+        nc = this->m_Opt->m_Domain.nc;
+        nl = this->m_Opt->m_Domain.nl;
+        ng = this->m_Opt->m_Domain.ng;
 
         // allocate data
         ierr = VecCreate(xk, nl, ng); CHKERRQ(ierr);
@@ -854,7 +854,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 
     // pass number of grid points to options
     for (int i = 0; i < 3; ++i) {
-        this->m_Opt->SetNumGridPoints(i, nx[i]);
+        this->m_Opt->m_Domain.nx[i] = nx[i];
     }
 
     // do the setup before running the code (this essentially
@@ -864,8 +864,8 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     }
 
     // get local size
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     //check global size
     nglobal = 1;
@@ -1046,7 +1046,7 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
     ierr = Assert(rank == master, msg); CHKERRQ(ierr);
 
     // get number of grid points
-    ng = this->m_Opt->GetDomainPara().ng;
+    ng = this->m_Opt->m_Domain.ng;
 
     // allocate data buffer
     if (this->m_Data == NULL) {
@@ -1067,10 +1067,10 @@ template <typename T> PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
     ierr = Assert(data != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get global number of points
-    ng = this->m_Opt->GetDomainPara().ng;
-    nx[0] = this->m_Opt->GetDomainPara().nx[0];
-    nx[1] = this->m_Opt->GetDomainPara().nx[1];
-    nx[2] = this->m_Opt->GetDomainPara().nx[2];
+    ng = this->m_Opt->m_Domain.ng;
+    nx[0] = this->m_Opt->m_Domain.nx[0];
+    nx[1] = this->m_Opt->m_Domain.nx[1];
+    nx[2] = this->m_Opt->m_Domain.nx[2];
 
     IntType k = 0;
     for (int p = 0; p < this->m_NumProcs; ++p) {
@@ -1235,8 +1235,8 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
-    ng = this->m_Opt->GetDomainPara().ng;
-    nl = this->m_Opt->GetDomainPara().nl;
+    ng = this->m_Opt->m_Domain.ng;
+    nl = this->m_Opt->m_Domain.nl;
 
     // allocate the index buffers on master rank
     if (rank == master) {
@@ -1302,9 +1302,9 @@ PetscErrorCode ReadWriteReg::WriteNII(nifti_image** image, Vec x) {
     ierr = MPIERRQ(rval); CHKERRQ(ierr);
     ierr = VecRestoreArray(x, &p_xc); CHKERRQ(ierr);
 
-    nx[0] = this->m_Opt->GetDomainPara().nx[0];
-    nx[1] = this->m_Opt->GetDomainPara().nx[1];
-    nx[2] = this->m_Opt->GetDomainPara().nx[2];
+    nx[0] = this->m_Opt->m_Domain.nx[0];
+    nx[1] = this->m_Opt->m_Domain.nx[1];
+    nx[2] = this->m_Opt->m_Domain.nx[2];
 
     if (rank == master) {
         // cast pointer of nifti image data
@@ -1361,7 +1361,7 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
     // get rank
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    nl = this->m_Opt->GetDomainPara().nl;
+    nl = this->m_Opt->m_Domain.nl;
 
     // init nifty image
     *image = nifti_simple_init_nim();
@@ -1370,17 +1370,17 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
     (*image)->dim[0] = (*image)->ndim = 5;
 
     ierr = VecGetLocalSize(x, &n); CHKERRQ(ierr);
-    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[2];
-    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
-    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[0];
+    (*image)->dim[1] = (*image)->nx = this->m_Opt->m_Domain.nx[2];
+    (*image)->dim[2] = (*image)->ny = this->m_Opt->m_Domain.nx[1];
+    (*image)->dim[3] = (*image)->nz = this->m_Opt->m_Domain.nx[0];
 
-//    (*image)->dim[1] = (*image)->nx = this->m_Opt->GetDomainPara().nx[0];
-//    (*image)->dim[2] = (*image)->ny = this->m_Opt->GetDomainPara().nx[1];
-//    (*image)->dim[3] = (*image)->nz = this->m_Opt->GetDomainPara().nx[2];
+//    (*image)->dim[1] = (*image)->nx = this->m_Opt->m_Domain.nx[0];
+//    (*image)->dim[2] = (*image)->ny = this->m_Opt->m_Domain.nx[1];
+//    (*image)->dim[3] = (*image)->nz = this->m_Opt->m_Domain.nx[2];
 
-    (*image)->pixdim[1] = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);  // x direction
-    (*image)->pixdim[2] = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);  // y direction
-    (*image)->pixdim[3] = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);  // z direction
+    (*image)->pixdim[1] = static_cast<float>(this->m_Opt->m_Domain.hx[0]);  // x direction
+    (*image)->pixdim[2] = static_cast<float>(this->m_Opt->m_Domain.hx[1]);  // y direction
+    (*image)->pixdim[3] = static_cast<float>(this->m_Opt->m_Domain.hx[2]);  // z direction
 
     // TODO: add temporal support
     if (n == nl) {  // scalar field
@@ -1397,8 +1397,8 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
         (*image)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
-        (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
+        (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->m_Domain.hx[0]);
+        (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->m_Domain.hx[1]);
     } else if (n == 3*nl) {  // 3D vector field
         (*image)->dim[4] = (*image)->nt = 1;
         (*image)->dim[5] = (*image)->nu = 3;
@@ -1407,9 +1407,9 @@ PetscErrorCode ReadWriteReg::AllocateImage(nifti_image** image, Vec x) {
         (*image)->pixdim[4] = 1.0;
 
         // step size (vector field)
-        (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->GetDomainPara().hx[0]);
-        (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->GetDomainPara().hx[1]);
-        (*image)->pixdim[7] = (*image)->dw = static_cast<float>(this->m_Opt->GetDomainPara().hx[2]);
+        (*image)->pixdim[5] = (*image)->du = static_cast<float>(this->m_Opt->m_Domain.hx[0]);
+        (*image)->pixdim[6] = (*image)->dv = static_cast<float>(this->m_Opt->m_Domain.hx[1]);
+        (*image)->pixdim[7] = (*image)->dw = static_cast<float>(this->m_Opt->m_Domain.hx[2]);
     }
 
     // switch precision in io
@@ -1460,8 +1460,8 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x) {
     if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, this->m_FileName.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
@@ -1524,8 +1524,8 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     if (!this->m_Opt->SetupDone()) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     // open file
@@ -1538,13 +1538,13 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
     ncerr = ncmpi_inq_varid(fileid, "data", &varid[0]);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
-    istart[0] = this->m_Opt->GetDomainPara().istart[0];
-    istart[1] = this->m_Opt->GetDomainPara().istart[1];
-    istart[2] = this->m_Opt->GetDomainPara().istart[2];
+    istart[0] = this->m_Opt->m_Domain.istart[0];
+    istart[1] = this->m_Opt->m_Domain.istart[1];
+    istart[2] = this->m_Opt->m_Domain.istart[2];
 
-    isize[0] = this->m_Opt->GetDomainPara().isize[0];
-    isize[1] = this->m_Opt->GetDomainPara().isize[1];
-    isize[2] = this->m_Opt->GetDomainPara().isize[2];
+    isize[0] = this->m_Opt->m_Domain.isize[0];
+    isize[1] = this->m_Opt->m_Domain.isize[1];
+    isize[2] = this->m_Opt->m_Domain.isize[2];
 
     ierr = VecGetArray(*x, &p_x); CHKERRQ(ierr);
     ncerr = ncmpi_get_vara_all(fileid, varid[0], istart, isize, p_x, nl, MPIU_SCALAR);
@@ -1591,10 +1591,10 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
     ncerr = ncmpi_create(c_comm, this->m_FileName.c_str(), mode, MPI_INFO_NULL, &fileid);
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
-    nx[0] = static_cast<int>(this->m_Opt->GetDomainPara().nx[0]);
-    nx[1] = static_cast<int>(this->m_Opt->GetDomainPara().nx[1]);
-    nx[2] = static_cast<int>(this->m_Opt->GetDomainPara().nx[2]);
-    nl = static_cast<int>(this->m_Opt->GetDomainPara().nl);
+    nx[0] = static_cast<int>(this->m_Opt->m_Domain.nx[0]);
+    nx[1] = static_cast<int>(this->m_Opt->m_Domain.nx[1]);
+    nx[2] = static_cast<int>(this->m_Opt->m_Domain.nx[2]);
+    nl = static_cast<int>(this->m_Opt->m_Domain.nl);
 
     // set size
     ncerr = ncmpi_def_dim(fileid, "x", nx[0], &dims[0]);
@@ -1619,13 +1619,13 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
     ierr = NCERRQ(ncerr); CHKERRQ(ierr);
 
     // get local sizes
-    istart[0] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[0]);
-    istart[1] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[1]);
-    istart[2] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().istart[2]);
+    istart[0] = static_cast<MPI_Offset>(this->m_Opt->m_Domain.istart[0]);
+    istart[1] = static_cast<MPI_Offset>(this->m_Opt->m_Domain.istart[1]);
+    istart[2] = static_cast<MPI_Offset>(this->m_Opt->m_Domain.istart[2]);
 
-    isize[0] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[0]);
-    isize[1] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[1]);
-    isize[2] = static_cast<MPI_Offset>(this->m_Opt->GetDomainPara().isize[2]);
+    isize[0] = static_cast<MPI_Offset>(this->m_Opt->m_Domain.isize[0]);
+    isize[1] = static_cast<MPI_Offset>(this->m_Opt->m_Domain.isize[1]);
+    isize[2] = static_cast<MPI_Offset>(this->m_Opt->m_Domain.isize[2]);
 
     ierr = Assert(nl == isize[0]*isize[1]*isize[2], "size error"); CHKERRQ(ierr);
 

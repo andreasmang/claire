@@ -141,10 +141,10 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_StateVariable == NULL) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
@@ -237,8 +237,8 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // if velocity field is null pointer, we did not set
     // any initial guess
@@ -394,9 +394,9 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     // only copy if someone cares
     if (m1 != NULL) {
         // get sizes
-        nt = this->m_Opt->GetDomainPara().nt;
-        nc = this->m_Opt->GetDomainPara().nc;
-        nl = this->m_Opt->GetDomainPara().nl;
+        nt = this->m_Opt->m_Domain.nt;
+        nc = this->m_Opt->m_Domain.nc;
+        nl = this->m_Opt->m_Domain.nl;
 
         // copy m(t=1) to m_1
         ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
@@ -434,10 +434,10 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
 
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // allocate state variable
     if (this->m_StateVariable == NULL) {
@@ -490,10 +490,10 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
     ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
@@ -568,10 +568,10 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
     ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nc = this->m_Opt->GetDomainPara().nc;
-    nt = this->m_Opt->GetDomainPara().nt;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nc = this->m_Opt->m_Domain.nc;
+    nt = this->m_Opt->m_Domain.nt;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
@@ -651,9 +651,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
 
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
@@ -663,7 +663,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 
     l = nt*nl*nc;
     value = 0.0;
-#pragma omp parallel for private(dr) reduction(+:value)
+// #pragma omp parallel for private(dr) reduction(+:value)
     for (IntType i = 0; i < nc*nl; ++i) {
         dr = (p_mr[i] - p_m[l+i]);
         value += dr*dr;
@@ -887,9 +887,9 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get problem dimensions and weights
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
 
@@ -1318,10 +1318,10 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     ext = this->m_Opt->GetFileNames().extension;
 
@@ -1480,9 +1480,9 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht <= 0"); CHKERRQ(ierr);
@@ -1650,17 +1650,17 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         ierr = this->ComputeCFLCondition(); CHKERRQ(ierr);
     }
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "solving state equation (nx1,nx2,nx3,nc,nt) = ("
-                  << this->m_Opt->GetDomainPara().nx[0]
-           << "," << this->m_Opt->GetDomainPara().nx[1]
-           << "," << this->m_Opt->GetDomainPara().nx[2]
+                  << this->m_Opt->m_Domain.nx[0]
+           << "," << this->m_Opt->m_Domain.nx[1]
+           << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -1811,10 +1811,10 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
     // flag to identify if we store the time history
     store = this->m_Opt->GetRegFlags().runninginversion;
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1928,9 +1928,9 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     // flag to identify if we store the time history
     store = this->m_Opt->GetRegFlags().runninginversion;
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
 
     if (this->m_SemiLagrangianMethod == NULL) {
         try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
@@ -1995,17 +1995,17 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
+    nt = this->m_Opt->m_Domain.nt;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "solving adjoint equation (nx1,nx2,nx3,nc,nt) = ("
-                  << this->m_Opt->GetDomainPara().nx[0]
-           << "," << this->m_Opt->GetDomainPara().nx[1]
-           << "," << this->m_Opt->GetDomainPara().nx[2]
+                  << this->m_Opt->m_Domain.nx[0]
+           << "," << this->m_Opt->m_Domain.nx[1]
+           << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -2174,10 +2174,10 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
     scale = ht;
@@ -2360,10 +2360,10 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
 
@@ -2535,17 +2535,17 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "solving incremental state equation (nx1,nx2,nx3,nc,nt) = ("
-                  << this->m_Opt->GetDomainPara().nx[0]
-           << "," << this->m_Opt->GetDomainPara().nx[1]
-           << "," << this->m_Opt->GetDomainPara().nx[2]
+                  << this->m_Opt->m_Domain.nx[0]
+           << "," << this->m_Opt->m_Domain.nx[1]
+           << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -2635,10 +2635,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2818,10 +2818,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2961,17 +2961,17 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->GetVerbosity() > 2) {
         ss << "solving incremental adjoint equation (nx1,nx2,nx3,nc,nt) = ("
-                  << this->m_Opt->GetDomainPara().nx[0]
-           << "," << this->m_Opt->GetDomainPara().nx[1]
-           << "," << this->m_Opt->GetDomainPara().nx[2]
+                  << this->m_Opt->m_Domain.nx[0]
+           << "," << this->m_Opt->m_Domain.nx[1]
+           << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -3159,10 +3159,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
     hthalf = 0.5*ht;
@@ -3336,10 +3336,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
 
     this->m_Opt->Enter(__func__);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -3506,10 +3506,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
     hthalf = 0.5*ht;
@@ -3698,10 +3698,10 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get number of time points and grid points
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // parse extension
     ext = this->m_Opt->GetFileNames().extension;
@@ -3837,10 +3837,10 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
 
     // get sizes
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_Opt->GetVerbosity() >= 2) {
         ierr = DbgMsg("finalizing registration"); CHKERRQ(ierr);

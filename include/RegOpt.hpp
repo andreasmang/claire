@@ -435,17 +435,12 @@ class RegOpt {
     virtual ~RegOpt();
     void Copy(const RegOpt&);
 
-    // spatial grid
-    inline void SetNumGridPoints(int i, IntType nx) {
-        this->m_Domain.nx[i] = nx;
-    }
     inline ScalarType GetLebesqueMeasure(void) {
         return  this->m_Domain.hx[0]
                *this->m_Domain.hx[1]
                *this->m_Domain.hx[2];
     }
 
-    inline Domain GetDomainPara() {return this->m_Domain;}
     inline GridCont GetGridContPara() {return this->m_GridCont;}
     inline ScaleCont GetScaleContPara() {return this->m_ScaleCont;}
     inline ParCont GetParaCont() {return this->m_ParaCont;}
@@ -488,20 +483,12 @@ class RegOpt {
     PetscErrorCode GetSizes(IntType*, IntType&, IntType&);
     PetscErrorCode GetSizes(IntType*, IntType*, IntType*);
 
-    // time horizon, step size, and ....
-    inline void SetNumTimePoints(IntType nt) {
-            this->m_Domain.nt = nt;
-    }
     inline ScalarType GetTimeStepSize(void) {
         return (this->m_Domain.timehorizon[1] - this->m_Domain.timehorizon[0])
                /static_cast<ScalarType>(this->m_Domain.nt);
     }
-    inline void SetNumImageComponents(IntType n) {
-        this->m_Domain.nc = n;
-    }
 
     inline ReadWriteFlags GetReadWriteFlags() {return this->m_ReadWriteFlags;}
-    inline RegModel GetRegModel(void) {return this->m_RegModel;}
 
     /* do setup for grid continuation */
     PetscErrorCode SetupGridCont();
@@ -582,13 +569,8 @@ class RegOpt {
         this->m_Log.finalresidual[i] = value;
     }
 
-    inline void SetVerbosity(int value) {this->m_Verbosity = value;}
-    inline int GetVerbosity() {
-        return this->m_Verbosity;
-    }
-    int GetLineLength() {
-        return this->m_LineLength;
-    }
+    inline int GetVerbosity() {return this->m_Verbosity;}
+    int GetLineLength() {return this->m_LineLength;}
 
     ScalarType ComputeFFTScale();
 
@@ -623,6 +605,11 @@ class RegOpt {
 
     PetscErrorCode EnableFastSolve();
 
+    RegModel m_RegModel;                ///< flag for particular registration model
+    Domain m_Domain;                    ///< parameters for spatial domain
+
+    int m_Verbosity;
+
  protected:
     virtual PetscErrorCode Initialize(void);
     PetscErrorCode InitializeFFT();
@@ -651,8 +638,6 @@ class RegOpt {
     ParCont m_ParaCont;                 ///< flags for parameter continuation
     GridCont m_GridCont;                ///< flags for grid continuation
     ScaleCont m_ScaleCont;              ///< flags for scale continuation
-    Domain m_Domain;                    ///< parameters for spatial domain
-    RegModel m_RegModel;                ///< flag for particular registration model
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
     RegFlags m_RegFlags;                ///< flags for registration
     SolveType m_SolveType;              ///< solver
@@ -682,7 +667,6 @@ class RegOpt {
     ScalarType m_Sigma[3];
 
     int m_Indent;
-    int m_Verbosity;
 };
 
 

@@ -382,9 +382,9 @@ PetscErrorCode MultiLevelPyramid::DoSetup(Vec x) {
     // set data on finest grid
     ierr = this->SetData(x, nlevels-1); CHKERRQ(ierr);
 
-    nx[0] = this->m_Opt->GetDomainPara().nx[0];
-    nx[1] = this->m_Opt->GetDomainPara().nx[1];
-    nx[2] = this->m_Opt->GetDomainPara().nx[2];
+    nx[0] = this->m_Opt->m_Domain.nx[0];
+    nx[1] = this->m_Opt->m_Domain.nx[1];
+    nx[2] = this->m_Opt->m_Domain.nx[2];
     minlevel = 0; //this->m_Opt->GetGridContPara().minlevel;
 
     if (minlevel >= nlevels) minlevel = nlevels-1;

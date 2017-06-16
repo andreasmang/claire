@@ -1515,7 +1515,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         nxhalf[i] = static_cast<ScalarType>(nx[i]/2.0);
     }
     scale = this->m_Opt->ComputeFFTScale();
@@ -1649,10 +1649,10 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
-        //nx[i] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i]);
-        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
+        //nx[i] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);
+        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         // sigma is provided by user in # of grid points
-        c[i] = this->m_Opt->GetSigma(i)*this->m_Opt->GetDomainPara().hx[i];
+        c[i] = this->m_Opt->GetSigma(i)*this->m_Opt->m_Domain.hx[i];
         c[i] *= c[i];
     }
 
@@ -1743,7 +1743,7 @@ PetscErrorCode Preprocessing::ComputeOverlapMeasures(Vec mRl, Vec mTl) {
     ierr = Assert(mRl != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(mTl != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nl;
+    nl = this->m_Opt->m_Domain.nl;
 
     nlabels = 32;
 

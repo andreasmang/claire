@@ -174,8 +174,8 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
     snprintf(buffer, 256, "%-12s %-12s %-12s", "h", "e(h)", "e(h^2)");
     ierr = DbgMsg(buffer); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // create an extra array for initial guess (has to be flat for optimizer)
     ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
@@ -279,8 +279,8 @@ PetscErrorCode OptimizationProblem::HessianSymmetryCheck() {
 
     PetscFunctionBegin;
 
-    nl = this->m_Opt->GetDomainPara().nl;
-    ng = this->m_Opt->GetDomainPara().ng;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
 
     // create arrays
     ierr = VecCreate(v, 3*nl, 3*ng); CHKERRQ(ierr);

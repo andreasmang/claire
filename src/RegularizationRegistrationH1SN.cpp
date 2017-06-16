@@ -178,9 +178,9 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -317,9 +317,9 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInvOp(VecField* Ainvx, VecFi
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->GetDomainPara().nx[0];
-        nx[1] = this->m_Opt->GetDomainPara().nx[1];
-        nx[2] = this->m_Opt->GetDomainPara().nx[2];
+        nx[0] = this->m_Opt->m_Domain.nx[0];
+        nx[1] = this->m_Opt->m_Domain.nx[1];
+        nx[2] = this->m_Opt->m_Domain.nx[2];
 
         // compute forward fft
         ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
@@ -411,9 +411,9 @@ PetscErrorCode RegularizationRegistrationH1SN::GetExtremeEigValsInvOp(ScalarType
     beta2=this->m_Opt->GetRegNorm().beta[1];
 
     // get max value
-    w[0] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[0])/2.0;
-    w[1] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[1])/2.0;
-    w[2] = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[2])/2.0;
+    w[0] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[0])/2.0;
+    w[1] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[1])/2.0;
+    w[2] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[2])/2.0;
 
     // compute largest value for operator
     regop = -(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]); // laplacian

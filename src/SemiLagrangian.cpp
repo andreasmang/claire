@@ -157,7 +157,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->GetDomainPara().nl;
+    nl = this->m_Opt->m_Domain.nl;
 
     // if trajectory has not yet been allocated, allocate
     if (this->m_X == NULL) {
@@ -216,9 +216,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
 
 
     for (int i = 0; i < 3; ++i) {
-        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
-        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i]     = this->m_Opt->m_Domain.hx[i];
+        isize[i]  = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
 
@@ -321,9 +321,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string fla
 
 
     for (int i = 0; i < 3; ++i) {
-        hx[i]     = this->m_Opt->GetDomainPara().hx[i];
-        isize[i]  = this->m_Opt->GetDomainPara().isize[i];
-        istart[i] = this->m_Opt->GetDomainPara().istart[i];
+        hx[i]     = this->m_Opt->m_Domain.hx[i];
+        isize[i]  = this->m_Opt->m_Domain.isize[i];
+        istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
     ierr = this->m_WorkVecField2->GetArrays(p_f1, p_f2, p_f3); CHKERRQ(ierr);
@@ -501,15 +501,15 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
-    nl     = this->m_Opt->GetDomainPara().nl;
+    nl     = this->m_Opt->m_Domain.nl;
     order  = this->m_Opt->GetPDESolverPara().interpolationorder;
     nghost = order;
     neval  = static_cast<int>(nl);
 
     for (int i = 0; i < 3; ++i) {
-        nx[i]     = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i]  = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+        nx[i]     = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
+        isize[i]  = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
+        istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
     c_dims[0] = this->m_Opt->GetNetworkDims(0);
@@ -600,14 +600,14 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = this->m_Opt->GetDomainPara().nl;
+    nl = this->m_Opt->m_Domain.nl;
     order = this->m_Opt->GetPDESolverPara().interpolationorder;
     nghost = order;
 
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
+        isize[i] = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
+        istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
     // get network dimensions
@@ -699,12 +699,12 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
     ierr = Assert(this->m_Opt->GetFFT().mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nl     = static_cast<int>(this->m_Opt->GetDomainPara().nl);
+    nl     = static_cast<int>(this->m_Opt->m_Domain.nl);
     nghost = this->m_Opt->GetPDESolverPara().interpolationorder;
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->GetDomainPara().nx[i]);
-        isize[i] = static_cast<int>(this->m_Opt->GetDomainPara().isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->GetDomainPara().istart[i]);
+        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
+        isize[i] = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
+        istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
     c_dims[0] = this->m_Opt->GetNetworkDims(0);

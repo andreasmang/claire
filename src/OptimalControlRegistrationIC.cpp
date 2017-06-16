@@ -179,9 +179,9 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
 
     PetscFunctionBegin;
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
 
@@ -305,9 +305,9 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL() {
     double timer[NFFTTIMERS] = {0};
     PetscFunctionBegin;
 
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
 
@@ -416,9 +416,9 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
-    nx[0] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[0]);
-    nx[1] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[1]);
-    nx[2] = static_cast<long int>(this->m_Opt->GetDomainPara().nx[2]);
+    nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
+    nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
+    nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
 
     scale = this->m_Opt->ComputeFFTScale();
 

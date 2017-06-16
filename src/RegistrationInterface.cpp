@@ -289,9 +289,9 @@ PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
 
     ierr = this->m_RegProblem->GetStateVariable(m); CHKERRQ(ierr);
 
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
-    nt = this->m_Opt->GetDomainPara().nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    nt = this->m_Opt->m_Domain.nt;
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
@@ -509,17 +509,17 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
     }
 
     // allocate class for registration
-    if (this->m_Opt->GetRegModel() == COMPRESSIBLE) {
+    if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
         try {this->m_RegProblem = new OptimalControlRegistration(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-    } else if (this->m_Opt->GetRegModel() == STOKES) {
+    } else if (this->m_Opt->m_RegModel == STOKES) {
         try {this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
-    } else if (this->m_Opt->GetRegModel() == RELAXEDSTOKES) {
+    } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
         try {this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -570,7 +570,7 @@ PetscErrorCode RegistrationInterface::Run() {
     } else if (this->m_Opt->GetGridContPara().enabled) {
         nxmax = PETSC_MIN_INT;
         for (int i = 0; i < 3; ++i) {
-            nx = this->m_Opt->GetDomainPara().nx[i];
+            nx = this->m_Opt->m_Domain.nx[i];
             nxmax = nx > nxmax ? nx : nxmax;
         }
 
@@ -1288,7 +1288,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
             this->m_Opt->SetSigma(i,sigma[i]);
 
             // if sigma is bigger than half of the grid size, don't compute
-            nxhalf = static_cast<ScalarType>(this->m_Opt->GetDomainPara().nx[i])/2.0;
+            nxhalf = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i])/2.0;
             if (nxhalf <= sigma[i]) solve = false;
         }
 
@@ -1486,7 +1486,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 
             // initialize
             for (int i = 0; i < 3; ++i) {
-                this->m_Opt->SetNumGridPoints(i, nx[i]);
+                this->m_Opt->m_Domain.nx[i] = nx[i];
             }
             ierr = this->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
