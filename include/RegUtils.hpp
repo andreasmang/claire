@@ -27,7 +27,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <omp>
+#include <omp.h>
 #include <cstdlib>
 #include <string>
 #include <vector>

@@ -222,7 +222,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Log.finalresidual[3] = 0;
     this->m_Log.memoryusage = false;
 
-    //this->m_NumThreads = opt.m_NumThreads;
+    this->m_NumThreads = opt.m_NumThreads;
     this->m_CartGridDims[0] = opt.m_CartGridDims[0];
     this->m_CartGridDims[1] = opt.m_CartGridDims[1];
 
@@ -305,9 +305,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_RegFlags.applysmoothing = false;
         } else if (strcmp(argv[1], "-disablerescaling") == 0) {
             this->m_RegFlags.applyrescaling = false;
-//        } else if (strcmp(argv[1], "-nthreads") == 0) {
-//            argc--; argv++;
-//            this->m_NumThreads = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-nthreads") == 0) {
+            argc--; argv++;
+            this->m_NumThreads = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
             const std::string npinput(argv[1]);
@@ -727,8 +727,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
 
     this->m_Timer[FFTSETUP][LOG] = 0.0;
     // set number of threads
-    //ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-    ierr = InitializeDataDistribution(0, this->m_CartGridDims,
+    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                       this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
@@ -805,8 +804,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     // if communicator is not set up
     if (this->m_FFT.mpicommexists == false) {
-        //ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-        ierr = InitializeDataDistribution(0, this->m_CartGridDims, this->m_FFT.mpicomm, false); CHKERRQ(ierr);
+        ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+                                          this->m_FFT.mpicomm, false); CHKERRQ(ierr);
         this->m_FFT.mpicommexists = true;
     }
 
@@ -1089,7 +1088,7 @@ PetscErrorCode RegOpt::Initialize() {
         this->m_Log.enabled[i] = false;
     }
     this->m_Log.memoryusage = false;
-//    this->m_NumThreads = 1;
+    this->m_NumThreads = 1;
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
 
@@ -1272,7 +1271,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " memory distribution and parallelism" << std::endl;
         std::cout << line << std::endl;
-//        std::cout << " -nthreads <int>             number of threads (default: 1)" << std::endl;
+        std::cout << " -nthreads <int>             number of threads (default: 1)" << std::endl;
         std::cout << " -np <int>x<int>             distribution of mpi tasks (cartesian grid) (example: -np 2x4 results" << std::endl;
         std::cout << "                             results in MPI distribution of size (nx1/2,nx2/4,nx3) for each mpi task)" << std::endl;
         std::cout << line << std::endl;
@@ -1433,7 +1432,7 @@ PetscErrorCode RegOpt::CheckArguments() {
         ierr = this->Usage(); CHKERRQ(ierr);
     }
 
-//    ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -1733,7 +1732,6 @@ PetscErrorCode RegOpt::DisplayOptions() {
                   << this->m_CartGridDims[0] << "x"
                   << this->m_CartGridDims[1] << std::endl;
         std::cout << std::left << std::setw(indent) << " threads"
-                  //<< this->m_NumThreads << std::endl;
                   << omp_get_max_threads() << std::endl;
         std::cout << std::left << std::setw(indent) << " (ng,nl)"
                   << "(" << this->m_Domain.ng
@@ -2956,7 +2954,6 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable(std::ostream& logwriter) {
 
         logwriter << std::left
                   << std::setw(nstr) << " num threads" << std::right
-                  //<< this->m_NumThreads << std::endl;
                   << omp_get_max_threads() << std::endl;
 
         logwriter << std::endl;

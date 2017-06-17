@@ -465,7 +465,6 @@ class RegOpt {
         wtime[2] = this->m_Timer[id][AVG];
     }
 
-//    unsigned int GetNumThreads() {return this->m_NumThreads;}
     inline int GetNetworkDims(const int i) {return this->m_CartGridDims[i];}
     inline void IncreaseFFTTimers(const double timers[NFFTTIMERS]) {
         for (int i = 0; i < NFFTTIMERS; ++i) {
@@ -548,6 +547,7 @@ class RegOpt {
     bool m_SetupDone;
     bool m_StoreCheckPoints;
 
+    unsigned int m_NumThreads;
     unsigned int m_LineLength;
     unsigned int m_Indent;
     int m_Verbosity;
@@ -586,7 +586,6 @@ class RegOpt {
     int m_IDSlowest;
 
     int m_CartGridDims[2];
-//    unsigned int m_NumThreads;
 //    const unsigned int m_LineLength = 101; //C++ 11 feature
 
 };
