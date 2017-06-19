@@ -5,7 +5,7 @@ if [[ ! -e accfft.tar.gz ]]; then
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading accFFT"
 	echo "----------------------------------------------------------------------------------"
-	wget  https://github.com/amirgholami/accfft/archive/master.tar.gz -O accfft.tar.gz
+	wget --no-check-certificate --content-disposition https://github.com/amirgholami/accfft/archive/master.tar.gz -O accfft.tar.gz
 fi
 
 if [[ ! -e fftw.tar.gz ]]; then
@@ -41,12 +41,12 @@ if [[ ! -e parallel-netcdf.tar.gz ]]; then
 	wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.8.1.tar.gz -O parallel-netcdf.tar.gz
 fi
 
-if [[ ! -e petsc-lite.tar.gz ]]; then
+if [[ ! -e petsc.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading petsc library"
 	echo "----------------------------------------------------------------------------------"
-	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc-lite.tar.gz
+	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc.tar.gz
 fi
 
 if [[ ! -e zlib.tar.gz ]]; then
