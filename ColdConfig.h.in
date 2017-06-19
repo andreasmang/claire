@@ -1,4 +1,0 @@
-// the configured options and settings for cold
-#define COLD_VERSION_MAJOR @COLD_VERSION_MAJOR@
-#define COLD_VERSION_MINOR @COLD_VERSION_MINOR@
-#define COLD_VERSION_PATCH @COLD_VERSION_PATCH@
