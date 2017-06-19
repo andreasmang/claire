@@ -2628,8 +2628,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField5); CHKERRQ(ierr);
-
 
     // store time series
     if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
