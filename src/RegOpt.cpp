@@ -869,6 +869,9 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_FFT.plan = NULL;
     }
 
+    if (this->m_Verbosity > 2) {
+        ierr = DbgMsg("allocating fft plan"); CHKERRQ(ierr);
+    }
     fftsetuptime = -MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<ScalarType*>(uk),
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
@@ -878,6 +881,9 @@ PetscErrorCode RegOpt::InitializeFFT() {
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
 
+    if (this->m_Verbosity > 2) {
+        ierr = DbgMsg("setting up sizes"); CHKERRQ(ierr);
+    }
     // compute global and local size
     this->m_Domain.nl = 1;
     this->m_Domain.ng = 1;
@@ -890,9 +896,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
     }
 
-    // check if sizes are ok
-    //ierr = reg::Assert(this->m_Domain.nl > 0 && this->m_Domain.nl < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
-    //ierr = reg::Assert(this->m_Domain.ng > 0 && this->m_Domain.ng < std::numeric_limits<IntType>::max(), "overflow detected"); CHKERRQ(ierr);
 
     // clean up
     if (u != NULL) {accfft_free(u); u = NULL;}

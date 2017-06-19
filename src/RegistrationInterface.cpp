@@ -1383,7 +1383,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // allocate multilevel pyramid for reference image
-    if (this->m_Opt->m_Verbosity > 1) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("setup: reference image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_ReferencePyramid == NULL) {
@@ -1397,7 +1397,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
     ierr = this->m_ReferencePyramid->DoSetup(this->m_ReferenceImage); CHKERRQ(ierr);
 
     // allocate multilevel pyramid for template image
-    if (this->m_Opt->m_Verbosity > 1) {
+    if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("setup: template image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_TemplatePyramid == NULL) {

@@ -20,14 +20,7 @@
 #ifndef _REGUTILS_CPP_
 #define _REGUTILS_CPP_
 
-
 #include "RegUtils.hpp"
-#include <time.h>
-#include <limits>
-
-#ifdef REG_HAS_PNETCDF
-#include "pnetcdf.h"
-#endif
 
 
 

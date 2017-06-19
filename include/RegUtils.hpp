@@ -21,7 +21,7 @@
 #ifndef _REGUTILS_H_
 #define _REGUTILS_H_
 
-// #define _REG_DEBUG_
+//#define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -36,6 +36,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef REG_HAS_PNETCDF
+#include "pnetcdf.h"
+#endif
 
 
 // local includes
