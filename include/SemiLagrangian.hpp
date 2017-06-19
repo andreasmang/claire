@@ -58,6 +58,11 @@ class SemiLagrangian {
                                        ScalarType*, ScalarType*, ScalarType*,
                                        std::string);
 
+    /*! set coordinate vector */
+    PetscErrorCode SetQueryPoints(ScalarType*, ScalarType*, ScalarType*, std::string);
+
+
+
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetWorkVecField(VecField*);
 

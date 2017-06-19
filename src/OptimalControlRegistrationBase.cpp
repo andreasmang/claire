@@ -2588,16 +2588,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     std::string ext;
     IntType nl, nt;
     ScalarType ht, hthalf;
-    ScalarType *p_y1 = NULL, *p_y2 = NULL, *p_y3 = NULL,
-                *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
+    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
+                *p_y1 = NULL, *p_y2 = NULL, *p_y3 = NULL,
                 *p_vy1 = NULL, *p_vy2 = NULL, *p_vy3 = NULL,
-                *p_vytilde1 = NULL, *p_vytilde2 = NULL, *p_vytilde3 = NULL,
-                *p_ytilde1 = NULL, *p_ytilde2 = NULL, *p_ytilde3 = NULL;
+                *p_yt1 = NULL, *p_yt2 = NULL, *p_yt3 = NULL;
 
     PetscFunctionBegin;
-
-    // TODO: fix this
-    ierr = ThrowError("not implemented"); CHKERRQ(ierr);
 
     this->m_Opt->Enter(__func__);
 
@@ -2620,18 +2616,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     }
     if (this->m_WorkVecField3 == NULL) {
         try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField4 == NULL) {
-        try{this->m_WorkVecField4 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField5 == NULL) {
-        try{this->m_WorkVecField5 = new VecField(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -2667,41 +2651,44 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->GetArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField4->GetArrays(p_vytilde1, p_vytilde2, p_vytilde3); CHKERRQ(ierr);
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         // evaluate v(y)
-//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3,
-//                                                         p_v1, p_v2, p_v3,
-//                                                         p_y1, p_y2, p_y3 ); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_y1, p_y2, p_y3, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK2)
 #pragma omp parallel
 {
 #pragma omp for
         for (IntType i = 0; i < nl; ++i) {
-            p_ytilde1[i] = p_y1[i] - ht*p_vy1[i];
-            p_ytilde2[i] = p_y2[i] - ht*p_vy2[i];
-            p_ytilde3[i] = p_y3[i] - ht*p_vy3[i];
+            // compute new coordinate
+            p_yt1[i] = p_y1[i] - ht*p_vy1[i];
+            p_yt2[i] = p_y2[i] - ht*p_vy2[i];
+            p_yt3[i] = p_y3[i] - ht*p_vy3[i];
+
+            // compute first part of second stage of RK2
+            p_y1[i] -= hthalf*p_vy1[i];
+            p_y2[i] -= hthalf*p_vy2[i];
+            p_y3[i] -= hthalf*p_vy3[i];
         }
 }// end of pragma omp parallel
 
         // evaluate v(ytilde)
-//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vytilde1, p_vytilde2, p_vytilde3,
-//                                                         p_v1, p_v2, p_v3,
-//                                                         p_ytilde1, p_ytilde2, p_ytilde3 ); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_yt1, p_yt2, p_yt3, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // update deformation map (second stage of RK2)
 #pragma omp parallel
 {
 #pragma omp for
         for (IntType i = 0; i < nl; ++i) {
-            p_y1[i] = p_y1[i] - hthalf*(p_vytilde1[i] + p_vy1[i]);
-            p_y2[i] = p_y2[i] - hthalf*(p_vytilde2[i] + p_vy2[i]);
-            p_y3[i] = p_y3[i] - hthalf*(p_vytilde3[i] + p_vy3[i]);
+            p_y1[i] -= hthalf*p_vy1[i];
+            p_y2[i] -= hthalf*p_vy2[i];
+            p_y3[i] -= hthalf*p_vy3[i];
         }
 }// end of pragma omp parallel
 
@@ -2718,10 +2705,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
 
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->RestoreArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField4->RestoreArrays(p_vytilde1, p_vytilde2, p_vytilde3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -2749,9 +2735,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
                 *p_ytilde1 = NULL, *p_ytilde2 = NULL, *p_ytilde3 = NULL;
 
     PetscFunctionBegin;
-
-    // TODO: fix this
-    ierr = ThrowError("not implemented"); CHKERRQ(ierr);
 
     this->m_Opt->Enter(__func__);
 

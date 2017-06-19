@@ -146,6 +146,7 @@ PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* x) {
 
 
 
+
 /********************************************************************
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
@@ -321,8 +322,8 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string fla
 
 
     for (int i = 0; i < 3; ++i) {
-        hx[i]     = this->m_Opt->m_Domain.hx[i];
-        isize[i]  = this->m_Opt->m_Domain.isize[i];
+        hx[i] = this->m_Opt->m_Domain.hx[i];
+        isize[i] = this->m_Opt->m_Domain.isize[i];
         istart[i] = this->m_Opt->m_Domain.istart[i];
     }
 
@@ -449,6 +450,46 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string fla
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief set coordinate vector and communicate to interpolation plan
+ *******************************************************************/
+PetscErrorCode SemiLagrangian::SetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3, std::string flag) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nl = this->m_Opt->m_Domain.nl;
+
+    // if query points have not yet been allocated
+    if (this->m_X == NULL) {
+        try {this->m_X = new ScalarType[3*nl];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+
+    // copy data to a flat vector
+    for (IntType i = 0; i < nl; ++i) {
+        this->m_X[0*nl+i] = y1[i];
+        this->m_X[1*nl+i] = y2[i];
+        this->m_X[2*nl+i] = y3[i];
+    }
+
+    // evaluate right hand side
+    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
 
 
 

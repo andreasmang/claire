@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
-    if (regopt->GetLogger().memoryusage) {
+    if (regopt->m_Log.memoryusage) {
         ierr = PetscMemorySetGetMaximumUsage(); CHKERRQ(ierr);
     }
 
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 
     ierr = registration->Run(); CHKERRQ(ierr);
 
-    if (regopt->GetLogger().memoryusage) {
+    if (regopt->m_Log.memoryusage) {
         PetscLogDouble mem;
         ierr = PetscMemoryGetMaximumUsage(&mem); CHKERRQ(ierr);
         ss << "memory usage (estimate) " << std::scientific << mem/1E9 << " GB";
