@@ -386,8 +386,8 @@ struct RegFlags {
 
 struct PDESolver {
     PDESolverType type;
-    int rungekuttaorder;
-    int interpolationorder;
+    int rkorder;
+    int iporder;
     ScalarType cflnumber;
     bool monitorcflnumber;
     bool adapttimestep;
@@ -516,7 +516,7 @@ class RegOpt {
     GridCont m_GridCont;                ///< flags for grid continuation
     ScaleCont m_ScaleCont;              ///< flags for scale continuation
     Optimization m_OptPara;             ///< optimization parameters
-    ReadWriteFlags m_ReadWriteFlags;    ///< flags for io
+    ReadWriteFlags m_ReadWriteFlags;    ///< flags for input/output of fields (defmap, deffield, defgrad, ...)
     PDESolver m_PDESolver;              ///< flag for PDE solver
     KrylovMethod m_KrylovMethod;        ///< parameters for krylov solver
     RegFlags m_RegFlags;                ///< flags for registration
@@ -525,8 +525,8 @@ class RegOpt {
     FourierTransform m_FFT;             ///< parameters for FFT/accfft
     ParCont m_ParaCont;                 ///< flags for parameter continuation
     SolveType m_SolveType;              ///< solver
-    ScalarType m_Sigma[3];
-    FileNames m_FileNames;
+    ScalarType m_Sigma[3];              ///< standard deviation for gaussian smoothing
+    FileNames m_FileNames;              ///< file names for input/output
     Logger m_Log;                       ///< log
 
     bool m_SetupDone;

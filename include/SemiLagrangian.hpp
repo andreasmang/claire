@@ -93,8 +93,6 @@ class SemiLagrangian {
         int istart[3];
         int nghost;
     };
-
-    unsigned int m_rkorder;
 };
 
 

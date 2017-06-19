@@ -662,6 +662,7 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     if (this->m_Opt->m_ParaCont.enabled) {
         this->m_CoarseGrid.m_Opt->m_RegNorm.beta[0] = this->m_Opt->m_RegNorm.beta[0];
         this->m_CoarseGrid.m_Opt->m_RegNorm.beta[1] = this->m_Opt->m_RegNorm.beta[1];
+        this->m_CoarseGrid.m_Opt->m_RegNorm.beta[2] = this->m_Opt->m_RegNorm.beta[2];
     }
 
     // get variables from optimization problem on fine level
@@ -728,8 +729,8 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
                 // get time point of adjoint variable on fine grid
                 ierr = VecGetArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
                 try {std::copy(p_l+l_f, p_l+lnext_f, p_lj);}
-                catch(std::exception&) {
-                    ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+                catch(std::exception& err) {
+                    ierr = ThrowError(err); CHKERRQ(ierr);
                 }
                 ierr = VecRestoreArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
 
@@ -742,8 +743,8 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
                 // store restricted adjoint variable
                 ierr = VecGetArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
                 try {std::copy(p_ljcoarse, p_ljcoarse+nl_c, p_lcoarse+l_c);}
-                catch (std::exception&) {
-                    ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+                catch(std::exception& err) {
+                    ierr = ThrowError(err); CHKERRQ(ierr);
                 }
                 ierr = VecRestoreArray(this->m_CoarseGrid.m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
             }

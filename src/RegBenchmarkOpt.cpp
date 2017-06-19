@@ -128,12 +128,12 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-cflnumber") == 0) {
             argc--; argv++;
             this->m_PDESolver.cflnumber = atof(argv[1]);
-        } else if (strcmp(argv[1], "-interpolationorder") == 0) {
+        } else if (strcmp(argv[1], "-iporder") == 0) {
             argc--; argv++;
-            this->m_PDESolver.interpolationorder = atoi(argv[1]);
-//        } else if (strcmp(argv[1], "-nthreads") == 0) {
-//            argc--; argv++;
-//            this->m_NumThreads = atoi(argv[1]);
+            this->m_PDESolver.iporder = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-nthreads") == 0) {
+            argc--; argv++;
+            this->m_NumThreads = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
             const std::string npinput = argv[1];
@@ -282,7 +282,7 @@ PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
         std::cout << " -nt <int>                   number of time points (for time integration; default: 4)"<<std::endl;
         std::cout << " -adapttimestep              vary number of time steps according to defined number"<<std::endl;
         std::cout << " -cflnumber <dbl>            set cfl number"<<std::endl;
-        std::cout << " -interpolationorder <int>   order of interpolation model (default is 3)" << std::endl;
+        std::cout << " -iporder <int>              order of interpolation model (default is 3)" << std::endl;
         std::cout << line << std::endl;
         // ####################### advanced options #######################
         std::cout << line << std::endl;

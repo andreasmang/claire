@@ -2335,7 +2335,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
         }
         case SL:
         {
-            switch (this->m_Opt->m_PDESolver.rungekuttaorder) {
+            switch (this->m_Opt->m_PDESolver.rkorder) {
                 case 2:
                 {
                     ierr = this->ComputeDeformationMapSLRK2(); CHKERRQ(ierr);
@@ -2801,8 +2801,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         // evaluate right hand side v(y) (i.e., F0)
-//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-//                                                         p_y1, p_y2, p_y3); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_y1, p_y2, p_y3, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK4); F0
 #pragma omp parallel
@@ -2821,8 +2821,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // evaluate right hand side v(ytilde) (i.e., F1)
-//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-//                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_ytilde1, p_ytilde2, p_ytilde3, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (sedond stage of RK4)
 #pragma omp parallel
@@ -2841,8 +2841,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // evaluate right hand side v(ytilde) (i.e., F2)
-//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-//                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_ytilde1, p_ytilde2, p_ytilde3, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (sedond stage of RK4)
 #pragma omp parallel
@@ -2861,8 +2861,8 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 }  // end of pragma omp parallel
 
         // evaluate right hand side v(ytilde) (i.e., F3)
-//        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3,
-//                                                         p_ytilde1, p_ytilde2, p_ytilde3); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_ytilde1, p_ytilde2, p_ytilde3, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (sedond stage of RK4)
 #pragma omp parallel

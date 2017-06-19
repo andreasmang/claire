@@ -180,8 +180,8 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
         // if we have not setup initial guess, do so
         if (this->m_Solution == NULL) {
             try {this->m_Solution = new VecField(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         ierr = this->m_Solution->Copy(x); CHKERRQ(ierr);
@@ -297,8 +297,8 @@ PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
     ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
 
     try {std::copy(p_m+nt*nc*nl, p_m+(nt+1)*nc*nl, p_m1);}
-    catch (std::exception&) {
-        ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+    catch (std::exception& err) {
+        ierr = ThrowError(err); CHKERRQ(ierr);
     }
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
@@ -382,8 +382,8 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
         this->m_Optimizer = NULL;
     }
     try {this->m_Optimizer = new OptimizerType(this->m_Opt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
     // set up optimization/registration problem
@@ -394,8 +394,8 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
         delete this->m_PreProc; this->m_PreProc = NULL;
     }
     try {this->m_PreProc = new Preprocessing(this->m_Opt);}
-    catch (std::bad_alloc&) {
-        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {
@@ -407,8 +407,8 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
             delete this->m_Precond; this->m_Precond = NULL;
         }
         try {this->m_Precond = new PrecondReg(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
         ierr = this->m_Precond->SetPreProc(this->m_PreProc); CHKERRQ(ierr);
         ierr = this->m_Precond->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
@@ -421,8 +421,8 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
             ierr = DbgMsg("allocating solution vector"); CHKERRQ(ierr);
         }
         try {this->m_Solution = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
         ierr = this->m_Solution->SetValue(0.0); CHKERRQ(ierr);
     }
@@ -466,8 +466,8 @@ PetscErrorCode RegistrationInterface::SetupData(Vec& mR, Vec& mT) {
         if (this->m_Opt->m_RegFlags.applysmoothing) {
             if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new Preprocessing(this->m_Opt);}
-                catch (std::bad_alloc&) {
-                    ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+                catch (std::bad_alloc& err) {
+                    ierr = reg::ThrowError(err); CHKERRQ(ierr);
                 }
             }
             ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
@@ -511,18 +511,18 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
     // allocate class for registration
     if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
         try {this->m_RegProblem = new OptimalControlRegistration(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == STOKES) {
         try {this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
         try {this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     } else {
         ierr = ThrowError("registration model not available"); CHKERRQ(ierr);
@@ -564,10 +564,13 @@ PetscErrorCode RegistrationInterface::Run() {
 
     // switch between solvers we have to solve optimization problem
     if (this->m_Opt->m_ParaCont.enabled) {
+        // run regularization parameter continuation (for betav)
         ierr = this->RunSolverRegParaCont(); CHKERRQ(ierr);
     } else if (this->m_Opt->m_ScaleCont.enabled) {
+        // run scale-continuation (smoothing)
         ierr = this->RunSolverScaleCont(); CHKERRQ(ierr);
     } else if (this->m_Opt->m_GridCont.enabled) {
+        // run grid-continuation
         nxmax = PETSC_MIN_INT;
         for (int i = 0; i < 3; ++i) {
             nx = this->m_Opt->m_Domain.nx[i];
@@ -1683,8 +1686,8 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try{this->m_PreProc = new Preprocessing(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         // apply smoothing
@@ -1740,8 +1743,8 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
         // allocate preprocessing class
         if (this->m_PreProc == NULL) {
             try {this->m_PreProc = new Preprocessing(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            catch (std::bad_alloc& err) {
+                ierr = reg::ThrowError(err); CHKERRQ(ierr);
             }
         }
         // apply smoothing

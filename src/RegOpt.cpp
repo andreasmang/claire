@@ -107,8 +107,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegNorm.beta[3] = opt.m_RegNorm.beta[3];  // former regularization weight (for monitor)
 
     this->m_PDESolver.type = opt.m_PDESolver.type;
-    this->m_PDESolver.rungekuttaorder = opt.m_PDESolver.rungekuttaorder;
-    this->m_PDESolver.interpolationorder = opt.m_PDESolver.interpolationorder;
+    this->m_PDESolver.rkorder = opt.m_PDESolver.rkorder;
+    this->m_PDESolver.iporder = opt.m_PDESolver.iporder;
     this->m_PDESolver.cflnumber = opt.m_PDESolver.cflnumber;
     this->m_PDESolver.monitorcflnumber = opt.m_PDESolver.monitorcflnumber;
     this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
@@ -619,9 +619,12 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_PDESolver.monitorcflnumber = true;
         } else if (strcmp(argv[1], "-adapttimestep") == 0) {
             this->m_PDESolver.adapttimestep = true;
-        } else if (strcmp(argv[1], "-interpolationorder") == 0) {
+        } else if (strcmp(argv[1], "-iporder") == 0) {
             argc--; argv++;
-            this->m_PDESolver.interpolationorder = atoi(argv[1]);
+            this->m_PDESolver.iporder = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-rkorder") == 0) {
+            argc--; argv++;
+            this->m_PDESolver.rkorder = atoi(argv[1]);
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.hessshift = atof(argv[1]);
@@ -696,7 +699,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Verbosity = std::min(atoi(argv[1]), 2);
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
-        } else if (strcmp(argv[1], "-mdefgrad") == 0) {
+        } else if (strcmp(argv[1], "-monitordefgrad") == 0) {
             this->m_Monitor.detdgradenabled = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
             this->m_RegFlags.invdefgrad = true;
@@ -823,7 +826,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     //ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
 
-    iporder = this->m_PDESolver.interpolationorder;
+    iporder = this->m_PDESolver.iporder;
     if (this->m_PDESolver.type == SL) {
         if (isize[0] < iporder+1 || isize[1] < iporder+1) {
             ss << "\n\x1b[31m local size smaller than padding size (isize=("
@@ -960,20 +963,30 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_PDESolver.cflnumber = 0.5;
     this->m_PDESolver.monitorcflnumber = false;
     this->m_PDESolver.adapttimestep = false;
-    this->m_PDESolver.rungekuttaorder = 2;
-    this->m_PDESolver.interpolationorder = 3;
+    this->m_PDESolver.rkorder = 2;
+    this->m_PDESolver.iporder = 3;
 
     // smoothing
     this->m_Sigma[0] = 1.0;
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
+#if defined(PETSC_USE_REAL_SINGLE)
+    this->m_KrylovMethod.tol[0] = 1E-9;     ///< relative tolerance
+    this->m_KrylovMethod.tol[1] = 1E-9;     ///< absolute tolerance
+    this->m_KrylovMethod.tol[2] = 1E+06;    ///< divergence tolerance
+#else
     this->m_KrylovMethod.tol[0] = 1E-12;     ///< relative tolerance
     this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovMethod.tol[2] = 1E+06;     ///< divergence tolerance
-    //this->m_KrylovMethod.maxit = 1000;       ///< max number of iterations
+#endif
+    //this->m_KrylovMethod.maxit = 1000;     ///< max number of iterations
     this->m_KrylovMethod.maxit = 30;         ///< max number of iterations
+#if defined(PETSC_USE_REAL_SINGLE)
+    this->m_KrylovMethod.reltol = 1E-9;      ///< relative tolerance (actually computed in solver)
+#else
     this->m_KrylovMethod.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
+#endif
     this->m_KrylovMethod.fseqtype = QDFS;
     this->m_KrylovMethod.pctype = INVREG;
     this->m_KrylovMethod.solver = PCG;
@@ -986,9 +999,15 @@ PetscErrorCode RegOpt::Initialize() {
     //this->m_KrylovMethod.pcmaxit = 1000;
     this->m_KrylovMethod.pcmaxit = 10;
     this->m_KrylovMethod.pcgridscale = 2;
+#if defined(PETSC_USE_REAL_SINGLE)
+    this->m_KrylovMethod.pctol[0] = 1E-9;    ///< relative tolerance
+    this->m_KrylovMethod.pctol[1] = 1E-9;    ///< absolute tolerance
+    this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
+#else
     this->m_KrylovMethod.pctol[0] = 1E-12;   ///< relative tolerance
     this->m_KrylovMethod.pctol[1] = 1E-16;   ///< absolute tolerance
     this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
+#endif
     this->m_KrylovMethod.usepetsceigest = true;
     this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
 //    this->m_KrylovMethod.matvectype = PRECONDMATVEC;
@@ -1001,7 +1020,11 @@ PetscErrorCode RegOpt::Initialize() {
     // tolerances for optimization
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
     this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
+#if defined(PETSC_USE_REAL_SINGLE)
+    this->m_OptPara.tol[1] = 1E-9;                  ///< grad rel tol ||g(x)||/J(x) < tol
+#else
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
+#endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     //this->m_OptPara.maxit = 1E3;                    ///< max number of iterations
     this->m_OptPara.maxit = 20;                     ///< max number of iterations
@@ -1188,7 +1211,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -krylovsolver <type>        solver for reduced space hessian system H[vtilde]=-g" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 pcg          preconditioned conjugate gradient method" << std::endl;
-        std::cout << "                               gmres        generalized minimal residual method" << std::endl;
+        std::cout << "                                 gmres        generalized minimal residual method" << std::endl;
         std::cout << " -krylovmaxit <int>          maximum number of (inner) Krylov iterations (default: 50)" << std::endl;
         std::cout << " -krylovfseq <type>          forcing sequence for Krylov solver (tolerance for inner iterations)" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
@@ -1201,7 +1224,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 none         no preconditioner (not recommended)" << std::endl;
         std::cout << "                                 invreg       inverse regularization operator (default)" << std::endl;
-        std::cout << "                               2level       2-level preconditioner" << std::endl;
+        std::cout << "                                 2level       2-level preconditioner" << std::endl;
         std::cout << " -gridscale <dbl>            grid scale for 2-level preconditioner (default: 2)" << std::endl;
         std::cout << " -pcsolver <type>            solver for inversion of preconditioner (in case" << std::endl;
         std::cout << "                             the 2-level preconditioner is used)" << std::endl;
@@ -1261,16 +1284,19 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -mdefgrad                   enable monitor for det(grad(y))" << std::endl;
+        std::cout << " -monitordefgrad             enable monitor for determinant of deformation gradient det(grad(y))" << std::endl;
         std::cout << line << std::endl;
         std::cout << " solver specific parameters (numerics)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -pdesolver <type>           numerical time integrator for transport equations" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 sl           semi-Lagrangian method (default; unconditionally stable)" << std::endl;
+        std::cout << "                                              user can set order of rk time integrator for characteristic via '-rkorder'" << std::endl;
+        std::cout << "                                              user can set order of rk time integrator for characteristic via '-rkorder'" << std::endl;
         std::cout << "                                 rk2          rk2 time integrator (conditionally stable)" << std::endl;
         std::cout << " -nt <int>                   number of time points (for time integration; default: 4)" << std::endl;
-        std::cout << " -interpolationorder <int>   order of interpolation model (default is 3)" << std::endl;
+//        std::cout << " -iporder <int>              order of interpolation model (default is 3)" << std::endl;
+        std::cout << " -rkorder <int>              order of rk time integration used to compute the characteristic (default is 2)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " memory distribution and parallelism" << std::endl;
         std::cout << line << std::endl;
@@ -1379,7 +1405,7 @@ PetscErrorCode RegOpt::CheckArguments() {
         if (betav <= 0.0 || betav > 1.0) {
             msg = "\x1b[31m target betav not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-            ierr = this->Usage(); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
     if (   this->m_ParaCont.strategy == PCONTBINSEARCH
@@ -1388,14 +1414,14 @@ PetscErrorCode RegOpt::CheckArguments() {
         if (betav <= 0.0 || betav > 1.0) {
             msg = "\x1b[31m initial guess for betav not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-            ierr = this->Usage(); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
 
     if (this->m_ScaleCont.enabled && this->m_ParaCont.enabled) {
         msg = "\x1b[31m combined parameter and scale continuation not available \x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-        ierr = this->Usage(); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
     }
 
     // check output arguments
@@ -1424,15 +1450,22 @@ PetscErrorCode RegOpt::CheckArguments() {
         if (this->m_FileNames.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-            ierr = this->Usage(); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
+    }
+
+    // check time integration agruments
+    if (this->m_PDESolver.rkorder != 2 && this->m_PDESolver.rkorder != 4) {
+        msg = "\x1b[31m options for -rkorder are 2 and 4\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
     }
 
     if (this->m_KrylovMethod.pctolscale < 0.0
         || this->m_KrylovMethod.pctolscale >= 1.0) {
         msg = "\x1b[31m tolerance for precond solver out of bounds; not in (0,1)\x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-        ierr = this->Usage(); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
     }
 
     ierr = Assert(this->m_NumThreads > 0, "omp threads < 0"); CHKERRQ(ierr);

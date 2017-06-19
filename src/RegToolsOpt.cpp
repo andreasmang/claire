@@ -133,9 +133,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_PDESolver.cflnumber = atof(argv[1]);
         } else if (strcmp(argv[1], "-monitorcflnumber") == 0) {
             this->m_PDESolver.monitorcflnumber = true;
-        } else if (strcmp(argv[1], "-interpolationorder") == 0) {
+        } else if (strcmp(argv[1], "-iporder") == 0) {
             argc--; argv++;
-            this->m_PDESolver.interpolationorder = atoi(argv[1]);
+            this->m_PDESolver.iporder = atoi(argv[1]);
         } else if (strcmp(argv[1], "-sigma") == 0) {
             argc--; argv++;
             const std::string sigmainput = argv[1];

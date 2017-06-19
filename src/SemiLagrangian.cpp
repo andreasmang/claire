@@ -69,7 +69,6 @@ PetscErrorCode SemiLagrangian::Initialize() {
     PetscFunctionBegin;
 
     this->m_X = NULL;
-    this->m_rkorder = 2;
     this->m_WorkVecField1 = NULL;
     this->m_WorkVecField2 = NULL;
 
@@ -169,9 +168,10 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     }
 
     // compute trajectory
-    if (this->m_rkorder == 2) {
+
+    if (this->m_Opt->m_PDESolver.rkorder == 2) {
         ierr = this->ComputeTrajectoryRK2(v, flag); CHKERRQ(ierr);
-    } else if (this->m_rkorder == 4) {
+    } else if (this->m_Opt->m_PDESolver.rkorder == 4) {
         ierr = this->ComputeTrajectoryRK4(v, flag); CHKERRQ(ierr);
     } else {
         ierr = ThrowError("rk order not implemented"); CHKERRQ(ierr);
@@ -543,7 +543,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl     = this->m_Opt->m_Domain.nl;
-    order  = this->m_Opt->m_PDESolver.interpolationorder;
+    order  = this->m_Opt->m_PDESolver.iporder;
     nghost = order;
     neval  = static_cast<int>(nl);
 
@@ -642,7 +642,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->m_Domain.nl;
-    order = this->m_Opt->m_PDESolver.interpolationorder;
+    order = this->m_Opt->m_PDESolver.iporder;
     nghost = order;
 
     for (int i = 0; i < 3; ++i) {
@@ -741,7 +741,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
 
     // get sizes
     nl     = static_cast<int>(this->m_Opt->m_Domain.nl);
-    nghost = this->m_Opt->m_PDESolver.interpolationorder;
+    nghost = this->m_Opt->m_PDESolver.iporder;
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         isize[i] = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
