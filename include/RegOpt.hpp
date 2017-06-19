@@ -449,23 +449,10 @@ class RegOpt {
     PetscErrorCode SetupGridCont();
 
     // timers and counters
-    inline unsigned int GetCounter(CounterType id) {
-        return this->m_Counter[id];
-    }
-    inline void IncrementCounter(CounterType id) {
-        this->m_Counter[id]++;
-    }
-    inline void IncrementCounter(const CounterType id, const int i) {
-        this->m_Counter[id] += i;
-    }
+    inline unsigned int GetCounter(CounterType id) {return this->m_Counter[id];}
+    inline void IncrementCounter(CounterType id) {this->m_Counter[id]++;}
+    inline void IncrementCounter(const CounterType id, const int i) {this->m_Counter[id] += i;}
 
-    inline void GetTimer(const TimerType id, double* wtime) {
-        wtime[0] = this->m_Timer[id][MIN];
-        wtime[1] = this->m_Timer[id][MAX];
-        wtime[2] = this->m_Timer[id][AVG];
-    }
-
-    inline int GetNetworkDims(const int i) {return this->m_CartGridDims[i];}
     inline void IncreaseFFTTimers(const double timers[NFFTTIMERS]) {
         for (int i = 0; i < NFFTTIMERS; ++i) {
             this->m_FFTTimers[i][LOG] += timers[i];
@@ -476,8 +463,6 @@ class RegOpt {
             this->m_InterpTimers[i][LOG] += timers[i];
         }
     }
-
-    inline Logger GetLogger() {return this->m_Log;}
 
     inline void LogKSPResidual(const int i, const ScalarType value){
         this->m_Log.kspresidual.push_back(value);
@@ -547,8 +532,10 @@ class RegOpt {
     bool m_SetupDone;
     bool m_StoreCheckPoints;
 
+    int m_CartGridDims[2];
     unsigned int m_NumThreads;
     unsigned int m_LineLength;
+//    const unsigned int m_LineLength = 101; //C++ 11 feature
     unsigned int m_Indent;
     int m_Verbosity;
 
@@ -585,8 +572,6 @@ class RegOpt {
     double m_FFTSlowest;
     int m_IDSlowest;
 
-    int m_CartGridDims[2];
-//    const unsigned int m_LineLength = 101; //C++ 11 feature
 
 };
 

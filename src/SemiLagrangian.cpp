@@ -512,8 +512,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
         istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
-    c_dims[0] = this->m_Opt->GetNetworkDims(0);
-    c_dims[1] = this->m_Opt->GetNetworkDims(1);
+    c_dims[0] = this->m_Opt->m_CartGridDims[0];
+    c_dims[1] = this->m_Opt->m_CartGridDims[1];
 
     // deal with ghost points
     nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.plan, nghost, isize_g, istart_g);
@@ -611,8 +611,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     }
 
     // get network dimensions
-    c_dims[0] = this->m_Opt->GetNetworkDims(0);
-    c_dims[1] = this->m_Opt->GetNetworkDims(1);
+    c_dims[0] = this->m_Opt->m_CartGridDims[0];
+    c_dims[1] = this->m_Opt->m_CartGridDims[1];
 
     if (this->m_X == NULL) {
         try {this->m_X = new ScalarType [3*nl];}
@@ -707,8 +707,9 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
         istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
-    c_dims[0] = this->m_Opt->GetNetworkDims(0);
-    c_dims[1] = this->m_Opt->GetNetworkDims(1);
+    // get network dimensions
+    c_dims[0] = this->m_Opt->m_CartGridDims[0];
+    c_dims[1] = this->m_Opt->m_CartGridDims[1];
 
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 

@@ -58,7 +58,7 @@ PetscErrorCode KrylovMonitor(KSP krylovmethod, IntType it,
         ierr = DispKSPConvReason(reason); CHKERRQ(ierr);
     }
 
-    if (optprob->GetOptions()->GetLogger().enabled[LOGKSPRES]) {
+    if (optprob->GetOptions()->m_Log.enabled[LOGKSPRES]) {
         optprob->GetOptions()->LogKSPResidual(it, rnorm);
     }
 

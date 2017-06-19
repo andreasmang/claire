@@ -639,8 +639,8 @@ PetscErrorCode Preprocessing::ComputeGridChangeIndices(IntType* nx_f, IntType* n
     }
 
     // get cartesian grid (MPI)
-    cart_grid[0] = this->m_Opt->GetNetworkDims(0);
-    cart_grid[1] = this->m_Opt->GetNetworkDims(1);
+    cart_grid[0] = this->m_Opt->m_CartGridDims[0];
+    cart_grid[1] = this->m_Opt->m_CartGridDims[1];
 
     nc[0] = static_cast<ScalarType>(nx_c[1]);
     nc[1] = static_cast<ScalarType>(nx_c[2])/2.0 + 1.0;

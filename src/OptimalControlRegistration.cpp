@@ -3716,7 +3716,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // set velocity field
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    if (this->m_Opt->GetLogger().enabled[LOGCONV]) {
+    if (this->m_Opt->m_Log.enabled[LOGCONV]) {
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
 
@@ -3785,7 +3785,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     if (this->m_Opt->m_Monitor.detdgradenabled) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
         // if user enabled the logger
-        if (this->m_Opt->GetLogger().enabled[LOGJAC]) {
+        if (this->m_Opt->m_Log.enabled[LOGJAC]) {
             if (rank == 0) {
                 filename  = this->m_Opt->m_FileNames.xfolder;
                 filename += "registration-performance-detdefgrad.log";
@@ -3869,7 +3869,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     ext = this->m_Opt->m_FileNames.extension;
 
     // compute residuals
-    if (this->m_Opt->GetLogger().enabled[LOGRES]) {
+    if (this->m_Opt->m_Log.enabled[LOGRES]) {
         ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
