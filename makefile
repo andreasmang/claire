@@ -2,11 +2,12 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-USESINGLE=no
+USESINGLE=yes
 USEPNETCDF=yes
 USENIFTI=yes
 USEKNL=no
-BUILDTOOLS=no
+USEHASWELL=yes
+BUILDTOOLS=yes
 
 
 # developer flags (ignore)
@@ -36,6 +37,11 @@ CXXFLAGS += -std=c++11
 ifeq ($(USEKNL),yes)
 	CXXFLAGS += -DKNL
 endif
+
+ifeq ($(USEHASWELL),yes)
+	CXXFLAGS += -DHASWELL
+endif
+
 
 ifeq ($(PEDANTIC),yes)
 	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
