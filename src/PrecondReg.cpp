@@ -469,7 +469,7 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
         }
         case INVREG:
         {
-            ierr = this->ApplyInvRegPrecond(Px, x); CHKERRQ(ierr);
+            ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
             break;
         }
         case TWOLEVEL:
@@ -495,7 +495,7 @@ PetscErrorCode PrecondReg::MatVec(Vec Px, Vec x) {
 /********************************************************************
  * @brief apply inverse of regularization operator as preconditioner
  *******************************************************************/
-PetscErrorCode PrecondReg::ApplyInvRegPrecond(Vec Px, Vec x) {
+PetscErrorCode PrecondReg::ApplySpectralPrecond(Vec precx, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -508,7 +508,7 @@ PetscErrorCode PrecondReg::ApplyInvRegPrecond(Vec Px, Vec x) {
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
     // apply inverse regularization operator
-    ierr = this->m_OptimizationProblem->ApplyInvRegOp(Px, x); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->ApplyInvRegularizationOperator(precx, x, false); CHKERRQ(ierr);
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);

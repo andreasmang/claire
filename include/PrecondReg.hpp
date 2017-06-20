@@ -87,7 +87,7 @@ class PrecondReg {
     PetscErrorCode SetupKrylovMethodEigEst();
 
     /*! apply inverse regularization operator as preconditioner */
-    PetscErrorCode ApplyInvRegPrecond(Vec, Vec);
+    PetscErrorCode ApplySpectralPrecond(Vec, Vec);
 
     /*! apply 2Level PC as preconditioner */
     PetscErrorCode Apply2LevelPrecond(Vec, Vec);

@@ -84,7 +84,7 @@ class OptimizationProblem {
     virtual PetscErrorCode PostKrylovSolve(Vec, Vec) = 0;
 
     /*! apply inverse regularization operator */
-    virtual PetscErrorCode ApplyInvRegOp(Vec, Vec) = 0;
+    virtual PetscErrorCode ApplyInvRegularizationOperator(Vec, Vec, bool flag = false) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
@@ -101,10 +101,10 @@ class OptimizationProblem {
     /*! set state variable */
     virtual PetscErrorCode SetStateVariable(Vec) = 0;
 
-    /*! get state variable */
+    /*! get adjoint variable */
     virtual PetscErrorCode GetAdjointVariable(Vec&) = 0;
 
-    /*! set state variable */
+    /*! set adjoint variable */
     virtual PetscErrorCode SetAdjointVariable(Vec) = 0;
 
     /*! finalize iteration */
@@ -116,7 +116,7 @@ class OptimizationProblem {
     /*! apply two level preconditioner */
     virtual PetscErrorCode CheckBounds(Vec, bool&) = 0;
 
-    /*! check gradient (derivative check via tayler expansion) */
+    /*! check gradient (derivative check via taylor expansion) */
     PetscErrorCode DerivativeCheck(void);
 
     /*! check if hessian is symmetric */

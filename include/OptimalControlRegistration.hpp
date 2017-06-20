@@ -121,6 +121,12 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! compute incremental body force */
     virtual PetscErrorCode ComputeIncBodyForce(void);
 
+    /*! evaluate l2-gradient */
+    virtual PetscErrorCode EvaluateL2Gradient(Vec);
+
+    /*! evaluate sobolev gradient */
+    virtual PetscErrorCode EvaluateSobolevGradient(Vec);
+
     /*! rk2 solver for state equation */
     PetscErrorCode SolveStateEquationRK2();
 

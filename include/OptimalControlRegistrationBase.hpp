@@ -127,7 +127,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! evaluate regularization functional R(v) */
     PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*);
 
-    /*! evaluate gradient of Lagrangian L(v) */
+    /*! evaluate reduced gradient */
     virtual PetscErrorCode EvaluateGradient(Vec, Vec) = 0;
 
     /*! evaluate preconditined reduced gradient of Lagrangian L(v) */
@@ -146,7 +146,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     PetscErrorCode PostKrylovSolve(Vec, Vec);
 
     /*! apply inverse regularization operator */
-    PetscErrorCode ApplyInvRegOp(Vec, Vec);
+    PetscErrorCode ApplyInvRegularizationOperator(Vec, Vec, bool flag = false);
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
@@ -175,11 +175,16 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     virtual PetscErrorCode ClearVariables(void) = 0;
 
+    /*! evaluate l2-gradient */
+    virtual PetscErrorCode EvaluateL2Gradient(Vec) = 0;
+
+    /*! evaluate sobolev gradient */
+    virtual PetscErrorCode EvaluateSobolevGradient(Vec) = 0;
+
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();
     PetscErrorCode ComputeDefMapFromDisplacement();  ///< compute deformation map from displacement
-    PetscErrorCode ApplyInvRegOpSqrt(Vec);
-    PetscErrorCode ComputeRegularGrid(VecField*);  ///< compute coordinates for regular grid
+    PetscErrorCode ComputeRegularGrid(VecField*);    ///< compute coordinates for regular grid
     PetscErrorCode AllocateSpectralData();
 
     /*! compute cfl condition */

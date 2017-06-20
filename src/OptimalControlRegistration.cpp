@@ -782,9 +782,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-    if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
-    }
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
@@ -815,29 +812,22 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // \vect{g}_v = \D{K}[\vect{b}]
-        if (this->m_Opt->m_Verbosity > 2) {
-            ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
-        }
         if (g != NULL) {
             ierr = this->m_WorkVecField2->GetComponents(g); CHKERRQ(ierr);
         }
     } else {
-        // evaluate / apply gradient operator for regularization
-        ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
-
-        // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
-        ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
-
-        // parse to output
-        if (g != NULL) {
-            ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
-        }
+//        if (true) {
+            ierr = this->EvaluateL2Gradient(g); CHKERRQ(ierr);
+//        } else {
+//            ierr = this->EvaluateSobolevGradient(g); CHKERRQ(ierr);
+//        }
     }
 
-    // get and scale by lebesque measure
-    hd = this->m_Opt->GetLebesqueMeasure();
 
+    // parse to output
     if (g != NULL) {
+        // get and scale by lebesque measure
+        hd = this->m_Opt->GetLebesqueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -847,12 +837,70 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         }
     }
 
-
     // stop timer
     ierr = this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
 
     // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief evaluates the reduced gradient of the lagrangian (l2)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::EvaluateL2Gradient(Vec g) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Exit(__func__);
+
+    if (this->m_Regularization == NULL) {
+        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    // evaluate / apply gradient operator for regularization
+    ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
+
+    // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
+    ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+
+    // copy
+    ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief evaluates the reduced gradient of the lagrangian (in
+ * sobolev space incuded by regularization operator)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Exit(__func__);
+
+    if (this->m_Regularization == NULL) {
+        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+    }
+
+    // evaluate / apply gradient operator for regularization
+    ierr = this->m_Regularization->ApplyInvOp(this->m_WorkVecField1, this->m_WorkVecField2); CHKERRQ(ierr);
+
+    // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
+    ierr = this->m_WorkVecField1->AXPY(1.0, this->m_VelocityField); CHKERRQ(ierr);
+
+    // copy
+    ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
