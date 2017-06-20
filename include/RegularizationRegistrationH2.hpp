@@ -42,7 +42,7 @@ class RegularizationRegistrationH2 : public RegularizationRegistration {
     PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
     PetscErrorCode EvaluateGradient(VecField*, VecField*);
     PetscErrorCode HessianMatVec(VecField*, VecField*);
-    PetscErrorCode ApplyInvOp(VecField*, VecField*, bool applysqrt = false);
+    PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
     PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
 };
 

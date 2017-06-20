@@ -56,9 +56,6 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
         of lagrangian with respect to control variable(s) */
     PetscErrorCode EvaluateGradient(Vec, Vec);
 
-    /*! evaluate preconditined reduced gradient of Lagrangian L(v) */
-    PetscErrorCode EvaluatePrecondGradient(Vec, Vec);
-
     /*! compute Hessian matvec (second variation
         of lagrangian with respect to control variable(s) */
     PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true);
@@ -125,7 +122,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     virtual PetscErrorCode EvaluateL2Gradient(Vec);
 
     /*! evaluate sobolev gradient */
-    virtual PetscErrorCode EvaluateSobolevGradient(Vec);
+    virtual PetscErrorCode EvaluateSobolevGradient(Vec, bool flag = false);
 
     /*! rk2 solver for state equation */
     PetscErrorCode SolveStateEquationRK2();

@@ -80,6 +80,15 @@ enum HessianMatVecType {
 };
 
 
+/*! hessian mat vec type */
+enum GradientType {
+    L2GRAD,
+    SGRAD,
+    SYMSGRAD,
+};
+
+
+
 // flags for optimization methods
 enum OptMeth {
     GAUSSNEWTON,  ///< Gauss-Newton approximation
@@ -256,6 +265,7 @@ struct Optimization {
     ScalarType tol[3];                  ///< tolerances for optimization
     OptMeth method;                     ///< optimization method
     GlobalMethType glmethod;            ///< method for globalization (line search; trust region; ...)
+    GradientType gradtype;              ///< flag for type of gradient (sobolev or ell-2)
     StopCondType stopcond;              ///< stopping conditions
     bool fastpresolve;                  ///< flag to switch on fast presolve
     bool fastsolve;                     ///< flag to switch on fast (inaccurate) solve
@@ -271,15 +281,15 @@ struct Optimization {
 
 /* parameters for krylov solver */
 struct KrylovMethod {
-    int maxit;                ///< max number of iterations for krylov solver
-    IntType iter;             ///< current number of iterations for krylov solver
-    ScalarType tol[3];        ///< tolerances for krylov method
-    FSeqType fseqtype;        ///< forcing sequence type
-    std::string name;         ///< name of krylov solver
-    ScalarType reltol;        ///< relative tolerance for krylov solver
-    ScalarType g0norm;        ///< initial norm of gradient (to normalize stopping condition)
-    bool g0normset;           ///< flag to identify if initial norm of gradient has been set
-    KrylovMethodType solver;  ///< flag for krylov solver
+    int maxit;                      ///< max number of iterations for krylov solver
+    IntType iter;                   ///< current number of iterations for krylov solver
+    ScalarType tol[3];              ///< tolerances for krylov method
+    FSeqType fseqtype;              ///< forcing sequence type
+    std::string name;               ///< name of krylov solver
+    ScalarType reltol;              ///< relative tolerance for krylov solver
+    ScalarType g0norm;              ///< initial norm of gradient (to normalize stopping condition)
+    bool g0normset;                 ///< flag to identify if initial norm of gradient has been set
+    KrylovMethodType solver;        ///< flag for krylov solver
 
     ScalarType pctol[3];            ///< tolerances for krylov method (preconditioner)
     IntType pcmaxit;                ///< tolerances for krylov method (preconditioner)

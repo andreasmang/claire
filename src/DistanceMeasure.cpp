@@ -66,9 +66,11 @@ DistanceMeasure::DistanceMeasure(RegOpt* opt) {
  *******************************************************************/
 PetscErrorCode DistanceMeasure::Initialize(void) {
     PetscFunctionBegin;
+
     this->m_Opt = NULL;
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
+
     PetscFunctionReturn(0);
 }
 

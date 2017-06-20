@@ -474,7 +474,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
         ierr = VecCreate(g, nl, ng); CHKERRQ(ierr);
 
         ierr = this->m_VelocityField->GetComponents(v); CHKERRQ(ierr);
-        ierr = this->EvaluatePrecondGradient(g, v); CHKERRQ(ierr);
+
+        // TODO: use sobolev gradient
+        ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
         ierr = VecAXPY(v, -1.0, g); CHKERRQ(ierr);
 
@@ -510,6 +512,11 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero() {
 
     this->m_VelocityIsZero = (normv1 == 0.0) && (normv2 == 0.0) && (normv3 == 0.0);
 
+    if (this->m_Opt->m_Verbosity > 2) {
+        if (this->m_VelocityIsZero) {
+            ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
+        }
+    }
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -834,7 +841,7 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegularizationOperator(Ve
     }
 
     ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-    ierr = this->m_Regularization->ApplyInvOp(this->m_WorkVecField2, this->m_WorkVecField1, flag); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField2, this->m_WorkVecField1, flag); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);

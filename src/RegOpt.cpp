@@ -1026,10 +1026,10 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
 #endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    //this->m_OptPara.maxit = 1E3;                    ///< max number of iterations
-    this->m_OptPara.maxit = 20;                     ///< max number of iterations
+    this->m_OptPara.maxit = 100;                    ///< max number of iterations
     this->m_OptPara.minit = 0;                      ///< min number of iterations
     this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
+    this->m_OptPara.gradtype = L2GRAD;              ///< gradient type
     this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
     this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
     this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization

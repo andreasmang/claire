@@ -281,8 +281,8 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
             // compute gradient
             ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
-            // compute search direction
-            ierr = this->EvaluatePrecondGradient(dv, v); CHKERRQ(ierr);
+            // compute search direction (gradient in sobolev space)
+            ierr = this->EvaluateGradient(dv, v); CHKERRQ(ierr);
 
             // inner product between gradient and search direction
             ierr = VecTDot(g, dv, &descent); CHKERRQ(ierr);
@@ -763,6 +763,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
 
     this->m_Opt->Enter(__func__);
 
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
+    }
+
     // allocate
     if (this->m_VelocityField == NULL) {
         try {this->m_VelocityField = new VecField(this->m_Opt);}
@@ -783,9 +787,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         }
     }
 
-    if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
-    }
+    hd = this->m_Opt->GetLebesqueMeasure();
 
     // start timer
     ierr = this->m_Opt->StartTimer(GRADEXEC); CHKERRQ(ierr);
@@ -816,18 +818,26 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
             ierr = this->m_WorkVecField2->GetComponents(g); CHKERRQ(ierr);
         }
     } else {
-//        if (true) {
-            ierr = this->EvaluateL2Gradient(g); CHKERRQ(ierr);
-//        } else {
-//            ierr = this->EvaluateSobolevGradient(g); CHKERRQ(ierr);
-//        }
+        switch (this->m_Opt->m_OptPara.gradtype) {
+            case L2GRAD:
+                ierr = this->EvaluateL2Gradient(g); CHKERRQ(ierr);
+                break;
+            case SGRAD:
+                ierr = this->EvaluateSobolevGradient(g, false); CHKERRQ(ierr);
+                break;
+            case SYMSGRAD:
+                ierr = this->EvaluateSobolevGradient(g, true); CHKERRQ(ierr);
+                break;
+            default:
+                ierr = ThrowError("operator not implemented"); CHKERRQ(ierr);
+                break;
+        }
     }
 
 
     // parse to output
     if (g != NULL) {
         // get and scale by lebesque measure
-        hd = this->m_Opt->GetLebesqueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -883,7 +893,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Gradient(Vec g) {
  * @brief evaluates the reduced gradient of the lagrangian (in
  * sobolev space incuded by regularization operator)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g) {
+PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g, bool flag) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -894,7 +904,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g) {
     }
 
     // evaluate / apply gradient operator for regularization
-    ierr = this->m_Regularization->ApplyInvOp(this->m_WorkVecField1, this->m_WorkVecField2); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, flag); CHKERRQ(ierr);
 
     // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_VelocityField); CHKERRQ(ierr);
@@ -967,9 +977,6 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
-        if (this->m_Opt->m_Verbosity > 1) {
-            ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
-        }
         // m and \lambda are constant in time
         ierr = VecGetArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {  // for all components
@@ -1019,7 +1026,6 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
                 }
             }
 }  // omp
-
             // trapezoidal rule (revert scaling)
             if ((j == 0) || (j == nt)) scale *= 2.0;
         }
@@ -1033,7 +1039,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = this->m_WorkVecField2->Norm(value); CHKERRQ(ierr);
-        ss << "norm of momentum ||b||_2 = " << std::scientific << value;
+        ss << "||b||_2 = " << std::scientific << value;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -1090,7 +1096,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
         }
         default:
         {
-            ierr = ThrowError("setup problem"); CHKERRQ(ierr);
+            ierr = ThrowError("operator not implemented"); CHKERRQ(ierr);
             break;
         }
     }
@@ -1244,7 +1250,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
 
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta \D{A})^{-1}\D{K}[\vect{\tilde{b}}]
-    ierr = this->m_Regularization->ApplyInvOp(this->m_WorkVecField1, this->m_WorkVecField2); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2); CHKERRQ(ierr);
 
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1} \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
@@ -1320,9 +1326,9 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     // incremental body force: (\beta\D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta\D{A})^{-1/2}
 
     // apply (\beta\D{A})^{-1/2} to incremental velocity field
-    ierr = this->m_Regularization->ApplyInvOp(this->m_IncVelocityField, this->m_WorkVecField5, true); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, this->m_WorkVecField5, true); CHKERRQ(ierr);
 
-    // now solve the PDEs given the preconditoined incremental velocity field
+    // now solve the PDEs given the preconditioned incremental velocity field
 
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
@@ -1331,7 +1337,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     ierr = this->SolveIncAdjointEquation(); CHKERRQ(ierr);
 
     // apply (\beta\D{A})^{-1/2} to incremental body force
-    ierr = this->m_Regularization->ApplyInvOp(this->m_WorkVecField1, this->m_WorkVecField2, true); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, true); CHKERRQ(ierr);
 
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta \D{A})^{-1/2}
     // we use the same container for the bodyforce and the incremental body force to
@@ -1415,87 +1421,14 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
     // piccard step: solve A[v] = - ht \sum_j \lambda^j grad(m^j)
     ierr = this->m_WorkVecField2->Scale(-1.0); CHKERRQ(ierr);
 
-    ierr = this->m_Regularization->ApplyInvOp(this->m_VelocityField,
-                                              this->m_WorkVecField2); CHKERRQ(ierr);
+    // apply inverse regularization operator / spectral preconditioning
+    ierr = this->m_Regularization->ApplyInverse(this->m_VelocityField, this->m_WorkVecField2); CHKERRQ(ierr);
 
     // reset the adjoint variables
     ierr = VecSet(this->m_StateVariable, 0.0); CHKERRQ(ierr);
     ierr = VecSet(this->m_AdjointVariable, 0.0); CHKERRQ(ierr);
 
     ierr = this->m_ReadWrite->Write(this->m_VelocityField, "initial-condition"+ext); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief evaluate preconditioned gradient of lagrangian functional
- * @param[in] v velocity field
- * @param[out] g gradient
- *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluatePrecondGradient(Vec g, Vec v) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    ierr = Assert(g != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // allocate container for incremental velocity field
-    if (this->m_VelocityField == NULL) {
-        try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-
-    // allocate regularization model
-    if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
-    }
-
-    if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("evaluating preconditioned gradient"); CHKERRQ(ierr);
-    }
-
-    // parse input arguments
-    ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
-
-    // compute solution of state equation (i.e., m(x,t))
-    ierr = this->SolveStateEquation(); CHKERRQ(ierr);
-
-    // compute solution of adjoint equation (i.e., \lambda(x,t))
-    ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
-
-    // piccard step: solve A^{-1}[ht \sum_j \lambda^j grad(m^j)]
-    ierr = this->m_Regularization->ApplyInvOp(this->m_WorkVecField1,
-                                              this->m_WorkVecField2); CHKERRQ(ierr);
-
-    // compute v + A^{-1}[ht \sum_j \lambda^j grad(m^j)]
-    ierr = this->m_WorkVecField1->AXPY(1.0, this->m_VelocityField); CHKERRQ(ierr);
-
-    // parse output arguments
-    ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
-
-    // increment counter
-    this->m_Opt->IncrementCounter(GRADEVAL);
 
     this->m_Opt->Exit(__func__);
 
@@ -2166,7 +2099,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
             case SL:
             {
                 ierr = this->SolveAdjointEquationSL(); CHKERRQ(ierr);
-                //ierr = this->SolveAdjointEquationRK2(); CHKERRQ(ierr);
                 break;
             }
             default:

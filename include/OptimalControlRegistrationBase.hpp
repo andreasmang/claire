@@ -130,9 +130,6 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! evaluate reduced gradient */
     virtual PetscErrorCode EvaluateGradient(Vec, Vec) = 0;
 
-    /*! evaluate preconditined reduced gradient of Lagrangian L(v) */
-    virtual PetscErrorCode EvaluatePrecondGradient(Vec, Vec) = 0;
-
     /*! apply Hessian matvec H\tilde{\vect{v}} */
     virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true) = 0;
 
@@ -179,7 +176,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     virtual PetscErrorCode EvaluateL2Gradient(Vec) = 0;
 
     /*! evaluate sobolev gradient */
-    virtual PetscErrorCode EvaluateSobolevGradient(Vec) = 0;
+    virtual PetscErrorCode EvaluateSobolevGradient(Vec, bool flag = false) = 0;
 
     /*! allocate regularization operator */
     PetscErrorCode AllocateRegularization();

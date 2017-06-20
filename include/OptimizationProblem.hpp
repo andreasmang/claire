@@ -125,8 +125,7 @@ class OptimizationProblem {
     /*! check if hessian is symmetric */
     PetscErrorCode ComputeUpdateNorm(Vec, ScalarType&, ScalarType&);
 
-protected:
-
+ protected:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
 
@@ -137,7 +136,7 @@ protected:
     ScalarType m_InitDistanceValue;
     ScalarType m_ObjectiveValue;
 
-private:
+ private:
     Vec m_Iterate;
     std::string m_ConvergenceMessage;
     bool m_Converged;

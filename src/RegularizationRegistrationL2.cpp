@@ -174,7 +174,7 @@ PetscErrorCode RegularizationRegistrationL2
  * discretization
  *******************************************************************/
 PetscErrorCode RegularizationRegistrationL2
-::ApplyInvOp(VecField* Ainvx, VecField* x, bool applysqrt) {
+::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_Ainvx1 = NULL, *p_Ainvx2 = NULL, *p_Ainvx3 = NULL, beta;

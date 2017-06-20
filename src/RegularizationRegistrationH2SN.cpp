@@ -321,7 +321,7 @@ PetscErrorCode RegularizationRegistrationH2SN::HessianMatVec(VecField* dvvR, Vec
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH2SN::ApplyInvOp(VecField* ainvv, VecField* v, bool applysqrt) {
+PetscErrorCode RegularizationRegistrationH2SN::ApplyInverse(VecField* ainvv, VecField* v, bool applysqrt) {
     PetscErrorCode ierr = 0;
     IntType nx[3];
     ScalarType beta, scale;
