@@ -133,7 +133,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovMethod.hessshift = opt.m_KrylovMethod.hessshift;
 
     this->m_OptPara.maxit = opt.m_OptPara.maxit;
-    this->m_OptPara.minit = opt.m_OptPara.minit;
+    this->m_OptPara.miniter = opt.m_OptPara.miniter;
     this->m_OptPara.stopcond = opt.m_OptPara.stopcond;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
@@ -1027,7 +1027,7 @@ PetscErrorCode RegOpt::Initialize() {
 #endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.maxit = 100;                    ///< max number of iterations
-    this->m_OptPara.minit = 0;                      ///< min number of iterations
+    this->m_OptPara.miniter = 0;                    ///< min number of iterations
     this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
     this->m_OptPara.gradtype = L2GRAD;              ///< gradient type
     this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
@@ -1109,6 +1109,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.jval = 0.0;
     this->m_Monitor.dval = 0.0;
     this->m_Monitor.rval = 0.0;
+    this->m_Monitor.gradnorm = 0.0;
 
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;

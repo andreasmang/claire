@@ -261,7 +261,7 @@ struct Domain {
 /* parameters for optimization */
 struct Optimization {
     int maxit;                          ///< maximal number of (outer) iterations
-    int minit;                          ///< minimal number of (outer) iterations (for parameter continuation)
+    int miniter;                        ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];                  ///< tolerances for optimization
     OptMeth method;                     ///< optimization method
     GlobalMethType glmethod;            ///< method for globalization (line search; trust region; ...)
@@ -362,6 +362,7 @@ struct Monitor {
     ScalarType jval;            ///< value of objective functional
     ScalarType dval;            ///< value of distance measure
     ScalarType rval;            ///< value of regularization functional
+    ScalarType gradnorm;        ///< value of regularization functional
 };
 
 

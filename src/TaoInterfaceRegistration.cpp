@@ -203,7 +203,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
-    miniter = optprob->GetOptions()->m_OptPara.minit;
+    miniter = optprob->GetOptions()->m_OptPara.miniter;
 
     // get initial gradient
     g0norm = optprob->GetInitialGradientNorm();
@@ -365,7 +365,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
     minstep = std::pow(2.0, 10.0);
     minstep = 1.0 / minstep;
-    miniter = optprob->GetOptions()->m_OptPara.minit;
+    miniter = optprob->GetOptions()->m_OptPara.miniter;
 
     // get initial gradient
     g0norm = optprob->GetInitialGradientNorm();
@@ -508,6 +508,9 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     // get current iteration, objective value, norm of gradient, norm of
     // contraint, step length / trust region radius and termination reason
     ierr = TaoGetSolutionStatus(tao, &iter, &J, &gnorm, NULL, &step, &convreason); CHKERRQ(ierr);
+
+    // save gradient norm
+    optprob->GetOptions()->m_Monitor.gradnorm = gnorm;
 
     // remember current iterate
     optprob->IncrementIterations();
