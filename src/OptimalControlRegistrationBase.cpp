@@ -728,8 +728,7 @@ PetscErrorCode OptimalControlRegistrationBase
 /********************************************************************
  * @brief pre-processing before the krylov solve
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase
-::PreKrylovSolve(Vec g, Vec x) {
+PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x) {
     PetscErrorCode ierr;
 
     PetscFunctionBegin;
@@ -737,29 +736,12 @@ PetscErrorCode OptimalControlRegistrationBase
     this->m_Opt->Enter(__func__);
 
     // switch between hessian operators
-    switch (this->m_Opt->m_KrylovMethod.matvectype) {
-        case DEFAULTMATVEC:
-        {
-            // do nothing
-            break;
-        }
-        case PRECONDMATVEC:
-        {
-            // apply inverse regularization operator
-            ierr = this->ApplyInvRegularizationOperator(g, g, false); CHKERRQ(ierr);
-            break;
-        }
-        case PRECONDMATVECSYM:
-        {
-            // apply square root of inverse regularization operator
-            ierr = this->ApplyInvRegularizationOperator(g, g, true); CHKERRQ(ierr);
-            break;
-        }
-        default:
-        {
-            ierr = ThrowError("operation not implemented"); CHKERRQ(ierr);
-            break;
-        }
+    if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVEC) {
+        // apply inverse regularization operator
+        ierr = this->ApplyInvRegularizationOperator(g, g, false); CHKERRQ(ierr);
+    } else if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
+        // apply square root of inverse regularization operator
+        ierr = this->ApplyInvRegularizationOperator(g, g, true); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -780,28 +762,8 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x) {
 
     this->m_Opt->Enter(__func__);
 
-    // switch between hessian operators
-    switch (this->m_Opt->m_KrylovMethod.matvectype) {
-        case DEFAULTMATVEC:
-        {
-            // do nothing
-            break;
-        }
-        case PRECONDMATVEC:
-        {
-            // do nothing
-            break;
-        }
-        case PRECONDMATVECSYM:
-        {
-            ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
-            break;
-        }
-        default:
-        {
-            ierr = ThrowError("operation not implemented"); CHKERRQ(ierr);
-            break;
-        }
+    if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
+        ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);

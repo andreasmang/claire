@@ -42,13 +42,11 @@ class RegularizationRegistrationL2 : public RegularizationRegistration {
     RegularizationRegistrationL2(RegOpt*);
     ~RegularizationRegistrationL2(void);
 
-    PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
-    PetscErrorCode EvaluateGradient(VecField*, VecField*);
-    PetscErrorCode HessianMatVec(VecField*, VecField*);
-    PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
-    PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
- protected:
- private:
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
+    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);
+    virtual PetscErrorCode HessianMatVec(VecField*, VecField*);
+    virtual PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
+    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
 };
 
 
