@@ -360,9 +360,12 @@ struct Monitor {
     ScalarType detdgradmean;    ///< mean value of determinant of deformation gradient det(grad(y))
     ScalarType detdgradbound;   ///< lower bound of determinant of deformation gradient det(grad(y))
     ScalarType jval;            ///< value of objective functional
+    ScalarType jval0;           ///< initial value of objective functional
     ScalarType dval;            ///< value of distance measure
+    ScalarType dval0;           ///< initial value of distance measure
     ScalarType rval;            ///< value of regularization functional
-    ScalarType gradnorm;        ///< value of regularization functional
+    ScalarType gradnorm;        ///< norm of gradient at current iteration
+    ScalarType gradnorm0;       ///< initial value of norm of gradient
 };
 
 

@@ -1110,6 +1110,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.dval = 0.0;
     this->m_Monitor.rval = 0.0;
     this->m_Monitor.gradnorm = 0.0;
+    this->m_Monitor.gradnorm0 = 0.0;
 
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;

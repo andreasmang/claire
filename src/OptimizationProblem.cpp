@@ -71,11 +71,6 @@ PetscErrorCode OptimizationProblem::Initialize(void) {
     this->m_Opt = NULL;
     this->m_Iterate = NULL;
 
-    this->m_ObjectiveValue = 0.0;
-    this->m_InitGradientNorm = 0.0;
-    this->m_InitDistanceValue = 0.0;
-    this->m_InitObjectiveValue = 0.0;
-
     PetscFunctionReturn(0);
 }
 

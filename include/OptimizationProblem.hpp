@@ -1,5 +1,5 @@
-/*
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the XXX library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 #ifndef _OPTIMIZATIONPROBLEM_H_
 #define _OPTIMIZATIONPROBLEM_H_
@@ -47,13 +46,6 @@ class OptimizationProblem {
     inline void Converged(bool flag){this->m_Converged = flag;}
     inline bool Converged(){return this->m_Converged;}
     inline std::string GetConvergenceMessage(){return this->m_ConvergenceMessage;}
-    inline ScalarType GetInitialObjectiveValue() {return this->m_InitObjectiveValue;}
-    inline ScalarType GetInitialDistanceValue() {return this->m_InitDistanceValue;}
-    inline ScalarType GetInitialGradientNorm() {return this->m_InitGradientNorm;}
-
-    inline ScalarType GetObjectiveValue(){return this->m_ObjectiveValue;}
-    inline void SetObjectiveValue(ScalarType value){this->m_ObjectiveValue = value;}
-
     inline void IncrementIterations() {this->m_Opt->IncrementCounter(ITERATIONS);}
 
     /*! evaluate objective, gradient and distance measure for initial guess */
@@ -130,11 +122,6 @@ class OptimizationProblem {
     PetscErrorCode ClearMemory(void);
 
     RegOpt* m_Opt;
-
-    ScalarType m_InitGradientNorm;
-    ScalarType m_InitObjectiveValue;
-    ScalarType m_InitDistanceValue;
-    ScalarType m_ObjectiveValue;
 
  private:
     Vec m_Iterate;

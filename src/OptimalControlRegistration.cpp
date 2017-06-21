@@ -326,19 +326,18 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
     // evaluate distance measure
     ierr = this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
-    this->m_InitDistanceValue = hd*value;
+    this->m_Opt->m_Monitor.dval0 = hd*value;
 
     // evaluate objective functional
     ierr = this->EvaluateObjective(&value, v); CHKERRQ(ierr);
-//    this->m_InitObjectiveVal = hd*value;
-    this->m_InitObjectiveValue = value;
+    this->m_Opt->m_Monitor.jval0 = value;
 
     // compute gradient
     ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
     // compute gradient norm
     ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
-    this->m_InitGradientNorm = value;
+    this->m_Opt->m_Monitor.gradnorm0 = value;
 
     if (this->m_Opt->m_Verbosity > 0) {
         ss << "initial gradient norm: "<< std::scientific << value;

@@ -206,7 +206,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     miniter = optprob->GetOptions()->m_OptPara.miniter;
 
     // get initial gradient
-    g0norm = optprob->GetInitialGradientNorm();
+    g0norm = optprob->GetOptions()->m_Monitor.gradnorm0;
     g0norm = (g0norm > 0.0) ? g0norm : 1.0;
 
 
@@ -227,7 +227,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     // compute theta
     theta = 1.0 + std::abs(J);
     ierr = optprob->ComputeUpdateNorm(x, normdx, normx); CHKERRQ(ierr);
-    Jold = optprob->GetObjectiveValue();
+    Jold = optprob->GetOptions()->m_Monitor.jval0;
 
     // check for NaN value
     if (PetscIsInfOrNanReal(J)) {
@@ -323,8 +323,6 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
         }
     }
 
-    optprob->SetObjectiveValue(J);
-
     // perform derivative check
     if (optprob->GetOptions()->m_OptPara.derivativecheckenabled) {
         ierr = optprob->DerivativeCheck(); CHKERRQ(ierr);
@@ -368,7 +366,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     miniter = optprob->GetOptions()->m_OptPara.miniter;
 
     // get initial gradient
-    g0norm = optprob->GetInitialGradientNorm();
+    g0norm = optprob->GetOptions()->m_Monitor.gradnorm0;
     g0norm = (g0norm > 0.0) ? g0norm : 1.0;
 
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
@@ -524,15 +522,15 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     D = optprob->GetOptions()->m_Monitor.dval;
 
     // get initial gradient
-    gnorm0 = optprob->GetInitialGradientNorm();
+    gnorm0 = optprob->GetOptions()->m_Monitor.gradnorm0;
     gnorm0 = (gnorm0 > 0.0) ? gnorm0 : 1.0;
 
     // get initial l2 distance
-    D0 = optprob->GetInitialDistanceValue();
+    D0 = optprob->GetOptions()->m_Monitor.dval0;
     D0 = (D0 > 0.0) ? D0 : 1.0;
 
     // get initial objective value
-    J0 = optprob->GetInitialObjectiveValue();
+    J0 = optprob->GetOptions()->m_Monitor.jval0;
     J0 = (J0 > 0.0) ? J0 : 1.0;
 
     // get the solution vector and finalize the iteration
