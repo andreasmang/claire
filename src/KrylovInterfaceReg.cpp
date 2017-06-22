@@ -450,6 +450,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     divtol = precond->GetOptions()->m_KrylovMethod.pctol[2];
     scale  = precond->GetOptions()->m_KrylovMethod.pctolscale;
 
+
     switch (precond->GetOptions()->m_KrylovMethod.pcsolver) {
         case CHEB:
         {
@@ -461,26 +462,50 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
         }
         case PCG:
         {
-            // preconditioned conjugate gradient
-            reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
+            // flexible conjugate gradient or gmres as outer
+            if ( precond->GetOptions()->m_KrylovMethod.solver == FCG
+              || precond->GetOptions()->m_KrylovMethod.solver == FGMRES) {
+                // preconditioned conjugate gradient
+                maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
+            } else {
+                reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
+            }
             break;
         }
         case FCG:
         {
-            // flexible conjugate gradient
-            maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
+            // flexible conjugate gradient or gmres as outer
+            if ( precond->GetOptions()->m_KrylovMethod.solver == FCG
+              || precond->GetOptions()->m_KrylovMethod.solver == FGMRES) {
+                // preconditioned conjugate gradient
+                maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
+            } else {
+                reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
+            }
             break;
         }
         case GMRES:
         {
-            // GMRES
-            reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
+            // flexible conjugate gradient or gmres as outer
+            if ( precond->GetOptions()->m_KrylovMethod.solver == FCG
+              || precond->GetOptions()->m_KrylovMethod.solver == FGMRES) {
+                // preconditioned conjugate gradient
+                maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
+            } else {
+                reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
+            }
             break;
         }
         case FGMRES:
         {
-            // flexible GMRES
-            maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
+            // flexible conjugate gradient or gmres as outer
+            if ( precond->GetOptions()->m_KrylovMethod.solver == FCG
+              || precond->GetOptions()->m_KrylovMethod.solver == FGMRES) {
+                // preconditioned conjugate gradient
+                maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
+            } else {
+                reltol = scale*precond->GetOptions()->m_KrylovMethod.reltol;
+            }
             break;
         }
         default:

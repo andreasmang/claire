@@ -308,6 +308,12 @@ PetscErrorCode Optimizer::SetupTao() {
         } else if (this->m_Opt->m_KrylovMethod.solver == PCG) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
 //            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
+        } else if (this->m_Opt->m_KrylovMethod.solver == FCG) {
+            ierr = KSPSetType(this->m_KrylovMethod, KSPFCG); CHKERRQ(ierr);
+//            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
+        } else if (this->m_Opt->m_KrylovMethod.solver == FGMRES) {
+            ierr = KSPSetType(this->m_KrylovMethod, KSPFGMRES); CHKERRQ(ierr);
+//            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
         } else {
             ierr = ThrowError("interface for solver not provided"); CHKERRQ(ierr);
         }

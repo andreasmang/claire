@@ -209,9 +209,13 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Monitor.detdgradmax = opt.m_Monitor.detdgradmax;
     this->m_Monitor.detdgradmean = opt.m_Monitor.detdgradmean;
     this->m_Monitor.detdgradbound = opt.m_Monitor.detdgradbound;
-    this->m_Monitor.jval = 0;
-    this->m_Monitor.dval = 0;
-    this->m_Monitor.rval = 0;
+    this->m_Monitor.jval = opt.m_Monitor.jval;
+    this->m_Monitor.jval0 = opt.m_Monitor.jval0;
+    this->m_Monitor.dval = opt.m_Monitor.dval;
+    this->m_Monitor.dval0 = opt.m_Monitor.dval0;
+    this->m_Monitor.rval = opt.m_Monitor.rval;
+    this->m_Monitor.gradnorm = opt.m_Monitor.gradnorm;
+    this->m_Monitor.gradnorm0 = opt.m_Monitor.gradnorm0;
 
     for (IntType i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = opt.m_Log.enabled[i];
@@ -511,11 +515,17 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-jbound") == 0) {
             argc--; argv++;
             this->m_Monitor.detdgradbound = atof(argv[1]);
-        } else if (strcmp(argv[1], "-krylovsolver") == 0) {
+        } else if (strcmp(argv[1], "-krylovmethod") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
                 this->m_KrylovMethod.solver = PCG;
                 this->m_KrylovMethod.name = "PCG";
+            } else if (strcmp(argv[1], "fpcg") == 0) {
+                this->m_KrylovMethod.solver = FCG;
+                this->m_KrylovMethod.name = "FCG";
+            } else if (strcmp(argv[1], "fgmres") == 0) {
+                this->m_KrylovMethod.solver = FGMRES;
+                this->m_KrylovMethod.name = "FGMRES";
             } else if (strcmp(argv[1], "gmres") == 0) {
                 this->m_KrylovMethod.solver = GMRES;
                 this->m_KrylovMethod.name = "GMRES";
@@ -570,22 +580,14 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             if (strcmp(argv[1], "pcg") == 0) {
                 this->m_KrylovMethod.pcsolver = PCG;
-                //this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "fpcg") == 0) {
                 this->m_KrylovMethod.pcsolver = FCG;
-                //this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "gmres") == 0) {
                 this->m_KrylovMethod.pcsolver = GMRES;
-                this->m_KrylovMethod.name = "GMRES";
-                //this->m_KrylovMethod.matvectype = PRECONDMATVEC;
             } else if (strcmp(argv[1], "fgmres") == 0) {
                 this->m_KrylovMethod.pcsolver = FGMRES;
-                this->m_KrylovMethod.name = "FGMRES";
-                //this->m_KrylovMethod.matvectype = PRECONDMATVEC;
             } else if (strcmp(argv[1], "cheb") == 0) {
                 this->m_KrylovMethod.pcsolver = CHEB;
-                this->m_KrylovMethod.name = "CHEB";
-                //this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else {
                 msg = "\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -1107,7 +1109,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.detdgradbound = 2E-1;
     this->m_Monitor.detdgradenabled = false;
     this->m_Monitor.jval = 0.0;
+    this->m_Monitor.jval0 = 0.0;
     this->m_Monitor.dval = 0.0;
+    this->m_Monitor.dval0 = 0.0;
     this->m_Monitor.rval = 0.0;
     this->m_Monitor.gradnorm = 0.0;
     this->m_Monitor.gradnorm0 = 0.0;
@@ -1210,9 +1214,11 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 morethuente  more thuente linesearch" << std::endl;
         std::cout << "                                 gpcg         gradient projection, conjugate gradient method" << std::endl;
         std::cout << "                                 ipm          interior point method" << std::endl;
-        std::cout << " -krylovsolver <type>        solver for reduced space hessian system H[vtilde]=-g" << std::endl;
+        std::cout << " -krylovmethod <type>        solver for reduced space hessian system H[vtilde]=-g" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 pcg          preconditioned conjugate gradient method" << std::endl;
+        std::cout << "                                 fpcg         flexible preconditioned conjugate gradient method" << std::endl;
+        std::cout << "                                 fgmres       flexible generalized minimal residual method" << std::endl;
         std::cout << "                                 gmres        generalized minimal residual method" << std::endl;
         std::cout << " -krylovmaxit <int>          maximum number of (inner) Krylov iterations (default: 50)" << std::endl;
         std::cout << " -krylovfseq <type>          forcing sequence for Krylov solver (tolerance for inner iterations)" << std::endl;
@@ -1233,9 +1239,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 cheb         chebyshev method (default)" << std::endl;
         std::cout << "                                 pcg          preconditioned conjugate gradient method" << std::endl;
-        std::cout << "                                 fpcg         flexible pcg" << std::endl;
+        std::cout << "                                 fpcg         flexible preconditioned conjugate gradient method" << std::endl;
         std::cout << "                                 gmres        generalized minimal residual method" << std::endl;
-        std::cout << "                                 fgmres       flexible gmres" << std::endl;
+        std::cout << "                                 fgmres       flexible generalized minimal residual method" << std::endl;
         std::cout << " -pcsolvermaxit <int>        maximum number of iterations for inverting preconditioner; is" << std::endl;
         std::cout << "                             used for cheb, fgmres and fpcg; default: 10" << std::endl;
         std::cout << " -reesteigvals               re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
@@ -2019,8 +2025,14 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 case PCG:
                     this->m_KrylovMethod.name = "PCG";
                     break;
+                case FCG:
+                    this->m_KrylovMethod.name = "FPCG";
+                    break;
                 case GMRES:
                     this->m_KrylovMethod.name = "GMRES";
+                    break;
+                case FGMRES:
+                    this->m_KrylovMethod.name = "FGMRES";
                     break;
                 default:
                     ierr = ThrowError("solver not defined"); CHKERRQ(ierr);
