@@ -1,3 +1,22 @@
+/*************************************************************************
+ *  Copyright (c) 2016.
+ *  All rights reserved.
+ *  This file is part of the XXX library.
+ *
+ *  XXX is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  XXX is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 #ifndef _REGTOOLSOPT_CPP_
 #define _REGTOOLSOPT_CPP_
 
@@ -157,9 +176,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
             this->m_RegFlags.applysmoothing = false;
-//        } else if (strcmp(argv[1], "-nthreads") == 0) {
-//            argc--; argv++;
-//            this->m_NumThreads = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-nthreads") == 0) {
+            argc--; argv++;
+            this->m_NumThreads = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
             const std::string npinput = argv[1];
@@ -281,8 +300,7 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-//    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-    ierr = InitializeDataDistribution(0, this->m_CartGridDims,
+    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                       this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
