@@ -973,22 +973,22 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
-#if defined(PETSC_USE_REAL_SINGLE)
-    this->m_KrylovMethod.tol[0] = 1E-9;     ///< relative tolerance
-    this->m_KrylovMethod.tol[1] = 1E-9;     ///< absolute tolerance
-    this->m_KrylovMethod.tol[2] = 1E+06;    ///< divergence tolerance
-#else
+//#if defined(PETSC_USE_REAL_SINGLE)
+//    this->m_KrylovMethod.tol[0] = 1E-9;     ///< relative tolerance
+//    this->m_KrylovMethod.tol[1] = 1E-9;     ///< absolute tolerance
+//    this->m_KrylovMethod.tol[2] = 1E+06;    ///< divergence tolerance
+//#else
     this->m_KrylovMethod.tol[0] = 1E-12;     ///< relative tolerance
     this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovMethod.tol[2] = 1E+06;     ///< divergence tolerance
-#endif
+//#endif
     //this->m_KrylovMethod.maxit = 1000;     ///< max number of iterations
-    this->m_KrylovMethod.maxit = 30;         ///< max number of iterations
-#if defined(PETSC_USE_REAL_SINGLE)
-    this->m_KrylovMethod.reltol = 1E-9;      ///< relative tolerance (actually computed in solver)
-#else
+    this->m_KrylovMethod.maxit = 50;         ///< max number of iterations
+//#if defined(PETSC_USE_REAL_SINGLE)
+//    this->m_KrylovMethod.reltol = 1E-9;      ///< relative tolerance (actually computed in solver)
+//#else
     this->m_KrylovMethod.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
-#endif
+//#endif
     this->m_KrylovMethod.fseqtype = QDFS;
     this->m_KrylovMethod.pctype = INVREG;
     this->m_KrylovMethod.solver = PCG;
@@ -1001,15 +1001,15 @@ PetscErrorCode RegOpt::Initialize() {
     //this->m_KrylovMethod.pcmaxit = 1000;
     this->m_KrylovMethod.pcmaxit = 10;
     this->m_KrylovMethod.pcgridscale = 2;
-#if defined(PETSC_USE_REAL_SINGLE)
-    this->m_KrylovMethod.pctol[0] = 1E-9;    ///< relative tolerance
-    this->m_KrylovMethod.pctol[1] = 1E-9;    ///< absolute tolerance
-    this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
-#else
+//#if defined(PETSC_USE_REAL_SINGLE)
+//    this->m_KrylovMethod.pctol[0] = 1E-9;    ///< relative tolerance
+//    this->m_KrylovMethod.pctol[1] = 1E-9;    ///< absolute tolerance
+//    this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
+//#else
     this->m_KrylovMethod.pctol[0] = 1E-12;   ///< relative tolerance
     this->m_KrylovMethod.pctol[1] = 1E-16;   ///< absolute tolerance
     this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
-#endif
+//#endif
     this->m_KrylovMethod.usepetsceigest = true;
     this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
 //    this->m_KrylovMethod.matvectype = PRECONDMATVEC;
@@ -1726,7 +1726,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
 PetscErrorCode RegOpt::DisplayOptions() {
     PetscErrorCode ierr;
     int rank, indent, align;
-    std::string msg, line;
+    std::string line;
     bool newtontype;
 
     PetscFunctionBegin;
@@ -1749,6 +1749,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " The Institute of Computational Engineering and Sciences" << std::endl;
         std::cout << " The University of Texas at Austin" << std::endl;
         std::time_t result = std::time(NULL);
+        std::cout << line << std::endl;
 #ifdef GIT_VERSION
         std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
 #else
@@ -1757,7 +1758,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << line << std::endl;
         std::cout << " problem setup" << std::endl;
         std::cout << line << std::endl;
-
+        std::cout << std::left << std::setw(indent) << " precision"
+#if defined(PETSC_USE_REAL_SINGLE)
+                  << "single" << std::endl;
+#else
+                  << "double" << std::endl;
+#endif
         if (this->m_Domain.nc == 1) {
             std::cout << std::left << std::setw(indent) << " problem dimensions"
                       << "(nx1,nx2,nx3,nt)=(" << this->m_Domain.nx[0] << ","
