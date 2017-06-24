@@ -366,6 +366,7 @@ struct Monitor {
     ScalarType rval;            ///< value of regularization functional
     ScalarType gradnorm;        ///< norm of gradient at current iteration
     ScalarType gradnorm0;       ///< initial value of norm of gradient
+    std::string solverstatus;
 };
 
 
@@ -414,9 +415,9 @@ struct Logger {
     std::vector<ScalarType> distance;        ///< convergence for residual
     std::vector<ScalarType> regularization;  ///< convergence for regularization
     std::vector<ScalarType> objective;       ///< convergence for objective
-    std::vector<int> outeriterations;        ///< iterations of solver
+    std::vector<int> newtoniterations;       ///< iterations of solver
     std::vector<ScalarType> kspresidual;     ///< residual of krylov method
-    std::vector<int> kspiterations;          ///< iterations of krylov method
+    std::vector<int> kryloviterations;       ///< iterations of krylov method
     ScalarType finalresidual[4];
     bool enabled[NLOGFLAGS];
 
@@ -480,13 +481,13 @@ class RegOpt {
 
     inline void LogKSPResidual(const int i, const ScalarType value){
         this->m_Log.kspresidual.push_back(value);
-        this->m_Log.kspiterations.push_back(i);
+        this->m_Log.newtoniterations.push_back(i);
     }
     inline void LogConvergence(const int i, const ScalarType J, const ScalarType D, const ScalarType R){
         this->m_Log.distance.push_back(D);
         this->m_Log.regularization.push_back(R);
         this->m_Log.objective.push_back(J);
-        this->m_Log.outeriterations.push_back(i);
+        this->m_Log.newtoniterations.push_back(i);
     }
     inline void LogFinalResidual(const int i, const ScalarType value){
         this->m_Log.finalresidual[i] = value;

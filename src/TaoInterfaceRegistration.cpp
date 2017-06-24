@@ -486,6 +486,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     IntType iter;
     int iterdisp;
     char msg[256];
+    std::string statusmsg;
     ScalarType J, gnorm, step, D, J0, D0, gnorm0;
     OptimizationProblem* optprob = NULL;
     Vec x = NULL;
@@ -500,7 +501,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     optprob->GetOptions()->m_KrylovMethod.pcsetupdone = false;
 
     if (optprob->GetOptions()->m_Verbosity > 1) {
-        ierr = DispLSConvReason(tao, optprob); CHKERRQ(ierr);
+        ierr = GetLineSearchStatus(tao, optprob); CHKERRQ(ierr);
     }
 
     // get current iteration, objective value, norm of gradient, norm of
@@ -515,7 +516,8 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
 
     // tao: display convergence reason
     if (optprob->GetOptions()->m_Verbosity > 0) {
-        ierr = DispTaoConvReason(convreason); CHKERRQ(ierr);
+        ierr = GetSolverStatus(convreason, statusmsg); CHKERRQ(ierr);
+        optprob->GetOptions()->m_Monitor.solverstatus = statusmsg;
     }
 
     // compute l2 distance at current iteration
@@ -553,7 +555,7 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
 /****************************************************************************
  * @brief display the convergence reason of the KSP method
  ****************************************************************************/
-PetscErrorCode DispLSConvReason(Tao tao, void* ptr) {
+PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     std::string msg;
     IntType nl, ng;
@@ -656,9 +658,8 @@ PetscErrorCode DispLSConvReason(Tao tao, void* ptr) {
 /****************************************************************************
  * @brief display the convergence reason of the optimizer
  ****************************************************************************/
-PetscErrorCode DispTaoConvReason(TaoConvergedReason flag) {
+PetscErrorCode GetSolverStatus(TaoConvergedReason flag, std::string& msg) {
     PetscErrorCode ierr = 0;
-    std::string msg;
 
     PetscFunctionBegin;
 
@@ -747,6 +748,8 @@ PetscErrorCode DispTaoConvReason(TaoConvergedReason flag) {
             break;
         }
     }
+
+
 
     PetscFunctionReturn(ierr);
 }

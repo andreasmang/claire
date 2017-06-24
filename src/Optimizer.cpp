@@ -637,7 +637,7 @@ PetscErrorCode Optimizer::Finalize() {
             std::cout << line << std::endl;
         }
         ss << std::left << std::setw(indent)
-           << "outer iterations" << std::right << std::setw(numindent)
+           << "newton iterations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(ITERATIONS) - 1;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();

@@ -989,7 +989,7 @@ PetscErrorCode RegOpt::Initialize() {
 //#else
     this->m_KrylovMethod.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
 //#endif
-    this->m_KrylovMethod.fseqtype = QDFS;
+    this->m_KrylovMethod.fseqtype = SLFS;
     this->m_KrylovMethod.pctype = INVREG;
     this->m_KrylovMethod.solver = PCG;
     this->m_KrylovMethod.pcsetupdone = false;
@@ -1022,11 +1022,11 @@ PetscErrorCode RegOpt::Initialize() {
     // tolerances for optimization
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
     this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
-#if defined(PETSC_USE_REAL_SINGLE)
-    this->m_OptPara.tol[1] = 1E-9;                  ///< grad rel tol ||g(x)||/J(x) < tol
-#else
+//#if defined(PETSC_USE_REAL_SINGLE)
+//    this->m_OptPara.tol[1] = 1E-9;                  ///< grad rel tol ||g(x)||/J(x) < tol
+//#else
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
-#endif
+//#endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.maxit = 100;                    ///< max number of iterations
     this->m_OptPara.miniter = 0;                    ///< min number of iterations
@@ -1205,7 +1205,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             <int> is one of the following" << std::endl;
         std::cout << "                                 0            relative change of gradient (default)" << std::endl;
         std::cout << "                                 1            gradient, update, objective" << std::endl;
-        std::cout << " -maxit <int>                maximum number of (outer) Newton iterations (default: 50)" << std::endl;
+        std::cout << " -maxit <int>                maximum number of newton iterations (default: 50)" << std::endl;
         std::cout << " -globalization <type>       method for the globalization of optimization problem" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 none         no globalization method" << std::endl;
@@ -1244,7 +1244,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 fgmres       flexible generalized minimal residual method" << std::endl;
         std::cout << " -pcsolvermaxit <int>        maximum number of iterations for inverting preconditioner; is" << std::endl;
         std::cout << "                             used for cheb, fgmres and fpcg; default: 10" << std::endl;
-        std::cout << " -reesteigvals               re-estimate eigenvalues of hessian operator at every outer iteration" << std::endl;
+        std::cout << " -reesteigvals               re-estimate eigenvalues of hessian operator at every newton iteration" << std::endl;
         std::cout << "                             (in case a chebyshev method is used to invert preconditioner)" << std::endl;
         std::cout << " -hessshift <dbl>            add perturbation to hessian" << std::endl;
         std::cout << " -pctolscale <dbl>           scale for tolerance (preconditioner needs to be inverted more" << std::endl;
@@ -3455,7 +3455,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         n = static_cast<int>(this->m_Log.distance.size());
         for (int i = 0; i < n; ++i) {
             ss << std::scientific << std::right
-               << std::setw(2) << this->m_Log.outeriterations[i]
+               << std::setw(2) << this->m_Log.newtoniterations[i]
                << std::setw(20) << this->m_Log.distance[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();
@@ -3470,7 +3470,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         n = static_cast<int>(this->m_Log.regularization.size());
         for (int i = 0; i < n; ++i) {
             ss << std::scientific << std::right
-               << std::setw(2) << this->m_Log.outeriterations[i]
+               << std::setw(2) << this->m_Log.newtoniterations[i]
                << std::setw(20) << this->m_Log.regularization[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();
@@ -3486,7 +3486,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         n = static_cast<int>(this->m_Log.objective.size());
         for (int i = 0; i < n; ++i) {
             ss << std::scientific << std::right
-               << std::setw(2) << this->m_Log.outeriterations[i]
+               << std::setw(2) << this->m_Log.newtoniterations[i]
                << std::setw(20) << this->m_Log.objective[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();
@@ -3531,7 +3531,7 @@ PetscErrorCode RegOpt::WriteKSPLog() {
         n = static_cast<int>(this->m_Log.kspresidual.size());
         for (int i = 0; i < n; ++i) {
             ss << std::scientific << std::right
-               << std::setw(2) << this->m_Log.kspiterations[i]
+               << std::setw(2) << this->m_Log.kryloviterations[i]
                << std::setw(20) << this->m_Log.kspresidual[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();

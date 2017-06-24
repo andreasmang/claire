@@ -49,8 +49,8 @@ PetscErrorCode CheckConvergenceGradObj(Tao, void*);
 PetscErrorCode CheckConvergenceGradObjHess(Tao, void*);
 
 PetscErrorCode OptimizationMonitor(Tao, void*);
-PetscErrorCode DispLSConvReason(Tao, void*);
-PetscErrorCode DispTaoConvReason(TaoConvergedReason);
+PetscErrorCode GetLineSearchStatus(Tao, void*);
+PetscErrorCode GetSolverStatus(TaoConvergedReason, std::string&);
 
 
 
