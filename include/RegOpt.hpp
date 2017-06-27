@@ -416,7 +416,7 @@ struct Logger {
     std::vector<ScalarType> regularization;  ///< convergence for regularization
     std::vector<ScalarType> objective;       ///< convergence for objective
     std::vector<int> newtoniterations;       ///< iterations of solver
-    std::vector<ScalarType> kspresidual;     ///< residual of krylov method
+    std::vector<ScalarType> krylovresidual;  ///< residual of krylov method
     std::vector<int> kryloviterations;       ///< iterations of krylov method
     ScalarType finalresidual[4];
     bool enabled[NLOGFLAGS];
@@ -480,8 +480,8 @@ class RegOpt {
     }
 
     inline void LogKSPResidual(const int i, const ScalarType value){
-        this->m_Log.kspresidual.push_back(value);
-        this->m_Log.newtoniterations.push_back(i);
+        this->m_Log.krylovresidual.push_back(value);
+        this->m_Log.kryloviterations.push_back(i);
     }
     inline void LogConvergence(const int i, const ScalarType J, const ScalarType D, const ScalarType R){
         this->m_Log.distance.push_back(D);

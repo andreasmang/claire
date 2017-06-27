@@ -1453,6 +1453,12 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
 
+    if (this->m_Log.enabled[LOGKSPRES]) {
+        if (this->m_Verbosity <= 1) {
+            this->m_Verbosity = 2;
+        }
+    }
+
     // check output arguments
     if (loggingenabled) {
         if (this->m_FileNames.xfolder.empty()) {
@@ -3527,12 +3533,11 @@ PetscErrorCode RegOpt::WriteKSPLog() {
         fn = path + "cold-krylov-method-residual.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
-
-        n = static_cast<int>(this->m_Log.kspresidual.size());
+        n = static_cast<int>(this->m_Log.krylovresidual.size());
         for (int i = 0; i < n; ++i) {
             ss << std::scientific << std::right
                << std::setw(2) << this->m_Log.kryloviterations[i]
-               << std::setw(20) << this->m_Log.kspresidual[i];
+               << std::setw(20) << this->m_Log.krylovresidual[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();
         }
