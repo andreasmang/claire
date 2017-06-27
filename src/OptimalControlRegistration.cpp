@@ -786,8 +786,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         }
     }
 
-    hd = this->m_Opt->GetLebesqueMeasure();
-
     // start timer
     ierr = this->m_Opt->StartTimer(GRADEXEC); CHKERRQ(ierr);
 
@@ -848,6 +846,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     // parse to output
     if (g != NULL) {
         // get and scale by lebesque measure
+        hd = this->m_Opt->GetLebesqueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -876,7 +875,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Gradient(Vec g) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Exit(__func__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_Regularization == NULL) {
         ierr = this->AllocateRegularization(); CHKERRQ(ierr);
@@ -907,7 +906,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g, bool f
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_Opt->Exit(__func__);
+    this->m_Opt->Enter(__func__);
 
     if (this->m_Regularization == NULL) {
         ierr = this->AllocateRegularization(); CHKERRQ(ierr);
