@@ -759,6 +759,36 @@ PetscErrorCode RegOpt::ClearMemory() {
 
     ierr = this->DestroyFFT(); CHKERRQ(ierr);
 
+    // clear vectors
+    if (this->m_Log.krylovresidual.size()) {
+        this->m_Log.krylovresidual.clear();
+        std::vector<ScalarType>().swap(this->m_Log.krylovresidual);
+    }
+    if (this->m_Log.kryloviterations.size()) {
+        this->m_Log.kryloviterations.clear();
+        std::vector<int>().swap(this->m_Log.kryloviterations);
+    }
+
+    if (this->m_Log.newtoniterations.size()) {
+        this->m_Log.newtoniterations.clear();
+        std::vector<int>().swap(this->m_Log.newtoniterations);
+    }
+
+    if (this->m_Log.distance.size()) {
+        this->m_Log.distance.clear();
+        std::vector<ScalarType>().swap(this->m_Log.distance);
+    }
+
+    if (this->m_Log.regularization.size()) {
+        this->m_Log.regularization.clear();
+        std::vector<ScalarType>().swap(this->m_Log.regularization);
+    }
+
+    if (this->m_Log.objective.size()) {
+        this->m_Log.objective.clear();
+        std::vector<ScalarType>().swap(this->m_Log.objective);
+    }
+
     PetscFunctionReturn(ierr);
 }
 
@@ -3498,9 +3528,26 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
             ss.str(std::string()); ss.clear();
         }
         logwriter.close();  // close logger
+    }
 
+    if (this->m_Log.newtoniterations.size()) {
+        this->m_Log.newtoniterations.clear();
+        std::vector<int>().swap(this->m_Log.newtoniterations);
+    }
 
+    if (this->m_Log.distance.size()) {
+        this->m_Log.distance.clear();
+        std::vector<ScalarType>().swap(this->m_Log.distance);
+    }
 
+    if (this->m_Log.regularization.size()) {
+        this->m_Log.regularization.clear();
+        std::vector<ScalarType>().swap(this->m_Log.regularization);
+    }
+
+    if (this->m_Log.objective.size()) {
+        this->m_Log.objective.clear();
+        std::vector<ScalarType>().swap(this->m_Log.objective);
     }
 
     this->Exit(__func__);
@@ -3542,6 +3589,14 @@ PetscErrorCode RegOpt::WriteKSPLog() {
             ss.str(std::string()); ss.clear();
         }
         logwriter.close();  // close logger
+    }
+
+    // clear vectors
+    if (this->m_Log.krylovresidual.size()) {
+        std::vector<ScalarType>().swap(this->m_Log.krylovresidual);
+    }
+    if (this->m_Log.kryloviterations.size()) {
+        std::vector<int>().swap(this->m_Log.kryloviterations);
     }
 
     this->Exit(__func__);

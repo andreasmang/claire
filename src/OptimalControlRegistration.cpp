@@ -3727,7 +3727,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 
         // add up the contributions
         jval = hd*(dval + rval);
-        this->m_Opt->LogConvergence(iter, jval, dval, rval);
+        this->m_Opt->LogConvergence(iter, jval, hd*dval, hd*rval);
     }
 
 
