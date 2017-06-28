@@ -2,7 +2,7 @@ CXX=mpicxx
 
 USEINTEL=yes
 USEINTELMPI=yes
-USESINGLE=yes
+USESINGLE=no
 USEPNETCDF=yes
 USENIFTI=yes
 USEKNL=no
@@ -12,7 +12,7 @@ BUILDTOOLS=yes
 
 # developer flags (ignore)
 DBGCODE=no
-PEDANTIC=no
+PEDANTIC=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
@@ -39,7 +39,9 @@ ifeq ($(USEKNL),yes)
 endif
 
 ifeq ($(USEHASWELL),yes)
-	CXXFLAGS += -DHASWELL
+	ifeq ($(USESINGLE),yes)
+		CXXFLAGS += -DHASWELL
+	endif
 endif
 
 
@@ -67,7 +69,8 @@ OBJDIR = ./obj
 INCDIR = ./include
 APPDIR = ./apps
 
-GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+#GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 COLD_INC = -I$(INCDIR)
