@@ -659,7 +659,7 @@ PetscErrorCode OptimalControlRegistrationBase
             } // i1
         } // i2
     } // i3
-}// pragma omp for
+}  // pragma omp for
 
     ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
@@ -820,9 +820,8 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegularizationOperator(Ve
 PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nx[3], i;
-    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-               *p_mt = NULL, hx[3], xc1, xc2, xc3, x,
-                sigma, maxval, minval, nvx1, nvx2, nvx3;
+    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_mt = NULL;
+    ScalarType hx[3], xc1, xc2, xc3, x, sigma, maxval, minval, nvx1, nvx2, nvx3;
     ScalarType x1, x2, x3;
     int vcase = 0, icase = 0;
     ScalarType v0 = 0.5;
@@ -1324,7 +1323,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 
     PetscFunctionReturn(ierr);
 }
-
 
 
 
@@ -3062,11 +3060,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
                 p_u1[i] = x1 + p_u1[i];
                 p_u2[i] = x2 + p_u2[i];
                 p_u3[i] = x3 + p_u3[i];
-
-            } // i1
-        } // i2
-    } // i3
-}// pragma omp for
+            }  // i1
+        }  // i2
+    }  // i3
+}  // pragma omp for
     ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);

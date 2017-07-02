@@ -557,6 +557,8 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
                 // compute flat index
                 l = GetLinearIndex(i_c[0], i_c[1], i_c[2], this->m_osizeC);
                 bool setvalue = true;
+
+                // check for nyquist frequency
                 for (int i = 0; i < 3; ++i) {
                     if (i_c[i] == nyqfreqid[i]) {
                         setvalue = false;
@@ -576,9 +578,9 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
         }
     }
 
-    ierr = VecGetArray(*x_c,&p_xc); CHKERRQ(ierr);
+    ierr = VecGetArray(*x_c, &p_xc); CHKERRQ(ierr);
     accfft_execute_c2r_t(this->m_FFTCoarsePlan, this->m_XHatCoarse, p_xc, timer);
-    ierr = VecRestoreArray(*x_c,&p_xc); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*x_c, &p_xc); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);

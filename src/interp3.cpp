@@ -474,7 +474,8 @@ void ectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof,
 #endif
     //_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
 
-    __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    //__m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    __m256 vM0(vlagr), vM2(vlagr);
     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
@@ -709,13 +710,14 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 #endif
 
     ////_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
-    int indx = 0;
+//    int indx = 0;
     Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
     //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
 
 
 
-    __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    //__m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    __m256 vM0(vlagr), vM2(vlagr);
     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
@@ -848,7 +850,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 		const int indxx = NzNy * grid_indx[0] + grid_indx[2] + isize_g2 * grid_indx[1] ;
     //_mm_prefetch( (char*)Q_ptr,_MM_HINT_T2);
 
-    int indx = 0;
+//    int indx = 0;
     Real* reg_ptr = reg_grid_vals + indxx;//&reg_grid_vals[indxx];
     //_mm_prefetch( (char*)reg_ptr,_MM_HINT_T0);
 		Real val = 0;
@@ -884,7 +886,8 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 
 
 
-    __m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    //__m256 vM0(vlagr), vM1(vlagr), vM2(vlagr);
+    __m256 vM0(vlagr), vM2(vlagr);
     // __m256 vM0_tttt[4]; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_0000_1111; // elements will be M2[0] for the first 4 reg and M2[1] for the rest
     __m256 vM1_2222_3333; // elements will be M2[2] for the first 4 reg and M2[3] for the rest
@@ -1317,7 +1320,7 @@ void vec_torized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_do
 		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
     Real* reg_ptr = &reg_grid_vals[indxx];
 		Real val = 0;
-    int indx = 0;
+    //int indx = 0;
     const int isize_g2 = isize_g[2];
     const int two_isize_g2 = 2*isize_g[2];
     const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;
@@ -1459,7 +1462,7 @@ void _vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_r
     register __m128 vVal =  _mm_setzero_ps();
     register __m128 vVal_;
     // std::cout << "indxx = " << indxx << std::endl;
-		Real val = 0;
+//		Real val = 0;
     int indx = 0;
 		for (int j0 = 0; j0 < 4; j0++) {
 			for (int j1 = 0; j1 < 4; j1++) {
@@ -1546,7 +1549,7 @@ void __vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_
 
 
 		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
-		Real val = 0;
+//		Real val = 0;
     int indx = 0;
 
 
@@ -1892,7 +1895,7 @@ void ____vectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* 
           M0M1_[0] = M[0][0]*M[1][0];
           M0M1_[1] = M[0][0]*M[1][1];
           vM[0]=M0M1_[0];vM[1]=M0M1_[0];vM[2]=M0M1_[0];vM[3]=M0M1_[0];vM[4]=M0M1_[1];vM[5]=M0M1_[1];vM[6]=M0M1_[1];vM[7]=M0M1_[1];
-          register Real val_;
+          //register Real val_;
           Real vVal[8]={0};
           Real vVal2[8]={0};
           Real* ptr = &reg_grid_vals[indx + indxx];
@@ -2173,7 +2176,7 @@ void _v2_ectorized_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N
 		const int indxx = isize_g[2] * isize_g[1] * grid_indx[0] + grid_indx[2] + isize_g[2] * grid_indx[1] ;
     Real* reg_ptr = &reg_grid_vals[indxx];
 		Real val = 0;
-    int indx = 0;
+    //int indx = 0;
     const int isize_g2 = isize_g[2];
     const int two_isize_g2 = 2*isize_g[2];
     const int reg_plus = isize_g[1]*isize_g2 - two_isize_g2;

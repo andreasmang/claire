@@ -90,8 +90,10 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     PetscFunctionBegin;
 
     uppergradbound = 0.5;
+//#if defined(PETSC_USE_REAL_SINGLE)
+//#else
     lowergradbound = 1E-16;
-
+//#endif
     (void)krylovmethod;
 
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
@@ -227,6 +229,11 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
     PetscFunctionBegin;
 
     switch (flag) {
+        case KSP_CONVERGED_ITERATING:
+        {
+            // don't display anaything and continue iterating
+            break;
+        }
         case KSP_CONVERGED_RTOL_NORMAL:
         {
             msg = "krylov method converged: ||r||_2 < tol ||b||_2";
@@ -340,11 +347,6 @@ PetscErrorCode DispKSPConvReason(KSPConvergedReason flag) {
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
-        case KSP_CONVERGED_ITERATING:
-        {
-            // don't display anaything and continue iterating
-            break;
-        }
         default:
         {
             msg = "krylov method: convergence reason not defined";
@@ -381,7 +383,7 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
     precond = reinterpret_cast<PrecondReg*>(ptr);
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
-    kspmeth = " >> PC " + precond->GetOptions()->m_KrylovMethod.pcname;
+    kspmeth = " >> PRECOND " + precond->GetOptions()->m_KrylovMethod.pcname;
     itss << std::setw(5) << it;
     rnss << std::scientific << rnorm;
     msg = kspmeth +  itss.str() + "  ||r||_2 = " + rnss.str();
@@ -444,6 +446,11 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     }
 
     // set the default values
+    upperbound = 5E-1;
+//#if defined(PETSC_USE_REAL_SINGLE)
+//#else
+    lowerbound = 1E-16;
+//#endif
     maxits = 1E3;
     reltol = precond->GetOptions()->m_KrylovMethod.pctol[0];
     abstol = precond->GetOptions()->m_KrylovMethod.pctol[1];
@@ -515,10 +522,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
         }
     }
 
-    lowerbound = 1E-16;
     reltol = std::max(reltol, lowerbound);  // make sure tolerance is non-zero
-
-    upperbound = 5E-1;
     reltol = std::min(reltol, upperbound);   // make sure tolerance smaller than 0.25
 
     // set tolerances

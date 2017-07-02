@@ -586,8 +586,6 @@ class RegOpt {
     double m_TTSSlowest;
     double m_FFTSlowest;
     int m_IDSlowest;
-
-
 };
 
 

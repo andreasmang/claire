@@ -21,7 +21,7 @@
 #ifndef _REGUTILS_H_
 #define _REGUTILS_H_
 
-//#define _REG_DEBUG_
+// #define _REG_DEBUG_
 
 // global includes
 #include <fstream>

@@ -720,7 +720,7 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
             ////// adjoint variable
             /////////////////////////////////////////////////////////////////////
             if (j > 0) { // we do not store the time history for gauss newton
-                if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {  // gauss newton approximation
+                if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {
                     applyrestriction = false;
                 }
             }
@@ -757,8 +757,8 @@ PetscErrorCode PrecondReg::ApplyRestriction() {
     ierr = VecRestoreArray(lambda, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
-    // parse variables to optimization problem on coarse level (we have to set the control
-    // variable first)
+    // parse variables to optimization problem on coarse level
+    // (we have to set the control variable first)
     ierr = this->m_CoarseGrid.m_OptimizationProblem->SetControlVariable(this->m_CoarseGrid.m_ControlVariable); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid.m_OptimizationProblem->SetStateVariable(this->m_CoarseGrid.m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid.m_OptimizationProblem->SetAdjointVariable(this->m_CoarseGrid.m_AdjointVariable); CHKERRQ(ierr);
@@ -839,7 +839,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         }
         default:
         {
-            ierr = ThrowError("preconditioner solver not defined"); CHKERRQ(ierr);
+            ierr = ThrowError("preconditioner: solver not defined"); CHKERRQ(ierr);
             break;
         }
     }
@@ -878,12 +878,12 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
         ierr = KSPMonitorSet(this->m_KrylovMethod, InvertPrecondKrylovMonitor, this, NULL); CHKERRQ(ierr);
     }
 
-    // remove preconditioner (the hessian is a preconditioned
-    // representation
+    // remove preconditioner (we use a spectrally preconditioned
+    // representation of the hessian)
     ierr = KSPGetPC(this->m_KrylovMethod, &pc); CHKERRQ(ierr);
-    ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);  ///< set no preconditioner
+    ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);
 
-    // finish
+    // finish setup
     ierr = KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
     ierr = KSPSetUp(this->m_KrylovMethod); CHKERRQ(ierr);
 
@@ -896,7 +896,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethod(IntType nl, IntType ng) {
 
 
 /********************************************************************
- * @brief do setup for two level preconditioner
+ * @brief apply the hessian matrix vector product
  *******************************************************************/
 PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
     PetscErrorCode ierr = 0;
@@ -909,6 +909,9 @@ PetscErrorCode PrecondReg::HessianMatVec(Vec Hx, Vec x) {
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("preconditioner: (H^coarse + Q^coarse)[x^coarse]"); CHKERRQ(ierr);
         }
+        // if we use the hessian within a preconditioner
+        // we do not apply the scaling factor that originates from
+        // the spatial integration in the objective functional (false)
         ierr = this->m_CoarseGrid.m_OptimizationProblem->HessianMatVec(Hx, x, false); CHKERRQ(ierr);
     } else {
         ierr = this->m_OptimizationProblem->HessianMatVec(Hx, x); CHKERRQ(ierr);
@@ -963,10 +966,8 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
                 ierr = DbgMsg("estimating eigenvalues (petsc)"); CHKERRQ(ierr);
             }
             // default interface for chebyshev method to estimate eigenvalues
-            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE,
-                                                               PETSC_DECIDE,
-                                                               PETSC_DECIDE,
-                                                               PETSC_DECIDE); CHKERRQ(ierr);
+            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE, PETSC_DECIDE,
+                                                               PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
         } else {
             if (this->m_Opt->m_Verbosity > 1) {
                 ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);
@@ -1012,7 +1013,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
         }   // switch between eigenvalue estimators
 
         // set flag
-        this->m_Opt->m_KrylovMethod.eigvalsestimated = true;
+///        this->m_Opt->m_KrylovMethod.eigvalsestimated = true;
     }
 
     if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr);}
@@ -1054,7 +1055,7 @@ PetscErrorCode PrecondReg::SetupKrylovMethodEigEst() {
     //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
     ierr = KSPSetNormType(this->m_KrylovMethodEigEst, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
     //ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
-    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst, PETSC_FALSE); CHKERRQ(ierr);
+    //ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethodEigEst, PETSC_FALSE); CHKERRQ(ierr);
 
     // set up matvec for preconditioner
     if (this->m_MatVecEigEst != NULL) {

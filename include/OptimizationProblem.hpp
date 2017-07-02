@@ -109,7 +109,8 @@ class OptimizationProblem {
     virtual PetscErrorCode CheckBounds(Vec, bool&) = 0;
 
     /*! check gradient (derivative check via taylor expansion) */
-    PetscErrorCode DerivativeCheck(void);
+    PetscErrorCode DerivativeCheckGradient(void);
+    PetscErrorCode DerivativeCheckHessian(void);
 
     /*! check if hessian is symmetric */
     PetscErrorCode HessianSymmetryCheck(void);

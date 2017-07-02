@@ -153,9 +153,9 @@ PetscErrorCode OptimizationProblem::ComputeUpdateNorm(Vec x, ScalarType& normdx,
 /********************************************************************
  * @brief check gradient based on a taylor expansion
  *******************************************************************/
-PetscErrorCode OptimizationProblem::DerivativeCheck() {
+PetscErrorCode OptimizationProblem::DerivativeCheckGradient() {
     PetscErrorCode ierr = 0;
-    Vec v = NULL, vtilde = NULL, w = NULL, dvJ = NULL;
+    Vec v = NULL, vtilde = NULL, w = NULL, g = NULL;
     PetscRandom rctx;
     IntType nl, ng;
     ScalarType h, htilde, Jv, dvJw, Jvtilde, e[2], normv, normw;
@@ -179,7 +179,7 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
     ierr = VecSet(v, 0.0); CHKERRQ(ierr);
 
     ierr = VecDuplicate(v, &vtilde); CHKERRQ(ierr);
-    ierr = VecDuplicate(v, &dvJ); CHKERRQ(ierr);
+    ierr = VecDuplicate(v, &g); CHKERRQ(ierr);
     ierr = VecDuplicate(v, &w); CHKERRQ(ierr);
 
     // create random vectors
@@ -198,7 +198,96 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
 
     // compute value of objective functional
     ierr = this->EvaluateObjective(&Jv, v); CHKERRQ(ierr);
-    ierr = this->EvaluateGradient(dvJ, v); CHKERRQ(ierr);
+    ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
+
+    // do the derivative check
+    h = 1E-8;
+    for (int i = 0; i < 10; ++i) {
+        // compute step size
+        htilde = h*pow(10.0, i);
+
+        // perturb velocity field
+        ierr = VecWAXPY(vtilde, htilde, w, v); CHKERRQ(ierr);
+
+        // evaluate objective
+        ierr = this->EvaluateObjective(&Jvtilde, vtilde); CHKERRQ(ierr);
+
+        // inner product between perturbation and gradient
+        ierr = VecTDot(w, g, &dvJw); CHKERRQ(ierr);
+        dvJw *= htilde;
+
+        e[0] = (Jvtilde - Jv);
+        e[1] = (Jvtilde - Jv - dvJw);
+
+        e[0] = std::abs(e[0]);
+        e[1] = std::abs(e[1]);
+
+        snprintf(buffer, 256, "%e %e %e", htilde, e[0], e[1]);
+        ierr = DbgMsg(buffer); CHKERRQ(ierr);
+    }
+
+    // clean up
+    if (v != NULL) {ierr = VecDestroy(&v); CHKERRQ(ierr); v = NULL;}
+    if (w != NULL) {ierr = VecDestroy(&w); CHKERRQ(ierr); w = NULL;}
+    if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); g = NULL;}
+    if (vtilde != NULL) {ierr = VecDestroy(&vtilde); CHKERRQ(ierr); vtilde = NULL;}
+    if (rctx != NULL) {ierr = PetscRandomDestroy(&rctx); CHKERRQ(ierr); rctx = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief check gradient based on a taylor expansion
+ *******************************************************************/
+PetscErrorCode OptimizationProblem::DerivativeCheckHessian() {
+    PetscErrorCode ierr = 0;
+    Vec v = NULL, vtilde = NULL, w = NULL, g = NULL;
+    PetscRandom rctx;
+    IntType nl, ng;
+    ScalarType h, htilde, Jv, dvJw, Jvtilde, e[2], normv, normw;
+    char buffer[256];
+
+    PetscFunctionBegin;
+
+    ierr = Assert(this->m_Opt != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = DbgMsg("performing derivative check (gradient)"); CHKERRQ(ierr);
+    snprintf(buffer, 256, "%-12s %-12s %-12s", "h", "e(h)", "e(h^2)");
+    ierr = DbgMsg(buffer); CHKERRQ(ierr);
+
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+
+    // create an extra array for initial guess (has to be flat for optimizer)
+    ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
+    ierr = VecSetSizes(v, 3*nl, 3*ng); CHKERRQ(ierr);
+    ierr = VecSetFromOptions(v); CHKERRQ(ierr);
+    ierr = VecSet(v, 0.0); CHKERRQ(ierr);
+
+    ierr = VecDuplicate(v, &vtilde); CHKERRQ(ierr);
+    ierr = VecDuplicate(v, &g); CHKERRQ(ierr);
+    ierr = VecDuplicate(v, &w); CHKERRQ(ierr);
+
+    // create random vectors
+    ierr = PetscRandomCreate(PETSC_COMM_WORLD, &rctx); CHKERRQ(ierr);
+    ierr = PetscRandomSetFromOptions(rctx); CHKERRQ(ierr);
+    ierr = VecSetRandom(v, rctx); CHKERRQ(ierr);
+    ierr = VecSetRandom(w, rctx); CHKERRQ(ierr);
+
+    // compute norm of random vectors
+    ierr = VecNorm(v, NORM_2, &normv); CHKERRQ(ierr);
+    ierr = VecNorm(w, NORM_2, &normw); CHKERRQ(ierr);
+
+    // normalize random number
+    ierr = VecScale(v, 1.0/normv); CHKERRQ(ierr);
+    ierr = VecScale(w, 1.0/normw); CHKERRQ(ierr);
+
+    // compute value of objective functional
+    ierr = this->EvaluateObjective(&Jv, v); CHKERRQ(ierr);
+    ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
     // do the derivative check
     h = 1E-8;
@@ -216,7 +305,7 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
         ierr = this->EvaluateObjective(&Jvtilde, vtilde); CHKERRQ(ierr);
 
         // inner product between perturbation and gradient
-        ierr = VecTDot(w, dvJ, &dvJw); CHKERRQ(ierr);
+        ierr = VecTDot(w, g, &dvJw); CHKERRQ(ierr);
         dvJw *= htilde;
 
         e[0] = (Jvtilde - Jv);
@@ -230,26 +319,11 @@ PetscErrorCode OptimizationProblem::DerivativeCheck() {
     }
 
     // clean up
-    if (rctx != NULL) {
-        ierr = PetscRandomDestroy(&rctx); CHKERRQ(ierr);
-        rctx = NULL;
-    }
-    if (v != NULL) {
-        ierr = VecDestroy(&v); CHKERRQ(ierr);
-        v = NULL;
-    }
-    if (w != NULL) {
-        ierr = VecDestroy(&w); CHKERRQ(ierr);
-        w = NULL;
-    }
-    if (dvJ != NULL) {
-        ierr = VecDestroy(&dvJ); CHKERRQ(ierr);
-        dvJ = NULL;
-    }
-    if (vtilde != NULL) {
-        ierr = VecDestroy(&vtilde); CHKERRQ(ierr);
-        vtilde = NULL;
-    }
+    if (v != NULL) {ierr = VecDestroy(&v); CHKERRQ(ierr); v = NULL;}
+    if (w != NULL) {ierr = VecDestroy(&w); CHKERRQ(ierr); w = NULL;}
+    if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); g = NULL;}
+    if (vtilde != NULL) {ierr = VecDestroy(&vtilde); CHKERRQ(ierr); vtilde = NULL;}
+    if (rctx != NULL) {ierr = PetscRandomDestroy(&rctx); CHKERRQ(ierr); rctx = NULL;}
 
     PetscFunctionReturn(ierr);
 }

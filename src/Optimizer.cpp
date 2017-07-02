@@ -307,18 +307,16 @@ PetscErrorCode Optimizer::SetupTao() {
             ierr = KSPSetType(this->m_KrylovMethod, KSPGMRES); CHKERRQ(ierr);
         } else if (this->m_Opt->m_KrylovMethod.solver == PCG) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPCG); CHKERRQ(ierr);
-//            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
         } else if (this->m_Opt->m_KrylovMethod.solver == FCG) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPFCG); CHKERRQ(ierr);
-//            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
         } else if (this->m_Opt->m_KrylovMethod.solver == FGMRES) {
             ierr = KSPSetType(this->m_KrylovMethod, KSPFGMRES); CHKERRQ(ierr);
-//            ierr = KSPCGSetType(this->m_KrylovMethod, KSP_CG_SYMMETRIC); CHKERRQ(ierr);
         } else {
             ierr = ThrowError("interface for solver not provided"); CHKERRQ(ierr);
         }
 
-        // apply projection operator to gradient and solution
+        // apply projection operator to gradient and
+        // solution if needed (two-level preconditioner)
         ierr = KSPSetPostSolve(this->m_KrylovMethod, PostKrylovSolve, this->m_OptimizationProblem); CHKERRQ(ierr);
         ierr = KSPSetPreSolve(this->m_KrylovMethod, PreKrylovSolve, this->m_OptimizationProblem); CHKERRQ(ierr);
 
@@ -343,7 +341,7 @@ PetscErrorCode Optimizer::SetupTao() {
             ierr = PCShellSetApply(preconditioner, PrecondMatVec); CHKERRQ(ierr);
             ierr = PCShellSetContext(preconditioner, this->m_Precond); CHKERRQ(ierr);
 //            ierr = PCShellSetName(taokktpc,"kktpc"); CHKERRQ(ierr);
-//            ierr = PCShellSetSetUp(preconditioner,PrecondSetup); CHKERRQ(ierr);
+//            ierr = PCShellSetSetUp(preconditioner, PrecondSetup); CHKERRQ(ierr);
         }
     }
 

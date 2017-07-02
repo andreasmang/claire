@@ -220,7 +220,6 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
 
 
 
-
 /********************************************************************
  * @brief initialize the optimization (we essentially evaluate
  * the objective functional and the gradient for a given initial
@@ -868,6 +867,8 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
 }
 
 
+
+
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian (l2)
  *******************************************************************/
@@ -1198,8 +1199,6 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
         ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
     }
 
-
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1253,8 +1252,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
 
-    // compute \tilde{\lambda}(x,t) and compute
-    // incremental body force
+    // compute \tilde{\lambda}(x,t) and incremental body force
     ierr = this->SolveIncAdjointEquation(); CHKERRQ(ierr);
 
     // apply inverse of 2nd variation of regularization model to
@@ -2086,7 +2084,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
                 p_b3[i] += lambda*p_gradm3[i]/static_cast<ScalarType>(nc);
             }
         }
-}
+}  // pragma
         ierr = VecRestoreArray(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
@@ -2096,7 +2094,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
         // increment timers
         this->m_Opt->IncreaseFFTTimers(timer);
-
     } else {
         // call the solver
         switch (this->m_Opt->m_PDESolver.type) {
@@ -2151,10 +2148,10 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
     PetscErrorCode ierr;
     IntType nl, ng, nc, nt, ll, lm, llnext;
-    ScalarType *p_l = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
+    ScalarType *p_l = NULL, *p_m = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
                *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
-               *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_m = NULL;
+               *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType hthalf, ht, lambdabar, lambda, scale;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
@@ -2335,11 +2332,11 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_divv = NULL, *p_divvx = NULL, *p_l = NULL,
-                *p_lambdajx = NULL, *p_m = NULL,
+                *p_divv = NULL, *p_divvx = NULL,
+                *p_l = NULL, *p_lx = NULL, *p_m = NULL,
                 *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
                 *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
-    ScalarType ht, lambdajx, lambda, rhs0, rhs1, scale;
+    ScalarType ht, lambdax, lambda, rhs0, rhs1, scale;
     IntType nl, ng, nc, nt, ll, lm, llnext;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     bool fullnewton = false;
@@ -2398,14 +2395,11 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
     }
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_lambdajx); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_lx); CHKERRQ(ierr);
 
     // compute divergence of velocity field
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -2415,8 +2409,20 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
+    // interpolate velocity field v(X)
+    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+
+    // compute divergence of velocity field at X
+    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    accfft_divergence_t(p_divvx, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    this->m_Opt->IncrementCounter(FFT, FFTDIV);
+
     // evaluate div(v) along characteristic X
-    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
+    //ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
+
+    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
 
     // perform numerical time integration for adjoint variable and
     // add up body force
@@ -2432,7 +2438,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
         if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {
             // compute lambda(t^j,X)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_lambdajx, p_l + ll + k*nl, "adjoint"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_lx, p_l + ll + k*nl, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m (for incremental body force)
             this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -2443,14 +2449,14 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {
-                lambda = p_l[ll + k*nl + i];
-                lambdajx = p_lambdajx[i];
+                lambda  = p_l[ll + k*nl + i];
+                lambdax = p_lx[i];
 
-                rhs0 = lambdajx*p_divvx[i];
-                rhs1 = (lambdajx + ht*rhs0)*p_divv[i];
+                rhs0 = lambdax*p_divvx[i];
+                rhs1 = (lambdax + ht*rhs0)*p_divv[i];
 
                 // compute \lambda(x,t^{j+1})
-                p_l[llnext + k*nl + i] = lambdajx + 0.5*ht*(rhs0 + rhs1);
+                p_l[llnext + k*nl + i] = lambdax + 0.5*ht*(rhs0 + rhs1);
 
                 // compute bodyforce
                 p_b1[i] += scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
@@ -2488,7 +2494,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
 
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_lambdajx); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField3, &p_lx); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -2798,9 +2804,9 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, hthalf;
     ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
-                *p_mtilde = NULL, *p_m = NULL, *p_mtbar = NULL;
-    const ScalarType //*p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL,
-                     *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL;
+                *p_mtilde = NULL, *p_m = NULL, *p_mx = NULL;
+    const ScalarType *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL,
+                     *p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL;
     double timer[NFFTTIMERS] = {0};
     bool fullnewton = false;
     PetscFunctionBegin;
@@ -2847,9 +2853,13 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     }
 
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_mx); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
+
+    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_IncVelocityField, "state"); CHKERRQ(ierr);
+
+    ierr = this->m_WorkVecField2->GetArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
     ierr = this->m_IncVelocityField->GetArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
@@ -2864,30 +2874,24 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
             // interpolate incremental adjoint variable
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtilde + lmtnext + k*nl, p_mtilde + lmt + k*nl, "state"); CHKERRQ(ierr);
 
+            // interpolate gradient
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mx, p_m + lm + k*nl, "state"); CHKERRQ(ierr);
+
             // compute gradient for state variable
             this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
+            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_mx, this->m_Opt->m_FFT.plan, &XYZ, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
-            // compute inner product
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                p_mtbar[i] = p_gm1[i]*p_vtilde1[i] + p_gm2[i]*p_vtilde2[i] + p_gm3[i]*p_vtilde3[i];
-            }
-}  // omp
-
-            // interpolate gradient of state variable
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtbar, p_mtbar, "state");
 
             // first part of time integration
 #pragma omp parallel
 {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lmtnext + k*nl + i] -= hthalf*p_mtbar[i];
+                p_mtilde[lmtnext + k*nl + i] -= hthalf*(p_gm1[i]*p_vtildex1[i]
+                                                      + p_gm2[i]*p_vtildex2[i]
+                                                      + p_gm3[i]*p_vtildex3[i]);
             }
 }  // omp
             // compute gradient for state variable at next time time point
@@ -2910,9 +2914,10 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     }  // for all time points
 
     ierr = this->m_IncVelocityField->RestoreArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_mx); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -3546,9 +3551,20 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
-    // evaluate div(v) on characteristic
+    // compute v(X)
+    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+
+    // evaluate divergence at X
     ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    accfft_divergence_t(p_divvx, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+
+
+//    ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
+//    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
 
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
@@ -3656,6 +3672,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void) {
 
 
 
+
 /********************************************************************
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
@@ -3665,6 +3682,8 @@ PetscErrorCode OptimalControlRegistration::ApplyProjection() {
 
     PetscFunctionReturn(ierr);
 }
+
+
 
 
 /********************************************************************

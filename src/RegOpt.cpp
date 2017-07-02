@@ -161,9 +161,9 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
     this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
     this->m_ReadWriteFlags.defmap = opt.m_ReadWriteFlags.defmap;
-    this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
     this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
     this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
+    this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
     this->m_ReadWriteFlags.residual = opt.m_ReadWriteFlags.residual;
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
     this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
