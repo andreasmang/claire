@@ -91,6 +91,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
 
     uppergradbound = 0.5;
 //#if defined(PETSC_USE_REAL_SINGLE)
+//    lowergradbound = 1E-9;
 //#else
     lowergradbound = 1E-16;
 //#endif
