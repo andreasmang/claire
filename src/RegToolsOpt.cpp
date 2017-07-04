@@ -208,8 +208,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.convert = true;
         } else if (strcmp(argv[1], "-usenc") == 0) {
             this->m_FileNames.extension = ".nc";
-        } else if (strcmp(argv[1], "-xresults") == 0) {
-            this->m_ReadWriteFlags.results = true;
+        } else if (strcmp(argv[1], "-velocity") == 0) {
+            this->m_ReadWriteFlags.velocity = true;
         } else if (strcmp(argv[1], "-defgrad") == 0) {
             this->m_ReadWriteFlags.defgrad = true;
         } else if (strcmp(argv[1], "-detdefgrad") == 0) {
