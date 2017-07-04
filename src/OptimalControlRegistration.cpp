@@ -730,7 +730,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     // add up the contributions
     *J = hd*(D + R);
 
-    // store for access
+    // store for access (e.g., used in coupling)
     this->m_Opt->m_Monitor.jval = *J;
     this->m_Opt->m_Monitor.dval = hd*D;
     this->m_Opt->m_Monitor.rval = hd*R;
@@ -764,6 +764,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
     }
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     // allocate
     if (this->m_VelocityField == NULL) {
@@ -1259,7 +1260,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
 
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta \D{A})^{-1}\D{K}[\vect{\tilde{b}}]
-    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, false); CHKERRQ(ierr);
 
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1} \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
@@ -1478,7 +1479,6 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
     ierr = Assert(ht > 0, "ht <= 0"); CHKERRQ(ierr);
     ierr = Assert(nc > 0, "nc <= 0"); CHKERRQ(ierr);
     scale = ht;
-
 
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -2195,8 +2195,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
         }
     }
 
-    // init body force for numerical integration
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
     // for full newton we store $\lambda$
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -2207,6 +2205,9 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
 
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
+
+    // init body force for numerical integration
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
 
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -2390,9 +2391,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
-    // init body force for numerical integration
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-
     // for full newton we store the adjoint variable
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
@@ -2424,6 +2422,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     // evaluate div(v) along characteristic X
     //ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
 
+    // init body force for numerical integration
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
 
     // perform numerical time integration for adjoint variable and
@@ -3024,12 +3024,12 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
                 }
             }
 
-            // init body force for numerical integration
-            ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-
             // m and \lambda are constant in time
             ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
+
+            // init body force for numerical integration
+            ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
             ierr = this->m_WorkVecField2->GetArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
 
             // $m$ and $\tilde{\lambda}$ are constant
@@ -3188,17 +3188,18 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
         }
     }
 
-    // init body force for numerical integration
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+
+    // init body force for numerical integration
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {  // for all time points
@@ -3541,9 +3542,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
-    // initialize work vec field
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-
     // compute divergence of velocity field
     ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -3571,9 +3569,11 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_WorkScaField3, &p_ltildex); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
+
+    // initialize work vec field
+    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
 
     for (IntType j = 0; j < nt; ++j) {
         lm = (nt-j)*nc*nl;
@@ -3602,7 +3602,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
                 rhs1 = (ltildex + ht*rhs0)*p_divv[i];
 
                 // final rk2 step
-                p_ltilde[ll] = ltildex + hthalf*(rhs0 + rhs1);
+                p_ltilde[ll + i] = ltildex + hthalf*(rhs0 + rhs1);
 
                 p_bt1[i] += scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
                 p_bt2[i] += scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
