@@ -111,6 +111,7 @@ class OptimizationProblem {
     /*! check gradient (derivative check via taylor expansion) */
     PetscErrorCode DerivativeCheckGradient(void);
     PetscErrorCode DerivativeCheckHessian(void);
+    PetscErrorCode DerivativeCheckHessianFD(void);
 
     /*! check if hessian is symmetric */
     PetscErrorCode HessianSymmetryCheck(void);

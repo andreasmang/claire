@@ -821,6 +821,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
                 ierr = this->EvaluateL2Gradient(g); CHKERRQ(ierr);
                 break;
             }
+/*
             case SGRAD:
             {
                 // evaluate sobolev gradient
@@ -833,6 +834,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
                 ierr = this->EvaluateSobolevGradient(g, true); CHKERRQ(ierr);
                 break;
             }
+*/
             default:
             {
                 ierr = ThrowError("operator not implemented"); CHKERRQ(ierr);

@@ -325,7 +325,9 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
 
     // perform derivative check
     if (optprob->GetOptions()->m_OptPara.derivativecheckenabled) {
-        ierr = optprob->DerivativeCheckGradient(); CHKERRQ(ierr);
+//        ierr = optprob->DerivativeCheckGradient(); CHKERRQ(ierr);
+        ierr = optprob->DerivativeCheckHessian(); CHKERRQ(ierr);
+//        ierr = optprob->DerivativeCheckHessianFD(); CHKERRQ(ierr);
     }
 
     // if we're here, we're good to go
@@ -463,7 +465,9 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 
     // perform derivative check
     if (optprob->GetOptions()->m_OptPara.derivativecheckenabled) {
-        ierr = optprob->DerivativeCheckGradient(); CHKERRQ(ierr);
+//        ierr = optprob->DerivativeCheckGradient(); CHKERRQ(ierr);
+        ierr = optprob->DerivativeCheckHessian(); CHKERRQ(ierr);
+//        ierr = optprob->DerivativeCheckHessianFD(); CHKERRQ(ierr);
     }
 
     // if we're here, we're good to go

@@ -952,6 +952,7 @@ PetscErrorCode RegOpt::Initialize() {
     PetscFunctionBegin;
 
     this->m_SetupDone = false;
+
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = 0;
     this->m_FFT.mpicommexists = false;
