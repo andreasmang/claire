@@ -210,20 +210,20 @@ enum StopCondType{
 
 
 struct ReadWriteFlags {
-    bool readfiles;
-    bool readvelocity;
-    bool timeseries;
-    bool iterates;
-    bool defgrad;
-    bool detdefgrad;
-    bool velnorm;
-    bool residual;
-    bool defmap;
-    bool templateim;
-    bool referenceim;
-    bool deftemplate;
-    bool deffield;
-    bool results;
+    bool readfiles;           ///< internal flag to indicate that we read files
+    bool readvelocity;        ///< internal flag to indicate that we read velocities
+    bool timeseries;          ///< write time series to file (debug only; creates a lot of output)
+    bool iterates;            ///< write iterates to file
+    bool defgrad;             ///< write deformation gradient to file
+    bool detdefgrad;          ///< write determinant of deformation gradient
+    bool velnorm;             ///< write dataset with norfm ov veloity field
+    bool residual;            ///< write dataset with residual between reference and transported template (i.e., the mismatch)
+    bool defmap;              ///< write deformation map y
+    bool templateim;          ///< write template image (original dataset)
+    bool referenceim;         ///< write reference image (original dataset)
+    bool deftemplate;         ///< write deformed/transported template
+    bool deffield;            ///< write deformation field (displacement field)
+    bool velocity;            ///< write velocity field
 };
 
 

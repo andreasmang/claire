@@ -3957,7 +3957,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write velocity field to file
-    if (this->m_Opt->m_ReadWriteFlags.results) {
+    if (this->m_Opt->m_ReadWriteFlags.velocity) {
         ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field" + ext); CHKERRQ(ierr);
     }
 

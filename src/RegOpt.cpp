@@ -159,7 +159,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.referenceim = opt.m_ReadWriteFlags.referenceim;
     this->m_ReadWriteFlags.timeseries = opt.m_ReadWriteFlags.timeseries;
     this->m_ReadWriteFlags.iterates = opt.m_ReadWriteFlags.iterates;
-    this->m_ReadWriteFlags.results = opt.m_ReadWriteFlags.results;
+    this->m_ReadWriteFlags.velocity = opt.m_ReadWriteFlags.velocity;
     this->m_ReadWriteFlags.defmap = opt.m_ReadWriteFlags.defmap;
     this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
     this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
@@ -386,31 +386,31 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_FileNames.extension = ".bin";
         } else if (strcmp(argv[1], "-usehdf5") == 0) {
             this->m_FileNames.extension = ".hdf5";
-        } else if (strcmp(argv[1], "-xresult") == 0) {
-            this->m_ReadWriteFlags.results = true;
-        } else if (strcmp(argv[1], "-xdeftemplate") == 0) {
+        } else if (strcmp(argv[1], "-velocity") == 0) {
+            this->m_ReadWriteFlags.velocity = true;
+        } else if (strcmp(argv[1], "-deformed") == 0) {
             this->m_ReadWriteFlags.deftemplate = true;
-        } else if (strcmp(argv[1], "-xmt") == 0) {
+        } else if (strcmp(argv[1], "-template") == 0) {
             this->m_ReadWriteFlags.templateim = true;
-        } else if (strcmp(argv[1], "-xmr") == 0) {
+        } else if (strcmp(argv[1], "-reference") == 0) {
             this->m_ReadWriteFlags.referenceim = true;
-        } else if (strcmp(argv[1], "-xresidual") == 0) {
+        } else if (strcmp(argv[1], "-residual") == 0) {
             this->m_ReadWriteFlags.residual = true;
-        } else if (strcmp(argv[1], "-xvelnorm") == 0) {
+        } else if (strcmp(argv[1], "-velnorm") == 0) {
             this->m_ReadWriteFlags.velnorm = true;
-        } else if (strcmp(argv[1], "-xdefgrad") == 0) {
+        } else if (strcmp(argv[1], "-defgrad") == 0) {
             this->m_ReadWriteFlags.defgrad = true;
-        } else if (strcmp(argv[1], "-xdetdefgrad") == 0) {
+        } else if (strcmp(argv[1], "-detdefgrad") == 0) {
             this->m_ReadWriteFlags.detdefgrad = true;
-        } else if (strcmp(argv[1], "-xdeffield") == 0) {
+        } else if (strcmp(argv[1], "-deffield") == 0) {
             this->m_ReadWriteFlags.deffield = true;
-        } else if (strcmp(argv[1], "-xdefmap") == 0) {
+        } else if (strcmp(argv[1], "-defmap") == 0) {
             this->m_ReadWriteFlags.defmap = true;
-        } else if (strcmp(argv[1], "-xiterates") == 0) {
+        } else if (strcmp(argv[1], "-iterates") == 0) {
             this->m_ReadWriteFlags.iterates = true;
-        } else if (strcmp(argv[1], "-xtimeseries") == 0) {
+        } else if (strcmp(argv[1], "-timeseries") == 0) {
             this->m_ReadWriteFlags.timeseries = true;
-        } else if (strcmp(argv[1], "-storecheckpoints") == 0) {
+        } else if (strcmp(argv[1], "-checkpoints") == 0) {
             this->m_StoreCheckPoints = true;
         } else if (strcmp(argv[1], "-logjacobian") == 0) {
             this->m_Log.enabled[LOGJAC] = true;
@@ -1085,7 +1085,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.readvelocity = false;    ///< read velocity from file
     this->m_ReadWriteFlags.timeseries = false;      ///< write time series to file (time dependent variables; use with caution) to file
     this->m_ReadWriteFlags.iterates = false;        ///< write iterates (velocity field; use with caution) to file
-    this->m_ReadWriteFlags.results = false;         ///< write results (velocity field) to file
+    this->m_ReadWriteFlags.velocity = false;        ///< write results (velocity field) to file
     this->m_ReadWriteFlags.defgrad = false;         ///< write deformation gradient (entire tensor) to file
     this->m_ReadWriteFlags.detdefgrad = false;      ///< write deformation gradient (determinant of deformation gradient) to file
     this->m_ReadWriteFlags.residual = false;        ///< write residual images to file
@@ -1208,19 +1208,18 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         // ####################### advanced options #######################
 
         std::cout << line << std::endl;
-        std::cout << " -xresult                    output inversion variable (by default only velocity field will" << std::endl;
-        std::cout << "                             be written to file; for more output options, see flags)" << std::endl;
+        std::cout << " -velocity                   write velocity field to file (requires output path; -x option)" << std::endl;
         std::cout << " -x <path>                   output path (a prefix can be added by doing" << std::endl;
         std::cout << "                             '-x /output/path/prefix_')" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -xdefgrad                   write deformation gradient to file" << std::endl;
-        std::cout << " -xdetdefgrad                write determinant of deformation gradient to file" << std::endl;
-        std::cout << " -xdefmap                    write deformation map to file" << std::endl;
-        std::cout << " -xdeffield                  write deformation field/displacement field to file" << std::endl;
-        std::cout << " -xdeftemplate               write deformed/transported template image to file" << std::endl;
-        std::cout << " -xresidual                  write pointwise residual (before and after registration) to file" << std::endl;
+        std::cout << " -defgrad                   write deformation gradient to file" << std::endl;
+        std::cout << " -detdefgrad                write determinant of deformation gradient to file" << std::endl;
+        std::cout << " -defmap                    write deformation map to file" << std::endl;
+        std::cout << " -deffield                  write deformation field/displacement field to file" << std::endl;
+        std::cout << " -deftemplate               write deformed/transported template image to file" << std::endl;
+        std::cout << " -residual                  write pointwise residual (before and after registration) to file" << std::endl;
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters" << std::endl;
         std::cout << line << std::endl;
@@ -1464,13 +1463,9 @@ PetscErrorCode RegOpt::CheckArguments() {
     }
 
     // check output arguments
-    if (   this->m_ReadWriteFlags.results
-        || this->m_ReadWriteFlags.defgrad
-        || this->m_ReadWriteFlags.detdefgrad
-        || this->m_ReadWriteFlags.defmap
-        || this->m_ReadWriteFlags.residual
-        || this->m_ReadWriteFlags.timeseries
-        || this->m_ReadWriteFlags.iterates ) {
+    if (this->m_ReadWriteFlags.velocity || this->m_ReadWriteFlags.defgrad || this->m_ReadWriteFlags.detdefgrad
+        || this->m_ReadWriteFlags.defmap || this->m_ReadWriteFlags.residual || this->m_ReadWriteFlags.timeseries
+        || this->m_ReadWriteFlags.iterates) {
         if (this->m_FileNames.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
