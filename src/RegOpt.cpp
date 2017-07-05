@@ -380,12 +380,21 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-i") == 0) {
             argc--; argv++;
             this->m_FileNames.ifolder = argv[1];
-        } else if (strcmp(argv[1], "-usenc") == 0) {
-            this->m_FileNames.extension = ".nc";
-        } else if (strcmp(argv[1], "-usebin") == 0) {
-            this->m_FileNames.extension = ".bin";
-        } else if (strcmp(argv[1], "-usehdf5") == 0) {
-            this->m_FileNames.extension = ".hdf5";
+        } else if (strcmp(argv[1], "-format") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "netcdf") == 0) {
+                this->m_FileNames.extension = ".nc";
+            } else if (strcmp(argv[1], "nifti") == 0) {
+                this->m_FileNames.extension = ".nii.gz";
+            } else if (strcmp(argv[1], "hdf5") == 0) {
+                this->m_FileNames.extension = ".hdf5";
+            } else if (strcmp(argv[1], "binary") == 0) {
+                this->m_FileNames.extension = ".bin";
+            } else {
+                msg = "\n\x1b[31m output format not supported: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-velocity") == 0) {
             this->m_ReadWriteFlags.velocity = true;
         } else if (strcmp(argv[1], "-deftemplate") == 0) {
@@ -1329,8 +1338,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -pdesolver <type>           numerical time integrator for transport equations" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 sl           semi-Lagrangian method (default; unconditionally stable)" << std::endl;
-        std::cout << "                                              user can set order of rk time integrator for characteristic via '-rkorder'" << std::endl;
-        std::cout << "                                              user can set order of rk time integrator for characteristic via '-rkorder'" << std::endl;
+        std::cout << "                                              user can set order of rk time integrator for characteristic" << std::endl;
+        std::cout << "                                              via the '-rkorder' option (see below)" << std::endl;
         std::cout << "                                 rk2          rk2 time integrator (conditionally stable)" << std::endl;
         std::cout << " -nt <int>                   number of time points (for time integration; default: 4)" << std::endl;
 //        std::cout << " -iporder <int>              order of interpolation model (default is 3)" << std::endl;
@@ -1358,9 +1367,10 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -xtimeseries                store time series (use with caution)" << std::endl;
         std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
         std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
-        std::cout << " -usenc                      use netcdf as output format (*.nc); default is NIFTI (*.nii.gz)" << std::endl;
-//        std::cout << " -usebin                     use binary files as output format (*.bin)" << std::endl;
-//        std::cout << " -usehdf5                    use hdf files as output format (*.hdf5)" << std::endl;
+        std::cout << " -format <type>              specify the output format for the images/vector fields; default is NIFTI (*.nii.gz)" << std::endl;
+        std::cout << "                                 nifti        NIFTI format (*.nii.gz; standard in medical imaging)" << std::endl;
+        std::cout << "                                 netcdf       NETCDF format (*.nc; common in simulations/parallel computing)" << std::endl;
+//        std::cout << "                                 hdf5         HDF5 format (*.hdf5)" << std::endl;
         std::cout << " -verbosity <int>            verbosity level (ranges from 0 to 2; default: 0)" << std::endl;
         }
         // ####################### advanced options #######################
