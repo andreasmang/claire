@@ -388,7 +388,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_FileNames.extension = ".hdf5";
         } else if (strcmp(argv[1], "-velocity") == 0) {
             this->m_ReadWriteFlags.velocity = true;
-        } else if (strcmp(argv[1], "-deformed") == 0) {
+        } else if (strcmp(argv[1], "-deftemplate") == 0) {
             this->m_ReadWriteFlags.deftemplate = true;
         } else if (strcmp(argv[1], "-template") == 0) {
             this->m_ReadWriteFlags.templateim = true;
