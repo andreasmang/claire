@@ -109,6 +109,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory() {
 PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType D = 0.0, Rv = 0.0, Rw = 0.0, hd;
+    std::stringstream ss;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -165,6 +166,12 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
     this->m_Opt->m_Monitor.jval = *J;
     this->m_Opt->m_Monitor.rval = hd*D;
     this->m_Opt->m_Monitor.dval = hd*(Rv + Rw);
+
+    if (this->m_Opt->m_Verbosity > 1) {
+        ss << "J(v) = D(v) + R1(v) + R2(div(v)) = " << std::scientific
+           << hd*D << " + " << hd*Rv << " + " << hd*Rw;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+    }
 
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
 

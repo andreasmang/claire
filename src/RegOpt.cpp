@@ -103,7 +103,7 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];  // weight for regularization operator A[v]
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];  // weight for identity operator in regularization norms (constant)
-    this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[w] (incompressibility)
+    this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[div(v)] (incompressibility)
     this->m_RegNorm.beta[3] = opt.m_RegNorm.beta[3];  // former regularization weight (for monitor)
 
     this->m_PDESolver.type = opt.m_PDESolver.type;

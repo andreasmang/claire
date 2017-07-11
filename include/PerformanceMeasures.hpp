@@ -14,15 +14,14 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XXX.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with XXX. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _DISTANCEMEASURE_H_
-#define _DISTANCEMEASURE_H_
+#ifndef _PERFORMANCEMEASURE_H_
+#define _PERFORMANCEMEASURE_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "VecField.hpp"
 
 
 
@@ -30,28 +29,20 @@
 namespace reg {
 
 
-
-
-class DistanceMeasure {
+class PerformanceMeasures {
  public:
-    typedef DistanceMeasure Self;
+    typedef PerformanceMeasures Self;
+    PerformanceMeasures();
+    PerformanceMeasures(RegOpt*);
+    ~PerformanceMeasures();
 
-    DistanceMeasure();
-    DistanceMeasure(RegOpt*);
-    virtual ~DistanceMeasure();
+    PetscErrorCode ComputeOverlapMeasures(Vec, Vec);
 
-    virtual PetscErrorCode EvaluateFunctional(ScalarType*, Vec) = 0;
-
-    PetscErrorCode SetReferenceImage(Vec);
-    PetscErrorCode SetTemplateImage(Vec);
-
- protected:
+ private:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
-    Vec m_ReferenceImage;
-    Vec m_TemplateImage;
-
+    double* m_OverlapMeasures;
     RegOpt* m_Opt;
 };
 
@@ -63,4 +54,4 @@ class DistanceMeasure {
 
 
 
-#endif
+#endif  // _PERFORMANCEMEASURE_H_

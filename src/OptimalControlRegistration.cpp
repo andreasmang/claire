@@ -687,6 +687,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType D = 0.0, R = 0.0, hd;
+    std::stringstream ss;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -734,6 +735,13 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
     this->m_Opt->m_Monitor.jval = *J;
     this->m_Opt->m_Monitor.dval = hd*D;
     this->m_Opt->m_Monitor.rval = hd*R;
+
+    if (this->m_Opt->m_Verbosity > 1) {
+        ss << "J(v) = D(v) + R(v) = " << std::scientific
+           << this->m_Opt->m_Monitor.dval << " + "
+           << this->m_Opt->m_Monitor.rval;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+    }
 
     // stop timer
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
@@ -3071,7 +3079,6 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
                 case SL:
                 {
                     ierr = this->SolveIncAdjointEquationGNSL(); CHKERRQ(ierr);
-                    //ierr = this->SolveIncAdjointEquationGNRK2(); CHKERRQ(ierr);
                     break;
                 }
                 default:
