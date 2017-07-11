@@ -260,7 +260,7 @@ struct Domain {
 
 /* parameters for optimization */
 struct Optimization {
-    int maxit;                          ///< maximal number of (outer) iterations
+    int maxiter;                        ///< maximal number of (outer) iterations
     int miniter;                        ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];                  ///< tolerances for optimization
     OptMeth method;                     ///< optimization method
@@ -281,7 +281,7 @@ struct Optimization {
 
 /* parameters for krylov solver */
 struct KrylovMethod {
-    int maxit;                      ///< max number of iterations for krylov solver
+    int maxiter;                    ///< max number of iterations for krylov solver
     IntType iter;                   ///< current number of iterations for krylov solver
     ScalarType tol[3];              ///< tolerances for krylov method
     FSeqType fseqtype;              ///< forcing sequence type
