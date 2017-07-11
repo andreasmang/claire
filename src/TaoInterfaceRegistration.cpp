@@ -585,7 +585,7 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     switch(flag) {
         case TAOLINESEARCH_FAILED_INFORNAN:
         {
-            msg = "line search: function evaluation gave INF or NAN";
+            msg = "line search: function evaluation gave INF or NaN";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -627,7 +627,7 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
         }
         case TAOLINESEARCH_HALTED_OTHER:
         {
-            msg = "line search: line search stopped (other)";
+            msg = "line search: stopped (other)";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -638,13 +638,13 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
         }
         case TAOLINESEARCH_SUCCESS:
         {
-            msg = "line search was successfull";
+            msg = "line search: successfull";
             ierr = DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         default:
         {
-            msg = "LS: reason not defined";
+            msg = "line search: status not defined";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -752,8 +752,6 @@ PetscErrorCode GetSolverStatus(TaoConvergedReason flag, std::string& msg) {
             break;
         }
     }
-
-
 
     PetscFunctionReturn(ierr);
 }

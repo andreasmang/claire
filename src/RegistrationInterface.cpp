@@ -1508,7 +1508,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
                     ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
                     ss.str(std::string()); ss.clear();
                 }
-                this->m_Opt->m_OptPara.maxit = maxit;
+                this->m_Opt->m_OptPara.maxiter = maxit;
             }
 
             // do the setup

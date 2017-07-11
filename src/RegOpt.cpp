@@ -132,7 +132,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_KrylovMethod.checkhesssymmetry = opt.m_KrylovMethod.checkhesssymmetry;
     this->m_KrylovMethod.hessshift = opt.m_KrylovMethod.hessshift;
 
-    this->m_OptPara.maxit = opt.m_OptPara.maxit;
+    this->m_OptPara.maxiter = opt.m_OptPara.maxiter;
     this->m_OptPara.miniter = opt.m_OptPara.miniter;
     this->m_OptPara.stopcond = opt.m_OptPara.stopcond;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
@@ -472,12 +472,12 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             // strip the "x" in the string to get the numbers
             values = String2Vec(iterations);
             if (values.size() == 1) {
-                this->m_OptPara.maxit = values[0];
+                this->m_OptPara.maxiter = values[0];
             } else {
                 for (unsigned int i = 0; i < values.size(); ++i) {
                     this->m_GridCont.maxit.push_back(values[i]);
                 }
-                this->m_OptPara.maxit = values[0];
+                this->m_OptPara.maxiter = values[0];
             }
             values.clear();
         } else if (strcmp(argv[1], "-gabs") == 0) {
@@ -545,7 +545,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-krylovmaxit") == 0) {
             argc--; argv++;
-            this->m_KrylovMethod.maxit = atoi(argv[1]);
+            this->m_KrylovMethod.maxiter = atoi(argv[1]);
         } else if (strcmp(argv[1], "-krylovtol") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.tol[0] = atof(argv[1]);
@@ -1022,8 +1022,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovMethod.tol[2] = 1E+06;     ///< divergence tolerance
 //#endif
-    //this->m_KrylovMethod.maxit = 1000;     ///< max number of iterations
-    this->m_KrylovMethod.maxit = 50;         ///< max number of iterations
+    //this->m_KrylovMethod.maxiter = 1000;     ///< max number of iterations
+    this->m_KrylovMethod.maxiter = 50;         ///< max number of iterations
 //#if defined(PETSC_USE_REAL_SINGLE)
 //    this->m_KrylovMethod.reltol = 1E-9;      ///< relative tolerance (actually computed in solver)
 //#else
@@ -1068,7 +1068,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
 //#endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxit = 100;                    ///< max number of iterations
+    this->m_OptPara.maxiter = 100;                    ///< max number of iterations
     this->m_OptPara.miniter = 0;                    ///< min number of iterations
     this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
     this->m_OptPara.gradtype = L2GRAD;              ///< gradient type
@@ -1083,7 +1083,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
     this->m_OptPara.presolvetol[1] = this->m_OptPara.tol[1];    ///< grad rel tol ||g(x)||/J(x) < tol
     this->m_OptPara.presolvetol[2] = 1E-1;                      ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.presolvemaxit = this->m_OptPara.maxit;      ///< max number of iterations (multilevel; parameter continuation)
+    this->m_OptPara.presolvemaxit = this->m_OptPara.maxiter;    ///< max number of iterations (multilevel; parameter continuation)
 
     this->m_SolveType = NOTSET;
 
@@ -1592,8 +1592,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         // use fast and aggressive method
         this->m_RegNorm.type = H1SN;
         this->m_KrylovMethod.fseqtype = QDFS;
-        this->m_KrylovMethod.maxit = 5;
-        this->m_OptPara.maxit = 20;
+        this->m_KrylovMethod.maxiter = 5;
+        this->m_OptPara.maxiter = 20;
         this->m_OptPara.presolvemaxit = 10;
         this->m_OptPara.tol[2] = 5E-2;  // use 5E-2 if results are not acceptable reduce; 1E-1 and 2.5E-1
         this->m_OptPara.presolvetol[2] = 5E-1;
@@ -1601,8 +1601,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         // use slow and aggressive method
         this->m_RegNorm.type = H1SN;
         this->m_KrylovMethod.fseqtype = QDFS;
-        this->m_KrylovMethod.maxit = 50;
-        this->m_OptPara.maxit = 50;
+        this->m_KrylovMethod.maxiter = 50;
+        this->m_OptPara.maxiter = 50;
         this->m_OptPara.presolvemaxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
         this->m_OptPara.presolvetol[2] = 1E-1;
@@ -1611,8 +1611,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         //this->m_RegNorm.type = H2SN;
         this->m_RegNorm.type = H2;
         this->m_KrylovMethod.fseqtype = QDFS;
-        this->m_KrylovMethod.maxit = 5;
-        this->m_OptPara.maxit = 20;
+        this->m_KrylovMethod.maxiter = 5;
+        this->m_OptPara.maxiter = 20;
         this->m_OptPara.presolvemaxit = 10;
         this->m_OptPara.tol[2] = 5E-2;
         this->m_OptPara.presolvetol[2] = 5E-1;
@@ -1621,8 +1621,8 @@ PetscErrorCode RegOpt::SetPresetParameters() {
         //this->m_RegNorm.type = H2SN;
         this->m_RegNorm.type = H2;
         this->m_KrylovMethod.fseqtype = QDFS;
-        this->m_KrylovMethod.maxit = 50;
-        this->m_OptPara.maxit = 50;
+        this->m_KrylovMethod.maxiter = 50;
+        this->m_OptPara.maxiter = 50;
         this->m_OptPara.presolvemaxit = 20;
         this->m_OptPara.tol[2] = 1E-2;
         this->m_OptPara.presolvetol[2] = 1E-1;
@@ -2036,8 +2036,8 @@ PetscErrorCode RegOpt::DisplayOptions() {
                   << std::setw(align) << "||g(v)|| <= tol"
                   << this->m_OptPara.tol[0] << std::endl;
 
-        std::cout << std::left << std::setw(indent) << " maximal # iterations"
-                  << this->m_OptPara.maxit << std::endl;
+        std::cout << std::left << std::setw(indent) << " max newton iterations"
+                  << this->m_OptPara.maxiter << std::endl;
 
         std::cout << std::left << std::setw(indent) << " linesearch";
         switch (this->m_OptPara.glmethod) {
@@ -2122,8 +2122,8 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
 
             std::cout << std::left << std::setw(indent) << " "
-                      << std::setw(align) << "maxit"
-                      << this->m_KrylovMethod.maxit << std::endl;
+                      << std::setw(align) << "max krylov iterations"
+                      << this->m_KrylovMethod.maxiter << std::endl;
 
             bool twolevel = false;
             std::cout << std::left << std::setw(indent) << " "

@@ -289,7 +289,7 @@ PetscErrorCode Optimizer::SetupTao() {
         reltol = this->m_Opt->m_KrylovMethod.tol[0];     // 1E-12;
         abstol = this->m_Opt->m_KrylovMethod.tol[1];     // 1E-12;
         divtol = this->m_Opt->m_KrylovMethod.tol[2];     // 1E+06;
-        maxit  = this->m_Opt->m_KrylovMethod.maxit;      // 1000;
+        maxit  = this->m_Opt->m_KrylovMethod.maxiter;    // 1000;
         maxit  = std::max(static_cast<IntType>(0), maxit-1);
         ierr = KSPSetTolerances(this->m_KrylovMethod, reltol, abstol, divtol, maxit); CHKERRQ(ierr);
         ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
@@ -403,6 +403,9 @@ PetscErrorCode Optimizer::SetupTao() {
             ierr = ThrowError("globalization method not defined"); CHKERRQ(ierr);
         }
     }
+
+    //ierr = TaoLineSearchView(linesearch, PETSC_VIEWER_STDOUT_SELF); CHKERRQ(ierr);
+
     // set tolerances for optimizer
     gatol = this->m_Opt->m_OptPara.tol[0];   // ||g(x)||             <= gatol
     grtol = this->m_Opt->m_OptPara.tol[1];   // ||g(x)|| / |J(x)|    <= grtol
@@ -413,7 +416,7 @@ PetscErrorCode Optimizer::SetupTao() {
 #else
     ierr = TaoSetTolerances(this->m_Tao, 1E-12, 1E-12, gatol, grtol, gttol); CHKERRQ(ierr);
 #endif
-    ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->m_OptPara.maxit-1); CHKERRQ(ierr);
+    ierr = TaoSetMaximumIterations(this->m_Tao, this->m_Opt->m_OptPara.maxiter-1); CHKERRQ(ierr);
     ierr = TaoSetFunctionLowerBound(this->m_Tao, 1E-6); CHKERRQ(ierr);
 
     ierr = MatCreateShell(PETSC_COMM_WORLD, nlu, nlu, ngu, ngu, optprob, &this->m_MatVec); CHKERRQ(ierr);
@@ -463,7 +466,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
         }
     } else {
         gtol = this->m_Opt->m_OptPara.tol[2];
-        maxit = this->m_Opt->m_OptPara.maxit;
+        maxit = this->m_Opt->m_OptPara.maxiter;
     }
 
     // set tolerance
@@ -495,6 +498,13 @@ PetscErrorCode Optimizer::Run(bool presolve) {
 
     // copy solution into place holder
     ierr = VecCopy(x, this->m_Solution); CHKERRQ(ierr);
+
+    // if we did not converge, we should display what's going on
+    if (!this->m_OptimizationProblem->Converged()) {
+        ierr = OptimizationMonitor(this->m_Tao, this->m_OptimizationProblem); CHKERRQ(ierr);
+    }
+
+
 
     this->m_Opt->Exit(__func__);
 
@@ -566,10 +576,7 @@ PetscErrorCode Optimizer::GetSolutionStatus(bool &converged) {
 PetscErrorCode Optimizer::Finalize() {
     PetscErrorCode ierr = 0;
     int rank, indent, numindent, linelength;
-    IntType iter;
-    ScalarType gnorm, J;
-    std::string line, msg;
-    TaoConvergedReason reason;
+    std::string line;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -584,52 +591,9 @@ PetscErrorCode Optimizer::Finalize() {
         std::cout << this->m_OptimizationProblem->GetConvergenceMessage();
     }
 
-    if (!this->m_OptimizationProblem->Converged()) {
-        ierr = Assert(this->m_Tao != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr = TaoGetSolutionStatus(this->m_Tao, &iter, &J, &gnorm, NULL, NULL, &reason); CHKERRQ(ierr);
-        switch (reason) {
-            case TAO_CONVERGED_STEPTOL:
-            {
-                msg = "line search failed";
-                break;
-            }
-            case TAO_CONVERGED_MINF:
-            {
-                msg = "objective value to small";
-                break;
-            }
-            case TAO_DIVERGED_NAN:
-            {
-                msg = "numerical issues (NaN detected)";
-                break;
-            }
-            case TAO_DIVERGED_MAXFCN:
-            {
-                msg = "maximal number of function evaluations reached";
-                break;
-            }
-            case TAO_DIVERGED_LS_FAILURE:
-            {
-                msg = "line search failed";
-                break;
-            }
-            case TAO_DIVERGED_TR_REDUCTION:
-            {
-                msg = "trust region failed";
-                break;
-            }
-            default:
-            {
-                msg = "did not converge; reason not defined";
-                break;
-            }
-        }
-        ierr = WrngMsg(msg); CHKERRQ(ierr);
-    }
-
     linelength = this->m_Opt->m_LineLength;
     line = std::string(linelength, '-');
-    indent = 25; numindent = 5;
+    indent = 35; numindent = 5;
     if (this->m_Opt->m_Verbosity > 1) {
         if (this->m_OptimizationProblem->Converged() && !rank) {
             std::cout << line << std::endl;
@@ -641,13 +605,13 @@ PetscErrorCode Optimizer::Finalize() {
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
-           << "objective evals" << std::right << std::setw(numindent)
+           << "objective evaluations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(OBJEVAL);
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
-           << "hessian matvecs" << std::right << std::setw(numindent)
+           << "hessian matrix vector products" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(HESSMATVEC);
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
