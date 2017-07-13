@@ -1208,6 +1208,8 @@ void Interp3_Plan::scatter(int* N_reg, int * isize, int* istart,
 			all_query_points);
 	//rescale_xyz(g_size, N_reg, N_reg_g, istart, isize, total_query_points,
 	//		all_query_points);
+    if(!procs_i_recv_from_.empty()) procs_i_recv_from_.clear();
+    if(!procs_i_send_to_.empty()) procs_i_send_to_.clear();
 	this->scatter_baked = true;
 	return;
 #endif
