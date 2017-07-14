@@ -1745,6 +1745,7 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
  ********************************************************************/
 PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
+    IntType nc;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1767,7 +1768,8 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
             }
         }
         // apply smoothing
-        ierr = this->m_PreProc->Smooth(m1, m0); CHKERRQ(ierr);
+        nc = this->m_Opt->m_Domain.nc;
+        ierr = this->m_PreProc->Smooth(m1, m0, nc); CHKERRQ(ierr);
         ierr = VecCopy(m1, m0); CHKERRQ(ierr);
         ierr = VecSet(m1, 0.0); CHKERRQ(ierr);
     }

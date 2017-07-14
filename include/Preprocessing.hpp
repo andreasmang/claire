@@ -67,7 +67,7 @@ class Preprocessing {
     ~Preprocessing();
 
     PetscErrorCode SetReadWrite(ReadWriteType*);
-    PetscErrorCode Smooth(Vec, Vec);
+    PetscErrorCode Smooth(Vec, Vec, IntType nc = 1);
     PetscErrorCode ApplyRectFreqFilter(Vec, Vec, ScalarType, bool flag = true);
     PetscErrorCode ApplyRectFreqFilter(VecField*, VecField*, ScalarType, bool flag = true);
 
@@ -87,8 +87,8 @@ class Preprocessing {
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
 
-    PetscErrorCode GaussianSmoothing(Vec, Vec);
-    PetscErrorCode LaplacianSmoothing(Vec, Vec);
+    PetscErrorCode GaussianSmoothing(Vec, Vec, IntType);
+    PetscErrorCode LaplacianSmoothing(Vec, Vec, IntType);
 
     PetscErrorCode GridChangeCommDataRestrict();
     PetscErrorCode GridChangeCommDataProlong();
@@ -148,7 +148,9 @@ class Preprocessing {
     bool m_GridChangeIndicesComputed;
 
     int *m_LabelValues;
+    int m_NoLabel;
     double *m_OverlapMeasures;
+
 };
 
 

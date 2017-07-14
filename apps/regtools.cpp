@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
 
     // clean up
     if (regopt != NULL) {delete regopt; regopt = NULL;}
-    ierr = PetscFinalize(); CHKERRQ(ierr);
+    ierr = reg::Finalize(); CHKERRQ(ierr);
 
     return 0;
 }
@@ -299,6 +299,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    ierr = regopt->m_RegFlags.applyrescaling = false;
     ierr = ReadData(regopt, readwrite, labelmap); CHKERRQ(ierr);
     ierr = reg::Assert(labelmap != NULL, "set input label map"); CHKERRQ(ierr);
     ierr = ReadData(regopt, readwrite, v); CHKERRQ(ierr);
@@ -307,13 +308,8 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     // treat individual labels as components
     regopt->m_Domain.nc = regopt->m_NumLabels;
 
-    nl = regopt->m_Domain.nl;
-    ng = regopt->m_Domain.ng;
-    nc = regopt->m_Domain.nc;
-
-    // allocate images for individual labels
-    ierr = reg::VecCreate(m0, nl*(nc+1), ng*(nc+1)); CHKERRQ(ierr);
-    ierr = reg::VecCreate(m1, nl*(nc+1), ng*(nc+1)); CHKERRQ(ierr);
+    // make sure we apply smoothing before we solve the forward problem
+    regopt->m_RegFlags.applysmoothing = true;
 
     // allocate class for registration interface
     try {registration = new reg::RegistrationInterface(regopt);}
@@ -325,16 +321,32 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
+    // get number of grid points and components
+    nl = regopt->m_Domain.nl;
+    ng = regopt->m_Domain.ng;
+    nc = regopt->m_Domain.nc;
+
+    // allocate images for individual labels
+    ierr = reg::VecCreate(m0, nl*nc, ng*nc); CHKERRQ(ierr);
+    ierr = reg::VecCreate(m1, nl*nc, ng*nc); CHKERRQ(ierr);
+
+    // map label image / hard segmentation to multi component image
+    ierr = reg::DbgMsg("extracting individual label maps"); CHKERRQ(ierr);
     ierr = preproc->Labels2MultiCompImage(m0, labelmap); CHKERRQ(ierr);
-    ierr = readwrite->WriteT(m0, "./label_image.nii.gz", nc); CHKERRQ(ierr);
 
     // solve forward problem
-    //ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
-    //ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
-    //ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+    ierr = reg::DbgMsg("computing solution of transport problem"); CHKERRQ(ierr);
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+
+    // map transported "probability maps" (smooth classes)
+    // to a hard segmentation
+    ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
+    ierr = preproc->MultiCompImage2Labels(labelmap, m1); CHKERRQ(ierr);
 
     // write transported scalar field to file
-    //ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
+    ierr = readwrite->WriteT(labelmap, regopt->m_FileNames.xsc); CHKERRQ(ierr);
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}

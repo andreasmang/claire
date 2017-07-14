@@ -111,6 +111,8 @@ PetscErrorCode Preprocessing::Initialize() {
     this->m_xhat = NULL;
     this->m_yhat = NULL;
 
+    this->m_NoLabel = -99;
+
     PetscFunctionReturn(ierr);
 }
 
@@ -420,12 +422,12 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
  * @param labelim label image
  * @param multi-component image
  *******************************************************************/
-PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelim) {
+PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
-    const ScalarType *p_labels = NULL;
+    const ScalarType *p_labelmap = NULL;
     ScalarType *p_m = NULL;
-    int label, notalabel = -99, numlabelfound = 0;
+    int label, numlabelfound = 0;
     bool labelfound, labelset;
     PetscFunctionBegin;
 
@@ -436,45 +438,45 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelim) {
 
     // allocate array for labels (account for background)
     if (this->m_LabelValues == NULL) {
-        try{this->m_LabelValues = new int[nc+1];}
+        try{this->m_LabelValues = new int[nc];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
 
     // initialize; we assume the labels are not negative
-    for (int l = 0; l < nc+1; ++l){
-        this->m_LabelValues[l] = notalabel;
+    for (int l = 0; l < nc; ++l){
+        this->m_LabelValues[l] = this->m_NoLabel;
     }
 
-    ierr = VecGetArrayRead(labelim, &p_labels); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(labelmap, &p_labelmap); CHKERRQ(ierr);
 
     // for all image points
     for (IntType i = 0; i < nl; ++i) {
         // get current label
-        label = static_cast<int>(p_labels[i]);
-
-        labelfound = false;
-        // figure out which labels exist
-        for (int l = 0; l < nc+1; ++l){
-            if (this->m_LabelValues[l] == label) {
-                labelfound = true;
+        label = p_labelmap[i];
+        if (label > 0) {
+            labelfound = false;
+            // figure out which labels exist
+            for (int l = 0; l < nc; ++l) {
+                if (this->m_LabelValues[l] == label) {
+                    labelfound = true;
+                }
             }
-        }
-        // if we have not yet identified this label
-        // remember it in the list
-        if (labelfound == false) {
-            labelset = false;
-            for (int l = 0; l < nc+1; ++l){
-                if (this->m_LabelValues[l] == notalabel && labelset == false) {
-                    std::cout << label << std::endl;
-                    this->m_LabelValues[l] = label;
-                    numlabelfound++;
-                    labelset = true;
+            // if we have not yet identified this label
+            // remember it in the list
+            if (labelfound == false) {
+                labelset = false;
+                for (int l = 0; l < nc; ++l){
+                    if (this->m_LabelValues[l] == this->m_NoLabel && labelset == false) {
+                        this->m_LabelValues[l] = label;
+                        numlabelfound++;
+                        labelset = true;
+                    }
                 }
             }
         }
-        if (numlabelfound == nc + 1) {
+        if (numlabelfound == nc) {
             // stop serach if we have identified
             // all labels in the label map
             break;
@@ -484,11 +486,11 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelim) {
     // now assign the individual labels to the
     // individual components
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
-    for (int l = 0; l < nc+1; ++l){
+    for (int l = 0; l < nc; ++l) {
         label = this->m_LabelValues[l];
         for (IntType i = 0; i < nl; ++i) {
             // get current label
-            if (label == p_labels[i]) {
+            if (label == p_labelmap[i]) {
                 p_m[l*nl + i] = 1.0;
             } else {
                 p_m[l*nl + i] = 0.0;
@@ -497,7 +499,7 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelim) {
     }
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
 
-    ierr = VecRestoreArrayRead(labelim, &p_labels); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(labelmap, &p_labelmap); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -514,15 +516,85 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelim) {
  *******************************************************************/
 PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     PetscErrorCode ierr = 0;
-    //IntType nl, nc;
+    IntType nl, nc;
+    int majoritylabel;
+    ScalarType *p_labels = NULL, *p_labelprobs = NULL;
+    const ScalarType *p_m = NULL;
+    ScalarType value, majorityvote, bgvalue, labelsum;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
 
-    //nc = this->m_Opt->m_Domain.nc;
-    //nl = this->m_Opt->m_Domain.nl;
+    if (this->m_LabelValues == NULL) {
+        try {this->m_LabelValues = new int[nc];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        // set dummy values
+        for (int l = 0; l < nc; ++l){
+            this->m_LabelValues[l] = (l+1)*10;
+        }
+    }
+    try {p_labelprobs = new double[nc+1];}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
 
+    // set dummy values
+    ierr = VecGetArrayRead(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(labelim, &p_labels); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        majorityvote  = 0.0;
+        majoritylabel = -1;
+
+        // compute value for background
+        labelsum = 0.0; p_labelprobs[nc] = 1.0;
+        for (int l = 0; l < nc; ++l){
+            // get label probability
+            p_labelprobs[l] = p_m[l*nl + i];
+
+            // compute background
+            p_labelprobs[nc] -= p_labelprobs[l];
+
+            // accumulate label probabilities
+            labelsum += p_labelprobs[l];
+        }
+
+        // set to zero, if negative
+        if (p_labelprobs[nc] < 0.0) p_labelprobs[nc] = 0.0;
+        labelsum += p_labelprobs[nc];
+        labelsum = labelsum > 1E-1 ? labelsum : 1.0;
+
+        // normalize (partition of unity)
+        for (int l = 0; l < nc+1; ++l) {
+            p_labelprobs[l] /= labelsum;
+        }
+
+        for (int l = 0; l < nc + 1; ++l) {
+            value = p_labelprobs[l];
+
+            // get largest value
+            if (value > majorityvote) {
+                majoritylabel = l;
+                majorityvote  = value;
+            }
+
+            // get current label
+            if (majoritylabel == nc) {
+                p_labels[i] = 0;
+            } else {
+                p_labels[i] = this->m_LabelValues[majoritylabel];
+            }
+        }
+    }
+    ierr = VecRestoreArray(labelim, &p_labels); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(m, &p_m); CHKERRQ(ierr);
+
+
+    if (p_labelprobs != NULL) {delete [] p_labelprobs;}
 
     this->m_Opt->Exit(__func__);
 
@@ -1047,7 +1119,9 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
         os_send = this->m_OffsetSend[i];
         if (ns > 0) {
             ierr = Assert(&this->m_FourierIndicesSendF[3*os_send] != NULL, "null pointer"); CHKERRQ(ierr);
-            merr = MPI_Isend(&this->m_FourierIndicesSendF[3*os_send], 3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierIndicesSendF[3*os_send],
+                             3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD,
+                             &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
@@ -1055,7 +1129,9 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
         os_recv = this->m_OffsetRecv[i];
         if (nr > 0) {
             ierr = Assert(&this->m_FourierIndicesRecvF[3*os_recv] != NULL, "null pointer"); CHKERRQ(ierr);
-            merr=MPI_Irecv(&this->m_FourierIndicesRecvF[3*os_recv], 3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierIndicesRecvF[3*os_recv],
+                             3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD,
+                             &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
@@ -1080,14 +1156,18 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
         ns = this->m_NumSend[i];
         os_send = this->m_OffsetSend[i];
         if (ns > 0) {
-            merr = MPI_Isend(&this->m_FourierIndicesSendC[3*os_send], 3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierIndicesSendC[3*os_send],
+                             3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD,
+                             &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         nr = this->m_NumRecv[i];
         os_recv = this->m_OffsetRecv[i];
         if (nr > 0) {
-            merr=MPI_Irecv(&this->m_FourierIndicesRecvC[3*os_recv], 3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierIndicesRecvC[3*os_recv],
+                             3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD,
+                             &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
@@ -1179,7 +1259,9 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
 
                         // check if we're inside expected range
                         if ( (i_f[i] >= this->m_osizeF[i]) || (i_f[i] < 0) ) {
-                            std::cout<<" r "<<rank<<" "<<i_f[i]<<">="<<this->m_osizeF[i]<<"   "<<i_f[i]<<"<0"<< std::endl;
+                            std::cout << " r "<< rank << " " << i_f[i]
+                                      << ">=" << this->m_osizeF[i] << "   " << i_f[i]
+                                      << "<0" << std::endl;
                         }
                     }
 
@@ -1219,14 +1301,18 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
         os_send = this->m_OffsetSend[i];
         ns = this->m_NumSend[i];
         if (ns > 0) {
-            merr = MPI_Isend(&this->m_FourierCoeffSendF[2*os_send], 2*ns, MPIU_REAL, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierCoeffSendF[2*os_send],
+                             2*ns, MPIU_REAL, i_send, 0, PETSC_COMM_WORLD,
+                             &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         os_recv = this->m_OffsetRecv[i];
-        nr = this->m_NumRecv[i];
+        nr      = this->m_NumRecv[i];
         if (nr > 0) {
-            merr = MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv], 2*nr, MPIU_REAL, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierCoeffRecvF[2*os_recv],
+                             2*nr, MPIU_REAL, i_recv, 0, PETSC_COMM_WORLD,
+                             &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
@@ -1355,14 +1441,18 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
         os_send = this->m_OffsetRecv[i];
         ns = this->m_NumRecv[i];
         if (ns > 0) {
-            merr = MPI_Isend(&this->m_FourierCoeffSendC[2*os_send], 2*ns, MPIU_REAL, i_send, 0, PETSC_COMM_WORLD, &this->m_SendRequest[i_send]);
+            merr = MPI_Isend(&this->m_FourierCoeffSendC[2*os_send],
+                             2*ns, MPIU_REAL, i_send, 0, PETSC_COMM_WORLD,
+                             &this->m_SendRequest[i_send]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
 
         os_recv = this->m_OffsetSend[i];
-        nr = this->m_NumSend[i];
+        nr      = this->m_NumSend[i];
         if (nr > 0) {
-            merr = MPI_Irecv(&this->m_FourierCoeffRecvC[2*os_recv], 2*nr, MPIU_REAL, i_recv, 0, PETSC_COMM_WORLD, &this->m_RecvRequest[i_recv]);
+            merr = MPI_Irecv(&this->m_FourierCoeffRecvC[2*os_recv],
+                             2*nr, MPIU_REAL, i_recv, 0, PETSC_COMM_WORLD,
+                             &this->m_RecvRequest[i_recv]);
             ierr = MPIERRQ(merr); CHKERRQ(ierr);
         }
     }
@@ -1717,7 +1807,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 /********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
-PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x) {
+PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x, IntType nc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
@@ -1727,7 +1817,7 @@ PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x) {
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->GaussianSmoothing(xs, x); CHKERRQ(ierr);
+    ierr = this->GaussianSmoothing(xs, x, nc); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1740,9 +1830,9 @@ PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x) {
 /********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
-PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
+PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     PetscErrorCode ierr = 0;
-    IntType nalloc;
+    IntType nalloc, nl;
     std::stringstream ss;
     ScalarType *p_x = NULL, *p_xs = NULL, c[3], scale; //, nx[3];
     int nx[3];
@@ -1756,7 +1846,9 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
     ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get local pencil size and allocation size
+    nl     = this->m_Opt->m_Domain.nl;
     nalloc = this->m_Opt->m_FFT.nalloc;
+    scale  = this->m_Opt->ComputeFFTScale();
 
     if (this->m_xhat == NULL) {
         this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
@@ -1773,69 +1865,53 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x) {
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
-        //nx[i] = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         // sigma is provided by user in # of grid points
         c[i] = this->m_Opt->m_Sigma[i]*this->m_Opt->m_Domain.hx[i];
         c[i] *= c[i];
     }
 
-    scale = this->m_Opt->ComputeFFTScale();
-
-    // compute fft
-    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c(this->m_Opt->m_FFT.plan, p_x, this->m_xhat, timer);
-    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
-
+    for (IntType k = 0; k < nc; ++k) {
+        // compute fft
+        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        accfft_execute_r2c(this->m_Opt->m_FFT.plan, p_x + k*nl, this->m_xhat, timer);
+        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 #pragma omp parallel
 {
-    IntType i1, i2, i3, li;
-    //ScalarType sik, k1, k2, k3;
-    ScalarType sik;
-    long int k1, k2, k3;
-//    bool flagx1, flagx2, flagx3;
+        IntType i1, i2, i3, li;
+        ScalarType sik;
+        long int k1, k2, k3;
 #pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {  // x3
+        for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {  // x1
+            for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {  // x2
+                for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {  // x3
+                    // compute coordinates (nodal grid)
+                    k1 = static_cast<long int>(i1 + this->m_Opt->m_FFT.ostart[0]);
+                    k2 = static_cast<long int>(i2 + this->m_Opt->m_FFT.ostart[1]);
+                    k3 = static_cast<long int>(i3 + this->m_Opt->m_FFT.ostart[2]);
 
-                // compute coordinates (nodal grid)
-                //k1 = static_cast<ScalarType>(i1 + this->m_Opt->m_FFT.ostart[0]);
-                //k2 = static_cast<ScalarType>(i2 + this->m_Opt->m_FFT.ostart[1]);
-                //k3 = static_cast<ScalarType>(i3 + this->m_Opt->m_FFT.ostart[2]);
-                k1 = static_cast<long int>(i1 + this->m_Opt->m_FFT.ostart[0]);
-                k2 = static_cast<long int>(i2 + this->m_Opt->m_FFT.ostart[1]);
-                k3 = static_cast<long int>(i3 + this->m_Opt->m_FFT.ostart[2]);
+                    // check if grid index is larger or smaller then
+                    // half of the total grid size
+                    if (k1 > nx[0]/2) k1 -= nx[0];
+                    if (k2 > nx[1]/2) k2 -= nx[1];
+                    if (k3 > nx[2]/2) k3 -= nx[2];
 
-                // check if grid index is larger or smaller then
-                // half of the total grid size
-                //flagx1 = (k1 <= nx[0]*0.5);
-                //flagx2 = (k2 <= nx[1]*0.5);
-                //flagx3 = (k3 <= nx[2]*0.5);
-                //k1 = flagx1 ? k1 : -nx[0] + k1;
-                //k2 = flagx2 ? k2 : -nx[1] + k2;
-                //k3 = flagx3 ? k3 : -nx[2] + k3;
-                if (k1 > nx[0]/2) k1 -= nx[0];
-                if (k2 > nx[1]/2) k2 -= nx[1];
-                if (k3 > nx[2]/2) k3 -= nx[2];
+                    sik = 0.5*( (k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]) );
+                    sik = exp(-sik);
 
-                sik = 0.5*( (k1*k1*c[0]) + (k2*k2*c[1]) + (k3*k3*c[2]) );
-                sik = exp(-sik);
+                    // compute linear / flat index
+                    li = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
-                // compute linear / flat index
-                li = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
-
-                this->m_xhat[li][0] *= scale*sik;
-                this->m_xhat[li][1] *= scale*sik;
-            }  // i1
-        }  // i2
-    }  // i3
+                    this->m_xhat[li][0] *= scale*sik;
+                    this->m_xhat[li][1] *= scale*sik;
+                }  // i1
+            }  // i2
+        }  // i3
 }  // pragma omp parallel
-
-    // compute inverse fft
-    ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
-    accfft_execute_c2r(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs, timer);
-    ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
+        ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
+        accfft_execute_c2r(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs + k*nl, timer);
+        ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
+    }
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
