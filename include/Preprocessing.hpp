@@ -80,6 +80,9 @@ class Preprocessing {
     inline void ResetGridChangeOps(bool flag){this->m_ResetGridChangeOps = flag;};
     PetscErrorCode ComputeGridChangeIndices(IntType*, IntType*);
 
+    PetscErrorCode Labels2MultiCompImage(Vec, Vec);
+    PetscErrorCode MultiCompImage2Labels(Vec, Vec);
+
  private:
     PetscErrorCode ClearMemory();
     PetscErrorCode Initialize();
@@ -144,6 +147,7 @@ class Preprocessing {
     bool m_IndicesCommunicated;
     bool m_GridChangeIndicesComputed;
 
+    int *m_LabelValues;
     double *m_OverlapMeasures;
 };
 

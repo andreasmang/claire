@@ -69,6 +69,7 @@ class RegToolsOpt : public RegOpt {
     inline RegToolFlags GetFlags() {return this->m_RegToolFlags;}
     inline ResamplingPara GetResamplingPara() {return this->m_ResamplingPara;}
 
+    int m_NumLabels;
  protected:
     virtual PetscErrorCode Initialize(void);
     virtual PetscErrorCode ClearMemory(void);

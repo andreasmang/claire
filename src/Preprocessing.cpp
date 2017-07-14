@@ -106,6 +106,7 @@ PetscErrorCode Preprocessing::Initialize() {
     this->m_RecvRequest = NULL;
 
     this->m_OverlapMeasures = NULL;
+    this->m_LabelValues = NULL;
 
     this->m_xhat = NULL;
     this->m_yhat = NULL;
@@ -222,6 +223,10 @@ PetscErrorCode Preprocessing::ClearMemory() {
         this->m_OverlapMeasures = NULL;
     }
 
+    if (this->m_LabelValues != NULL) {
+        delete [] this->m_LabelValues;
+        this->m_LabelValues = NULL;
+    }
     PetscFunctionReturn(ierr);
 
 }
@@ -401,6 +406,123 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 
     // set flag
     this->m_GridChangeOpsSet = true;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief convert sharp label image to smooth multi-component image
+ * @param labelim label image
+ * @param multi-component image
+ *******************************************************************/
+PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelim) {
+    PetscErrorCode ierr = 0;
+    IntType nl, nc;
+    const ScalarType *p_labels = NULL;
+    ScalarType *p_m = NULL;
+    int label, notalabel = -99, numlabelfound = 0;
+    bool labelfound, labelset;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    // allocate array for labels (account for background)
+    if (this->m_LabelValues == NULL) {
+        try{this->m_LabelValues = new int[nc+1];}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+
+    // initialize; we assume the labels are not negative
+    for (int l = 0; l < nc+1; ++l){
+        this->m_LabelValues[l] = notalabel;
+    }
+
+    ierr = VecGetArrayRead(labelim, &p_labels); CHKERRQ(ierr);
+
+    // for all image points
+    for (IntType i = 0; i < nl; ++i) {
+        // get current label
+        label = static_cast<int>(p_labels[i]);
+
+        labelfound = false;
+        // figure out which labels exist
+        for (int l = 0; l < nc+1; ++l){
+            if (this->m_LabelValues[l] == label) {
+                labelfound = true;
+            }
+        }
+        // if we have not yet identified this label
+        // remember it in the list
+        if (labelfound == false) {
+            labelset = false;
+            for (int l = 0; l < nc+1; ++l){
+                if (this->m_LabelValues[l] == notalabel && labelset == false) {
+                    std::cout << label << std::endl;
+                    this->m_LabelValues[l] = label;
+                    numlabelfound++;
+                    labelset = true;
+                }
+            }
+        }
+        if (numlabelfound == nc + 1) {
+            // stop serach if we have identified
+            // all labels in the label map
+            break;
+        }
+    }
+
+    // now assign the individual labels to the
+    // individual components
+    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
+    for (int l = 0; l < nc+1; ++l){
+        label = this->m_LabelValues[l];
+        for (IntType i = 0; i < nl; ++i) {
+            // get current label
+            if (label == p_labels[i]) {
+                p_m[l*nl + i] = 1.0;
+            } else {
+                p_m[l*nl + i] = 0.0;
+            }
+        }
+    }
+    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+
+    ierr = VecRestoreArrayRead(labelim, &p_labels); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief convert smooth multi-component image to sharp label image
+ * @param labelim label image
+ * @param multi-component image
+ *******************************************************************/
+PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
+    PetscErrorCode ierr = 0;
+    //IntType nl, nc;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+
+    //nc = this->m_Opt->m_Domain.nc;
+    //nl = this->m_Opt->m_Domain.nl;
+
 
     this->m_Opt->Exit(__func__);
 

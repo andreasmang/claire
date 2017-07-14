@@ -132,6 +132,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-nlabels") == 0) {
+            argc--; argv++;
+            this->m_NumLabels = static_cast<IntType>(atoi(argv[1]));
         } else if (strcmp(argv[1], "-pdesolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
@@ -357,6 +360,8 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_ResamplingPara.nx[1] = -1.0;
     this->m_ResamplingPara.nx[2] = -1.0;
 
+    this->m_NumLabels = -1;
+
     PetscFunctionReturn(0);
 }
 
@@ -422,6 +427,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -residual                   compute residual between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -error                      compute error between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -analyze                    compute analytics for scalar field (-ifile option)" << std::endl;
+        std::cout << " -nlabels                    number of labels in file" << std::endl;
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << " -detdefgradfromdeffield     compute gradient of some input scalar field ('-ifile' option)" << std::endl;
@@ -707,7 +713,13 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             this->m_FileNames.xsc = this->m_FileNames.xfolder + "/" + filename + "-transported" + extension;
         }
     }
-
+    if (this->m_RegToolFlags.tlabelmap) {
+        if (this->m_NumLabels == -1) {
+            msg = "\x1b[31m number of labels to be transported needs to be set\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+    }
     if (this->m_RegToolFlags.computeerror) {
         // transport scalar field
         if (this->m_FileNames.mt[0].empty() || this->m_FileNames.mr[0].empty()) {

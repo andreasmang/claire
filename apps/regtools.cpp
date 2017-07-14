@@ -35,7 +35,7 @@ PetscErrorCode ComputeError(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 
 PetscErrorCode TransportImage(reg::RegToolsOpt*);
-//PetscErrorCode TransportLabelMap(reg::RegToolsOpt*);
+PetscErrorCode TransportLabelMap(reg::RegToolsOpt*);
 
 
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     } else if (regopt->GetFlags().tscafield) {
         ierr = TransportImage(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().tlabelmap) {
-//        ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
+        ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computeresidual) {
         ierr = ComputeResidual(regopt); CHKERRQ(ierr);
     } else if (regopt->GetFlags().computeerror) {
@@ -274,6 +274,80 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
 }
 
 
+
+
+/********************************************************************
+ * @brief solve forward problem (for label images)
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::vector <std::string> filename;
+    reg::VecField* v = NULL;
+    Vec m0 = NULL, m1 = NULL, labelmap = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    reg::RegistrationInterface* registration = NULL;
+    reg::Preprocessing* preproc = NULL;
+    IntType nl, ng, nc;
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    // allocate class for io
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = ReadData(regopt, readwrite, labelmap); CHKERRQ(ierr);
+    ierr = reg::Assert(labelmap != NULL, "set input label map"); CHKERRQ(ierr);
+    ierr = ReadData(regopt, readwrite, v); CHKERRQ(ierr);
+    ierr = reg::Assert(v != NULL, "set input velocity field"); CHKERRQ(ierr);
+
+    // treat individual labels as components
+    regopt->m_Domain.nc = regopt->m_NumLabels;
+
+    nl = regopt->m_Domain.nl;
+    ng = regopt->m_Domain.ng;
+    nc = regopt->m_Domain.nc;
+
+    // allocate images for individual labels
+    ierr = reg::VecCreate(m0, nl*(nc+1), ng*(nc+1)); CHKERRQ(ierr);
+    ierr = reg::VecCreate(m1, nl*(nc+1), ng*(nc+1)); CHKERRQ(ierr);
+
+    // allocate class for registration interface
+    try {registration = new reg::RegistrationInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {preproc = new reg::Preprocessing(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    ierr = preproc->Labels2MultiCompImage(m0, labelmap); CHKERRQ(ierr);
+    ierr = readwrite->WriteT(m0, "./label_image.nii.gz", nc); CHKERRQ(ierr);
+
+    // solve forward problem
+    //ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+    //ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    //ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+
+    // write transported scalar field to file
+    //ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
+
+    // clean up
+    if (v != NULL) {delete v; v = NULL;}
+    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
+    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+    if (preproc != NULL) {delete preproc; preproc = NULL;}
+
+    regopt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
