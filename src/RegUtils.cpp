@@ -131,6 +131,31 @@ bool FileExists(const std::string& filename) {
 
 
 /********************************************************************
+ * @brief show extremal values and norm of vector
+ *******************************************************************/
+PetscErrorCode ShowValues(Vec x) {
+    PetscErrorCode ierr = 0;
+    std::stringstream ss;
+    ScalarType value, maxval, minval;
+    PetscFunctionBegin;
+
+    ierr = VecNorm(x, NORM_2, &value); CHKERRQ(ierr);
+    ierr = VecMax(x, NULL, &maxval); CHKERRQ(ierr);
+    ierr = VecMin(x, NULL, &minval); CHKERRQ(ierr);
+
+    ss << "(norm,min,max) = (" << std::scientific << value
+       << "," << minval << "," << maxval << ")";
+
+    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.clear(); ss.str(std::string());
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief print msg (interfaces petsc)
  *******************************************************************/
 PetscErrorCode Msg(std::string msg) {
@@ -423,6 +448,97 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
 
 
 /********************************************************************
+ * @brief rescale data to [0,1]
+ *******************************************************************/
+PetscErrorCode Normalize(Vec x, IntType nc) {
+    PetscErrorCode ierr = 0;
+    ScalarType xmin, xmax, xmin_g, xmax_g, *p_x = NULL;
+    IntType nl, l;
+    int rval;
+    std::stringstream ss;
+
+    PetscFunctionBegin;
+
+    if (nc == 1) {
+        // get max and min values
+        ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
+        ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
+
+        if (xmin < 0.0) {
+            ss << "negative values in input data detected "
+               << xmin << " (setting to zero)";
+            ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+
+            // compute local size from input vector
+            ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+
+            xmin = 0.0; // resetting
+            ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+            for (IntType i = 0; i < nc*nl; ++i) {
+                if (p_x[i] < 0.0) p_x[i] = 0.0;
+            }
+            ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+        }
+
+        ierr = VecShift(x, -xmin); CHKERRQ(ierr);
+        ierr = VecScale(x, 1.0/xmax); CHKERRQ(ierr);
+    } else {
+        // compute local size from input vector
+        ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+        nl /= nc;
+        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        for (IntType k = 0; k < nc; ++k) {
+            xmin = std::numeric_limits<ScalarType>::max();
+            xmax = std::numeric_limits<ScalarType>::min();
+
+            // get min and max values
+            for (IntType i = 0; i < nl; ++i) {
+                l = k*nl + i;
+                if (p_x[l] < xmin) {xmin = p_x[l];}
+                if (p_x[l] > xmax) {xmax = p_x[l];}
+            }
+
+            // get min accross all procs
+            rval = MPI_Allreduce(&xmin, &xmin_g, 1, MPIU_REAL, MPI_MIN, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // get max accross all procs
+            rval = MPI_Allreduce(&xmax, &xmax_g, 1, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            if (xmin_g < 0.0) {
+                ss << "negative values in input data detected "
+                   << xmin << " (setting to zero)";
+                ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+
+                xmin_g = 0.0; // resetting
+                for (IntType i = 0; i < nl; ++i) {
+                    l = k*nl + i;
+                    if (p_x[l] < 0.0) p_x[l] = 0.0;
+                }
+            }
+
+            // make sure we do not devide by zero
+            xmax_g = (xmax_g != 0.0) ? xmax_g : 1.0;
+
+            // apply shift and scale
+            for (IntType i = 0; i < nl; ++i) {
+                p_x[k*nl + i] = (p_x[k*nl + i] - xmin_g) / xmax_g;
+            }
+        }  // for all components
+        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    }  // if else
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+/********************************************************************
  * @brief rescale data to [xminout,xmaxout]
  *******************************************************************/
 PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc) {
@@ -440,9 +556,14 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
         ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
         ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
 
-        xshift = xminout - xmin;
+//        ss << "rescaling intensities: [" << xmin << "," << xmax << "]"
+//           << " -> [" << xminout << "," << xmaxout << "]" ;
+//        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+//        ss.clear(); ss.str(std::string());
+
+        xshift = - xmin;
         ierr = VecShift(x, xshift); CHKERRQ(ierr);
-        xscale = xmaxout / xmax;
+        xscale = xmaxout / (xmax - xmin);
         ierr = VecScale(x, xscale); CHKERRQ(ierr);
     } else {
         // compute local size from input vector
@@ -483,6 +604,7 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 
@@ -543,6 +665,7 @@ PetscErrorCode VecNorm(Vec x, IntType nc) {
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 

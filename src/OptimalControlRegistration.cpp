@@ -388,7 +388,6 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
 
-
     // only copy if someone cares
     if (m1 != NULL) {
         // get sizes
@@ -3933,33 +3932,52 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     }
 
     // write residual images to file
-    if (this->m_Opt->m_ReadWriteFlags.residual) {
+    if (this->m_Opt->m_ReadWriteFlags.residual || this->m_Opt->m_ReadWriteFlags.invresidual) {
         ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
+        // write residual at t = 0 to file
         ierr = VecGetArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-        for (IntType i = 0; i < nl*nc; ++i) {
-            p_dr[i] = 1.0 - PetscAbs(p_mr[i] - p_mt[i]);
+        if (this->m_Opt->m_ReadWriteFlags.residual) {
+            ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            for (IntType i = 0; i < nl*nc; ++i) {
+                p_dr[i] = PetscAbs(p_mt[i] - p_mr[i]);
+            }
+            ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
         }
-        ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-        ierr = VecRestoreArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
 
-        // copy memory for m_1
-        ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+        if (this->m_Opt->m_ReadWriteFlags.invresidual) {
+            ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            for (IntType i = 0; i < nl*nc; ++i) {
+                p_dr[i] = 1.0 - PetscAbs(p_mt[i] - p_mr[i]);
+            }
+            ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "inv-residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
+        }
+        ierr = VecRestoreArray(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+
+
+        // write residual at t = 1 to file
         ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_dr);}
-        catch (std::exception& err) {
-            ierr = ThrowError(err); CHKERRQ(ierr);
+        if (this->m_Opt->m_ReadWriteFlags.residual) {
+            ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            for (IntType i = 0; i < nl*nc; ++i) {
+                p_dr[i] = PetscAbs(p_m[nt*nl*nc + i] - p_mr[i]);
+            }
+            ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
+        }
+        if (this->m_Opt->m_ReadWriteFlags.invresidual) {
+            ierr = VecGetArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            for (IntType i = 0; i < nl*nc; ++i) {
+                p_dr[i] = 1.0 - PetscAbs(p_m[nt*nl*nc + i] - p_mr[i]);
+            }
+            ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "inv-residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-        for (IntType i = 0; i < nl*nc; ++i) {
-            p_dr[i] = 1.0 - PetscAbs(p_mr[i] - p_dr[i]);
-        }
-        ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
-
+        // restore reference image
         ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     }
 

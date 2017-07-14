@@ -273,8 +273,8 @@ PetscErrorCode ReadWriteReg::ReadR(Vec* x, std::vector< std::string > filenames)
 
     this->m_ReferenceImage.read = false;
 
-    ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
+    ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     this->m_ReferenceImage.minval = minval;
     this->m_ReferenceImage.maxval = maxval;
 
@@ -308,8 +308,8 @@ PetscErrorCode ReadWriteReg::ReadT(Vec* x, std::vector< std::string > filenames)
 
     this->m_TemplateImage.read = false;
 
-    ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     ierr = VecMin(*x, NULL, &minval); CHKERRQ(ierr);
+    ierr = VecMax(*x, NULL, &maxval); CHKERRQ(ierr);
     this->m_TemplateImage.minval = minval;
     this->m_TemplateImage.maxval = maxval;
 
@@ -330,7 +330,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
     IntType nc, nl, ng;
     std::stringstream ss;
     Vec xk = NULL;
-    ScalarType *p_x = NULL, *p_xk = NULL, value, maxval, minval;
+    ScalarType *p_x = NULL, *p_xk = NULL;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -364,13 +364,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
 
         // display how we are doing
         if (this->m_Opt->m_Verbosity > 2) {
-            ierr = VecNorm(xk, NORM_2, &value); CHKERRQ(ierr);
-            ierr = VecMax(xk, NULL, &maxval); CHKERRQ(ierr);
-            ierr = VecMin(xk, NULL, &minval); CHKERRQ(ierr);
-            ss << "(norm,min,max) = (" << std::scientific << value
-               << "," << minval << "," << maxval << ")";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
+            ierr = ShowValues(xk); CHKERRQ(ierr);
         }
 
         ierr = Assert(this->m_Opt->m_SetupDone, "error in setup"); CHKERRQ(ierr);
@@ -550,9 +544,9 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
     this->m_ReferenceImage.write = false;
     if (rescaled) {
         if (multicomponent) {
-            ierr = Rescale(x, 0.0, 1.0, nc); CHKERRQ(ierr);
+            ierr = Normalize(x, nc); CHKERRQ(ierr);
         } else {
-            ierr = Rescale(x, 0.0, 1.0); CHKERRQ(ierr);
+            ierr = Normalize(x); CHKERRQ(ierr);
         }
     }
 
@@ -598,9 +592,9 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
     this->m_TemplateImage.write = false;
     if (rescaled) {
         if (multicomponent) {
-            ierr = Rescale(x, 0.0, 1.0, nc); CHKERRQ(ierr);
+            ierr = Normalize(x, nc); CHKERRQ(ierr);
         } else {
-            ierr = Rescale(x, 0.0, 1.0); CHKERRQ(ierr);
+            ierr = Normalize(x); CHKERRQ(ierr);
         }
     }
 
@@ -636,6 +630,7 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
     if (this->m_Opt->m_Verbosity > 2) {
         msg = "writing " + file;
         ierr = DbgMsg(msg); CHKERRQ(ierr);
+        ierr = ShowValues(x); CHKERRQ(ierr);
     }
 
     if (multicomponent == false) {

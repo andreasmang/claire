@@ -239,12 +239,21 @@ PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* readwrite) {
 
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
+ * we normalize the intensity values to [0,1]
  *******************************************************************/
 PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
     PetscErrorCode ierr = 0;
+    IntType nc;
     PetscFunctionBegin;
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nc = this->m_Opt->m_Domain.nc;
+
+    // by default we rescale the intensity range to [0,1]
+    if (this->m_Opt->m_RegFlags.applyrescaling) {
+        ierr = Normalize(mR, nc); CHKERRQ(ierr);
+    }
 
     this->m_ReferenceImage = mR;
     this->m_IsReferenceSet = true;
@@ -257,12 +266,22 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
 
 /********************************************************************
  * @brief set template image
+ * we normalize the intensity values to [0,1]
  *******************************************************************/
 PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
+    IntType nc;
     PetscFunctionBegin;
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nc = this->m_Opt->m_Domain.nc;
+
+    // by default we rescale the intensity range to [0,1]
+    if (this->m_Opt->m_RegFlags.applyrescaling) {
+        ierr = Normalize(mT, nc); CHKERRQ(ierr);
+    }
+
 
     this->m_TemplateImage = mT;
     this->m_IsTemplateSet = true;

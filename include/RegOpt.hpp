@@ -149,7 +149,6 @@ enum TimerType {
 };
 
 
-
 enum FFTTimers {
     FFTTRANSPOSE = 0,  ///< contains all communication time
     FFTSHUFFLE   = 1,  ///< contained in FFTTRANSPOSE
@@ -217,7 +216,8 @@ struct ReadWriteFlags {
     bool defgrad;             ///< write deformation gradient to file
     bool detdefgrad;          ///< write determinant of deformation gradient
     bool velnorm;             ///< write dataset with norfm ov veloity field
-    bool residual;            ///< write dataset with residual between reference and transported template (i.e., the mismatch)
+    bool residual;            ///< write dataset with residual between reference and transported template (i.e., the mismatch; abs(m1 - mR))
+    bool invresidual;         ///< write dataset with residual between reference and transported template (i.e., the mismatch; 1 - abs(m1 - mR))
     bool defmap;              ///< write deformation map y
     bool templateim;          ///< write template image (original dataset)
     bool referenceim;         ///< write reference image (original dataset)

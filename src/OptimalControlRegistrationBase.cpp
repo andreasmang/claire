@@ -279,18 +279,11 @@ PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* readwr
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
     PetscErrorCode ierr = 0;
-    IntType nc;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
-    nc = this->m_Opt->m_Domain.nc;
-
-    // by default we rescale the intensity range to [0,1]
-    if (this->m_Opt->m_RegFlags.applyrescaling) {
-        ierr = Rescale(mR, 0.0, 1.0, nc); CHKERRQ(ierr);
-    }
 
     // assign pointer
     this->m_ReferenceImage = mR;
@@ -308,18 +301,11 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
-    IntType nc;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
-    nc = this->m_Opt->m_Domain.nc;
-
-    // by default we rescale the intensity range to [0,1]
-    if (this->m_Opt->m_RegFlags.applyrescaling) {
-        ierr = Rescale(mT, 0.0, 1.0, nc); CHKERRQ(ierr);
-    }
 
     // assign pointer
     this->m_TemplateImage = mT;

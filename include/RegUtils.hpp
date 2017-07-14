@@ -98,19 +98,33 @@ PetscErrorCode WrngMsg(std::string);
 /*! display dgb message (PETSc interface) */
 PetscErrorCode DbgMsg(std::string);
 
-/*! interface to create a vector */
+/*! interface to create a vector (essentially simplifies
+ * the petsc vector creation) */
 PetscErrorCode VecCreate(Vec&, IntType, IntType);
 
 /*! display scalar field */
 PetscErrorCode VecView(Vec);
 
+/*! compute norm of vector field */
 PetscErrorCode VecNorm(Vec, IntType);
+
+/*! compute norm of vector field */
+PetscErrorCode ShowValues(Vec);
+
+/*! rescale vector field to given bounds [xmin,xmax] */
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType, IntType nc = 1);
+
+/*! normalize vector field to [0,1] */
+PetscErrorCode Normalize(Vec, IntType nc = 1);
+
 PetscErrorCode GetFileName(std::string&, std::string);
+
 PetscErrorCode GetFileName(std::string&, std::string&, std::string&, std::string);
+
 std::vector<int> String2Vec(const std::string&);
 
 PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
+
 PetscErrorCode Finalize();
 
 

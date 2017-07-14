@@ -165,6 +165,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
     this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
     this->m_ReadWriteFlags.residual = opt.m_ReadWriteFlags.residual;
+    this->m_ReadWriteFlags.invresidual = opt.m_ReadWriteFlags.invresidual;
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
     this->m_ReadWriteFlags.deftemplate = opt.m_ReadWriteFlags.deftemplate;
 
@@ -405,6 +406,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.referenceim = true;
         } else if (strcmp(argv[1], "-residual") == 0) {
             this->m_ReadWriteFlags.residual = true;
+        } else if (strcmp(argv[1], "-invresidual") == 0) {
+            this->m_ReadWriteFlags.invresidual = true;
         } else if (strcmp(argv[1], "-velnorm") == 0) {
             this->m_ReadWriteFlags.velnorm = true;
         } else if (strcmp(argv[1], "-defgrad") == 0) {
@@ -1098,6 +1101,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.defgrad = false;         ///< write deformation gradient (entire tensor) to file
     this->m_ReadWriteFlags.detdefgrad = false;      ///< write deformation gradient (determinant of deformation gradient) to file
     this->m_ReadWriteFlags.residual = false;        ///< write residual images to file
+    this->m_ReadWriteFlags.invresidual = false;     ///< write inverse of residual images to file
     this->m_ReadWriteFlags.defmap = false;          ///< write deformation map to file
     this->m_ReadWriteFlags.deffield = false;        ///< write deformation field / displacement field to file
     this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
@@ -1115,7 +1119,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FileNames.extension = ".nii.gz";   ///< file extension for output
 
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
-    this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling
+    this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling (for output)
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
     this->m_RegFlags.invdefgrad = false;                ///< compute inverse of det(grad(y))^{-1}
     this->m_RegFlags.checkdefmapsolve = false;          ///< check computation of deformation map y; error = x - (y^-1 \circ y)(x)
@@ -1228,7 +1232,10 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -defmap                    write deformation map to file" << std::endl;
         std::cout << " -deffield                  write deformation field/displacement field to file" << std::endl;
         std::cout << " -deftemplate               write deformed/transported template image to file" << std::endl;
-        std::cout << " -residual                  write pointwise residual (before and after registration) to file" << std::endl;
+        std::cout << " -residual                  write pointwise residual (before and after registration)" << std::endl;
+        std::cout << "                            to file; abs(m1-mR)" << std::endl;
+        std::cout << " -invresidual               write 'inverse' of pointwise residual (before and after" << std::endl;
+        std::cout << "                            registration) to file; 1 - abs(m1-mR)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters" << std::endl;
         std::cout << line << std::endl;

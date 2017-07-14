@@ -164,8 +164,8 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
 
     // store for access
     this->m_Opt->m_Monitor.jval = *J;
-    this->m_Opt->m_Monitor.rval = hd*D;
-    this->m_Opt->m_Monitor.dval = hd*(Rv + Rw);
+    this->m_Opt->m_Monitor.dval = hd*D;
+    this->m_Opt->m_Monitor.rval = hd*(Rv + Rw);
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "J(v) = D(v) + R1(v) + R2(div(v)) = " << std::scientific
