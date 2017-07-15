@@ -260,23 +260,24 @@ struct Domain {
 
 /* parameters for optimization */
 struct Optimization {
-    int maxiter;                        ///< maximal number of (outer) iterations
-    int miniter;                        ///< minimal number of (outer) iterations (for parameter continuation)
-    ScalarType tol[3];                  ///< tolerances for optimization
-    ScalarType gtolbound;               ///< tolerances for gradient (lower bound)
-    OptMeth method;                     ///< optimization method
-    GlobalMethType glmethod;            ///< method for globalization (line search; trust region; ...)
-    GradientType gradtype;              ///< flag for type of gradient (sobolev or ell-2)
-    StopCondType stopcond;              ///< stopping conditions
-    bool fastpresolve;                  ///< flag to switch on fast presolve
-    bool fastsolve;                     ///< flag to switch on fast (inaccurate) solve
-    ScalarType presolvetol[3];          ///< tolerances for presolve
-    int presolvemaxit;                  ///< maximal iterations for presolve
-    bool usezeroinitialguess;           ///< use zero initial guess for computing the initial gradient
+    int maxiter;                 ///< maximal number of (outer) iterations
+    int iterbound;               ///< maximal number of (outer) iterations; hard upper limit (in case algorithm diverges)
+    int miniter;                 ///< minimal number of (outer) iterations (for parameter continuation)
+    ScalarType tol[3];           ///< tolerances for optimization
+    ScalarType gtolbound;        ///< tolerances for gradient (lower bound; if maxiter is small, this is what we at least would like to achieve)
+    OptMeth method;              ///< optimization method
+    GlobalMethType glmethod;     ///< method for globalization (line search; trust region; ...)
+    GradientType gradtype;       ///< flag for type of gradient (sobolev or ell-2)
+    StopCondType stopcond;       ///< stopping conditions
+    bool fastpresolve;           ///< flag to switch on fast presolve
+    bool fastsolve;              ///< flag to switch on fast (inaccurate) solve
+    ScalarType presolvetol[3];   ///< tolerances for presolve
+    int presolvemaxit;           ///< maximal iterations for presolve
+    bool usezeroinitialguess;    ///< use zero initial guess for computing the initial gradient
     int solutionstatus;
 
     // debug
-    bool derivativecheckenabled;        ///< use zero initial guess for computing the initial gradient
+    bool derivativecheckenabled; ///< use zero initial guess for computing the initial gradient
 };
 
 

@@ -1072,8 +1072,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
 //#endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxiter = 100;                  ///< max number of iterations
-    this->m_OptPara.miniter = 0;                    ///< min number of iterations (for loose stopping conditions)
+    this->m_OptPara.maxiter = 50;                   ///< max number of iterations
+    this->m_OptPara.iterbound = 250;                ///< max number of iterations allowed
+    this->m_OptPara.miniter = 0;                    ///< min number of iterations (used for inaccurate presolves)
     this->m_OptPara.gtolbound = 0.8;                ///< min relative change of gradient (for loose stopping conditions)
     this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
     this->m_OptPara.gradtype = L2GRAD;              ///< gradient type
@@ -1081,8 +1082,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
     this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
     this->m_OptPara.derivativecheckenabled = false; ///< use zero initial guess for optimization
-    this->m_OptPara.glmethod = ARMIJOLS;
-    this->m_OptPara.solutionstatus = 0;
+    this->m_OptPara.glmethod = ARMIJOLS;            ///< globalization method (default is line search)
+    this->m_OptPara.solutionstatus = 0;             ///< flag for status of solution
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
