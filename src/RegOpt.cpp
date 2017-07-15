@@ -134,6 +134,7 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_OptPara.maxiter = opt.m_OptPara.maxiter;
     this->m_OptPara.miniter = opt.m_OptPara.miniter;
+    this->m_OptPara.gtolbound = opt.m_OptPara.gtolbound;
     this->m_OptPara.stopcond = opt.m_OptPara.stopcond;
     this->m_OptPara.tol[0] = opt.m_OptPara.tol[0];
     this->m_OptPara.tol[1] = opt.m_OptPara.tol[1];
@@ -493,9 +494,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             flag = atof(argv[1]);
             if (flag == 0) {
-                 this->m_OptPara.stopcond = GRAD;
+                this->m_OptPara.stopcond = GRAD;
             } else if (flag == 1) {
-                 this->m_OptPara.stopcond = GRADOBJ;
+                this->m_OptPara.stopcond = GRADOBJ;
             } else {
                 msg = "\n\x1b[31m stopping conditions not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -1071,8 +1072,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
 //#endif
     this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxiter = 100;                    ///< max number of iterations
-    this->m_OptPara.miniter = 0;                    ///< min number of iterations
+    this->m_OptPara.maxiter = 100;                  ///< max number of iterations
+    this->m_OptPara.miniter = 0;                    ///< min number of iterations (for loose stopping conditions)
+    this->m_OptPara.gtolbound = 0.8;                ///< min relative change of gradient (for loose stopping conditions)
     this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
     this->m_OptPara.gradtype = L2GRAD;              ///< gradient type
     this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)

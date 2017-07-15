@@ -191,9 +191,9 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     OptimizationProblem* optprob = NULL;
     std::stringstream ss, sc;
     ScalarType J, Jold, gnorm, step, gatol, grtol,
-                gttol, g0norm, minstep, theta,
+                gttol, g0norm, gtolbound, minstep, theta,
                 normx, normdx, tolJ, toldx, toldJ;
-    bool stop[5];
+    bool stop[6];
     Vec x;
 
     PetscFunctionBegin;
@@ -209,6 +209,8 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     g0norm = optprob->GetOptions()->m_Monitor.gradnorm0;
     g0norm = (g0norm > 0.0) ? g0norm : 1.0;
 
+    // get lower bound for gradient
+    gtolbound = optprob->GetOptions()->m_OptPara.gtolbound;
 
 #if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
     ierr = TaoGetTolerances(tao, &gatol, &grtol, &gttol); CHKERRQ(ierr);
@@ -227,7 +229,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     // compute theta
     theta = 1.0 + std::abs(J);
     ierr = optprob->ComputeUpdateNorm(x, normdx, normx); CHKERRQ(ierr);
-    Jold = optprob->GetOptions()->m_Monitor.jval0;
+    Jold = optprob->GetOptions()->m_Monitor.jvalold;
 
     // check for NaN value
     if (PetscIsInfOrNanReal(J)) {
@@ -248,7 +250,7 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
     for (int i = 0; i < 5; ++i) stop[i] = false;
 
     // only check convergence criteria after a certain number of iterations
-    if (iter >= miniter) {
+    if (iter >= miniter && iter > 1) {
         if (step < minstep) {
             ierr = TaoSetConvergedReason(tao, TAO_CONVERGED_STEPTOL); CHKERRQ(ierr);
             PetscFunctionReturn(ierr);
@@ -298,20 +300,33 @@ PetscErrorCode CheckConvergenceGradObj(Tao tao, void* ptr) {
         sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
         ss.str(std::string()); ss.clear();
 
-        if (iter > maxiter) {
-            ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_MAXITS); CHKERRQ(ierr);
+        if (gnorm < gtolbound*g0norm) {
             stop[4] = true;
         }
-        ss  << "[  " << stop[4] << "     iter = " << std::setw(14)
+        ss  << "[  " << stop[4] << "    ||g|| = " << std::setw(14)
+            << std::right << gnorm  << "    >    "
+            << std::left << std::setw(14) << gtolbound*g0norm << " = " << "kappa*||g0||";
+        sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
+        ss.str(std::string()); ss.clear();
+
+        if (iter > maxiter) {
+            stop[5] = true;
+        }
+        ss  << "[  " << stop[5] << "    iter  = " << std::setw(14)
             << std::right << iter  << "    >    "
             << std::left << std::setw(14) << maxiter << " = " << "maxiter";
         sc << std::left << std::setw(100) << ss.str() << "]" << std::endl;
         sc << std::endl;
         ss.str(std::string()); ss.clear();
 
-        optprob->SetConvergenceMessage(sc.str());
+        if (stop[4] && stop[5]) {
+            ierr = TaoSetConvergedReason(tao, TAO_DIVERGED_MAXITS); CHKERRQ(ierr);
+        }
 
-        if ((stop[0] && stop[1] && stop[2]) || stop[3] || stop[4]) {
+        optprob->SetConvergenceMessage(sc.str());
+        optprob->GetOptions()->m_Monitor.jvalold = J;
+
+        if ((stop[0] && stop[1] && stop[2]) || stop[3] || stop[4] && stop[5]) {
             optprob->Converged(true);
             PetscFunctionReturn(ierr);
         }

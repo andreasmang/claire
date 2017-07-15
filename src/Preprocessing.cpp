@@ -520,7 +520,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     int majoritylabel;
     ScalarType *p_labels = NULL, *p_labelprobs = NULL;
     const ScalarType *p_m = NULL;
-    ScalarType value, majorityvote, bgvalue, labelsum;
+    ScalarType value, majorityvote, labelsum;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);

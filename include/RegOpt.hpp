@@ -263,6 +263,7 @@ struct Optimization {
     int maxiter;                        ///< maximal number of (outer) iterations
     int miniter;                        ///< minimal number of (outer) iterations (for parameter continuation)
     ScalarType tol[3];                  ///< tolerances for optimization
+    ScalarType gtolbound;               ///< tolerances for gradient (lower bound)
     OptMeth method;                     ///< optimization method
     GlobalMethType glmethod;            ///< method for globalization (line search; trust region; ...)
     GradientType gradtype;              ///< flag for type of gradient (sobolev or ell-2)
@@ -361,6 +362,7 @@ struct Monitor {
     ScalarType detdgradbound;   ///< lower bound of determinant of deformation gradient det(grad(y))
     ScalarType jval;            ///< value of objective functional
     ScalarType jval0;           ///< initial value of objective functional
+    ScalarType jvalold;         ///< value of objective functional at last iteration
     ScalarType dval;            ///< value of distance measure
     ScalarType dval0;           ///< initial value of distance measure
     ScalarType rval;            ///< value of regularization functional
