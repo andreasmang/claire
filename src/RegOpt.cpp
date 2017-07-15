@@ -2026,27 +2026,31 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
         }
 
+        std::cout << std::left << std::setw(indent) << " convergence tolerances";
         if (this->m_OptPara.stopcond == GRAD) {
-            std::cout << std::left << std::setw(indent) << " "
-                      << std::setw(align) << "||g(v)||/||g(v0)|| <= tol"
+            std::cout <<  std::setw(align) << "||g(v)||/||g(v0)|| <= tol"
                       << this->m_OptPara.tol[2] << std::endl;
 
         } else if (this->m_OptPara.stopcond == GRADOBJ) {
-            std::cout << std::left << std::setw(indent) << " "
-                      << std::setw(align) << "|dJ|/|1+J| <= tol"
+            std::cout <<  std::setw(align) << "|dJ|/|1+J| <= tol"
                       << this->m_OptPara.tol[2] << std::endl;
             std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "||g(v)||/|1+J| <= sqrt(tol)"
-                      << sqrt(this->m_OptPara.tol[2]) << std::endl;
+                      << std::sqrt(this->m_OptPara.tol[2]) << std::endl;
             std::cout << std::left << std::setw(indent) << " "
                       << std::setw(align) << "||dx||/(1+||x||) <= sqrt(tol)"
-                      << sqrt(this->m_OptPara.tol[2]) << std::endl;
+#if __cplusplus > 199711L
+                      << std::cbrt(this->m_OptPara.tol[2]) << std::endl;
+#else
+                      << std::pow(this->m_OptPara.tol[2],1.0/3.0) << std::endl;
+#endif
         }
-        std::cout << std::left << std::setw(indent) << " convergence tolerances"
+        std::cout << std::left << std::setw(indent) << " "
                   << std::setw(align) << "||g(v)|| <= tol"
                   << this->m_OptPara.tol[0] << std::endl;
 
-        std::cout << std::left << std::setw(indent) << " max newton iterations"
+        std::cout << std::left << std::setw(indent) << " "
+                  << std::setw(align) << "max newton iterations"
                   << this->m_OptPara.maxiter << std::endl;
 
         std::cout << std::left << std::setw(indent) << " linesearch";
