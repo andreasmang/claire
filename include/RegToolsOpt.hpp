@@ -66,10 +66,11 @@ class RegToolsOpt : public RegOpt {
     std::string GetVecFieldFN(int, int);
     std::string GetScaFieldFN(int);
     virtual PetscErrorCode DisplayOptions(void);
-    inline RegToolFlags GetFlags() {return this->m_RegToolFlags;}
-    inline ResamplingPara GetResamplingPara() {return this->m_ResamplingPara;}
 
     int m_NumLabels;
+    RegToolFlags m_RegToolFlags;
+    ResamplingPara m_ResamplingPara;
+
  protected:
     virtual PetscErrorCode Initialize(void);
     virtual PetscErrorCode ClearMemory(void);
@@ -77,8 +78,6 @@ class RegToolsOpt : public RegOpt {
     virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);
 
-    RegToolFlags m_RegToolFlags;
-    ResamplingPara m_ResamplingPara;
 };
 
 

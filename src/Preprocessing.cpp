@@ -436,6 +436,7 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
 
+    // TODO: scheme does not work in parallel
     // allocate array for labels (account for background)
     if (this->m_LabelValues == NULL) {
         try{this->m_LabelValues = new int[nc];}
@@ -566,7 +567,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
         // set to zero, if negative
         if (p_labelprobs[nc] < 0.0) p_labelprobs[nc] = 0.0;
         labelsum += p_labelprobs[nc];
-        labelsum = labelsum > 1E-1 ? labelsum : 1.0;
+//        labelsum = labelsum > 1E-1 ? labelsum : 1.0;
 
         // normalize (partition of unity)
         for (int l = 0; l < nc+1; ++l) {

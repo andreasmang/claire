@@ -178,6 +178,11 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_FileNames.xv1 = opt.m_FileNames.xv1;
     this->m_FileNames.xv2 = opt.m_FileNames.xv2;
     this->m_FileNames.xv3 = opt.m_FileNames.xv3;
+    this->m_FileNames.isc = opt.m_FileNames.isc;
+    this->m_FileNames.xsc = opt.m_FileNames.xsc;
+    this->m_FileNames.extension = opt.m_FileNames.extension;
+    this->m_FileNames.xfolder = opt.m_FileNames.xfolder;
+    this->m_FileNames.ifolder = opt.m_FileNames.ifolder;
 
     this->m_RegFlags.applysmoothing = opt.m_RegFlags.applysmoothing;
     this->m_RegFlags.applyrescaling = opt.m_RegFlags.applyrescaling;
@@ -1119,6 +1124,11 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FileNames.xv1.clear();
     this->m_FileNames.xv2.clear();
     this->m_FileNames.xv3.clear();
+    this->m_FileNames.isc.clear();
+    this->m_FileNames.xsc.clear();
+    this->m_FileNames.xfolder.clear();
+    this->m_FileNames.ifolder.clear();
+    this->m_FileNames.extension.clear();
     this->m_FileNames.extension = ".nii.gz";   ///< file extension for output
 
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing

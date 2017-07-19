@@ -69,25 +69,25 @@ int main(int argc, char **argv) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-    if (regopt->GetFlags().computedeffields) {
+    if (regopt->m_RegToolFlags.computedeffields) {
         ierr = ComputeDefFields(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().resample) {
+    } else if (regopt->m_RegToolFlags.resample) {
         ierr = Resample(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().tscafield) {
+    } else if (regopt->m_RegToolFlags.tscafield) {
         ierr = TransportImage(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().tlabelmap) {
+    } else if (regopt->m_RegToolFlags.tlabelmap) {
         ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().computeresidual) {
+    } else if (regopt->m_RegToolFlags.computeresidual) {
         ierr = ComputeResidual(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().computeerror) {
+    } else if (regopt->m_RegToolFlags.computeerror) {
         ierr = ComputeError(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().computesynvel) {
+    } else if (regopt->m_RegToolFlags.computesynvel) {
         ierr = ComputeSynVel(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().convert) {
+    } else if (regopt->m_RegToolFlags.convert) {
         ierr = ConvertData(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().applysmoothing) {
+    } else if (regopt->m_RegToolFlags.applysmoothing) {
         ierr = ApplySmoothing(regopt); CHKERRQ(ierr);
-    } else if (regopt->GetFlags().computeanalytics) {
+    } else if (regopt->m_RegToolFlags.computeanalytics) {
         ierr = AnalyzeScalarField(regopt); CHKERRQ(ierr);
     }
 
@@ -333,6 +333,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     // map label image / hard segmentation to multi component image
     ierr = reg::DbgMsg("extracting individual label maps"); CHKERRQ(ierr);
     ierr = preproc->Labels2MultiCompImage(m0, labelmap); CHKERRQ(ierr);
+//    ierr = readwrite->WriteT(m0, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
 
     // solve forward problem
     ierr = reg::DbgMsg("computing solution of transport problem"); CHKERRQ(ierr);
@@ -401,10 +402,10 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
         ierr = reg::ThrowError("set input data"); CHKERRQ(ierr);
     } else {
         // compute grid size
-        scale = regopt->GetResamplingPara().gridscale;
+        scale = regopt->m_ResamplingPara.gridscale;
         for (int i = 0; i < 3; ++i) {
             nx[i]  = regopt->m_Domain.nx[i];
-            nxl[i] = regopt->GetResamplingPara().nx[i];
+            nxl[i] = regopt->m_ResamplingPara.nx[i];
         }
 
         pro = false; res = false;

@@ -94,6 +94,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-ifile") == 0) {
             argc--; argv++;
             this->m_FileNames.isc = argv[1];
+        } else if (strcmp(argv[1], "-xfile") == 0) {
+            argc--; argv++;
+            this->m_FileNames.xsc = argv[1];
         } else if (strcmp(argv[1], "-v1") == 0) {
             argc--; argv++;
             this->m_FileNames.iv1 = argv[1];
@@ -406,11 +409,11 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -v2 <file>                  x2-component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -v3 <file>                  x3-component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -ifile <filename>           input file (scalar field/image)" << std::endl;
+        std::cout << " -xfile <filename>           output file (scalar field/image)" << std::endl;
         std::cout << " -i <path>                   input path (defines where registration results (i.e., velocity field, " << std::endl;
         std::cout << "                             template image, and reference image) are stored; a prefix can be" << std::endl;
         std::cout << "                             added by, e.g., doing '-i </path/prefix_>" << std::endl;
-        std::cout << " -x <path>                   output path (by default only deformed template image and velocity" << std::endl;
-        std::cout << "                             field will be written; for more output options, see flags;" << std::endl;
+        std::cout << " -x <path>                   output path (using this will generate default outputs)" << std::endl;
         std::cout << "                             a prefix can be added by, e.g., doing '-x </path/prefix_>" << std::endl;
         std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
         std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
@@ -694,15 +697,21 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
     }
 
-    // construct output file name
     if (this->m_RegToolFlags.tscafield || this->m_RegToolFlags.tlabelmap) {
-        // transport scalar field
+        // check if flags are set correctly
         if (!this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield) {
-            msg = "\x1b[31m solution of forward problem requires a velocity field and a scalar field \x1b[0m\n";
+            msg = "\x1b[31m solution of forward problem requires a velocity field\n and a scalar field (field to be transported) \x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+        if (this->m_FileNames.xsc.empty()) {
+            msg = "\x1b[31m set file name for transported scalar field / ouptut (-xfile option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
 
+/*
+        // construct output file name
         ierr = GetFileName(path, filename, extension, this->m_FileNames.isc); CHKERRQ(ierr);
         if (this->m_FileNames.extension != ".nii.gz") {
             extension = this->m_FileNames.extension;
@@ -712,6 +721,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         } else {
             this->m_FileNames.xsc = this->m_FileNames.xfolder + "/" + filename + "-transported" + extension;
         }
+*/
     }
     if (this->m_RegToolFlags.tlabelmap) {
         if (this->m_NumLabels == -1) {
