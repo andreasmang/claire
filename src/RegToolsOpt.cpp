@@ -453,6 +453,10 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 sl           semi-Lagrangian method (default; unconditionally stable)" << std::endl;
         std::cout << "                                 rk2          rk2 time integrator (conditionally stable)" << std::endl;
+        std::cout << " -convert <type>             convert data to type" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 2nii         convert to nifti" << std::endl;
+        std::cout << "                                 2nc          convert to netcdf" << std::endl;
         std::cout << " -nt <int>                   number of time points (for time integration; default: 4)" << std::endl;
         std::cout << " -adapttimestep              vary number of time steps according to defined number" << std::endl;
         std::cout << " -cflnumber <dbl>            set cfl number" << std::endl;

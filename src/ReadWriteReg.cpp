@@ -810,20 +810,33 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
         }
-        this->m_ReferenceImage.data = image;
-        this->m_ReferenceImage.nx[0] = nx[0];
-        this->m_ReferenceImage.nx[1] = nx[1];
-        this->m_ReferenceImage.nx[2] = nx[2];
+        if (this->m_ReferenceImage.data == NULL) {
+            this->m_ReferenceImage.data = image;
+            this->m_ReferenceImage.nx[0] = nx[0];
+            this->m_ReferenceImage.nx[1] = nx[1];
+            this->m_ReferenceImage.nx[2] = nx[2];
+        } else {
+            ierr = Assert(this->m_ReferenceImage.nx[0] == nx[0], "dimension mismatch"); CHKERRQ(ierr);
+            ierr = Assert(this->m_ReferenceImage.nx[1] == nx[1], "dimension mismatch"); CHKERRQ(ierr);
+            ierr = Assert(this->m_ReferenceImage.nx[2] == nx[2], "dimension mismatch"); CHKERRQ(ierr);
+        }
     } else if (this->m_TemplateImage.read) {
         if (this->m_Opt->m_Verbosity > 2) {
             ss << "reading template image " + file;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
         }
-        this->m_TemplateImage.data = image;
-        this->m_TemplateImage.nx[0] = nx[0];
-        this->m_TemplateImage.nx[1] = nx[1];
-        this->m_TemplateImage.nx[2] = nx[2];
+
+        if (this->m_TemplateImage.data == NULL) {
+            this->m_TemplateImage.data = image;
+            this->m_TemplateImage.nx[0] = nx[0];
+            this->m_TemplateImage.nx[1] = nx[1];
+            this->m_TemplateImage.nx[2] = nx[2];
+        } else {
+            ierr = Assert(this->m_TemplateImage.nx[0] == nx[0], "dimension mismatch"); CHKERRQ(ierr);
+            ierr = Assert(this->m_TemplateImage.nx[1] == nx[1], "dimension mismatch"); CHKERRQ(ierr);
+            ierr = Assert(this->m_TemplateImage.nx[2] == nx[2], "dimension mismatch"); CHKERRQ(ierr);
+        }
     } else {
         // do nothing
     }
