@@ -317,7 +317,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_RegFlags.applysmoothing = false;
         } else if (strcmp(argv[1], "-disablerescaling") == 0) {
             this->m_RegFlags.applyrescaling = false;
-        } else if (strcmp(argv[1], "-probmabs") == 0) {
+        } else if (strcmp(argv[1], "-probmaps") == 0) {
             this->m_RegFlags.registerprobmaps = true;
         } else if (strcmp(argv[1], "-nthreads") == 0) {
             argc--; argv++;
