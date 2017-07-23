@@ -379,8 +379,8 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
         // extract individual components
         ierr = VecGetArray(xk, &p_xk); CHKERRQ(ierr);
         try {std::copy(p_xk, p_xk+nl, p_x+k*nl);}
-        catch (std::exception&) {
-            ierr = ThrowError("copy failed"); CHKERRQ(ierr);
+        catch (std::exception& err) {
+            ierr = ThrowError(err); CHKERRQ(ierr);
         }
         ierr = VecRestoreArray(xk, &p_xk); CHKERRQ(ierr);
         ierr = VecRestoreArray(*x, &p_x); CHKERRQ(ierr);
@@ -518,6 +518,7 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
     PetscErrorCode ierr = 0;
     ScalarType maxval, minval;
     IntType nc;
+    std::stringstream ss;
     bool rescaled = false;
     PetscFunctionBegin;
 
@@ -530,6 +531,10 @@ PetscErrorCode ReadWriteReg::WriteR(Vec x, std::string filename, bool multicompo
         if (this->m_ReferenceImage.minval != -1.0 && this->m_ReferenceImage.maxval != -1.0) {
             minval = this->m_ReferenceImage.minval;
             maxval = this->m_ReferenceImage.maxval;
+            if (this->m_Opt->m_Verbosity > 1) {
+                ss << "rescaling output [0,1] -> [" << minval << "," << maxval << "]";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            }
             if (multicomponent) {
                 ierr = Rescale(x, minval, maxval, nc); CHKERRQ(ierr);
             } else {
@@ -565,6 +570,7 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
     PetscErrorCode ierr = 0;
     ScalarType maxval, minval;
     IntType nc;
+    std::stringstream ss;
     bool rescaled = false;
     PetscFunctionBegin;
 
@@ -578,6 +584,11 @@ PetscErrorCode ReadWriteReg::WriteT(Vec x, std::string filename, bool multicompo
             nc = this->m_Opt->m_Domain.nc;
             minval = this->m_TemplateImage.minval;
             maxval = this->m_TemplateImage.maxval;
+            if (this->m_Opt->m_Verbosity > 1) {
+                ss << "rescaling output [0,1] -> [" << minval << "," << maxval << "]";
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            }
+
             if (multicomponent) {
                 ierr = Rescale(x, minval, maxval, nc); CHKERRQ(ierr);
             } else {
@@ -653,6 +664,11 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
 
         ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {
+            if (this->m_Opt->m_Verbosity > 2) {
+                msg = "writing component " + std::to_string(k);
+                ierr = DbgMsg(msg); CHKERRQ(ierr);
+            }
+
             // extract individual components
             ierr = VecGetArray(xk, &p_xk); CHKERRQ(ierr);
             try {std::copy(p_x+k*nl, p_x+(k+1)*nl, p_xk);}
@@ -664,7 +680,9 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
             // construct file name and write out component
             ss  << filename << "-" << std::setw(3) << std::setfill('0') << k << ext;
             this->m_FileName = this->m_Opt->m_FileNames.xfolder + ss.str();
+
             ierr = this->Write(xk); CHKERRQ(ierr);
+
             ss.str(std::string()); ss.clear();
         }
         ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);

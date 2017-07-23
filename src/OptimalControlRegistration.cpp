@@ -3965,6 +3965,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
                 p_dr[i] = PetscAbs(p_m[nt*nl*nc + i] - p_mr[i]);
             }
             ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+//            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
             ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
         if (this->m_Opt->m_ReadWriteFlags.invresidual) {
@@ -3973,6 +3974,8 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
                 p_dr[i] = 1.0 - PetscAbs(p_m[nt*nl*nc + i] - p_mr[i]);
             }
             ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+
+//            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
             ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "inv-residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -4014,9 +4017,11 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
 
     // write template and reference image
     if (this->m_Opt->m_ReadWriteFlags.templateim) {
+//        ierr = ShowValues(this->m_TemplateImage, nc); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->WriteT(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
     if (this->m_Opt->m_ReadWriteFlags.referenceim) {
+//        ierr = ShowValues(this->m_ReferenceImage, nc); CHKERRQ(ierr);
         ierr = this->m_ReadWrite->WriteR(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 

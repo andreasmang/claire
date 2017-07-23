@@ -109,7 +109,7 @@ PetscErrorCode VecView(Vec);
 PetscErrorCode VecNorm(Vec, IntType);
 
 /*! compute norm of vector field */
-PetscErrorCode ShowValues(Vec);
+PetscErrorCode ShowValues(Vec, IntType nc = 1);
 
 /*! rescale vector field to given bounds [xmin,xmax] */
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType, IntType nc = 1);

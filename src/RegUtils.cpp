@@ -133,21 +133,56 @@ bool FileExists(const std::string& filename) {
 /********************************************************************
  * @brief show extremal values and norm of vector
  *******************************************************************/
-PetscErrorCode ShowValues(Vec x) {
+PetscErrorCode ShowValues(Vec x, IntType nc) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
-    ScalarType value, maxval, minval;
+    IntType nl;
+    ScalarType value, maxval, minval, minval_g, maxval_g;
+    ScalarType *p_x = NULL;
+    int rval;
     PetscFunctionBegin;
 
-    ierr = VecNorm(x, NORM_2, &value); CHKERRQ(ierr);
-    ierr = VecMax(x, NULL, &maxval); CHKERRQ(ierr);
-    ierr = VecMin(x, NULL, &minval); CHKERRQ(ierr);
+    if (nc == 1) {
+        ierr = VecNorm(x, NORM_2, &value); CHKERRQ(ierr);
+        ierr = VecMax(x, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(x, NULL, &minval); CHKERRQ(ierr);
 
-    ss << "(norm,min,max) = (" << std::scientific << value
-       << "," << minval << "," << maxval << ")";
+        ss << "(norm,min,max) = (" << std::scientific << value
+           << "," << minval << "," << maxval << ")";
 
-    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-    ss.clear(); ss.str(std::string());
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    } else {
+        ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+        nl /= nc;
+        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        for (IntType k = 0; k < nc; ++k) {
+            minval = std::numeric_limits<ScalarType>::max();
+            maxval = std::numeric_limits<ScalarType>::min();
+
+            // get min and max values
+            for (IntType i = 0; i < nl; ++i) {
+                value = p_x[k*nl + i];
+                if (value < minval) {minval = value;}
+                if (value > maxval) {maxval = value;}
+            }
+
+            // get min accross all procs
+            rval = MPI_Allreduce(&minval, &minval_g, 1, MPIU_REAL, MPI_MIN, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // get max accross all procs
+            rval = MPI_Allreduce(&maxval, &maxval_g, 1, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // TODO: add norm
+            ss  << "component " << k << " (min,max) = ("
+                << std::scientific <<  minval_g << "," << maxval_g << ")";
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+        }
+        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -515,8 +550,7 @@ PetscErrorCode Normalize(Vec x, IntType nc) {
 
                 xmin_g = 0.0; // resetting
                 for (IntType i = 0; i < nl; ++i) {
-                    l = k*nl + i;
-                    if (p_x[l] < 0.0) p_x[l] = 0.0;
+                    if (p_x[k*nl + i] < 0.0) p_x[k*nl + i] = 0.0;
                 }
             }
 
@@ -591,13 +625,19 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
 
             // compute shift and scale
             xshift = xminout - xmin_g;
-            xmax_g = (xmax_g != 0.0) ? xmax_g : 1.0;
-            xscale = (xmaxout == 0.0) ? 1.0 : xmaxout / xmax_g;
+            xmax_g = (xmax_g  < 1e-5) ? 1.0 : xmax_g;
+            xscale = (xmaxout < 1e-5) ? 1.0 : xmaxout / xmax_g;
+
+//            ss << "rescaling intensities: [" << xmin << "," << xmax << "]"
+//               << " -> [" << xminout << "," << xmaxout << "]" ;
+//            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+//            ss.clear(); ss.str(std::string());
 
             // apply shift and scale
             for (IntType i = 0; i < nl; ++i) {
                 p_x[k*nl + i] = xscale*(p_x[k*nl + i] + xshift);
             }
+
         }  // for all components
         ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
     }  // if else

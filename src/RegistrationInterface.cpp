@@ -255,6 +255,8 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
         ierr = Normalize(mR, nc); CHKERRQ(ierr);
     }
 
+//    ierr = ShowValues(mR, nc); CHKERRQ(ierr);
+
     this->m_ReferenceImage = mR;
     this->m_IsReferenceSet = true;
 
@@ -282,6 +284,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
         ierr = Normalize(mT, nc); CHKERRQ(ierr);
     }
 
+//    ierr = ShowValues(mT, nc); CHKERRQ(ierr);
 
     this->m_TemplateImage = mT;
     this->m_IsTemplateSet = true;
