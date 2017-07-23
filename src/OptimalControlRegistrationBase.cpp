@@ -287,6 +287,10 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
 
     // assign pointer
     this->m_ReferenceImage = mR;
+    if (this->m_Opt->m_RegFlags.registerprobmaps) {
+        ierr = EnsurePartitionOfUnity(this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+        ierr = ShowValues(this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+    }
 //    ierr = ShowValues(this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
@@ -310,6 +314,10 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
 
     // assign pointer
     this->m_TemplateImage = mT;
+    if (this->m_Opt->m_RegFlags.registerprobmaps) {
+        ierr = EnsurePartitionOfUnity(this->m_TemplateImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+        ierr = ShowValues(this->m_TemplateImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+    }
 //    ierr = ShowValues(this->m_TemplateImage,  this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);

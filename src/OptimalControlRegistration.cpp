@@ -3928,6 +3928,14 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
         }
         ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+
+        if (this->m_Opt->m_RegFlags.registerprobmaps) {
+            ierr = EnsurePartitionOfUnity(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
+            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
+            ierr = ComputeBackGround(this->m_WorkScaField1, this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->WriteT(this->m_WorkScaField1, "background-image" + ext, false); CHKERRQ(ierr);
+        }
+
         ierr = this->m_ReadWrite->WriteT(this->m_WorkScaFieldMC, "deformed-template-image" + ext, nc > 1); CHKERRQ(ierr);
     }
 

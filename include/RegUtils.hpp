@@ -114,8 +114,17 @@ PetscErrorCode ShowValues(Vec, IntType nc = 1);
 /*! rescale vector field to given bounds [xmin,xmax] */
 PetscErrorCode Rescale(Vec, ScalarType, ScalarType, IntType nc = 1);
 
-/*! normalize vector field to [0,1] */
+/*! normalize field to [0,1] */
 PetscErrorCode Normalize(Vec, IntType nc = 1);
+
+/*! clip field to [0,1] */
+PetscErrorCode Clip(Vec, IntType nc = 1);
+
+/*! ensure partition of unity */
+PetscErrorCode EnsurePartitionOfUnity(Vec, IntType);
+
+/*! ensure partition of unity */
+PetscErrorCode ComputeBackGround(Vec, Vec, IntType);
 
 PetscErrorCode GetFileName(std::string&, std::string);
 

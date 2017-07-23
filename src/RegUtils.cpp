@@ -571,6 +571,114 @@ PetscErrorCode Normalize(Vec x, IntType nc) {
 
 
 
+/********************************************************************
+ * @brief clip image to be in [0,1]
+ *******************************************************************/
+PetscErrorCode Clip(Vec x, IntType nc) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_x = NULL;
+    IntType nl;
+
+    PetscFunctionBegin;
+
+    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        if (p_x[i] < 0.0) p_x[i] = 0.0;
+        if (p_x[i] > 1.0) p_x[i] = 1.0;
+    }  // for all components
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+/********************************************************************
+ * @brief ensure that sum accross all image components is in [0,1]
+ * for a particular location x
+ *******************************************************************/
+PetscErrorCode EnsurePartitionOfUnity(Vec x, IntType nc) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_x = NULL, sum, background;
+    IntType nl, l;
+
+    PetscFunctionBegin;
+
+    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+    nl /= nc;
+
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        sum = 0.0;
+        for (IntType k = 0; k < nc; ++k) {
+            l = k*nl + i;
+
+            if (p_x[l] < 0.0) p_x[l] = 0.0;
+            if (p_x[l] > 1.0) p_x[l] = 1.0;
+
+            sum += p_x[l];
+        }
+        background = 1.0 - sum;
+        if (background <= 0.0) background = 0.0;
+        if (background >= 1.0) background = 1.0;
+
+        sum += background;
+
+        for (IntType k = 0; k < nc; ++k) {
+            p_x[k*nl + i] /= sum;
+        }
+
+    }  // for all components
+
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+/********************************************************************
+ * @brief ensure that sum accross all image components is in [0,1]
+ * for a particular location x
+ *******************************************************************/
+PetscErrorCode ComputeBackGround(Vec background, Vec x, IntType nc) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_x = NULL, *p_b = NULL, sum, bval;
+    IntType nl, l;
+
+    PetscFunctionBegin;
+
+    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+    nl /= nc;
+
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+    ierr = VecGetArray(background, &p_b); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        sum = 0.0;
+        for (IntType k = 0; k < nc; ++k) {
+            l = k*nl + i;
+            sum += p_x[l];
+        }
+        bval = 1.0 - sum;
+        if (bval <= 0.0) bval = 0.0;
+        if (bval >= 1.0) bval = 1.0;
+
+        for (IntType k = 0; k < nc; ++k) {
+            p_b[i] = bval;
+        }
+
+    }  // for all components
+
+    ierr = VecRestoreArray(background, &p_b); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
 
 /********************************************************************
  * @brief rescale data to [xminout,xmaxout]

@@ -189,6 +189,7 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_RegFlags.detdefgradfromdeffield = opt.m_RegFlags.detdefgradfromdeffield;
     this->m_RegFlags.invdefgrad = opt.m_RegFlags.invdefgrad;
     this->m_RegFlags.checkdefmapsolve = opt.m_RegFlags.checkdefmapsolve;
+    this->m_RegFlags.registerprobmaps = opt.m_RegFlags.registerprobmaps;
 
     // parameter continuation
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
@@ -316,6 +317,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_RegFlags.applysmoothing = false;
         } else if (strcmp(argv[1], "-disablerescaling") == 0) {
             this->m_RegFlags.applyrescaling = false;
+        } else if (strcmp(argv[1], "-probmabs") == 0) {
+            this->m_RegFlags.registerprobmaps = true;
         } else if (strcmp(argv[1], "-nthreads") == 0) {
             argc--; argv++;
             this->m_NumThreads = atoi(argv[1]);
@@ -1137,6 +1140,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.invdefgrad = false;                ///< compute inverse of det(grad(y))^{-1}
     this->m_RegFlags.checkdefmapsolve = false;          ///< check computation of deformation map y; error = x - (y^-1 \circ y)(x)
     this->m_RegFlags.runninginversion = true;           ///< flag indicating that we run the inversion (switches on storage of m)
+    this->m_RegFlags.registerprobmaps = false;          ///< flag indicating that we run the registration on probabilty maps (allows us to ensure partition of unity when writing results to file)
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation

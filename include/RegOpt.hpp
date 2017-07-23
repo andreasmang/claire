@@ -393,12 +393,13 @@ struct FourierTransform{
 
 
 struct RegFlags {
-    bool applysmoothing;  ///< apply smoothing to images
-    bool applyrescaling;  ///< apply rescaling to images (map the intensity range to [0,1])
-    bool detdefgradfromdeffield;
-    bool invdefgrad;
-    bool checkdefmapsolve;
-    bool runninginversion;
+    bool applysmoothing;         ///< apply smoothing to images
+    bool applyrescaling;         ///< apply rescaling to images (map the intensity range to [0,1])
+    bool registerprobmaps;       ///< flag to identify that we are performing a registration of probabilty maps
+    bool detdefgradfromdeffield; ///< compute determinant fo deformation gradient from deformation field (displacement field)
+    bool invdefgrad;             ///< compute inverse of deformation gradient
+    bool checkdefmapsolve;       ///< check
+    bool runninginversion;       ///< flag to identify if we are running an inversion or not (lower memory footprint for fwd solve if not)
 };
 
 
