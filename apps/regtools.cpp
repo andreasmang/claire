@@ -879,7 +879,7 @@ PetscErrorCode ConvertData(reg::RegToolsOpt* regopt) {
     ierr = reg::Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = reg::GetFileName(path, filename, extension, regopt->m_FileNames.isc); CHKERRQ(ierr);
-    filename = path + "/" + filename + "_converted" + regopt->m_FileNames.extension;
+    filename = path + "/" + filename + regopt->m_FileNames.extension;
     ierr = readwrite->WriteR(m, filename); CHKERRQ(ierr);
 
     regopt->Exit(__func__);

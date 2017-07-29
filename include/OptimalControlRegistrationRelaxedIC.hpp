@@ -60,7 +60,7 @@ class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
     virtual PetscErrorCode ApplyProjection();
 
  private:
-    PetscErrorCode EvaluteRegFunctionalW(ScalarType*);
+    PetscErrorCode EvaluteRegularizationDIV(ScalarType*);
 };
 
 

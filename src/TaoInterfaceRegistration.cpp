@@ -626,49 +626,49 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     switch(flag) {
         case TAOLINESEARCH_FAILED_INFORNAN:
         {
-            msg = "line search: function evaluation gave INF or NaN";
+            msg = "linesearch: function evaluation gave INF or NaN";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_FAILED_BADPARAMETER:
         {
-            msg = "line search: bad parameter detected";
+            msg = "linesearch: bad parameter detected";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_FAILED_ASCENT:
         {
-            msg = "line search: search direction is not a descent direction";
+            msg = "linesearch: search direction is not a descent direction";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_MAXFCN:
         {
-            msg = "line search: maximum number of function evaluations reached";
+            msg = "linesearch: maximum number of function evaluations reached";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_UPPERBOUND:
         {
-            msg = "line search: step size reached upper bound";
+            msg = "linesearch: step size reached upper bound";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_LOWERBOUND:
         {
-            msg = "line search: step size reached lower bound";
+            msg = "linesearch: step size reached lower bound";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_RTOL:
         {
-            msg = "line search: range of uncertainty is smaller than given tolerance";
+            msg = "linesearch: range of uncertainty is smaller than given tolerance";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
         case TAOLINESEARCH_HALTED_OTHER:
         {
-            msg = "line search: stopped (other)";
+            msg = "linesearch: stopped (other)";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }
@@ -679,13 +679,13 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
         }
         case TAOLINESEARCH_SUCCESS:
         {
-            msg = "line search: successfull";
+            msg = "linesearch: successful";
             ierr = DbgMsg(msg); CHKERRQ(ierr);
             break;
         }
         default:
         {
-            msg = "line search: status not defined";
+            msg = "linesearch: status not defined";
             ierr = WrngMsg(msg); CHKERRQ(ierr);
             break;
         }

@@ -156,7 +156,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
         ierr = this->m_Regularization->EvaluateFunctional(&Rv, this->m_VelocityField); CHKERRQ(ierr);
 
         // evaluate the regularization model for w = div(v)
-        ierr = this->EvaluteRegFunctionalW(&Rw); CHKERRQ(ierr); CHKERRQ(ierr);
+        ierr = this->EvaluteRegularizationDIV(&Rw); CHKERRQ(ierr); CHKERRQ(ierr);
     }
 
     // add up the contributions
@@ -190,7 +190,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegFunctionalW(ScalarType* Rw) {
+PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegularizationDIV(ScalarType* Rw) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_gdv1 = NULL, *p_gdv2 = NULL, *p_gdv3 = NULL, *p_divv = NULL;

@@ -467,7 +467,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " ### resampling" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -resample                   resample data (requires input scalar or vector field;" << std::endl;
-        std::cout << "                             output is input_resampled.ext)" << std::endl;
+        std::cout << "                             output is resampled_input.ext)" << std::endl;
         std::cout << " -scale                      scale for resampling (multiplier applied to number of grid points)" << std::endl;
         std::cout << " -nxnew                      number of grid points for output" << std::endl;
         std::cout << line << std::endl;
