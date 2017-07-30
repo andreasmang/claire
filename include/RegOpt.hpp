@@ -557,6 +557,7 @@ class RegOpt {
 //    const unsigned int m_LineLength = 101; //C++ 11 feature
     unsigned int m_Indent;
     int m_Verbosity;
+    std::vector<int> m_LabelIDs;       ///< label ids
 
  protected:
     virtual PetscErrorCode Initialize(void);

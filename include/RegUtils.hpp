@@ -131,6 +131,7 @@ PetscErrorCode GetFileName(std::string&, std::string);
 PetscErrorCode GetFileName(std::string&, std::string&, std::string&, std::string);
 
 std::vector<int> String2Vec(const std::string&);
+std::vector<int> String2Vec(const std::string&, std::string);
 
 PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
 

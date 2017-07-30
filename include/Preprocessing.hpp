@@ -147,8 +147,8 @@ class Preprocessing {
     bool m_IndicesCommunicated;
     bool m_GridChangeIndicesComputed;
 
-    int *m_LabelValues;
-    int m_NoLabel;
+//    int *m_LabelValues;
+//    int m_NoLabel;
     double *m_OverlapMeasures;
 
 };

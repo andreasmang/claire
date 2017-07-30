@@ -106,12 +106,12 @@ PetscErrorCode Preprocessing::Initialize() {
     this->m_RecvRequest = NULL;
 
     this->m_OverlapMeasures = NULL;
-    this->m_LabelValues = NULL;
+//    this->m_LabelValues = NULL;
+//    this->m_NoLabel = -99;
 
     this->m_xhat = NULL;
     this->m_yhat = NULL;
 
-    this->m_NoLabel = -99;
 
     PetscFunctionReturn(ierr);
 }
@@ -225,10 +225,12 @@ PetscErrorCode Preprocessing::ClearMemory() {
         this->m_OverlapMeasures = NULL;
     }
 
+/*
     if (this->m_LabelValues != NULL) {
         delete [] this->m_LabelValues;
         this->m_LabelValues = NULL;
     }
+*/
     PetscFunctionReturn(ierr);
 
 }
@@ -427,6 +429,45 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     IntType nl, nc;
     const ScalarType *p_labelmap = NULL;
     ScalarType *p_m = NULL;
+    int label;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(this->m_Opt->m_LabelIDs.size() == nc, "size mismatch"); CHKERRQ(ierr);
+
+    // now assign the individual labels to the
+    // individual components
+    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(labelmap, &p_labelmap); CHKERRQ(ierr);
+    for (int l = 0; l < nc; ++l) {
+        label = this->m_Opt->m_LabelIDs[l];
+        for (IntType i = 0; i < nl; ++i) {
+            // get current label
+            if (label == p_labelmap[i]) {
+                p_m[l*nl + i] = 1.0;
+            } else {
+                p_m[l*nl + i] = 0.0;
+            }
+        }
+    }
+    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(labelmap, &p_labelmap); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/*
+PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
+    PetscErrorCode ierr = 0;
+    IntType nl, nc;
+    const ScalarType *p_labelmap = NULL;
+    ScalarType *p_m = NULL;
     int label, numlabelfound = 0;
     bool labelfound, labelset;
     PetscFunctionBegin;
@@ -506,7 +547,7 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
 
     PetscFunctionReturn(ierr);
 }
-
+*/
 
 
 
@@ -515,6 +556,85 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
  * @param labelim label image
  * @param multi-component image
  *******************************************************************/
+PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
+    PetscErrorCode ierr = 0;
+    IntType nl, nc;
+    int majoritylabel;
+    ScalarType *p_labels = NULL, *p_labelprobs = NULL;
+    const ScalarType *p_m = NULL;
+    ScalarType value, majorityvote, labelsum;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(this->m_Opt->m_LabelIDs.size() == nc, "size mismatch"); CHKERRQ(ierr);
+
+    try {p_labelprobs = new double[nc+1];}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+
+    // set dummy values
+    ierr = VecGetArrayRead(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(labelim, &p_labels); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        majorityvote  = 0.0;
+        majoritylabel = -1;
+
+        // compute value for background
+        labelsum = 0.0; p_labelprobs[nc] = 1.0;
+        for (int l = 0; l < nc; ++l){
+            // get label probability
+            p_labelprobs[l] = p_m[l*nl + i];
+
+            // compute background
+            p_labelprobs[nc] -= p_labelprobs[l];
+
+            // accumulate label probabilities
+            labelsum += p_labelprobs[l];
+        }
+
+        // set to zero, if negative
+        if (p_labelprobs[nc] < 0.0) p_labelprobs[nc] = 0.0;
+        labelsum += p_labelprobs[nc];
+//        labelsum = labelsum > 1E-1 ? labelsum : 1.0;
+
+        // normalize (partition of unity)
+        for (int l = 0; l < nc+1; ++l) {
+            p_labelprobs[l] /= labelsum;
+        }
+
+        for (int l = 0; l < nc + 1; ++l) {
+            value = p_labelprobs[l];
+
+            // get largest value
+            if (value > majorityvote) {
+                majoritylabel = l;
+                majorityvote  = value;
+            }
+
+            // get current label
+            if (majoritylabel == nc) {
+                p_labels[i] = 0;
+            } else {
+                p_labels[i] = this->m_Opt->m_LabelIDs[majoritylabel];
+            }
+        }
+    }
+    ierr = VecRestoreArray(labelim, &p_labels); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(m, &p_m); CHKERRQ(ierr);
+
+
+    if (p_labelprobs != NULL) {delete [] p_labelprobs;}
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+/*
 PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
@@ -601,7 +721,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
 
     PetscFunctionReturn(ierr);
 }
-
+*/
 
 
 
@@ -1402,7 +1522,9 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
 
                         // check if we're inside expected range
                         if ( (i_c[i] >= this->m_osizeC[i]) || (i_c[i] < 0) ) {
-                            std::cout<<" r "<<rank<<" "<<i_c[i]<<">="<<this->m_osizeC[i]<<"   "<<i_c[i]<<"<0"<< std::endl;
+                            std::cout << " r " << rank << " " << i_c[i]
+                                      << ">=" << this->m_osizeC[i]
+                                      << "   " << i_c[i] << "<0" << std::endl;
                         }
                     }
 

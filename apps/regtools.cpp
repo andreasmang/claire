@@ -306,7 +306,8 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     ierr = reg::Assert(v != NULL, "set input velocity field"); CHKERRQ(ierr);
 
     // treat individual labels as components
-    regopt->m_Domain.nc = regopt->m_NumLabels;
+    regopt->m_Domain.nc = regopt->m_LabelIDs.size();
+    ierr = reg::Assert(regopt->m_Domain.nc > 0, "number of labels is zero"); CHKERRQ(ierr);
 
     // make sure we apply smoothing before we solve the forward problem
     regopt->m_RegFlags.applysmoothing = true;
@@ -361,6 +362,8 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
 
     PetscFunctionReturn(ierr);
 }
+
+
 
 
 /********************************************************************

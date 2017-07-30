@@ -851,6 +851,40 @@ std::vector<int> String2Vec(const std::string & str) {
 
 
 
+/********************************************************************
+ * @brief parse string of NUMxNUMxNUM into a vector
+ *******************************************************************/
+std::vector<int> String2Vec(const std::string & str, std::string sep) {
+    std::vector<int> vect;
+    int ival;
+    std::string::size_type xpos = str.find(sep,0);
+
+    if (xpos == std::string::npos) {
+        // only one uint
+        vect.push_back(static_cast<int>(atoi(str.c_str())));
+        return vect;
+    }
+
+    // first uint$
+    ival = atoi((str.substr(0, xpos)).c_str());
+    vect.push_back(static_cast<int>(ival));
+
+    while (true) {
+        std::string::size_type newxpos = xpos;
+        xpos = str.find(sep, newxpos+1);
+
+        if (xpos == std::string::npos) {
+            ival = atoi((str.substr(newxpos+1, str.length()-newxpos-1)).c_str());
+            vect.push_back(static_cast<int>(ival));
+            return vect;
+        }
+        ival = atoi((str.substr(newxpos+1, xpos-newxpos-1)).c_str() );
+        vect.push_back(static_cast<int>(ival));
+    }
+}
+
+
+
 
 }  //  namespace reg
 

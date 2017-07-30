@@ -135,9 +135,15 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
-        } else if (strcmp(argv[1], "-nlabels") == 0) {
+//        } else if (strcmp(argv[1], "-nlabels") == 0) {
+//            argc--; argv++;
+//            this->m_NumLabels = static_cast<IntType>(atoi(argv[1]));
+        } else if (strcmp(argv[1], "-labels") == 0) {
             argc--; argv++;
-            this->m_NumLabels = static_cast<IntType>(atoi(argv[1]));
+            const std::string labels = argv[1];
+            const std::string sep = ",";
+            // strip the "," in the string to get the numbers
+            this->m_LabelIDs = String2Vec(labels, sep);
         } else if (strcmp(argv[1], "-pdesolver") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "rk2") == 0) {
@@ -363,7 +369,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_ResamplingPara.nx[1] = -1.0;
     this->m_ResamplingPara.nx[2] = -1.0;
 
-    this->m_NumLabels = -1;
+//    this->m_NumLabels = -1;
 
     PetscFunctionReturn(0);
 }
@@ -430,7 +436,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -residual                   compute residual between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -error                      compute error between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -analyze                    compute analytics for scalar field (-ifile option)" << std::endl;
-        std::cout << " -nlabels                    number of labels in file" << std::endl;
+        //std::cout << " -nlabels                    number of labels in file" << std::endl;
+        std::cout << " -labels <num,l1,l2,...>     number of labels in file" << std::endl;
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << " -detdefgradfromdeffield     compute gradient of some input scalar field ('-ifile' option)" << std::endl;
@@ -728,8 +735,13 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 */
     }
     if (this->m_RegToolFlags.tlabelmap) {
-        if (this->m_NumLabels == -1) {
-            msg = "\x1b[31m number of labels to be transported needs to be set\x1b[0m\n";
+//        if (this->m_NumLabels == -1) {
+//            msg = "\x1b[31m number of labels to be transported needs to be set\x1b[0m\n";
+//            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+//            ierr = this->Usage(true); CHKERRQ(ierr);
+//        }
+        if (this->m_LabelIDs.size() == 0) {
+            msg = "\x1b[31m user needs to set labels\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
