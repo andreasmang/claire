@@ -73,30 +73,30 @@ APPDIR = ./apps
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-COLD_INC = -I$(INCDIR)
+CLAIRE_INC = -I$(INCDIR)
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
-		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_SINGLE)/include
+		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_SINGLE)/include
 	else 
-		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_DOUBLE)/include
+		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_DOUBLE)/include
 	endif
 else
 	ifeq ($(USESINGLE),yes)
-		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_SINGLE)/include
+		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_SINGLE)/include
 	else
-		COLD_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/include
+		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/include
 	endif
 endif
-COLD_INC += -I$(ACCFFT_DIR)/include
-COLD_INC += -I$(FFTW_DIR)/include
-COLD_INC += -I$(MORTON_DIR)
-COLD_INC += -I./3rdparty
+CLAIRE_INC += -I$(ACCFFT_DIR)/include
+CLAIRE_INC += -I$(FFTW_DIR)/include
+CLAIRE_INC += -I$(MORTON_DIR)
+CLAIRE_INC += -I./3rdparty
 ifeq ($(USENIFTI),yes)
-	COLD_INC += -I$(NIFTI_DIR)/include/nifti
+	CLAIRE_INC += -I$(NIFTI_DIR)/include/nifti
 endif
 
 ifeq ($(USEPNETCDF),yes)
-	COLD_INC += -I$(PNETCDF_DIR)/include
+	CLAIRE_INC += -I$(PNETCDF_DIR)/include
 endif
 
 
@@ -196,15 +196,15 @@ all: $(BIN)
 
 $(BINDIR)/%: $(OBJDIR)/%.o $(OBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
-	$(CXX) $(CXXFLAGS) $(COLD_INC) $^ $(LDFLAGS) $(COLD_LIB) -o $@
+	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
-	$(CXX) $(CXXFLAGS) $(COLD_INC) -c $^ -o $@
+	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 
 $(OBJDIR)/%.o: $(APPDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
-	$(CXX) $(CXXFLAGS) $(COLD_INC) -c $^ -o $@
+	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 
 .PHONY: clean
 
