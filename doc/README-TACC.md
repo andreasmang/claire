@@ -7,7 +7,7 @@ Information about the Texas Advanced Computing Center ([TACC](https://www.tacc.u
 
 Info about Maverick can be found here: [https://www.tacc.utexas.edu/systems/maverick](https://www.tacc.utexas.edu/systems/maverick).
 
-COLDREG has been tested with the following module settings:
+CLAIRE has been tested with the following module settings:
 
 ```bash
 module load intel/15.0.3

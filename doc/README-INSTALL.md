@@ -1,4 +1,4 @@
-# Installing and Running COLDREG
+# Installing and Running CLAIRE
 
 
 
@@ -11,8 +11,8 @@
 	* Installing Dependencies: Quick Shot
 	* Installing Dependencies: Details
 	* Environment Variables
-* Building COLDREG
-* Running COLDREG
+* Building CLAIRE
+* Running CLAIRE
 * FAQ
 * More info about the Dependencies
 
@@ -21,7 +21,7 @@
 
 ## Requirements
 
-* MPI (Open MPI; MVAPICH; Intel MPI); required by ACCFFT, PETSc, and COLDREG
+* MPI (Open MPI; MVAPICH; Intel MPI); required by ACCFFT, PETSc, and CLAIRE
 * cmake [https://cmake.org](https://cmake.org); required by *ACCFFT* and *niftilib*
 * python ([https://www.python.org](https://www.python.org)); version 2.7; required by PETSc
 
@@ -36,7 +36,7 @@ Make sure that the standard *wrappers* for *mpicc* and *mpicxx* are available on
 
 ### General Overview
 
-COLDREG depends on the following libraries:
+CLAIRE depends on the following libraries:
 
 * FFTW [http://www.fftw.org](http://www.fftw.org)
 * ACCFFT [http://accfft.org](http://accfft.org) 
@@ -103,9 +103,9 @@ make -j
 
 
 
-## Running COLDREG
+## Running CLAIRE
 
-Details on how to run coldreg are summarized in [doc/README-RUNME.md](README-RUNME.md). A list of the available options for the binary can be found in [doc/help.txt](help.txt) and [doc/advanced-help.txt](advanced-help.txt).
+Details on how to run CLAIRE are summarized in [doc/README-RUNME.md](README-RUNME.md). A list of the available options for the binary can be found in [doc/help.txt](help.txt) and [doc/advanced-help.txt](advanced-help.txt).
 
 
 
