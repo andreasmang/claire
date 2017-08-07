@@ -4,6 +4,7 @@
 *.nii
 *.log
 *.exrc
+*.DS_Store
 bin/
 obj/
 test/
