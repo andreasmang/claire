@@ -2,7 +2,6 @@
 
 ## Parallel Implementation
 * A. Mang, A. Gholami & G. Biros, Distributed-memory large-deformation diffeomorphic 3D image registration, Proc ACM/IEEE Conference on SuperComputing, Article No. 72, 2016.
-* A. Mang, A. Gholami & G. Biros, A framework for scalable biophysics-based image analysis, Proc ACM/IEEE Conference on SuperComputing, 2017 (accepted).
 
 ## Algorithmic Developments
 
