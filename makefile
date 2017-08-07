@@ -148,7 +148,7 @@ endif
 LDFLAGS += -lfftw3_threads -lfftw3
 
 
-BIN += $(BINDIR)/runcoldreg
+BIN += $(BINDIR)/claire
 ifeq ($(BUILDTOOLS),yes)
 	BIN += $(BINDIR)/regbenchmark
 	BIN += $(BINDIR)/regtools
