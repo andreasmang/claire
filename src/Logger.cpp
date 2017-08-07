@@ -1152,7 +1152,7 @@ PetscErrorCode Logger::WriteFinalResidualLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-residual.log";
+        fn = path + "claire-residual.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -1226,7 +1226,7 @@ PetscErrorCode Logger::WriteConvergenceLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-distance-measure-trend.log";
+        fn = path + "claire-distance-measure-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -1241,7 +1241,7 @@ PetscErrorCode Logger::WriteConvergenceLog() {
         logwriter.close();  // close logger
 
         // create output file
-        fn = path + "cold-regularization-trend.log";
+        fn = path + "claire-regularization-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -1257,7 +1257,7 @@ PetscErrorCode Logger::WriteConvergenceLog() {
 
 
         // create output file
-        fn = path + "cold-objective-trend.log";
+        fn = path + "claire-objective-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -1302,7 +1302,7 @@ PetscErrorCode Logger::WriteKSPLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-krylov-method-residual.log";
+        fn = path + "claire-krylov-method-residual.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 

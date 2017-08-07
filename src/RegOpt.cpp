@@ -1214,7 +1214,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
     if (rank == 0) {
         std::cout << std::endl;
         std::cout << line << std::endl;
-        std::cout << " usage: runcoldreg [options] " << std::endl;
+        std::cout << " usage: claire [options] " << std::endl;
         std::cout << line << std::endl;
         std::cout << " where [options] is one or more of the following" << std::endl;
         std::cout << line << std::endl;
@@ -3446,7 +3446,7 @@ PetscErrorCode RegOpt::WriteFinalResidualLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-residual.log";
+        fn = path + "claire-residual.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -3520,7 +3520,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-distance-measure-trend.log";
+        fn = path + "claire-distance-measure-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -3535,7 +3535,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         logwriter.close();  // close logger
 
         // create output file
-        fn = path + "cold-regularization-trend.log";
+        fn = path + "claire-regularization-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -3551,7 +3551,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
 
 
         // create output file
-        fn = path + "cold-objective-trend.log";
+        fn = path + "claire-objective-trend.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -3613,7 +3613,7 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "cold-krylov-method-residual.log";
+        fn = path + "claire-krylov-method-residual.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
         n = static_cast<int>(this->m_Log.krylovresidual.size());
