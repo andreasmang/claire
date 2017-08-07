@@ -5,7 +5,8 @@ if [[ ! -e accfft.tar.gz ]]; then
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading accFFT"
 	echo "----------------------------------------------------------------------------------"
-	wget --no-check-certificate --content-disposition https://github.com/amirgholami/accfft/archive/master.tar.gz -O accfft.tar.gz
+	#wget --no-check-certificate --content-disposition https://github.com/amirgholami/accfft/archive/master.tar.gz -O accfft.tar.gz
+	wget --no-check-certificate https://github.com/amirgholami/accfft/archive/master.tar.gz -O accfft.tar.gz
 fi
 
 if [[ ! -e fftw.tar.gz ]]; then
