@@ -1,10 +1,10 @@
-# COLDREG
+# CLAIRE
 
-**COLDREG** implements a parallel solver for *Constrained Large Deformation Diffeomorphic Image Registration*. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
+**CLAIRE** implements a parallel solver for *Constrained Large Deformation Diffeomorphic Image Registration*. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
 
 ## Installation
 
-If there are any issues or you have any questions send an email to <andreas@ices.utexas.edu>.
+If there are any issues or you have any questions send an email to <andreas@math.uh.edu>.
 
 ### Requirements
 
@@ -29,7 +29,7 @@ source libs/environment_vars.sh
 cd ..
 ```
 
-#### Build COLDREG
+#### Build CLAIRE
 
 
 In the *top level directory* of the code, do
@@ -47,7 +47,7 @@ To user can change some options in the makefile:
 * Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
 * Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
 
-## Run COLDREG
+## Run CLAIRE
 
 
 ### Test Problem
@@ -55,7 +55,7 @@ To user can change some options in the makefile:
 To run an image registration test example do:
 
 ```bash
-./bin/runcoldreg
+./bin/claire
 ```
 
 To run the code with different grid sizes use the `-nx` option (i.e., for a 128x128x128 problem, use `-nx 128x128x128`).
@@ -65,7 +65,7 @@ To run the code with different grid sizes use the `-nx` option (i.e., for a 128x
 To run an image registration problem with input images do:
 
 ```bash
-./bin/runcoldreg -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -betav 1E-2 -regnorm h2s -xresults -x ./results
+./bin/claire -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -betav 1E-2 -regnorm h2s -xresults -x ./results
 ```
 
 Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-betav 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-xresults` enables the output of images, the computed velocity field, the deformation map, and derived measures.
@@ -77,13 +77,13 @@ Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-
 To see the basic options do:
 
 ```bash
-./bin/runcoldreg -help
+./bin/claire -help
 ```
 
 For more advanced options do:
 
 ```bash
-./bin/runcoldreg -advanced
+./bin/claire -advanced
 ```
 
 You can also find a list of the available options for the binary in [doc/help.txt](doc/help.txt) and [doc/advanced-help.txt](doc/advanced-help.txt).
