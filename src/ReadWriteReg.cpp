@@ -665,7 +665,8 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
         ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {
             if (this->m_Opt->m_Verbosity > 2) {
-                msg = "writing component " + std::to_string(k);
+                //msg = "writing component " + std::to_string(static_cast<int>(k));
+                msg = "writing component " + std::to_string(static_cast<long long>(k));
                 ierr = DbgMsg(msg); CHKERRQ(ierr);
             }
 
