@@ -37,7 +37,6 @@ PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 PetscErrorCode TransportImage(reg::RegToolsOpt*);
 PetscErrorCode TransportLabelMap(reg::RegToolsOpt*);
 
-
 PetscErrorCode ConvertData(reg::RegToolsOpt*);
 
 PetscErrorCode ReadData(reg::RegToolsOpt*, reg::ReadWriteReg*, Vec&);

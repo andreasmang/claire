@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGBENCHMARKOPT_H_
-#define _REGBENCHMARKOPT_H_
+#ifndef _BENCHMARKOPT_H_
+#define _BENCHMARKOPT_H_
 
 #include "RegOpt.hpp"
 
@@ -30,15 +30,15 @@ namespace reg {
 
 
 
-class RegBenchmarkOpt : public RegOpt {
+class CLPBenchmark : public RegOpt {
  public:
-    typedef RegBenchmarkOpt Self;
+    typedef CLPBenchmark Self;
     typedef RegOpt SuperClass;
 
-    RegBenchmarkOpt();
-    RegBenchmarkOpt(int, char**);
-    RegBenchmarkOpt(const RegBenchmarkOpt&);
-    virtual ~RegBenchmarkOpt();
+    CLPBenchmark();
+    CLPBenchmark(int, char**);
+    CLPBenchmark(const CLPBenchmark&);
+    virtual ~CLPBenchmark();
 
     virtual PetscErrorCode DisplayOptions(void);
     inline int Benchmark() const {return this->m_BenchmarkID;};

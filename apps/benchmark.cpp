@@ -18,15 +18,18 @@
  ************************************************************************/
 
 #include "RegUtils.hpp"
-#include "RegBenchmarkOpt.hpp"
+#include "CLPBenchmark.hpp"
 #include "VecField.hpp"
 #include "OptimalControlRegistration.hpp"
 
-PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt*);
-PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt*);
-PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt*);
-PetscErrorCode ComputeSyntheticData(Vec&, reg::RegBenchmarkOpt*);
-PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::RegBenchmarkOpt*);
+PetscErrorCode RunForwardSolverBenchmark(reg::CLPBenchmark*);
+PetscErrorCode RunGradientBenchmark(reg::CLPBenchmark*);
+PetscErrorCode RunHessianMatvecBenchmark(reg::CLPBenchmark*);
+
+PetscErrorCode ComputeErrorForwardSolver(reg::CLPBenchmark*);
+
+PetscErrorCode ComputeSyntheticData(Vec&, reg::CLPBenchmark*);
+PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::CLPBenchmark*);
 
 
 
@@ -36,7 +39,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::RegBenchmarkOpt*);
  *******************************************************************/
 int main(int argc, char **argv) {
     PetscErrorCode ierr = 0;
-    reg::RegBenchmarkOpt* opt = NULL;
+    reg::CLPBenchmark* opt = NULL;
     double runtime, value;
     int rval;
     std::stringstream ss;
@@ -48,7 +51,7 @@ int main(int argc, char **argv) {
     PetscFunctionBegin;
 
     // allocate class for controlling everything
-    try {opt = new reg::RegBenchmarkOpt(argc, argv);}
+    try {opt = new reg::CLPBenchmark(argc, argv);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
@@ -68,6 +71,9 @@ int main(int argc, char **argv) {
             break;
         case 2:
             ierr = RunHessianMatvecBenchmark(opt); CHKERRQ(ierr);
+            break;
+        case 3:
+            ierr = ComputeErrorForwardSolver(opt); CHKERRQ(ierr);
             break;
         default:
             ierr = reg::ThrowError("benchmark not defined"); CHKERRQ(ierr);
@@ -106,7 +112,7 @@ int main(int argc, char **argv) {
 /********************************************************************
  * @brief perform benchmark for forward solver
  *******************************************************************/
-PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
+PetscErrorCode RunForwardSolverBenchmark(reg::CLPBenchmark *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField* v = NULL;
@@ -165,7 +171,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::RegBenchmarkOpt *opt) {
 /********************************************************************
  * @brief perform benchmark for forward solver
  *******************************************************************/
-PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
+PetscErrorCode RunGradientBenchmark(reg::CLPBenchmark *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField* v = NULL;
@@ -224,7 +230,7 @@ PetscErrorCode RunGradientBenchmark(reg::RegBenchmarkOpt *opt) {
 /********************************************************************
  * @brief perform benchmark for hessian matvec
  *******************************************************************/
-PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt *opt) {
+PetscErrorCode RunHessianMatvecBenchmark(reg::CLPBenchmark *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField *v = NULL, *vtilde = NULL;
@@ -284,11 +290,92 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::RegBenchmarkOpt *opt) {
 
 
 
+/********************************************************************
+ * @brief perform benchmark for forward solver
+ *******************************************************************/
+PetscErrorCode ComputeErrorForwardSolver(reg::CLPBenchmark *opt) {
+    PetscErrorCode ierr = 0;
+    Vec m0 = NULL, m1 = NULL, m0true = NULL;
+    reg::VecField* v = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    reg::OptimalControlRegistration* registration = NULL;
+    ScalarType val, val0, relval;
+    std::stringstream ss;
+    double runtime;
+    PetscFunctionBegin;
+
+    // make sure we do not store time history
+    opt->m_RegFlags.runninginversion = false;
+
+    ierr = ComputeSyntheticData(m0true, opt); CHKERRQ(ierr);
+    ierr = VecDuplicate(m0true, &m0); CHKERRQ(ierr);
+    ierr = VecDuplicate(m0true, &m1); CHKERRQ(ierr);
+
+    ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
+
+    // allocate class for io
+    try {readwrite = new reg::ReadWriteReg(opt);}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+
+    try {registration = new reg::OptimalControlRegistration(opt);}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
+
+    ierr = reg::DbgMsg("computing error for forward solver"); CHKERRQ(ierr);
+
+    // warm start
+    ierr = opt->StartTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    runtime = -MPI_Wtime();
+    ierr = registration->SolveForwardProblem(m1, m0true); CHKERRQ(ierr);
+    ierr = v->Scale(-1.0); CHKERRQ(ierr); CHKERRQ(ierr);
+    ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(m0, m1); CHKERRQ(ierr);
+    runtime += MPI_Wtime();
+    ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
+    opt->SetRunTime(runtime);
+
+    ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
+
+    ierr = VecAXPY(m0, -1.0, m0true); CHKERRQ(ierr);
+    ierr = VecNorm(m0, NORM_2, &val); CHKERRQ(ierr);
+    ierr = VecNorm(m0true, NORM_2, &val0); CHKERRQ(ierr);
+
+    relval = val;
+    relval /= val0 > 0.0 ? val0 : 1.0;
+
+
+//    if (opt->m_Verbosity > 0) {
+        ss << "numerical error: "<< std::scientific << relval
+           << " (absolute " << val << ")";
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+//    }
+
+
+    if (registration != NULL) {delete registration; registration = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
+    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (m0true != NULL) {ierr = VecDestroy(&m0true); CHKERRQ(ierr); m0true = NULL;}
+    if (v != NULL) {delete v; v = NULL;}
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
 
 /********************************************************************
  * @brief compute synthetic image
  *******************************************************************/
-PetscErrorCode ComputeSyntheticData(Vec& m, reg::RegBenchmarkOpt* opt) {
+PetscErrorCode ComputeSyntheticData(Vec& m, reg::CLPBenchmark* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m = NULL;
     ScalarType hx[3], x1, x2, x3;
@@ -341,11 +428,11 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::RegBenchmarkOpt* opt) {
 /********************************************************************
  * @brief compute synthetic velocity field
  *******************************************************************/
-PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::RegBenchmarkOpt* opt) {
+PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::CLPBenchmark* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType hx[3], x1, x2, x3;
-    IntType i, vcase = 0;
+    IntType i, vcase = 1;
     PetscFunctionBegin;
 
     opt->Enter(__func__);
@@ -382,14 +469,23 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::RegBenchmarkOpt* opt
                     p_v2[i] = 0.5*PetscSinReal(x1)*PetscCosReal(x3)*PetscSinReal(x3);
                     p_v3[i] = 0.5*PetscSinReal(x2)*PetscCosReal(x1)*PetscSinReal(x1);
                 } else if (vcase == 1) {
+                    // compute the velocity field
+                    p_v1[i] = PetscSinReal(x3)*PetscCosReal(x2)*PetscSinReal(x2);
+                    p_v2[i] = PetscSinReal(x1)*PetscCosReal(x3)*PetscSinReal(x3);
+                    p_v3[i] = PetscSinReal(x2)*PetscCosReal(x1)*PetscSinReal(x1);
+                } else if (vcase == 2) {
                     // compute divergence freee velocity field
                     p_v1[i] = PetscCosReal(x2)*PetscCosReal(x3);
                     p_v2[i] = PetscSinReal(x3)*PetscSinReal(x1);
                     p_v3[i] = PetscCosReal(x1)*PetscCosReal(x2);
-                } else if (vcase == 2) {
+                } else if (vcase == 3) {
                     p_v1[i] = 0.5;
                     p_v2[i] = 0.5;
                     p_v3[i] = 0.5;
+                } else if (vcase == 4) {
+                    p_v1[i] = 0.0;
+                    p_v2[i] = 0.0;
+                    p_v3[i] = 0.0;
                 }
             }  // i1
         }  // i2

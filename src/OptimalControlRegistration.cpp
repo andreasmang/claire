@@ -395,6 +395,10 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
         nc = this->m_Opt->m_Domain.nc;
         nl = this->m_Opt->m_Domain.nl;
 
+        if (!this->m_Opt->m_RegFlags.runninginversion) {
+            nt = 0; // we did not store the time history
+        }
+
         // copy m(t=1) to m_1
         ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
         ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);

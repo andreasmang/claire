@@ -17,10 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGBENCHMARKOPT_CPP_
-#define _REGBENCHMARKOPT_CPP_
+#ifndef _CLPBENCHMARK_CPP_
+#define _CLPBENCHMARK_CPP_
 
-#include "RegBenchmarkOpt.hpp"
+#include "CLPBenchmark.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-RegBenchmarkOpt::RegBenchmarkOpt() {
+CLPBenchmark::CLPBenchmark() {
     this->Initialize();
 }
 
@@ -43,7 +43,7 @@ RegBenchmarkOpt::RegBenchmarkOpt() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-RegBenchmarkOpt::RegBenchmarkOpt(int argc, char** argv) {
+CLPBenchmark::CLPBenchmark(int argc, char** argv) {
     this->Initialize();
     this->ParseArguments(argc,argv);
 }
@@ -54,7 +54,7 @@ RegBenchmarkOpt::RegBenchmarkOpt(int argc, char** argv) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-RegBenchmarkOpt::RegBenchmarkOpt(const RegBenchmarkOpt& opt) {
+CLPBenchmark::CLPBenchmark(const CLPBenchmark& opt) {
     this->Initialize();
     this->Copy(opt);
 }
@@ -65,7 +65,7 @@ RegBenchmarkOpt::RegBenchmarkOpt(const RegBenchmarkOpt& opt) {
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
-PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
+PetscErrorCode CLPBenchmark::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<int> nx;
@@ -159,6 +159,8 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
             this->m_BenchmarkID = 1;
         } else if (strcmp(argv[1], "-hessmatvec") == 0) {
             this->m_BenchmarkID = 2;
+        } else if (strcmp(argv[1], "-terror") == 0) {
+            this->m_BenchmarkID = 3;
         } else if (strcmp(argv[1], "-repeats") == 0) {
             argc--; argv++;
             this->m_NumRepeats = atoi(argv[1]);
@@ -181,8 +183,7 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
     // set number of threads
-//    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-    ierr = InitializeDataDistribution(0, this->m_CartGridDims,
+    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                       this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
@@ -194,7 +195,7 @@ PetscErrorCode RegBenchmarkOpt::ParseArguments(int argc, char** argv) {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-RegBenchmarkOpt::~RegBenchmarkOpt() {
+CLPBenchmark::~CLPBenchmark() {
     this->ClearMemory();
 }
 
@@ -204,7 +205,7 @@ RegBenchmarkOpt::~RegBenchmarkOpt() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode RegBenchmarkOpt::ClearMemory() {
+PetscErrorCode CLPBenchmark::ClearMemory() {
     PetscFunctionBegin;
 
     PetscFunctionReturn(0);
@@ -216,7 +217,7 @@ PetscErrorCode RegBenchmarkOpt::ClearMemory() {
 /********************************************************************
  * @brief initialize class variables
  *******************************************************************/
-PetscErrorCode RegBenchmarkOpt::Initialize() {
+PetscErrorCode CLPBenchmark::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -234,7 +235,7 @@ PetscErrorCode RegBenchmarkOpt::Initialize() {
 /********************************************************************
  * @brief display usage message for binary
  *******************************************************************/
-PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
+PetscErrorCode CLPBenchmark::Usage(bool advanced) {
     PetscErrorCode ierr = 0;
     int rank;
     std::string line;
@@ -254,6 +255,7 @@ PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
         std::cout << " -forward                    benchmark forward solver"<<std::endl;
         std::cout << " -gradient                   benchmark gradient evaluation"<<std::endl;
         std::cout << " -repeats <int>              set number of repeats"<<std::endl;
+        std::cout << " -terror                     compute numerical error for solution of transport equation"<<std::endl;
         std::cout << " -logwork                    log work load (requires -x option)"<<std::endl;
         if (advanced) {
         std::cout << line << std::endl;
@@ -306,7 +308,7 @@ PetscErrorCode RegBenchmarkOpt::Usage(bool advanced) {
 /********************************************************************
  * @brief display options
  *******************************************************************/
-PetscErrorCode RegBenchmarkOpt::DisplayOptions() {
+PetscErrorCode CLPBenchmark::DisplayOptions() {
     PetscErrorCode ierr = 0;
     int rank, indent;
     std::string msg, line;
@@ -324,11 +326,7 @@ PetscErrorCode RegBenchmarkOpt::DisplayOptions() {
     if (rank == 0) {
         std::cout << std::endl;
         std::cout << line << std::endl;
-        std::cout << " Constrained Large Deformation Diffeomorphic Registration" << std::endl;
-        std::cout << line << std::endl;
-        std::cout << " Parallel Algorithms for Data Analysis and Simulation Group" << std::endl;
-        std::cout << " The Institute of Computational Engineering and Sciences" << std::endl;
-        std::cout << " The University of Texas at Austin" << std::endl;
+        std::cout << " CLAIRE: Constrained Large Deformation Diffeomorphic Registration" << std::endl;
         std::cout << line << std::endl;
         std::cout << " problem setup" << std::endl;
         std::cout << line << std::endl;
@@ -361,7 +359,7 @@ PetscErrorCode RegBenchmarkOpt::DisplayOptions() {
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
-PetscErrorCode RegBenchmarkOpt::CheckArguments() {
+PetscErrorCode CLPBenchmark::CheckArguments() {
     PetscErrorCode ierr = 0;
     std::string msg;
     bool log = false;
