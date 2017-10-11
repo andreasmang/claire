@@ -60,8 +60,9 @@ class RegistrationInterface {
     PetscErrorCode SetInitialGuess(VecField*, bool copy = false);
     PetscErrorCode GetSolution(VecField*, bool copy = false);
 
-//    PetscErrorCode EvaluateDistance(ScalarType&, VecField*);  // TODO
+//    PetscErrorCode EvaluateDistanceMeasure(ScalarType&, VecField*);  // TODO
     PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*);
+    PetscErrorCode EvaluateGradient(ScalarType*, VecField*);
 
     PetscErrorCode GetFinalState(Vec);
     PetscErrorCode RunPostProcessing();

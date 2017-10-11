@@ -149,6 +149,24 @@ PetscErrorCode VecField::SetOpt(RegOpt* opt) {
 /********************************************************************
  * @brief function to allocate vector field
  *******************************************************************/
+PetscErrorCode VecField::GetSize(IntType& nl, IntType& ng) {
+    PetscErrorCode ierr = 0;
+    std::stringstream ss;
+    PetscFunctionBegin;
+
+    //  get sizes
+    ierr = VecGetSize(this->m_X1, &ng); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(this->m_X1, &nl); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief function to allocate vector field
+ *******************************************************************/
 PetscErrorCode VecField::Allocate() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
@@ -186,6 +204,7 @@ PetscErrorCode VecField::Allocate(int level) {
 
     PetscFunctionReturn(ierr);
 }
+
 
 
 

@@ -381,6 +381,49 @@ PetscErrorCode RegistrationInterface
 
 
 /********************************************************************
+ * @brief evalute the regularization functional
+ * @param[in] v velocity field
+ * @param[out] value sobolev norm of velocity v
+ *******************************************************************/
+PetscErrorCode RegistrationInterface
+::EvaluateGradient(ScalarType* gnorm, VecField* vel) {
+    PetscErrorCode ierr = 0;
+    Vec g = NULL, v = NULL;
+    ScalarType value;
+    IntType nl, ng;
+    PetscFunctionBegin;
+
+    ierr = Assert(vel != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = vel->GetSize(nl, ng); CHKERRQ(ierr);
+
+    ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
+    ierr = VecCreate(v, 3*nl, 3*ng); CHKERRQ(ierr);
+
+    ierr = vel->GetComponents(v); CHKERRQ(ierr);
+
+    // reset registration problem
+    if (this->m_RegProblem == NULL) {
+        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    }
+
+    ierr = this->m_RegProblem->EvaluateObjective(&value, v); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->EvaluateGradient(g, v); CHKERRQ(ierr);
+
+    ierr = VecNorm(g, NORM_2, gnorm); CHKERRQ(ierr);
+
+    ierr = VecDestroy(&g); CHKERRQ(ierr);
+    ierr = VecDestroy(&v); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+
+/********************************************************************
  * @brief set up the registration problem and optimizer
  ********************************************************************/
 PetscErrorCode RegistrationInterface::SetupSolver() {

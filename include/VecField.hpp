@@ -64,11 +64,11 @@ class VecField {
     PetscErrorCode Scale(Vec);
 
     /*! pointwise scaling of individual components of
-        vector field by scalar field; assigned to input
-        vector field */
+        vector field by scalar field; assigned to input vector field */
     PetscErrorCode Scale(VecField*,Vec);
-
     PetscErrorCode Copy(VecField*);
+
+    PetscErrorCode GetSize(IntType&, IntType&);
 
     PetscErrorCode GetArrays(ScalarType*&, ScalarType*&, ScalarType*&);
     PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&);
@@ -76,8 +76,8 @@ class VecField {
     PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
     PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
 
-    PetscErrorCode WAXPY(ScalarType,VecField*,VecField*);
-    PetscErrorCode AXPY(ScalarType,VecField*);
+    PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
+    PetscErrorCode AXPY(ScalarType, VecField*);
 
     /*! compute norm of vector field */
     PetscErrorCode Norm(Vec);
