@@ -328,6 +328,13 @@ PetscErrorCode CLPBenchmark::DisplayOptions() {
         std::cout << line << std::endl;
         std::cout << " CLAIRE: Constrained Large Deformation Diffeomorphic Registration" << std::endl;
         std::cout << line << std::endl;
+        std::time_t result = std::time(NULL);
+#ifdef GIT_VERSION
+        std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
+#else
+        std::cout << " " << std::asctime(std::localtime(&result));
+#endif
+        std::cout << line << std::endl;
         std::cout << " problem setup" << std::endl;
         std::cout << line << std::endl;
         std::cout << std::left << std::setw(indent) << " problem dimensions"

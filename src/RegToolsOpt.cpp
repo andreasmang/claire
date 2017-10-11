@@ -523,11 +523,14 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
     if (rank == 0) {
         std::cout << std::endl;
         std::cout << line << std::endl;
-        std::cout << " Constrained Large Deformation Diffeomorphic Registration" << std::endl;
+        std::cout << " CLAIRE: Constrained Large Deformation Diffeomorphic Registration" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " Parallel Algorithms for Data Analysis and Simulation Group" << std::endl;
-        std::cout << " The Institute of Computational Engineering and Sciences" << std::endl;
-        std::cout << " The University of Texas at Austin" << std::endl;
+        std::time_t result = std::time(NULL);
+#ifdef GIT_VERSION
+        std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
+#else
+        std::cout << " " << std::asctime(std::localtime(&result));
+#endif
         std::cout << line << std::endl;
         std::cout << " problem setup" << std::endl;
         std::cout << line << std::endl;
