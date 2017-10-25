@@ -572,7 +572,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
 
     ierr = Assert(this->m_Opt->m_LabelIDs.size() == nc, "size mismatch"); CHKERRQ(ierr);
 
-    try {p_labelprobs = new double[nc+1];}
+    try {p_labelprobs = new ScalarType[nc+1];}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }

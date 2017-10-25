@@ -662,7 +662,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-    l = nt*nl*nc;
+    l = nt*nl*nc; // get last time point of m
     value = 0.0;
 // #pragma omp parallel for private(dr) reduction(+:value)
     for (IntType i = 0; i < nc*nl; ++i) {
@@ -670,10 +670,11 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
         value += dr*dr;
     }
 
+    // all reduce
     rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    // objective value
+    // compute objective value
     *D = 0.5*l2distance/static_cast<ScalarType>(nc);
 
     this->m_Opt->Exit(__func__);
