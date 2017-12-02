@@ -299,13 +299,17 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetAuxVariable(Vec mQ) {
+PetscErrorCode RegistrationInterface::SetAuxVariable(Vec q) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(mQ != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
+    // reset registration problem
+    if (this->m_RegProblem == NULL) {
+        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    }
 
-//    this->m_ReferenceImage = mR;
+    ierr = this->m_RegProblem->SetCellDensity(q); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -317,13 +321,17 @@ PetscErrorCode RegistrationInterface::SetAuxVariable(Vec mQ) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetCellDensity(Vec mC) {
+PetscErrorCode RegistrationInterface::SetCellDensity(Vec c) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(mC != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
+    // reset registration problem
+    if (this->m_RegProblem == NULL) {
+        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    }
 
-//    this->m_ReferenceImage = mR;
+    ierr = this->m_RegProblem->SetCellDensity(c); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

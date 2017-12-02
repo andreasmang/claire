@@ -403,6 +403,42 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
 
 
 /********************************************************************
+ * @brief set auxilary variable
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::SetAuxVariable(Vec q) {
+    PetscErrorCode ierr;
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_AuxVariable = q;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set auxilary variable
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::SetCellDensity(Vec c) {
+    PetscErrorCode ierr;
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_CellDensity = c;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief set velocity field
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::SetIncControlVariable(VecField* v) {
