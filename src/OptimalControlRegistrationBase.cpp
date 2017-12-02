@@ -90,6 +90,9 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     this->m_WorkVecField4 = NULL;
     this->m_WorkVecField5 = NULL;
 
+    this->m_AuxVariable = NULL;
+    this->m_CellDensity = NULL;
+
     this->m_WorkTenField1 = NULL;
     this->m_WorkTenField2 = NULL;
     this->m_WorkTenField3 = NULL;

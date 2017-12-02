@@ -429,7 +429,6 @@ PetscErrorCode OptimizationProblem::DerivativeCheckHessianFD() {
 
 
 
-
 /********************************************************************
  * @brief check symmetry of hessian
  * the idea is to use the identity

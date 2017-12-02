@@ -288,7 +288,7 @@ struct KrylovMethod {
     ScalarType tol[3];              ///< tolerances for krylov method
     FSeqType fseqtype;              ///< forcing sequence type
     std::string name;               ///< name of krylov solver
-    ScalarType reltol;              ///< relative tolerance for krylov solver
+    ScalarType reltol;              ///< relative tolerance for krylov solver (used to define tolerance in preconditioner)
     ScalarType g0norm;              ///< initial norm of gradient (to normalize stopping condition)
     bool g0normset;                 ///< flag to identify if initial norm of gradient has been set
     KrylovMethodType solver;        ///< flag for krylov solver

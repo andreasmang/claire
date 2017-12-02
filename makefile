@@ -150,14 +150,14 @@ LDFLAGS += -lfftw3_threads -lfftw3
 
 BIN += $(BINDIR)/claire
 ifeq ($(BUILDTOOLS),yes)
-	BIN += $(BINDIR)/regbenchmark
-	BIN += $(BINDIR)/regtools
+	BIN += $(BINDIR)/benchmark
+	BIN += $(BINDIR)/clairetools
 endif
 
 
 CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
-		$(SRCDIR)/RegBenchmarkOpt.cpp \
+		$(SRCDIR)/CLPBenchmark.cpp \
 		$(SRCDIR)/RegUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \

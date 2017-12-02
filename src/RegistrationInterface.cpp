@@ -296,6 +296,42 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
 
 
 /********************************************************************
+ * @brief set reference image (i.e., the fixed image)
+ * we normalize the intensity values to [0,1]
+ *******************************************************************/
+PetscErrorCode RegistrationInterface::SetAuxVariable(Vec mQ) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(mQ != NULL, "null pointer"); CHKERRQ(ierr);
+
+//    this->m_ReferenceImage = mR;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set reference image (i.e., the fixed image)
+ * we normalize the intensity values to [0,1]
+ *******************************************************************/
+PetscErrorCode RegistrationInterface::SetCellDensity(Vec mC) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(mC != NULL, "null pointer"); CHKERRQ(ierr);
+
+//    this->m_ReferenceImage = mR;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief get final state at t=1 for current iterate v
  * (stored in state variable)
  *******************************************************************/

@@ -55,6 +55,8 @@ class RegistrationInterface {
 
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetTemplateImage(Vec);
+    PetscErrorCode SetAuxVariable(Vec);
+    PetscErrorCode SetCellDensity(Vec);
     PetscErrorCode SetReferenceImage(Vec);
     PetscErrorCode SetSolutionVector(VecField*);
     PetscErrorCode SetInitialGuess(VecField*, bool copy = false);

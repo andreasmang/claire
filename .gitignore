@@ -10,3 +10,4 @@ obj/
 test/
 external/libs/
 results/
+environment_vars.sh

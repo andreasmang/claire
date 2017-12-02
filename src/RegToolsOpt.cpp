@@ -399,7 +399,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << line << std::endl;
-        std::cout << " memory distribution and parallelism" << std::endl;
+        std::cout << " ### memory distribution and parallelism" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -nthreads <int>             number of threads (default: 1)" << std::endl;
         std::cout << " -np <int>x<int>             distribution of mpi tasks (cartesian grid) (example: -np 2x4 results" << std::endl;
@@ -454,7 +454,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << "                             uniform smoothing is assumed: default: 1x1x1)" << std::endl;
         std::cout << " -disablesmoothing           disable smoothing" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " solver specific parameters (numerics)" << std::endl;
+        std::cout << " ### solver specific parameters (numerics)" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -pdesolver <type>           numerical time integrator for transport equations" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
@@ -478,7 +478,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -scale                      scale for resampling (multiplier applied to number of grid points)" << std::endl;
         std::cout << " -nxnew                      number of grid points for output" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " other parameters/debugging" << std::endl;
+        std::cout << " ### other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
         // ####################### advanced options #######################
         if (advanced) {

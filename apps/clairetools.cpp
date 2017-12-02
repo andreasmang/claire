@@ -251,7 +251,7 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
-
+    regopt->m_RegFlags.applysmoothing = false;
     // solve forward problem
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
     ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);

@@ -2687,9 +2687,9 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
         fn = path + "registration-performance.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
-        std::cout << std::endl;
-        ierr = this->WriteWorkLoadLog(std::cout); CHKERRQ(ierr);
-        std::cout << std::endl;
+//        std::cout << std::endl;
+//        ierr = this->WriteWorkLoadLog(std::cout); CHKERRQ(ierr);
+//        std::cout << std::endl;
         ierr = this->WriteWorkLoadLog(logwriter); CHKERRQ(ierr);
         logwriter.close();
     }
@@ -2998,9 +2998,9 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable() {
         fn = path + "registration-performance.log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
-        std::cout << std::endl;
-        ierr = this->WriteWorkLoadLogReadable(std::cout); CHKERRQ(ierr);
-        std::cout << std::endl;
+//        std::cout << std::endl;
+//        ierr = this->WriteWorkLoadLogReadable(std::cout); CHKERRQ(ierr);
+//        std::cout << std::endl;
         ierr = this->WriteWorkLoadLogReadable(logwriter); CHKERRQ(ierr);
         logwriter.close();
     }
