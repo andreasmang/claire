@@ -622,34 +622,32 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
     this->m_Opt->Enter(__func__);
 
     // reset registration problem
-//    if (this->m_RegProblem != NULL) {
-//        delete this->m_RegProblem; this->m_RegProblem = NULL;
-//    }
-
-    if (this->m_RegProblem == NULL) {
-        // allocate class for registration
-        if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
-            try {this->m_RegProblem = new OptimalControlRegistration(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        } else if (this->m_Opt->m_RegModel == STOKES) {
-            try {this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
-            try {this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        } else {
-            ierr = ThrowError("registration model not available"); CHKERRQ(ierr);
-        }
-
-        ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
+    if (this->m_RegProblem != NULL) {
+        delete this->m_RegProblem; this->m_RegProblem = NULL;
     }
+
+    // allocate class for registration
+    if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
+        try {this->m_RegProblem = new OptimalControlRegistration(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    } else if (this->m_Opt->m_RegModel == STOKES) {
+        try {this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
+        try {this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    } else {
+        ierr = ThrowError("registration model not available"); CHKERRQ(ierr);
+    }
+
+    ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
