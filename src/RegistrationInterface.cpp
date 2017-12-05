@@ -435,7 +435,7 @@ PetscErrorCode RegistrationInterface
 PetscErrorCode RegistrationInterface
 ::EvaluateGradient(ScalarType* gnorm, VecField* vel) {
     PetscErrorCode ierr = 0;
-    Vec g = NULL, v = NULL;
+    Vec g = NULL, v = NULL, mR = NULL, mT = NULL;
     ScalarType value;
     IntType nl, ng;
     PetscFunctionBegin;
@@ -454,13 +454,18 @@ PetscErrorCode RegistrationInterface
         ierr = this->SetupRegProblem(); CHKERRQ(ierr);
     }
 
+    ierr = this->SetupData(mR, mT); CHKERRQ(ierr);
+
     ierr = this->m_RegProblem->EvaluateObjective(&value, v); CHKERRQ(ierr);
     ierr = this->m_RegProblem->EvaluateGradient(g, v); CHKERRQ(ierr);
 
     ierr = VecNorm(g, NORM_2, gnorm); CHKERRQ(ierr);
 
-    ierr = VecDestroy(&g); CHKERRQ(ierr);
-    ierr = VecDestroy(&v); CHKERRQ(ierr);
+    if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr);}
+    if (v != NULL) {ierr = VecDestroy(&v); CHKERRQ(ierr);}
+
+    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr);}
+    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr);}
 
     PetscFunctionReturn(ierr);
 }
