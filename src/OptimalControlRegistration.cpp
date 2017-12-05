@@ -705,6 +705,9 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     // compute objective value
     *D = 0.5*l2distance/static_cast<ScalarType>(nc);
 
+    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
