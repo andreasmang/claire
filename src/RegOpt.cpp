@@ -1174,6 +1174,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.dval = 0.0;
     this->m_Monitor.dval0 = 0.0;
     this->m_Monitor.rval = 0.0;
+    this->m_Monitor.qmval = -1.0;
     this->m_Monitor.gradnorm = 0.0;
     this->m_Monitor.gradnorm0 = 0.0;
 

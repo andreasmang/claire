@@ -366,6 +366,7 @@ struct Monitor {
     ScalarType jvalold;         ///< value of objective functional at last iteration
     ScalarType dval;            ///< value of distance measure
     ScalarType dval0;           ///< initial value of distance measure
+    ScalarType qmval;           ///< value for inner product between q and m
     ScalarType rval;            ///< value of regularization functional
     ScalarType gradnorm;        ///< norm of gradient at current iteration
     ScalarType gradnorm0;       ///< initial value of norm of gradient

@@ -590,6 +590,11 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
             iterdisp, J/J0, D/D0, gnorm/gnorm0, gnorm, step);
     PetscPrintf(MPI_COMM_WORLD, "%-80s\n", msg);
 
+    if (optprob->GetOptions()->m_Monitor.qmval != -1.0) {
+        sprintf(msg, "  >> l2 inner product for q and m1: %-20.12E",optprob->GetOptions()->m_Monitor.qmval);
+        PetscPrintf(MPI_COMM_WORLD, "%-80s\n", msg);
+    }
+
     // go home
     PetscFunctionReturn(ierr);
 }

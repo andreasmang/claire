@@ -690,6 +690,8 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
         rval = MPI_Allreduce(&val2, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
         l2distance += value;
+        // parse value to registration monitor for display
+        this->m_Opt->m_Monitor.qmval = value;
     } else {
 // #pragma omp parallel for private(dr) reduction(+:value)
         for (IntType i = 0; i < nc*nl; ++i) {
@@ -700,7 +702,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
         rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     }
-
 
     // compute objective value
     *D = 0.5*l2distance/static_cast<ScalarType>(nc);
