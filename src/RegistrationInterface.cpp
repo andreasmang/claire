@@ -84,6 +84,9 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
 
     this->m_Solution = NULL;
 
+    this->m_CellDensity = NULL;
+    this->m_AuxVariable = NULL;
+
     this->m_IsTemplateSet = false;
     this->m_IsReferenceSet = false;
 
@@ -299,17 +302,17 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetAuxVariable(Vec q) {
+PetscErrorCode RegistrationInterface::SetAuxVariable(Vec mQ) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mQ != NULL, "null pointer"); CHKERRQ(ierr);
     // reset registration problem
-    if (this->m_RegProblem == NULL) {
-        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
-    }
-
-    ierr = this->m_RegProblem->SetCellDensity(q); CHKERRQ(ierr);
+//    if (this->m_RegProblem == NULL) {
+//        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+//    }
+//    ierr = this->m_RegProblem->SetCellDensity(mQ); CHKERRQ(ierr);
+    this->m_AuxVariable = mQ;
 
     PetscFunctionReturn(ierr);
 }
@@ -321,17 +324,17 @@ PetscErrorCode RegistrationInterface::SetAuxVariable(Vec q) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetCellDensity(Vec c) {
+PetscErrorCode RegistrationInterface::SetCellDensity(Vec mC) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mC != NULL, "null pointer"); CHKERRQ(ierr);
     // reset registration problem
-    if (this->m_RegProblem == NULL) {
-        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
-    }
-
-    ierr = this->m_RegProblem->SetCellDensity(c); CHKERRQ(ierr);
+//    if (this->m_RegProblem == NULL) {
+//        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+//    }
+//    ierr = this->m_RegProblem->SetCellDensity(mC); CHKERRQ(ierr);
+    this->m_CellDensity = mC;
 
     PetscFunctionReturn(ierr);
 }
@@ -594,6 +597,12 @@ PetscErrorCode RegistrationInterface::SetupData(Vec& mR, Vec& mT) {
         ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
 
+    if (this->m_CellDensity != NULL) {
+        ierr = this->m_RegProblem->SetCellDensity(this->m_CellDensity); CHKERRQ(ierr);
+    }
+    if (this->m_AuxVariable != NULL) {
+        ierr = this->m_RegProblem->SetAuxVariable(this->m_AuxVariable); CHKERRQ(ierr);
+    }
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

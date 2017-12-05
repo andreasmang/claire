@@ -107,6 +107,8 @@ class RegistrationInterface {
     Vec m_TemplateImage;    ///< original template image (not overwritten)
     Vec m_ReferenceImage;   ///< original reference image (not overwritten)
     VecField* m_Solution;   ///< initial guess
+    Vec m_AuxVariable;      ///< auxilariy variable
+    Vec m_CellDensity;      ///< cell density
 
     bool m_IsTemplateSet;   ///< flag: delete the template image (allocated locally)
     bool m_IsReferenceSet;  ///< flag: delete the reference image (allocated locally)
