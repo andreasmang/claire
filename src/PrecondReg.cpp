@@ -960,12 +960,25 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
 
     }
 */
+
+    // if we re-estimate the eigenvalues at every iteration,
+    // we pretend, that the eigenvalues have not been estimated
+    // just yet
+    if (this->m_Opt->m_KrylovMethod.reesteigvals) {
+        this->m_Opt->m_KrylovMethod.eigvalsestimated = false;
+    }
+
+
     if (!this->m_Opt->m_KrylovMethod.eigvalsestimated) {
         if (this->m_Opt->m_KrylovMethod.usepetsceigest) {
+            // use the default PETSC method to estimate the eigenvalues
             if (this->m_Opt->m_Verbosity > 1) {
                 ierr = DbgMsg("estimating eigenvalues (petsc)"); CHKERRQ(ierr);
             }
             // default interface for chebyshev method to estimate eigenvalues
+            // PETSC_DECIDE: the default transform is (0,0.1; 0,1.1) which
+            // targets the "upper" part of the spectrum, as desirable for use
+            // with multigrid
             ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE, PETSC_DECIDE,
                                                                PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
         } else {
@@ -1013,7 +1026,7 @@ PetscErrorCode PrecondReg::EstimateEigenValues() {
         }   // switch between eigenvalue estimators
 
         // set flag
-///        this->m_Opt->m_KrylovMethod.eigvalsestimated = true;
+//        this->m_Opt->m_KrylovMethod.eigvalsestimated = true;
     }
 
     if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr);}

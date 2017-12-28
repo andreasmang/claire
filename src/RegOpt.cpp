@@ -1047,7 +1047,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.pcsetupdone = false;
     this->m_KrylovMethod.g0norm = 0;
     this->m_KrylovMethod.g0normset = false;
-    this->m_KrylovMethod.iter = 0;           ///< divergence tolerance
+    this->m_KrylovMethod.iter = 0;
     this->m_KrylovMethod.pcsolver = PCG;
     this->m_KrylovMethod.pctolscale = 1E-1;
     //this->m_KrylovMethod.pcmaxit = 1000;
