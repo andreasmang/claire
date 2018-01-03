@@ -3518,7 +3518,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
     if (rank == 0) {
         // create output file
         fn = path + "claire-distance-measure-trend.log";
-        logwriter.open(fn.c_str());
+        logwriter.open(fn.c_str(), std::ios::in | std::ios::out );
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
         n = static_cast<int>(this->m_Log.distance.size());
@@ -3530,10 +3530,11 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
             ss.str(std::string()); ss.clear();
         }
         logwriter.close();  // close logger
+        logwriter.flush();
 
         // create output file
         fn = path + "claire-regularization-trend.log";
-        logwriter.open(fn.c_str());
+        logwriter.open(fn.c_str(), std::ios::in | std::ios::out );
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
         n = static_cast<int>(this->m_Log.regularization.size());
@@ -3541,7 +3542,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
             ss << std::scientific << std::right
                << std::setw(2) << this->m_Log.newtoniterations[i]
                << std::setw(20) << this->m_Log.regularization[i];
-            logwriter << ss.str() << std::endl;
+            logwriter << ss.str().c_str() << std::endl;
             ss.str(std::string()); ss.clear();
         }
         logwriter.close();  // close logger
@@ -3549,7 +3550,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
 
         // create output file
         fn = path + "claire-objective-trend.log";
-        logwriter.open(fn.c_str());
+        logwriter.open(fn.c_str(), std::ios::in | std::ios::out );
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
         n = static_cast<int>(this->m_Log.objective.size());
