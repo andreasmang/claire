@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _PRECONDREG_H_
-#define _PRECONDREG_H_
+#ifndef _PRECONDITIONER_H_
+#define _PRECONDITIONER_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -36,13 +36,13 @@ namespace reg {
 
 
 
-class PrecondReg {
+class Preconditioner {
  public:
     typedef OptimizationProblem OptProbType;
 
-    PrecondReg();
-    PrecondReg(RegOpt*);
-    ~PrecondReg();
+    Preconditioner();
+    Preconditioner(RegOpt*);
+    ~Preconditioner();
 
     /*! get parameters */
     inline RegOpt* GetOptions(){ return this->m_Opt; };

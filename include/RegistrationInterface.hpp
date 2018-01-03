@@ -24,7 +24,7 @@
 #include "RegUtils.hpp"
 #include "ReadWriteReg.hpp"
 #include "Optimizer.hpp"
-#include "PrecondReg.hpp"
+#include "Preconditioner.hpp"
 #include "MultiLevelPyramid.hpp"
 #include "OptimalControlRegistrationBase.hpp"
 #include "OptimalControlRegistration.hpp"
@@ -96,7 +96,7 @@ class RegistrationInterface {
 
     RegOpt* m_Opt;
     PreProcType* m_PreProc;
-    PrecondReg* m_Precond;
+    Preconditioner* m_Precond;
     ReadWriteType* m_ReadWrite;
     OptimizerType* m_Optimizer;
     RegProblemType* m_RegProblem;

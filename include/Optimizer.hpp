@@ -24,7 +24,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "VecField.hpp"
-#include "PrecondReg.hpp"
+#include "Preconditioner.hpp"
 #include "Preprocessing.hpp"
 #include "OptimizationProblem.hpp"
 
@@ -43,7 +43,7 @@ class Optimizer {
 
     PetscErrorCode Run(bool presolve=false);
     PetscErrorCode SetInitialGuess(VecField*);
-    PetscErrorCode SetPreconditioner(PrecondReg*);
+    PetscErrorCode SetPreconditioner(Preconditioner*);
     PetscErrorCode GetSolution(Vec&);
     PetscErrorCode GetSolutionStatus(bool&);
 
@@ -62,7 +62,7 @@ class Optimizer {
 //    TaoLineSearch m_LineSearch; ///< line search type
     KSP m_KrylovMethod; ///< KSP object
 //    PC m_KrylovMethodPC; ///< KSP preconditioner object
-    PrecondReg* m_Precond;
+    Preconditioner* m_Precond;
     Preprocessing* m_PreProc;
     Mat m_MatVec;
     Vec m_Solution; ///< solution vector

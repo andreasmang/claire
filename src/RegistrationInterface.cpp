@@ -523,7 +523,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
         if (this->m_Precond != NULL) {
             delete this->m_Precond; this->m_Precond = NULL;
         }
-        try {this->m_Precond = new PrecondReg(this->m_Opt);}
+        try {this->m_Precond = new Preconditioner(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }

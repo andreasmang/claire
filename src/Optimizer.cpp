@@ -213,7 +213,7 @@ PetscErrorCode Optimizer::SetProblem(Optimizer::OptProbType* optprob) {
  * @brief set the preconditioner
  * @param[in] precond interface to preconditioner
  *******************************************************************/
-PetscErrorCode Optimizer::SetPreconditioner(PrecondReg* precond) {
+PetscErrorCode Optimizer::SetPreconditioner(Preconditioner* precond) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);

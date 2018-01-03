@@ -24,7 +24,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "OptimizationProblem.hpp"
-#include "PrecondReg.hpp"
+#include "Preconditioner.hpp"
 
 
 

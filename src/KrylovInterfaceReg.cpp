@@ -171,9 +171,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     }
 
     // we might want to recompute eigenvalues at every iteration
-    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals) {
+//    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals) {
         optprob->GetOptions()->m_KrylovMethod.eigvalsestimated = false;
-    }
+//    }
 
     // check symmetry of hessian
     if (optprob->GetOptions()->m_KrylovMethod.checkhesssymmetry) {
@@ -375,13 +375,13 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
     PetscErrorCode ierr = 0;
     (void)krylovmethod;
     KSPConvergedReason reason;
-    PrecondReg* precond = NULL;
+    Preconditioner* precond = NULL;
     std::stringstream itss, rnss;
     std::string kspmeth, msg;
 
     PetscFunctionBegin;
 
-    precond = reinterpret_cast<PrecondReg*>(ptr);
+    precond = reinterpret_cast<Preconditioner*>(ptr);
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
     kspmeth = " >> PRECOND " + precond->GetOptions()->m_KrylovMethod.pcname;
@@ -405,11 +405,11 @@ PetscErrorCode InvertPrecondKrylovMonitor(KSP krylovmethod, IntType it,
 PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
     PetscErrorCode ierr = 0;
     void* ptr;
-    PrecondReg* precond = NULL;
+    Preconditioner* precond = NULL;
     PetscFunctionBegin;
 
     ierr = MatShellGetContext(P, reinterpret_cast<void**>(&ptr)); CHKERRQ(ierr);
-    precond = reinterpret_cast<PrecondReg*>(ptr);
+    precond = reinterpret_cast<Preconditioner*>(ptr);
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
     // apply hessian
@@ -430,7 +430,7 @@ PetscErrorCode InvertPrecondMatVec(Mat P, Vec x, Vec Px) {
 PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
                                            Vec x, void* ptr) {
     PetscErrorCode ierr = 0;
-    PrecondReg* precond = NULL;
+    Preconditioner* precond = NULL;
     IntType maxits;
     ScalarType reltol, abstol, divtol, scale, lowerbound, upperbound;
     std::stringstream itss, rnss;
@@ -438,7 +438,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
 
     PetscFunctionBegin;
 
-    precond = reinterpret_cast<PrecondReg*>(ptr);
+    precond = reinterpret_cast<Preconditioner*>(ptr);
     ierr = Assert(precond != NULL, "null pointer"); CHKERRQ(ierr);
 
     // setup preconditioner

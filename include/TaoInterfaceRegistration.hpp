@@ -22,7 +22,7 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "PrecondReg.hpp"
+#include "Preconditioner.hpp"
 #include "KrylovInterfaceReg.hpp"
 #include "OptimizationProblem.hpp"
 

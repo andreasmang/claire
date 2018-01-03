@@ -162,13 +162,13 @@ PetscErrorCode HessianMatVec(Mat H, Vec x, Vec Hx) {
 PetscErrorCode PrecondMatVec(PC Hpre, Vec x, Vec Hprex) {
     PetscErrorCode ierr = 0;
     void* ptr;
-    PrecondReg *preconditioner = NULL;
+    Preconditioner *preconditioner = NULL;
 
     PetscFunctionBegin;
 
     ierr = PCShellGetContext(Hpre, &ptr); CHKERRQ(ierr);
 
-    preconditioner = reinterpret_cast<PrecondReg*>(ptr);
+    preconditioner = reinterpret_cast<Preconditioner*>(ptr);
     ierr = Assert(preconditioner != NULL, "null pointer"); CHKERRQ(ierr);
 
     // apply hessian
