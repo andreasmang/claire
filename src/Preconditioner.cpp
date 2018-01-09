@@ -21,7 +21,7 @@
 #define _PRECONDREG_CPP_
 
 #include "Preconditioner.hpp"
-
+#include "petscksp.h"
 
 
 
@@ -587,6 +587,7 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     // invert preconditioner
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
     ierr = KSPSolve(this->m_KrylovMethod, this->m_CoarseGrid.x, this->m_CoarseGrid.y); CHKERRQ(ierr);
+    //ierr = KSPView(this->m_KrylovMethod,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
 
 
@@ -796,8 +797,10 @@ PetscErrorCode Preconditioner::SetupKrylovMethod(IntType nl, IntType ng) {
             }
             // chebyshev iteration
             ierr = KSPSetType(this->m_KrylovMethod, KSPCHEBYSHEV); CHKERRQ(ierr);
-#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR == 7)
             ierr = KSPChebyshevEstEigSetUseRandom(this->m_KrylovMethod, PETSC_TRUE); CHKERRQ(ierr);
+#elif (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 8)
+            ierr = KSPChebyshevEstEigSetUseNoisy(this->m_KrylovMethod, PETSC_TRUE); CHKERRQ(ierr);
 #endif
             break;
         }
@@ -968,7 +971,6 @@ PetscErrorCode Preconditioner::EstimateEigenValues() {
         this->m_Opt->m_KrylovMethod.eigvalsestimated = false;
     }
 
-
     if (!this->m_Opt->m_KrylovMethod.eigvalsestimated) {
         if (this->m_Opt->m_KrylovMethod.usepetsceigest) {
             // use the default PETSC method to estimate the eigenvalues
@@ -979,8 +981,9 @@ PetscErrorCode Preconditioner::EstimateEigenValues() {
             // PETSC_DECIDE: the default transform is (0,0.1; 0,1.1) which
             // targets the "upper" part of the spectrum, as desirable for use
             // with multigrid
-            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE, PETSC_DECIDE,
-                                                               PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+//            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE, PETSC_DECIDE,
+//                                                               PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, 0.0, 0.1, 0.0, 1.1); CHKERRQ(ierr);
         } else {
             if (this->m_Opt->m_Verbosity > 1) {
                 ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);

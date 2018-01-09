@@ -23,8 +23,6 @@
 #include "KrylovInterfaceReg.hpp"
 
 
-
-
 namespace reg {
 
 
@@ -171,9 +169,9 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     }
 
     // we might want to recompute eigenvalues at every iteration
-//    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals) {
+    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals) {
         optprob->GetOptions()->m_KrylovMethod.eigvalsestimated = false;
-//    }
+    }
 
     // check symmetry of hessian
     if (optprob->GetOptions()->m_KrylovMethod.checkhesssymmetry) {
@@ -457,7 +455,6 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
     abstol = precond->GetOptions()->m_KrylovMethod.pctol[1];
     divtol = precond->GetOptions()->m_KrylovMethod.pctol[2];
     scale  = precond->GetOptions()->m_KrylovMethod.pctolscale;
-
 
     switch (precond->GetOptions()->m_KrylovMethod.pcsolver) {
         case CHEB:

@@ -2652,11 +2652,7 @@ PetscErrorCode RegOpt::WriteLogFile() {
         ierr = this->WriteKSPLog(); CHKERRQ(ierr);
     }
 
-    if (this->m_Log.enabled[LOGCONV]) {
-        ierr = this->WriteConvergenceLog(); CHKERRQ(ierr);
-    }
-
-    if (this->m_Log.enabled[LOGRES]) {
+    if (this->m_Log.enabled[LOGCONV] || this->m_Log.enabled[LOGRES]) {
         ierr = this->WriteConvergenceLog(); CHKERRQ(ierr);
     }
 
@@ -3518,8 +3514,8 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
     if (rank == 0) {
         // create output file
         fn = path + "claire-distance-measure-trend.log";
-        logwriter.open(fn.c_str(), std::ios::in | std::ios::out );
-        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
         n = static_cast<int>(this->m_Log.distance.size());
         for (int i = 0; i < n; ++i) {
@@ -3530,12 +3526,11 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
             ss.str(std::string()); ss.clear();
         }
         logwriter.close();  // close logger
-        logwriter.flush();
 
         // create output file
         fn = path + "claire-regularization-trend.log";
-        logwriter.open(fn.c_str(), std::ios::in | std::ios::out );
-        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
         n = static_cast<int>(this->m_Log.regularization.size());
         for (int i = 0; i < n; ++i) {
@@ -3547,11 +3542,10 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         }
         logwriter.close();  // close logger
 
-
         // create output file
         fn = path + "claire-objective-trend.log";
-        logwriter.open(fn.c_str(), std::ios::in | std::ios::out );
-        ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
         n = static_cast<int>(this->m_Log.objective.size());
         for (int i = 0; i < n; ++i) {

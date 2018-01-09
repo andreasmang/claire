@@ -6,6 +6,10 @@ MPI_C=mpicc
 #MPI_F77=mpif77
 #MPI_F99=mpif90
 
+#petscvar='lite-3.7.6'
+petscvar='lite-3.8.3'
+
+
 builddep=0		# set to 1 if you wanna build all libraries
 enableAVX=0		# enable AVX	# (Advanced Vector Extensions (AVX)
 								# are extensions to the x86 instruction
@@ -315,7 +319,7 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}
 ################################
 # PETSC
 ################################
-PETSC_LIB_DIR=${BUILD_DIR}/petsc
+PETSC_LIB_DIR=${BUILD_DIR}/petsc-${petscvar}
 SRC_DIR=${PETSC_LIB_DIR}/src
 BLD_DIR=${PETSC_LIB_DIR}/build
 
@@ -328,7 +332,7 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo ${myline} 
 		echo extracting PETSC lib...
 		echo ${myline} 
-		tar -xzf ${LIB_DIR}/petsc.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xzf ${LIB_DIR}/petsc-${petscvar}.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [  ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
@@ -565,7 +569,8 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo ${myline} 
 		echo extracting NIFTI lib...
 		echo ${myline} 
-		tar -xzf ${LIB_DIR}/nifticlib.tar.gz -C ${SRC_DIR} --strip-components=1
+		#tar -xzf ${LIB_DIR}/nifticlib.tar.gz -C ${SRC_DIR} --strip-components=1
+		tar -xf ${LIB_DIR}/nifticlib-2.0.0.tar -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${NIFTI_LIB_DIR} == ${HOME} ]; then

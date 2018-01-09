@@ -17,13 +17,13 @@ if [[ ! -e fftw.tar.gz ]]; then
 	wget http://www.fftw.org/fftw-3.3.6-pl2.tar.gz -O fftw.tar.gz 
 fi
 
-
 if [[ ! -e morton.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading morton library"
 	echo "----------------------------------------------------------------------------------"
-	wget http://users.ices.utexas.edu/~andreas/libs/morton.tar.gz
+#	wget http://users.ices.utexas.edu/~andreas/libs/morton.tar.gz
+	wget http://math.uh.edu/~andreas/libs/morton.tar.gz
 fi
 
 if [[ ! -e nifticlib.tar.gz ]]; then
@@ -42,12 +42,15 @@ if [[ ! -e parallel-netcdf.tar.gz ]]; then
 	wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.8.1.tar.gz -O parallel-netcdf.tar.gz
 fi
 
-if [[ ! -e petsc.tar.gz ]]; then
+#if [[ ! -e petsc.tar.gz ]]; then
+if [[ ! -e petsc-lite-3.8.3.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading petsc library"
 	echo "----------------------------------------------------------------------------------"
-	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc.tar.gz
+#	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc.tar.gz
+#	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz
+	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz
 fi
 
 if [[ ! -e zlib.tar.gz ]]; then
