@@ -2469,17 +2469,17 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
     // interpolate velocity field v(X)
-    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+//    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     // compute divergence of velocity field at X
     ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divvx, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);
+//    this->m_Opt->StartTimer(FFTSELFEXEC);
+//    accfft_divergence_t(p_divvx, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
+//    this->m_Opt->StopTimer(FFTSELFEXEC);
+//    this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
     // evaluate div(v) along characteristic X
-    //ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
 
     // init body force for numerical integration
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
@@ -2925,25 +2925,32 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
         lm = j*nl*nc; lmnext = (j+1)*nl*nc;
-        if (fullnewton) {   // gauss newton
+        if (fullnewton) {   // full newton
             lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
         } else {
             lmt = 0; lmtnext = 0;
         }
 
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            // interpolate incremental adjoint variable
+            // interpolate incremental adjoint variable \tilde{m}^j(X)
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtilde + lmtnext + k*nl, p_mtilde + lmt + k*nl, "state"); CHKERRQ(ierr);
+            // interpolate m
+//            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mx, p_m + lm + k*nl, "state"); CHKERRQ(ierr);
 
-            // interpolate gradient
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mx, p_m + lm + k*nl, "state"); CHKERRQ(ierr);
+            // compute gradient for state variable
+//            this->m_Opt->StartTimer(FFTSELFEXEC);
+//            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_mx, this->m_Opt->m_FFT.plan, &XYZ, timer);
+//            this->m_Opt->StopTimer(FFTSELFEXEC);
+//            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+
 
             // compute gradient for state variable
             this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_mx, this->m_Opt->m_FFT.plan, &XYZ, timer);
+            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
             this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_gm1, p_gm2, p_gm3, p_gm1, p_gm2, p_gm3, "state"); CHKERRQ(ierr);
 
             // first part of time integration
 #pragma omp parallel
@@ -3626,19 +3633,19 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
     // compute v(X)
-    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+//    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     // evaluate divergence at X
-    ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divvx, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-
 //    ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-//    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
+//    ierr = this->m_WorkVecField1->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+//    this->m_Opt->StartTimer(FFTSELFEXEC);
+//    accfft_divergence_t(p_divvx, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
+//    this->m_Opt->StopTimer(FFTSELFEXEC);
+//    ierr = this->m_WorkVecField1->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+
+
+    ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
 
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
@@ -3672,7 +3679,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
                 // scale div(v)(X) by \tilde{\lambda}(X)
                 rhs0 = ltildex*p_divvx[i];
 
-                // scale v by \lamba{\lambda}
+                // scale div(v) by \tilde{\lambda}*
                 rhs1 = (ltildex + ht*rhs0)*p_divv[i];
 
                 // final rk2 step
