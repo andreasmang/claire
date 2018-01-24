@@ -6,4 +6,4 @@
 ## Algorithmic Developments
 * A. Mang & G. Biros, An inexact Newton-Krylov algorithm for constrained diffeomorphic image registration, SIAM Journal on Imaging Sciences, 8(2):1030-1069, 2015. [[arxiv](https://arxiv.org/abs/1408.6299v3), [siims](http://epubs.siam.org/doi/10.1137/140984002)].
 * A. Mang & G. Biros, Constrained H1 regularization schemes for diffeomorphic image registration, SIAM Journal on Imaging Sciences, 9(3):1154-1194, 2016 [[arxiv](https://arxiv.org/abs/1503.00757), [siims](http://epubs.siam.org/doi/10.1137/15M1010919)].
-* A. Mang & G. Biros, A semi-Lagrangian two-level preconditioned Newton-Krylov solver for constrained diffeomorphic image registration, SIAM Jornal on Scientific Computing, 39(6):B1064--B1101, 2017. [[arxiv](https://arxiv.org/abs/1604.02153)], [sisc](http://epubs.siam.org/doi/10.1137/15M1010919)].
+* A. Mang & G. Biros, A semi-Lagrangian two-level preconditioned Newton-Krylov solver for constrained diffeomorphic image registration, SIAM Jornal on Scientific Computing, 39(6):B1064--B1101, 2017. [[arxiv](https://arxiv.org/abs/1604.02153)], [sisc](http://epubs.siam.org/doi/abs/10.1137/16M1070475)].
