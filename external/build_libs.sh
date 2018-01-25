@@ -570,7 +570,7 @@ if [ ! ${cleanup} -eq 1 ]; then
 		echo extracting NIFTI lib...
 		echo ${myline} 
 		#tar -xzf ${LIB_DIR}/nifticlib.tar.gz -C ${SRC_DIR} --strip-components=1
-		tar -xf ${LIB_DIR}/nifticlib-2.0.0.tar -C ${SRC_DIR} --strip-components=1
+		tar -xf ${LIB_DIR}/nifticlib-2.0.0.tar.gz -C ${SRC_DIR} --strip-components=1
 	fi
 else
 	if [ ${cleanup} -eq 1 -a ! ${NIFTI_LIB_DIR} == ${HOME} ]; then

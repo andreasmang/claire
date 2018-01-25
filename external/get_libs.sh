@@ -23,15 +23,17 @@ if [[ ! -e morton.tar.gz ]]; then
 	echo "downloading morton library"
 	echo "----------------------------------------------------------------------------------"
 #	wget http://users.ices.utexas.edu/~andreas/libs/morton.tar.gz
-	wget http://math.uh.edu/~andreas/libs/morton.tar.gz
+#	wget http://math.uh.edu/~andreas/libs/morton.tar.gz
+	wget https://www.math.uh.edu/~andreas/resources/public/morton.tar.gz
 fi
 
-if [[ ! -e nifticlib.tar.gz ]]; then
+if [[ ! -e nifticlib/home1/03279/amang/code/claire/external/nifticlib-2.0.0.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading nifti library"
 	echo "----------------------------------------------------------------------------------"
-	wget http://downloads.sourceforge.net/project/niftilib/nifticlib/nifticlib_2_0_0/nifticlib-2.0.0.tar.gz -O nifticlib.tar.gz
+#	wget http://downloads.sourceforge.net/project/niftilib/nifticlib/nifticlib_2_0_0/nifticlib-2.0.0.tar.gz -O nifticlib.tar.gz
+	wget http://downloads.sourceforge.net/project/niftilib/nifticlib/nifticlib_2_0_0/nifticlib-2.0.0.tar.gz
 fi
 
 if [[ ! -e parallel-netcdf.tar.gz ]]; then
