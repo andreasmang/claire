@@ -115,6 +115,10 @@ PetscErrorCode Preconditioner::ClearMemory() {
         ierr = KSPDestroy(&this->m_KrylovMethod); CHKERRQ(ierr);
         this->m_KrylovMethod = NULL;
     }
+    if (this->m_KrylovMethodEigEst != NULL) {
+        ierr = KSPDestroy(&this->m_KrylovMethodEigEst); CHKERRQ(ierr);
+        this->m_KrylovMethodEigEst = NULL;
+    }
     if (this->m_MatVec != NULL) {
         ierr = MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
         this->m_MatVec = NULL;
@@ -587,8 +591,12 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     // invert preconditioner
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
     ierr = KSPSolve(this->m_KrylovMethod, this->m_CoarseGrid.x, this->m_CoarseGrid.y); CHKERRQ(ierr);
-    //ierr = KSPView(this->m_KrylovMethod,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
+
+    // inspect pc solver
+    if (this->m_Opt->m_KrylovMethod.monitorpcsolver) {
+        ierr = KSPView(this->m_KrylovMethod,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+    }
 
 
     // get components (for interface of hessian matvec)
@@ -916,6 +924,7 @@ PetscErrorCode Preconditioner::HessianMatVec(Vec Hx, Vec x) {
         // we do not apply the scaling factor that originates from
         // the spatial integration in the objective functional (false)
         ierr = this->m_CoarseGrid.m_OptimizationProblem->HessianMatVec(Hx, x, false); CHKERRQ(ierr);
+//        ierr = this->m_CoarseGrid.m_OptimizationProblem->HessianMatVec(Hx, x, true); CHKERRQ(ierr);
     } else {
         ierr = this->m_OptimizationProblem->HessianMatVec(Hx, x); CHKERRQ(ierr);
     }
@@ -964,10 +973,10 @@ PetscErrorCode Preconditioner::EstimateEigenValues() {
     }
 */
 
-    // if we re-estimate the eigenvalues at every iteration,
+    // to re-estimate the eigenvalues at every krylov iteration,
     // we pretend, that the eigenvalues have not been estimated
     // just yet
-    if (this->m_Opt->m_KrylovMethod.reesteigvals) {
+    if (this->m_Opt->m_KrylovMethod.reesteigvals == 1) {
         this->m_Opt->m_KrylovMethod.eigvalsestimated = false;
     }
 

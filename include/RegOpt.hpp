@@ -303,7 +303,8 @@ struct KrylovMethod {
     ScalarType pctolscale;          ///< tolerance scaling for preconditioner; default: 1E-1
     ScalarType pcgridscale;         ///< this is for the two level preconditioner; defines scale for grid size change; default: 2
     bool usepetsceigest;            ///< in cheb method we need to estimate eigenvalues; use petsc implementation
-    bool reesteigvals;              ///< flag to reestimate eigenvalues every iteration
+    int reesteigvals;               ///< flag to reestimate eigenvalues every Krylov(i=1)- or Newton(i=2)-iteration (default: 0)
+    bool monitorpcsolver;           ///< flag to monitor PC solver
     bool eigvalsestimated;          ///< flag if eigenvalues have already been estimated
     bool checkhesssymmetry;         ///< check symmetry of hessian operator
     ScalarType hessshift;           ///< perturbation to hessian operator

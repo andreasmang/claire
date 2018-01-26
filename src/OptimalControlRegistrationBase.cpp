@@ -858,8 +858,9 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_mt = NULL;
     ScalarType hx[3], xc1, xc2, xc3, x, sigma, maxval, minval, nvx1, nvx2, nvx3;
     ScalarType x1, x2, x3;
-    int vcase = 0, icase = 0;
-    ScalarType v0 = 0.5;
+    int vcase = 1, icase = 0;
+    //ScalarType v0 = 0.5;
+    ScalarType v0 = 1.0;
     bool velocityallocated = false;
     std::stringstream ss;
 

@@ -168,8 +168,10 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
         ierr = DbgMsg(msg); CHKERRQ(ierr);
     }
 
-    // we might want to recompute eigenvalues at every iteration
-    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals) {
+    // we might want to recompute eigenvalues at every Newton iteration;
+    // if the user sets this flag, we pretend the eigenvalues have not
+    // been estimated just yet
+    if (optprob->GetOptions()->m_KrylovMethod.reesteigvals == 2) {
         optprob->GetOptions()->m_KrylovMethod.eigvalsestimated = false;
     }
 
