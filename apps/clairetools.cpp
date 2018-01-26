@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         ierr = ComputeDefFields(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.resample) {
         ierr = Resample(regopt); CHKERRQ(ierr);
-    } else if (regopt->m_RegToolFlags.tscafield) {
+    } else if (regopt->m_RegToolFlags.deformimage) {
         ierr = TransportImage(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.tlabelmap) {
         ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
@@ -239,9 +239,9 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     }
 
     ierr = ReadData(regopt, readwrite, m0); CHKERRQ(ierr);
-    ierr = reg::Assert(m0 != NULL, "set input scalar field"); CHKERRQ(ierr);
+    ierr = reg::Assert(m0 != NULL, "template image is NULL"); CHKERRQ(ierr);
     ierr = ReadData(regopt, readwrite, v); CHKERRQ(ierr);
-    ierr = reg::Assert(v != NULL, "set input velocity field"); CHKERRQ(ierr);
+    ierr = reg::Assert(v != NULL, "velocity field is NULL"); CHKERRQ(ierr);
 
     // allocate output image
     ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
@@ -254,6 +254,13 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     regopt->m_RegFlags.applysmoothing = false;
     // solve forward problem
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+    // map from template space to reference space (i.e., compute inverse
+    // deformation)
+    if (regopt->m_RegToolFlags.reference2template) {
+        ierr = v->Scale(-1.0); CHKERRQ(ierr);
+    }
+
     ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
@@ -338,6 +345,14 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     // solve forward problem
     ierr = reg::DbgMsg("computing solution of transport problem"); CHKERRQ(ierr);
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+
+    // map from template space to reference space (i.e., compute inverse
+    // deformation)
+    if (regopt->m_RegToolFlags.reference2template) {
+        ierr = v->Scale(-1.0); CHKERRQ(ierr);
+    }
+
     ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
@@ -351,9 +366,9 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
     if (preproc != NULL) {delete preproc; preproc = NULL;}
 

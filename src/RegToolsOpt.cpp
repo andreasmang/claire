@@ -239,10 +239,12 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegFlags.detdefgradfromdeffield = true;
         } else if (strcmp(argv[1], "-residual") == 0) {
             this->m_RegToolFlags.computeresidual = true;
+        } else if (strcmp(argv[1], "-r2t") == 0) {
+            this->m_RegToolFlags.reference2template = true;
         } else if (strcmp(argv[1], "-error") == 0) {
             this->m_RegToolFlags.computeerror = true;
-        } else if (strcmp(argv[1], "-tscafield") == 0) {
-            this->m_RegToolFlags.tscafield = true;
+        } else if (strcmp(argv[1], "-deformimage") == 0) {
+            this->m_RegToolFlags.deformimage = true;
         } else if (strcmp(argv[1], "-smooth") == 0) {
             this->m_RegToolFlags.applysmoothing = true;
             argc--; argv++;
@@ -356,13 +358,14 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.readscafield = false;
     this->m_RegToolFlags.computedeffields = false;
     this->m_RegToolFlags.tlabelmap = false;
-    this->m_RegToolFlags.tscafield = false;
+    this->m_RegToolFlags.deformimage = false;
     this->m_RegToolFlags.computesynvel = false;
     this->m_RegToolFlags.resample = false;
     this->m_RegToolFlags.convert = false;
     this->m_RegToolFlags.computeerror = false;
     this->m_RegToolFlags.computeanalytics = false;
     this->m_RegToolFlags.computeresidual = false;
+    this->m_RegToolFlags.reference2template = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
@@ -431,13 +434,16 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -invdetdefgrad              compute inverse of determinant of deformation gradient (input: velocity field)" << std::endl;
         std::cout << " -deffield                   compute displacement field u (input: velocity field)" << std::endl;
         std::cout << " -defmap                     compute deformation map y (input: velocity field)" << std::endl;
-        std::cout << " -tscafield                  transport scalar field (input: velocity field and scalar field)" << std::endl;
-        std::cout << " -tlabelmap                  transport label map (input: velocity field and scalar field)" << std::endl;
         std::cout << " -residual                   compute residual between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -error                      compute error between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -analyze                    compute analytics for scalar field (-ifile option)" << std::endl;
         //std::cout << " -nlabels                    number of labels in file" << std::endl;
+        std::cout << " -deformimage                transport image (input: velocity field components and image" << std::endl;
+        std::cout << "                             image to be deformed)" << std::endl;
+        std::cout << " -tlabelmap                  transport label map (input: velocity field and scalar field)" << std::endl;
         std::cout << " -labels <num,l1,l2,...>     number of labels in file" << std::endl;
+        std::cout << " -r2t                        map (velocity) is defined from template to reference space" << std::endl;
+        std::cout << "                             enabling this flag, " << std::endl;
         // ####################### advanced options #######################
         if (advanced) {
         std::cout << " -detdefgradfromdeffield     compute gradient of some input scalar field ('-ifile' option)" << std::endl;
@@ -711,7 +717,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
     }
 
-    if (this->m_RegToolFlags.tscafield || this->m_RegToolFlags.tlabelmap) {
+    if (this->m_RegToolFlags.deformimage || this->m_RegToolFlags.tlabelmap) {
         // check if flags are set correctly
         if (!this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield) {
             msg = "\x1b[31m solution of forward problem requires a velocity field\n and a scalar field (field to be transported) \x1b[0m\n";

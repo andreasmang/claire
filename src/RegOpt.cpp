@@ -462,10 +462,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-fastsolve") == 0) {
             this->m_OptPara.fastsolve = true;
-        } else if (strcmp(argv[1], "-ic") == 0) {
-            this->m_RegModel = STOKES;
-        } else if (strcmp(argv[1], "-ric") == 0) {
-            this->m_RegModel = RELAXEDSTOKES;
+//        } else if (strcmp(argv[1], "-ic") == 0) {
+//            this->m_RegModel = STOKES;
+//        } else if (strcmp(argv[1], "-ric") == 0) {
+//            this->m_RegModel = RELAXEDSTOKES;
         } else if (strcmp(argv[1], "-optmeth") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "fn") == 0) {
@@ -615,7 +615,18 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
         } else if (strcmp(argv[1], "-reesteigvals") == 0) {
-            this->m_KrylovMethod.reesteigvals = true;
+            argc--; argv++;
+            if (strcmp(argv[1], "krylov") == 0) {
+                this->m_KrylovMethod.reesteigvals = 1;
+            } else if (strcmp(argv[1], "newton") == 0) {
+                this->m_KrylovMethod.reesteigvals = 2;
+            } else {
+                msg = "\n\x1b[31m flag not defined: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(); CHKERRQ(ierr);
+            }
+        } else if (strcmp(argv[1], "-monitorpcsolver") == 0) {
+            this->m_KrylovMethod.monitorpcsolver = true;
         } else if (strcmp(argv[1], "-pctolscale") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.pctolscale = atof(argv[1]);
@@ -655,28 +666,41 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             if (strcmp(argv[1], "h1s") == 0) {
                 this->m_RegNorm.type = H1SN;
+                this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h2s") == 0) {
                 this->m_RegNorm.type = H2SN;
+                this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h3s") == 0) {
                 this->m_RegNorm.type = H3SN;
+                this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h1") == 0) {
                 this->m_RegNorm.type = H1;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "h1s-div") == 0) {
+                this->m_RegNorm.type = H1;
+                this->m_RegModel = RELAXEDSTOKES;
+            } else if (strcmp(argv[1], "h1s-stokes") == 0) {
+                this->m_RegNorm.type = H1;
+                this->m_RegModel = STOKES;
             } else if (strcmp(argv[1], "h2") == 0) {
                 this->m_RegNorm.type = H2;
+                this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h3") == 0) {
                 this->m_RegNorm.type = H3;
+                this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "l2") == 0) {
                 this->m_RegNorm.type = L2;
+                this->m_RegModel = COMPRESSIBLE;
             } else {
                 msg = "\n\x1b[31m regularization norm not available: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
-        } else if (strcmp(argv[1], "-betav") == 0) {
+        } else if (strcmp(argv[1], "-beta") == 0) {
             argc--; argv++;
             this->m_RegNorm.beta[0] = atof(argv[1]);
 //            this->m_RegNorm.beta[1] = atof(argv[1]);
-        } else if (strcmp(argv[1], "-betaw") == 0) {
+        } else if (strcmp(argv[1], "-beta-div") == 0) {
             argc--; argv++;
             this->m_RegNorm.beta[2] = atof(argv[1]);
         } else if (strcmp(argv[1], "-train") == 0) {
@@ -1001,11 +1025,11 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
-    this->m_RegModel = COMPRESSIBLE;
+    this->m_RegModel = RELAXEDSTOKES,
     //this->m_RegModel = RELAXEDSTOKES,
 
-    this->m_RegNorm.type = H2SN;
-    //this->m_RegNorm.type = H1SN;
+//    this->m_RegNorm.type = H2SN;
+    this->m_RegNorm.type = H1SN;
     this->m_RegNorm.beta[0] = 1E-2;
     this->m_RegNorm.beta[1] = 1E-4;
     this->m_RegNorm.beta[2] = 1E-4;
@@ -1062,11 +1086,13 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.pctol[1] = 1E-16;   ///< absolute tolerance
     this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
 //#endif
+    this->m_KrylovMethod.monitorpcsolver = false;
+
     this->m_KrylovMethod.usepetsceigest = true;
     this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
 //    this->m_KrylovMethod.matvectype = PRECONDMATVEC;
 //    this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
-    this->m_KrylovMethod.reesteigvals = false;
+    this->m_KrylovMethod.reesteigvals = 0;
     this->m_KrylovMethod.eigvalsestimated = false;
     this->m_KrylovMethod.checkhesssymmetry = false;
     this->m_KrylovMethod.hessshift = 0.0;
@@ -1308,8 +1334,12 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 fgmres       flexible generalized minimal residual method" << std::endl;
         std::cout << " -pcsolvermaxit <int>        maximum number of iterations for inverting preconditioner; is" << std::endl;
         std::cout << "                             used for cheb, fgmres and fpcg; default: 10" << std::endl;
-        std::cout << " -reesteigvals               re-estimate eigenvalues of hessian operator at every newton iteration" << std::endl;
-        std::cout << "                             (in case a chebyshev method is used to invert preconditioner)" << std::endl;
+        std::cout << " -reesteigvals <flag>        re-estimate eigenvalues of hessian operator at every iteration" << std::endl;
+        std::cout << "                             (in case a chebyshev method is used to iteratively invert the" << std::endl;
+        std::cout << "                             preconditioner)" << std::endl;
+        std::cout << "                             <flag> is one of the following" << std::endl;
+        std::cout << "                                 newton       every newton iteration" << std::endl;
+        std::cout << "                                 krylov       every krylov iteration" << std::endl;
         std::cout << " -hessshift <dbl>            add perturbation to hessian" << std::endl;
         std::cout << " -pctolscale <dbl>           scale for tolerance (preconditioner needs to be inverted more" << std::endl;
         std::cout << "                             accurately then hessian; used for gmres and pcg; default: 1E-1)" << std::endl;
@@ -1324,15 +1354,19 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -regnorm <type>             regularization norm for velocity field" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 h1s          H1-seminorm" << std::endl;
-        std::cout << "                                 h2s          H2-seminorm (default)" << std::endl;
-        std::cout << "                                 h3s          H3-seminorm" << std::endl;
-        std::cout << "                                 h1           H1-norm" << std::endl;
-        std::cout << "                                 h2           H2-norm" << std::endl;
-        std::cout << "                                 h3           H3-norm" << std::endl;
+        std::cout << "                                 h1s-div      H1-seminorm with penalty on div(v); the penalty" << std::endl;
+        std::cout << "                                              is controlled by the regulariztion parameter beta-div (default)" << std::endl;
+        std::cout << "                                 h1s-stokes   H1-seminorm with incompressiblity constraint (i.e.," << std::endl;
+        std::cout << "                                              the jacobian is 1; divergence free velocity)" << std::endl;
+        std::cout << "                                 h2s          H2-seminorm" << std::endl;
+//        std::cout << "                                 h3s          H3-seminorm" << std::endl;
+//        std::cout << "                                 h1           H1-norm" << std::endl;
+//        std::cout << "                                 h2           H2-norm" << std::endl;
+//        std::cout << "                                 h3           H3-norm" << std::endl;
         std::cout << "                                 l2           l2-norm (discouraged)" << std::endl;
-        std::cout << " -betav <dbl>                regularization parameter (velocity field; default: 1E-2)" << std::endl;
-        std::cout << " -betaw <dbl>                regularization parameter (mass source map; default: 1E-4; enable relaxed" << std::endl;
-        std::cout << "                             incompressibility to use this parameter via '-ric' option; see below)" << std::endl;
+        std::cout << " -beta  <dbl>                regularization parameter (velocity field; default: 1E-2)" << std::endl;
+        std::cout << " -beta-div <dbl>             regularization parameter (mass source map; default: 1E-4; enable relaxed" << std::endl;
+        std::cout << "                             incompressibility to use this parameter via '-regnorm h1-div' option; see above)" << std::endl;
         std::cout << " -ic                         enable incompressibility constraint (det(grad(y))=1)" << std::endl;
         std::cout << " -ric                        enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)" << std::endl;
         std::cout << " -scalecont                  enable scale continuation (continuation in smoothness of images;" << std::endl;
@@ -1350,9 +1384,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 binary       perform binary search (recommended)" << std::endl;
         std::cout << "                                 reduce       reduce parameter by one order until bound is breached" << std::endl;
         std::cout << " -jbound <dbl>               lower bound on determinant of deformation gradient (default: 2E-1)" << std::endl;
-        std::cout << " -betavcont <dbl>            do parameter continuation in betav until target regularization" << std::endl;
-        std::cout << "                             parameter betav=<dbl> is reached (betav must be in (0,1))" << std::endl;
-        std::cout << " -betavinit <dbl>            initial regularization weight for continuation" << std::endl;
+        std::cout << " -betacont <dbl>             do parameter continuation in beta until target regularization" << std::endl;
+        std::cout << "                             parameter beta=<dbl> is reached (beta must be in (0,1))" << std::endl;
+        std::cout << " -betainit <dbl>             initial regularization weight for continuation" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {
@@ -1476,7 +1510,7 @@ PetscErrorCode RegOpt::CheckArguments() {
     if (this->m_ParaCont.strategy == PCONTINUATION) {
         betav = this->m_ParaCont.targetbeta;
         if (betav <= 0.0 || betav > 1.0) {
-            msg = "\x1b[31m target betav not in (0.0,1.0]\x1b[0m\n";
+            msg = "\x1b[31m target beta not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
@@ -1485,7 +1519,7 @@ PetscErrorCode RegOpt::CheckArguments() {
         || this->m_ParaCont.strategy == PCONTINUATION  ) {
         betav = this->m_ParaCont.beta0;
         if (betav <= 0.0 || betav > 1.0) {
-            msg = "\x1b[31m initial guess for betav not in (0.0,1.0]\x1b[0m\n";
+            msg = "\x1b[31m initial guess for beta not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
@@ -1861,37 +1895,37 @@ PetscErrorCode RegOpt::DisplayOptions() {
             switch (this->m_RegNorm.type) {
                 case L2:
                 {
-                    std::cout << "l2-norm (betav estimated)" << std::endl;
+                    std::cout << "l2-norm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout << "h1-norm (betav estimated)" << std::endl;
+                    std::cout << "h1-norm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 case H2:
                 {
-                    std::cout << "h2-norm (betav estimated)" << std::endl;
+                    std::cout << "h2-norm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 case H3:
                 {
-                    std::cout << "h3-norm (betav estimated)" << std::endl;
+                    std::cout << "h3-norm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 case H1SN:
                 {
-                    std::cout << "h1-seminorm (betav estimated)" << std::endl;
+                    std::cout << "h1-seminorm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout << "h2-seminorm (betav estimated)" << std::endl;
+                    std::cout << "h2-seminorm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 case H3SN:
                 {
-                    std::cout << "h3-seminorm (betav estimated)" << std::endl;
+                    std::cout << "h3-seminorm (regularization parameter beta estimated)" << std::endl;
                     break;
                 }
                 default:
@@ -1915,14 +1949,14 @@ PetscErrorCode RegOpt::DisplayOptions() {
             switch (this->m_RegNorm.type) {
                 case L2:
                 {
-                    std::cout   << std::scientific << "l2-norm (betav="
+                    std::cout   << std::scientific << "l2-norm (beta="
                                 << this->m_RegNorm.beta[0]
                                 << ")" << std::endl;
                     break;
                 }
                 case H1:
                 {
-                    std::cout   << std::scientific << "h1-norm (betav="
+                    std::cout   << std::scientific << "h1-norm (beta="
                                 << this->m_RegNorm.beta[0]
                                 << ", " << this->m_RegNorm.beta[1]
                                 << ") " << std::endl;
@@ -1930,7 +1964,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 }
                 case H2:
                 {
-                    std::cout   << std::scientific << "h2-norm (betav="
+                    std::cout   << std::scientific << "h2-norm (beta="
                                 << this->m_RegNorm.beta[0]
                                 << ", " << this->m_RegNorm.beta[1]
                                 << ")" << std::endl;
@@ -1938,7 +1972,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 }
                 case H3:
                 {
-                    std::cout   << std::scientific << "h3-norm (betav="
+                    std::cout   << std::scientific << "h3-norm (beta="
                                 << this->m_RegNorm.beta[0]
                                 << ", " << this->m_RegNorm.beta[1]
                                 << ")" << std::endl;
@@ -1946,21 +1980,21 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 }
                 case H1SN:
                 {
-                    std::cout   << std::scientific <<  "h1-seminorm (betav="
+                    std::cout   << std::scientific <<  "h1-seminorm (beta="
                                 <<  this->m_RegNorm.beta[0]
                                 << ")" << std::endl;
                     break;
                 }
                 case H2SN:
                 {
-                    std::cout   << std::scientific << "h2-seminorm (betav="
+                    std::cout   << std::scientific << "h2-seminorm (beta="
                                 << this->m_RegNorm.beta[0]
                                 << ")" << std::endl;
                     break;
                 }
                 case H3SN:
                 {
-                    std::cout   << std::scientific << "h3-seminorm (betav="
+                    std::cout   << std::scientific << "h3-seminorm (beta="
                                 << this->m_RegNorm.beta[0]
                                 << ")" << std::endl;
                     break;

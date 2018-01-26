@@ -43,11 +43,12 @@ struct RegToolFlags {
     bool computesynvel;         ///< compute synthetic velocity field
     bool computeresidual;       ///< compute residual between two images
     bool computeerror;          ///< compute difference / error between two scalar fields
-    bool tscafield;             ///< transport scalar field (forward problem)
+    bool deformimage;           ///< transport scalar field (forward problem)
     bool tlabelmap;             ///< transport label map (solve forward problem)
     bool convert;               ///< convert image data
     bool computeanalytics;      ///< compute analytics of scalar field
     bool applysmoothing;        ///< convert image data
+    bool reference2template;    ///< flag: define direction of deformation map to be inverse (reference space to template space)
 };
 
 
