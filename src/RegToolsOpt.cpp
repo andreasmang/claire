@@ -441,7 +441,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -deformimage                transport image (input: velocity field components and image" << std::endl;
         std::cout << "                             image to be deformed)" << std::endl;
         std::cout << " -tlabelmap                  transport label map (input: velocity field and scalar field)" << std::endl;
-        std::cout << " -labels <num,l1,l2,...>     number of labels in file" << std::endl;
+        std::cout << " -labels <l1,l2,...>         labels to be transported (ids/numbers)" << std::endl;
         std::cout << " -r2t                        map (velocity) is defined from template to reference space" << std::endl;
         std::cout << "                             enabling this flag, " << std::endl;
         // ####################### advanced options #######################

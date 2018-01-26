@@ -68,6 +68,8 @@ residual-t=1.nii.gz             | residual / mismatch after registration
 velocity-field-2norm.nii.gz     | l2 norm of velocity field
 
 
+
+
 ## Post Processing 
 
 ### Post Processing 
@@ -83,6 +85,13 @@ Map (transport) reference image to template space (registration performed from t
 
 ```bash
 ./bin/clairetools -mt results/reference-image.nii.gz -deformimage -v1 results/velocity-field-x1.nii.gz -v2 results/velocity-field-x2.nii.gz -v3 results/velocity-field-x3.nii.gz -r2t
+```
+
+
+Map (transport) label map to reference space (registration performed from template to reference space):
+
+```bash
+./bin/clairetools -mt results/template-image.nii.gz -deformimage -v1 results/velocity-field-x1.nii.gz -v2 results/velocity-field-x2.nii.gz -v3 results/velocity-field-x3.nii.gz
 ```
 
 
