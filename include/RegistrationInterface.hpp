@@ -124,6 +124,3 @@ class RegistrationInterface {
 
 
 #endif  // _REGISTRATIONINTERFACE_H_
-
-
-

@@ -364,6 +364,143 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
 
 
 /********************************************************************
+ * @brief set m at t=0
+ * @param[in] m0 density/image at t=0 (initial condition of forward
+ * problem)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::SetInitialState(Vec m0) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_m0 = NULL, *p_m = NULL;
+    IntType nt, nl, nc, ng;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+
+    // allocate state variable
+    if (this->m_StateVariable == NULL) {
+        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        ierr = VecSet(this->m_StateVariable, 0); CHKERRQ(ierr);
+    }
+
+    // copy m_0 to m(t=0)
+    ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    try {std::copy(p_m0, p_m0+nl*nc, p_m);}
+    catch (std::exception& err) {
+        ierr = ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief get m at t=1
+ * @param[out] m1 density/image at t=1 (solution of forward problem)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::GetFinalState(Vec m1) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_m1 = NULL, *p_m = NULL;
+    IntType nt, nl, nc;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    if (!this->m_Opt->m_RegFlags.runninginversion) {
+        nt = 0; // we did not store the time history
+    }
+
+    // copy m(t=1) to m_1
+    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
+    catch (std::exception& err) {
+        ierr = ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set lambda at t=1
+ * @param[out] l1 adjoint variable at t=1 (final condition of adjoint
+ * problem)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::SetFinalAdjoint(Vec l1) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_l1 = NULL, *p_l = NULL;
+    IntType nt, nl, ng, nc;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(l1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+
+    // we do not store the time history for a gauss-newton approximation
+    if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {
+        nt = 0;
+    }
+
+    // allocate pointer if not done so already
+    if (this->m_AdjointVariable == NULL) {
+        ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+    }
+
+    // copy l1 to lambda(t=1)
+    ierr = VecGetArray(l1, &p_l1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    try {std::copy(p_l+nt*nl*nc, p_l+(nt+1)*nl*nc, p_l1);}
+    catch (std::exception& err) {
+        ierr = ThrowError(err); CHKERRQ(ierr);
+    }
+    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(l1, &p_l1); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
  * @brief solve the forward problem (we assume the user has
  * set the velocity field)
  * @param[in] m0 density/image at t=0
@@ -372,9 +509,6 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_m1 = NULL, *p_m = NULL;
-    IntType nt, nl, nc;
-    std::stringstream ss;
 
     PetscFunctionBegin;
 
@@ -388,26 +522,9 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
 
-    // only copy if someone cares
+    // only copy if output is necessary
     if (m1 != NULL) {
-        // get sizes
-        nt = this->m_Opt->m_Domain.nt;
-        nc = this->m_Opt->m_Domain.nc;
-        nl = this->m_Opt->m_Domain.nl;
-
-        if (!this->m_Opt->m_RegFlags.runninginversion) {
-            nt = 0; // we did not store the time history
-        }
-
-        // copy m(t=1) to m_1
-        ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
-        catch (std::exception& err) {
-            ierr = ThrowError(err); CHKERRQ(ierr);
-        }
-        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+        ierr = this->GetFinalState(m1); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -963,10 +1080,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g, bool f
     // evaluate / apply gradient operator for regularization
     ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, flag); CHKERRQ(ierr);
 
-    // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
+    // \vect{g}_v = \vect{v} + (\beta_v \D{A})^{-1}\D{K}[\vect{b}]
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_VelocityField); CHKERRQ(ierr);
 
-    // copy
+    // copy to output
     ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);

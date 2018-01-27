@@ -90,6 +90,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! allocate all the memory we need */
     PetscErrorCode InitializeSolver();
 
+
  protected:
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
@@ -99,6 +100,15 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
 
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
+
+    /*! get the final state variable */
+    PetscErrorCode GetFinalState(Vec);
+
+    /*! get the final state variable */
+    PetscErrorCode SetInitialState(Vec);
+
+    /*! get the final state variable */
+    PetscErrorCode SetFinalAdjoint(Vec);
 
     /*! solve state equation */
     virtual PetscErrorCode SolveStateEquation(void);
