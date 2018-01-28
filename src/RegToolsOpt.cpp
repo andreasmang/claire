@@ -268,8 +268,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-tlabelmap") == 0) {
             this->m_RegToolFlags.tlabelmap = true;
-        } else if (strcmp(argv[1], "-computeravenmap") == 0) {
-            this->m_RegToolFlags.computeravenmap = true;
+        } else if (strcmp(argv[1], "-computeravensmap") == 0) {
+            this->m_RegToolFlags.computeravensmap = true;
         } else if (strcmp(argv[1], "-csynvel") == 0) {
             this->m_RegToolFlags.computesynvel = true;
         } else if (strcmp(argv[1], "-analyze") == 0) {
@@ -724,7 +724,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
     }
 
-    if (this->m_RegToolFlags.deformimage || this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravenmap) {
+    if (this->m_RegToolFlags.deformimage || this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravensmap) {
         // check if flags are set correctly
         if (!this->m_RegToolFlags.readvecfield) {
             msg =  "\n\x1b[31m solution of forward problem requires a velocity field as input:\n";
@@ -760,7 +760,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
 */
     }
-    if (this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravenmap) {
+    if (this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravensmap) {
 //        if (this->m_NumLabels == -1) {
 //            msg = "\x1b[31m number of labels to be transported needs to be set\x1b[0m\n";
 //            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
