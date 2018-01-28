@@ -39,12 +39,13 @@ Make sure that the standard *wrappers* for *mpicc* and *mpicxx* are available on
 CLAIRE depends on the following libraries:
 
 * FFTW [http://www.fftw.org](http://www.fftw.org)
-* ACCFFT [http://accfft.org](http://accfft.org) 
-* PETSc [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/) 
-* zlib [http://zlib.net](http://zlib.net) 
-* niftilib [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/) 
+* ACCFFT [http://accfft.org](http://accfft.org)
+* PETSc [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/)
+* niftilib [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
+* zlib [http://zlib.net](http://zlib.net)
+* libmorton [https://github.com/Forceflow/libmorton](https://github.com/Forceflow/libmorton)
 
-We provide the following libraries with the code: FFTW version 3.3.4; ACCFFT (downloaded in Mai, 2016), PETSc (version 3.7; requires *python 2.7*); zlib (version 1.2.8); and niftilib (version 2.0.0). These libraries have to be installed and made available on your system before compiling the code. We build all libraries as **static** by default. We provide *tarball* files for these individual libraries. The *compressed* tarball files (i.e, *LIBRARYNAME.tar.gz*) should be located in or be added to the [external](../external) folder.
+We provide the following libraries with the code: FFTW version 3.3.4; ACCFFT (downloaded in Mai, 2016), PETSc (version 3.8.3; requires *python 2.7*); zlib (version 1.2.11); netcdf (version 1.8.1; for *.nc support) and niftilib (version 2.0.0; for *.nii support). These libraries have to be installed and made available on your system before compiling the code. We build all libraries as **static** by default. We provide *tarball* files for these individual libraries. The *compressed* tarball files (i.e, *LIBRARYNAME.tar.gz*) should be located in or be added to the [external](../external) folder.
 
 
 #### Installing Dependencies: Quick Shot
@@ -54,7 +55,7 @@ cd external
 ./build_libs.sh --build
 ```
 
-If you use *Intel MPI* provide the `--useimpi` option to `./build_libs.sh`.
+<If you use *Intel MPI* provide the `--useimpi` option to `./build_libs.sh`.>
 
 
 #### Installing Dependencies: Details
