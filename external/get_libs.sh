@@ -27,7 +27,7 @@ if [[ ! -e morton.tar.gz ]]; then
 	wget https://www.math.uh.edu/~andreas/resources/public/morton.tar.gz
 fi
 
-if [[ ! -e nifticlib/home1/03279/amang/code/claire/external/nifticlib-2.0.0.tar.gz ]]; then
+if [[ ! -e nifticlib-2.0.0.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading nifti library"
