@@ -386,8 +386,11 @@ PetscErrorCode OptimalControlRegistration::SetInitialState(Vec m0) {
 
     // allocate state variable
     if (this->m_StateVariable == NULL) {
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
-        ierr = VecSet(this->m_StateVariable, 0); CHKERRQ(ierr);
+        if (this->m_Opt->m_RegFlags.runninginversion) {
+            ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        } else {
+            ierr = VecCreate(this->m_StateVariable, nl*nc, ng*nc); CHKERRQ(ierr);
+        }
     }
 
     // copy m_0 to m(t=0)
@@ -1774,6 +1777,67 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
 }
 
 
+/********************************************************************
+ * @brief solve the forward problem (state equation)
+ * \p_t m + \igrad m\cdot\vect{v} = 0
+ * subject to m_0 - m_T = 0
+ * solved forward in time
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::StoreStateVariable() {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng, nc, nt;
+    ScalarType *p_m = NULL, *p_mj = NULL;
+    std::stringstream ss;
+    std::string ext;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+
+    ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
+    ext = this->m_Opt->m_FileNames.extension;
+
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
+    ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // store time history
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    // store individual time points
+    for (IntType j = 0; j <= nt; ++j) {
+        for (IntType k = 0; k < nc; ++k) {
+            ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+            try {std::copy(p_m+j*nl*nc + k*nl, p_m+j*nl*nc + (k+1)*nl, p_mj);}
+            catch (std::exception& err) {
+                ierr = ThrowError(err); CHKERRQ(ierr);
+            }
+            ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+            // write out
+            ss.str(std::string()); ss.clear();
+
+            if (nc > 1) {
+                ss << "state-variable-k=" << std::setw(3) << std::setfill('0')  << k
+                   << "-j=" << std::setw(3) << std::setfill('0') << j << ext;
+            } else {
+                ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ext;
+            }
+            ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
+        }  // for number of vector components
+    }  // for number of time points
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 /********************************************************************
@@ -1782,10 +1846,10 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
+PetscErrorCode OptimalControlRegistration::SolveStateEquation() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt;
-    ScalarType *p_m = NULL, *p_m0 = NULL, *p_mj = NULL;
+    IntType nl, nc, nt;
+    ScalarType *p_m = NULL;
     std::stringstream ss;
     std::string ext;
     PetscFunctionBegin;
@@ -1804,7 +1868,6 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -1817,26 +1880,11 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
         ss.str(std::string()); ss.clear();
     }
 
-    ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
-
-    // allocate state and adjoint variables
-    if (this->m_StateVariable == NULL) {
-        if (this->m_Opt->m_RegFlags.runninginversion) {
-            ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
-        } else {
-            ierr = VecCreate(this->m_StateVariable, nl*nc, ng*nc); CHKERRQ(ierr);
-        }
-    }
 
     // set initial condition m_0 = m_T
-    ierr = VecGetArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m0, p_m0+nl*nc, p_m);}
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
-    }
-    ierr = VecRestoreArray(this->m_TemplateImage, &p_m0); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = this->SetInitialState(this->m_TemplateImage); CHKERRQ(ierr);
+
+    ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
@@ -1863,6 +1911,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
             case SL:
             {
                 ierr = this->SolveStateEquationSL(); CHKERRQ(ierr);
+//                ierr = this->SolveContinuityEquationSL(); CHKERRQ(ierr);
                 break;
             }
             default:
@@ -1894,37 +1943,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation(void) {
 
     // store time series
     if (this->m_Opt->m_ReadWriteFlags.timeseries) {
-        ext = this->m_Opt->m_FileNames.extension;
-
-        if (this->m_WorkScaField1 == NULL) {
-            ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-        }
-        ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-
-        // store time history
-        ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        // store individual time points
-        for (IntType j = 0; j <= nt; ++j) {
-            for (IntType k = 0; k < nc; ++k) {
-                ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
-                try {std::copy(p_m+j*nl*nc + k*nl, p_m+j*nl*nc + (k+1)*nl, p_mj);}
-                catch (std::exception& err) {
-                    ierr = ThrowError(err); CHKERRQ(ierr);
-                }
-                ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
-                // write out
-                ss.str(std::string()); ss.clear();
-
-                if (nc > 1) {
-                    ss << "state-variable-k=" << std::setw(3) << std::setfill('0')  << k
-                       << "-j=" << std::setw(3) << std::setfill('0') << j << ext;
-                } else {
-                    ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ext;
-                }
-                ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
-            }  // for number of vector components
-        }  // for number of time points
-        ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = this->StoreStateVariable(); CHKERRQ(ierr);
     }
 
     // increment counter
@@ -2089,13 +2108,14 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-    // compute trajectory
     if (this->m_WorkVecField1 == NULL) {
         try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
+
+    // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
@@ -2682,6 +2702,135 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
 
     this->m_Opt->Exit(__func__);
 
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief solve the forward problem (state equation)
+ * \p_t m + \idiv m\vect{v} = 0  with initial condition m_0 = m_T
+ * (solved forward in time)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistration::SolveContinuityEquationSL() {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
+                *p_divv = NULL, *p_divvx = NULL,
+                *p_m = NULL, *p_mx = NULL;
+    ScalarType mx, rhs0, rhs1, ht, hthalf;
+    IntType nl, ng, nc, nt, l, lnext;
+    std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
+    bool store;
+
+    double timer[NFFTTIMERS] = {0};
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    // flag to identify if we store the time history
+    store = this->m_Opt->m_RegFlags.runninginversion;
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+    ht = this->m_Opt->GetTimeStepSize();
+    hthalf = 0.5*ht;
+
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+
+
+    if (this->m_SemiLagrangianMethod == NULL) {
+        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+    if (this->m_WorkVecField1 == NULL) {
+        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc& err) {
+            ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+    }
+
+    // compute trajectory
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+
+
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_mx); CHKERRQ(ierr);
+
+    // compute divergence of velocity field
+    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    this->m_Opt->IncrementCounter(FFT, FFTDIV);
+
+    // interpolate velocity field v(X)
+//    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+
+    // compute divergence of velocity field at X
+//    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
+//    this->m_Opt->StartTimer(FFTSELFEXEC);
+//    accfft_divergence_t(p_divvx, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
+//    this->m_Opt->StopTimer(FFTSELFEXEC);
+//    this->m_Opt->IncrementCounter(FFT, FFTDIV);
+
+    // evaluate div(v) along characteristic X
+    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "state"); CHKERRQ(ierr);
+
+    // perform numerical time integration for state variable
+    for (IntType j = 0; j < nt; ++j) {
+        if (store) {
+            l = j*nl*nc; lnext = (j+1)*nl*nc;
+        } else {
+            l = 0; lnext = 0;
+        }
+
+        // scaling for trapezoidal rule (for body force)
+        for (IntType k = 0; k < nc; ++k) {
+            // compute lambda(t^j,X)
+            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mx, p_m + l + k*nl, "state"); CHKERRQ(ierr);
+
+#pragma omp parallel
+{
+#pragma omp for
+            for (IntType i = 0; i < nl; ++i) {
+                mx = p_mx[i];
+
+                rhs0 = -mx*p_divvx[i];
+                rhs1 = -(mx + ht*rhs0)*p_divv[i];
+                //if (std::abs(p_divv[i]) > 0.1) { std::cout << p_divv[i] << " ";}
+                // compute \lambda(x,t^{j+1})
+                p_m[lnext + k*nl + i] = mx + hthalf*(rhs0 + rhs1);
+            }
+        }
+}  // omp
+    }
+
+    ierr = VecRestoreArray(this->m_WorkScaField3, &p_mx); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+
+    this->m_Opt->IncreaseFFTTimers(timer);
+
+    this->m_Opt->Exit(__func__);
     PetscFunctionReturn(ierr);
 }
 

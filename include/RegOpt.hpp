@@ -371,7 +371,7 @@ struct Monitor {
     ScalarType rval;            ///< value of regularization functional
     ScalarType gradnorm;        ///< norm of gradient at current iteration
     ScalarType gradnorm0;       ///< initial value of norm of gradient
-    std::string solverstatus;
+    std::string solverstatus;   ///< string to hold solver status (used in coupling)
 };
 
 
