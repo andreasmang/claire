@@ -112,6 +112,9 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_PDESolver.cflnumber = opt.m_PDESolver.cflnumber;
     this->m_PDESolver.monitorcflnumber = opt.m_PDESolver.monitorcflnumber;
     this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
+    this->m_PDESolver.pdetype = opt.m_PDESolver.pdetype;
+
+
     this->m_RegModel = opt.m_RegModel;
 
     // smoothing
@@ -1025,26 +1028,27 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
-    this->m_RegModel = RELAXEDSTOKES,
-    //this->m_RegModel = RELAXEDSTOKES,
+    this->m_RegModel = RELAXEDSTOKES;               ///< default registration model
+    //this->m_RegModel = RELAXEDSTOKES;
 
 //    this->m_RegNorm.type = H2SN;
-    this->m_RegNorm.type = H1SN;
-    this->m_RegNorm.beta[0] = 1E-2;
-    this->m_RegNorm.beta[1] = 1E-4;
-    this->m_RegNorm.beta[2] = 1E-4;
-    this->m_RegNorm.beta[3] = 0;
+    this->m_RegNorm.type = H1SN;                    ///< default regularization norm
+    this->m_RegNorm.beta[0] = 1E-2;                 ///< default regularization parameter for velocity
+    this->m_RegNorm.beta[1] = 1E-4;                 ///< default regularization parameter for norm (idenity)
+    this->m_RegNorm.beta[2] = 1E-4;                 ///< default regularization parameter for divergence of velocity
+    this->m_RegNorm.beta[3] = 0;                    ///< not used
 
-    this->m_Verbosity = 0;
+    this->m_Verbosity = 0;                          ///< verbosity level: 0,1,2
 
-    this->m_PDESolver.type = SL;
-    this->m_PDESolver.cflnumber = 0.5;
-    this->m_PDESolver.monitorcflnumber = false;
-    this->m_PDESolver.adapttimestep = false;
-    this->m_PDESolver.rkorder = 2;
-    this->m_PDESolver.iporder = 3;
+    this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)
+    this->m_PDESolver.cflnumber = 0.5;              ///< CFL number used for adaptive time stepping
+    this->m_PDESolver.monitorcflnumber = false;     ///< show CFL number during solve
+    this->m_PDESolver.adapttimestep = false;        ///< use adaptive time stepping (based on CFL number)
+    this->m_PDESolver.rkorder = 2;                  ///< order of RK method
+    this->m_PDESolver.iporder = 3;                  ///< order of interpolation model
+    this->m_PDESolver.pdetype = TRANSPORTEQ;        ///< PDE constraint type (transport or continuity equation)
 
-    // smoothing
+    // smoothing (for image data)
     this->m_Sigma[0] = 1.0;
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
@@ -1105,19 +1109,19 @@ PetscErrorCode RegOpt::Initialize() {
 //#else
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
 //#endif
-    this->m_OptPara.tol[2] = 1E-2;                  ///< grad rel tol ||g(x)||/||g(x0)|| < tol
-    this->m_OptPara.maxiter = 50;                   ///< max number of iterations
-    this->m_OptPara.iterbound = 250;                ///< max number of iterations allowed
-    this->m_OptPara.miniter = 0;                    ///< min number of iterations (used for inaccurate presolves)
-    this->m_OptPara.gtolbound = 0.8;                ///< min relative change of gradient (for loose stopping conditions)
-    this->m_OptPara.method = GAUSSNEWTON;           ///< optmization method
-    this->m_OptPara.gradtype = L2GRAD;              ///< gradient type
-    this->m_OptPara.fastsolve = false;              ///< switch on fast solver (less accurate)
-    this->m_OptPara.fastpresolve = true;            ///< enable fast (inaccurate) solve for first steps
-    this->m_OptPara.usezeroinitialguess = true;     ///< use zero initial guess for optimization
-    this->m_OptPara.derivativecheckenabled = false; ///< use zero initial guess for optimization
-    this->m_OptPara.glmethod = ARMIJOLS;            ///< globalization method (default is line search)
-    this->m_OptPara.solutionstatus = 0;             ///< flag for status of solution
+    this->m_OptPara.tol[2] = 1E-2;                    ///< grad rel tol ||g(x)||/||g(x0)|| < tol
+    this->m_OptPara.maxiter = 50;                     ///< max number of iterations
+    this->m_OptPara.iterbound = 250;                  ///< max number of iterations allowed
+    this->m_OptPara.miniter = 0;                      ///< min number of iterations (used for inaccurate presolves)
+    this->m_OptPara.gtolbound = 0.8;                  ///< min relative change of gradient (for loose stopping conditions)
+    this->m_OptPara.method = GAUSSNEWTON;             ///< optmization method
+    this->m_OptPara.gradtype = L2GRAD;                ///< gradient type
+    this->m_OptPara.fastsolve = false;                ///< switch on fast solver (less accurate)
+    this->m_OptPara.fastpresolve = true;              ///< enable fast (inaccurate) solve for first steps
+    this->m_OptPara.usezeroinitialguess = true;       ///< use zero initial guess for optimization
+    this->m_OptPara.derivativecheckenabled = false;   ///< perform derivative check
+    this->m_OptPara.glmethod = ARMIJOLS;              ///< globalization method (default is line search)
+    this->m_OptPara.solutionstatus = 0;               ///< flag for status of solution
 
     // tolerances for presolve
     this->m_OptPara.presolvetol[0] = this->m_OptPara.tol[0];    ///< grad abs tol ||g(x)|| < tol
@@ -1158,7 +1162,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FileNames.xfolder.clear();
     this->m_FileNames.ifolder.clear();
     this->m_FileNames.extension.clear();
-    this->m_FileNames.extension = ".nii.gz";   ///< file extension for output
+    this->m_FileNames.extension = ".nii.gz";            ///< default file extension for output
 
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
     this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling (for output)

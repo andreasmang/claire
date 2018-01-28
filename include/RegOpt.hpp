@@ -39,6 +39,14 @@ enum PDESolverType {
 };
 
 
+// flags for hyperbolic PDE solvers
+enum PDEType {
+    CONTINUITYEQ,   ///< identifier for continuity equation
+    TRANSPORTEQ,    ///< identifier for transport equation
+};
+
+
+
 // flags for regularization norms
 enum RegNormType {
     L2,    ///< flag for L2-norm
@@ -407,6 +415,7 @@ struct RegFlags {
 
 struct PDESolver {
     PDESolverType type;
+    PDEType pdetype;
     int rkorder;
     int iporder;
     ScalarType cflnumber;

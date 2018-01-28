@@ -191,7 +191,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
  *******************************************************************/
 PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale;
+    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale = 0.0;
     const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
     IntType isize[3], istart[3], l, i1, i2, i3;
@@ -289,7 +289,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
  *******************************************************************/
 PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale;
+    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale = 0.0;
     const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL,
                *p_f1 = NULL, *p_f2 = NULL, *p_f3 = NULL;

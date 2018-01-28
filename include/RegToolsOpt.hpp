@@ -47,6 +47,7 @@ struct RegToolFlags {
     bool tlabelmap;             ///< transport label map (solve forward problem)
     bool convert;               ///< convert image data
     bool computeanalytics;      ///< compute analytics of scalar field
+    bool computeravenmap;       ///< compute raven map
     bool applysmoothing;        ///< convert image data
     bool reference2template;    ///< flag: define direction of deformation map to be inverse (reference space to template space)
 };

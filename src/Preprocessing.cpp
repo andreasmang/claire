@@ -437,7 +437,7 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
 
-    ierr = Assert(this->m_Opt->m_LabelIDs.size() == nc, "size mismatch"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Opt->m_LabelIDs.size() == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
 
     // now assign the individual labels to the
     // individual components
@@ -570,7 +570,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
 
-    ierr = Assert(this->m_Opt->m_LabelIDs.size() == nc, "size mismatch"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Opt->m_LabelIDs.size() == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
 
     try {p_labelprobs = new ScalarType[nc+1];}
     catch (std::bad_alloc& err) {

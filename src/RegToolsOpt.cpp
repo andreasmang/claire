@@ -268,6 +268,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-tlabelmap") == 0) {
             this->m_RegToolFlags.tlabelmap = true;
+        } else if (strcmp(argv[1], "-computeravenmap") == 0) {
+            this->m_RegToolFlags.computeravenmap = true;
         } else if (strcmp(argv[1], "-csynvel") == 0) {
             this->m_RegToolFlags.computesynvel = true;
         } else if (strcmp(argv[1], "-analyze") == 0) {
@@ -662,6 +664,11 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         this->m_ReadWriteFlags.readfiles = true;
     }
 
+    if ( !this->m_FileNames.iv1.empty()
+      && !this->m_FileNames.iv2.empty()
+      && !this->m_FileNames.iv3.empty() ) {
+        this->m_RegToolFlags.readvecfield = true;
+    }
 
     if (!this->m_FileNames.isc.empty()) {
         this->m_RegToolFlags.readscafield = true;
@@ -717,15 +724,25 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
     }
 
-    if (this->m_RegToolFlags.deformimage || this->m_RegToolFlags.tlabelmap) {
+    if (this->m_RegToolFlags.deformimage || this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravenmap) {
         // check if flags are set correctly
-        if (!this->m_RegToolFlags.readvecfield && !this->m_RegToolFlags.readscafield) {
-            msg = "\x1b[31m solution of forward problem requires a velocity field\n and a scalar field (field to be transported) \x1b[0m\n";
+        if (!this->m_RegToolFlags.readvecfield) {
+            msg =  "\n\x1b[31m solution of forward problem requires a velocity field as input:\n";
+            msg += " use the -v1 <file> -v2 <file> -v3 <file> options\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
+
+        if (!this->m_RegToolFlags.readscafield) {
+            msg =  "\n\x1b[31m solution of forward problem requires scalar field to be transported as input:\n";
+            msg += " use the -ifile <file> option\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+
         if (this->m_FileNames.xsc.empty()) {
-            msg = "\x1b[31m set file name for transported scalar field / ouptut (-xfile option) \x1b[0m\n";
+            msg = "\x1b[31m set file name for transported scalar field / ouptut:\n";
+            msg += " use the \n(-xfile option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
@@ -743,14 +760,14 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
 */
     }
-    if (this->m_RegToolFlags.tlabelmap) {
+    if (this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravenmap) {
 //        if (this->m_NumLabels == -1) {
 //            msg = "\x1b[31m number of labels to be transported needs to be set\x1b[0m\n";
 //            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
 //            ierr = this->Usage(true); CHKERRQ(ierr);
 //        }
         if (this->m_LabelIDs.size() == 0) {
-            msg = "\x1b[31m user needs to set labels\x1b[0m\n";
+            msg = "\x1b[31m user needs to set label ids ('-lables' option)\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }

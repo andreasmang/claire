@@ -1902,24 +1902,31 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation() {
         }
     } else {
         // call the solver
-        switch (this->m_Opt->m_PDESolver.type) {
-            case RK2:
-            {
-                ierr = this->SolveStateEquationRK2(); CHKERRQ(ierr);
-                break;
+        if (this->m_Opt->m_PDESolver.pdetype == CONTINUITYEQ) {
+            ierr = this->SolveContinuityEquationSL(); CHKERRQ(ierr);
+        } else if (this->m_Opt->m_PDESolver.pdetype == TRANSPORTEQ) {
+            // call the solver
+            switch (this->m_Opt->m_PDESolver.type) {
+                case RK2:
+                {
+                    ierr = this->SolveStateEquationRK2(); CHKERRQ(ierr);
+                    break;
+                }
+                case SL:
+                {
+                    ierr = this->SolveStateEquationSL(); CHKERRQ(ierr);
+                    break;
+                }
+                default:
+                {
+                    ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
+                    break;
+                }
             }
-            case SL:
-            {
-                ierr = this->SolveStateEquationSL(); CHKERRQ(ierr);
-//                ierr = this->SolveContinuityEquationSL(); CHKERRQ(ierr);
-                break;
-            }
-            default:
-            {
-                ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-                break;
-            }
+        } else {
+            ierr = ThrowError("PDE type does not exist"); CHKERRQ(ierr);
         }
+
     }  // velocity field is zero
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
