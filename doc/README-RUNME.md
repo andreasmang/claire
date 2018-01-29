@@ -94,6 +94,11 @@ Map (transport) label map to reference space (registration performed from templa
 ./bin/clairetools -ifile inputfolder/template-labels.nii.gz -tlabelmap -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -labels 1,2,10,40 -xfile outputfolder/output-file.nii.gz
 ```
 
+Create Ravens map:
+
+```bash
+./bin/clairetools -ifile inputfolder/template-labels.nii.gz -computeravensmap -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -labels 1,2,10,40 -xfile outputfolder/ravens-map.nii.gz
+```
 
 ## Parallel Execution
 
