@@ -77,21 +77,21 @@ velocity-field-2norm.nii.gz     | l2 norm of velocity field
 Map (transport) template image to reference space (registration performed from template to reference space):
 
 ```bash
-./bin/clairetools -mt results/template-image.nii.gz -deformimage -v1 results/velocity-field-x1.nii.gz -v2 results/velocity-field-x2.nii.gz -v3 results/velocity-field-x3.nii.gz
+./bin/clairetools -ifile results/reference-image.nii.gz -deformimage -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -xfile outputfolder/output-file.nii.gz
 ```
 
 
 Map (transport) reference image to template space (registration performed from template to reference space; add `-r2t` option):
 
 ```bash
-./bin/clairetools -mt results/reference-image.nii.gz -deformimage -v1 results/velocity-field-x1.nii.gz -v2 results/velocity-field-x2.nii.gz -v3 results/velocity-field-x3.nii.gz -r2t
+./bin/clairetools -ifile results/reference-image.nii.gz -deformimage -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -xfile outputfolder/output-file.nii.gz -r2t
 ```
 
 
-Map (transport) label map to reference space (registration performed from template to reference space):
+Map (transport) label map to reference space (registration performed from template to reference space; you need to specify the label IDs of the labels that will be transported):
 
 ```bash
-./bin/clairetools -mt results/template-image.nii.gz -deformimage -v1 results/velocity-field-x1.nii.gz -v2 results/velocity-field-x2.nii.gz -v3 results/velocity-field-x3.nii.gz
+./bin/clairetools -ifile inputfolder/template-labels.nii.gz -tlabelmap -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -labels 1,2,10,40 -xfile outputfolder/output-file.nii.gz
 ```
 
 
