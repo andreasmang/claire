@@ -77,14 +77,14 @@ velocity-field-2norm.nii.gz     | l2 norm of velocity field
 Map (transport) template image to reference space (registration performed from template to reference space):
 
 ```bash
-./bin/clairetools -ifile results/reference-image.nii.gz -deformimage -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -xfile outputfolder/output-file.nii.gz
+./bin/clairetools -ifile inputfolder/reference-image.nii.gz -deformimage -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -xfile outputfolder/output-file.nii.gz
 ```
 
 
 Map (transport) reference image to template space (registration performed from template to reference space; add `-r2t` option):
 
 ```bash
-./bin/clairetools -ifile results/reference-image.nii.gz -deformimage -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -xfile outputfolder/output-file.nii.gz -r2t
+./bin/clairetools -ifile inputfolder/reference-image.nii.gz -deformimage -v1 inputfolder/velocity-field-x1.nii.gz -v2 inputfolder/velocity-field-x2.nii.gz -v3 inputfolder/velocity-field-x3.nii.gz -xfile outputfolder/output-file.nii.gz -r2t
 ```
 
 
