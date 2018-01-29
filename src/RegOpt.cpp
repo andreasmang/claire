@@ -1257,11 +1257,13 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -v1 <file>                  x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -v2 <file>                  x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -v3 <file>                  x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
-        std::cout << " -mrc <int> <files>          list of reference images (*.nii, *.nii.gz, *.hdr)" << std::endl;
-        std::cout << " -mtc <int> <files>          list of template images (*.nii, *.nii.gz, *.hdr)" << std::endl;
+        std::cout << " -mrc <int> <files>          list of reference images (*.nii, *.nii.gz, *.hdr), where <int>" << std::endl;
+        std::cout << "                             is the number of images for (registration of vector valued data)" << std::endl;
+        std::cout << " -mtc <int> <files>          list of template images (*.nii, *.nii.gz, *.hdr), where <int>" << std::endl;
+        std::cout << "                             is the number of images for (registration of vector valued data)" << std::endl;
         std::cout << " -sigma <int>x<int>x<int>    size of gaussian smoothing kernel applied to input images" << std::endl;
-        std::cout << "                             (e.g., 1x2x1; units: voxel size; if only one parameter is set" << std::endl;
-        std::cout << "                             uniform smoothing is assumed: default: 1x1x1)" << std::endl;
+        std::cout << "                             (e.g., 1x2x1; units: voxel size; if only one value is set" << std::endl;
+        std::cout << "                             (i.e., -sigma 2) uniform smoothing is assumed; default: 1x1x1)" << std::endl;
         std::cout << " -nc <int>                   number of image components" << std::endl;
         std::cout << " -disablesmoothing           flag: switch off smoothing of image data" << std::endl;
         std::cout << " -disablerescaling           flag: switch off rescaling of intensities of image data to [0,1]" << std::endl;
