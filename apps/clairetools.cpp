@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
         ierr = TransportImage(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.tlabelmap) {
         ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
-    } else if (regopt->m_RegToolFlags.computeravenmap) {
+    } else if (regopt->m_RegToolFlags.computeravensmap) {
         ierr = ComputeRavenMap(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.computeresidual) {
         ierr = ComputeResidual(regopt); CHKERRQ(ierr);
@@ -463,7 +463,7 @@ PetscErrorCode ComputeRavenMap(reg::RegToolsOpt* regopt) {
     ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
-    // write transported scalar field (raven map) to file
+    // write transported scalar field (ravens map) to file
     ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
 
     // clean up
