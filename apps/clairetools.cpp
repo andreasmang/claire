@@ -464,7 +464,8 @@ PetscErrorCode ComputeRavenMap(reg::RegToolsOpt* regopt) {
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
     // write transported scalar field (ravens map) to file
-    ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
+//    ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
+    ierr = readwrite->Write(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}
