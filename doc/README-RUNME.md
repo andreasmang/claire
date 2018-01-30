@@ -70,9 +70,7 @@ velocity-field-2norm.nii.gz     | l2 norm of velocity field
 
 
 
-## Post Processing 
-
-### Post Processing 
+## Post Processing
 
 Map (transport) template image to reference space (registration performed from template to reference space):
 
