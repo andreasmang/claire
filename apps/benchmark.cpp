@@ -18,18 +18,18 @@
  ************************************************************************/
 
 #include "RegUtils.hpp"
-#include "CLPBenchmark.hpp"
+#include "BenchmarkOpt.hpp"
 #include "VecField.hpp"
 #include "OptimalControlRegistration.hpp"
 
-PetscErrorCode RunForwardSolverBenchmark(reg::CLPBenchmark*);
-PetscErrorCode RunGradientBenchmark(reg::CLPBenchmark*);
-PetscErrorCode RunHessianMatvecBenchmark(reg::CLPBenchmark*);
+PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt*);
+PetscErrorCode RunGradientBenchmark(reg::BenchmarkOpt*);
+PetscErrorCode RunHessianMatvecBenchmark(reg::BenchmarkOpt*);
 
-PetscErrorCode ComputeErrorForwardSolver(reg::CLPBenchmark*);
+PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt*);
 
-PetscErrorCode ComputeSyntheticData(Vec&, reg::CLPBenchmark*);
-PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::CLPBenchmark*);
+PetscErrorCode ComputeSyntheticData(Vec&, reg::BenchmarkOpt*);
+PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::BenchmarkOpt*);
 
 
 
@@ -39,7 +39,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*&, reg::CLPBenchmark*);
  *******************************************************************/
 int main(int argc, char **argv) {
     PetscErrorCode ierr = 0;
-    reg::CLPBenchmark* opt = NULL;
+    reg::BenchmarkOpt* opt = NULL;
     double runtime, value;
     int rval;
     std::stringstream ss;
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     PetscFunctionBegin;
 
     // allocate class for controlling everything
-    try {opt = new reg::CLPBenchmark(argc, argv);}
+    try {opt = new reg::BenchmarkOpt(argc, argv);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 /********************************************************************
  * @brief perform benchmark for forward solver
  *******************************************************************/
-PetscErrorCode RunForwardSolverBenchmark(reg::CLPBenchmark *opt) {
+PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField* v = NULL;
@@ -171,7 +171,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::CLPBenchmark *opt) {
 /********************************************************************
  * @brief perform benchmark for forward solver
  *******************************************************************/
-PetscErrorCode RunGradientBenchmark(reg::CLPBenchmark *opt) {
+PetscErrorCode RunGradientBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField* v = NULL;
@@ -230,7 +230,7 @@ PetscErrorCode RunGradientBenchmark(reg::CLPBenchmark *opt) {
 /********************************************************************
  * @brief perform benchmark for hessian matvec
  *******************************************************************/
-PetscErrorCode RunHessianMatvecBenchmark(reg::CLPBenchmark *opt) {
+PetscErrorCode RunHessianMatvecBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField *v = NULL, *vtilde = NULL;
@@ -293,7 +293,7 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::CLPBenchmark *opt) {
 /********************************************************************
  * @brief perform benchmark for forward solver
  *******************************************************************/
-PetscErrorCode ComputeErrorForwardSolver(reg::CLPBenchmark *opt) {
+PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m0 = NULL, m1 = NULL, m0true = NULL;
     reg::VecField* v = NULL;
@@ -375,7 +375,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::CLPBenchmark *opt) {
 /********************************************************************
  * @brief compute synthetic image
  *******************************************************************/
-PetscErrorCode ComputeSyntheticData(Vec& m, reg::CLPBenchmark* opt) {
+PetscErrorCode ComputeSyntheticData(Vec& m, reg::BenchmarkOpt* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m = NULL;
     ScalarType hx[3], x1, x2, x3;
@@ -428,7 +428,7 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::CLPBenchmark* opt) {
 /********************************************************************
  * @brief compute synthetic velocity field
  *******************************************************************/
-PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::CLPBenchmark* opt) {
+PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType hx[3], x1, x2, x3;

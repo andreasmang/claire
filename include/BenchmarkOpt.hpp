@@ -30,15 +30,15 @@ namespace reg {
 
 
 
-class CLPBenchmark : public RegOpt {
+class BenchmarkOpt : public RegOpt {
  public:
-    typedef CLPBenchmark Self;
+    typedef BenchmarkOpt Self;
     typedef RegOpt SuperClass;
 
-    CLPBenchmark();
-    CLPBenchmark(int, char**);
-    CLPBenchmark(const CLPBenchmark&);
-    virtual ~CLPBenchmark();
+    BenchmarkOpt();
+    BenchmarkOpt(int, char**);
+    BenchmarkOpt(const BenchmarkOpt&);
+    virtual ~BenchmarkOpt();
 
     virtual PetscErrorCode DisplayOptions(void);
     inline int Benchmark() const {return this->m_BenchmarkID;};

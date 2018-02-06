@@ -857,10 +857,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     IntType nl, ng, nc, nx[3], i;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_mt = NULL;
     ScalarType hx[3], xc1, xc2, xc3, x, sigma, maxval, minval, nvx1, nvx2, nvx3;
-    ScalarType x1, x2, x3;
-    int vcase = 1, icase = 0;
-    //ScalarType v0 = 0.5;
-    ScalarType v0 = 0;
+    ScalarType x1, x2, x3, v0 = 0.5;
+    int vcase = 0, icase = 0;
     bool velocityallocated = false;
     std::stringstream ss;
 
@@ -890,7 +888,6 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         velocityallocated = true;
     }
 
-    if (this->m_Opt->m_RegModel == STOKES) {vcase = 3;}
 
     // allocate reference image
     if (mR == NULL) {
@@ -908,6 +905,27 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     xc1 = hx[0]*static_cast<ScalarType>(nx[0])/2.0;
     xc2 = hx[1]*static_cast<ScalarType>(nx[1])/2.0;
     xc3 = hx[2]*static_cast<ScalarType>(nx[2])/2.0;
+
+    switch (this->m_Opt->m_RegFlags.synprobid) {
+        case 0:
+            vcase = 0; icase = 0;
+            break;
+        case 1:
+            vcase = 1; icase = 0;
+            break;
+        case 2:
+            vcase = 2; icase = 0;
+            break;
+        case 3:
+            vcase = 3; icase = 0;
+            break;
+        default:
+            vcase = 0; icase = 0;
+            break;
+    }
+
+    /// for stokes we are going to use an incompressible velocity
+    if (this->m_Opt->m_RegModel == STOKES) {vcase = 3;}
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);

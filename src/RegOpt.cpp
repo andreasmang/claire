@@ -261,6 +261,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     int flag;
     PetscFunctionBegin;
 
+    if (argc == 1) {
+        ierr = this->Usage(true); CHKERRQ(ierr);
+    }
+
     while (argc > 1) {
         if (   (strcmp(argv[1], "-h")    == 0)
             || (strcmp(argv[1], "-help") == 0)
@@ -753,6 +757,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Monitor.detdgradenabled = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
             this->m_RegFlags.invdefgrad = true;
+        } else if (strcmp(argv[1], "-synthetic") == 0) {
+            argc--; argv++;
+            this->m_RegFlags.synprobid = atoi(argv[1]);
         } else {
             msg = "\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -760,7 +767,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         }
         argc--; argv++;
     }
-
     // check the arguments/parameters set by the user
     ierr = this->CheckArguments(); CHKERRQ(ierr);
 
@@ -1171,6 +1177,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.checkdefmapsolve = false;          ///< check computation of deformation map y; error = x - (y^-1 \circ y)(x)
     this->m_RegFlags.runninginversion = true;           ///< flag indicating that we run the inversion (switches on storage of m)
     this->m_RegFlags.registerprobmaps = false;          ///< flag indicating that we run the registration on probabilty maps (allows us to ensure partition of unity when writing results to file)
+    this->m_RegFlags.synprobid = 0;                     ///< id to select synthetic problem to be performed
 
     // parameter continuation
     this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
@@ -1436,6 +1443,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 nifti        NIFTI format (*.nii.gz; standard in medical imaging)" << std::endl;
         std::cout << "                                 netcdf       NETCDF format (*.nc; common in simulations/parallel computing)" << std::endl;
 //        std::cout << "                                 hdf5         HDF5 format (*.hdf5)" << std::endl;
+        std::cout << " -synthetic <int>            solve synthetic test problem; <int> ranges from 0 to 3 and defines" << std::endl;
+        std::cout << "                             the type of synthetic test problem (use 3 for incompressible" << std::endl;
+        std::cout << "                             velocity)" << std::endl;
         std::cout << " -verbosity <int>            verbosity level (ranges from 0 to 2; default: 0)" << std::endl;
         }
         // ####################### advanced options #######################
@@ -1538,8 +1548,9 @@ PetscErrorCode RegOpt::CheckArguments() {
     }
 
     // check output arguments
-    if (this->m_ReadWriteFlags.velocity || this->m_ReadWriteFlags.defgrad || this->m_ReadWriteFlags.detdefgrad
-        || this->m_ReadWriteFlags.defmap || this->m_ReadWriteFlags.residual || this->m_ReadWriteFlags.timeseries
+    if (this->m_ReadWriteFlags.velocity || this->m_ReadWriteFlags.defgrad
+        || this->m_ReadWriteFlags.detdefgrad || this->m_ReadWriteFlags.defmap
+        || this->m_ReadWriteFlags.residual || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates) {
         if (this->m_FileNames.xfolder.empty()) {
             msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";

@@ -1,6 +1,6 @@
 CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
-		$(SRCDIR)/CLPBenchmark.cpp \
+		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/RegUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
@@ -9,6 +9,9 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
+		$(SRCDIR)/TransportProblem.cpp \
+		$(SRCDIR)/TransportEquation.cpp \
+		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/KrylovInterfaceReg.cpp \

@@ -20,7 +20,7 @@
 #ifndef _CLPBENCHMARK_CPP_
 #define _CLPBENCHMARK_CPP_
 
-#include "CLPBenchmark.hpp"
+#include "BenchmarkOpt.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-CLPBenchmark::CLPBenchmark() {
+BenchmarkOpt::BenchmarkOpt() {
     this->Initialize();
 }
 
@@ -43,7 +43,7 @@ CLPBenchmark::CLPBenchmark() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-CLPBenchmark::CLPBenchmark(int argc, char** argv) {
+BenchmarkOpt::BenchmarkOpt(int argc, char** argv) {
     this->Initialize();
     this->ParseArguments(argc,argv);
 }
@@ -54,7 +54,7 @@ CLPBenchmark::CLPBenchmark(int argc, char** argv) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-CLPBenchmark::CLPBenchmark(const CLPBenchmark& opt) {
+BenchmarkOpt::BenchmarkOpt(const BenchmarkOpt& opt) {
     this->Initialize();
     this->Copy(opt);
 }
@@ -65,7 +65,7 @@ CLPBenchmark::CLPBenchmark(const CLPBenchmark& opt) {
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
-PetscErrorCode CLPBenchmark::ParseArguments(int argc, char** argv) {
+PetscErrorCode BenchmarkOpt::ParseArguments(int argc, char** argv) {
     PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<int> nx;
@@ -195,7 +195,7 @@ PetscErrorCode CLPBenchmark::ParseArguments(int argc, char** argv) {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-CLPBenchmark::~CLPBenchmark() {
+BenchmarkOpt::~BenchmarkOpt() {
     this->ClearMemory();
 }
 
@@ -205,7 +205,7 @@ CLPBenchmark::~CLPBenchmark() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode CLPBenchmark::ClearMemory() {
+PetscErrorCode BenchmarkOpt::ClearMemory() {
     PetscFunctionBegin;
 
     PetscFunctionReturn(0);
@@ -217,7 +217,7 @@ PetscErrorCode CLPBenchmark::ClearMemory() {
 /********************************************************************
  * @brief initialize class variables
  *******************************************************************/
-PetscErrorCode CLPBenchmark::Initialize() {
+PetscErrorCode BenchmarkOpt::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -235,7 +235,7 @@ PetscErrorCode CLPBenchmark::Initialize() {
 /********************************************************************
  * @brief display usage message for binary
  *******************************************************************/
-PetscErrorCode CLPBenchmark::Usage(bool advanced) {
+PetscErrorCode BenchmarkOpt::Usage(bool advanced) {
     PetscErrorCode ierr = 0;
     int rank;
     std::string line;
@@ -308,7 +308,7 @@ PetscErrorCode CLPBenchmark::Usage(bool advanced) {
 /********************************************************************
  * @brief display options
  *******************************************************************/
-PetscErrorCode CLPBenchmark::DisplayOptions() {
+PetscErrorCode BenchmarkOpt::DisplayOptions() {
     PetscErrorCode ierr = 0;
     int rank, indent;
     std::string msg, line;
@@ -366,7 +366,7 @@ PetscErrorCode CLPBenchmark::DisplayOptions() {
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
-PetscErrorCode CLPBenchmark::CheckArguments() {
+PetscErrorCode BenchmarkOpt::CheckArguments() {
     PetscErrorCode ierr = 0;
     std::string msg;
     bool log = false;

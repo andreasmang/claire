@@ -410,6 +410,7 @@ struct RegFlags {
     bool invdefgrad;             ///< compute inverse of deformation gradient
     bool checkdefmapsolve;       ///< check
     bool runninginversion;       ///< flag to identify if we are running an inversion or not (lower memory footprint for fwd solve if not)
+    int synprobid;               ///< flag/id for synthetic problem to be solved
 };
 
 
