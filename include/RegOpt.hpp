@@ -246,6 +246,7 @@ struct FileNames {
     std::string ifolder;                ///< identifier for folder to read in results from
     std::vector < std::string > mt;     ///< template image file name
     std::vector < std::string > mr;     ///< reference image file name
+    std::string mask;                   ///< mask for objective
     std::string isc;                    ///< filename for input scalar field
     std::string xsc;                    ///< filename for output scalar field
     std::string extension;              ///< identifier for file extension

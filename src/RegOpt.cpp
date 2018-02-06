@@ -175,6 +175,7 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_FileNames.mr = opt.m_FileNames.mr;
     this->m_FileNames.mt = opt.m_FileNames.mt;
+    this->m_FileNames.mask = opt.m_FileNames.mask;
     this->m_FileNames.iv1 = opt.m_FileNames.iv1;
     this->m_FileNames.iv2 = opt.m_FileNames.iv2;
     this->m_FileNames.iv3 = opt.m_FileNames.iv3;
@@ -382,6 +383,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 argc--; argv++;
                 this->m_FileNames.mt.push_back(argv[1]);
             }
+        } else if (strcmp(argv[1], "-mask") == 0) {
+            argc--; argv++;
+            this->m_FileNames.mask = argv[1];
         } else if (strcmp(argv[1], "-v1") == 0) {
             argc--; argv++;
             this->m_FileNames.iv1 = argv[1];
@@ -1165,6 +1169,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FileNames.xv3.clear();
     this->m_FileNames.isc.clear();
     this->m_FileNames.xsc.clear();
+    this->m_FileNames.mask.clear();
     this->m_FileNames.xfolder.clear();
     this->m_FileNames.ifolder.clear();
     this->m_FileNames.extension.clear();
@@ -1492,11 +1497,11 @@ PetscErrorCode RegOpt::CheckArguments() {
         ierr = Assert(FileExists(this->m_FileNames.mr[0]), msg); CHKERRQ(ierr);
         this->m_ReadWriteFlags.readfiles = true;
     } else if ( (readmT == false) && readmR ) {
-        msg = "\x1b[31m you need to also assign a template image\x1b[0m\n";
+        msg = "\n\x1b[31m you need to assign a template image\x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
         ierr = this->Usage(); CHKERRQ(ierr);
     } else if ( readmT && (readmR == false) ) {
-        msg = "\x1b[31m you need to also assign a reference image\x1b[0m\n";
+        msg = "\n\x1b[31m you need to also assign a reference image\x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
         ierr = this->Usage(); CHKERRQ(ierr);
     } else if ( (readmT == false) && (readmR == false) ) {
@@ -1508,13 +1513,37 @@ PetscErrorCode RegOpt::CheckArguments() {
 
     if (readvx1 && readvx2 && readvx3) {
         // check if files exist
-        msg = "file " + this->m_FileNames.iv1 + " does not exist";
-        ierr = Assert(FileExists(this->m_FileNames.iv1), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_FileNames.iv2 + " does not exist";
+        if (!FileExists(this->m_FileNames.iv1)) {
+            msg = "\n\x1b[31m file '" + this->m_FileNames.iv1 + "' does not exist\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+
+        if (!FileExists(this->m_FileNames.iv2)) {
+            msg = "\n\x1b[31m file '" + this->m_FileNames.iv2 + "' does not exist\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
         ierr = Assert(FileExists(this->m_FileNames.iv2), msg); CHKERRQ(ierr);
-        msg = "file " + this->m_FileNames.iv3 + " does not exist";
-        ierr = Assert(FileExists(this->m_FileNames.iv3), msg); CHKERRQ(ierr);
+
+        if (!FileExists(this->m_FileNames.iv3)) {
+            msg = "\n\x1b[31m file '" + this->m_FileNames.iv3 + "' does not exist\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
         this->m_ReadWriteFlags.readvelocity = true;
+    } else if ( readvx1 && (!readvx2 || !readvx3) ) {
+        msg = "\n\x1b[31m all velocity components need to be set\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
+    } else if ( readvx2 && (!readvx1 || !readvx3) ) {
+        msg = "\n\x1b[31m all velocity components need to be set\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
+    } else if ( readvx3 && (!readvx1 || !readvx3) ) {
+        msg = "\n\x1b[31m all velocity components need to be set\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
     } else {
         this->m_ReadWriteFlags.readvelocity = false;
         if (this->m_Verbosity > 2) {
@@ -1522,10 +1551,19 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
 
+    if (!this->m_FileNames.mask.empty()) {
+        if(!FileExists(this->m_FileNames.mask)) {
+            msg = "\n\x1b[31m file '" + this->m_FileNames.mask + "' does not exist\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+    }
+
+
     if (this->m_ParaCont.strategy == PCONTINUATION) {
         betav = this->m_ParaCont.targetbeta;
         if (betav <= 0.0 || betav > 1.0) {
-            msg = "\x1b[31m target beta not in (0.0,1.0]\x1b[0m\n";
+            msg = "\n\x1b[31m target beta not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
@@ -1534,14 +1572,14 @@ PetscErrorCode RegOpt::CheckArguments() {
         || this->m_ParaCont.strategy == PCONTINUATION  ) {
         betav = this->m_ParaCont.beta0;
         if (betav <= 0.0 || betav > 1.0) {
-            msg = "\x1b[31m initial guess for beta not in (0.0,1.0]\x1b[0m\n";
+            msg = "\n\x1b[31m initial guess for beta not in (0.0,1.0]\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
 
     if (this->m_ScaleCont.enabled && this->m_ParaCont.enabled) {
-        msg = "\x1b[31m combined parameter and scale continuation not available \x1b[0m\n";
+        msg = "\n\x1b[31m combined parameter and scale continuation not available \x1b[0m\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
         ierr = this->Usage(true); CHKERRQ(ierr);
     }
@@ -1552,7 +1590,7 @@ PetscErrorCode RegOpt::CheckArguments() {
         || this->m_ReadWriteFlags.residual || this->m_ReadWriteFlags.timeseries
         || this->m_ReadWriteFlags.iterates) {
         if (this->m_FileNames.xfolder.empty()) {
-            msg = "\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
+            msg = "\n\x1b[31m output folder needs to be set (-x option) \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(); CHKERRQ(ierr);
         }
