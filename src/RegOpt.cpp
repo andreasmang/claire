@@ -1444,8 +1444,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 netcdf       NETCDF format (*.nc; common in simulations/parallel computing)" << std::endl;
 //        std::cout << "                                 hdf5         HDF5 format (*.hdf5)" << std::endl;
         std::cout << " -synthetic <int>            solve synthetic test problem; <int> ranges from 0 to 3 and defines" << std::endl;
-        std::cout << "                             the type of synthetic test problem (use 3 for incompressible" << std::endl;
-        std::cout << "                             velocity)" << std::endl;
+        std::cout << "                             the type of synthetic test problem (use 3 for incompressible velocity)" << std::endl;
         std::cout << " -verbosity <int>            verbosity level (ranges from 0 to 2; default: 0)" << std::endl;
         }
         // ####################### advanced options #######################

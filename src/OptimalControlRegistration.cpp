@@ -209,7 +209,7 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
 
 
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -859,7 +859,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
         }
     }
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // start timer
@@ -1046,7 +1046,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Gradient(Vec g) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // evaluate / apply gradient operator for regularization
@@ -1077,7 +1077,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g, bool f
     this->m_Opt->Enter(__func__);
 
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // evaluate / apply gradient operator for regularization
@@ -1335,7 +1335,7 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
         }
     }
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // parse input
@@ -1408,7 +1408,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
         }
     }
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // parse input
@@ -1477,7 +1477,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
         }
     }
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // allocate work vec field 5 (1,2,3, and 4 are overwritten
@@ -1563,7 +1563,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
 
     // allocate regularization model
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     // allocate state and adjoint variables

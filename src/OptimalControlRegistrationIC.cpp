@@ -423,7 +423,7 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
     scale = this->m_Opt->ComputeFFTScale();
 
     // allocate fields for spectral operations
-    ierr = this->AllocateSpectralData(); CHKERRQ(ierr);
+    ierr = this->SetupSpectralData(); CHKERRQ(ierr);
 
     // copy input
     ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);

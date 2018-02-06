@@ -124,7 +124,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
 
     // allocate regularization model
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -332,7 +332,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
     scale = this->m_Opt->ComputeFFTScale();
 
     // allocate spectral data
-    ierr = this->AllocateSpectralData(); CHKERRQ(ierr);
+    ierr = this->SetupSpectralData(); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);

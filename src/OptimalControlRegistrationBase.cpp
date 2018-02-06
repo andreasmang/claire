@@ -238,7 +238,7 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::AllocateSpectralData() {
+PetscErrorCode OptimalControlRegistrationBase::SetupSpectralData() {
     PetscErrorCode ierr = 0;
     IntType nalloc;
     PetscFunctionBegin;
@@ -563,7 +563,7 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero() {
 /********************************************************************
  * @brief allocate regularization model
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
+PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -642,7 +642,7 @@ PetscErrorCode OptimalControlRegistrationBase::AllocateRegularization() {
 
 
     // set the containers for the spectral data
-    ierr = this->AllocateSpectralData(); CHKERRQ(ierr);
+    ierr = this->SetupSpectralData(); CHKERRQ(ierr);
     ierr = this->m_Regularization->SetSpectralData(this->m_x1hat,
                                                    this->m_x2hat,
                                                    this->m_x3hat); CHKERRQ(ierr);
@@ -720,7 +720,7 @@ PetscErrorCode OptimalControlRegistrationBase
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     ierr = this->m_Regularization->EvaluateFunctional(value, v); CHKERRQ(ierr);
@@ -745,7 +745,7 @@ PetscErrorCode OptimalControlRegistrationBase
     this->m_Opt->Enter(__func__);
 
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     ierr = this->m_Regularization->GetExtremeEigValsInvOp(emin, emax); CHKERRQ(ierr);
@@ -834,7 +834,7 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegularizationOperator(Ve
     }
 
     if (this->m_Regularization == NULL) {
-        ierr = this->AllocateRegularization(); CHKERRQ(ierr);
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
     ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
@@ -906,6 +906,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     xc2 = hx[1]*static_cast<ScalarType>(nx[1])/2.0;
     xc3 = hx[2]*static_cast<ScalarType>(nx[2])/2.0;
 
+    // switch use cases
     switch (this->m_Opt->m_RegFlags.synprobid) {
         case 0:
             vcase = 0; icase = 0;

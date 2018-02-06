@@ -185,10 +185,10 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     virtual PetscErrorCode EvaluateSobolevGradient(Vec, bool flag = false) = 0;
 
     /*! allocate regularization operator */
-    PetscErrorCode AllocateRegularization();
+    PetscErrorCode SetupRegularization();
     PetscErrorCode ComputeDefMapFromDisplacement();  ///< compute deformation map from displacement
     PetscErrorCode ComputeRegularGrid(VecField*);    ///< compute coordinates for regular grid
-    PetscErrorCode AllocateSpectralData();
+    PetscErrorCode SetupSpectralData();
 
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
