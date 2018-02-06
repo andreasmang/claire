@@ -134,6 +134,9 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     /*! evaluate sobolev gradient */
     virtual PetscErrorCode EvaluateSobolevGradient(Vec, bool flag = false);
 
+    /*! sl solver for continuity equation */
+    PetscErrorCode SolveContinuityEquationSL();
+
     /*! rk2 solver for state equation */
     PetscErrorCode SolveStateEquationRK2();
 
@@ -172,6 +175,7 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     Vec m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
     Vec m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
     Vec m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+
  private:
     /*! compute the initial guess for the velocity field */
     PetscErrorCode ComputeInitialVelocity(void);
@@ -179,6 +183,8 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
     PetscErrorCode HessMatVec(Vec, Vec);
     PetscErrorCode PrecondHessMatVec(Vec, Vec);
     PetscErrorCode PrecondHessMatVecSym(Vec, Vec);
+
+    PetscErrorCode StoreStateVariable();
 };
 
 

@@ -703,9 +703,17 @@ PetscErrorCode Rescale(Vec x, ScalarType xminout, ScalarType xmaxout, IntType nc
 //        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
 //        ss.clear(); ss.str(std::string());
 
-        xshift = - xmin;
-        ierr = VecShift(x, xshift); CHKERRQ(ierr);
-        xscale = xmaxout / (xmax - xmin);
+        xshift = -xmin;
+
+        if (xshift > 1e-6) {
+            ierr = VecShift(x, xshift); CHKERRQ(ierr);
+        }
+
+        if (std::abs(xmax - xmin) > 1e-6) {
+            xscale = xmaxout / (xmax - xmin);
+        } else {
+            xscale = 1.0;
+        }
         ierr = VecScale(x, xscale); CHKERRQ(ierr);
     } else {
         // compute local size from input vector

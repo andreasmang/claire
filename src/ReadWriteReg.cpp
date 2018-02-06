@@ -338,7 +338,7 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
     //ierr = Assert(!filename.empty(), "filename not set"); CHKERRQ(ierr);
 
     nc = this->m_Opt->m_Domain.nc;
-    ierr = Assert(filenames.size() == nc, "size mismatch"); CHKERRQ(ierr);
+    ierr = Assert(filenames.size() == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
 
     for (IntType k = 0; k < nc; ++k) {
         filename = filenames[k];
@@ -941,7 +941,7 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
 #ifdef REG_HAS_NIFTI
 PetscErrorCode ReadWriteReg::ReadNII(nifti_image* image) {
     PetscErrorCode ierr;
-    DataType datatype;
+    DataType datatype = DOUBLE;
     std::string msg;
     int rank;
 
