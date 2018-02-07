@@ -75,6 +75,8 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
+    this->m_Mask = NULL;
+
     // temporary internal variables (all of these have to be deleted)
     this->m_WorkScaField1 = NULL;
     this->m_WorkScaField2 = NULL;
@@ -108,12 +110,12 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     //this->m_DistanceMeasure = NULL;         ///< distance measure
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
 
-    this->m_VelocityIsZero = false;         ///< flag: is velocity zero
-    this->m_StoreTimeHistory = true;        ///< flag: store time history (needed for inversion)
-    this->m_ComputeInverseDefMap = false;   ///< flag: compute inverse deformation map
+    this->m_VelocityIsZero = false;          ///< flag: is velocity zero
+    this->m_StoreTimeHistory = true;         ///< flag: store time history (needed for inversion)
+    this->m_ComputeInverseDefMap = false;    ///< flag: compute inverse deformation map
 
-    this->m_DeleteControlVariable = true;   ///< flag: clear memory for control variable
-    this->m_DeleteIncControlVariable = true;   ///< flag: clear memory for incremental control variable
+    this->m_DeleteControlVariable = true;    ///< flag: clear memory for control variable
+    this->m_DeleteIncControlVariable = true; ///< flag: clear memory for incremental control variable
 
     PetscFunctionReturn(ierr);
 }
@@ -127,6 +129,11 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
 PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+//    if (this->m_Mask != NULL) {
+//        ierr = VecDestroy(&this->m_Mask); CHKERRQ(ierr);
+//        this->m_Mask = NULL;
+//    }
 
     if (this->m_DeleteControlVariable) {
         if (this->m_VelocityField != NULL) {
@@ -393,6 +400,28 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
 
 //    this->m_VelocityField = v;
 //    this->m_DeleteControlVariable = false;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set mask (for masking the l2 distance / similarity measure)
+ *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::SetMask(Vec mask) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // assign pointer
+    this->m_Mask = mask;
 
     this->m_Opt->Exit(__func__);
 

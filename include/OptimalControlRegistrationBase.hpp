@@ -72,6 +72,9 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     /*! set auxilary variable (q; coupled formulation)*/
     PetscErrorCode SetAuxVariable(Vec);
 
+    /*! set mask (mask objective) */
+    PetscErrorCode SetMask(Vec);
+
     /*! set cell density c (coupled formulation) */
     PetscErrorCode SetCellDensity(Vec);
 
@@ -197,6 +200,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     Vec m_ReferenceImage;          ///< data container for template image mT
     Vec m_AuxVariable;             ///< auxilary variable
     Vec m_CellDensity;             ///< cell density
+    Vec m_Mask;                    ///< mask for objective functional masking
 
     VecField* m_VelocityField;      ///< data container for velocity field (control variable)
     VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)

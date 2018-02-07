@@ -1029,8 +1029,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.istart[0] = 0;
     this->m_Domain.istart[1] = 0;
     this->m_Domain.istart[2] = 0;
-    this->m_Domain.nt = 4;      ///< number of time points
-    this->m_Domain.nc = 1;      ///< number of components (vector valued images)
+    this->m_Domain.nt = 4;                          ///< number of time points
+    this->m_Domain.nc = 1;                          ///< number of components (vector valued images)
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
     this->m_Domain.nx[2] = 32;
@@ -1158,7 +1158,6 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
     this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
 
-
     this->m_FileNames.mr.clear();
     this->m_FileNames.mt.clear();
     this->m_FileNames.iv1.clear();
@@ -1273,6 +1272,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             is the number of images for (registration of vector valued data)" << std::endl;
         std::cout << " -mtc <int> <files>          list of template images (*.nii, *.nii.gz, *.hdr), where <int>" << std::endl;
         std::cout << "                             is the number of images for (registration of vector valued data)" << std::endl;
+        std::cout << " -mask <file>                file that contains an indicator function to mask the evaluation" << std::endl;
+        std::cout << "                             of the distance measure; the mask should be smooth" << std::endl;
+        std::cout << "                             (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -sigma <int>x<int>x<int>    size of gaussian smoothing kernel applied to input images" << std::endl;
         std::cout << "                             (e.g., 1x2x1; units: voxel size; if only one value is set" << std::endl;
         std::cout << "                             (i.e., -sigma 2) uniform smoothing is assumed; default: 1x1x1)" << std::endl;
@@ -1559,7 +1561,6 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
 
-
     if (this->m_ParaCont.strategy == PCONTINUATION) {
         betav = this->m_ParaCont.targetbeta;
         if (betav <= 0.0 || betav > 1.0) {
@@ -1568,8 +1569,9 @@ PetscErrorCode RegOpt::CheckArguments() {
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
-    if (   this->m_ParaCont.strategy == PCONTBINSEARCH
-        || this->m_ParaCont.strategy == PCONTINUATION  ) {
+
+    if ( this->m_ParaCont.strategy == PCONTBINSEARCH
+        || this->m_ParaCont.strategy == PCONTINUATION ) {
         betav = this->m_ParaCont.beta0;
         if (betav <= 0.0 || betav > 1.0) {
             msg = "\n\x1b[31m initial guess for beta not in (0.0,1.0]\x1b[0m\n";

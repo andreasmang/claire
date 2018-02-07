@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
+    // read reference and template image
     if (regopt->m_ReadWriteFlags.readfiles) {
         if (regopt->m_Verbosity > 1) {
             ierr = reg::DbgMsg("reading reference image"); CHKERRQ(ierr);
@@ -89,6 +90,7 @@ int main(int argc, char **argv) {
         ierr = regopt->DoSetup(); CHKERRQ(ierr);
     }
 
+    // read velocity field
     if (regopt->m_ReadWriteFlags.readvelocity) {
         try {v = new reg::VecField(regopt);}
         catch (std::bad_alloc&) {
@@ -124,6 +126,12 @@ int main(int argc, char **argv) {
             ierr = reg::ShowValues(v->m_X3); CHKERRQ(ierr);
         }
         ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    }
+
+    if (!regopt->m_FileNames.mask.empty()) {
+        if (regopt->m_Verbosity > 1) {
+            ierr = reg::DbgMsg("reading mask image"); CHKERRQ(ierr);
+        }
     }
 
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
