@@ -617,7 +617,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupDistanceMeasure() {
     switch (this->m_Opt->m_Dist.type) {
         case SL2:
         {
-            try {this->m_DistanceMeasure = new L2Distance(this->m_Opt);}
+            try {this->m_DistanceMeasure = new DistanceMeasureSL2(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }

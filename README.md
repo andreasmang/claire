@@ -55,7 +55,7 @@ To user can change some options in the makefile:
 To run an image registration test example do:
 
 ```bash
-./bin/claire
+./bin/claire -synthetic 0
 ```
 
 To run the code with different grid sizes use the `-nx` option (i.e., for a 128x128x128 problem, use `-nx 128x128x128`).

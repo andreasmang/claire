@@ -13,7 +13,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/TransportEquation.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
-		$(SRCDIR)/L2Distance.cpp \
+		$(SRCDIR)/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/KrylovInterfaceReg.cpp \

@@ -28,7 +28,7 @@
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
 #include "DistanceMeasure.hpp"
-#include "L2Distance.hpp"
+#include "DistanceMeasureSL2.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistrationL2.hpp"

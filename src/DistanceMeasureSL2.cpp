@@ -17,11 +17,10 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _L2DISTANCE_CPP_
-#define _L2DISTANCE_CPP_
+#ifndef _DISTANCEMEASURESL2_CPP_
+#define _DISTANCEMEASURESL2_CPP_
 
-#include "DistanceMeasure.hpp"
-#include "L2Distance.hpp"
+#include "DistanceMeasureSL2.hpp"
 
 
 
@@ -34,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-L2Distance::L2Distance() : SuperClass() {
+DistanceMeasureSL2::DistanceMeasureSL2() : SuperClass() {
 }
 
 
@@ -43,7 +42,7 @@ L2Distance::L2Distance() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-L2Distance::~L2Distance() {
+DistanceMeasureSL2::~DistanceMeasureSL2() {
     this->ClearMemory();
 }
 
@@ -53,7 +52,7 @@ L2Distance::~L2Distance() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-L2Distance::L2Distance(RegOpt* opt) : SuperClass(opt) {
+DistanceMeasureSL2::DistanceMeasureSL2(RegOpt* opt) : SuperClass(opt) {
 }
 
 
@@ -62,7 +61,7 @@ L2Distance::L2Distance(RegOpt* opt) : SuperClass(opt) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode L2Distance::ClearMemory() {
+PetscErrorCode DistanceMeasureSL2::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -76,7 +75,7 @@ PetscErrorCode L2Distance::ClearMemory() {
  * @brief evaluate the functional (i.e., the distance measure)
  * D = (1/2)*||m1 - mR||_L2
  *******************************************************************/
-PetscErrorCode L2Distance::EvaluateFunctional(ScalarType* D) {
+PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     IntType nt, nc, nl, l;
@@ -136,7 +135,7 @@ PetscErrorCode L2Distance::EvaluateFunctional(ScalarType* D) {
  * @brief set final condition for adjoint equaiton (varies for
  * different distance measres)
  *******************************************************************/
-PetscErrorCode L2Distance::SetFinalCondition(Vec lambda) {
+PetscErrorCode DistanceMeasureSL2::SetFinalCondition(Vec lambda) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -152,4 +151,4 @@ PetscErrorCode L2Distance::SetFinalCondition(Vec lambda) {
 
 
 
-#endif  // _L2DISTANCE_CPP_
+#endif  // _DISTANCEMEASURESL2_CPP_
