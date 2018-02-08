@@ -59,6 +59,14 @@ enum RegNormType {
 };
 
 
+
+// flags for regularization norms
+enum DistanceMeasureType {
+    SL2,    ///< flag for squared L2-norm
+};
+
+
+
 enum ParaContType {
     PCONTOFF,
     PCONTBINSEARCH,
@@ -391,7 +399,13 @@ struct RegNorm {
 };
 
 
-struct FourierTransform{
+struct Distance {
+    DistanceMeasureType type;
+};
+
+
+
+struct FourierTransform {
     accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
     //accfft_plan_t<double, Complex, fftw_plan>* plan;  ///< accfft plan
     //accfft_plan* plan;  ///< accfft plan
@@ -554,6 +568,7 @@ class RegOpt {
     RegFlags m_RegFlags;              ///< flags for registration
     Monitor m_Monitor;                ///< monitor for registration
     RegNorm m_RegNorm;                ///< parameters for regularization model
+    Distance m_Dist;                  ///< parameters for distance measure
     FourierTransform m_FFT;           ///< parameters for FFT/accfft
     ParCont m_ParaCont;               ///< flags for parameter continuation
     SolveType m_SolveType;            ///< solver

@@ -99,8 +99,9 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Domain.timehorizon[0] = opt.m_Domain.timehorizon[0];
     this->m_Domain.timehorizon[1] = opt.m_Domain.timehorizon[1];
 
-    this->m_RegNorm.type = opt.m_RegNorm.type;
+    this->m_Dist.type = opt.m_Dist.type;
 
+    this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];  // weight for regularization operator A[v]
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];  // weight for identity operator in regularization norms (constant)
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[div(v)] (incompressibility)
@@ -1047,6 +1048,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[1] = 1E-4;                 ///< default regularization parameter for norm (idenity)
     this->m_RegNorm.beta[2] = 1E-4;                 ///< default regularization parameter for divergence of velocity
     this->m_RegNorm.beta[3] = 0;                    ///< not used
+
+    this->m_Dist.type = SL2;                        ///< default distance measure (squared l2 distance)
 
     this->m_Verbosity = 0;                          ///< verbosity level: 0,1,2
 

@@ -17,8 +17,8 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _DISTANCEMEASURE_H_
-#define _DISTANCEMEASURE_H_
+#ifndef _DISTANCEMEASURE_HPP_
+#define _DISTANCEMEASURE_HPP_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -40,17 +40,22 @@ class DistanceMeasure {
     DistanceMeasure(RegOpt*);
     virtual ~DistanceMeasure();
 
-    virtual PetscErrorCode EvaluateFunctional(ScalarType*, Vec) = 0;
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*) = 0;
+    virtual PetscErrorCode SetFinalCondition(Vec) = 0;
 
     PetscErrorCode SetReferenceImage(Vec);
     PetscErrorCode SetTemplateImage(Vec);
+    PetscErrorCode SetStateVariable(Vec);
+    PetscErrorCode SetMask(Vec);
 
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
+    Vec m_Mask;
     Vec m_ReferenceImage;
     Vec m_TemplateImage;
+    Vec m_StateVariable;
 
     RegOpt* m_Opt;
 };

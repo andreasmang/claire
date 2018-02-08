@@ -21,6 +21,7 @@
 #define _L2DISTANCE_CPP_
 
 #include "DistanceMeasure.hpp"
+#include "L2Distance.hpp"
 
 
 
@@ -42,7 +43,7 @@ L2Distance::L2Distance() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-L2Distance::~L2Distance(void) {
+L2Distance::~L2Distance() {
     this->ClearMemory();
 }
 
@@ -59,11 +60,25 @@ L2Distance::L2Distance(RegOpt* opt) : SuperClass(opt) {
 
 
 /********************************************************************
- * @brief constructor
+ * @brief clean up
  *******************************************************************/
-L2Distance::EvaluateFunctional(ScalarType* D, Vec m) {
+PetscErrorCode L2Distance::ClearMemory() {
     PetscErrorCode ierr = 0;
-    ScalarType *p_mr = NULL, *p_m = NULL;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief evaluate the functional (i.e., the distance measure)
+ * D = (1/2)*||m1 - mR||_L2
+ *******************************************************************/
+PetscErrorCode L2Distance::EvaluateFunctional(ScalarType* D) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     IntType nt, nc, nl, l;
     int rval;
     ScalarType dr, value, l2distance;
@@ -72,29 +87,39 @@ L2Distance::EvaluateFunctional(ScalarType* D, Vec m) {
 
     this->m_Opt->Enter(__func__);
 
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nt = this->m_Opt->GetDomainPara().nt;
-    nc = this->m_Opt->GetDomainPara().nc;
-    nl = this->m_Opt->GetDomainPara().nl;
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
 
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
 
     l = nt*nl*nc;
     value = 0.0;
-#pragma omp parallel for private(dr) reduction(+:value)
-    for (IntType i = 0; i < nc*nl; ++i) {
-        dr = (p_mr[i] - p_m[l+i]);
-        value += dr*dr;
+    if (this->m_Mask != NULL) {
+        // mask objective functional
+        ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+        for (IntType i = 0; i < nc*nl; ++i) {
+            dr = (p_mr[i] - p_m[l+i]);
+            value += p_w[i]*dr*dr;
+        }
+        ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+    } else {
+        for (IntType i = 0; i < nc*nl; ++i) {
+            dr = (p_mr[i] - p_m[l+i]);
+            value += dr*dr;
+        }
     }
-
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
-
+    // all reduce
     rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+
+    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // objective value
     *D = 0.5*l2distance/static_cast<ScalarType>(nc);
@@ -105,7 +130,24 @@ L2Distance::EvaluateFunctional(ScalarType* D, Vec m) {
 }
 
 
+
+
+/********************************************************************
+ * @brief set final condition for adjoint equaiton (varies for
+ * different distance measres)
+ *******************************************************************/
+PetscErrorCode L2Distance::SetFinalCondition(Vec lambda) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
 }  // namespace reg
+
+
+
 
 
 

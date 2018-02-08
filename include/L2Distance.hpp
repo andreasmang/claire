@@ -17,8 +17,8 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _L2DISTANCE_H_
-#define _L2DISTANCE_H_
+#ifndef _L2DISTANCE_HPP_
+#define _L2DISTANCE_HPP_
 
 #include "DistanceMeasure.hpp"
 
@@ -39,7 +39,8 @@ class L2Distance : public DistanceMeasure {
     L2Distance(RegOpt*);
     virtual ~L2Distance(void);
 
-    PetscErrorCode EvaluateFunctional(ScalarType*, Vec);
+    PetscErrorCode EvaluateFunctional(ScalarType*);
+    PetscErrorCode SetFinalCondition(Vec);
 
  protected:
     PetscErrorCode Initialize(void);

@@ -68,8 +68,11 @@ PetscErrorCode DistanceMeasure::Initialize(void) {
     PetscFunctionBegin;
 
     this->m_Opt = NULL;
+
+    this->m_Mask = NULL;
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
+    this->m_StateVariable = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -128,6 +131,44 @@ PetscErrorCode DistanceMeasure::SetTemplateImage(Vec mT) {
 }
 
 
+
+
+/********************************************************************
+ * @brief set mask
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetMask(Vec mask) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_Mask = mask;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set reference image (i.e., the fixed image)
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_StateVariable = m;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 }  // namespace reg

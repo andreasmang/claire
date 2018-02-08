@@ -843,8 +843,32 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     PetscFunctionReturn(ierr);
 }
 
+/*
+PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
 
+    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // compute solution of state equation
+    ierr = this->SolveStateEquation(); CHKERRQ(ierr);
+
+    if (this->m_DistanceMeasure == NULL) {
+        ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
+    }
+
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->EvaluateFunctional(D); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+*/
 
 /********************************************************************
  * @brief evaluates the objective value

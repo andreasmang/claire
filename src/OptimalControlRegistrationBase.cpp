@@ -107,7 +107,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
     // objects
     this->m_ReadWrite = NULL;               ///< read / write object
     this->m_Regularization = NULL;          ///< pointer for regularization class
-    //this->m_DistanceMeasure = NULL;         ///< distance measure
+    this->m_DistanceMeasure = NULL;         ///< distance measure
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
 
     this->m_VelocityIsZero = false;          ///< flag: is velocity zero
@@ -147,6 +147,11 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
             delete this->m_IncVelocityField;
             this->m_IncVelocityField = NULL;
         }
+    }
+
+    if (this->m_DistanceMeasure != NULL) {
+        delete this->m_DistanceMeasure;
+        this->m_DistanceMeasure = NULL;
     }
 
     if (this->m_Regularization != NULL) {
@@ -592,6 +597,55 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero() {
 /********************************************************************
  * @brief allocate regularization model
  *******************************************************************/
+PetscErrorCode OptimalControlRegistrationBase::SetupDistanceMeasure() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // delete regularization if already allocated
+    // (should never happen)
+    if (this->m_DistanceMeasure != NULL) {
+        delete this->m_DistanceMeasure;
+        this->m_DistanceMeasure = NULL;
+    }
+
+    // switch between regularization norms
+    switch (this->m_Opt->m_Dist.type) {
+        case SL2:
+        {
+            try {this->m_DistanceMeasure = new L2Distance(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        default:
+        {
+            ierr = reg::ThrowError("distance measure not defined"); CHKERRQ(ierr);
+        }
+    }
+
+    ierr = this->m_DistanceMeasure->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    if (this->m_Mask != NULL) {
+        ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief allocate regularization model
+ *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -680,6 +734,9 @@ PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
 
 
 

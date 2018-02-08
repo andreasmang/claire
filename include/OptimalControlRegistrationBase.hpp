@@ -27,7 +27,8 @@
 #include "Preprocessing.hpp"
 #include "ReadWriteReg.hpp"
 #include "SemiLagrangian.hpp"
-//#include "DistanceMeasure.hpp"
+#include "DistanceMeasure.hpp"
+#include "L2Distance.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistrationL2.hpp"
@@ -189,9 +190,11 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     /*! allocate regularization operator */
     PetscErrorCode SetupRegularization();
+    PetscErrorCode SetupSpectralData();
+    PetscErrorCode SetupDistanceMeasure();
+
     PetscErrorCode ComputeDefMapFromDisplacement();  ///< compute deformation map from displacement
     PetscErrorCode ComputeRegularGrid(VecField*);    ///< compute coordinates for regular grid
-    PetscErrorCode SetupSpectralData();
 
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
@@ -226,7 +229,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
 
     ReadWriteType* m_ReadWrite;                  ///< io; set from outside (not to be delted)
     RegularizationType* m_Regularization;        ///< regularization functional
-//    DistanceMeasure* m_DistanceMeasure;          ///< disntance measure
+    DistanceMeasure* m_DistanceMeasure;          ///< disntance measure
     SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
 
     bool m_VelocityIsZero;
