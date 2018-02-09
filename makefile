@@ -30,9 +30,9 @@ ifeq ($(USEINTEL),yes)
 	CXXFLAGS += -qopenmp
 else
 	CXXFLAGS += -fopenmp
+	CXXFLAGS += -mavx2
 endif
 CXXFLAGS += -std=c++11
-
 
 ifeq ($(USEKNL),yes)
 	CXXFLAGS += -DKNL
@@ -49,7 +49,7 @@ ifeq ($(PEDANTIC),yes)
 	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
 	CXXFLAGS += -Wenum-compare -Wformat -Wuninitialized
 	CXXFLAGS += -Wmaybe-uninitialized -Wmain -Wnarrowing
-	CXXFLAGS += -Wnonnull -Wparentheses -Wpointer-sign
+	CXXFLAGS += -Wnonnull -Wparentheses #-Wpointer-sign
 	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
 	CXXFLAGS += -Wsequence-point -Wtrigraphs -Wunused-function
 	CXXFLAGS += -Wunused-but-set-variable -Wunused-variable -Wwrite-strings
@@ -122,6 +122,8 @@ endif
 #LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS += -limf
+else
+	LDFLAGS+= -ldl
 endif
 
 
