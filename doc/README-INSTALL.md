@@ -91,9 +91,9 @@ To add them permanently, copy the content of `environment_vars.sh` to your `~/.b
 
 
 
-## Building COLDREG
+## Building CLAIRE
 
-Before you can build COLDREG you need to
+Before you can build CLAIRE you need to
 
 * make sure that you have installed all *dependencies*
 * check the [makefile](makefile) before building the code:
@@ -108,6 +108,7 @@ To build the code using the `make` system do (in the top level directory):
 make -j
 ```
 
+If you build in parallel using 'make -j', on certain systems to many threads will be used. This will result in compilation errors. To fix this, run 'make -j 12' instead (for quick access, you may want to define an alias in your ~/.bashrc).
 
 
 
