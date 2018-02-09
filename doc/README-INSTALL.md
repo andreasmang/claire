@@ -40,12 +40,19 @@ CLAIRE depends on the following libraries:
 
 * FFTW [http://www.fftw.org](http://www.fftw.org)
 * ACCFFT [http://accfft.org](http://accfft.org)
-* PETSc [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/)
+* PETSc [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/) (requires *python 2.7*)
 * niftilib [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
 * zlib [http://zlib.net](http://zlib.net)
 * libmorton [https://github.com/Forceflow/libmorton](https://github.com/Forceflow/libmorton)
 
-We provide the following libraries with the code: FFTW version 3.3.4; ACCFFT (downloaded in Mai, 2016), PETSc (version 3.8.3; requires *python 2.7*); zlib (version 1.2.11); netcdf (version 1.8.1; for *.nc support) and niftilib (version 2.0.0; for *.nii support). These libraries have to be installed and made available on your system before compiling the code. We build all libraries as **static** by default. We provide *tarball* files for these individual libraries. The *compressed* tarball files (i.e, *LIBRARYNAME.tar.gz*) should be located in or be added to the [external](../external) folder.
+
+To download the libraries we provide a script called 'get_libs.sh' (in the 'external' subfolder). By running this script you can download the libraries: 
+```bash
+cd external
+./get_libs.sh
+```
+
+The *tarball* files will be downloaded to this very folder. The *compressed* tarball files (i.e, *LIBRARYNAME.tar.gz*) should remain located in or be added to the [external](../external) folder. Make sure that all libraries are really downloaded (the progress bar of 'wget' should be full). Occasionally, this is not the case. Just delete the corresponding tarball file and run 'get_libs.sh' again. For the second execution it will work. These libraries have to be installed and made available on your system before compiling the code. We build all libraries as **static** by default. 
 
 
 #### Installing Dependencies: Quick Shot
