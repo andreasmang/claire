@@ -14,6 +14,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasureSL2.cpp \
+		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/KrylovInterfaceReg.cpp \

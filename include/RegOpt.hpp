@@ -63,6 +63,7 @@ enum RegNormType {
 // flags for regularization norms
 enum DistanceMeasureType {
     SL2,    ///< flag for squared L2-norm
+    SL2AUX, ///< flag for squared L2-norm (coupling)
 };
 
 

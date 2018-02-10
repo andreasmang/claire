@@ -17,10 +17,12 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _DISTANCEMEASURESL2_CPP_
-#define _DISTANCEMEASURESL2_CPP_
+#ifndef _DISTANCEMEASURESL2AUX_CPP_
+#define _DISTANCEMEASURESL2AUX_CPP_
 
-#include "DistanceMeasureSL2.hpp"
+
+
+#include "DistanceMeasureSL2aux.hpp"
 
 
 
@@ -33,7 +35,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-DistanceMeasureSL2::DistanceMeasureSL2() : SuperClass() {
+DistanceMeasureSL2aux::DistanceMeasureSL2aux() : SuperClass() {
 }
 
 
@@ -42,7 +44,7 @@ DistanceMeasureSL2::DistanceMeasureSL2() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-DistanceMeasureSL2::~DistanceMeasureSL2() {
+DistanceMeasureSL2aux::~DistanceMeasureSL2aux() {
     this->ClearMemory();
 }
 
@@ -52,7 +54,7 @@ DistanceMeasureSL2::~DistanceMeasureSL2() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-DistanceMeasureSL2::DistanceMeasureSL2(RegOpt* opt) : SuperClass(opt) {
+DistanceMeasureSL2aux::DistanceMeasureSL2aux(RegOpt* opt) : SuperClass(opt) {
 }
 
 
@@ -61,7 +63,7 @@ DistanceMeasureSL2::DistanceMeasureSL2(RegOpt* opt) : SuperClass(opt) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode DistanceMeasureSL2::ClearMemory() {
+PetscErrorCode DistanceMeasureSL2aux::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -73,19 +75,20 @@ PetscErrorCode DistanceMeasureSL2::ClearMemory() {
 
 /********************************************************************
  * @brief evaluate the functional (i.e., the distance measure)
- * D = (1/2)*||m1 - mR||_L2
  *******************************************************************/
-PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
+PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
+    ScalarType *p_mr = NULL, *p_m = NULL, *p_q = NULL, *p_c = NULL;
     IntType nt, nc, nl, l;
     int rval;
-    ScalarType dr, value, l2distance;
+    ScalarType dr, value, val1, val2, l2distance;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
+    ierr = Assert(this->m_AuxVar1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AuxVar2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -98,24 +101,31 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
     l = nt*nl*nc;
-    value = 0.0;
-    if (this->m_Mask != NULL) {
-        // mask objective functional
-        ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType i = 0; i < nc*nl; ++i) {
-            dr = (p_mr[i] - p_m[l+i]);
-            value += p_w[i]*dr*dr;
-        }
-        ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-    } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-            dr = (p_mr[i] - p_m[l+i]);
-            value += dr*dr;
+    value = 0.0, val1 = 0.0, val2 = 0.0;
+    ierr = VecGetArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AuxVar2, &p_q); CHKERRQ(ierr);
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        for (IntType i = 0; i < nl; ++i) {
+            // mismatch: mr - m1*(1-c1)
+            dr    = (p_mr[k*nl+i] - p_m[l+k*nl+i]*(1.0 - p_c[i]));
+            val1 += dr*dr;
+            // q^k*m^k
+            val2 += p_q[k*nl+i]*p_m[l+k*nl+i];
         }
     }
+    ierr = VecRestoreArray(this->m_AuxVar2, &p_q); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+
     // all reduce
-    rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&val1, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    l2distance  = value;
+
+    rval = MPI_Allreduce(&val2, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    l2distance += value;
+    // parse value to registration monitor for display
+    this->m_Opt->m_Monitor.qmval = value;
 
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -135,14 +145,16 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
  * @brief set final condition for adjoint equaiton (varies for
  * different distance measres)
  *******************************************************************/
-PetscErrorCode DistanceMeasureSL2::SetFinalCondition() {
+PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, ll;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
+    ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_c = NULL, scale;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
+    ierr = Assert(this->m_AuxVar1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AuxVar2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
@@ -163,27 +175,19 @@ PetscErrorCode DistanceMeasureSL2::SetFinalCondition() {
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     l = nt*nc*nl;
-    // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
-    if (this->m_Mask != NULL) {
-        // mask objective functional
-        ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp for
-        for (IntType i = 0; i < nc*nl; ++i) {
-            p_l[ll+i] = p_w[i]*(p_mr[i] - p_m[l+i]);
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        for (IntType i = 0; i < nl; ++i) {  // for all grid points
+            scale = (1.0 - p_c[i]);
+            // compute initial condition
+            p_l[ll+k*nl+i] = (p_mr[k*nl+i] - p_m[l+k*nl+i]*scale)*scale;
         }
-}  // omp
-        ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-    } else {
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nc*nl; ++i) {
-            p_l[ll+i] = p_mr[i] - p_m[l+i];
-        }
-}  // omp
     }
+}  // omp
+    ierr = VecRestoreArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -195,10 +199,9 @@ PetscErrorCode DistanceMeasureSL2::SetFinalCondition() {
 
 
 
-
 }  // namespace reg
 
 
 
 
-#endif  // _DISTANCEMEASURESL2_CPP_
+#endif  // _DISTANCEMEASURESL2AUX_CPP_

@@ -29,6 +29,7 @@
 #include "SemiLagrangian.hpp"
 #include "DistanceMeasure.hpp"
 #include "DistanceMeasureSL2.hpp"
+#include "DistanceMeasureSL2aux.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistration.hpp"
 #include "RegularizationRegistrationL2.hpp"

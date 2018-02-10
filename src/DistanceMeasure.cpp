@@ -70,9 +70,12 @@ PetscErrorCode DistanceMeasure::Initialize(void) {
     this->m_Opt = NULL;
 
     this->m_Mask = NULL;
+    this->m_AuxVar1 = NULL;
+    this->m_AuxVar2 = NULL;
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
     this->m_StateVariable = NULL;
+    this->m_AdjointVariable = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -154,7 +157,7 @@ PetscErrorCode DistanceMeasure::SetMask(Vec mask) {
 
 
 /********************************************************************
- * @brief set reference image (i.e., the fixed image)
+ * @brief set state variable
  *******************************************************************/
 PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
     PetscErrorCode ierr = 0;
@@ -169,6 +172,50 @@ PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief set adjoint variable
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetAdjointVariable(Vec lambda) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_AdjointVariable = lambda;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set auxilary variable
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetAuxVariable(Vec x, int id) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    if (id == 1) {
+        this->m_AuxVar1 = x;
+    } else if (id == 2) {
+        this->m_AuxVar2 = x;
+    }
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 }  // namespace reg

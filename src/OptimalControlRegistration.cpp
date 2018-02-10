@@ -760,92 +760,6 @@ PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_q = NULL, *p_c = NULL, *p_w = NULL;
-    IntType nt, nc, nl, l;
-    int rval;
-    ScalarType dr, value, val1, val2, l2distance;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // get sizes
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-
-    // compute solution of state equation
-    ierr = this->SolveStateEquation(); CHKERRQ(ierr);
-
-    ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    l = nt*nl*nc; // get last time point of m
-    value = 0.0, val1 = 0.0, val2 = 0.0;
-    if (this->m_AuxVariable != NULL) {
-        ierr = Assert(this->m_CellDensity != NULL, "null pointer"); CHKERRQ(ierr);
-
-        ierr = VecGetArray(this->m_CellDensity, &p_c); CHKERRQ(ierr);
-        ierr = VecGetArray(this->m_AuxVariable, &p_q); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {
-                // mismatch: mr - m1*(1-c1)
-                dr    = (p_mr[k*nl+i] - p_m[l+k*nl+i]*(1.0 - p_c[i]));
-                val1 += dr*dr;
-                // q^k*m^k
-                val2 += p_q[k*nl+i]*p_m[l+k*nl+i];
-            }
-        }
-        ierr = VecRestoreArray(this->m_AuxVariable, &p_q); CHKERRQ(ierr);
-        ierr = VecRestoreArray(this->m_CellDensity, &p_c); CHKERRQ(ierr);
-
-        // all reduce
-        rval = MPI_Allreduce(&val1, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-        l2distance  = value;
-
-        rval = MPI_Allreduce(&val2, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-        l2distance += value;
-        // parse value to registration monitor for display
-        this->m_Opt->m_Monitor.qmval = value;
-    } else {
-// #pragma omp parallel for private(dr) reduction(+:value)
-        if (this->m_Mask != NULL) {
-            // mask objective functional
-            ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-            for (IntType i = 0; i < nc*nl; ++i) {
-                dr = (p_mr[i] - p_m[l+i]);
-                value += p_w[i]*dr*dr;
-            }
-            ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-        } else {
-            for (IntType i = 0; i < nc*nl; ++i) {
-                dr = (p_mr[i] - p_m[l+i]);
-                value += dr*dr;
-            }
-        }
-        // all reduce
-        rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    }
-
-    // compute objective value
-    *D = 0.5*l2distance/static_cast<ScalarType>(nc);
-
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-/*
-PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D) {
-    PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -854,13 +768,16 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
+    // allocate distance measure
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
-
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    // set state variable
     ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
+
+    // evaluate distance measure
     ierr = this->m_DistanceMeasure->EvaluateFunctional(D); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
@@ -868,7 +785,6 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     PetscFunctionReturn(ierr);
 }
 
-*/
 
 /********************************************************************
  * @brief evaluates the objective value
@@ -2188,12 +2104,11 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
+PetscErrorCode OptimalControlRegistration::SolveAdjointEquation() {
     PetscErrorCode ierr = 0;
-    IntType nl, nc, ng, nt, l, ll;
-    ScalarType *p_m = NULL, *p_l = NULL, *p_mr = NULL, *p_c = NULL,
-               *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
-               *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_w = NULL, scale;
+    IntType nl, nc, ng, nt;
+    ScalarType *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
+               *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_m = NULL, *p_l = NULL;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
@@ -2202,8 +2117,8 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
@@ -2226,60 +2141,21 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
         if (this->m_AdjointVariable == NULL) {
             ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
-        ll = nt*nc*nl;  // index for final condition
     } else {
         if (this->m_AdjointVariable == NULL) {
             ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-        ll = 0;  // index for final condition
     }
+
+    if (this->m_DistanceMeasure == NULL) {
+        ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
+    }
+    ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetFinalCondition(); CHKERRQ(ierr);
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
-
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-
-    l = nt*nc*nl;  // index for final condition
-    if (this->m_CellDensity != NULL) {
-        ierr = VecGetArray(this->m_CellDensity, &p_c); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-                scale = (1.0 - p_c[i]);
-                p_l[ll+k*nl+i] = (p_mr[k*nl+i] - p_m[l+k*nl+i]*scale)*scale;  // compute initial condition
-            }
-        }
-}  // omp
-        ierr = VecRestoreArray(this->m_CellDensity, &p_c); CHKERRQ(ierr);
-    } else {
-        // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
-        if (this->m_Mask != NULL) {
-            // mask objective functional
-            ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nc*nl; ++i) {
-                p_l[ll+i] = p_w[i]*(p_mr[i] - p_m[l+i]);
-            }
-}  // omp
-            ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
-        } else {
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nc*nl; ++i) {
-                p_l[ll+i] = p_mr[i] - p_m[l+i];
-            }
-}  // omp
-        }
-    }
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
@@ -2387,7 +2263,6 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation(void) {
 
     PetscFunctionReturn(ierr);
 }
-
 
 
 

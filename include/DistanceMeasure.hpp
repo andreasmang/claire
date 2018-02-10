@@ -40,12 +40,28 @@ class DistanceMeasure {
     DistanceMeasure(RegOpt*);
     virtual ~DistanceMeasure();
 
+    /*! evaluate the distance measure (functional) */
     virtual PetscErrorCode EvaluateFunctional(ScalarType*) = 0;
-    virtual PetscErrorCode SetFinalCondition(Vec) = 0;
 
+    /*! compute the initial condition for the adjoint equation */
+    virtual PetscErrorCode SetFinalCondition() = 0;
+
+    /*! set the reference image */
     PetscErrorCode SetReferenceImage(Vec);
+
+    /*! set the template image */
     PetscErrorCode SetTemplateImage(Vec);
+
+    /*! set the state variable */
     PetscErrorCode SetStateVariable(Vec);
+
+    /*! set the adjoint variable */
+    PetscErrorCode SetAdjointVariable(Vec);
+
+    /*! set the auxilary variables */
+    PetscErrorCode SetAuxVariable(Vec, int);
+
+    /*! set the mask */
     PetscErrorCode SetMask(Vec);
 
  protected:
@@ -55,7 +71,12 @@ class DistanceMeasure {
     Vec m_Mask;
     Vec m_ReferenceImage;
     Vec m_TemplateImage;
+
     Vec m_StateVariable;
+    Vec m_AdjointVariable;
+
+    Vec m_AuxVar1;
+    Vec m_AuxVar2;
 
     RegOpt* m_Opt;
 };

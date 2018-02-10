@@ -17,8 +17,8 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _DISTANCEMEASURESL2_HPP_
-#define _DISTANCEMEASURESL2_HPP_
+#ifndef _DISTANCEMEASURESL2AUX_HPP_
+#define _DISTANCEMEASURESL2AUX_HPP_
 
 #include "DistanceMeasure.hpp"
 
@@ -30,14 +30,14 @@ namespace reg {
 
 
 
-class DistanceMeasureSL2 : public DistanceMeasure {
+class DistanceMeasureSL2aux : public DistanceMeasure {
  public:
     typedef DistanceMeasure SuperClass;
-    typedef DistanceMeasureSL2 Self;
+    typedef DistanceMeasureSL2aux Self;
 
-    DistanceMeasureSL2(void);
-    DistanceMeasureSL2(RegOpt*);
-    virtual ~DistanceMeasureSL2(void);
+    DistanceMeasureSL2aux(void);
+    DistanceMeasureSL2aux(RegOpt*);
+    virtual ~DistanceMeasureSL2aux(void);
 
     PetscErrorCode EvaluateFunctional(ScalarType*);
     PetscErrorCode SetFinalCondition();
@@ -55,4 +55,4 @@ class DistanceMeasureSL2 : public DistanceMeasure {
 
 
 
-#endif  // _DISTANCEMEASURESL2_HPP_
+#endif  // _DISTANCEMEASURESL2AUX_HPP_
