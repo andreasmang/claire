@@ -55,7 +55,7 @@ To user can change some options in the makefile:
 To run an image registration test example do:
 
 ```bash
-./bin/claire -synthetic 0
+mpirun -n 20 ./bin/claire -synthetic 0
 ```
 
 To run the code with different grid sizes use the `-nx` option (i.e., for a 128x128x128 problem, use `-nx 128x128x128`).
@@ -65,7 +65,7 @@ To run the code with different grid sizes use the `-nx` option (i.e., for a 128x
 To run an image registration problem with input images do:
 
 ```bash
-./bin/claire -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -beta 1E-2 -regnorm h2s -velocity -x ./results -disablesmoothing
+mpirun -n 20 ./bin/claire -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -beta 1E-2 -regnorm h2s -velocity -x ./results -disablesmoothing
 ```
 
 Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-beta 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-velocity` enables the output of the computed velocity field. These images are smooth; we can disable the default smoothing by adding the `-disablesmoothing` flag to the command line. **Warning**: do not do this for real images.
