@@ -1122,7 +1122,8 @@ PetscErrorCode RegOpt::Initialize() {
 //#else
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
 //#endif
-    this->m_OptPara.tol[2] = 1E-2;                    ///< grad rel tol ||g(x)||/||g(x0)|| < tol
+//    this->m_OptPara.tol[2] = 1E-2;                    ///< grad rel tol ||g(x)||/||g(x0)|| < tol
+    this->m_OptPara.tol[2] = 5E-2;                    ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.maxiter = 50;                     ///< max number of iterations
     this->m_OptPara.iterbound = 250;                  ///< max number of iterations allowed
     this->m_OptPara.miniter = 0;                      ///< min number of iterations (used for inaccurate presolves)
