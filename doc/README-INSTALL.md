@@ -180,9 +180,10 @@ cmake/3.0.2
 
 ### FFTW
 
-* file: [fftw-3.3.6-pl2.tar.gz](http://www.fftw.org/fftw-3.3.6-pl2.tar.gz) 
+* file: [fftw-3.3.6-pl2.tar.gz](http://www.fftw.org/fftw-3.3.6-pl2.tar.gz)
 * description: library for computing FFTs
-* additional details can be found at [http://www.fftw.org](http://www.fftw.org) (version 3.3.4)
+* additional details can be found at [http://www.fftw.org](http://www.fftw.org)
+* older versions that have been used successfully:
 	* [fftw-3.3.4.tar.gz](http://www.fftw.org/fftw-3.3.4.tar.gz)
 
 ### ACCFFT
