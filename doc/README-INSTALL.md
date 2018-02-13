@@ -196,9 +196,12 @@ cmake/3.0.2
 
 ### PETSc
 
-* file: [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
+* file: [petsc-lite-3.8.3.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz)
 * source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
-* description: library for numerics and optimization
+* description: library for numerics, linear algebra, and optimization
+* older versions that have been used successfully:
+	* [petsc-lite-3.7.6.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz)
+	* [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
 
 
 ### NIFTICLIB
