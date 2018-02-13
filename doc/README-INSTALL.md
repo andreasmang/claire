@@ -154,7 +154,25 @@ Details on how to run CLAIRE are summarized in [doc/README-RUNME.md](README-RUNM
 	* LAPACK (required by PETSc; we install it along with PETSc; http://www.netlib.org/lapack/)
 
 
+## Build Systems
+CLAIRE has been successfully compiled using the following modules:
 
+```bash
+intel/psxe-2016-64-bit
+intelmpi/5.1.1
+```
+
+```bash
+gcc/4.9.2
+openmpi/1.8.3-gcc4.9.2
+```
+
+
+Additional packages are:
+```bash
+python/2.7
+cmake/3.0.2
+```
 
 ## More Info about the Dependencies
 
