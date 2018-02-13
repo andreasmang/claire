@@ -157,6 +157,7 @@ Details on how to run CLAIRE are summarized in [doc/README-RUNME.md](README-RUNM
 ## Build Systems
 CLAIRE has been successfully compiled using the following modules:
 
+### [Opuntia](http://www.uh.edu/cacds/resources/hpc/opuntia/)
 ```bash
 intel/psxe-2016-64-bit
 intelmpi/5.1.1
