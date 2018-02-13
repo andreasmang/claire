@@ -1,7 +1,7 @@
 CXX=mpicxx
 
-USEINTEL=yes
-USEINTELMPI=yes
+USEINTEL=no
+USEINTELMPI=no
 USESINGLE=no
 USEPNETCDF=yes
 USENIFTI=yes
@@ -30,7 +30,8 @@ ifeq ($(USEINTEL),yes)
 	CXXFLAGS += -qopenmp
 else
 	CXXFLAGS += -fopenmp
-	CXXFLAGS += -mavx2
+#	CXXFLAGS += -mavx2
+	CXXFLAGS += -march=corei7-avx
 endif
 CXXFLAGS += -std=c++11
 

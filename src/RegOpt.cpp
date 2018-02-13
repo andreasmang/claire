@@ -271,7 +271,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         if (   (strcmp(argv[1], "-h")    == 0)
             || (strcmp(argv[1], "-help") == 0)
             || (strcmp(argv[1], "-HELP") == 0) ) {
-            ierr = this->Usage(); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-advanced") == 0) {
             ierr = this->Usage(true); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-nx") == 0) {
@@ -1012,6 +1012,7 @@ PetscErrorCode RegOpt::Initialize() {
 
     this->m_SetupDone = false;
 
+    this->m_FFT = {};
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = 0;
     this->m_FFT.mpicommexists = false;
@@ -1022,6 +1023,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FFT.ostart[1] = 0;
     this->m_FFT.ostart[2] = 0;
 
+    this->m_Domain = {};
     this->m_Domain.nl = 0;
     this->m_Domain.ng = 0;
     this->m_Domain.isize[0] = 0;
@@ -1035,13 +1037,15 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.nx[0] = 32;
     this->m_Domain.nx[1] = 32;
     this->m_Domain.nx[2] = 32;
-    this->m_GridCont.nxmin = 16;
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
+    this->m_GridCont = {};
+    this->m_GridCont.nxmin = 16;
     this->m_RegModel = RELAXEDSTOKES;               ///< default registration model
     //this->m_RegModel = RELAXEDSTOKES;
 
+    this->m_RegNorm = {};
 //    this->m_RegNorm.type = H2SN;
     this->m_RegNorm.type = H1SN;                    ///< default regularization norm
     this->m_RegNorm.beta[0] = 1E-2;                 ///< default regularization parameter for velocity
@@ -1049,10 +1053,10 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[2] = 1E-4;                 ///< default regularization parameter for divergence of velocity
     this->m_RegNorm.beta[3] = 0;                    ///< not used
 
+    this->m_Dist = {};
     this->m_Dist.type = SL2;                        ///< default distance measure (squared l2 distance)
 
-    this->m_Verbosity = 0;                          ///< verbosity level: 0,1,2
-
+    this->m_PDESolver = {};
     this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)
     this->m_PDESolver.cflnumber = 0.5;              ///< CFL number used for adaptive time stepping
     this->m_PDESolver.monitorcflnumber = false;     ///< show CFL number during solve
@@ -1071,6 +1075,7 @@ PetscErrorCode RegOpt::Initialize() {
 //    this->m_KrylovMethod.tol[1] = 1E-9;     ///< absolute tolerance
 //    this->m_KrylovMethod.tol[2] = 1E+06;    ///< divergence tolerance
 //#else
+    this->m_KrylovMethod = {};
     this->m_KrylovMethod.tol[0] = 1E-12;     ///< relative tolerance
     this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovMethod.tol[2] = 1E+06;     ///< divergence tolerance
@@ -1115,6 +1120,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.hessshift = 0.0;
 
     // tolerances for optimization
+    this->m_OptPara = {};
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
     this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
 //#if defined(PETSC_USE_REAL_SINGLE)
@@ -1146,6 +1152,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_SolveType = NOTSET;
 
     // flags
+    this->m_ReadWriteFlags = {};                    ///< read template image from file
     this->m_ReadWriteFlags.templateim = false;      ///< read template image from file
     this->m_ReadWriteFlags.referenceim = false;     ///< read reference image from file
     this->m_ReadWriteFlags.readfiles = false;       ///< read images from file
@@ -1162,6 +1169,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
     this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
 
+    this->m_FileNames = {};
     this->m_FileNames.mr.clear();
     this->m_FileNames.mt.clear();
     this->m_FileNames.iv1.clear();
@@ -1178,6 +1186,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FileNames.extension.clear();
     this->m_FileNames.extension = ".nii.gz";            ///< default file extension for output
 
+    this->m_RegFlags = {};
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
     this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling (for output)
     this->m_RegFlags.detdefgradfromdeffield = false;    ///< compute det(grad(y)) via displacement field u
@@ -1188,16 +1197,19 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.synprobid = 0;                     ///< id to select synthetic problem to be performed
 
     // parameter continuation
+    this->m_ParaCont = {};
     this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
     this->m_ParaCont.enabled = false;         ///< flag for parameter continuation
     this->m_ParaCont.targetbeta = 0.0;        ///< has to be set by user
     this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
 
     // grid continuation
+    this->m_GridCont = {};
     this->m_GridCont.enabled = false;
     this->m_GridCont.nlevels = 0;
 
     // scale continuation
+    this->m_ScaleCont = {};
     this->m_ScaleCont.enabled = false;
     for (int i = 0; i < 3; ++i) {
         this->m_ScaleCont.sigma[i][0] = 32.0;
@@ -1209,6 +1221,7 @@ PetscErrorCode RegOpt::Initialize() {
     }
 
     // monitor for registration
+    this->m_Monitor = {};
     this->m_Monitor.detdgradmin = 0.0;
     this->m_Monitor.detdgradmax = 0.0;
     this->m_Monitor.detdgradmean = 0.0;
@@ -1223,17 +1236,20 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.gradnorm = 0.0;
     this->m_Monitor.gradnorm0 = 0.0;
 
+    this->m_Log = {};
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;
     }
     this->m_Log.memoryusage = false;
+
     this->m_NumThreads = 1;
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
-
     this->m_Indent = 0;
     this->m_LineLength = 101;
     this->m_StoreCheckPoints = false;
+
+    this->m_Verbosity = 0;                          ///< verbosity level: 0,1,2
 
     ierr = this->ResetTimers(); CHKERRQ(ierr);
     ierr = this->ResetCounters(); CHKERRQ(ierr);
@@ -1391,8 +1407,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -beta  <dbl>                regularization parameter (velocity field; default: 1E-2)" << std::endl;
         std::cout << " -beta-div <dbl>             regularization parameter (mass source map; default: 1E-4; enable relaxed" << std::endl;
         std::cout << "                             incompressibility to use this parameter via '-regnorm h1-div' option; see above)" << std::endl;
-        std::cout << " -ic                         enable incompressibility constraint (det(grad(y))=1)" << std::endl;
-        std::cout << " -ric                        enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)" << std::endl;
+//        std::cout << " -ic                         enable incompressibility constraint (det(grad(y))=1)" << std::endl;
+//        std::cout << " -ric                        enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)" << std::endl;
         std::cout << " -scalecont                  enable scale continuation (continuation in smoothness of images;" << std::endl;
         std::cout << "                             i.e., use a multi-scale scheme to solve optimization problem)" << std::endl;
         std::cout << " -gridcont                   enable grid continuation (continuation in resolution of images;" << std::endl;
