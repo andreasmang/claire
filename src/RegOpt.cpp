@@ -263,11 +263,15 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     int flag;
     PetscFunctionBegin;
 
+    std::cout << argc << std::endl;
+    std::cout << argv[0] << std::endl;
+
     if (argc == 1) {
         ierr = this->Usage(true); CHKERRQ(ierr);
     }
 
     while (argc > 1) {
+        std::cout << argv[1] << std::endl;
         if (   (strcmp(argv[1], "-h")    == 0)
             || (strcmp(argv[1], "-help") == 0)
             || (strcmp(argv[1], "-HELP") == 0) ) {
