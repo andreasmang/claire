@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
+/*
     if (regopt->m_Log.memoryusage) {
         ierr = PetscMemorySetGetMaximumUsage(); CHKERRQ(ierr);
     }
@@ -145,15 +146,15 @@ int main(int argc, char **argv) {
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
-
+*/
     // clean up
-    if (v != NULL) {delete v; v = NULL;}
-    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
-    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
-    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+//    if (v != NULL) {delete v; v = NULL;}
+//    if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
+//    if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+//    if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
     if (regopt != NULL) {delete regopt; regopt = NULL;}
-    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    if (registration != NULL) {delete registration; registration = NULL;}
+//    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+//    if (registration != NULL) {delete registration; registration = NULL;}
 
     ierr = reg::Finalize(); CHKERRQ(ierr);
 

@@ -44,7 +44,9 @@ RegOpt::RegOpt() {
  * @brief constructor
  *******************************************************************/
 RegOpt::RegOpt(int argc, char** argv) {
+    std::cout << "initialization " << std::endl;
     this->Initialize();
+    std::cout << "initialization done" << std::endl;
     this->ParseArguments(argc, argv);
 }
 
@@ -1014,8 +1016,10 @@ PetscErrorCode RegOpt::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+    std::cout << "starting initialization" << std::endl;
     this->m_SetupDone = false;
 
+    std::cout << "setting up FFT" << std::endl;
     this->m_FFT = {};
     this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = 0;
@@ -1027,6 +1031,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FFT.ostart[1] = 0;
     this->m_FFT.ostart[2] = 0;
 
+    std::cout << "setting up domain" << std::endl;
     this->m_Domain = {};
     this->m_Domain.nl = 0;
     this->m_Domain.ng = 0;
@@ -1044,11 +1049,10 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
 
-    this->m_GridCont = {};
-    this->m_GridCont.nxmin = 16;
     this->m_RegModel = RELAXEDSTOKES;               ///< default registration model
     //this->m_RegModel = RELAXEDSTOKES;
 
+    std::cout << "setting up regularization norm" << std::endl;
     this->m_RegNorm = {};
 //    this->m_RegNorm.type = H2SN;
     this->m_RegNorm.type = H1SN;                    ///< default regularization norm
@@ -1057,9 +1061,11 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[2] = 1E-4;                 ///< default regularization parameter for divergence of velocity
     this->m_RegNorm.beta[3] = 0;                    ///< not used
 
+    std::cout << "setting up distance" << std::endl;
     this->m_Dist = {};
     this->m_Dist.type = SL2;                        ///< default distance measure (squared l2 distance)
 
+    std::cout << "setting up PDE solver" << std::endl;
     this->m_PDESolver = {};
     this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)
     this->m_PDESolver.cflnumber = 0.5;              ///< CFL number used for adaptive time stepping
@@ -1069,11 +1075,13 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_PDESolver.iporder = 3;                  ///< order of interpolation model
     this->m_PDESolver.pdetype = TRANSPORTEQ;        ///< PDE constraint type (transport or continuity equation)
 
+    std::cout << "setting sigma" << std::endl;
     // smoothing (for image data)
     this->m_Sigma[0] = 1.0;
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
+    std::cout << "setting up krylov method" << std::endl;
 //#if defined(PETSC_USE_REAL_SINGLE)
 //    this->m_KrylovMethod.tol[0] = 1E-9;     ///< relative tolerance
 //    this->m_KrylovMethod.tol[1] = 1E-9;     ///< absolute tolerance
@@ -1123,6 +1131,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.checkhesssymmetry = false;
     this->m_KrylovMethod.hessshift = 0.0;
 
+    std::cout << "setting up optimization parameters" << std::endl;
     // tolerances for optimization
     this->m_OptPara = {};
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
@@ -1156,6 +1165,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_SolveType = NOTSET;
 
     // flags
+    std::cout << "setting up read / write flags" << std::endl;
     this->m_ReadWriteFlags = {};                    ///< read template image from file
     this->m_ReadWriteFlags.templateim = false;      ///< read template image from file
     this->m_ReadWriteFlags.referenceim = false;     ///< read reference image from file
@@ -1173,6 +1183,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ReadWriteFlags.velnorm = false;         ///< write norm of velocity field to file
     this->m_ReadWriteFlags.deftemplate = false;     ///< write deformed template image to file
 
+    std::cout << "setting up file names" << std::endl;
     this->m_FileNames = {};
     this->m_FileNames.mr.clear();
     this->m_FileNames.mt.clear();
@@ -1190,6 +1201,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FileNames.extension.clear();
     this->m_FileNames.extension = ".nii.gz";            ///< default file extension for output
 
+    std::cout << "setting up reg flags" << std::endl;
     this->m_RegFlags = {};
     this->m_RegFlags.applysmoothing = true;             ///< enable/disable image smoothing
     this->m_RegFlags.applyrescaling = true;             ///< enable/disable image rescaling (for output)
@@ -1201,6 +1213,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.synprobid = 0;                     ///< id to select synthetic problem to be performed
 
     // parameter continuation
+    std::cout << "setting up parameter continuation" << std::endl;
     this->m_ParaCont = {};
     this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
     this->m_ParaCont.enabled = false;         ///< flag for parameter continuation
@@ -1208,11 +1221,15 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
 
     // grid continuation
+    std::cout << "setting up grid continuation" << std::endl;
+    //this->m_GridCont = {};
     this->m_GridCont = {};
+    this->m_GridCont.nxmin = 16;
     this->m_GridCont.enabled = false;
     this->m_GridCont.nlevels = 0;
 
     // scale continuation
+    std::cout << "setting up scale continuation" << std::endl;
     this->m_ScaleCont = {};
     this->m_ScaleCont.enabled = false;
     for (int i = 0; i < 3; ++i) {
@@ -1224,6 +1241,7 @@ PetscErrorCode RegOpt::Initialize() {
         this->m_ScaleCont.sigma[i][5] =  1.0;
     }
 
+    std::cout << "setting up registration monitor" << std::endl;
     // monitor for registration
     this->m_Monitor = {};
     this->m_Monitor.detdgradmin = 0.0;
@@ -1240,12 +1258,14 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.gradnorm = 0.0;
     this->m_Monitor.gradnorm0 = 0.0;
 
+    std::cout << "setting up logger" << std::endl;
     this->m_Log = {};
     for (int i = 0; i < NLOGFLAGS; ++i) {
         this->m_Log.enabled[i] = false;
     }
     this->m_Log.memoryusage = false;
 
+    std::cout << "setting up auxilary variables" << std::endl;
     this->m_NumThreads = 1;
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
@@ -1255,8 +1275,11 @@ PetscErrorCode RegOpt::Initialize() {
 
     this->m_Verbosity = 0;                          ///< verbosity level: 0,1,2
 
+    std::cout << "reseting timers" << std::endl;
     ierr = this->ResetTimers(); CHKERRQ(ierr);
+    std::cout << "reseting counters" << std::endl;
     ierr = this->ResetCounters(); CHKERRQ(ierr);
+    std::cout << "leaving" << std::endl;
 
     PetscFunctionReturn(ierr);
 }
