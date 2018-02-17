@@ -209,11 +209,12 @@ enum RegModel {
 
 /*! flags for timers */
 enum LogType{
-    LOGRES,
+    LOGDIST,
     LOGCONV,
     LOGKSPRES,
     LOGJAC,
     LOGLOAD,
+    LOGGRAD,
     NLOGFLAGS
 };
 
@@ -448,6 +449,7 @@ struct Logger {
     std::vector<ScalarType> distance;        ///< convergence for residual
     std::vector<ScalarType> regularization;  ///< convergence for regularization
     std::vector<ScalarType> objective;       ///< convergence for objective
+    std::vector<ScalarType> gradnorm;        ///< gradient norm
     std::vector<int> newtoniterations;       ///< iterations of solver
     std::vector<ScalarType> krylovresidual;  ///< residual of krylov method
     std::vector<int> kryloviterations;       ///< iterations of krylov method
@@ -575,8 +577,8 @@ class RegOpt {
     ParCont m_ParaCont {};               ///< flags for parameter continuation
     SolveType m_SolveType {};            ///< solver
     FileNames m_FileNames {};            ///< file names for input/output
-    ScalarType m_Sigma[3];               ///< standard deviation for gaussian smoothing
     Logger m_Log {};                     ///< log
+    ScalarType m_Sigma[3];               ///< standard deviation for gaussian smoothing
 
     bool m_SetupDone;
     bool m_StoreCheckPoints;
@@ -607,7 +609,6 @@ class RegOpt {
     PetscErrorCode WriteFinalResidualLog();
 
     enum TimerValue {LOG = 0, MIN, MAX, AVG, NVALTYPES};
-
 
     double m_Timer[NTIMERS][NVALTYPES];
     double m_TempTimer[NTIMERS];

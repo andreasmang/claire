@@ -963,8 +963,10 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         // get and scale by lebesque measure
         hd = this->m_Opt->GetLebesqueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
-        if (this->m_Opt->m_Verbosity > 2) {
+
+        if (this->m_Opt->m_Log.enabled[LOGGRAD]) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
+            this->m_Opt->m_Log.gradnorm.push_back(value);
             ss << "||g||_2 = " << std::scientific << value;
             ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
@@ -4154,7 +4156,7 @@ PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
     ext = this->m_Opt->m_FileNames.extension;
 
     // compute residuals
-    if (this->m_Opt->m_Log.enabled[LOGRES]) {
+    if (this->m_Opt->m_Log.enabled[LOGDIST]) {
         ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);

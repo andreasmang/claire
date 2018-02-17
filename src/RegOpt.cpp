@@ -453,8 +453,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Log.enabled[LOGLOAD] = true;
         } else if (strcmp(argv[1], "-logconvergence") == 0) {
             this->m_Log.enabled[LOGCONV] = true;
-        } else if (strcmp(argv[1], "-logresidual") == 0) {
-            this->m_Log.enabled[LOGRES] = true;
+        } else if (strcmp(argv[1], "-logdistance") == 0) {
+            this->m_Log.enabled[LOGDIST] = true;
+        } else if (strcmp(argv[1], "-loggradient") == 0) {
+            this->m_Log.enabled[LOGGRAD] = true;
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
             this->m_RegFlags.detdefgradfromdeffield = true;
         } else if (strcmp(argv[1], "-preset") == 0) {
@@ -1242,10 +1244,11 @@ PetscErrorCode RegOpt::Initialize() {
     }
     this->m_Log.memoryusage = false;
 
+    this->m_Indent = 0;
     this->m_NumThreads = 1;
     this->m_CartGridDims[0] = 1;
     this->m_CartGridDims[1] = 1;
-    this->m_Indent = 0;
+
     this->m_LineLength = 101;
     this->m_StoreCheckPoints = false;
 
@@ -1452,7 +1455,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " logging" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -logresidual                log residual (user needs to set '-x' option)" << std::endl;
+        std::cout << " -logdistance                log distance measure (user needs to set '-x' option)" << std::endl;
         std::cout << " -logconvergence             log convergence (residual; user needs to set '-x' option)" << std::endl;
         std::cout << " -logkrylovres               log residual of krylov subpsace method (user needs to set '-x' option)" << std::endl;
         std::cout << " -logworkload                log cpu time and counters (user needs to set '-x' option)" << std::endl;
@@ -2763,7 +2766,7 @@ PetscErrorCode RegOpt::WriteLogFile() {
         ierr = this->WriteKSPLog(); CHKERRQ(ierr);
     }
 
-    if (this->m_Log.enabled[LOGCONV] || this->m_Log.enabled[LOGRES]) {
+    if (this->m_Log.enabled[LOGCONV] || this->m_Log.enabled[LOGDIST] || this->m_Log.enabled[LOGGRAD]) {
         ierr = this->WriteConvergenceLog(); CHKERRQ(ierr);
     }
 
@@ -3663,6 +3666,21 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
             ss << std::scientific << std::right
                << std::setw(2) << this->m_Log.newtoniterations[i]
                << std::setw(20) << this->m_Log.objective[i];
+            logwriter << ss.str() << std::endl;
+            ss.str(std::string()); ss.clear();
+        }
+        logwriter.close();  // close logger
+
+        // create output file
+        fn = path + "claire-gradnorm-trend.log";
+        logwriter.open(fn.c_str());
+        ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
+
+        n = static_cast<int>(this->m_Log.gradnorm.size());
+        for (int i = 0; i < n; ++i) {
+            ss << std::scientific << std::right
+               << std::setw(2) << this->m_Log.newtoniterations[i]
+               << std::setw(20) << this->m_Log.gradnorm[i];
             logwriter << ss.str() << std::endl;
             ss.str(std::string()); ss.clear();
         }
