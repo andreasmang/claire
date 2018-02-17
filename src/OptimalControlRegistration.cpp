@@ -964,14 +964,11 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         hd = this->m_Opt->GetLebesqueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
 
-        if (this->m_Opt->GetCounter(ITERATIONS) > 0 ) {
-            if (this->m_Opt->m_Log.enabled[LOGGRAD]) {
-                ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
-                this->m_Opt->m_Log.gradnorm.push_back(value);
-                ss << "||g||_2 = " << std::scientific << value;
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-            }
+        if (this->m_Opt->m_Verbosity > 2) {
+            ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
+            ss << "||g||_2 = " << std::scientific << value;
+            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
         }
     }
 
@@ -3977,7 +3974,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     std::string filename, ext;
     std::stringstream ss;
     std::ofstream logwriter;
-    ScalarType *p_m1 = NULL, *p_m = NULL, rval, dval, jval, hd;
+    ScalarType *p_m1 = NULL, *p_m = NULL, rval, dval, jval, gval;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -4005,31 +4002,20 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
     // set velocity field
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
+    // log objective values
     if (this->m_Opt->m_Log.enabled[LOGCONV]) {
         iter = this->m_Opt->GetCounter(ITERATIONS);
-        ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
-
-        // evaluate distance measure for velocity
-        ierr = this->EvaluateDistanceMeasure(&dval); CHKERRQ(ierr);
-
-        // evaluate the regularization model for v
-        if (this->m_WorkVecField1 == NULL) {
-            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-        ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-        ierr = this->m_Regularization->EvaluateFunctional(&rval, this->m_VelocityField); CHKERRQ(ierr);
-
-        // get lebesque measure
-        hd = this->m_Opt->GetLebesqueMeasure();
-
-        // add up the contributions
-        jval = hd*(dval + rval);
-        this->m_Opt->LogConvergence(iter, jval, hd*dval, hd*rval);
+        jval = this->m_Opt->m_Monitor.jval;
+        dval = this->m_Opt->m_Monitor.dval;
+        rval = this->m_Opt->m_Monitor.rval;
+        this->m_Opt->LogConvergence(iter, jval, dval, rval);
     }
 
+    // log norm of gradient
+    if (this->m_Opt->m_Log.enabled[LOGGRAD]) {
+        gval = this->m_Opt->m_Monitor.gradnorm;
+        this->m_Opt->m_Log.gradnorm.push_back(gval);
+    }
 
     // store iterates
     if (this->m_Opt->m_ReadWriteFlags.iterates) {

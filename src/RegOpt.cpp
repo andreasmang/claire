@@ -829,25 +829,29 @@ PetscErrorCode RegOpt::ClearMemory() {
         this->m_Log.kryloviterations.clear();
         std::vector<int>().swap(this->m_Log.kryloviterations);
     }
-
     if (this->m_Log.newtoniterations.size()) {
         this->m_Log.newtoniterations.clear();
         std::vector<int>().swap(this->m_Log.newtoniterations);
     }
-
     if (this->m_Log.distance.size()) {
         this->m_Log.distance.clear();
         std::vector<ScalarType>().swap(this->m_Log.distance);
     }
-
     if (this->m_Log.regularization.size()) {
         this->m_Log.regularization.clear();
         std::vector<ScalarType>().swap(this->m_Log.regularization);
     }
-
     if (this->m_Log.objective.size()) {
         this->m_Log.objective.clear();
         std::vector<ScalarType>().swap(this->m_Log.objective);
+    }
+    if (this->m_Log.gradnorm.size()) {
+        this->m_Log.gradnorm.clear();
+        std::vector<ScalarType>().swap(this->m_Log.gradnorm);
+    }
+    if (this->m_Log.krylovresidual.size()) {
+        this->m_Log.krylovresidual.clear();
+        std::vector<ScalarType>().swap(this->m_Log.krylovresidual);
     }
 
     PetscFunctionReturn(ierr);

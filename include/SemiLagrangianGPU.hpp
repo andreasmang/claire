@@ -1,5 +1,5 @@
-/**
- *  Copyright (c) 2015-2016.
+/*************************************************************************
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the CLAIRE library.
  *
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
- *
-*/
+ *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
 
 
 
