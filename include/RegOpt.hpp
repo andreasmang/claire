@@ -425,7 +425,8 @@ struct RegFlags {
     bool detdefgradfromdeffield; ///< compute determinant fo deformation gradient from deformation field (displacement field)
     bool invdefgrad;             ///< compute inverse of deformation gradient
     bool checkdefmapsolve;       ///< check
-    bool runninginversion;       ///< flag to identify if we are running an inversion or not (lower memory footprint for fwd solve if not)
+    bool runinversion;           ///< flag to identify if we are running an inversion or not (lower memory footprint for fwd solve if not)
+    bool runsynprob;             ///< true if we run a synthetic test problem
     int synprobid;               ///< flag/id for synthetic problem to be solved
 };
 

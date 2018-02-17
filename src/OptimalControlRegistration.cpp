@@ -386,7 +386,7 @@ PetscErrorCode OptimalControlRegistration::SetInitialState(Vec m0) {
 
     // allocate state variable
     if (this->m_StateVariable == NULL) {
-        if (this->m_Opt->m_RegFlags.runninginversion) {
+        if (this->m_Opt->m_RegFlags.runinversion) {
             ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
         } else {
             ierr = VecCreate(this->m_StateVariable, nl*nc, ng*nc); CHKERRQ(ierr);
@@ -431,7 +431,7 @@ PetscErrorCode OptimalControlRegistration::GetFinalState(Vec m1) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
 
-    if (!this->m_Opt->m_RegFlags.runninginversion) {
+    if (!this->m_Opt->m_RegFlags.runinversion) {
         nt = 0; // we did not store the time history
     }
 
@@ -1839,7 +1839,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation() {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // we copy m_0 to all t for v=0
-        if (this->m_Opt->m_RegFlags.runninginversion) {
+        if (this->m_Opt->m_RegFlags.runinversion) {
             ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
             for (IntType j = 1; j <= nt; ++j) {
                 try {std::copy(p_m, p_m+nc*nl, p_m+j*nl*nc);}
@@ -1935,7 +1935,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
     this->m_Opt->Enter(__func__);
 
     // flag to identify if we store the time history
-    store = this->m_Opt->m_RegFlags.runninginversion;
+    store = this->m_Opt->m_RegFlags.runinversion;
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -2052,7 +2052,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
     this->m_Opt->Enter(__func__);
 
     // flag to identify if we store the time history
-    store = this->m_Opt->m_RegFlags.runninginversion;
+    store = this->m_Opt->m_RegFlags.runinversion;
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -2658,7 +2658,7 @@ PetscErrorCode OptimalControlRegistration::SolveContinuityEquationSL() {
     this->m_Opt->Enter(__func__);
 
     // flag to identify if we store the time history
-    store = this->m_Opt->m_RegFlags.runninginversion;
+    store = this->m_Opt->m_RegFlags.runinversion;
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;

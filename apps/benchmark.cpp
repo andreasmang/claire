@@ -122,7 +122,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     PetscFunctionBegin;
 
     // make sure we do not store time history
-    opt->m_RegFlags.runninginversion = false;
+    opt->m_RegFlags.runinversion = false;
 
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
@@ -305,7 +305,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     PetscFunctionBegin;
 
     // make sure we do not store time history
-    opt->m_RegFlags.runninginversion = false;
+    opt->m_RegFlags.runinversion = false;
 
     ierr = ComputeSyntheticData(m0true, opt); CHKERRQ(ierr);
     ierr = VecDuplicate(m0true, &m0); CHKERRQ(ierr);

@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _SEMILAGRANGIAN_H_
-#define _SEMILAGRANGIAN_H_
+#ifndef _SEMILAGRANGIAN_HPP_
+#define _SEMILAGRANGIAN_HPP_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -36,8 +36,6 @@ namespace reg {
 
 class SemiLagrangian {
  public:
-    typedef SemiLagrangian Self;
-
     SemiLagrangian();
     SemiLagrangian(RegOpt*);
     ~SemiLagrangian();
