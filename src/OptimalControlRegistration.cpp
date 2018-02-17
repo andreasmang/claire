@@ -964,12 +964,14 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
         hd = this->m_Opt->GetLebesqueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
 
-        if (this->m_Opt->m_Log.enabled[LOGGRAD]) {
-            ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
-            this->m_Opt->m_Log.gradnorm.push_back(value);
-            ss << "||g||_2 = " << std::scientific << value;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
+        if (this->m_Opt->GetCounter(ITERATIONS) > 0 ) {
+            if (this->m_Opt->m_Log.enabled[LOGGRAD]) {
+                ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
+                this->m_Opt->m_Log.gradnorm.push_back(value);
+                ss << "||g||_2 = " << std::scientific << value;
+                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+            }
         }
     }
 
