@@ -38,7 +38,7 @@ class SemiLagrangian {
  public:
     SemiLagrangian();
     SemiLagrangian(RegOpt*);
-    ~SemiLagrangian();
+    virtual ~SemiLagrangian();
 
     PetscErrorCode ComputeTrajectory(VecField*, std::string);
 

@@ -771,9 +771,14 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     // allocate distance measure
+    if (this->m_Opt->m_Distance.reset) {
+        ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
+        this->m_Opt->m_Distance.reset = false;
+    }
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
+
     // set state variable
     ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
 

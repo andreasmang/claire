@@ -444,7 +444,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetAuxVariable(Vec q) {
     this->m_Opt->Enter(__func__);
 
     // switch l2 distance
-    this->m_Opt->m_Dist.type = SL2AUX;
+//    this->m_Opt->m_Distance.type = SL2AUX;
 
     ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_AuxVariable = q;
@@ -465,7 +465,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetCellDensity(Vec c) {
     this->m_Opt->Enter(__func__);
 
     // switch l2 distance
-    this->m_Opt->m_Dist.type = SL2AUX;
+//    this->m_Opt->m_Distance.type = SL2AUX;
 
     ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_CellDensity = c;
@@ -620,7 +620,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupDistanceMeasure() {
     }
 
     // switch between regularization norms
-    switch (this->m_Opt->m_Dist.type) {
+    switch (this->m_Opt->m_Distance.type) {
         case SL2:
         {
             try {this->m_DistanceMeasure = new DistanceMeasureSL2(this->m_Opt);}
@@ -635,6 +635,8 @@ PetscErrorCode OptimalControlRegistrationBase::SetupDistanceMeasure() {
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
+            ierr = Assert(this->m_CellDensity != NULL, "null pointer"); CHKERRQ(ierr);
+            ierr = Assert(this->m_AuxVariable != NULL, "null pointer"); CHKERRQ(ierr);
             ierr = this->m_DistanceMeasure->SetAuxVariable(this->m_CellDensity,1); CHKERRQ(ierr);
             ierr = this->m_DistanceMeasure->SetAuxVariable(this->m_AuxVariable,2); CHKERRQ(ierr);
             break;
@@ -1021,6 +1023,9 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
             break;
         case 3:
             vcase = 3; icase = 0;
+            break;
+        case 4:
+            vcase = 0; icase = 0; v0 = 1.0;
             break;
         default:
             vcase = 0; icase = 0;

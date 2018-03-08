@@ -156,8 +156,8 @@ PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
     ierr = Assert(this->m_AuxVar1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_AuxVar2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -170,12 +170,12 @@ PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
         ll = 0;
     }
 
+    ierr = VecGetArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     l = nt*nc*nl;
-    ierr = VecGetArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp for
@@ -187,10 +187,11 @@ PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
         }
     }
 }  // omp
-    ierr = VecRestoreArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+
     ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

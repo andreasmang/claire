@@ -210,6 +210,8 @@ PetscErrorCode DistanceMeasure::SetAuxVariable(Vec x, int id) {
         this->m_AuxVar1 = x;
     } else if (id == 2) {
         this->m_AuxVar2 = x;
+    } else {
+        ierr = ThrowError("id not defined"); CHKERRQ(ierr);
     }
     this->m_Opt->Exit(__func__);
 

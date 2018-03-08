@@ -61,7 +61,7 @@ enum RegNormType {
 
 
 // flags for regularization norms
-enum DistanceMeasureType {
+enum DMType {
     SL2,    ///< flag for squared L2-norm
     SL2AUX, ///< flag for squared L2-norm (coupling)
 };
@@ -402,7 +402,8 @@ struct RegNorm {
 
 
 struct Distance {
-    DistanceMeasureType type;
+    DMType type;
+    bool reset;
 };
 
 
@@ -560,6 +561,7 @@ class RegOpt {
     }
 
     PetscErrorCode EnableFastSolve();
+    PetscErrorCode ResetDM(DMType type);
 
     RegModel m_RegModel {};              ///< flag for particular registration model
     Domain m_Domain {};                  ///< parameters for spatial domain
@@ -572,7 +574,7 @@ class RegOpt {
     RegFlags m_RegFlags {};              ///< flags for registration
     Monitor m_Monitor {};                ///< monitor for registration
     RegNorm m_RegNorm {};                ///< parameters for regularization model
-    Distance m_Dist {};                  ///< parameters for distance measure
+    Distance m_Distance {};                  ///< parameters for distance measure
     FourierTransform m_FFT {};           ///< parameters for FFT/accfft
     ParCont m_ParaCont {};               ///< flags for parameter continuation
     SolveType m_SolveType {};            ///< solver
