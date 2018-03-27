@@ -655,18 +655,19 @@ PetscErrorCode ComputeBackGround(Vec background, Vec x, IntType nc) {
     ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
     ierr = VecGetArray(background, &p_b); CHKERRQ(ierr);
     for (IntType i = 0; i < nl; ++i) {
-        sum = 0.0;
+        sum = 0.0; // reset sum
         for (IntType k = 0; k < nc; ++k) {
             l = k*nl + i;
-            sum += p_x[l];
+            sum += p_x[l]; // sum all components
         }
+
+        // compute background value
         bval = 1.0 - sum;
         if (bval <= 0.0) bval = 0.0;
         if (bval >= 1.0) bval = 1.0;
 
-        for (IntType k = 0; k < nc; ++k) {
-            p_b[i] = bval;
-        }
+        // assign background value
+        p_b[i] = bval;
 
     }  // for all components
 
