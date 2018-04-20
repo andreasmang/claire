@@ -692,10 +692,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 this->m_RegNorm.type = H1;
                 this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h1s-div") == 0) {
-                this->m_RegNorm.type = H1;
+                this->m_RegNorm.type = H1SN;
                 this->m_RegModel = RELAXEDSTOKES;
             } else if (strcmp(argv[1], "h1s-stokes") == 0) {
-                this->m_RegNorm.type = H1;
+                this->m_RegNorm.type = H1SN;
                 this->m_RegModel = STOKES;
             } else if (strcmp(argv[1], "h2") == 0) {
                 this->m_RegNorm.type = H2;
