@@ -744,9 +744,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
 
     // set the containers for the spectral data
     ierr = this->SetupSpectralData(); CHKERRQ(ierr);
-    ierr = this->m_Regularization->SetSpectralData(this->m_x1hat,
-                                                   this->m_x2hat,
-                                                   this->m_x3hat); CHKERRQ(ierr);
+    ierr = this->m_Regularization->SetSpectralData(this->m_x1hat, this->m_x2hat, this->m_x3hat); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -896,13 +894,13 @@ PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x) {
     PetscErrorCode ierr = 0;
-
+    bool applysqrt = true;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
-        ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
+        ierr = this->ApplyInvRegularizationOperator(x, x, applysqrt); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);

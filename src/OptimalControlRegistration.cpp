@@ -1379,7 +1379,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
 
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta \D{A})^{-1}\D{K}[\vect{\tilde{b}}]
-    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, false); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2); CHKERRQ(ierr);
 
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1} \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
@@ -1408,6 +1408,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
  *******************************************************************/
 PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
+    bool applysqrt = true;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1454,19 +1455,20 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta\D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta\D{A})^{-1/2}
 
-    // apply (\beta\D{A})^{-1/2} to incremental velocity field
-    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, this->m_WorkVecField5, true); CHKERRQ(ierr);
+    // apply (\beta\D{A})^{-1/2} to input variable s and store it
+    // in incremental velocity field (for PDE solves)
+    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, this->m_WorkVecField5, applysqrt); CHKERRQ(ierr);
 
     // now solve the PDEs given the preconditioned incremental velocity field
 
-    // compute \tilde{m}(x,t)
+    // compute \tilde{m}(x,t) using
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
 
     // compute \tilde{\lambda}(x,t) and compute incremental body force
     ierr = this->SolveIncAdjointEquation(); CHKERRQ(ierr);
 
     // apply (\beta\D{A})^{-1/2} to incremental body force
-    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, true); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, applysqrt); CHKERRQ(ierr);
 
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta \D{A})^{-1/2}
     // we use the same container for the bodyforce and the incremental body force to
@@ -3109,7 +3111,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
 
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
+    // differentiate between full newton and gauss newton approximation
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
     }
 
@@ -3118,6 +3121,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
     ierr = VecGetArray(this->m_WorkScaField1, &p_mx); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
 
+    // interpolate incremental velocity
     ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_IncVelocityField, "state"); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField2->GetArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
@@ -3534,8 +3538,8 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
 #pragma omp parallel
 {
 #pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                ltilde = p_ltilde[ll + i];    // get \tilde{\lambda}(x)
+            for (IntType i = 0; i < nl; ++i) { // for all grid points
+                ltilde = p_ltilde[ll + i]; // get \tilde{\lambda}(x)
 
                 // compute integration
                 p_ltilde[ll + i] = ltilde + hthalf*(p_rhs0[i]+p_rhs1[i]);
