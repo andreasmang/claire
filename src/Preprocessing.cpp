@@ -876,6 +876,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
                 // check for nyquist frequency
                 for (int i = 0; i < 3; ++i) {
                     if (i_c[i] == nyqfreqid[i]) {
+//                    if (i_c[i] == nyqfreqid[i] || i_c[i] == nyqfreqid[i] - 1 || i_c[i] == nyqfreqid[i] + 1) {
                         setvalue = false;
                     }
                 }
@@ -1737,6 +1738,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
                 bool setvalue = true;
                 for (int i = 0; i < 3; ++i) {
                     if (i_f[i] == nyqfreqid[i]) {
+//                    if (i_f[i] == nyqfreqid[i] || i_f[i] == nyqfreqid[i] - 1 || i_f[i] == nyqfreqid[i] + 1) {
                         setvalue = false;
                     }
                 }

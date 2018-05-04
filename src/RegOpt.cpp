@@ -737,7 +737,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
-        } else if (strcmp(argv[1], "-betavcont") == 0) {
+        } else if (strcmp(argv[1], "-betacont") == 0) {
            if (this->m_ParaCont.enabled) {
                 msg = "\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -749,7 +749,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
 
             argc--; argv++;
             this->m_ParaCont.targetbeta = atof(argv[1]);
-        } else if (strcmp(argv[1], "-betavinit") == 0) {
+        } else if (strcmp(argv[1], "-betainit") == 0) {
             argc--; argv++;
             this->m_ParaCont.beta0 = atof(argv[1]);
         } else if (strcmp(argv[1], "-scalecont") == 0) {
@@ -1470,9 +1470,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -xiterates                  store/write out iterates (deformed template image and velocity field)" << std::endl;
-        std::cout << " -xiresults                  store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
-        std::cout << " -xtimeseries                store time series (use with caution)" << std::endl;
+        std::cout << " -iterates                   store/write out iterates (deformed template image and velocity field)" << std::endl;
+//        std::cout << " -iresults                   store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
+        std::cout << " -timeseries                 store time series (use with caution)" << std::endl;
         std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
         std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
         std::cout << " -format <type>              specify the output format for the images/vector fields; default is NIFTI (*.nii.gz)" << std::endl;
