@@ -2669,7 +2669,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     std::stringstream ss;
     std::string ext;
     IntType nl, nt;
-    ScalarType ht, hthalf;
+    ScalarType ht, hthalf, direction = 1.0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_y1 = NULL, *p_y2 = NULL, *p_y3 = NULL,
                 *p_vy1 = NULL, *p_vy2 = NULL, *p_vy3 = NULL,
@@ -2682,6 +2682,9 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     ext = this->m_Opt->m_FileNames.extension;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+    if (this->m_Opt->m_Verbosity > 1) {
+        ierr = DbgMsg("computing deformation map"); CHKERRQ(ierr);
+    }
 
     // allocate vector fields
     if (this->m_WorkVecField1 == NULL) {
@@ -2712,7 +2715,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     }
 
     // store time series
-    if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
+    if (this->m_Opt->m_ReadWriteFlags.timeseries) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
@@ -2726,7 +2729,12 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     hthalf = 0.5*ht;
 
     // if we request the inverse deformation map
-    if (this->m_ComputeInverseDefMap) {ht *= -1.0; hthalf *= -1.0;}
+    if (this->m_ComputeInverseDefMap) {
+        if (this->m_Opt->m_Verbosity > 1) {
+            ierr = DbgMsg("computing inverse deformation map"); CHKERRQ(ierr);
+        }
+        direction = -1.0;
+    }
 
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -2741,39 +2749,39 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK2)
-#pragma omp parallel
-{
-#pragma omp for
+//#pragma omp parallel
+//{
+//#pragma omp for
         for (IntType i = 0; i < nl; ++i) {
             // compute new coordinate
-            p_yt1[i] = p_y1[i] - ht*p_vy1[i];
-            p_yt2[i] = p_y2[i] - ht*p_vy2[i];
-            p_yt3[i] = p_y3[i] - ht*p_vy3[i];
+            p_yt1[i] = p_y1[i] - direction*ht*p_vy1[i];
+            p_yt2[i] = p_y2[i] - direction*ht*p_vy2[i];
+            p_yt3[i] = p_y3[i] - direction*ht*p_vy3[i];
 
             // compute first part of second stage of RK2
-            p_y1[i] -= hthalf*p_vy1[i];
-            p_y2[i] -= hthalf*p_vy2[i];
-            p_y3[i] -= hthalf*p_vy3[i];
+            p_y1[i] -= direction*hthalf*p_vy1[i];
+            p_y2[i] -= direction*hthalf*p_vy2[i];
+            p_y3[i] -= direction*hthalf*p_vy3[i];
         }
-}// end of pragma omp parallel
+//}// end of pragma omp parallel
 
         // evaluate v(ytilde)
         ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_yt1, p_yt2, p_yt3, "state"); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // update deformation map (second stage of RK2)
-#pragma omp parallel
-{
-#pragma omp for
+//#pragma omp parallel
+//{
+//#pragma omp for
         for (IntType i = 0; i < nl; ++i) {
-            p_y1[i] -= hthalf*p_vy1[i];
-            p_y2[i] -= hthalf*p_vy2[i];
-            p_y3[i] -= hthalf*p_vy3[i];
+            p_y1[i] -= direction*hthalf*p_vy1[i];
+            p_y2[i] -= direction*hthalf*p_vy2[i];
+            p_y3[i] -= direction*hthalf*p_vy3[i];
         }
-}// end of pragma omp parallel
+//}// end of pragma omp parallel
 
         // store time series
-        if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
+        if (this->m_Opt->m_ReadWriteFlags.timeseries) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
