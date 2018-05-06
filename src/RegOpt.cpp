@@ -724,6 +724,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+            // peform at least one iteration
+            this->m_OptPara.miniter = 1;
 
             argc--; argv++;
             if (strcmp(argv[1], "binary") == 0) {
@@ -743,6 +745,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+            // peform at least one iteration
+            this->m_OptPara.miniter = 1;
 
             this->m_ParaCont.strategy = PCONTINUATION;
             this->m_ParaCont.enabled = true;
@@ -1059,8 +1063,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[3] = 0;                    ///< not used
 
     this->m_Distance = {};
-    this->m_Distance.type = SL2;                        ///< default distance measure (squared l2 distance)
-    this->m_Distance.reset = false;                     ///< re-allocate distance measure
+    this->m_Distance.type = SL2;                    ///< default distance measure (squared l2 distance)
+    this->m_Distance.reset = false;                 ///< re-allocate distance measure
 
     this->m_PDESolver = {};
     this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)
@@ -1204,10 +1208,10 @@ PetscErrorCode RegOpt::Initialize() {
 
     // parameter continuation
     this->m_ParaCont = {};
-    this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
-    this->m_ParaCont.enabled = false;         ///< flag for parameter continuation
-    this->m_ParaCont.targetbeta = 0.0;        ///< has to be set by user
-    this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
+    this->m_ParaCont.strategy = PCONTOFF;           ///< no continuation
+    this->m_ParaCont.enabled = false;               ///< flag for parameter continuation
+    this->m_ParaCont.targetbeta = 0.0;              ///< has to be set by user
+    this->m_ParaCont.beta0 = 1.0;                   ///< default initial parameter for parameter continuation
 
     // grid continuation
     //this->m_GridCont = {};
