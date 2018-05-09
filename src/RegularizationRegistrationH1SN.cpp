@@ -353,7 +353,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInverse(VecField* Ainvx, Vec
                     // compute regularization operator
                     regop = (fabs(lapik) == 0.0) ? beta : -beta*lapik;
 
-                    if (applysqrt) regop = std::sqrt(regop);
+                    if (applysqrt) regop = sqrt(regop);
                     regop = scale/regop;
 
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);

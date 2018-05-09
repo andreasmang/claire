@@ -40,7 +40,7 @@
 #include "RegularizationRegistrationH2SN.hpp"
 #include "RegularizationRegistrationH3SN.hpp"
 #include "OptimizationProblem.hpp"
-//#include "SemiLagrangianGPU.hpp"
+#include "SemiLagrangianGPUNew.hpp"
 
 
 
@@ -56,7 +56,7 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     typedef OptimalControlRegistrationBase Self;
     typedef OptimizationProblem SuperClass;
     typedef RegularizationRegistration RegularizationType;
-    typedef SemiLagrangian SemiLagrangianType;
+    typedef SemiLagrangianGPUNew SemiLagrangianType;
 
     OptimalControlRegistrationBase(void);
     OptimalControlRegistrationBase(RegOpt*);

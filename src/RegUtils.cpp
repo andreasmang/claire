@@ -893,6 +893,89 @@ std::vector<int> String2Vec(const std::string & str, std::string sep) {
 }
 
 
+/********************************************************************
+ * @brief return/restore raw pointers for vector for write/read purpose
+ *******************************************************************/
+PetscErrorCode GetRawPointer(Vec v, ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDAGetArrayWrite(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecGetArray(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode RestoreRawPointer(Vec v, ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDARestoreArrayWrite(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode GetRawPointerRead(Vec v, const ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDAGetArrayRead(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecGetArrayRead(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);   
+}
+
+
+PetscErrorCode RestoreRawPointerRead(Vec v, const ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDARestoreArrayRead(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecRestoreArrayRead(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);   
+}
+
+PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDAGetArrayReadWrite(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);      
+}
+
+PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDARestoreArrayReadWrite(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);      
+}
 
 
 }  //  namespace reg

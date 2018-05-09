@@ -450,7 +450,11 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
         }
     }
 
-    ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    // ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X3, &p_v3); CHKERRQ(ierr);
+
     for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
         for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
             for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
@@ -490,7 +494,12 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
             }  // i1
         }  // i2
     }  // i3
-    ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+
+    // ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X3, &p_v3); CHKERRQ(ierr);
+
 
     opt->Exit(__func__);
 

@@ -35,4 +35,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/OptimalControlRegistration.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
 		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
-		$(SRCDIR)/Preprocessing.cpp
+		$(SRCDIR)/Preprocessing.cpp \
+		$(SRCDIR)/SemiLagrangianGPUNew.cpp
+
+CUFILES=$(SRCDIR)/interp3_gpu_new.cu

@@ -48,6 +48,7 @@
 #include "accfft.h"
 #include "accfftf.h"
 #include "accfft_operators.h"
+#include "petsccuda.h"
 
 #define IntType PetscInt
 #define ScalarType PetscReal
@@ -137,6 +138,13 @@ PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
 
 PetscErrorCode Finalize();
 
+/* get raw pointer to write, read and read,write */
+PetscErrorCode GetRawPointer(Vec, ScalarType**);
+PetscErrorCode RestoreRawPointer(Vec, ScalarType**);
+PetscErrorCode GetRawPointerRead(Vec, const ScalarType**);
+PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**);
+PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**);
+PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**);
 
 
 

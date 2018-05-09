@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # define the MPI compilers
-MPI_CXX=mpicxx
-MPI_C=mpicc
+MPI_CXX=${MPICXX}/mpicxx
+MPI_C=${MPICC}/mpicc
 #MPI_F77=mpif77
 #MPI_F99=mpif90
 
@@ -23,6 +23,7 @@ buildaccfft=0
 buildnifticlib=0
 buildpetscdbl=0
 buildpetscsgl=0
+buildpetsccudasgl=0
 buildpetscdbgsgl=0
 buildpetscdgbdbl=0
 buildpnetcdf=0
@@ -79,6 +80,10 @@ case $i in
     buildpetscdgbdbl=1
     shift # past argument=value
     ;;
+    --bpetsccudasgl)
+    buildpetsccudasgl=1
+    shift # past argument=value
+    ;;
     --bpetscsgl)
     buildpetscsgl=1
     shift # past argument=value
@@ -129,6 +134,7 @@ case $i in
     echo "     --baccfft       build ACCFFT library (mandatory; depends on FFTW)"
     echo "     --bnifti        build NIFTI library (default)"
     echo "     --bpetscsgl     build PETSc library (mandatory; default; single precision)"
+    echo "     --bpetsccudasgl build PETSc library with nVidia-CUDA library (single precision)"
     echo "     --bpetscdbl     build PETSc library (double precision)"
     echo "     --bpetscdbgsgl  build PETSc library (for developers; single precision; debug mode)"
     echo "     --bpetscdbgdbl  build PETSc library (for developers; double precision; debug mode)"
@@ -164,19 +170,23 @@ fi
 
 ### PETSC OPTIONS
 PETSC_OPTIONS="
---with-cc=${MPI_C}
---CFLAGS=${CFLAGS}
 COPTFLAGS='-O3'
---with-cxx=${MPI_CXX}
---CXXFLAGS=${CXXFLAGS}
---download-f2cblaslapack
 CXXOPTFLAGS='-O3'
+--with-mpi=1
+--with-mpi-dir=${HOME}/claire/external/libs/openmpi-3.0.1
+--download-f2cblaslapack=1
 --with-ssl=0
 --with-debugging=0
 --with-64-bit-indices
 --with-shared=0
 --with-x=0
 --with-fc=0"
+
+PETSC_CUDA_OPTIONS="
+--with-cuda=1
+--download-cusp=yes
+--CUDAFLAGS=-arch=sm_35
+--with-cuda-dir=/opt/apps/cuda/8.0"
 
 PETSC_DBG_OPTIONS="
 --with-cc=${MPI_C}
@@ -406,6 +416,38 @@ echo "export PETSC_ARCH_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.s
 echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 
+################################
+# PETSC-CUDA
+################################
+PETSC_ARCH=cuda_opt_sgl
+if [ ${builddep} -eq 1 -o ${buildpetsccudasgl} -eq 1 ]; then 
+	echo ""
+	echo ${myline} 
+	echo "configuring PETSC-CUDA (single precision)"
+	echo ${myline} 
+	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${SRC_DIR}/${PETSC_ARCH}
+	fi
+	if [ -d ${BLD_DIR}/${PETSC_ARCH} -a ! ${BLD_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}/${PETSC_ARCH}
+	fi
+	cd ${SRC_DIR}
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_OPTIONS} ${PETSC_CUDA_OPTIONS} --with-precision=single
+	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_OPTIONS} ${PETSC_CUDA_OPTIONS} --with-precision=single
+	echo ""
+	echo ${myline} 
+	echo "building PETSC" 
+	echo ${myline} 
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
+else
+	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+echo "export PETSC_ARCH_CUDA_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 
 ################################

@@ -76,9 +76,6 @@ class VecField {
     PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
     PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
 
-    PetscErrorCode GetArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode RestoreArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
-
     PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
     PetscErrorCode AXPY(ScalarType, VecField*);
 

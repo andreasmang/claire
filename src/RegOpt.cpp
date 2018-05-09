@@ -692,10 +692,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 this->m_RegNorm.type = H1;
                 this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h1s-div") == 0) {
-                this->m_RegNorm.type = H1SN;
+                this->m_RegNorm.type = H1;
                 this->m_RegModel = RELAXEDSTOKES;
             } else if (strcmp(argv[1], "h1s-stokes") == 0) {
-                this->m_RegNorm.type = H1SN;
+                this->m_RegNorm.type = H1;
                 this->m_RegModel = STOKES;
             } else if (strcmp(argv[1], "h2") == 0) {
                 this->m_RegNorm.type = H2;
@@ -724,8 +724,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
-            // peform at least one iteration
-            this->m_OptPara.miniter = 1;
 
             argc--; argv++;
             if (strcmp(argv[1], "binary") == 0) {
@@ -739,21 +737,19 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
-        } else if (strcmp(argv[1], "-betacont") == 0) {
+        } else if (strcmp(argv[1], "-betavcont") == 0) {
            if (this->m_ParaCont.enabled) {
                 msg = "\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
-            // peform at least one iteration
-            this->m_OptPara.miniter = 1;
 
             this->m_ParaCont.strategy = PCONTINUATION;
             this->m_ParaCont.enabled = true;
 
             argc--; argv++;
             this->m_ParaCont.targetbeta = atof(argv[1]);
-        } else if (strcmp(argv[1], "-betainit") == 0) {
+        } else if (strcmp(argv[1], "-betavinit") == 0) {
             argc--; argv++;
             this->m_ParaCont.beta0 = atof(argv[1]);
         } else if (strcmp(argv[1], "-scalecont") == 0) {
@@ -1063,8 +1059,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[3] = 0;                    ///< not used
 
     this->m_Distance = {};
-    this->m_Distance.type = SL2;                    ///< default distance measure (squared l2 distance)
-    this->m_Distance.reset = false;                 ///< re-allocate distance measure
+    this->m_Distance.type = SL2;                        ///< default distance measure (squared l2 distance)
+    this->m_Distance.reset = false;                     ///< re-allocate distance measure
 
     this->m_PDESolver = {};
     this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)
@@ -1208,10 +1204,10 @@ PetscErrorCode RegOpt::Initialize() {
 
     // parameter continuation
     this->m_ParaCont = {};
-    this->m_ParaCont.strategy = PCONTOFF;           ///< no continuation
-    this->m_ParaCont.enabled = false;               ///< flag for parameter continuation
-    this->m_ParaCont.targetbeta = 0.0;              ///< has to be set by user
-    this->m_ParaCont.beta0 = 1.0;                   ///< default initial parameter for parameter continuation
+    this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
+    this->m_ParaCont.enabled = false;         ///< flag for parameter continuation
+    this->m_ParaCont.targetbeta = 0.0;        ///< has to be set by user
+    this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
 
     // grid continuation
     //this->m_GridCont = {};
@@ -1474,9 +1470,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -iterates                   store/write out iterates (deformed template image and velocity field)" << std::endl;
-//        std::cout << " -iresults                   store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
-        std::cout << " -timeseries                 store time series (use with caution)" << std::endl;
+        std::cout << " -xiterates                  store/write out iterates (deformed template image and velocity field)" << std::endl;
+        std::cout << " -xiresults                  store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
+        std::cout << " -xtimeseries                store time series (use with caution)" << std::endl;
         std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
         std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
         std::cout << " -format <type>              specify the output format for the images/vector fields; default is NIFTI (*.nii.gz)" << std::endl;
