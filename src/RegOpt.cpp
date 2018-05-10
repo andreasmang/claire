@@ -231,9 +231,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Monitor.gradnorm = opt.m_Monitor.gradnorm;
     this->m_Monitor.gradnorm0 = opt.m_Monitor.gradnorm0;
 
-    for (IntType i = 0; i < NLOGFLAGS; ++i) {
-        this->m_Log.enabled[i] = opt.m_Log.enabled[i];
-    }
     this->m_Log.finalresidual[0] = 0;
     this->m_Log.finalresidual[1] = 0;
     this->m_Log.finalresidual[2] = 0;
@@ -246,6 +243,9 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->ResetTimers();
     this->ResetCounters();
+    for (IntType i = 0; i < NLOGFLAGS; ++i) {
+        this->m_Log.enabled[i] = opt.m_Log.enabled[i];
+    }
 
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
@@ -2782,8 +2782,14 @@ PetscErrorCode RegOpt::ResetCounter(CounterType id) {
 /********************************************************************
  * @brief write log results to file
  *******************************************************************/
-PetscErrorCode RegOpt::WriteLogFile() {
+PetscErrorCode RegOpt::WriteLogFile(bool coarse) {
     PetscErrorCode ierr = 0;
+
+    if (coarse) {
+        this->m_PostFix = "_coarse";
+    } else {
+        this->m_PostFix = "";
+    }
 
     if (this->m_Log.enabled[LOGLOAD]) {
         ierr = this->WriteWorkLoadLog(); CHKERRQ(ierr);
@@ -2822,7 +2828,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog() {
 
     // write out logfile
     if (rank == 0) {
-        fn = path + "registration-performance.log";
+        fn = path + "registration-performance" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 //        std::cout << std::endl;
@@ -3133,7 +3139,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable() {
 
     // write out logfile
     if (rank == 0) {
-        fn = path + "registration-performance.log";
+        fn = path + "registration-performance" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 //        std::cout << std::endl;
@@ -3580,7 +3586,7 @@ PetscErrorCode RegOpt::WriteFinalResidualLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "claire-residual.log";
+        fn = path + "claire-residual" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
 
@@ -3654,7 +3660,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "claire-distance-measure-trend.log";
+        fn = path + "claire-distance-measure-trend" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
@@ -3669,7 +3675,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         logwriter.close();  // close logger
 
         // create output file
-        fn = path + "claire-regularization-trend.log";
+        fn = path + "claire-regularization-trend" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
@@ -3684,7 +3690,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         logwriter.close();  // close logger
 
         // create output file
-        fn = path + "claire-objective-trend.log";
+        fn = path + "claire-objective-trend" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
@@ -3699,7 +3705,7 @@ PetscErrorCode RegOpt::WriteConvergenceLog() {
         logwriter.close();  // close logger
 
         // create output file
-        fn = path + "claire-gradnorm-trend.log";
+        fn = path + "claire-gradnorm-trend" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open log file for writing"); CHKERRQ(ierr);
 
@@ -3761,7 +3767,7 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 
     if (rank == 0) {
         // create output file
-        fn = path + "claire-krylov-method-residual.log";
+        fn = path + "claire-krylov-method-residual" + this->m_PostFix + ".log";
         logwriter.open(fn.c_str());
         ierr = Assert(logwriter.is_open(), "could not open file for writing"); CHKERRQ(ierr);
         n = static_cast<int>(this->m_Log.krylovresidual.size());

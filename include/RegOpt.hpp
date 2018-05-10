@@ -541,7 +541,7 @@ class RegOpt {
 
     virtual PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);
-    PetscErrorCode WriteLogFile(void);
+    PetscErrorCode WriteLogFile(bool coarse = false);
     PetscErrorCode DoSetup(bool dispteaser = true);
 
     inline void Enter(std::string fname) {
@@ -592,6 +592,8 @@ class RegOpt {
     unsigned int m_Indent;
     int m_Verbosity;
     std::vector<int> m_LabelIDs;       ///< label ids
+    std::string m_PostFix;
+
 
  protected:
     virtual PetscErrorCode Initialize(void);
