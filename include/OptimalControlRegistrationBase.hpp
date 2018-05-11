@@ -26,7 +26,6 @@
 #include "TenField.hpp"
 #include "Preprocessing.hpp"
 #include "ReadWriteReg.hpp"
-#include "SemiLagrangian.hpp"
 #include "DistanceMeasure.hpp"
 #include "DistanceMeasureSL2.hpp"
 #include "DistanceMeasureSL2aux.hpp"
@@ -41,6 +40,7 @@
 #include "RegularizationRegistrationH3SN.hpp"
 #include "OptimizationProblem.hpp"
 #include "SemiLagrangianGPUNew.hpp"
+#include "SemiLagrangian.hpp"
 
 
 
@@ -56,7 +56,11 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     typedef OptimalControlRegistrationBase Self;
     typedef OptimizationProblem SuperClass;
     typedef RegularizationRegistration RegularizationType;
+#ifdef REG_HAS_CUDA
     typedef SemiLagrangianGPUNew SemiLagrangianType;
+#else
+    typedef SemiLagrangian SemiLagrangianType;
+#endif
 
     OptimalControlRegistrationBase(void);
     OptimalControlRegistrationBase(RegOpt*);

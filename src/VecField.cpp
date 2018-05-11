@@ -223,17 +223,30 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X1); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X1, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
+    #ifdef REG_HAS_CUDA
+        ierr = VecSetType(this->m_X1, VECCUDA); CHKERRQ(ierr);
+    #else
+        ierr = VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
+    #endif
+
 
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X2); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X2, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(this->m_X2); CHKERRQ(ierr);
+    #ifdef REG_HAS_CUDA
+        ierr = VecSetType(this->m_X2, VECCUDA); CHKERRQ(ierr);
+    #else
+        ierr = VecSetFromOptions(this->m_X2); CHKERRQ(ierr);
+    #endif
 
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X3); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X3, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
+    #ifdef REG_HAS_CUDA
+        ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
+    #else
+        ierr = VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
+    #endif
 
     PetscFunctionReturn(ierr);
 }

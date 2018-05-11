@@ -21,7 +21,7 @@
 #ifndef _REGUTILS_H_
 #define _REGUTILS_H_
 
-// #define _REG_DEBUG_
+#define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -49,6 +49,8 @@
 #include "accfftf.h"
 #include "accfft_operators.h"
 #include "petsccuda.h"
+#include "cuda.h"
+#include <petsc/private/vecimpl.h>
 
 #define IntType PetscInt
 #define ScalarType PetscReal
@@ -145,7 +147,7 @@ PetscErrorCode GetRawPointerRead(Vec, const ScalarType**);
 PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**);
 PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**);
 PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**);
-
+PetscErrorCode PrintVectorMemoryLocation(Vec, std::string);
 
 
 /********************************************************************

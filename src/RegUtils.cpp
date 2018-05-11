@@ -474,7 +474,11 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
 
     ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
     ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(x); CHKERRQ(ierr);
+    #ifdef REG_HAS_CUDA
+        ierr = VecSetType(x, VECCUDA); CHKERRQ(ierr);
+    #else
+        ierr = VecSetFromOptions(x); CHKERRQ(ierr);
+    #endif
 
     PetscFunctionReturn(ierr);
 }
@@ -960,6 +964,8 @@ PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a) {
 
     #ifdef REG_HAS_CUDA
         ierr = VecCUDAGetArrayReadWrite(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecGetArray(v, a); CHKERRQ(ierr);
     #endif
 
     PetscFunctionReturn(ierr);      
@@ -972,11 +978,41 @@ PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
 
     #ifdef REG_HAS_CUDA
         ierr = VecCUDARestoreArrayReadWrite(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
     #endif
 
     PetscFunctionReturn(ierr);      
 }
 
+
+PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
+    PetscErrorCode ierr = 0;
+    
+    PetscFunctionBegin;
+    
+    std::stringstream ss;
+    ss << std::left << msg;
+
+    if (v->valid_GPU_array == PETSC_OFFLOAD_UNALLOCATED) {
+        msg = ss.str() + " UNALLOCATED\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+    }
+    else if (v->valid_GPU_array == PETSC_OFFLOAD_CPU) {
+        msg = ss.str() + " on CPU\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+    }
+    else if (v->valid_GPU_array == PETSC_OFFLOAD_GPU) {
+        msg = ss.str() + " on GPU\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+    }
+    else {
+        msg = ss.str() + " on BOTH\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+    }
+
+    PetscFunctionReturn(ierr);
+}
 
 }  //  namespace reg
 

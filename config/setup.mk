@@ -75,8 +75,13 @@ CLAIRE_INC = -I$(INCDIR)
 CUDA_INC = -I$(CUDA_DIR)/include -I$(CUDA_INTERP)/include -I$(INCDIR) -I$(HOME)/CUDA-9.1/samples/common/inc
 
 ifeq ($(USECUDA),yes)
-	CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include
-	CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	ifeq ($(DBGCODE),yes)
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	else
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	endif
 else
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
@@ -114,7 +119,11 @@ ifeq ($(USEPNETCDF),yes)
 endif
 
 ifeq ($(USECUDA),yes)
-	LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/lib
+	ifeq ($(DBGCODE),yes)
+	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/lib
+	else
+	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/lib
+	endif
 else
 
 ifeq ($(DBGCODE),yes)

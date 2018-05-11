@@ -456,10 +456,10 @@ __global__ void interp3D_kernel(
     float3 qcoord = make_float3(xq[tid], yq[tid], zq[tid]);
     
     // do single point interpolation
-    yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-    //mt_interp[mtid] = cubicTex3D_splineSimple( mt_tex, qcoord_normalised, inv_reg_extent);
-    //mt_interp[mtid] = cubicTex3D_lagrangeSimple( mt_tex, qcoord_normalised, inv_reg_extent);
-    // mt_interp[tid] = cubicTex3D_lagrangeFast( mt_tex, qcoord_normalised, inv_reg_extent);
+    //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 }
 
 
@@ -512,7 +512,7 @@ void gpuInterp3D(
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[0]*sizeof(float), nx[0], nx[1]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
-    // CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[0], ny[1], nx[2]);
+    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[0], nx[1], nx[2]);
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[0], nx[1], nx[2]);
     // create a texture from the spline coefficients

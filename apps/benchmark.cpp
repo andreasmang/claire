@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     value = opt->GetRunTime();
     rval = MPI_Reduce(&value, &runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
     ierr = reg::Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
-
+    
     // write logfile and display time to solution
     ss << "total runtime (in seconds)   " << std::scientific << runtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
     ss << "average runtime (in seconds) " << std::scientific << runtime/static_cast<double>(n);
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
+    
 
     ierr = opt->WriteLogFile(); CHKERRQ(ierr);
     ierr = opt->DisplayTimeToSolution(); CHKERRQ(ierr);
@@ -338,13 +339,15 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
     opt->SetRunTime(runtime);
 
-    ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
-    ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
-    ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
-
     ierr = VecAXPY(m0, -1.0, m0true); CHKERRQ(ierr);
     ierr = VecNorm(m0, NORM_2, &val); CHKERRQ(ierr);
     ierr = VecNorm(m0true, NORM_2, &val0); CHKERRQ(ierr);
+    
+    /*
+    ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
+    */
 
     relval = val;
     relval /= val0 > 0.0 ? val0 : 1.0;
@@ -357,13 +360,19 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ss.clear(); ss.str(std::string());
 //    }
 
-
+    cudaDeviceSynchronize(); 
     if (registration != NULL) {delete registration; registration = NULL;}
+    ierr = reg::DbgMsg("deleted registration"); CHKERRQ(ierr);
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    ierr = reg::DbgMsg("deleted weadwrite"); CHKERRQ(ierr);
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
+    ierr = reg::DbgMsg("deleted m0"); CHKERRQ(ierr);
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    ierr = reg::DbgMsg("deleted m1"); CHKERRQ(ierr);
     if (m0true != NULL) {ierr = VecDestroy(&m0true); CHKERRQ(ierr); m0true = NULL;}
+    ierr = reg::DbgMsg("deleted m0true"); CHKERRQ(ierr);
     if (v != NULL) {delete v; v = NULL;}
+    ierr = reg::DbgMsg("deleted v"); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -409,9 +418,12 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::BenchmarkOpt* opt) {
 
                 // compute linear / flat index
                 i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
+                
                 p_m[i] =  (PetscSinReal(x1)*PetscSinReal(x1)
                           + PetscSinReal(x2)*PetscSinReal(x2)
                           + PetscSinReal(x3)*PetscSinReal(x3))/3.0;
+                
+
             }  // i1
         }  // i2
     }  // i3
@@ -432,7 +444,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType hx[3], x1, x2, x3;
-    IntType i, vcase = 1;
+    IntType i, vcase = 3;
     PetscFunctionBegin;
 
     opt->Enter(__func__);
@@ -484,7 +496,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
                     p_v3[i] = PetscCosReal(x1)*PetscCosReal(x2);
                 } else if (vcase == 3) {
                     p_v1[i] = 0.5;
-                    p_v2[i] = 0.5;
+                    p_v2[i] = 1;
                     p_v3[i] = 0.5;
                 } else if (vcase == 4) {
                     p_v1[i] = 0.0;
