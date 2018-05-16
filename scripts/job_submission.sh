@@ -7,7 +7,7 @@
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -t 00:10:00
+#SBATCH -t 00:02:00
 #SBATCH --mail-user=naveen@ices.utexas.edu
 #SBATCH --mail-type=all
 

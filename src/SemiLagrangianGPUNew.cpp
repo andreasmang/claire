@@ -283,12 +283,11 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ierr = PrintVectorMemoryLocation(v->m_X1, "Velocity before euler trajectory"); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X2, -scale*ht*invhx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_X->m_X2, -scale*ht*invhx[2], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X3, -scale*ht*invhx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
     ierr = PrintVectorMemoryLocation(this->m_InitialTrajectory->m_X1, "Initial trajectory"); CHKERRQ(ierr);
     ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "Euler trajectory"); CHKERRQ(ierr);
     
     // interpolate velocity field v(X)
-    
     ierr = PrintVectorMemoryLocation(v->m_X1, "Velocity after"); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
     ierr = PrintVectorMemoryLocation(v->m_X1, "Velocity"); CHKERRQ(ierr);
@@ -548,7 +547,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
-        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx);
+        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, &(this->m_Opt->m_GPUtime));
     }
     else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -641,14 +640,13 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     ierr = this->m_X->GetArraysRead(xq1, xq2, xq3); CHKERRQ(ierr);
 
     if (strcmp(flag.c_str(),"state") == 0) {
-        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx);
-        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx);
-        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx);
-
+        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, &(this->m_Opt->m_GPUtime));
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
-        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx);
-        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx);
-        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx);
+        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, &(this->m_Opt->m_GPUtime));
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }

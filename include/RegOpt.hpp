@@ -539,6 +539,8 @@ class RegOpt {
     PetscErrorCode ResetCounter(CounterType);
     PetscErrorCode ProcessTimers(void);
 
+    PetscScalar m_GPUtime = 0;
+
     virtual PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);
     PetscErrorCode WriteLogFile(void);

@@ -359,6 +359,8 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
 //    }
+    
+    PetscPrintf(PETSC_COMM_WORLD, "total gpu time = %f\n", opt->m_GPUtime);
 
     cudaDeviceSynchronize(); 
     if (registration != NULL) {delete registration; registration = NULL;}
@@ -444,7 +446,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType hx[3], x1, x2, x3;
-    IntType i, vcase = 3;
+    IntType i, vcase = 2;
     PetscFunctionBegin;
 
     opt->Enter(__func__);
