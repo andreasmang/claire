@@ -342,7 +342,7 @@ PetscErrorCode Preconditioner::DoSetup() {
  *******************************************************************/
 PetscErrorCode Preconditioner::SetupCoarseGrid() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc;
+    IntType nt, nc, nlc,ngc;
     ScalarType scale, value;
     std::stringstream ss;
     PetscFunctionBegin;
@@ -546,6 +546,7 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     ScalarType pct, value;
+    IntType nxc[3], nx[3];
     this->m_Opt->Enter(__func__);
 
     // do allocation of coarse grid
@@ -646,7 +647,7 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
  *******************************************************************/
 PetscErrorCode Preconditioner::ApplyRestriction() {
     PetscErrorCode ierr = 0;
-    IntType nl_f, nl_c, nt, nc, l_f, l_c, lnext_f;
+    IntType nl_f, nl_c, nt, nc, l_f, l_c, lnext_f, nx_c[3], nx_f[3];
     std::stringstream ss;
     Vec m = NULL, lambda = NULL;
     ScalarType *p_mj = NULL, *p_m = NULL, *p_mjcoarse = NULL, *p_mcoarse = NULL,
@@ -674,12 +675,8 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss  << "applying restriction to variables "
-            << " (" << this->m_Opt->m_Domain.nx[0]
-            << ","  << this->m_Opt->m_Domain.nx[1]
-            << ","  << this->m_Opt->m_Domain.nx[2] << ") ->"
-            << " (" << this->m_CoarseGrid.m_Opt->m_Domain.nx[0]
-            << ","  << this->m_CoarseGrid.m_Opt->m_Domain.nx[1]
-            << ","  << this->m_CoarseGrid.m_Opt->m_Domain.nx[2] << ")";
+            << " (" << nx_f[0] << ","  << nx_f[1] << ","  << nx_f[2] << ") ->"
+            << " (" << nx_c[0] << ","  << nx_c[1] << ","  << nx_c[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
