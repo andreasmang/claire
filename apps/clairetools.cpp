@@ -109,9 +109,12 @@ int main(int argc, char **argv) {
  *******************************************************************/
 PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m) {
     PetscErrorCode ierr = 0;
+    std::stringstream ss;
     std::vector <std::string> filename;
 
     PetscFunctionBegin;
+
+    ierr = reg::Assert(rw != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (!regopt->m_FileNames.isc.empty()) {
         filename.push_back(regopt->m_FileNames.isc);
@@ -120,6 +123,8 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m)
         if (!regopt->m_SetupDone) {
             ierr = regopt->DoSetup(); CHKERRQ(ierr);
         }
+        ss << "reading " << filename[0];
+        ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(ierr);
@@ -1023,12 +1028,13 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::string path, filename, extension;
     std::vector <std::string> filenames;
-    Vec m;
+    Vec m = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     reg::Preprocessing* preproc = NULL;
     PetscFunctionBegin;
 
     regopt->Enter(__func__);
+
 
     try {readwrite = new reg::ReadWriteReg(regopt);}
     catch (std::bad_alloc&) {
@@ -1038,6 +1044,8 @@ PetscErrorCode ApplySmoothing(reg::RegToolsOpt* regopt) {
     ierr = ReadData(regopt, readwrite, m); CHKERRQ(ierr);
     ierr = reg::Assert(m != NULL, "set input scalar field"); CHKERRQ(ierr);
     if (!regopt->m_SetupDone) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
+
+    ierr = reg::DbgMsg("applying smoothing"); CHKERRQ(ierr);
 
     // allocate preprocessing class
     try {preproc = new reg::Preprocessing(regopt);}

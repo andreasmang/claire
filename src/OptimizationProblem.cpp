@@ -46,6 +46,7 @@ OptimizationProblem::OptimizationProblem() {
  *******************************************************************/
 OptimizationProblem::OptimizationProblem(RegOpt* opt) {
     this->Initialize();
+
     this->m_Opt = opt;
 }
 

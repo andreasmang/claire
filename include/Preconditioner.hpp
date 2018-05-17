@@ -109,7 +109,7 @@ class Preconditioner {
         bool setupdone;
     };
 
-    CoarseGrid m_CoarseGrid;
+    CoarseGrid* m_CoarseGrid;
 
     RegOpt* m_Opt;                          ///< registration options
     OptProbType* m_OptimizationProblem;     ///< pointer to optimization problem
