@@ -342,7 +342,7 @@ PetscErrorCode Preconditioner::DoSetup() {
  *******************************************************************/
 PetscErrorCode Preconditioner::SetupCoarseGrid() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc, nlc,ngc;
+    IntType nt, nc, nlc, ngc, nl, ng;
     ScalarType scale, value;
     std::stringstream ss;
     PetscFunctionBegin;
