@@ -48,9 +48,12 @@
 #include "accfft.h"
 #include "accfftf.h"
 #include "accfft_operators.h"
+
+#ifdef REG_HAS_CUDA
 #include "petsccuda.h"
 #include "cuda.h"
 #include <petsc/private/vecimpl.h>
+#endif
 
 #define IntType PetscInt
 #define ScalarType PetscReal

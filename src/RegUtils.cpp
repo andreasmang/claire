@@ -993,7 +993,8 @@ PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
     
     std::stringstream ss;
     ss << std::left << msg;
-
+    
+#ifdef REG_HAS_CUDA
     if (v->valid_GPU_array == PETSC_OFFLOAD_UNALLOCATED) {
         msg = ss.str() + " UNALLOCATED\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
@@ -1010,7 +1011,7 @@ PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
         msg = ss.str() + " on BOTH\n";
         ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
     }
-
+#endif
     PetscFunctionReturn(ierr);
 }
 

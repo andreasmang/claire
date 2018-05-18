@@ -362,7 +362,6 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     
     PetscPrintf(PETSC_COMM_WORLD, "total gpu time = %f\n", opt->m_GPUtime);
 
-    cudaDeviceSynchronize(); 
     if (registration != NULL) {delete registration; registration = NULL;}
     ierr = reg::DbgMsg("deleted registration"); CHKERRQ(ierr);
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}

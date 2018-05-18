@@ -39,7 +39,9 @@
 #include "RegularizationRegistrationH2SN.hpp"
 #include "RegularizationRegistrationH3SN.hpp"
 #include "OptimizationProblem.hpp"
+#ifdef REG_HAS_CUDA
 #include "SemiLagrangianGPUNew.hpp"
+#endif
 #include "SemiLagrangian.hpp"
 
 
