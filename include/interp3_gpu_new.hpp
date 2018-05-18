@@ -6,7 +6,7 @@
 #include "petsc.h"
 #include "petsccuda.h"
 #include <cuda.h>
-#include <cuda_runtime_api.h>
+#include <cuda_runtime.h>
 
 
 void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx, PetscScalar* interp_time);

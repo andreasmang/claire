@@ -71,7 +71,6 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
 
     this->m_X = NULL;
     this->m_WorkVecField1 = NULL;
-    this->m_WorkVecField2 = NULL;
     this->m_InitialTrajectory = NULL;
 
     this->m_Opt = NULL;
@@ -102,21 +101,6 @@ PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
         this->m_InitialTrajectory = NULL;
     }
 
-    if (this->m_ScaFieldGhost != NULL) {
-        accfft_free(this->m_ScaFieldGhost);
-        this->m_ScaFieldGhost = NULL;
-    }
-
-    if (this->m_VecFieldGhost != NULL) {
-        accfft_free(this->m_VecFieldGhost);
-        this->m_VecFieldGhost = NULL;
-    }
-
-    if (this->m_WorkVecField2 != NULL) {
-        delete this->m_WorkVecField2;
-        this->m_WorkVecField2 = NULL;
-    }
-
     PetscFunctionReturn(ierr);
 }
 
@@ -138,8 +122,6 @@ PetscErrorCode SemiLagrangianGPUNew::SetWorkVecField(VecField* x) {
 
 
 
-// TODO Inside ComputeTracjectory there will be a cuda kernel call which will
-// compute the trajectory on the GPU.
 /********************************************************************
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
@@ -241,6 +223,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL;
     IntType isize[3], istart[3], l, i1, i2, i3;
     std::stringstream ss;
+    double runtime=0;
 
     PetscFunctionBegin;
 
@@ -254,7 +237,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     }
 
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
-
+    
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -278,21 +261,28 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
         isize[i]  = this->m_Opt->m_Domain.isize[i];
         istart[i] = this->m_Opt->m_Domain.istart[i];
     }
-
-    // \tilde{X} = x - ht v
-    ierr = PrintVectorMemoryLocation(v->m_X1, "Velocity before euler trajectory"); CHKERRQ(ierr);
+    
+    // compute runtime
+    runtime = MPI_Wtime();
+    
+    // X = x - ht v
+    ierr = PrintVectorMemoryLocation(v->m_X1, "V before euler"); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X2, -scale*ht*invhx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X3, -scale*ht*invhx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(this->m_InitialTrajectory->m_X1, "Initial trajectory"); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "Euler trajectory"); CHKERRQ(ierr);
-    
+    ierr = PrintVectorMemoryLocation(this->m_InitialTrajectory->m_X1, "x after euler"); CHKERRQ(ierr);
+    ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "X=Xstar after euler"); CHKERRQ(ierr);
+    runtime =  MPI_Wtime() - runtime;
+    this->m_Opt->m_GPUtime += runtime;
+
     // interpolate velocity field v(X)
-    ierr = PrintVectorMemoryLocation(v->m_X1, "Velocity after"); CHKERRQ(ierr);
+    ierr = PrintVectorMemoryLocation(v->m_X1, "V before interpolation at Xstar"); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(v->m_X1, "Velocity"); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(this->m_WorkVecField1->m_X1, "Work vector field1"); CHKERRQ(ierr);
+    ierr = PrintVectorMemoryLocation(v->m_X1, "V after interpolation at Xstar"); CHKERRQ(ierr);
+    ierr = PrintVectorMemoryLocation(this->m_WorkVecField1->m_X1, "V* after interpolation at Xstar"); CHKERRQ(ierr);
     
+
+    runtime = MPI_Wtime();
     // X = x - 0.5*ht*(v + v(x - ht v))
     // F0 + F1 = v + v(x-ht*v)
     ierr = VecAXPY(this->m_WorkVecField1->m_X1, 1.0, v->m_X1); CHKERRQ(ierr);
@@ -303,8 +293,9 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ierr = VecWAXPY(this->m_X->m_X1, -scale*hthalf*invhx[0], this->m_WorkVecField1->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X2, -scale*hthalf*invhx[1], this->m_WorkVecField1->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X3, -scale*hthalf*invhx[2], this->m_WorkVecField1->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "Departure point"); CHKERRQ(ierr);
-     
+    ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "X after RK2"); CHKERRQ(ierr);
+    runtime = MPI_Wtime() - runtime;
+    this->m_Opt->m_GPUtime += runtime;
     
     this->m_Opt->Exit(__func__);
 
@@ -583,14 +574,11 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(VecField* vo, VecField* vi, std
 
     ierr = vi->GetArraysReadWrite(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
     ierr = vo->GetArraysReadWrite(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(vi->m_X1, "velocity just before interpolation"); CHKERRQ(ierr);
+    
     ierr = this->Interpolate(p_vox1, p_vox2, p_vox3, p_vix1, p_vix2, p_vix3, flag); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(vi->m_X1, "velocity just after interpolation"); CHKERRQ(ierr);
-
+    
     ierr = vi->RestoreArraysReadWrite(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
     ierr = vo->RestoreArraysReadWrite(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
-    ierr = PrintVectorMemoryLocation(vi->m_X1, "velocity  after interpolation restoration"); CHKERRQ(ierr);
-    
 
     this->m_Opt->Exit(__func__);
 

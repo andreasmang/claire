@@ -163,6 +163,7 @@ enum TimerType {
     FFTSELFEXEC,  ///< fft execution time
     IPSELFEXEC,   ///< execution time for interpolation
     NTIMERS,      ///< to allocate the timers
+    GPUCOMP,      ///< time spent on gpu
 };
 
 

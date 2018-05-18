@@ -1,5 +1,5 @@
 CXX=$(MPICXX)/mpicxx
-USECUDA=no
+USECUDA=yes
 ifeq ($(USECUDA),yes)
 CUDAC=$(CUDA_DIR)/bin/nvcc
 endif

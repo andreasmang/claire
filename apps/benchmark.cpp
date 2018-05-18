@@ -360,7 +360,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ss.clear(); ss.str(std::string());
 //    }
     
-    PetscPrintf(PETSC_COMM_WORLD, "total gpu time = %f\n", opt->m_GPUtime);
+    PetscPrintf(PETSC_COMM_WORLD, "Total GPU compute time = %0.2E sec\n", opt->m_GPUtime);
 
     if (registration != NULL) {delete registration; registration = NULL;}
     ierr = reg::DbgMsg("deleted registration"); CHKERRQ(ierr);

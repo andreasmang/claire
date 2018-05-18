@@ -73,17 +73,9 @@ class SemiLagrangianGPUNew {
     RegOpt* m_Opt;
 
     VecField* m_WorkVecField1;
-    VecField* m_WorkVecField2;
 
     VecField* m_X;
     VecField* m_InitialTrajectory;
-
-    Interp3_Plan* m_AdjointPlan;
-    Interp3_Plan* m_StatePlan;
-
-    ScalarType* m_XX;
-    ScalarType* m_ScaFieldGhost;
-    ScalarType* m_VecFieldGhost;
 
     int m_Dofs[2];
 

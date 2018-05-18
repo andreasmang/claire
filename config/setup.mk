@@ -6,7 +6,7 @@ RM = rm -f
 MKDIRS = mkdir -p
 
 ifeq ($(DBGCODE),yes)
-	CXXFLAGS = -g -debug all
+	CXXFLAGS = -g -debug
 else
 	CXXFLAGS = -O3 -ansi
 endif
@@ -77,7 +77,7 @@ ifeq ($(USECUDA),yes)
     CUDA_INC = -I$(CUDA_DIR)/include -I$(CUDA_INTERP)/include -I$(INCDIR) -I$(HOME)/CUDA-9.1/samples/common/inc
 endif
 
-ifeq ($(USECUDA),no)
+ifeq ($(USECUDA),yes)
 	ifeq ($(DBGCODE),yes)
 	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
 	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
@@ -123,7 +123,7 @@ ifeq ($(USEPNETCDF),yes)
 	CLAIRE_INC += -I$(PNETCDF_DIR)/include
 endif
 
-ifeq ($(USECUDA),no)
+ifeq ($(USECUDA),yes)
 	ifeq ($(DBGCODE),yes)
 	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/lib
 	else
