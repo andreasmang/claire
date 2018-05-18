@@ -3,6 +3,10 @@
 *.nii.gz
 *.nii
 *.log
+*.txt
+*.e
+*.err
+*.out
 *.exrc
 *.DS_Store
 bin/
