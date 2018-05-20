@@ -358,20 +358,17 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ss.clear(); ss.str(std::string());
 //    }
     
-    PetscPrintf(PETSC_COMM_WORLD, "Total GPU compute time = %0.2E sec\n", opt->m_GPUtime);
+    ss << "GPU compute time:"<< std::scientific << opt->m_GPUtime;
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.clear(); ss.str(std::string());
 
     if (registration != NULL) {delete registration; registration = NULL;}
-    ierr = reg::DbgMsg("deleted registration"); CHKERRQ(ierr);
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
-    ierr = reg::DbgMsg("deleted weadwrite"); CHKERRQ(ierr);
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
-    ierr = reg::DbgMsg("deleted m0"); CHKERRQ(ierr);
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    ierr = reg::DbgMsg("deleted m1"); CHKERRQ(ierr);
     if (m0true != NULL) {ierr = VecDestroy(&m0true); CHKERRQ(ierr); m0true = NULL;}
-    ierr = reg::DbgMsg("deleted m0true"); CHKERRQ(ierr);
     if (v != NULL) {delete v; v = NULL;}
-    ierr = reg::DbgMsg("deleted v"); CHKERRQ(ierr);
+
 
     PetscFunctionReturn(ierr);
 }

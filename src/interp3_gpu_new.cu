@@ -495,7 +495,7 @@ void gpuInterp3D(
     memset(&resDesc, 0, sizeof(resDesc));
    
     // make input image a cudaPitchedPtr for fi
-    cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[1], nx[0]);
+    cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
     //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
@@ -531,10 +531,7 @@ void gpuInterp3D(
     cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
     time+=dummy_time/1000;
     cudaDeviceSynchronize();
-    // print computation time
-/*    printf("\n 3D interpolation of Q=%d query points on a grid N=%dx%dx%d took %0.2E sec\n\n", nx[0]*nx[1]*nx[2], nx[0], nx[1], nx[2], time);
-    printf("\n???????????????????????????????????????????????????????????????????????????????????????????????????????????????????\n"); 
-*/
+    
     // free texture and cudaArray from device memory
     cudaGetTextureObjectResourceDesc( &resDesc, yi_tex);
     cudaDestroyTextureObject(yi_tex);
@@ -542,29 +539,66 @@ void gpuInterp3D(
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
         
-    *interp_time  = *interp_time + time;
+    *interp_time += time;
     
 }
 
-/*
-__global__ void getSMLInitialCondition_kernel(PetscScalar* x1, PetscScalar* x2, PetscScalar* x3) {
+
+/********************************************************************
+ * @brief kernel function to do get the initial condition i.e grid indices for SemiLagrangian 
+ * @parm[out] x,y,z memory space for storing coordinates
+ * @parm[in] nxq dimensions for the grid
+ *******************************************************************/
+__global__ void getSMLInitialCondition_kernel(PetscScalar* x, PetscScalar* y, PetscScalar* z, const float3 nx) {
     const int tidx = blockIdx.x * blockDim.x + threadIdx.x;
     const int tidy = blockIdx.y * blockDim.y + threadIdx.y;
     const int tidz = blockIdx.z * blockDim.z + threadIdx.z;
-    const int tid =  
+    const int tid = tidx*nx.y*nx.z + tidy*nx.z + tidz;
+
+    x[tid] = (float)tidx;
+    y[tid] = (float)tidy;
+    z[tid] = (float)tidz;
+
+    if (tid>=0 && tid<200) {
+        printf("tid = %d \t x = %0.1f \t y = %0.1f \t z = %0.1f\n", tid, x[tid], y[tid], z[tid]);
+    }
+}
 
 
-
-
-
-void getSemiLagrangianInitialCondition(PetscScalar* x1, PetscScalar* x2, PetscScalar* x3, int* nx, PetscScalar* compute_time) {
+/********************************************************************
+ * @brief host function to do get the initial condition i.e grid indices for SemiLagrangian 
+ * @parm[out] x,y,z memory space for storing coordinates
+ * @parm[out] compute_time time required to do the initialization
+ *******************************************************************/
+void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, PetscInt* nx, PetscScalar* compute_time) {
     float time=0, dummy_time=0;
     cudaEvent_t startEvent, stopEvent;
     cudaEventCreate(&startEvent);
     cudaEventCreate(&stopEvent);
     
-    dim3 dimBlock = (1,16,16);
+    const float3 nxq = make_float3(nx[0], nx[1], nx[2]);
+
+    dim3 dimBlock(1,16,16);
 	dim3 dimGrid( nx[0] / dimBlock.x, nx[1] / dimBlock.y, nx[2] / dimBlock.z );
-    getSMLInitialCondition_kernel<<<dimBlock, dimGrid>>>(x1, x2, x3);
     
-*/
+/*	uint dimX = min(min(PowTwoDivider(nx[0]), PowTwoDivider(nx[1])), 64);
+	uint dimY = min(min(PowTwoDivider(nx[2]), PowTwoDivider(nx[1])), 512/dimX);
+	dim3 dimBlock(dimX, dimY);
+    
+	// Replace the voxel values by the b-spline coefficients
+	dim3 dimGrid(nx[1] / dimBlock.x, nx[2] / dimBlock.y);
+*/    
+    printf("blockx = %d, blocky = %d, gridx - %d, gridy = %d\n", dimBlock.x, dimBlock.y, dimGrid.x, dimGrid.y);
+  getSMLInitialCondition_kernel<<<dimBlock, dimGrid>>>(x, y, z, nxq);
+    
+    if ( cudaSuccess != cudaGetLastError())
+        printf("Error in running the SML initial condition kernel\n");
+    
+    cudaEventRecord(stopEvent,0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
+    time+=dummy_time/1000;
+    cudaDeviceSynchronize();
+
+    *compute_time += time;
+}
