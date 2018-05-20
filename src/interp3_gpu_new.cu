@@ -488,14 +488,14 @@ void gpuInterp3D(
                                         1.0f/static_cast<float>(nx[1]), 
                                         1.0f/static_cast<float>(nx[0]));
     // define nxq, the dimensions of the grid
-    const float3 nxq = make_float3( nx[2], nx[1], nx[0]);
+    const float3 nxq = make_float3( nx[0], nx[1], nx[2]);
 
     // create a common cudaResourceDesc objects
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
    
     // make input image a cudaPitchedPtr for fi
-    cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+    cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[1], nx[0]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
     //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
@@ -546,3 +546,25 @@ void gpuInterp3D(
     
 }
 
+/*
+__global__ void getSMLInitialCondition_kernel(PetscScalar* x1, PetscScalar* x2, PetscScalar* x3) {
+    const int tidx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int tidy = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tidz = blockIdx.z * blockDim.z + threadIdx.z;
+    const int tid =  
+
+
+
+
+
+void getSemiLagrangianInitialCondition(PetscScalar* x1, PetscScalar* x2, PetscScalar* x3, int* nx, PetscScalar* compute_time) {
+    float time=0, dummy_time=0;
+    cudaEvent_t startEvent, stopEvent;
+    cudaEventCreate(&startEvent);
+    cudaEventCreate(&stopEvent);
+    
+    dim3 dimBlock = (1,16,16);
+	dim3 dimGrid( nx[0] / dimBlock.x, nx[1] / dimBlock.y, nx[2] / dimBlock.z );
+    getSMLInitialCondition_kernel<<<dimBlock, dimGrid>>>(x1, x2, x3);
+    
+*/

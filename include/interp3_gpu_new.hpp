@@ -10,9 +10,6 @@
 
 
 void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx, PetscScalar* interp_time);
-
-
-//__global__ gpuInterp3DKernel(cudaTextureObject_t yi_tex, float* xq1, float* xq2, float* xq3, float* yo ,const float3 inv_nx);
-
+//void getSemiLagrangianInitialCondition(PetscScalar* x1, PetscScalar* x2, PetscScalar* x3, int* nx, PetscScalar* compute_time);
 
 #endif
