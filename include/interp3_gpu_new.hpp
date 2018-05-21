@@ -10,6 +10,6 @@
 
 
 void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx, PetscScalar* interp_time);
-void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, PetscInt* nx, PetscScalar* compute_time);
+void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, int* nx, PetscScalar* compute_time);
 
 #endif

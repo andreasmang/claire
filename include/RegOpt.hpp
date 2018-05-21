@@ -541,6 +541,7 @@ class RegOpt {
     PetscErrorCode ProcessTimers(void);
 
     PetscScalar m_GPUtime = 0;
+    PetscScalar m_CPUtime = 0;
 
     virtual PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);

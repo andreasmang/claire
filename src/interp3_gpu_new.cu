@@ -445,9 +445,9 @@ __global__ void interp3D_kernel(
     // do single point interpolation - 4 methods
 
     //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-    //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+    yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-    yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 /*    const float h = 2*PI*inv_nx.x;
     const float3 q = qcoord*h;
     float votrue = computeVx(q.z, q.y, q.x);
@@ -494,18 +494,19 @@ void gpuInterp3D(
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
    
+    // start recording the interpolation kernel
+    time = 0; dummy_time = 0; 
+    cudaEventRecord(startEvent,0); 
+    
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
-    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+    CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
     // create a texture from the spline coefficients
     cudaTextureObject_t yi_tex = initTextureFromVolume(yi_cudaPitchedPtr,  yi_extent);
 
-    // start recording the interpolation kernel
-    time = 0; dummy_time = 0; 
-    cudaEventRecord(startEvent,0); 
     int threads = 256;
     long int nq = nx[0]*nx[1]*nx[2];
     int blocks = nq/threads;
@@ -538,7 +539,8 @@ void gpuInterp3D(
     cudaFreeArray( resDesc.res.array.array);
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
-        
+    
+    printf("interp time = %f\n", time);
     *interp_time += time;
     
 }
@@ -549,19 +551,20 @@ void gpuInterp3D(
  * @parm[out] x,y,z memory space for storing coordinates
  * @parm[in] nxq dimensions for the grid
  *******************************************************************/
-__global__ void getSMLInitialCondition_kernel(PetscScalar* x, PetscScalar* y, PetscScalar* z, const float3 nx) {
-    const int tidx = blockIdx.x * blockDim.x + threadIdx.x;
-    const int tidy = blockIdx.y * blockDim.y + threadIdx.y;
-    const int tidz = blockIdx.z * blockDim.z + threadIdx.z;
-    const int tid = tidx*nx.y*nx.z + tidy*nx.z + tidz;
+__global__ void getSMLInitialCondition_kernel(PetscScalar* x, PetscScalar* y, PetscScalar* z, const int3 nx) {
+     int tidx = blockIdx.x * blockDim.x + threadIdx.x;
+     int tidy = blockIdx.y * blockDim.y + threadIdx.y;
+     int tidz = blockIdx.z * blockDim.z + threadIdx.z;
+     int tid = tidx*nx.y*nx.z + tidy*nx.z + tidz;
 
-    x[tid] = (float)tidx;
-    y[tid] = (float)tidy;
-    z[tid] = (float)tidz;
+    x[tid] = static_cast<PetscScalar>(tidx);
+    y[tid] = static_cast<PetscScalar>(tidy);
+    z[tid] = static_cast<PetscScalar>(tidz);
 
-    if (tid>=0 && tid<200) {
+    if (tid>=4094 && tid<4098) {
         printf("tid = %d \t x = %0.1f \t y = %0.1f \t z = %0.1f\n", tid, x[tid], y[tid], z[tid]);
     }
+    
 }
 
 
@@ -570,13 +573,13 @@ __global__ void getSMLInitialCondition_kernel(PetscScalar* x, PetscScalar* y, Pe
  * @parm[out] x,y,z memory space for storing coordinates
  * @parm[out] compute_time time required to do the initialization
  *******************************************************************/
-void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, PetscInt* nx, PetscScalar* compute_time) {
+void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, int* nx, PetscScalar* compute_time) {
     float time=0, dummy_time=0;
     cudaEvent_t startEvent, stopEvent;
     cudaEventCreate(&startEvent);
     cudaEventCreate(&stopEvent);
     
-    const float3 nxq = make_float3(nx[0], nx[1], nx[2]);
+    const int3 nxq = make_int3(nx[0], nx[1], nx[2]);
 
     dim3 dimBlock(1,16,16);
 	dim3 dimGrid( nx[0] / dimBlock.x, nx[1] / dimBlock.y, nx[2] / dimBlock.z );

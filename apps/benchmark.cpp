@@ -361,7 +361,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     ss << "GPU compute time:"<< std::scientific << opt->m_GPUtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.clear(); ss.str(std::string());
-
+    
     if (registration != NULL) {delete registration; registration = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
@@ -440,7 +440,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
     ScalarType hx[3], x1, x2, x3;
-    IntType i, vcase = 2;
+    IntType i, vcase = 1;
     PetscFunctionBegin;
 
     opt->Enter(__func__);
