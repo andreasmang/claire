@@ -4,9 +4,9 @@
 #SBATCH -J clairegpu
 #SBATCH -o cuda_fwdsolve_benchmark.o
 #SBATCH -e cuda_fwdsolve_benchmark.e
-#SBATCH -p gpu
+#SBATCH -p vis
 #SBATCH -N 1
-#SBATCH -n 1
+#SBATCH -n 16
 #SBATCH -t 00:02:00
 #SBATCH --mail-user=naveen@ices.utexas.edu
 #SBATCH --mail-type=all
@@ -32,4 +32,5 @@ WORK=${WORK}
 #ibrun tacc_affinity ${BDIR}/claire -mrc 2 ${WORK}/nirep_updated/na02.nii.gz ${WORK}/nirep_updated/na04.nii.gz -mtc 2 ${WORK}/nirep_updated/na01.nii.gz $WORK/nirep_updated/na03.nii.gz -x ${RDIR}/temp- -regnorm h2s -beta 1.000000e-02 -opttol 1.000000e-01 -nt 4 -verbosity 2 -velocity -monitordefgrad -detdefgrad
 #ibrun tacc_affinity $BDIR/claire -x $RDIR/ -mrc 2 ${RDIR}/\{0010Y02_GM.nii.gz,0010Y02_WM.nii.gz\} -mtc 2 ${RDIR}/\{0010Y01_GM.nii.gz,0010Y01_WM.nii.gz\} -nx 240x240x155 -pdesolver sl -regnorm h2s -beta 1.000000e-02 -opttol 1.000000e-01 -nt 4 -verbosity 2 -x $RDIR/atlas -velocity -monitordefgrad -detdefgrad
 
-ibrun tacc_affinity ${BDIR}/benchmark -terror -np 1x1 -x ${RDIR}/ -nx 64
+ibrun tacc_affinity ${BDIR}/benchmark -terror -np 4x4 -x ${RDIR}/ -nx 64
+
