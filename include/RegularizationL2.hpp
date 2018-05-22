@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2018.
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the CLAIRE library.
  *
@@ -14,15 +14,16 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
+ *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TRANSPORTEQUATION_HPP_
-#define _TRANSPORTEQUATION_HPP_
+#ifndef _REGULARIZATIONL2_H_
+#define _REGULARIZATIONL2_H_
 
-#include "RegOpt.hpp"
-#include "CLAIREUtils.hpp"
-#include "TransportProblem.hpp"
+
+
+
+#include "Regularization.hpp"
 
 
 
@@ -32,27 +33,20 @@ namespace reg {
 
 
 
-class TransportEquation : public TransportProblem {
+class RegularizationL2 : public Regularization {
  public:
-    typedef TransportEquation Self;
-    typedef TransportProblem SuperClass;
+    typedef Regularization SuperClass;
+    typedef RegularizationL2 Self;
 
-    TransportEquation();
-    TransportEquation(RegOpt*);
-    ~TransportEquation();
+    RegularizationL2(void);
+    RegularizationL2(RegOpt*);
+    ~RegularizationL2(void);
 
-    PetscErrorCode SolveForwardProblem();
-    PetscErrorCode SolveAdjointProblem();
-    PetscErrorCode SolveIncForwardProblem();
-    PetscErrorCode SolveIncAdjointProblem();
-
- protected:
-    PetscErrorCode Initialize();
-    PetscErrorCode ClearMemory();
-
- private:
-    PetscErrorCode SolveForwardProblemSL();
-    //PetscErrorCode SolveAdjointProblemSL();
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
+    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);
+    virtual PetscErrorCode HessianMatVec(VecField*, VecField*);
+    virtual PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
+    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
 };
 
 
@@ -61,6 +55,5 @@ class TransportEquation : public TransportProblem {
 }  // namespace reg
 
 
+#endif  // _REGULARIZATIONREGISTRATIONH2_H_
 
-
-#endif  // _TRANSPORTEQUATION_HPP_

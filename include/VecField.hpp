@@ -22,7 +22,7 @@
 #define _VECFIELD_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 
 
 

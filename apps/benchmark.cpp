@@ -17,10 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "BenchmarkOpt.hpp"
 #include "VecField.hpp"
-#include "OptimalControlRegistration.hpp"
+#include "CLAIRE.hpp"
 
 PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt*);
 PetscErrorCode RunGradientBenchmark(reg::BenchmarkOpt*);
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     value = opt->GetRunTime();
     rval = MPI_Reduce(&value, &runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
     ierr = reg::Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
-    
+
     // write logfile and display time to solution
     ss << "total runtime (in seconds)   " << std::scientific << runtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     ss << "average runtime (in seconds) " << std::scientific << runtime/static_cast<double>(n);
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
-    
+
 
     ierr = opt->WriteLogFile(); CHKERRQ(ierr);
     ierr = opt->DisplayTimeToSolution(); CHKERRQ(ierr);
@@ -117,7 +117,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField* v = NULL;
-    reg::OptimalControlRegistration* registration = NULL;
+    reg::CLAIRE* registration = NULL;
     std::stringstream ss;
     double runtime;
     PetscFunctionBegin;
@@ -128,7 +128,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
 
-    try {registration = new reg::OptimalControlRegistration(opt);}
+    try {registration = new reg::CLAIRE(opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
@@ -176,7 +176,7 @@ PetscErrorCode RunGradientBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField* v = NULL;
-    reg::OptimalControlRegistration* registration = NULL;
+    reg::CLAIRE* registration = NULL;
     std::stringstream ss;
     double runtime;
     PetscFunctionBegin;
@@ -184,7 +184,7 @@ PetscErrorCode RunGradientBenchmark(reg::BenchmarkOpt *opt) {
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
 
-    try {registration = new reg::OptimalControlRegistration(opt);}
+    try {registration = new reg::CLAIRE(opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
@@ -235,7 +235,7 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
     reg::VecField *v = NULL, *vtilde = NULL;
-    reg::OptimalControlRegistration* registration = NULL;
+    reg::CLAIRE* registration = NULL;
     std::stringstream ss;
     double runtime;
     PetscFunctionBegin;
@@ -244,7 +244,7 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::BenchmarkOpt *opt) {
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(vtilde, opt); CHKERRQ(ierr);
 
-    try {registration = new reg::OptimalControlRegistration(opt);}
+    try {registration = new reg::CLAIRE(opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
@@ -299,7 +299,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     Vec m0 = NULL, m1 = NULL, m0true = NULL;
     reg::VecField* v = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::OptimalControlRegistration* registration = NULL;
+    reg::CLAIRE* registration = NULL;
     ScalarType val, val0, relval;
     std::stringstream ss;
     double runtime;
@@ -320,7 +320,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
 
-    try {registration = new reg::OptimalControlRegistration(opt);}
+    try {registration = new reg::CLAIRE(opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
@@ -342,7 +342,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     ierr = VecAXPY(m0, -1.0, m0true); CHKERRQ(ierr);
     ierr = VecNorm(m0, NORM_2, &val); CHKERRQ(ierr);
     ierr = VecNorm(m0true, NORM_2, &val0); CHKERRQ(ierr);
-    
+
     ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
     ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
     ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
@@ -357,11 +357,11 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
 //    }
-    
+
     ss << "GPU compute time:"<< std::scientific << opt->m_GPUtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.clear(); ss.str(std::string());
-    
+
     if (registration != NULL) {delete registration; registration = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
@@ -414,11 +414,11 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::BenchmarkOpt* opt) {
 
                 // compute linear / flat index
                 i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
-                
+
                 p_m[i] =  (PetscSinReal(x1)*PetscSinReal(x1)
                           + PetscSinReal(x2)*PetscSinReal(x2)
                           + PetscSinReal(x3)*PetscSinReal(x3))/3.0;
-                
+
 
             }  // i1
         }  // i2

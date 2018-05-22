@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2018.
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the CLAIRE library.
  *
@@ -17,12 +17,14 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TRANSPORTEQUATION_HPP_
-#define _TRANSPORTEQUATION_HPP_
+
+#ifndef _KRYLOVINTERFACE_H_
+#define _KRYLOVINTERFACE_H_
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
-#include "TransportProblem.hpp"
+#include "OptimizationProblem.hpp"
+#include "Preconditioner.hpp"
 
 
 
@@ -32,28 +34,17 @@ namespace reg {
 
 
 
-class TransportEquation : public TransportProblem {
- public:
-    typedef TransportEquation Self;
-    typedef TransportProblem SuperClass;
+// mat vec for two level preconditioner
+PetscErrorCode KrylovMonitor(KSP,PetscInt,PetscReal,void*);
+PetscErrorCode DispKSPConvReason(KSPConvergedReason);
 
-    TransportEquation();
-    TransportEquation(RegOpt*);
-    ~TransportEquation();
+PetscErrorCode InvertPrecondKrylovMonitor(KSP,PetscInt,PetscReal,void*);
+PetscErrorCode InvertPrecondMatVec(Mat,Vec,Vec);
+PetscErrorCode InvertPrecondPreKrylovSolve(KSP,Vec,Vec,void*);
 
-    PetscErrorCode SolveForwardProblem();
-    PetscErrorCode SolveAdjointProblem();
-    PetscErrorCode SolveIncForwardProblem();
-    PetscErrorCode SolveIncAdjointProblem();
-
- protected:
-    PetscErrorCode Initialize();
-    PetscErrorCode ClearMemory();
-
- private:
-    PetscErrorCode SolveForwardProblemSL();
-    //PetscErrorCode SolveAdjointProblemSL();
-};
+PetscErrorCode ProjectGradient(KSP,Vec,void*);
+PetscErrorCode PreKrylovSolve(KSP,Vec,Vec,void*);
+PetscErrorCode PostKrylovSolve(KSP,Vec,Vec,void*);
 
 
 
@@ -63,4 +54,4 @@ class TransportEquation : public TransportProblem {
 
 
 
-#endif  // _TRANSPORTEQUATION_HPP_
+#endif  // _KRYLOVINTERFACE_HPP_

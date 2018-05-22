@@ -21,12 +21,12 @@
 #define _PRECONDITIONER_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
-#include "KrylovInterfaceReg.hpp"
+#include "CLAIREUtils.hpp"
+#include "KrylovInterface.hpp"
 #include "OptimizationProblem.hpp"
-#include "OptimalControlRegistration.hpp"
-#include "OptimalControlRegistrationIC.hpp"
-#include "OptimalControlRegistrationRelaxedIC.hpp"
+#include "CLAIRE.hpp"
+#include "CLAIREStokes.hpp"
+#include "CLAIREDivReg.hpp"
 
 
 

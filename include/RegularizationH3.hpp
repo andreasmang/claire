@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2018.
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the CLAIRE library.
  *
@@ -17,12 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TRANSPORTEQUATION_HPP_
-#define _TRANSPORTEQUATION_HPP_
+#ifndef _REGULARIZATIONH3_H_
+#define _REGULARIZATIONH3_H_
 
-#include "RegOpt.hpp"
-#include "CLAIREUtils.hpp"
-#include "TransportProblem.hpp"
+#include "Regularization.hpp"
 
 
 
@@ -32,35 +30,28 @@ namespace reg {
 
 
 
-class TransportEquation : public TransportProblem {
+class RegularizationH3 : public Regularization {
  public:
-    typedef TransportEquation Self;
-    typedef TransportProblem SuperClass;
+    typedef Regularization SuperClass;
+    typedef RegularizationH3 Self;
 
-    TransportEquation();
-    TransportEquation(RegOpt*);
-    ~TransportEquation();
+    RegularizationH3(void);
+    RegularizationH3(RegOpt*);
+    ~RegularizationH3(void);
 
-    PetscErrorCode SolveForwardProblem();
-    PetscErrorCode SolveAdjointProblem();
-    PetscErrorCode SolveIncForwardProblem();
-    PetscErrorCode SolveIncAdjointProblem();
-
- protected:
-    PetscErrorCode Initialize();
-    PetscErrorCode ClearMemory();
-
- private:
-    PetscErrorCode SolveForwardProblemSL();
-    //PetscErrorCode SolveAdjointProblemSL();
+    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
+    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);
+    virtual PetscErrorCode HessianMatVec(VecField*, VecField*);
+    virtual PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
+    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
 };
 
 
 
 
-}  // namespace reg
+}  // end of namespace
 
 
 
 
-#endif  // _TRANSPORTEQUATION_HPP_
+#endif

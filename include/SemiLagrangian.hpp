@@ -21,7 +21,7 @@
 #define _SEMILAGRANGIAN_HPP_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
 #include "interp3.hpp"

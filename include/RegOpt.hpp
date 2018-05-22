@@ -21,7 +21,7 @@
 #define _REGOPT_H_
 
 // local includes
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 
 
 

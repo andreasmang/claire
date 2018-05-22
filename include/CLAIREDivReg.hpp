@@ -1,5 +1,5 @@
 /*************************************************************************
- *  Copyright (c) 2018.
+ *  Copyright (c) 2016.
  *  All rights reserved.
  *  This file is part of the CLAIRE library.
  *
@@ -17,12 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TRANSPORTEQUATION_HPP_
-#define _TRANSPORTEQUATION_HPP_
+#ifndef _CLAIREDIVREG_HPP_
+#define _CLAIREDIVREG_HPP_
 
-#include "RegOpt.hpp"
-#include "CLAIREUtils.hpp"
-#include "TransportProblem.hpp"
+#include "CLAIRE.hpp"
 
 
 
@@ -32,27 +30,37 @@ namespace reg {
 
 
 
-class TransportEquation : public TransportProblem {
+class CLAIREDivReg : public CLAIRE {
  public:
-    typedef TransportEquation Self;
-    typedef TransportProblem SuperClass;
+    typedef CLAIREDivReg Self;
+    typedef CLAIRE SuperClass;
 
-    TransportEquation();
-    TransportEquation(RegOpt*);
-    ~TransportEquation();
-
-    PetscErrorCode SolveForwardProblem();
-    PetscErrorCode SolveAdjointProblem();
-    PetscErrorCode SolveIncForwardProblem();
-    PetscErrorCode SolveIncAdjointProblem();
+    CLAIREDivReg();
+    CLAIREDivReg(RegOpt*);
+    ~CLAIREDivReg();
 
  protected:
-    PetscErrorCode Initialize();
-    PetscErrorCode ClearMemory();
+    /*! init class variables (called by constructor) */
+    PetscErrorCode Initialize(void);
+
+    /*! clear memory (called by destructor) */
+    PetscErrorCode ClearMemory(void);
+
+    /*! compute body force */
+    PetscErrorCode EvaluateObjective(ScalarType*,Vec);
+
+    /*! compute body force */
+    PetscErrorCode ComputeBodyForce(void);
+
+    /*! compute incremental body force */
+    PetscErrorCode ComputeIncBodyForce(void);
+
+    /*! apply the projection operator to the
+        body force and the incremental body force */
+    virtual PetscErrorCode ApplyProjection();
 
  private:
-    PetscErrorCode SolveForwardProblemSL();
-    //PetscErrorCode SolveAdjointProblemSL();
+    PetscErrorCode EvaluteRegularizationDIV(ScalarType*);
 };
 
 
@@ -63,4 +71,4 @@ class TransportEquation : public TransportProblem {
 
 
 
-#endif  // _TRANSPORTEQUATION_HPP_
+#endif  // _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
