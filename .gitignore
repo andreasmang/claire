@@ -16,3 +16,5 @@ external/libs/
 results/
 environment_vars.sh
 *.o
+*.nc
+scripts/
