@@ -22,7 +22,7 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "KrylovInterfaceReg.hpp"
+#include "KrylovInterface.hpp"
 #include "OptimizationProblem.hpp"
 #include "CLAIRE.hpp"
 #include "CLAIREStokes.hpp"

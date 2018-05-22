@@ -23,8 +23,8 @@
 #include <string>
 
 #include "Optimizer.hpp"
-#include "KrylovInterfaceReg.hpp"
-#include "TaoInterfaceRegistration.hpp"
+#include "KrylovInterface.hpp"
+#include "TaoInterface.hpp"
 
 
 

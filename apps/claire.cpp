@@ -21,7 +21,7 @@
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
 #include "ReadWriteReg.hpp"
-#include "RegistrationInterface.hpp"
+#include "CLAIREInterface.hpp"
 
 
 
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     reg::VecField* v = NULL;
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::RegistrationInterface* registration = NULL;
+    reg::CLAIREInterface* registration = NULL;
     std::stringstream ss;
 
     // initialize petsc (user is not allowed to set petsc options)
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     }
 
     // allocate class for io
-    try {registration = new reg::RegistrationInterface(regopt);}
+    try {registration = new reg::CLAIREInterface(regopt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }

@@ -26,7 +26,7 @@
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
 #include "SynProbRegistration.hpp"
-#include "RegistrationInterface.hpp"
+#include "CLAIREInterface.hpp"
 
 PetscErrorCode Resample(reg::RegToolsOpt*);
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt*);
@@ -189,7 +189,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     reg::VecField* v = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::RegistrationInterface* registration = NULL;
+    reg::CLAIREInterface* registration = NULL;
 
     PetscFunctionBegin;
 
@@ -203,7 +203,7 @@ PetscErrorCode ComputeDefFields(reg::RegToolsOpt* regopt) {
     ierr = reg::Assert(v != NULL, "set input velocity field"); CHKERRQ(ierr);
 
     // allocate class for registration interface
-    try {registration = new reg::RegistrationInterface(regopt);}
+    try {registration = new reg::CLAIREInterface(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -235,7 +235,7 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     reg::VecField* v = NULL;
     Vec m0 = NULL, m1 = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::RegistrationInterface* registration = NULL;
+    reg::CLAIREInterface* registration = NULL;
     PetscFunctionBegin;
 
     regopt->Enter(__func__);
@@ -255,7 +255,7 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     ierr = VecDuplicate(m0, &m1); CHKERRQ(ierr);
 
     // allocate class for registration interface
-    try {registration = new reg::RegistrationInterface(regopt);}
+    try {registration = new reg::CLAIREInterface(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -303,7 +303,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     reg::VecField* v = NULL;
     Vec m0 = NULL, m1 = NULL, labelmap = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::RegistrationInterface* registration = NULL;
+    reg::CLAIREInterface* registration = NULL;
     reg::Preprocessing* preproc = NULL;
     IntType nl, ng, nc;
     PetscFunctionBegin;
@@ -330,7 +330,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     regopt->m_RegFlags.applysmoothing = true;
 
     // allocate class for registration interface
-    try {registration = new reg::RegistrationInterface(regopt);}
+    try {registration = new reg::CLAIREInterface(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -401,7 +401,7 @@ PetscErrorCode ComputeRavenMap(reg::RegToolsOpt* regopt) {
     reg::VecField* v = NULL;
     Vec m0 = NULL, m1 = NULL, labelmap = NULL;
     reg::ReadWriteReg* readwrite = NULL;
-    reg::RegistrationInterface* registration = NULL;
+    reg::CLAIREInterface* registration = NULL;
     reg::Preprocessing* preproc = NULL;
     IntType nl, ng, nc;
     PetscFunctionBegin;
@@ -428,7 +428,7 @@ PetscErrorCode ComputeRavenMap(reg::RegToolsOpt* regopt) {
     regopt->m_RegFlags.applysmoothing = true;
 
     // allocate class for registration interface
-    try {registration = new reg::RegistrationInterface(regopt);}
+    try {registration = new reg::CLAIREInterface(regopt);}
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }

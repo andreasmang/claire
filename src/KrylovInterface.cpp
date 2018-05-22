@@ -17,10 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _KRYLOVINTERFACEREG_CPP_
-#define _KRYLOVINTERFACEREG_CPP_
+#ifndef _KRYLOVINTERFACE_CPP_
+#define _KRYLOVINTERFACE_CPP_
 
-#include "KrylovInterfaceReg.hpp"
+#include "KrylovInterface.hpp"
 
 
 namespace reg {
@@ -548,4 +548,4 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
 
 
 
-#endif  // _KRYLOVINTERFACEREG_CPP_
+#endif  // _KRYLOVINTERFACE_CPP_

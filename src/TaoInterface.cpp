@@ -17,10 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TAOINTERFACEREGISTRATION_CPP
-#define _TAOINTERFACEREGISTRATION_CPP_
+#ifndef _TAOINTERFACE_CPP_
+#define _TAOINTERFACE_CPP_
 
-#include "TaoInterfaceRegistration.hpp"
+#include "TaoInterface.hpp"
 
 
 
@@ -810,4 +810,4 @@ PetscErrorCode GetSolverStatus(TaoConvergedReason flag, std::string& msg) {
 
 
 
-#endif  // _TAOINTERFACEREGISTRATION_H_
+#endif  // _TAOINTERFACE_CPP_

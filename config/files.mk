@@ -17,9 +17,9 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
-		$(SRCDIR)/KrylovInterfaceReg.cpp \
-		$(SRCDIR)/TaoInterfaceRegistration.cpp \
-		$(SRCDIR)/RegistrationInterface.cpp \
+		$(SRCDIR)/KrylovInterface.cpp \
+		$(SRCDIR)/TaoInterface.cpp \
+		$(SRCDIR)/CLAIREInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/Preconditioner.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \
@@ -58,9 +58,9 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
-		$(SRCDIR)/KrylovInterfaceReg.cpp \
-		$(SRCDIR)/TaoInterfaceRegistration.cpp \
-		$(SRCDIR)/RegistrationInterface.cpp \
+		$(SRCDIR)/KrylovInterface.cpp \
+		$(SRCDIR)/TaoInterface.cpp \
+		$(SRCDIR)/CLAIREInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/Preconditioner.cpp \
 		$(SRCDIR)/RegularizationRegistration.cpp \

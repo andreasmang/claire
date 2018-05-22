@@ -17,10 +17,10 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGISTRATIONINTERFACE_CPP_
-#define _REGISTRATIONINTERFACE_CPP_
+#ifndef _CLAIREINTERFACE_CPP_
+#define _CLAIREINTERFACE_CPP_
 
-#include "RegistrationInterface.hpp"
+#include "CLAIREInterface.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-RegistrationInterface::RegistrationInterface() {
+CLAIREInterface::CLAIREInterface() {
     this->Initialize();
 }
 
@@ -43,7 +43,7 @@ RegistrationInterface::RegistrationInterface() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-RegistrationInterface::~RegistrationInterface(void) {
+CLAIREInterface::~CLAIREInterface(void) {
     this->ClearMemory();
 }
 
@@ -54,7 +54,7 @@ RegistrationInterface::~RegistrationInterface(void) {
  * @brief constructor
  * @param[in] opt base class for registration options and arguments
  *******************************************************************/
-RegistrationInterface::RegistrationInterface(RegOpt* opt) {
+CLAIREInterface::CLAIREInterface(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
@@ -65,7 +65,7 @@ RegistrationInterface::RegistrationInterface(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode RegistrationInterface::Initialize(void) {
+PetscErrorCode CLAIREInterface::Initialize(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -101,7 +101,7 @@ PetscErrorCode RegistrationInterface::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode RegistrationInterface::ClearMemory(void) {
+PetscErrorCode CLAIREInterface::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -172,7 +172,7 @@ PetscErrorCode RegistrationInterface::ClearMemory(void) {
  * @brief set initial guess
  * @param[in] x    vector field that contains initial guess
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
+PetscErrorCode CLAIREInterface::SetInitialGuess(VecField* x, bool copy) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -205,7 +205,7 @@ PetscErrorCode RegistrationInterface::SetInitialGuess(VecField* x, bool copy) {
  * @param[out] x    vector field for solution; needs to be allocated
  * elswhere
  *******************************************************************/
-PetscErrorCode RegistrationInterface::GetSolution(VecField* x, bool copy) {
+PetscErrorCode CLAIREInterface::GetSolution(VecField* x, bool copy) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -227,7 +227,7 @@ PetscErrorCode RegistrationInterface::GetSolution(VecField* x, bool copy) {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* readwrite) {
+PetscErrorCode CLAIREInterface::SetReadWrite(ReadWriteReg* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -244,7 +244,7 @@ PetscErrorCode RegistrationInterface::SetReadWrite(ReadWriteReg* readwrite) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
+PetscErrorCode CLAIREInterface::SetReferenceImage(Vec mR) {
     PetscErrorCode ierr = 0;
     IntType nc;
     PetscFunctionBegin;
@@ -273,7 +273,7 @@ PetscErrorCode RegistrationInterface::SetReferenceImage(Vec mR) {
  * @brief set template image
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
+PetscErrorCode CLAIREInterface::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
     IntType nc;
     PetscFunctionBegin;
@@ -302,7 +302,7 @@ PetscErrorCode RegistrationInterface::SetTemplateImage(Vec mT) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetAuxVariable(Vec mQ) {
+PetscErrorCode CLAIREInterface::SetAuxVariable(Vec mQ) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -324,7 +324,7 @@ PetscErrorCode RegistrationInterface::SetAuxVariable(Vec mQ) {
  * @brief set reference image (i.e., the fixed image)
  * we normalize the intensity values to [0,1]
  *******************************************************************/
-PetscErrorCode RegistrationInterface::SetCellDensity(Vec mC) {
+PetscErrorCode CLAIREInterface::SetCellDensity(Vec mC) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -346,7 +346,7 @@ PetscErrorCode RegistrationInterface::SetCellDensity(Vec mC) {
  * @brief get final state at t=1 for current iterate v
  * (stored in state variable)
  *******************************************************************/
-PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
+PetscErrorCode CLAIREInterface::GetFinalState(Vec m1) {
     PetscErrorCode ierr = 0;
     Vec m = NULL;
     IntType nl, nc, nt;
@@ -382,7 +382,7 @@ PetscErrorCode RegistrationInterface::GetFinalState(Vec m1) {
 /********************************************************************
  * @brief set read/write object
  *******************************************************************/
-PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
+PetscErrorCode CLAIREInterface::DispLevelMsg(std::string msg, int rank) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -407,7 +407,7 @@ PetscErrorCode RegistrationInterface::DispLevelMsg(std::string msg, int rank) {
  * @param[in] v velocity field
  * @param[out] value sobolev norm of velocity v
  *******************************************************************/
-PetscErrorCode RegistrationInterface
+PetscErrorCode CLAIREInterface
 ::EvaluateRegularizationFunctional(ScalarType* value, VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -432,7 +432,7 @@ PetscErrorCode RegistrationInterface
  * @param[in] v velocity field
  * @param[out] value sobolev norm of velocity v
  *******************************************************************/
-PetscErrorCode RegistrationInterface
+PetscErrorCode CLAIREInterface
 ::EvaluateGradient(ScalarType* gnorm, VecField* vel) {
     PetscErrorCode ierr = 0;
     Vec g = NULL, v = NULL, mR = NULL, mT = NULL;
@@ -478,7 +478,7 @@ PetscErrorCode RegistrationInterface
 /********************************************************************
  * @brief set up the registration problem and optimizer
  ********************************************************************/
-PetscErrorCode RegistrationInterface::SetupSolver() {
+PetscErrorCode CLAIREInterface::SetupSolver() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType vn1, vn2, vn3;
@@ -565,7 +565,7 @@ PetscErrorCode RegistrationInterface::SetupSolver() {
 /********************************************************************
  * @brief set up the data (e.g., apply preprocessing)
  ********************************************************************/
-PetscErrorCode RegistrationInterface::SetupData(Vec& mR, Vec& mT) {
+PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -620,7 +620,7 @@ PetscErrorCode RegistrationInterface::SetupData(Vec& mR, Vec& mT) {
  * @brief set up the registration problem, which essentially is
  * equivalent to allocating the class
  ********************************************************************/
-PetscErrorCode RegistrationInterface::SetupRegProblem() {
+PetscErrorCode CLAIREInterface::SetupRegProblem() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -666,7 +666,7 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
  * @brief main function to call in order to solve the optimization
  * problem
  ********************************************************************/
-PetscErrorCode RegistrationInterface::Run() {
+PetscErrorCode CLAIREInterface::Run() {
     PetscErrorCode ierr = 0;
     IntType nxmax, nx;
     std::stringstream ss;
@@ -728,7 +728,7 @@ PetscErrorCode RegistrationInterface::Run() {
  * @brief run single level solver (no grid, scale, or parameter
  * continuation is performed)
  ********************************************************************/
-PetscErrorCode RegistrationInterface::RunSolver() {
+PetscErrorCode CLAIREInterface::RunSolver() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
     ScalarType beta, betastar;
@@ -846,7 +846,7 @@ PetscErrorCode RegistrationInterface::RunSolver() {
 /********************************************************************
  * @brief main function to run the parameter continuation
  ********************************************************************/
-PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
+PetscErrorCode CLAIREInterface::RunSolverRegParaCont() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL;
 
@@ -912,7 +912,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaCont() {
  * is diffeomorphic and results in a map that is close to the bound
  * on jacobian set by user
  *******************************************************************/
-PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
+PetscErrorCode CLAIREInterface::RunSolverRegParaContBinarySearch() {
     PetscErrorCode ierr = 0;
     int maxsteps, level, rank;
     bool stop, boundreached, converged;
@@ -1149,7 +1149,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContBinarySearch() {
  * diffeomorphic deformation map (as judged by the determinant
  * of the deformation gradient)
  *******************************************************************/
-PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
+PetscErrorCode CLAIREInterface::RunSolverRegParaContReductSearch() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType beta, betamin, betastar, betascale;
@@ -1257,7 +1257,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReductSearch() {
  * the regularization parameter until we have reached the
  * target regularization weight set by the user
  *******************************************************************/
-PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
+PetscErrorCode CLAIREInterface::RunSolverRegParaContReduction() {
     PetscErrorCode ierr = 0;
     int level, rank;
     std::stringstream ss;
@@ -1344,7 +1344,7 @@ PetscErrorCode RegistrationInterface::RunSolverRegParaContReduction() {
  * registered to get to finer and finer scales; this is supposed to
  * reduce the non-linearity in the problem
  *******************************************************************/
-PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
+PetscErrorCode CLAIREInterface::RunSolverScaleCont() {
     PetscErrorCode ierr = 0;
     Vec mT = NULL, mR = NULL, x = NULL;
     std::stringstream ss;
@@ -1467,7 +1467,7 @@ PetscErrorCode RegistrationInterface::RunSolverScaleCont() {
  * will successively increase the number of grid points of the
  * template and reference image
  ********************************************************************/
-PetscErrorCode RegistrationInterface::RunSolverGridCont() {
+PetscErrorCode CLAIREInterface::RunSolverGridCont() {
     PetscErrorCode ierr = 0;
     int rank, level, nlevels, computelevel;
     std::stringstream ss;
@@ -1698,7 +1698,7 @@ PetscErrorCode RegistrationInterface::RunSolverGridCont() {
 /********************************************************************
  * @brief prolong velocity field
  ********************************************************************/
-PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int level) {
+PetscErrorCode CLAIREInterface::ProlongVelocityField(VecField*& v, int level) {
     PetscErrorCode ierr = 0;
     IntType nx_f[3], nx_c[3], nl, ng;
     VecField *v_f = NULL;
@@ -1763,7 +1763,7 @@ PetscErrorCode RegistrationInterface::ProlongVelocityField(VecField*& v, int lev
 /********************************************************************
  * @brief finalize optimization (displays information for user)
  ********************************************************************/
-PetscErrorCode RegistrationInterface::Finalize() {
+PetscErrorCode CLAIREInterface::Finalize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1786,7 +1786,7 @@ PetscErrorCode RegistrationInterface::Finalize() {
 /********************************************************************
  * @brief run postprocessing of input data
  ********************************************************************/
-PetscErrorCode RegistrationInterface::RunPostProcessing() {
+PetscErrorCode CLAIREInterface::RunPostProcessing() {
     PetscErrorCode ierr = 0;
     Vec mR = NULL, mT = NULL;
     PetscFunctionBegin;
@@ -1847,7 +1847,7 @@ PetscErrorCode RegistrationInterface::RunPostProcessing() {
  * @param[in] m0 initial condition/template image
  * @param[out] m1 transported template image
  ********************************************************************/
-PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
+PetscErrorCode CLAIREInterface::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
     IntType nc;
     PetscFunctionBegin;
@@ -1896,7 +1896,7 @@ PetscErrorCode RegistrationInterface::SolveForwardProblem(Vec m1, Vec m0) {
  * @param[in] m1 deformed template image
  * @param[out] l0 adjoint variable at t=0
  ********************************************************************/
-PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
+PetscErrorCode CLAIREInterface::SolveAdjointProblem(Vec l0, Vec m1) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1926,7 +1926,7 @@ PetscErrorCode RegistrationInterface::SolveAdjointProblem(Vec l0, Vec m1) {
 /********************************************************************
  * @brief compute deformation map or deformation gradient
  ********************************************************************/
-PetscErrorCode RegistrationInterface::ComputeDefFields() {
+PetscErrorCode CLAIREInterface::ComputeDefFields() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1969,7 +1969,7 @@ PetscErrorCode RegistrationInterface::ComputeDefFields() {
 /********************************************************************
  * @brief compute determinant of deformation gradient
  ********************************************************************/
-PetscErrorCode RegistrationInterface::ComputeDetDefGrad(Vec detj) {
+PetscErrorCode CLAIREInterface::ComputeDetDefGrad(Vec detj) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1998,7 +1998,7 @@ PetscErrorCode RegistrationInterface::ComputeDetDefGrad(Vec detj) {
 /********************************************************************
  * @brief compute deformation map
  ********************************************************************/
-PetscErrorCode RegistrationInterface::ComputeDeformationMap(VecField* y) {
+PetscErrorCode CLAIREInterface::ComputeDeformationMap(VecField* y) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 

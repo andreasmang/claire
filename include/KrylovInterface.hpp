@@ -17,14 +17,14 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TAOINTERFACEREGISTRATION_H_
-#define _TAOINTERFACEREGISTRATION_H_
+
+#ifndef _KRYLOVINTERFACE_H_
+#define _KRYLOVINTERFACE_H_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "Preconditioner.hpp"
-#include "KrylovInterfaceReg.hpp"
 #include "OptimizationProblem.hpp"
+#include "Preconditioner.hpp"
 
 
 
@@ -34,23 +34,17 @@ namespace reg {
 
 
 
-// the following functions interface the tao solver
-PetscErrorCode EvaluateObjective(Tao, Vec, ScalarType*, void*);
-PetscErrorCode EvaluateGradient(Tao, Vec, Vec, void*);
-PetscErrorCode EvaluateObjectiveGradient(Tao, Vec, ScalarType*, Vec, void*);
+// mat vec for two level preconditioner
+PetscErrorCode KrylovMonitor(KSP,PetscInt,PetscReal,void*);
+PetscErrorCode DispKSPConvReason(KSPConvergedReason);
 
-PetscErrorCode ConstructHessian(Tao, Vec, Mat*, Mat*, MatStructure*, void*);
-PetscErrorCode EvaluateHessian(Tao, Vec, Mat, Mat, void*);
-PetscErrorCode HessianMatVec(Mat, Vec, Vec);
-PetscErrorCode PrecondMatVec(PC, Vec, Vec);
+PetscErrorCode InvertPrecondKrylovMonitor(KSP,PetscInt,PetscReal,void*);
+PetscErrorCode InvertPrecondMatVec(Mat,Vec,Vec);
+PetscErrorCode InvertPrecondPreKrylovSolve(KSP,Vec,Vec,void*);
 
-PetscErrorCode CheckConvergenceGrad(Tao, void*);
-PetscErrorCode CheckConvergenceGradObj(Tao, void*);
-PetscErrorCode CheckConvergenceGradObjHess(Tao, void*);
-
-PetscErrorCode OptimizationMonitor(Tao, void*);
-PetscErrorCode GetLineSearchStatus(Tao, void*);
-PetscErrorCode GetSolverStatus(TaoConvergedReason, std::string&);
+PetscErrorCode ProjectGradient(KSP,Vec,void*);
+PetscErrorCode PreKrylovSolve(KSP,Vec,Vec,void*);
+PetscErrorCode PostKrylovSolve(KSP,Vec,Vec,void*);
 
 
 
@@ -60,4 +54,4 @@ PetscErrorCode GetSolverStatus(TaoConvergedReason, std::string&);
 
 
 
-#endif  // _TAOINTERFACEREGISTRATION_H_
+#endif  // _KRYLOVINTERFACE_HPP_

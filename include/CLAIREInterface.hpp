@@ -39,16 +39,16 @@ namespace reg {
 
 
 
-class RegistrationInterface {
+class CLAIREInterface {
  public:
     typedef Optimizer OptimizerType;
     typedef ReadWriteReg ReadWriteType;
     typedef Preprocessing PreProcType;
     typedef CLAIREBase RegProblemType;
 
-    RegistrationInterface();
-    ~RegistrationInterface();
-    RegistrationInterface(RegOpt*);
+    CLAIREInterface();
+    ~CLAIREInterface();
+    CLAIREInterface(RegOpt*);
 
     PetscErrorCode Run();
     PetscErrorCode Finalize();
