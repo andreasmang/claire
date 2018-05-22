@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     value = opt->GetRunTime();
     rval = MPI_Reduce(&value, &runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
     ierr = reg::Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
-
+    
     // write logfile and display time to solution
     ss << "total runtime (in seconds)   " << std::scientific << runtime;
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
     ss << "average runtime (in seconds) " << std::scientific << runtime/static_cast<double>(n);
     ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
+    
 
     ierr = opt->WriteLogFile(); CHKERRQ(ierr);
     ierr = opt->DisplayTimeToSolution(); CHKERRQ(ierr);
@@ -338,13 +339,13 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     ierr = opt->StopTimer(reg::T2SEXEC); CHKERRQ(ierr);
     opt->SetRunTime(runtime);
 
-    ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
-    ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
-    ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
-
     ierr = VecAXPY(m0, -1.0, m0true); CHKERRQ(ierr);
     ierr = VecNorm(m0, NORM_2, &val); CHKERRQ(ierr);
     ierr = VecNorm(m0true, NORM_2, &val0); CHKERRQ(ierr);
+    
+    ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
+    ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
 
     relval = val;
     relval /= val0 > 0.0 ? val0 : 1.0;
@@ -356,14 +357,18 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
 //    }
-
-
+    
+    ss << "GPU compute time:"<< std::scientific << opt->m_GPUtime;
+    ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
+    ss.clear(); ss.str(std::string());
+    
     if (registration != NULL) {delete registration; registration = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
     if (m0true != NULL) {ierr = VecDestroy(&m0true); CHKERRQ(ierr); m0true = NULL;}
     if (v != NULL) {delete v; v = NULL;}
+
 
     PetscFunctionReturn(ierr);
 }
@@ -409,9 +414,12 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::BenchmarkOpt* opt) {
 
                 // compute linear / flat index
                 i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
+                
                 p_m[i] =  (PetscSinReal(x1)*PetscSinReal(x1)
                           + PetscSinReal(x2)*PetscSinReal(x2)
                           + PetscSinReal(x3)*PetscSinReal(x3))/3.0;
+                
+
             }  // i1
         }  // i2
     }  // i3
@@ -450,7 +458,11 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
         }
     }
 
-    ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    // ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X3, &p_v3); CHKERRQ(ierr);
+
     for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
         for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
             for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
@@ -480,7 +492,7 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
                     p_v3[i] = PetscCosReal(x1)*PetscCosReal(x2);
                 } else if (vcase == 3) {
                     p_v1[i] = 0.5;
-                    p_v2[i] = 0.5;
+                    p_v2[i] = 1;
                     p_v3[i] = 0.5;
                 } else if (vcase == 4) {
                     p_v1[i] = 0.0;
@@ -490,7 +502,12 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::BenchmarkOpt* opt) {
             }  // i1
         }  // i2
     }  // i3
-    ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+
+    // ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X3, &p_v3); CHKERRQ(ierr);
+
 
     opt->Exit(__func__);
 

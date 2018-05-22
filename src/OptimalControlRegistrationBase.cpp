@@ -744,7 +744,9 @@ PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
 
     // set the containers for the spectral data
     ierr = this->SetupSpectralData(); CHKERRQ(ierr);
-    ierr = this->m_Regularization->SetSpectralData(this->m_x1hat, this->m_x2hat, this->m_x3hat); CHKERRQ(ierr);
+    ierr = this->m_Regularization->SetSpectralData(this->m_x1hat,
+                                                   this->m_x2hat,
+                                                   this->m_x3hat); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -894,13 +896,13 @@ PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x) {
  *******************************************************************/
 PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x) {
     PetscErrorCode ierr = 0;
-    bool applysqrt = true;
+
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
-        ierr = this->ApplyInvRegularizationOperator(x, x, applysqrt); CHKERRQ(ierr);
+        ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -1034,7 +1036,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     if (this->m_Opt->m_RegModel == STOKES) {vcase = 3;}
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
+    ierr = GetRawPointer(mT, &p_mt); CHKERRQ(ierr);
 //#pragma omp parallel
 //{
     IntType i1, i2, i3;
@@ -1089,7 +1091,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
         }  // i2
     }  // i3
 //}  // pragma omp parallel
-    ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(mT, &p_mt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -1121,21 +1123,21 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
     // if the image has more than one component, just copy the
     // content of first image to all other
     if (nc == 2) {
-        ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
+        ierr = GetRawPointer(mT, &p_mt); CHKERRQ(ierr);
         for (IntType i = 0; i < nl; ++i) {
             p_mt[nl + i] = 1.0 - p_mt[i];
         }
-        ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
+        ierr = RestoreRawPointer(mT, &p_mt); CHKERRQ(ierr);
     }
     if (nc > 2) {
-        ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
+        ierr = GetRawPointer(mT, &p_mt); CHKERRQ(ierr);
         for (IntType k = 1; k < nc; ++k) {
             try {std::copy(p_mt, p_mt+nl, p_mt+k*nl);}
             catch (std::exception&) {
                 ierr = ThrowError("copy failed"); CHKERRQ(ierr);
             }
         }
-        ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
+        ierr = RestoreRawPointer(mT, &p_mt); CHKERRQ(ierr);
     }
     ierr = Rescale(mT, 0, 1, nc); CHKERRQ(ierr);
 
@@ -1197,8 +1199,8 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     nl = this->m_Opt->m_Domain.nl;
 
     // get pointers
-    ierr = VecGetArray(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
-    ierr = VecGetArray(uj, &p_uj); CHKERRQ(ierr);    ///< vec at single point in time
+    ierr = GetRawPointer(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
+    ierr = GetRawPointer(uj, &p_uj); CHKERRQ(ierr);    ///< vec at single point in time
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
@@ -1210,8 +1212,8 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
     }
 
     // restore pointers
-    ierr = VecRestoreArray(u, &p_u); CHKERRQ(ierr);
-    ierr = VecRestoreArray(uj, &p_uj); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(u, &p_u); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(uj, &p_uj); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1535,10 +1537,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
 
-    ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -1571,10 +1573,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
         }
     }
 
-    ierr = VecRestoreArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField1->RestoreArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
@@ -1648,11 +1650,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
     ierr = this->m_WorkVecField1->GetArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
 
-    ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
 
     // compute div(v)
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -1741,11 +1743,11 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 } // pragma omp
     }
 
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
 
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
@@ -1821,10 +1823,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
     }
 
     // get pointers
-    ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
@@ -1859,20 +1861,20 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
 
         // store time series
         if (this->m_Opt->m_ReadWriteFlags.timeseries) {
-            ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+            ierr = RestoreRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
             ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
-            ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+            ierr = GetRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
         }
     }  // for all time points
 
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
-    ierr = VecRestoreArray(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1952,7 +1954,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);
 
-    ierr = VecGetArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp  for
@@ -1967,7 +1969,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
     }
 }  // pragma omp
 
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField4->RestoreArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->RestoreArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
@@ -2062,7 +2064,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
         }
     }
 
-    ierr = VecGetArray(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1,&p_phi); CHKERRQ(ierr);
     ierr = this->m_WorkTenField1->GetArrays(p_j11, p_j12, p_j13,
                                             p_j21, p_j22, p_j23,
                                             p_j31, p_j32, p_j33); CHKERRQ(ierr);
@@ -2084,7 +2086,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
     ierr = this->m_WorkTenField1->RestoreArrays(p_j11, p_j12, p_j13,
                                                 p_j21, p_j22, p_j23,
                                                 p_j31, p_j32, p_j33); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
 
     ierr = VecMin(this->m_WorkScaField1, NULL, &minj); CHKERRQ(ierr);
     ierr = VecMax(this->m_WorkScaField1, NULL, &maxj); CHKERRQ(ierr);
@@ -2536,7 +2538,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
         ierr = VecCreate(this->m_WorkScaField3,nl,ng); CHKERRQ(ierr);
     }
 
-    ierr = VecGetArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
 
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
@@ -2555,10 +2557,10 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     this->m_Opt->IncrementCounter(FFT, DIV);
 
     // copy initial condition to buffer
-    ierr = VecGetArray(this->m_StateVariable,&p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2,&p_mj); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField1,&p_mbar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_StateVariable,&p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField2,&p_mj); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1,&p_mbar); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField3,&p_rhs0); CHKERRQ(ierr);
 
     // copy memory (m_0 to m_j)
     try{ std::copy(p_m, p_m+nl, p_mj); }
@@ -2637,7 +2639,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
     } // for all time points
 
     // copy initial condition to buffer
-    ierr = VecGetArray(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1,&p_divv); CHKERRQ(ierr);
 
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
@@ -2669,7 +2671,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     std::stringstream ss;
     std::string ext;
     IntType nl, nt;
-    ScalarType ht, hthalf, direction = 1.0;
+    ScalarType ht, hthalf;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_y1 = NULL, *p_y2 = NULL, *p_y3 = NULL,
                 *p_vy1 = NULL, *p_vy2 = NULL, *p_vy3 = NULL,
@@ -2682,9 +2684,6 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     ext = this->m_Opt->m_FileNames.extension;
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-    if (this->m_Opt->m_Verbosity > 1) {
-        ierr = DbgMsg("computing deformation map"); CHKERRQ(ierr);
-    }
 
     // allocate vector fields
     if (this->m_WorkVecField1 == NULL) {
@@ -2715,7 +2714,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     }
 
     // store time series
-    if (this->m_Opt->m_ReadWriteFlags.timeseries) {
+    if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
         ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << 0 << ext;
@@ -2729,12 +2728,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
     hthalf = 0.5*ht;
 
     // if we request the inverse deformation map
-    if (this->m_ComputeInverseDefMap) {
-        if (this->m_Opt->m_Verbosity > 1) {
-            ierr = DbgMsg("computing inverse deformation map"); CHKERRQ(ierr);
-        }
-        direction = -1.0;
-    }
+    if (this->m_ComputeInverseDefMap) {ht *= -1.0; hthalf *= -1.0;}
 
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
@@ -2749,39 +2743,39 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK2)
-//#pragma omp parallel
-//{
-//#pragma omp for
+#pragma omp parallel
+{
+#pragma omp for
         for (IntType i = 0; i < nl; ++i) {
             // compute new coordinate
-            p_yt1[i] = p_y1[i] - direction*ht*p_vy1[i];
-            p_yt2[i] = p_y2[i] - direction*ht*p_vy2[i];
-            p_yt3[i] = p_y3[i] - direction*ht*p_vy3[i];
+            p_yt1[i] = p_y1[i] - ht*p_vy1[i];
+            p_yt2[i] = p_y2[i] - ht*p_vy2[i];
+            p_yt3[i] = p_y3[i] - ht*p_vy3[i];
 
             // compute first part of second stage of RK2
-            p_y1[i] -= direction*hthalf*p_vy1[i];
-            p_y2[i] -= direction*hthalf*p_vy2[i];
-            p_y3[i] -= direction*hthalf*p_vy3[i];
+            p_y1[i] -= hthalf*p_vy1[i];
+            p_y2[i] -= hthalf*p_vy2[i];
+            p_y3[i] -= hthalf*p_vy3[i];
         }
-//}// end of pragma omp parallel
+}// end of pragma omp parallel
 
         // evaluate v(ytilde)
         ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_yt1, p_yt2, p_yt3, "state"); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
 
         // update deformation map (second stage of RK2)
-//#pragma omp parallel
-//{
-//#pragma omp for
+#pragma omp parallel
+{
+#pragma omp for
         for (IntType i = 0; i < nl; ++i) {
-            p_y1[i] -= direction*hthalf*p_vy1[i];
-            p_y2[i] -= direction*hthalf*p_vy2[i];
-            p_y3[i] -= direction*hthalf*p_vy3[i];
+            p_y1[i] -= hthalf*p_vy1[i];
+            p_y2[i] -= hthalf*p_vy2[i];
+            p_y3[i] -= hthalf*p_vy3[i];
         }
-//}// end of pragma omp parallel
+}// end of pragma omp parallel
 
         // store time series
-        if (this->m_Opt->m_ReadWriteFlags.timeseries) {
+        if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
             ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();

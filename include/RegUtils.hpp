@@ -21,7 +21,7 @@
 #ifndef _REGUTILS_H_
 #define _REGUTILS_H_
 
-// #define _REG_DEBUG_
+//#define _REG_DEBUG_
 
 // global includes
 #include <fstream>
@@ -48,6 +48,12 @@
 #include "accfft.h"
 #include "accfftf.h"
 #include "accfft_operators.h"
+
+#ifdef REG_HAS_CUDA
+#include "petsccuda.h"
+#include "cuda.h"
+#include <petsc/private/vecimpl.h>
+#endif
 
 #define IntType PetscInt
 #define ScalarType PetscReal
@@ -137,7 +143,14 @@ PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
 
 PetscErrorCode Finalize();
 
-
+/* get raw pointer to write, read and read,write */
+PetscErrorCode GetRawPointer(Vec, ScalarType**);
+PetscErrorCode RestoreRawPointer(Vec, ScalarType**);
+PetscErrorCode GetRawPointerRead(Vec, const ScalarType**);
+PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**);
+PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**);
+PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**);
+PetscErrorCode PrintVectorMemoryLocation(Vec, std::string);
 
 
 /********************************************************************

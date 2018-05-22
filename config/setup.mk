@@ -6,7 +6,7 @@ RM = rm -f
 MKDIRS = mkdir -p
 
 ifeq ($(DBGCODE),yes)
-	CXXFLAGS = -g -debug all
+	CXXFLAGS = -g -debug
 else
 	CXXFLAGS = -O3 -ansi
 endif
@@ -36,7 +36,7 @@ endif
 
 ifeq ($(PEDANTIC),yes)
 	ifeq ($(USEINTEL),no)
-		CXXFLAGS += -Wall
+		#CXXFLAGS += -Wall
 	endif
 	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
 	CXXFLAGS += -Wenum-compare -Wformat -Wuninitialized
@@ -44,7 +44,7 @@ ifeq ($(PEDANTIC),yes)
 	CXXFLAGS += -Wnonnull -Wparentheses #-Wpointer-sign
 	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
 	CXXFLAGS += -Wsequence-point -Wtrigraphs -Wunused-function
-	CXXFLAGS += -Wunused-but-set-variable -Wunused-variable -Wwrite-strings
+	CXXFLAGS += -Wwrite-strings #-Wunused-variable -Wunused-but-set-variable 
 endif
 
 ifeq ($(USEPNETCDF),yes)
@@ -53,6 +53,10 @@ endif
 
 ifeq ($(USENIFTI),yes)
 	CXXFLAGS += -DREG_HAS_NIFTI
+endif
+
+ifeq ($(USECUDA),yes)
+	CXXFLAGS += -DREG_HAS_CUDA
 endif
 
 BINDIR = ./bin
@@ -66,6 +70,22 @@ GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 CLAIRE_INC = -I$(INCDIR)
+
+ifeq ($(USECUDA),yes)
+    # CUDA includes
+    CUDA_INTERP = $(HOME)/cudainterp3d
+    CUDA_INC = -I$(CUDA_DIR)/include -I$(CUDA_INTERP)/include -I$(INCDIR) -I$(HOME)/CUDA-9.1/samples/common/inc
+endif
+
+ifeq ($(USECUDA),yes)
+	ifeq ($(DBGCODE),yes)
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	else
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	endif
+else
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
 		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_SINGLE)/include
@@ -79,10 +99,22 @@ else
 		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/include
 	endif
 endif
+endif
+
+
 CLAIRE_INC += -I$(ACCFFT_DIR)/include
 CLAIRE_INC += -I$(FFTW_DIR)/include
 CLAIRE_INC += -I$(MORTON_DIR)
 CLAIRE_INC += -I./3rdparty
+# CUDA INCLUDE in CLAIRE
+ifeq ($(USECUDA),yes)
+    CLAIRE_INC += -I$(CUDA_DIR)/include
+endif
+
+# CUDA flags
+CUDA_FLAGS=-c -O2 -gencode arch=compute_35,code=sm_35 -Xcompiler -fPIC -Wno-deprecated-gpu-targets
+
+
 ifeq ($(USENIFTI),yes)
 	CLAIRE_INC += -I$(NIFTI_DIR)/include/nifti
 endif
@@ -91,6 +123,13 @@ ifeq ($(USEPNETCDF),yes)
 	CLAIRE_INC += -I$(PNETCDF_DIR)/include
 endif
 
+ifeq ($(USECUDA),yes)
+	ifeq ($(DBGCODE),yes)
+	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/lib
+	else
+	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/lib
+	endif
+else
 
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
@@ -105,7 +144,13 @@ else
 		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/lib
 	endif
 endif
+endif
 LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
+
+#CUDA LINKERS
+ifeq ($(USECUDA),yes)
+    LDFLAGS += -L$(CUDA_DIR)/lib64 -lcusparse -lcufft -lcublas -lcudart
+endif
 
 ifeq ($(USENIFTI),yes)
 	LDFLAGS += -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
@@ -120,7 +165,7 @@ endif
 
 
 ifeq ($(USEINTELMPI),yes)
-#	LDFLAGS += -lmpi_mt
+	LDFLAGS += -lmpi_mt
 endif
 LDFLAGS += -lm
 
