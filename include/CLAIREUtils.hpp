@@ -18,8 +18,8 @@
  ************************************************************************/
 
 
-#ifndef _REGUTILS_H_
-#define _REGUTILS_H_
+#ifndef _CLAIREUTILS_HPP_
+#define _CLAIREUTILS_HPP_
 
 //#define _REG_DEBUG_
 
@@ -227,4 +227,4 @@ inline bool OnMaster() {
 
 
 
-#endif
+#endif  // _CLAIREUTILS_HPP_

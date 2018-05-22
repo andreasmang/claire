@@ -1,7 +1,7 @@
 CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
-		$(SRCDIR)/RegUtils.cpp \
+		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
@@ -42,7 +42,7 @@ CUFILES=$(SRCDIR)/interp3_gpu_new.cu
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
-		$(SRCDIR)/RegUtils.cpp \
+		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \

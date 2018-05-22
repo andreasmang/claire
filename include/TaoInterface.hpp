@@ -21,7 +21,7 @@
 #define _TAOINTERFACE_HPP_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "Preconditioner.hpp"
 #include "KrylovInterface.hpp"
 #include "OptimizationProblem.hpp"

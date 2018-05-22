@@ -17,10 +17,10 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGUTILS_CPP_
-#define _REGUTILS_CPP_
+#ifndef _CLAIREUTILS_CPP_
+#define _CLAIREUTILS_CPP_
 
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 
 
 
@@ -939,7 +939,7 @@ PetscErrorCode GetRawPointerRead(Vec v, const ScalarType** a) {
         ierr = VecGetArrayRead(v, a); CHKERRQ(ierr);
     #endif
 
-    PetscFunctionReturn(ierr);   
+    PetscFunctionReturn(ierr);
 }
 
 
@@ -954,7 +954,7 @@ PetscErrorCode RestoreRawPointerRead(Vec v, const ScalarType** a) {
         ierr = VecRestoreArrayRead(v, a); CHKERRQ(ierr);
     #endif
 
-    PetscFunctionReturn(ierr);   
+    PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a) {
@@ -968,7 +968,7 @@ PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a) {
         ierr = VecGetArray(v, a); CHKERRQ(ierr);
     #endif
 
-    PetscFunctionReturn(ierr);      
+    PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
@@ -982,18 +982,18 @@ PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
         ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
     #endif
 
-    PetscFunctionReturn(ierr);      
+    PetscFunctionReturn(ierr);
 }
 
 
 PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
     PetscErrorCode ierr = 0;
-    
+
     PetscFunctionBegin;
-    
+
     std::stringstream ss;
     ss << std::left << msg;
-    
+
 #ifdef REG_HAS_CUDA
     if (v->valid_GPU_array == PETSC_OFFLOAD_UNALLOCATED) {
         msg = ss.str() + " UNALLOCATED\n";
@@ -1020,4 +1020,4 @@ PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
 
 
 
-#endif   // _REGUTILS_CPP_
+#endif   // _CLAIREUTILS_CPP_

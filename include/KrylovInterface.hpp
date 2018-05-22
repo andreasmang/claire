@@ -22,7 +22,7 @@
 #define _KRYLOVINTERFACE_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "OptimizationProblem.hpp"
 #include "Preconditioner.hpp"
 

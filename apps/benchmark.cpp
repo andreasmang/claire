@@ -17,7 +17,7 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "BenchmarkOpt.hpp"
 #include "VecField.hpp"
 #include "CLAIRE.hpp"

@@ -19,7 +19,7 @@
 
 #include <memory>
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "ReadWriteReg.hpp"
 #include "CLAIREInterface.hpp"
 

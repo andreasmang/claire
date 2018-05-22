@@ -23,7 +23,7 @@
 #include <fstream>
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "CLAIREBase.hpp"
 
 

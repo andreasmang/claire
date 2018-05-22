@@ -21,7 +21,7 @@
 #define _TRANSPORTEQUATION_HPP_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "TransportProblem.hpp"
 
 

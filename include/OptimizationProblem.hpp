@@ -21,7 +21,7 @@
 #define _OPTIMIZATIONPROBLEM_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 
 

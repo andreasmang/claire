@@ -21,7 +21,7 @@
 #define _PRECONDITIONER_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "KrylovInterface.hpp"
 #include "OptimizationProblem.hpp"
 #include "CLAIRE.hpp"

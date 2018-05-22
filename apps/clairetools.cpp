@@ -21,7 +21,7 @@
 #include <string>
 
 #include "RegToolsOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "Preprocessing.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"

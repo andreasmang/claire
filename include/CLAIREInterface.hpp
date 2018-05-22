@@ -21,7 +21,7 @@
 #define _REGISTRATIONINTERFACE_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "ReadWriteReg.hpp"
 #include "Optimizer.hpp"
 #include "Preconditioner.hpp"
