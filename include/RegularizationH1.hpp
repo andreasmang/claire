@@ -17,10 +17,11 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONREGISTRATIONH2_H_
-#define _REGULARIZATIONREGISTRATIONH2_H_
+#ifndef _REGULARIZATIONH1_H_
+#define _REGULARIZATIONH1_H_
 
-#include "RegularizationRegistration.hpp"
+#include "RegOpt.hpp"
+#include "Regularization.hpp"
 
 
 
@@ -30,14 +31,14 @@ namespace reg {
 
 
 
-class RegularizationRegistrationH2 : public RegularizationRegistration {
+class RegularizationH1 : public Regularization {
  public:
-    typedef RegularizationRegistration SuperClass;
-    typedef RegularizationRegistrationH2 Self;
+    typedef Regularization SuperClass;
+    typedef RegularizationH1 Self;
 
-    RegularizationRegistrationH2(void);
-    RegularizationRegistrationH2(RegOpt*);
-    ~RegularizationRegistrationH2(void);
+    RegularizationH1(void);
+    RegularizationH1(RegOpt*);
+    ~RegularizationH1(void);
 
     virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
     virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);
@@ -49,7 +50,7 @@ class RegularizationRegistrationH2 : public RegularizationRegistration {
 
 
 
-} // end of namespace
+}  // end of namespace
 
 
 

@@ -17,10 +17,10 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONREGISTRATION_CPP_
-#define _REGULARIZATIONREGISTRATION_CPP_
+#ifndef _REGULARIZATION_CPP_
+#define _REGULARIZATION_CPP_
 
-#include "RegularizationRegistration.hpp"
+#include "Regularization.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-RegularizationRegistration::RegularizationRegistration() {
+Regularization::Regularization() {
     this->Initialize();
 }
 
@@ -43,7 +43,7 @@ RegularizationRegistration::RegularizationRegistration() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-RegularizationRegistration::~RegularizationRegistration(void) {
+Regularization::~Regularization(void) {
     this->ClearMemory();
 }
 
@@ -53,7 +53,7 @@ RegularizationRegistration::~RegularizationRegistration(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-RegularizationRegistration::RegularizationRegistration(RegOpt* opt) {
+Regularization::Regularization(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
@@ -64,7 +64,7 @@ RegularizationRegistration::RegularizationRegistration(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode RegularizationRegistration::Initialize(void) {
+PetscErrorCode Regularization::Initialize(void) {
     PetscFunctionBegin;
 
     this->m_Opt = NULL;
@@ -81,7 +81,7 @@ PetscErrorCode RegularizationRegistration::Initialize(void) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode RegularizationRegistration::SetSpectralData(ComplexType* xhat1,
+PetscErrorCode Regularization::SetSpectralData(ComplexType* xhat1,
                                                            ComplexType* xhat2,
                                                            ComplexType* xhat3) {
     PetscErrorCode ierr = 0;
@@ -104,7 +104,7 @@ PetscErrorCode RegularizationRegistration::SetSpectralData(ComplexType* xhat1,
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode RegularizationRegistration::SetWorkVecField(VecField* v) {
+PetscErrorCode Regularization::SetWorkVecField(VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -119,7 +119,7 @@ PetscErrorCode RegularizationRegistration::SetWorkVecField(VecField* v) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode RegularizationRegistration::ClearMemory(void) {
+PetscErrorCode Regularization::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 

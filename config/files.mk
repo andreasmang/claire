@@ -22,14 +22,14 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/Preconditioner.cpp \
-		$(SRCDIR)/RegularizationRegistration.cpp \
-		$(SRCDIR)/RegularizationRegistrationL2.cpp \
-		$(SRCDIR)/RegularizationRegistrationH1.cpp \
-		$(SRCDIR)/RegularizationRegistrationH2.cpp \
-		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
-		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
-		$(SRCDIR)/RegularizationRegistrationH3.cpp \
-		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
+		$(SRCDIR)/Regularization.cpp \
+		$(SRCDIR)/RegularizationL2.cpp \
+		$(SRCDIR)/RegularizationH1.cpp \
+		$(SRCDIR)/RegularizationH2.cpp \
+		$(SRCDIR)/RegularizationH1SN.cpp \
+		$(SRCDIR)/RegularizationH2SN.cpp \
+		$(SRCDIR)/RegularizationH3.cpp \
+		$(SRCDIR)/RegularizationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/CLAIREBase.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
@@ -63,14 +63,14 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/Preconditioner.cpp \
-		$(SRCDIR)/RegularizationRegistration.cpp \
-		$(SRCDIR)/RegularizationRegistrationL2.cpp \
-		$(SRCDIR)/RegularizationRegistrationH1.cpp \
-		$(SRCDIR)/RegularizationRegistrationH2.cpp \
-		$(SRCDIR)/RegularizationRegistrationH1SN.cpp \
-		$(SRCDIR)/RegularizationRegistrationH2SN.cpp \
-		$(SRCDIR)/RegularizationRegistrationH3.cpp \
-		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
+		$(SRCDIR)/Regularization.cpp \
+		$(SRCDIR)/RegularizationL2.cpp \
+		$(SRCDIR)/RegularizationH1.cpp \
+		$(SRCDIR)/RegularizationH2.cpp \
+		$(SRCDIR)/RegularizationH1SN.cpp \
+		$(SRCDIR)/RegularizationH2SN.cpp \
+		$(SRCDIR)/RegularizationH3.cpp \
+		$(SRCDIR)/RegularizationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/CLAIREBase.cpp \
 		$(SRCDIR)/CLAIRE.cpp \

@@ -17,8 +17,8 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONREGISTRATION_H_
-#define _REGULARIZATIONREGISTRATION_H_
+#ifndef _REGULARIZATION_HPP_
+#define _REGULARIZATION_HPP_
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
@@ -32,13 +32,13 @@ namespace reg {
 
 
 
-class RegularizationRegistration {
+class Regularization {
  public:
-    typedef RegularizationRegistration Self;
+    typedef Regularization Self;
 
-    RegularizationRegistration(void);
-    RegularizationRegistration(RegOpt*);
-    virtual ~RegularizationRegistration(void);
+    Regularization(void);
+    Regularization(RegOpt*);
+    virtual ~Regularization(void);
 
     PetscErrorCode SetWorkVecField(VecField*);
     PetscErrorCode SetSpectralData(ComplexType*, ComplexType*, ComplexType*);
@@ -69,4 +69,5 @@ class RegularizationRegistration {
 
 
 
-#endif
+#endif // _REGULARIZATION_HPP_
+

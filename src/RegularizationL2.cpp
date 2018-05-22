@@ -17,10 +17,10 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONREGISTRATIONL2_CPP_
-#define _REGULARIZATIONREGISTRATIONL2_CPP_
+#ifndef _REGULARIZATIONL2_CPP_
+#define _REGULARIZATIONL2_CPP_
 
-#include "RegularizationRegistrationL2.hpp"
+#include "RegularizationL2.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-RegularizationRegistrationL2::RegularizationRegistrationL2() : SuperClass() {
+RegularizationL2::RegularizationL2() : SuperClass() {
 }
 
 
@@ -42,7 +42,7 @@ RegularizationRegistrationL2::RegularizationRegistrationL2() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-RegularizationRegistrationL2::~RegularizationRegistrationL2(void) {
+RegularizationL2::~RegularizationL2(void) {
     this->ClearMemory();
 }
 
@@ -52,7 +52,7 @@ RegularizationRegistrationL2::~RegularizationRegistrationL2(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-RegularizationRegistrationL2::RegularizationRegistrationL2(RegOpt* opt) : SuperClass(opt) {
+RegularizationL2::RegularizationL2(RegOpt* opt) : SuperClass(opt) {
 }
 
 
@@ -61,7 +61,7 @@ RegularizationRegistrationL2::RegularizationRegistrationL2(RegOpt* opt) : SuperC
 /********************************************************************
  * @brief evaluates the functional
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationL2
+PetscErrorCode RegularizationL2
 ::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, ipxi;
@@ -95,7 +95,7 @@ PetscErrorCode RegularizationRegistrationL2
 /********************************************************************
  * @brief evaluates first variation of regularization norm
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationL2
+PetscErrorCode RegularizationL2
 ::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, *p_dvR1 = NULL, *p_dvR2 = NULL, *p_dvR3 = NULL,
@@ -140,7 +140,7 @@ PetscErrorCode RegularizationRegistrationL2
  * @brief applies second variation of regularization norm to
  * a vector
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationL2
+PetscErrorCode RegularizationL2
 ::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr = 0;
     ScalarType beta;
@@ -173,7 +173,7 @@ PetscErrorCode RegularizationRegistrationL2
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationL2
+PetscErrorCode RegularizationL2
 ::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
@@ -218,7 +218,7 @@ PetscErrorCode RegularizationRegistrationL2
  * @brief computes the largest and smallest eigenvalue of
  * the inverse regularization operator
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationL2
+PetscErrorCode RegularizationL2
 ::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
     PetscErrorCode ierr = 0;
     ScalarType beta;
@@ -246,4 +246,4 @@ PetscErrorCode RegularizationRegistrationL2
 
 
 
-#endif  // _REGULARIZATIONREGISTRATIONL2_CPP_
+#endif  // _REGULARIZATIONL2_CPP_

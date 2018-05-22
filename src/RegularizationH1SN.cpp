@@ -17,10 +17,10 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONREGISTRATIONH1SN_CPP_
-#define _REGULARIZATIONREGISTRATIONH1SN_CPP_
+#ifndef _REGULARIZATIONH1SN_CPP_
+#define _REGULARIZATIONH1SN_CPP_
 
-#include "RegularizationRegistrationH1SN.hpp"
+#include "RegularizationH1SN.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-RegularizationRegistrationH1SN::RegularizationRegistrationH1SN() : SuperClass() {
+RegularizationH1SN::RegularizationH1SN() : SuperClass() {
 }
 
 
@@ -42,7 +42,7 @@ RegularizationRegistrationH1SN::RegularizationRegistrationH1SN() : SuperClass() 
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-RegularizationRegistrationH1SN::~RegularizationRegistrationH1SN(void) {
+RegularizationH1SN::~RegularizationH1SN(void) {
     this->ClearMemory();
 }
 
@@ -52,7 +52,7 @@ RegularizationRegistrationH1SN::~RegularizationRegistrationH1SN(void) {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-RegularizationRegistrationH1SN::RegularizationRegistrationH1SN(RegOpt* opt) : SuperClass(opt) {
+RegularizationH1SN::RegularizationH1SN(RegOpt* opt) : SuperClass(opt) {
 }
 
 
@@ -61,7 +61,7 @@ RegularizationRegistrationH1SN::RegularizationRegistrationH1SN(RegOpt* opt) : Su
 /********************************************************************
  * @brief evaluates the functional
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R, VecField* v) {
+PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType  *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_gv11 = NULL, *p_gv12 = NULL, *p_gv13 = NULL,
@@ -154,7 +154,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateFunctional(ScalarType* R,
 /********************************************************************
  * @brief evaluates first variation of regularization norm
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, VecField* v) {
+PetscErrorCode RegularizationH1SN::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
     IntType nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
@@ -259,7 +259,7 @@ PetscErrorCode RegularizationRegistrationH1SN::EvaluateGradient(VecField* dvR, V
  * @brief applies second variation of regularization norm to
  * a vector
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, VecField* vtilde) {
+PetscErrorCode RegularizationH1SN::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr = 0;
     ScalarType beta;
     PetscFunctionBegin;
@@ -291,7 +291,7 @@ PetscErrorCode RegularizationRegistrationH1SN::HessianMatVec(VecField* dvvR, Vec
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH1SN::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
+PetscErrorCode RegularizationH1SN::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr;
     IntType nx[3];
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
@@ -399,7 +399,7 @@ PetscErrorCode RegularizationRegistrationH1SN::ApplyInverse(VecField* Ainvx, Vec
  * @brief computes the largest and smallest eigenvalue of
  * the inverse regularization operator
  *******************************************************************/
-PetscErrorCode RegularizationRegistrationH1SN::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
+PetscErrorCode RegularizationH1SN::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
     PetscErrorCode ierr = 0;
     ScalarType w[3], beta1, beta2, regop;
 
@@ -434,4 +434,4 @@ PetscErrorCode RegularizationRegistrationH1SN::GetExtremeEigValsInvOp(ScalarType
 
 
 
-#endif //_REGULARIZATIONREGISTRATIONH1SN_CPP_
+#endif //_REGULARIZATIONH1SN_CPP_

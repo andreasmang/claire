@@ -681,7 +681,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
     switch (this->m_Opt->m_RegNorm.type) {
         case L2:
         {
-            try {this->m_Regularization = new RegularizationRegistrationL2(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationL2(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -689,7 +689,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H1:
         {
-            try {this->m_Regularization = new RegularizationRegistrationH1(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationH1(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -697,7 +697,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H2:
         {
-            try {this->m_Regularization = new RegularizationRegistrationH2(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationH2(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -705,7 +705,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H3:
         {
-            try {this->m_Regularization = new RegularizationRegistrationH3(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationH3(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -713,7 +713,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H1SN:
         {
-            try {this->m_Regularization = new RegularizationRegistrationH1SN(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationH1SN(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -721,7 +721,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H2SN:
         {
-            try {this->m_Regularization = new RegularizationRegistrationH2SN(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationH2SN(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
@@ -729,7 +729,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H3SN:
         {
-            try {this->m_Regularization = new RegularizationRegistrationH3SN(this->m_Opt);}
+            try {this->m_Regularization = new RegularizationH3SN(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }

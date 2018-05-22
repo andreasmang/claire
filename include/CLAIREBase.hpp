@@ -29,15 +29,15 @@
 #include "DistanceMeasure.hpp"
 #include "DistanceMeasureSL2.hpp"
 #include "DistanceMeasureSL2aux.hpp"
-#include "RegularizationRegistration.hpp"
-#include "RegularizationRegistration.hpp"
-#include "RegularizationRegistrationL2.hpp"
-#include "RegularizationRegistrationH1.hpp"
-#include "RegularizationRegistrationH2.hpp"
-#include "RegularizationRegistrationH3.hpp"
-#include "RegularizationRegistrationH1SN.hpp"
-#include "RegularizationRegistrationH2SN.hpp"
-#include "RegularizationRegistrationH3SN.hpp"
+#include "Regularization.hpp"
+#include "Regularization.hpp"
+#include "RegularizationL2.hpp"
+#include "RegularizationH1.hpp"
+#include "RegularizationH2.hpp"
+#include "RegularizationH3.hpp"
+#include "RegularizationH1SN.hpp"
+#include "RegularizationH2SN.hpp"
+#include "RegularizationH3SN.hpp"
 #include "OptimizationProblem.hpp"
 #ifdef REG_HAS_CUDA
 #include "SemiLagrangianGPUNew.hpp"
@@ -57,7 +57,7 @@ class CLAIREBase : public OptimizationProblem {
     typedef ReadWriteReg ReadWriteType;
     typedef CLAIREBase Self;
     typedef OptimizationProblem SuperClass;
-    typedef RegularizationRegistration RegularizationType;
+    typedef Regularization RegularizationType;
 #ifdef REG_HAS_CUDA
     typedef SemiLagrangianGPUNew SemiLagrangianType;
 #else
