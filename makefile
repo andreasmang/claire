@@ -1,15 +1,12 @@
-CXX=$(MPICXX)/mpicxx
-USECUDA=yes
-ifeq ($(USECUDA),yes)
-CUDAC=$(CUDA_DIR)/bin/nvcc
-endif
+CXX=mpicxx
+USECUDA=no
 USEINTEL=no
 USEINTELMPI=no
 USESINGLE=yes
-USEPNETCDF=yes
+USEPNETCDF=no
 USENIFTI=no
 USEKNL=no
-USEHASWELL=yes
+USEHASWELL=no
 BUILDTOOLS=yes
 
 
@@ -18,6 +15,7 @@ include config/files.mk
 
 
 ifeq ($(USECUDA),yes)
+CUDAC=$(CUDA_DIR)/bin/nvcc
 CUDA_OBJS = $(patsubst $(SRCDIR)/%.cu,$(OBJDIR)/%.o,$(CUFILES))
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILESCUDA))
 else
