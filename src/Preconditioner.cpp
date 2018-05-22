@@ -25,7 +25,6 @@
 
 
 
-
 namespace reg {
 
 
@@ -319,9 +318,7 @@ PetscErrorCode Preconditioner::DoSetup() {
 
     // start timer
     ierr = this->m_Opt->StartTimer(PMVSETUP); CHKERRQ(ierr);
-    if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("setup of preconditioner"); CHKERRQ(ierr);
-    }
+
     // switch case for choice of preconditioner
     if (this->m_Opt->m_KrylovMethod.pctype == TWOLEVEL) {
         // apply restriction to adjoint, state and control variable
@@ -379,10 +376,9 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
     }
     ierr = this->m_CoarseGrid->m_Opt->DoSetup(false); CHKERRQ(ierr);
 
-
     if (this->m_Opt->m_Verbosity > 2) {
         ss  << "setup of preconditioner (data allocation) "
-            << "nx (fine): (" << this->m_Opt->m_Domain.nx[0]
+            << "nx (f): (" << this->m_Opt->m_Domain.nx[0]
             << "," << this->m_Opt->m_Domain.nx[1]
             << "," << this->m_Opt->m_Domain.nx[2] << "); "
             << "nx (coarse): (" << this->m_CoarseGrid->m_Opt->m_Domain.nx[0]
@@ -400,17 +396,17 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
 
     // allocate class for registration
     if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
-        try {this->m_CoarseGrid->m_OptimizationProblem = new OptimalControlRegistration(this->m_CoarseGrid->m_Opt);}
+        try {this->m_CoarseGrid->m_OptimizationProblem = new CLAIRE(this->m_CoarseGrid->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == STOKES) {
-        try {this->m_CoarseGrid->m_OptimizationProblem = new OptimalControlRegistrationIC(this->m_CoarseGrid->m_Opt);}
+        try {this->m_CoarseGrid->m_OptimizationProblem = new CLAIREStokes(this->m_CoarseGrid->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
-        try {this->m_CoarseGrid->m_OptimizationProblem  = new OptimalControlRegistrationRelaxedIC(this->m_CoarseGrid->m_Opt);}
+        try {this->m_CoarseGrid->m_OptimizationProblem  = new CLAIREDivReg(this->m_CoarseGrid->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
@@ -425,8 +421,8 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
     ngc = this->m_CoarseGrid->ng();
 
     // create vector fields
-    ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkScaField1, this->m_Opt->m_Domain.nl, this->m_Opt->m_Domain.ng); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkScaField2, this->m_Opt->m_Domain.nl, this->m_Opt->m_Domain.ng); CHKERRQ(ierr);
 
     try {this->m_ControlVariable = new VecField(this->m_Opt);}
     catch (std::bad_alloc&) {
@@ -437,8 +433,6 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
 
-
-    // allocate state and adjoint variables
     ierr = VecCreate(this->m_CoarseGrid->m_StateVariable, (nt+1)*nc*nlc, (nt+1)*nc*ngc); CHKERRQ(ierr);
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         ierr = VecCreate(this->m_CoarseGrid->m_AdjointVariable, (nt+1)*nc*nlc, (nt+1)*nc*ngc); CHKERRQ(ierr);
@@ -474,7 +468,7 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
 /********************************************************************
  * @brief applies the preconditioner for the hessian to a vector
  *******************************************************************/
-PetscErrorCode Preconditioner::MatVec(Vec pcx, Vec x) {
+PetscErrorCode Preconditioner::MatVec(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -485,17 +479,17 @@ PetscErrorCode Preconditioner::MatVec(Vec pcx, Vec x) {
         case NOPC:
         {
             ierr = WrngMsg("no preconditioner used"); CHKERRQ(ierr);
-            ierr = VecCopy(x, pcx); CHKERRQ(ierr);
+            ierr = VecCopy(x,Px); CHKERRQ(ierr);
             break;
         }
         case INVREG:
         {
-            ierr = this->ApplySpectralPrecond(pcx, x); CHKERRQ(ierr);
+            ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
             break;
         }
         case TWOLEVEL:
         {
-            ierr = this->Apply2LevelPrecond(pcx, x); CHKERRQ(ierr);
+            ierr = this->Apply2LevelPrecond(Px, x); CHKERRQ(ierr);
             break;
         }
         default:
@@ -518,7 +512,6 @@ PetscErrorCode Preconditioner::MatVec(Vec pcx, Vec x) {
  *******************************************************************/
 PetscErrorCode Preconditioner::ApplySpectralPrecond(Vec precx, Vec x) {
     PetscErrorCode ierr = 0;
-    bool applysqrt = false;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -530,7 +523,7 @@ PetscErrorCode Preconditioner::ApplySpectralPrecond(Vec precx, Vec x) {
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
 
     // apply inverse regularization operator
-    ierr = this->m_OptimizationProblem->ApplyInvRegularizationOperator(precx, x, applysqrt); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->ApplyInvRegularizationOperator(precx, x, false); CHKERRQ(ierr);
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
@@ -551,11 +544,9 @@ PetscErrorCode Preconditioner::ApplySpectralPrecond(Vec precx, Vec x) {
  *******************************************************************/
 PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     PetscErrorCode ierr = 0;
-    ScalarType pct, value;
-    IntType nx[3], nxc[3];
-    std::stringstream ss;
-
     PetscFunctionBegin;
+    ScalarType pct, value;
+    IntType nxc[3], nx[3];
     this->m_Opt->Enter(__func__);
 
     // do allocation of coarse grid
@@ -593,11 +584,6 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
         pct = value > pct ? value : pct;
     }
 
-    if (this->m_Opt->m_Verbosity > 2) {
-        ss  << "restriction percentage: " << pct;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-    }
-
     // set components
     ierr = this->m_WorkVecField->SetComponents(x); CHKERRQ(ierr);
 
@@ -613,6 +599,7 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     // get the components to interface hessian mat vec
     ierr = this->m_CoarseGrid->m_IncControlVariable->GetComponents(this->m_CoarseGrid->x); CHKERRQ(ierr);
 
+
     // invert preconditioner
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
     ierr = KSPSolve(this->m_KrylovMethod, this->m_CoarseGrid->x, this->m_CoarseGrid->y); CHKERRQ(ierr);
@@ -620,8 +607,9 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
 
     // inspect pc solver
     if (this->m_Opt->m_KrylovMethod.monitorpcsolver) {
-        ierr = KSPView(this->m_KrylovMethod, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+        ierr = KSPView(this->m_KrylovMethod,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
     }
+
 
     // get components (for interface of hessian matvec)
     ierr = this->m_CoarseGrid->m_IncControlVariable->SetComponents(this->m_CoarseGrid->y); CHKERRQ(ierr);
@@ -630,7 +618,7 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     ierr = this->m_PreProc->Prolong(this->m_IncControlVariable,
                                     this->m_CoarseGrid->m_IncControlVariable, nx, nxc); CHKERRQ(ierr);
 
-    // apply low pass filter to output of hessian matvec (TODO: is this really necessary?)
+    // apply low pass filter to output of hessian matvec
     ierr = this->m_PreProc->ApplyRectFreqFilter(this->m_IncControlVariable,
                                                 this->m_IncControlVariable, pct); CHKERRQ(ierr);
 
@@ -687,8 +675,8 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss  << "applying restriction to variables "
-            << " [" << nx_f[0] << ","  << nx_f[1] << ","  << nx_f[2] << "] ->"
-            << " [" << nx_c[0] << ","  << nx_c[1] << ","  << nx_c[2] << "]";
+            << " (" << nx_f[0] << ","  << nx_f[1] << ","  << nx_f[2] << ") ->"
+            << " (" << nx_c[0] << ","  << nx_c[1] << ","  << nx_c[2] << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
@@ -878,9 +866,9 @@ PetscErrorCode Preconditioner::SetupKrylovMethod(IntType nl, IntType ng) {
     //KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
     //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
     //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
-//    ierr = KSPSetNormType(this->m_KrylovMethod, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
-//    ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
-//    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
+    ierr = KSPSetNormType(this->m_KrylovMethod, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+    //ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
 
     //ierr = KSPSetPostSolve(this->m_KrylovMethod,PostKrylovSolve,this);
     ierr = KSPSetPreSolve(this->m_KrylovMethod, InvertPrecondPreKrylovSolve, this); CHKERRQ(ierr);
@@ -903,7 +891,7 @@ PetscErrorCode Preconditioner::SetupKrylovMethod(IntType nl, IntType ng) {
 //    }
 
     ierr = MatSetOption(this->m_MatVec, MAT_SYMMETRIC, PETSC_TRUE); CHKERRQ(ierr);
-//    ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
+    //ierr = MatSetOption(this->m_MatVec,MAT_SYMMETRIC,PETSC_FALSE); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 1) {
         ierr = KSPMonitorSet(this->m_KrylovMethod, InvertPrecondKrylovMonitor, this, NULL); CHKERRQ(ierr);
@@ -1007,12 +995,12 @@ PetscErrorCode Preconditioner::EstimateEigenValues() {
                 ierr = DbgMsg("estimating eigenvalues (petsc)"); CHKERRQ(ierr);
             }
             // default interface for chebyshev method to estimate eigenvalues
-            // PETSC_DECIDE: the default transform is (0.0,0.1,0,1.1) which
+            // PETSC_DECIDE: the default transform is (0,0.1; 0,1.1) which
             // targets the "upper" part of the spectrum, as desirable for use
             // with multigrid
-            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE, PETSC_DECIDE,
-                                                               PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
-//            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, 0.0, 0.1, 0.0, 1.1); CHKERRQ(ierr);
+//            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, PETSC_DECIDE, PETSC_DECIDE,
+//                                                               PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+            ierr = KSPChebyshevEstEigSet(this->m_KrylovMethod, 0.0, 0.1, 0.0, 1.1); CHKERRQ(ierr);
         } else {
             if (this->m_Opt->m_Verbosity > 1) {
                 ierr = DbgMsg("estimating eigenvalues"); CHKERRQ(ierr);

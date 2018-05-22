@@ -23,14 +23,12 @@
 #define _TENFIELD_H_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 
-namespace reg
-{
+namespace reg {
 
 
-class TenField
-{
+class TenField {
 
 public:
     typedef TenField Self;
@@ -89,6 +87,8 @@ private:
     RegOpt* m_Opt;
 
 };
+
+
 
 } // end of name space
 

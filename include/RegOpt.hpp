@@ -21,7 +21,7 @@
 #define _REGOPT_H_
 
 // local includes
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 
 
 
@@ -163,6 +163,7 @@ enum TimerType {
     FFTSELFEXEC,  ///< fft execution time
     IPSELFEXEC,   ///< execution time for interpolation
     NTIMERS,      ///< to allocate the timers
+    GPUCOMP,      ///< time spent on gpu
 };
 
 
@@ -538,6 +539,9 @@ class RegOpt {
     PetscErrorCode ResetCounters(void);
     PetscErrorCode ResetCounter(CounterType);
     PetscErrorCode ProcessTimers(void);
+
+    PetscScalar m_GPUtime = 0;
+    PetscScalar m_CPUtime = 0;
 
     virtual PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);

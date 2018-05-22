@@ -7,7 +7,7 @@ MPI_C=mpicc
 #MPI_F99=mpif90
 
 #petscvar='lite-3.7.6'
-petscvar='lite-3.8.3'
+petscvar='lite-3.9.1'
 
 
 builddep=0		# set to 1 if you wanna build all libraries

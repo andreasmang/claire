@@ -21,7 +21,7 @@
 #define _DISTANCEMEASURE_HPP_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 
 
