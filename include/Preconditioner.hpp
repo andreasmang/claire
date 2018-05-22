@@ -25,8 +25,8 @@
 #include "KrylovInterfaceReg.hpp"
 #include "OptimizationProblem.hpp"
 #include "CLAIRE.hpp"
-#include "OptimalControlRegistrationIC.hpp"
-#include "OptimalControlRegistrationRelaxedIC.hpp"
+#include "CLAIREStokes.hpp"
+#include "CLAIREDivReg.hpp"
 
 
 

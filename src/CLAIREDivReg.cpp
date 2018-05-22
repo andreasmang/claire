@@ -20,7 +20,7 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
 #define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_CPP_
 
-#include "OptimalControlRegistrationRelaxedIC.hpp"
+#include "CLAIREDivReg.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : SuperClass() {
+CLAIREDivReg::CLAIREDivReg() : SuperClass() {
     this->Initialize();
 }
 
@@ -43,7 +43,7 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC() : Sup
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC() {
+CLAIREDivReg::~CLAIREDivReg() {
     this->ClearMemory();
 }
 
@@ -53,7 +53,7 @@ OptimalControlRegistrationRelaxedIC::~OptimalControlRegistrationRelaxedIC() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt* opt) : SuperClass(opt) {
+CLAIREDivReg::CLAIREDivReg(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
@@ -63,7 +63,7 @@ OptimalControlRegistrationRelaxedIC::OptimalControlRegistrationRelaxedIC(RegOpt*
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize() {
+PetscErrorCode CLAIREDivReg::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -80,7 +80,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::Initialize() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory() {
+PetscErrorCode CLAIREDivReg::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -106,7 +106,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ClearMemory() {
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType* J, Vec v) {
+PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType D = 0.0, Rv = 0.0, Rw = 0.0, hd;
     std::stringstream ss;
@@ -190,7 +190,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluateObjective(ScalarType
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegularizationDIV(ScalarType* Rw) {
+PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_gdv1 = NULL, *p_gdv2 = NULL, *p_gdv3 = NULL, *p_divv = NULL;
@@ -265,7 +265,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::EvaluteRegularizationDIV(Sca
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce() {
+PetscErrorCode CLAIREDivReg::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -290,7 +290,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeBodyForce() {
  * where K is an operator that projects \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce() {
+PetscErrorCode CLAIREDivReg::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
@@ -312,7 +312,7 @@ PetscErrorCode OptimalControlRegistrationRelaxedIC::ComputeIncBodyForce() {
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationRelaxedIC::ApplyProjection() {
+PetscErrorCode CLAIREDivReg::ApplyProjection() {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
     ScalarType beta[3], scale;

@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMALCONTROLREGISTRATIONBASE_CPP_
-#define _OPTIMALCONTROLREGISTRATIONBASE_CPP_
+#ifndef _CLAIREBASE_CPP_
+#define _CLAIREBASE_CPP_
 
 #include "CLAIREBase.hpp"
 
@@ -3243,4 +3243,4 @@ PetscErrorCode CLAIREBase::ComputeDefMapFromDisplacement() {
 
 
 
-#endif  // _OPTIMALCONTROLREGISTRATIONBASE_CPP_
+#endif  // _CLAIREBASE_CPP_

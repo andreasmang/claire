@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMALCONTROLREGISTRATION_CPP_
-#define _OPTIMALCONTROLREGISTRATION_CPP_
+#ifndef _CLAIRE_CPP_
+#define _CLAIRE_CPP_
 
 // global includes
 #include <string>
@@ -4313,4 +4313,4 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
 
 
-#endif  // _OPTIMALCONTROLREGISTRATION_CPP_
+#endif  // _CLAIRE_CPP_

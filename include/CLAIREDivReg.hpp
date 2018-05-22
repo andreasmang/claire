@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
-#define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
+#ifndef _CLAIREDIVREG_HPP_
+#define _CLAIREDIVREG_HPP_
 
 #include "CLAIRE.hpp"
 
@@ -30,14 +30,14 @@ namespace reg {
 
 
 
-class OptimalControlRegistrationRelaxedIC : public CLAIRE {
+class CLAIREDivReg : public CLAIRE {
  public:
-    typedef OptimalControlRegistrationRelaxedIC Self;
+    typedef CLAIREDivReg Self;
     typedef CLAIRE SuperClass;
 
-    OptimalControlRegistrationRelaxedIC();
-    OptimalControlRegistrationRelaxedIC(RegOpt*);
-    ~OptimalControlRegistrationRelaxedIC();
+    CLAIREDivReg();
+    CLAIREDivReg(RegOpt*);
+    ~CLAIREDivReg();
 
  protected:
     /*! init class variables (called by constructor) */

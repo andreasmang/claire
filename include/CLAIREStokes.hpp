@@ -18,8 +18,8 @@
  ************************************************************************/
 
 
-#ifndef _OPTIMALCONTROLREGISTRATIONIC_H_
-#define _OPTIMALCONTROLREGISTRATIONIC_H_
+#ifndef _CLAIRESTOKES_HPP_
+#define _CLAIRESTOKES_HPP_
 
 #include "CLAIRE.hpp"
 
@@ -31,14 +31,14 @@ namespace reg {
 
 
 
-class OptimalControlRegistrationIC : public CLAIRE {
+class CLAIREStokes : public CLAIRE {
  public:
-    typedef OptimalControlRegistrationIC Self;
+    typedef CLAIREStokes Self;
     typedef CLAIRE SuperClass;
 
-    OptimalControlRegistrationIC();
-    OptimalControlRegistrationIC(RegOpt*);
-    ~OptimalControlRegistrationIC();
+    CLAIREStokes();
+    CLAIREStokes(RegOpt*);
+    ~CLAIREStokes();
 
  protected:
     /*! init class variables (called by constructor) */
@@ -74,4 +74,5 @@ class OptimalControlRegistrationIC : public CLAIRE {
 
 
 
-#endif  // _OPTIMALCONTROLREGISTRATIONIC_H_
+#endif  // _CLAIRESTOKES_HPP_
+

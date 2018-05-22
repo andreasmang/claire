@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _CLAIRE_H_
-#define _CLAIRE_H_
+#ifndef _CLAIRE_HPP_
+#define _CLAIRE_HPP_
 
 #include <fstream>
 

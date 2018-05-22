@@ -33,8 +33,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/CLAIREBase.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
-		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
-		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
+		$(SRCDIR)/CLAIREStokes.cpp \
+		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp 
 
 CUFILES=$(SRCDIR)/interp3_gpu_new.cu
@@ -74,7 +74,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/CLAIREBase.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
-		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
-		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
+		$(SRCDIR)/CLAIREStokes.cpp \
+		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
 		$(SRCDIR)/SemiLagrangianGPUNew.cpp

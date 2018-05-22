@@ -401,12 +401,12 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == STOKES) {
-        try {this->m_CoarseGrid->m_OptimizationProblem = new OptimalControlRegistrationIC(this->m_CoarseGrid->m_Opt);}
+        try {this->m_CoarseGrid->m_OptimizationProblem = new CLAIREStokes(this->m_CoarseGrid->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
-        try {this->m_CoarseGrid->m_OptimizationProblem  = new OptimalControlRegistrationRelaxedIC(this->m_CoarseGrid->m_Opt);}
+        try {this->m_CoarseGrid->m_OptimizationProblem  = new CLAIREDivReg(this->m_CoarseGrid->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }

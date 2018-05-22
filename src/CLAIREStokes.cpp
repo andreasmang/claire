@@ -17,11 +17,11 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMALCONTROLREGISTRATIONIC_CPP_
-#define _OPTIMALCONTROLREGISTRATIONIC_CPP_
+#ifndef _CLAIRESTOKES_CPP_
+#define _CLAIRESTOKES_CPP_
 
 #include <math.h>
-#include "OptimalControlRegistrationIC.hpp"
+#include "CLAIREStokes.hpp"
 
 
 
@@ -34,7 +34,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-OptimalControlRegistrationIC::OptimalControlRegistrationIC() : SuperClass() {
+CLAIREStokes::CLAIREStokes() : SuperClass() {
     this->Initialize();
 }
 
@@ -44,7 +44,7 @@ OptimalControlRegistrationIC::OptimalControlRegistrationIC() : SuperClass() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistrationIC::~OptimalControlRegistrationIC() {
+CLAIREStokes::~CLAIREStokes() {
     this->ClearMemory();
 }
 
@@ -54,7 +54,7 @@ OptimalControlRegistrationIC::~OptimalControlRegistrationIC() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-OptimalControlRegistrationIC::OptimalControlRegistrationIC(RegOpt* opt) : SuperClass(opt) {
+CLAIREStokes::CLAIREStokes(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
@@ -64,7 +64,7 @@ OptimalControlRegistrationIC::OptimalControlRegistrationIC(RegOpt* opt) : SuperC
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::Initialize() {
+PetscErrorCode CLAIREStokes::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -81,7 +81,7 @@ PetscErrorCode OptimalControlRegistrationIC::Initialize() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::ClearMemory() {
+PetscErrorCode CLAIREStokes::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -110,7 +110,7 @@ PetscErrorCode OptimalControlRegistrationIC::ClearMemory() {
  * where K is an operator that projects v onto the manifold of
  * divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::ComputeBodyForce() {
+PetscErrorCode CLAIREStokes::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -138,7 +138,7 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeBodyForce() {
  * where K is an operator that projects \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
+PetscErrorCode CLAIREStokes::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -166,7 +166,7 @@ PetscErrorCode OptimalControlRegistrationIC::ComputeIncBodyForce() {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
+PetscErrorCode CLAIREStokes::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, ll, lm, llnext;
     ScalarType *p_l = NULL,  *p_m=NULL,
@@ -294,7 +294,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveAdjointEquationSL() {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL() {
+PetscErrorCode CLAIREStokes::SolveIncAdjointEquationGNSL() {
     PetscErrorCode ierr = 0;
     IntType nl, nt, nc, lm, ll;
     ScalarType *p_ltilde = NULL, *p_m = NULL,
@@ -404,7 +404,7 @@ PetscErrorCode OptimalControlRegistrationIC::SolveIncAdjointEquationGNSL() {
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
+PetscErrorCode CLAIREStokes::ApplyProjection() {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, scale;
     long int nx[3];
@@ -542,4 +542,4 @@ PetscErrorCode OptimalControlRegistrationIC::ApplyProjection() {
 
 
 
-#endif  // _OPTIMALCONTROLREGISTRATIONIC_CPP_
+#endif  // _CLAIRESTOKES_CPP_

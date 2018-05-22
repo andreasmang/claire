@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMALCONTROLREGISTRATIONBASE_H_
-#define _OPTIMALCONTROLREGISTRATIONBASE_H_
+#ifndef _CLAIREBASE_HPP_
+#define _CLAIREBASE_HPP_
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
@@ -272,4 +272,4 @@ class CLAIREBase : public OptimizationProblem {
 
 
 
-#endif  // _OPTIMALCONTROLREGISTRATIONBASE_H_
+#endif  // _CLAIREBASE_HPP_

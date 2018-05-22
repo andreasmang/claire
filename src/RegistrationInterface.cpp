@@ -638,12 +638,12 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == STOKES) {
-        try {this->m_RegProblem = new OptimalControlRegistrationIC(this->m_Opt);}
+        try {this->m_RegProblem = new CLAIREStokes(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     } else if (this->m_Opt->m_RegModel == RELAXEDSTOKES) {
-        try {this->m_RegProblem = new OptimalControlRegistrationRelaxedIC(this->m_Opt);}
+        try {this->m_RegProblem = new CLAIREDivReg(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
