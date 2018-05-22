@@ -26,7 +26,7 @@
 #include "Optimizer.hpp"
 #include "Preconditioner.hpp"
 #include "MultiLevelPyramid.hpp"
-#include "OptimalControlRegistrationBase.hpp"
+#include "CLAIREBase.hpp"
 #include "CLAIRE.hpp"
 #include "OptimalControlRegistrationIC.hpp"
 #include "OptimalControlRegistrationRelaxedIC.hpp"
@@ -44,7 +44,7 @@ class RegistrationInterface {
     typedef Optimizer OptimizerType;
     typedef ReadWriteReg ReadWriteType;
     typedef Preprocessing PreProcType;
-    typedef OptimalControlRegistrationBase RegProblemType;
+    typedef CLAIREBase RegProblemType;
 
     RegistrationInterface();
     ~RegistrationInterface();

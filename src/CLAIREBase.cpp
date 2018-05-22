@@ -20,7 +20,7 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONBASE_CPP_
 #define _OPTIMALCONTROLREGISTRATIONBASE_CPP_
 
-#include "OptimalControlRegistrationBase.hpp"
+#include "CLAIREBase.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-OptimalControlRegistrationBase::OptimalControlRegistrationBase() : SuperClass() {
+CLAIREBase::CLAIREBase() : SuperClass() {
     this->Initialize();
 }
 
@@ -43,7 +43,7 @@ OptimalControlRegistrationBase::OptimalControlRegistrationBase() : SuperClass() 
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistrationBase::~OptimalControlRegistrationBase() {
+CLAIREBase::~CLAIREBase() {
     this->ClearMemory();
 }
 
@@ -53,7 +53,7 @@ OptimalControlRegistrationBase::~OptimalControlRegistrationBase() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-OptimalControlRegistrationBase::OptimalControlRegistrationBase(RegOpt* opt) : SuperClass(opt) {
+CLAIREBase::CLAIREBase(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
@@ -63,7 +63,7 @@ OptimalControlRegistrationBase::OptimalControlRegistrationBase(RegOpt* opt) : Su
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::Initialize() {
+PetscErrorCode CLAIREBase::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -126,7 +126,7 @@ PetscErrorCode OptimalControlRegistrationBase::Initialize() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
+PetscErrorCode CLAIREBase::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -250,7 +250,7 @@ PetscErrorCode OptimalControlRegistrationBase::ClearMemory() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetupSpectralData() {
+PetscErrorCode CLAIREBase::SetupSpectralData() {
     PetscErrorCode ierr = 0;
     IntType nalloc;
     PetscFunctionBegin;
@@ -276,7 +276,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSpectralData() {
 /********************************************************************
  * @brief set read write operator
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* readwrite) {
+PetscErrorCode CLAIREBase::SetReadWrite(ReadWriteReg* readwrite) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -292,7 +292,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReadWrite(ReadWriteReg* readwr
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
+PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -319,7 +319,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetReferenceImage(Vec mR) {
 /********************************************************************
  * @brief set template image (i.e., the image to be registered)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
+PetscErrorCode CLAIREBase::SetTemplateImage(Vec mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -346,7 +346,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetTemplateImage(Vec mT) {
 /********************************************************************
  * @brief get reference image (i.e., the fixed image)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::GetReferenceImage(Vec& mR) {
+PetscErrorCode CLAIREBase::GetReferenceImage(Vec& mR) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -366,7 +366,7 @@ PetscErrorCode OptimalControlRegistrationBase::GetReferenceImage(Vec& mR) {
 /********************************************************************
  * @brief get template image (i.e., the image to be registered)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::GetTemplateImage(Vec& mT) {
+PetscErrorCode CLAIREBase::GetTemplateImage(Vec& mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -386,7 +386,7 @@ PetscErrorCode OptimalControlRegistrationBase::GetTemplateImage(Vec& mT) {
 /********************************************************************
  * @brief set velocity field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
+PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -417,7 +417,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetControlVariable(VecField* v) {
 /********************************************************************
  * @brief set mask (for masking the l2 distance / similarity measure)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetMask(Vec mask) {
+PetscErrorCode CLAIREBase::SetMask(Vec mask) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -439,7 +439,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetMask(Vec mask) {
 /********************************************************************
  * @brief set auxilary variable
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetAuxVariable(Vec q) {
+PetscErrorCode CLAIREBase::SetAuxVariable(Vec q) {
     PetscErrorCode ierr;
     this->m_Opt->Enter(__func__);
 
@@ -460,7 +460,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetAuxVariable(Vec q) {
 /********************************************************************
  * @brief set auxilary variable
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetCellDensity(Vec c) {
+PetscErrorCode CLAIREBase::SetCellDensity(Vec c) {
     PetscErrorCode ierr;
     this->m_Opt->Enter(__func__);
 
@@ -481,7 +481,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetCellDensity(Vec c) {
 /********************************************************************
  * @brief set velocity field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetIncControlVariable(VecField* v) {
+PetscErrorCode CLAIREBase::SetIncControlVariable(VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -503,7 +503,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetIncControlVariable(VecField* v
 /********************************************************************
  * @brief set velocity field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField*& v) {
+PetscErrorCode CLAIREBase::GetControlVariable(VecField*& v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -526,7 +526,7 @@ PetscErrorCode OptimalControlRegistrationBase::GetControlVariable(VecField*& v) 
 /********************************************************************
  * @brief set velocity field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
+PetscErrorCode CLAIREBase::ComputeInitialGuess() {
     PetscErrorCode ierr = 0;
     Vec v = NULL, g = NULL;
     IntType nl, ng;
@@ -571,7 +571,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeInitialGuess() {
 /********************************************************************
  * @brief check if velocity field is zero
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero() {
+PetscErrorCode CLAIREBase::IsVelocityZero() {
     PetscErrorCode ierr = 0;
     ScalarType normv1 = 0.0, normv2 = 0.0, normv3 = 0.0;
     PetscFunctionBegin;
@@ -603,7 +603,7 @@ PetscErrorCode OptimalControlRegistrationBase::IsVelocityZero() {
 /********************************************************************
  * @brief allocate regularization model
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetupDistanceMeasure() {
+PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -664,7 +664,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupDistanceMeasure() {
 /********************************************************************
  * @brief allocate regularization model
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
+PetscErrorCode CLAIREBase::SetupRegularization() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -762,7 +762,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupRegularization() {
 /********************************************************************
  * @brief compute coordinates of regular grid
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase
+PetscErrorCode CLAIREBase
 ::ComputeRegularGrid(VecField* x) {
     PetscErrorCode ierr = 0;
     ScalarType hx[3];
@@ -814,7 +814,7 @@ PetscErrorCode OptimalControlRegistrationBase
 /********************************************************************
  * @brief evaluate regularization model
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase
+PetscErrorCode CLAIREBase
 ::EvaluateRegularizationFunctional(ScalarType* value, VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -840,7 +840,7 @@ PetscErrorCode OptimalControlRegistrationBase
 /********************************************************************
  * @brief estimate eigenvalues of hessian
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase
+PetscErrorCode CLAIREBase
 ::EstimateExtremalHessEigVals(ScalarType &emin,
                               ScalarType &emax) {
     PetscErrorCode ierr = 0;
@@ -867,7 +867,7 @@ PetscErrorCode OptimalControlRegistrationBase
 /********************************************************************
  * @brief pre-processing before the krylov solve
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x) {
+PetscErrorCode CLAIREBase::PreKrylovSolve(Vec g, Vec x) {
     PetscErrorCode ierr;
 
     PetscFunctionBegin;
@@ -894,7 +894,7 @@ PetscErrorCode OptimalControlRegistrationBase::PreKrylovSolve(Vec g, Vec x) {
 /********************************************************************
  * @brief post-processing after the krylov solve
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x) {
+PetscErrorCode CLAIREBase::PostKrylovSolve(Vec g, Vec x) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
@@ -917,7 +917,7 @@ PetscErrorCode OptimalControlRegistrationBase::PostKrylovSolve(Vec g, Vec x) {
  * @brief applies inverse of regularization operator (used as
  * spectral preconditioner for our problem)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool flag) {
+PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool flag) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -956,7 +956,7 @@ PetscErrorCode OptimalControlRegistrationBase::ApplyInvRegularizationOperator(Ve
 /********************************************************************
  * @brief compute a synthetic test problem
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
+PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nx[3], i;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_mt = NULL;
@@ -1185,7 +1185,7 @@ PetscErrorCode OptimalControlRegistrationBase::SetupSyntheticProb(Vec &mR, Vec &
 /********************************************************************
  * @brief copies some input data field to all time points
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj) {
+PetscErrorCode CLAIREBase::CopyToAllTimePoints(Vec u, Vec uj) {
     PetscErrorCode ierr = 0;
     ScalarType *p_u = NULL, *p_uj = NULL;
     IntType nl, nc, nt;
@@ -1226,7 +1226,7 @@ PetscErrorCode OptimalControlRegistrationBase::CopyToAllTimePoints(Vec u, Vec uj
 /********************************************************************
  * @brief copies some input data field to all time points
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
+PetscErrorCode CLAIREBase::ComputeCFLCondition() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType hx[3], cflnum, vmax, vmaxscaled;
@@ -1316,7 +1316,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeCFLCondition() {
 /********************************************************************
  * @brief compute determinant of deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundreached) {
+PetscErrorCode CLAIREBase::CheckBounds(Vec v, bool& boundreached) {
     PetscErrorCode ierr = 0;
     ScalarType detdgradmin, detdgradmax, bound;
     bool minboundreached, maxboundreached;
@@ -1383,7 +1383,7 @@ PetscErrorCode OptimalControlRegistrationBase::CheckBounds(Vec v, bool& boundrea
 /********************************************************************
  * @brief compute determinant of deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file, Vec detj) {
+PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
     PetscErrorCode ierr = 0;
     ScalarType minddg, maxddg, meanddg;
     IntType nl, ng;
@@ -1494,7 +1494,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGrad(bool write2file
 /********************************************************************
  * @brief compute determinant of deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
+PetscErrorCode CLAIREBase::ComputeDetDefGradRK2() {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nt;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_jbar = NULL,
@@ -1592,7 +1592,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2() {
 /********************************************************************
  * @brief compute determinant of deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
+PetscErrorCode CLAIREBase::ComputeDetDefGradRK2A() {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nt;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_phibar = NULL,
@@ -1765,7 +1765,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradRK2A() {
 /********************************************************************
  * @brief compute determinant of deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
+PetscErrorCode CLAIREBase::ComputeDetDefGradSL() {
     PetscErrorCode ierr;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
                 *p_divv = NULL, *p_divvX = NULL, *p_jac = NULL, *p_jacX=NULL;
@@ -1889,7 +1889,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradSL() {
  * evaluates the determinant of the deformation gradient
  * based on the computed deformation map
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
+PetscErrorCode CLAIREBase::ComputeDetDefGradViaDispField() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     ScalarType  *p_u1 = NULL, *p_u2 = NULL, *p_u3 = NULL, *p_phi = NULL,
@@ -1988,7 +1988,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDetDefGradViaDispField() {
 /********************************************************************
  * @brief compute deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
+PetscErrorCode CLAIREBase::ComputeDefGrad(bool write2file) {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     std::string ext;
@@ -2132,7 +2132,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGrad(bool write2file) {
 /********************************************************************
  * @brief compute deformation gradient
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
+PetscErrorCode CLAIREBase::ComputeDefGradSL() {
     PetscErrorCode ierr = 0;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     IntType nt, nl;
@@ -2294,7 +2294,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDefGradSL() {
 /********************************************************************
  * @brief compute deformation map
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::CheckDefMapConsistency() {
+PetscErrorCode CLAIREBase::CheckDefMapConsistency() {
     PetscErrorCode ierr = 0;
     VecField *y = NULL, *x = NULL;
     ScalarType value, normx;
@@ -2372,7 +2372,7 @@ PetscErrorCode OptimalControlRegistrationBase::CheckDefMapConsistency() {
 /********************************************************************
  * @brief compute deformation map
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2file, VecField* y) {
+PetscErrorCode CLAIREBase::ComputeDeformationMap(bool write2file, VecField* y) {
     PetscErrorCode ierr = 0;
     std::string ext;
     PetscFunctionBegin;
@@ -2464,7 +2464,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMap(bool write2
 /********************************************************************
  * @brief compute deformation map
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2() {
+PetscErrorCode CLAIREBase::ComputeDeformationMapRK2() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -2479,7 +2479,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2() {
 /********************************************************************
  * @brief compute deformation map
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
+PetscErrorCode CLAIREBase::ComputeDeformationMapRK2A() {
     PetscErrorCode ierr = 0;
 /*
     IntType nl,ng,nt;
@@ -2666,7 +2666,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapRK2A() {
  * time integrator; the scheme is full lagrangian; we use an
  * rk2 scheme to compute the characteristic;
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
+PetscErrorCode CLAIREBase::ComputeDeformationMapSLRK2() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     std::string ext;
@@ -2804,7 +2804,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK2() {
  * time integrator; the scheme is full lagrangian; we use an
  * rk4 scheme to compute the characteristic;
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
+PetscErrorCode CLAIREBase::ComputeDeformationMapSLRK4() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     std::string ext;
@@ -2989,7 +2989,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDeformationMapSLRK4() {
 /********************************************************************
  * @brief compute displacement field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool write2file) {
+PetscErrorCode CLAIREBase::ComputeDisplacementField(bool write2file) {
     PetscErrorCode ierr = 0;
     std::string ext;
     PetscFunctionBegin;
@@ -3046,7 +3046,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementField(bool wri
 /********************************************************************
  * @brief compute displacement field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldRK2() {
+PetscErrorCode CLAIREBase::ComputeDisplacementFieldRK2() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -3061,7 +3061,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldRK2() {
 /********************************************************************
  * @brief compute displacement field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
+PetscErrorCode CLAIREBase::ComputeDisplacementFieldSL() {
     PetscErrorCode ierr = 0;
     IntType nl, nt;
     ScalarType ht, hthalf;
@@ -3155,7 +3155,7 @@ PetscErrorCode OptimalControlRegistrationBase::ComputeDisplacementFieldSL() {
 /********************************************************************
  * @brief compute deformation map from a displacement field
  *******************************************************************/
-PetscErrorCode OptimalControlRegistrationBase::ComputeDefMapFromDisplacement() {
+PetscErrorCode CLAIREBase::ComputeDefMapFromDisplacement() {
     PetscErrorCode ierr = 0;
     ScalarType hx[3];
     ScalarType *p_u1 = NULL,*p_u2 = NULL, *p_u3 = NULL;

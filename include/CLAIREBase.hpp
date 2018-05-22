@@ -52,10 +52,10 @@ namespace reg {
 
 
 
-class OptimalControlRegistrationBase : public OptimizationProblem {
+class CLAIREBase : public OptimizationProblem {
  public:
     typedef ReadWriteReg ReadWriteType;
-    typedef OptimalControlRegistrationBase Self;
+    typedef CLAIREBase Self;
     typedef OptimizationProblem SuperClass;
     typedef RegularizationRegistration RegularizationType;
 #ifdef REG_HAS_CUDA
@@ -64,9 +64,9 @@ class OptimalControlRegistrationBase : public OptimizationProblem {
     typedef SemiLagrangian SemiLagrangianType;
 #endif
 
-    OptimalControlRegistrationBase(void);
-    OptimalControlRegistrationBase(RegOpt*);
-    virtual ~OptimalControlRegistrationBase(void);
+    CLAIREBase(void);
+    CLAIREBase(RegOpt*);
+    virtual ~CLAIREBase(void);
 
     /*! set io object */
     PetscErrorCode SetReadWrite(ReadWriteType*);

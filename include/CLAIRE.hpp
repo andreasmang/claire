@@ -24,7 +24,7 @@
 
 #include "RegOpt.hpp"
 #include "RegUtils.hpp"
-#include "OptimalControlRegistrationBase.hpp"
+#include "CLAIREBase.hpp"
 
 
 
@@ -34,9 +34,9 @@ namespace reg {
 
 
 
-class CLAIRE : public OptimalControlRegistrationBase {
+class CLAIRE : public CLAIREBase {
  public:
-    typedef OptimalControlRegistrationBase SuperClass;
+    typedef CLAIREBase SuperClass;
     typedef CLAIRE Self;
 
     CLAIRE(void);
