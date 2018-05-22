@@ -25,7 +25,7 @@
 #include <algorithm>
 
 // local includes
-#include "OptimalControlRegistration.hpp"
+#include "CLAIRE.hpp"
 
 
 
@@ -38,7 +38,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-OptimalControlRegistration::OptimalControlRegistration() : SuperClass() {
+CLAIRE::CLAIRE() : SuperClass() {
     this->Initialize();
 }
 
@@ -48,7 +48,7 @@ OptimalControlRegistration::OptimalControlRegistration() : SuperClass() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass(opt) {
+CLAIRE::CLAIRE(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
@@ -58,7 +58,7 @@ OptimalControlRegistration::OptimalControlRegistration(RegOpt* opt) : SuperClass
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-OptimalControlRegistration::~OptimalControlRegistration() {
+CLAIRE::~CLAIRE() {
     this->ClearMemory();
 }
 
@@ -68,7 +68,7 @@ OptimalControlRegistration::~OptimalControlRegistration() {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::Initialize() {
+PetscErrorCode CLAIRE::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -86,7 +86,7 @@ PetscErrorCode OptimalControlRegistration::Initialize() {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
+PetscErrorCode CLAIRE::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -102,7 +102,7 @@ PetscErrorCode OptimalControlRegistration::ClearMemory(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
+PetscErrorCode CLAIRE::ClearVariables(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -134,7 +134,7 @@ PetscErrorCode OptimalControlRegistration::ClearVariables(void) {
  * @brief setup solver (to not have to allocate things on the
  * fly; this allows us to essentially do a warm start)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
+PetscErrorCode CLAIRE::InitializeSolver(void) {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, ng;
     PetscFunctionBegin;
@@ -225,7 +225,7 @@ PetscErrorCode OptimalControlRegistration::InitializeSolver(void) {
  * the objective functional and the gradient for a given initial
  * guess)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
+PetscErrorCode CLAIRE::InitializeOptimization() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     std::stringstream ss;
@@ -368,7 +368,7 @@ PetscErrorCode OptimalControlRegistration::InitializeOptimization() {
  * @param[in] m0 density/image at t=0 (initial condition of forward
  * problem)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SetInitialState(Vec m0) {
+PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m0 = NULL, *p_m = NULL;
     IntType nt, nl, nc, ng;
@@ -415,7 +415,7 @@ PetscErrorCode OptimalControlRegistration::SetInitialState(Vec m0) {
  * @brief get m at t=1
  * @param[out] m1 density/image at t=1 (solution of forward problem)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::GetFinalState(Vec m1) {
+PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m1 = NULL, *p_m = NULL;
     IntType nt, nl, nc;
@@ -458,7 +458,7 @@ PetscErrorCode OptimalControlRegistration::GetFinalState(Vec m1) {
  * @param[out] l1 adjoint variable at t=1 (final condition of adjoint
  * problem)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SetFinalAdjoint(Vec l1) {
+PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     PetscErrorCode ierr = 0;
     ScalarType *p_l1 = NULL, *p_l = NULL;
     IntType nt, nl, ng, nc;
@@ -510,7 +510,7 @@ PetscErrorCode OptimalControlRegistration::SetFinalAdjoint(Vec l1) {
  * @param[out] m1 density/image at t=1 (solution of transport
  * equation)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
+PetscErrorCode CLAIRE::SolveForwardProblem(Vec m1, Vec m0) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
@@ -545,7 +545,7 @@ PetscErrorCode OptimalControlRegistration::SolveForwardProblem(Vec m1, Vec m0) {
  * @param[out] l0 adjoint variable at t=0 (solution of transport
  * equation)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
+PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     PetscErrorCode ierr = 0;
     ScalarType *p_m = NULL, *p_m1 = NULL, *p_l = NULL, *p_l0 = NULL;
     IntType nt, nl, nc, ng;
@@ -600,7 +600,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointProblem(Vec l0, Vec m1) {
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
+PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
 
@@ -657,7 +657,7 @@ PetscErrorCode OptimalControlRegistration::SetStateVariable(Vec m) {
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
+PetscErrorCode CLAIRE::GetStateVariable(Vec& m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -678,7 +678,7 @@ PetscErrorCode OptimalControlRegistration::GetStateVariable(Vec& m) {
 /********************************************************************
  * @brief set adjoint variable from externally
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
+PetscErrorCode CLAIRE::SetAdjointVariable(Vec lambda) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
 
@@ -736,7 +736,7 @@ PetscErrorCode OptimalControlRegistration::SetAdjointVariable(Vec lambda) {
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda) {
+PetscErrorCode CLAIRE::GetAdjointVariable(Vec& lambda) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -758,7 +758,7 @@ PetscErrorCode OptimalControlRegistration::GetAdjointVariable(Vec& lambda) {
 /********************************************************************
  * @brief evaluate the l2 distance between m_R and m_1
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D) {
+PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -794,7 +794,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateDistanceMeasure(ScalarType* D
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec v) {
+PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType D = 0.0, R = 0.0, hd;
     std::stringstream ss;
@@ -871,7 +871,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateObjective(ScalarType* J, Vec 
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
+PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
     ScalarType hd, value, nvx1, nvx2, nvx3;
     std::stringstream ss;
@@ -994,7 +994,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateGradient(Vec g, Vec v) {
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian (l2)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateL2Gradient(Vec g) {
+PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1025,7 +1025,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateL2Gradient(Vec g) {
  * @brief evaluates the reduced gradient of the lagrangian (in
  * sobolev space incuded by regularization operator)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g, bool flag) {
+PetscErrorCode CLAIRE::EvaluateSobolevGradient(Vec g, bool flag) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1056,7 +1056,7 @@ PetscErrorCode OptimalControlRegistration::EvaluateSobolevGradient(Vec g, bool f
  * @brief compute the body force
  * b = \int_0^1 grad(m) \lambda dt
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
+PetscErrorCode CLAIRE::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, l;
     std::stringstream ss;
@@ -1192,7 +1192,7 @@ PetscErrorCode OptimalControlRegistration::ComputeBodyForce() {
  * @param[in] scale flag to switch on scaling by lebesque measure
  * @param[out] Hvtilde hessian applied to vector
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
+PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscErrorCode ierr = 0;
     ScalarType hd; //, gamma;
     PetscFunctionBegin;
@@ -1264,7 +1264,7 @@ PetscErrorCode OptimalControlRegistration::HessianMatVec(Vec Hvtilde, Vec vtilde
 /********************************************************************
  * @brief applies the hessian to a vector (default way of doing this)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
+PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1337,7 +1337,7 @@ PetscErrorCode OptimalControlRegistration::HessMatVec(Vec Hvtilde, Vec vtilde) {
  * it is important to note, that this matrix is no longer symmetric;
  * we therefore can't use pcg
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
+PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1406,7 +1406,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVec(Vec Hvtilde, Vec vt
  * it is important to note, that this matrix is no longer symmetric;
  * we therefore can't use pcg
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
+PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -1491,7 +1491,7 @@ PetscErrorCode OptimalControlRegistration::PrecondHessMatVecSym(Vec Hvtilde, Vec
  * @param[in] m state variable
  * @param[in] lambda adjoint variable
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec lambda) {
+PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, ng;
     std::string ext;
@@ -1572,7 +1572,7 @@ PetscErrorCode OptimalControlRegistration::ComputeInitialCondition(Vec m, Vec la
  * \tilde{\vect{b}} = \int_0^1 \igrad\tilde{m}\lambda
  *                           + \igrad m\tilde{\lambda} dt
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
+PetscErrorCode CLAIRE::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, l;
     ScalarType *p_m = NULL, *p_mt = NULL, *p_l = NULL, *p_lt = NULL,
@@ -1738,7 +1738,7 @@ PetscErrorCode OptimalControlRegistration::ComputeIncBodyForce() {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::StoreStateVariable() {
+PetscErrorCode CLAIRE::StoreStateVariable() {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
     ScalarType *p_m = NULL, *p_mj = NULL;
@@ -1801,7 +1801,7 @@ PetscErrorCode OptimalControlRegistration::StoreStateVariable() {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveStateEquation() {
+PetscErrorCode CLAIRE::SolveStateEquation() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt;
     ScalarType *p_m = NULL;
@@ -1925,7 +1925,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquation() {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
+PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
     ScalarType *p_m = NULL, *p_mbar = NULL, *p_rhs0 = NULL,
@@ -2046,7 +2046,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationRK2(void) {
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
+PetscErrorCode CLAIRE::SolveStateEquationSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, lnext;
     ScalarType *p_m = NULL;
@@ -2110,7 +2110,7 @@ PetscErrorCode OptimalControlRegistration::SolveStateEquationSL(void) {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveAdjointEquation() {
+PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, ng, nt;
     ScalarType *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
@@ -2277,7 +2277,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquation() {
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
  * subject to \lambda_1 + (m_R - m_1) = 0 (solved backward in time)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
+PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
     PetscErrorCode ierr;
     IntType nl, ng, nc, nt, ll, lm, llnext;
     ScalarType *p_l = NULL, *p_m = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
@@ -2462,7 +2462,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationRK2(void) {
  * subject to \lambda_1 + (m_R - m_1) = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
+PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_divv = NULL, *p_divvx = NULL,
@@ -2647,7 +2647,7 @@ PetscErrorCode OptimalControlRegistration::SolveAdjointEquationSL() {
  * \p_t m + \idiv m\vect{v} = 0  with initial condition m_0 = m_T
  * (solved forward in time)
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveContinuityEquationSL() {
+PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_divv = NULL, *p_divvx = NULL,
@@ -2778,7 +2778,7 @@ PetscErrorCode OptimalControlRegistration::SolveContinuityEquationSL() {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
+PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt;
     std::stringstream ss;
@@ -2874,7 +2874,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquation(void) {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
+PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, lm, lmnext, lmt, lmtnext;
     ScalarType *p_m = NULL, *p_mt = NULL, *p_mtbar = NULL,
@@ -3059,7 +3059,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationRK2(void) {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
+PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nt, nc, lm, lmnext, lmt, lmtnext;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
@@ -3206,7 +3206,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncStateEquationSL(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
+PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     PetscErrorCode ierr = 0;
     ScalarType *p_ltilde = NULL, *p_mtilde = NULL, *p_m = NULL, *p_c = NULL,
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
@@ -3420,7 +3420,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquation(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
+PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, ll, lm;
     ScalarType *p_ltilde = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL, *p_m = NULL,
@@ -3600,7 +3600,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNRK2(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
+PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
     ScalarType *p_l = NULL, *p_lt = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
@@ -3765,7 +3765,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNRK2(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
+PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, ll, lm;
     ScalarType *p_ltilde = NULL, *p_ltildex = NULL, *p_m = NULL,
@@ -3944,7 +3944,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationGNSL(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void) {
+PetscErrorCode CLAIRE::SolveIncAdjointEquationFNSL(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -3960,7 +3960,7 @@ PetscErrorCode OptimalControlRegistration::SolveIncAdjointEquationFNSL(void) {
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::ApplyProjection() {
+PetscErrorCode CLAIRE::ApplyProjection() {
     PetscErrorCode ierr = 0;
 
     PetscFunctionReturn(ierr);
@@ -3972,7 +3972,7 @@ PetscErrorCode OptimalControlRegistration::ApplyProjection() {
 /********************************************************************
  * @brief finalize the current iteration
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
+PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     PetscErrorCode ierr = 0;
     int rank;
     IntType nl, ng, nc, nt, iter;
@@ -4096,7 +4096,7 @@ PetscErrorCode OptimalControlRegistration::FinalizeIteration(Vec v) {
 /********************************************************************
  * @brief finalize the registration
  *******************************************************************/
-PetscErrorCode OptimalControlRegistration::Finalize(VecField* v) {
+PetscErrorCode CLAIRE::Finalize(VecField* v) {
     PetscErrorCode ierr = 0;
     std::string filename, fn, ext;
     IntType nl, ng, nc, nt;

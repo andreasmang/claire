@@ -32,7 +32,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/OptimalControlRegistrationBase.cpp \
-		$(SRCDIR)/OptimalControlRegistration.cpp \
+		$(SRCDIR)/CLAIRE.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
 		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
 		$(SRCDIR)/Preprocessing.cpp 
@@ -73,7 +73,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationRegistrationH3SN.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/OptimalControlRegistrationBase.cpp \
-		$(SRCDIR)/OptimalControlRegistration.cpp \
+		$(SRCDIR)/CLAIRE.cpp \
 		$(SRCDIR)/OptimalControlRegistrationIC.cpp \
 		$(SRCDIR)/OptimalControlRegistrationRelaxedIC.cpp \
 		$(SRCDIR)/Preprocessing.cpp \

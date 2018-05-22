@@ -27,7 +27,7 @@
 #include "Preconditioner.hpp"
 #include "MultiLevelPyramid.hpp"
 #include "OptimalControlRegistrationBase.hpp"
-#include "OptimalControlRegistration.hpp"
+#include "CLAIRE.hpp"
 #include "OptimalControlRegistrationIC.hpp"
 #include "OptimalControlRegistrationRelaxedIC.hpp"
 

@@ -20,7 +20,7 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
 #define _OPTIMALCONTROLREGISTRATIONRELAXEDIC_H_
 
-#include "OptimalControlRegistration.hpp"
+#include "CLAIRE.hpp"
 
 
 
@@ -30,10 +30,10 @@ namespace reg {
 
 
 
-class OptimalControlRegistrationRelaxedIC : public OptimalControlRegistration {
+class OptimalControlRegistrationRelaxedIC : public CLAIRE {
  public:
     typedef OptimalControlRegistrationRelaxedIC Self;
-    typedef OptimalControlRegistration SuperClass;
+    typedef CLAIRE SuperClass;
 
     OptimalControlRegistrationRelaxedIC();
     OptimalControlRegistrationRelaxedIC(RegOpt*);

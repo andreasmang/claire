@@ -21,7 +21,7 @@
 #ifndef _OPTIMALCONTROLREGISTRATIONIC_H_
 #define _OPTIMALCONTROLREGISTRATIONIC_H_
 
-#include "OptimalControlRegistration.hpp"
+#include "CLAIRE.hpp"
 
 
 
@@ -31,10 +31,10 @@ namespace reg {
 
 
 
-class OptimalControlRegistrationIC : public OptimalControlRegistration {
+class OptimalControlRegistrationIC : public CLAIRE {
  public:
     typedef OptimalControlRegistrationIC Self;
-    typedef OptimalControlRegistration SuperClass;
+    typedef CLAIRE SuperClass;
 
     OptimalControlRegistrationIC();
     OptimalControlRegistrationIC(RegOpt*);

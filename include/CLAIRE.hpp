@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMALCONTROLREGISTRATION_H_
-#define _OPTIMALCONTROLREGISTRATION_H_
+#ifndef _CLAIRE_H_
+#define _CLAIRE_H_
 
 #include <fstream>
 
@@ -34,14 +34,14 @@ namespace reg {
 
 
 
-class OptimalControlRegistration : public OptimalControlRegistrationBase {
+class CLAIRE : public OptimalControlRegistrationBase {
  public:
     typedef OptimalControlRegistrationBase SuperClass;
-    typedef OptimalControlRegistration Self;
+    typedef CLAIRE Self;
 
-    OptimalControlRegistration(void);
-    OptimalControlRegistration(RegOpt*);
-    virtual ~OptimalControlRegistration(void);
+    CLAIRE(void);
+    CLAIRE(RegOpt*);
+    virtual ~CLAIRE(void);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     PetscErrorCode InitializeOptimization();
@@ -195,4 +195,4 @@ class OptimalControlRegistration : public OptimalControlRegistrationBase {
 
 
 
-#endif  // _OPTIMALCONTROLREGISTRATION_H_
+#endif  // _CLAIRE_H_

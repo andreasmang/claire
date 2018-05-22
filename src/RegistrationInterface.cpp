@@ -633,7 +633,7 @@ PetscErrorCode RegistrationInterface::SetupRegProblem() {
 
     // allocate class for registration
     if (this->m_Opt->m_RegModel == COMPRESSIBLE) {
-        try {this->m_RegProblem = new OptimalControlRegistration(this->m_Opt);}
+        try {this->m_RegProblem = new CLAIRE(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
