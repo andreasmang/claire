@@ -476,9 +476,9 @@ PetscErrorCode SemiLagrangian::SetQueryPoints(ScalarType* y1, ScalarType* y2, Sc
 
     // copy data to a flat vector
     for (IntType i = 0; i < nl; ++i) {
-        this->m_X[0*nl+i] = y1[i];
-        this->m_X[1*nl+i] = y2[i];
-        this->m_X[2*nl+i] = y3[i];
+        this->m_X[3*i+0] = y1[i]/(2.0*PETSC_PI);
+        this->m_X[3*i+1] = y2[i]/(2.0*PETSC_PI);
+        this->m_X[3*i+2] = y3[i]/(2.0*PETSC_PI);
     }
 
     // evaluate right hand side

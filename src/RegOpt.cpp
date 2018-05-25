@@ -1475,9 +1475,9 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
-        std::cout << " -xiterates                  store/write out iterates (deformed template image and velocity field)" << std::endl;
-        std::cout << " -xiresults                  store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
-        std::cout << " -xtimeseries                store time series (use with caution)" << std::endl;
+        std::cout << " -iterates                   store/write out iterates (deformed template image and velocity field)" << std::endl;
+        std::cout << " -results                    store intermediate results/data (for scale, grid, and para continuation)" << std::endl;
+        std::cout << " -timeseries                 store time series (use with caution)" << std::endl;
         std::cout << " -nx <int>x<int>x<int>       grid size (e.g., 32x64x32); allows user to control grid size for synthetic" << std::endl;
         std::cout << "                             problems; assumed to be uniform if single integer is provided" << std::endl;
         std::cout << " -format <type>              specify the output format for the images/vector fields; default is NIFTI (*.nii.gz)" << std::endl;
