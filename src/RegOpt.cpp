@@ -692,10 +692,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 this->m_RegNorm.type = H1;
                 this->m_RegModel = COMPRESSIBLE;
             } else if (strcmp(argv[1], "h1s-div") == 0) {
-                this->m_RegNorm.type = H1;
+                this->m_RegNorm.type = H1SN;
                 this->m_RegModel = RELAXEDSTOKES;
             } else if (strcmp(argv[1], "h1s-stokes") == 0) {
-                this->m_RegNorm.type = H1;
+                this->m_RegNorm.type = H1SN;
                 this->m_RegModel = STOKES;
             } else if (strcmp(argv[1], "h2") == 0) {
                 this->m_RegNorm.type = H2;
@@ -725,6 +725,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
 
+            // perform at least one iteration
+            this->m_OptPara.miniter = 1;
+
             argc--; argv++;
             if (strcmp(argv[1], "binary") == 0) {
                 this->m_ParaCont.strategy = PCONTBINSEARCH;
@@ -737,19 +740,21 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
-        } else if (strcmp(argv[1], "-betavcont") == 0) {
+        } else if (strcmp(argv[1], "-betacont") == 0) {
            if (this->m_ParaCont.enabled) {
                 msg = "\n\x1b[31m you can't do training and continuation simultaneously\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
+            // perform at least one iteration
+            this->m_OptPara.miniter = 1;
 
             this->m_ParaCont.strategy = PCONTINUATION;
             this->m_ParaCont.enabled = true;
 
             argc--; argv++;
             this->m_ParaCont.targetbeta = atof(argv[1]);
-        } else if (strcmp(argv[1], "-betavinit") == 0) {
+        } else if (strcmp(argv[1], "-betainit") == 0) {
             argc--; argv++;
             this->m_ParaCont.beta0 = atof(argv[1]);
         } else if (strcmp(argv[1], "-scalecont") == 0) {
