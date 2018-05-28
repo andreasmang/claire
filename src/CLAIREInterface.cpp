@@ -622,6 +622,18 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
         }
         ierr = this->m_RegProblem->SetReferenceImage(mR); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(mT); CHKERRQ(ierr);
+
+        if (this->m_IsMaskSet) {
+/*          if (this->m_PreProc == NULL) {
+                try{this->m_PreProc = new Preprocessing(this->m_Opt);}
+                catch (std::bad_alloc& err) {
+                    ierr = reg::ThrowError(err); CHKERRQ(ierr);
+                }
+            }
+            ierr = this->m_PreProc->Smooth(mask, this->m_Mask); CHKERRQ(ierr); */
+            ierr = this->m_RegProblem->SetMask(this->m_Mask); CHKERRQ(ierr);
+        }
+
     } else {
         // set up synthetic test problem
         ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
