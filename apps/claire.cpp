@@ -32,7 +32,7 @@
 int main(int argc, char **argv) {
     PetscErrorCode ierr = 0;
     int procid, nprocs;
-    Vec mT = NULL, mR = NULL, vxi = NULL;
+    Vec mT = NULL, mR = NULL, vxi = NULL, mask = NULL;
     reg::VecField* v = NULL;
     reg::RegOpt* regopt = NULL;
     reg::ReadWriteReg* readwrite = NULL;
@@ -132,6 +132,9 @@ int main(int argc, char **argv) {
         if (regopt->m_Verbosity > 1) {
             ierr = reg::DbgMsg("reading mask image"); CHKERRQ(ierr);
         }
+        ierr = readwrite->Read(&mask, regopt->m_FileNames.mask); CHKERRQ(ierr);
+        ierr = registration->SetMask(mask); CHKERRQ(ierr);
+        ierr = reg::Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
     }
 
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
@@ -149,6 +152,7 @@ int main(int argc, char **argv) {
     if (v != NULL) {delete v; v = NULL;}
     if (mT != NULL) {ierr = VecDestroy(&mT); CHKERRQ(ierr); mT = NULL;}
     if (mR != NULL) {ierr = VecDestroy(&mR); CHKERRQ(ierr); mR = NULL;}
+    if (mask != NULL) {ierr = VecDestroy(&mask); CHKERRQ(ierr); mask = NULL;}
     if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
     if (regopt != NULL) {delete regopt; regopt = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}

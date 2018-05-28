@@ -76,6 +76,7 @@ PetscErrorCode CLAIREInterface::Initialize(void) {
     this->m_Precond = NULL;
     this->m_RegProblem = NULL;
 
+    this->m_Mask = NULL;
     this->m_TemplateImage = NULL;
     this->m_ReferenceImage = NULL;
 
@@ -89,6 +90,7 @@ PetscErrorCode CLAIREInterface::Initialize(void) {
 
     this->m_IsTemplateSet = false;
     this->m_IsReferenceSet = false;
+    this->m_IsMaskSet = false;
 
     this->m_DeleteSolution = true;
 
@@ -159,6 +161,13 @@ PetscErrorCode CLAIREInterface::ClearMemory(void) {
         if (this->m_TemplateImage != NULL) {
             ierr = VecDestroy(&this->m_TemplateImage); CHKERRQ(ierr);
             this->m_TemplateImage = NULL;
+        }
+    }
+
+    if (!this->m_IsMaskSet) {
+        if (this->m_Mask != NULL) {
+            ierr = VecDestroy(&this->m_Mask); CHKERRQ(ierr);
+            this->m_Mask = NULL;
         }
     }
 
@@ -262,6 +271,24 @@ PetscErrorCode CLAIREInterface::SetReferenceImage(Vec mR) {
 
     this->m_ReferenceImage = mR;
     this->m_IsReferenceSet = true;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+/********************************************************************
+ * @brief set reference image (i.e., the fixed image)
+ * we normalize the intensity values to [0,1]
+ *******************************************************************/
+PetscErrorCode CLAIREInterface::SetMask(Vec mask) {
+    PetscErrorCode ierr = 0;
+    IntType nc;
+    PetscFunctionBegin;
+
+    ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_Mask = mask;
+    this->m_IsMaskSet = true;
 
     PetscFunctionReturn(ierr);
 }
@@ -1943,19 +1970,19 @@ PetscErrorCode CLAIREInterface::ComputeDefFields() {
 
     if (this->m_Opt->m_ReadWriteFlags.detdefgrad) {
         ierr = Msg("computing determinant of deformation gradient"); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
+//        ierr = this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
     }
     if (this->m_Opt->m_ReadWriteFlags.defgrad) {
         ierr = Msg("computing deformation gradient"); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->ComputeDefGrad(true); CHKERRQ(ierr);
+//        ierr = this->m_RegProblem->ComputeDefGrad(true); CHKERRQ(ierr);
     }
     if (this->m_Opt->m_ReadWriteFlags.defmap) {
         ierr = Msg("computing deformation map"); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
+//        ierr = this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
     if (this->m_Opt->m_ReadWriteFlags.deffield) {
         ierr = Msg("computing displacement field"); CHKERRQ(ierr);
-        ierr = this->m_RegProblem->ComputeDisplacementField(true); CHKERRQ(ierr);
+//        ierr = this->m_RegProblem->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -2014,10 +2041,10 @@ PetscErrorCode CLAIREInterface::ComputeDeformationMap(VecField* y) {
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
 
     ierr = Msg("computing deformation map"); CHKERRQ(ierr);
-    ierr = this->m_RegProblem->ComputeDeformationMap(false, y); CHKERRQ(ierr);
+//    ierr = this->m_RegProblem->ComputeDeformationMap(false, y); CHKERRQ(ierr);
 
     if (this->m_Opt->m_RegFlags.checkdefmapsolve) {
-        ierr = this->m_RegProblem->CheckDefMapConsistency(); CHKERRQ(ierr);
+//        ierr = this->m_RegProblem->CheckDefMapConsistency(); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);

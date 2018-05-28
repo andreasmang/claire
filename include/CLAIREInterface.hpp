@@ -56,6 +56,7 @@ class CLAIREInterface {
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetTemplateImage(Vec);
     PetscErrorCode SetAuxVariable(Vec);
+    PetscErrorCode SetMask(Vec);
     PetscErrorCode SetCellDensity(Vec);
     PetscErrorCode SetReferenceImage(Vec);
     PetscErrorCode SetSolutionVector(VecField*);
@@ -106,12 +107,14 @@ class CLAIREInterface {
 
     Vec m_TemplateImage;    ///< original template image (not overwritten)
     Vec m_ReferenceImage;   ///< original reference image (not overwritten)
+    Vec m_Mask;             ///< mask image
     VecField* m_Solution;   ///< initial guess
     Vec m_AuxVariable;      ///< auxilariy variable
     Vec m_CellDensity;      ///< cell density
 
     bool m_IsTemplateSet;   ///< flag: delete the template image (allocated locally)
     bool m_IsReferenceSet;  ///< flag: delete the reference image (allocated locally)
+    bool m_IsMaskSet;       ///< flag: delete the mask image (allocated locally)
     bool m_DeleteSolution;  ///< flag: delete the solution vector (allocated locally)
 };
 
