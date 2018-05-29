@@ -118,7 +118,7 @@ class CLAIREBase : public OptimizationProblem {
     PetscErrorCode ComputeDetDefGrad(bool write2file = false, Vec detj = NULL);
 
     /*! compute deformation map */
-//    PetscErrorCode ComputeDeformationMap(bool write2file = false, VecField* y = NULL);
+    PetscErrorCode ComputeDeformationMaps(bool write2file = false);
 
     /*! compute synthetic test problem */
     PetscErrorCode SetupSyntheticProb(Vec&, Vec&);

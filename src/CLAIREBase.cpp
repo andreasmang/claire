@@ -1452,6 +1452,44 @@ PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
 
 
 
+/********************************************************************
+ * @brief compute determinant of deformation gradient
+ *******************************************************************/
+PetscErrorCode CLAIREBase::ComputeDeformationMaps(bool write2file) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    if (this->m_DeformationFields == NULL) {
+        ierr = this->SetupDeformationField(); CHKERRQ(ierr);
+    }
+
+    if (this->m_Opt->m_ReadWriteFlags.detdefgrad) {
+        ierr = Msg("computing determinant of deformation gradient"); CHKERRQ(ierr);
+        ierr = this->ComputeDetDefGrad(true); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->m_ReadWriteFlags.defgrad) {
+        ierr = Msg("computing deformation gradient"); CHKERRQ(ierr);
+        ierr = this->m_DeformationFields->ComputeDefGrad(true); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->m_ReadWriteFlags.defmap) {
+        ierr = Msg("computing deformation map"); CHKERRQ(ierr);
+        ierr = this->m_DeformationFields->ComputeDeformationMap(true); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->m_ReadWriteFlags.deffield) {
+        ierr = Msg("computing displacement field"); CHKERRQ(ierr);
+        ierr = this->m_DeformationFields->ComputeDisplacementField(true); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
 }  // namespace reg
 
 

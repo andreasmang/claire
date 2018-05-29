@@ -1980,22 +1980,7 @@ PetscErrorCode CLAIREInterface::ComputeDefFields() {
     // compute stuff
     ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
 
-    if (this->m_Opt->m_ReadWriteFlags.detdefgrad) {
-        ierr = Msg("computing determinant of deformation gradient"); CHKERRQ(ierr);
-//        ierr = this->m_RegProblem->ComputeDetDefGrad(true); CHKERRQ(ierr);
-    }
-    if (this->m_Opt->m_ReadWriteFlags.defgrad) {
-        ierr = Msg("computing deformation gradient"); CHKERRQ(ierr);
-//        ierr = this->m_RegProblem->ComputeDefGrad(true); CHKERRQ(ierr);
-    }
-    if (this->m_Opt->m_ReadWriteFlags.defmap) {
-        ierr = Msg("computing deformation map"); CHKERRQ(ierr);
-//        ierr = this->m_RegProblem->ComputeDeformationMap(true); CHKERRQ(ierr);
-    }
-    if (this->m_Opt->m_ReadWriteFlags.deffield) {
-        ierr = Msg("computing displacement field"); CHKERRQ(ierr);
-//        ierr = this->m_RegProblem->ComputeDisplacementField(true); CHKERRQ(ierr);
-    }
+    ierr = this->m_RegProblem->ComputeDeformationMaps(true); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -2037,6 +2022,7 @@ PetscErrorCode CLAIREInterface::ComputeDetDefGrad(Vec detj) {
 /********************************************************************
  * @brief compute deformation map
  ********************************************************************/
+/*
 PetscErrorCode CLAIREInterface::ComputeDeformationMap(VecField* y) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -2063,7 +2049,7 @@ PetscErrorCode CLAIREInterface::ComputeDeformationMap(VecField* y) {
 
     PetscFunctionReturn(ierr);
 }
-
+*/
 
 
 
