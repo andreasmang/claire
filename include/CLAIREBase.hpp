@@ -26,6 +26,7 @@
 #include "TenField.hpp"
 #include "Preprocessing.hpp"
 #include "ReadWriteReg.hpp"
+#include "DeformationFields.hpp"
 #include "DistanceMeasure.hpp"
 #include "DistanceMeasureSL2.hpp"
 #include "DistanceMeasureSL2aux.hpp"
@@ -54,7 +55,6 @@ namespace reg {
 
 class CLAIREBase : public OptimizationProblem {
  public:
-    typedef ReadWriteReg ReadWriteType;
     typedef CLAIREBase Self;
     typedef OptimizationProblem SuperClass;
     typedef Regularization RegularizationType;
@@ -69,7 +69,7 @@ class CLAIREBase : public OptimizationProblem {
     virtual ~CLAIREBase(void);
 
     /*! set io object */
-    PetscErrorCode SetReadWrite(ReadWriteType*);
+    PetscErrorCode SetReadWrite(ReadWriteReg*);
 
     /*! set template image */
     PetscErrorCode SetTemplateImage(Vec);
@@ -113,21 +113,12 @@ class CLAIREBase : public OptimizationProblem {
     /*! set state variable */
     virtual PetscErrorCode SetAdjointVariable(Vec) = 0;
 
-    /*! compute deformation gradient, i.e. jacobian of deformation map */
-    PetscErrorCode ComputeDefGrad(bool write2file = false);
-
     /*! compute determinant of deformation gradient, i.e.
         the jacobian of the deformation map */
     PetscErrorCode ComputeDetDefGrad(bool write2file = false, Vec detj = NULL);
 
     /*! compute deformation map */
-    PetscErrorCode ComputeDeformationMap(bool write2file = false, VecField* y = NULL);
-
-    /*! check deformation map computation */
-    PetscErrorCode CheckDefMapConsistency();
-
-    /*! compute displacement field */
-    PetscErrorCode ComputeDisplacementField(bool write2file = false);
+//    PetscErrorCode ComputeDeformationMap(bool write2file = false, VecField* y = NULL);
 
     /*! compute synthetic test problem */
     PetscErrorCode SetupSyntheticProb(Vec&, Vec&);
@@ -197,11 +188,9 @@ class CLAIREBase : public OptimizationProblem {
 
     /*! allocate regularization operator */
     PetscErrorCode SetupRegularization();
+    PetscErrorCode SetupDeformationField();
     PetscErrorCode SetupSpectralData();
     PetscErrorCode SetupDistanceMeasure();
-
-    PetscErrorCode ComputeDefMapFromDisplacement();  ///< compute deformation map from displacement
-    PetscErrorCode ComputeRegularGrid(VecField*);    ///< compute coordinates for regular grid
 
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
@@ -229,18 +218,13 @@ class CLAIREBase : public OptimizationProblem {
     VecField* m_WorkVecField4;  ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField5;  ///< data container for vector field (temporary variable)
 
-    TenField* m_WorkTenField1;  ///< data container for tensor field (temporary variable)
-    TenField* m_WorkTenField2;  ///< data container for tensor field (temporary variable)
-    TenField* m_WorkTenField3;  ///< data container for tensor field (temporary variable)
-    TenField* m_WorkTenField4;  ///< data container for tensor field (temporary variable)
-
-    ReadWriteType* m_ReadWrite;                  ///< io; set from outside (not to be delted)
+    ReadWriteReg* m_ReadWrite;                  ///< io; set from outside (not to be delted)
     RegularizationType* m_Regularization;        ///< regularization functional
     DistanceMeasure* m_DistanceMeasure;          ///< disntance measure
     SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
+    DeformationFields* m_DeformationFields;
 
     bool m_VelocityIsZero;
-    bool m_ComputeInverseDefMap;
     bool m_StoreTimeHistory;
 
     ComplexType *m_x1hat;
@@ -248,18 +232,6 @@ class CLAIREBase : public OptimizationProblem {
     ComplexType *m_x3hat;
 
  private:
-    PetscErrorCode ComputeDefGradSL();                  ///< implemented via SL time integrator
-    PetscErrorCode ComputeDetDefGradSL();               ///< implemented via SL time integrator
-    PetscErrorCode ComputeDetDefGradRK2();              ///< implemented via RK2 time integrator
-    PetscErrorCode ComputeDetDefGradRK2A();             ///< implemented via RK2 time integrator (assymetric form)
-    PetscErrorCode ComputeDetDefGradViaDispField();     ///< implemented via RK2 time integrator (asymetric form)
-    PetscErrorCode ComputeDeformationMapSLRK2();        ///< implementation via SL time integrator using RK2
-    PetscErrorCode ComputeDeformationMapSLRK4();        ///< implementation via SL time integrator using RK4
-    PetscErrorCode ComputeDeformationMapRK2();          ///< implementation via RK2 time integrator
-    PetscErrorCode ComputeDeformationMapRK2A();         ///< implementation via RK2A time integrator
-    PetscErrorCode ComputeDisplacementFieldSL();        ///< implementation via SL time integrator
-    PetscErrorCode ComputeDisplacementFieldRK2();       ///< implementation via RK2 time integrator
-
     bool m_DeleteControlVariable;
     bool m_DeleteIncControlVariable;
 };

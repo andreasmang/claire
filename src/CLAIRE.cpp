@@ -4064,6 +4064,7 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     // compute determinant of deformation gradient and write it to file
     if (this->m_Opt->m_Monitor.detdgradenabled) {
         ierr = this->ComputeDetDefGrad(); CHKERRQ(ierr);
+
         // if user enabled the logger
         if (this->m_Opt->m_Log.enabled[LOGJAC]) {
             if (rank == 0) {
@@ -4274,17 +4275,26 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // write determinant of deformation gradient to file
     if (this->m_Opt->m_ReadWriteFlags.defgrad) {
-        ierr = this->ComputeDefGrad(true); CHKERRQ(ierr);
+        if (this->m_DeformationFields == NULL) {
+            ierr = this->SetupDeformationField(); CHKERRQ(ierr);
+        }
+        ierr = this->m_DeformationFields->ComputeDefGrad(true); CHKERRQ(ierr);
     }
 
     // write deformation map to file
     if (this->m_Opt->m_ReadWriteFlags.defmap) {
-        ierr = this->ComputeDeformationMap(true); CHKERRQ(ierr);
+        if (this->m_DeformationFields == NULL) {
+            ierr = this->SetupDeformationField(); CHKERRQ(ierr);
+        }
+        ierr = this->m_DeformationFields->ComputeDeformationMap(true); CHKERRQ(ierr);
     }
 
     // write deformation field to file
     if (this->m_Opt->m_ReadWriteFlags.deffield) {
-        ierr = this->ComputeDisplacementField(true); CHKERRQ(ierr);
+        if (this->m_DeformationFields == NULL) {
+            ierr = this->SetupDeformationField(); CHKERRQ(ierr);
+        }
+        ierr = this->m_DeformationFields->ComputeDisplacementField(true); CHKERRQ(ierr);
     }
 
     // write template and reference image

@@ -12,6 +12,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/TransportProblem.cpp \
 		$(SRCDIR)/TransportEquation.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
+		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \

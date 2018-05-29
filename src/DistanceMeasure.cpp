@@ -43,7 +43,7 @@ DistanceMeasure::DistanceMeasure() {
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
-DistanceMeasure::~DistanceMeasure(void) {
+DistanceMeasure::~DistanceMeasure() {
     this->ClearMemory();
 }
 
@@ -64,7 +64,7 @@ DistanceMeasure::DistanceMeasure(RegOpt* opt) {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
-PetscErrorCode DistanceMeasure::Initialize(void) {
+PetscErrorCode DistanceMeasure::Initialize() {
     PetscFunctionBegin;
 
     this->m_Opt = NULL;
@@ -86,7 +86,7 @@ PetscErrorCode DistanceMeasure::Initialize(void) {
 /********************************************************************
  * @brief clean up
  *******************************************************************/
-PetscErrorCode DistanceMeasure::ClearMemory(void) {
+PetscErrorCode DistanceMeasure::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
