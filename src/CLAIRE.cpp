@@ -2159,7 +2159,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
-    ierr = this->m_DistanceMeasure->SetFinalCondition(); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetFinalConditionAE(); CHKERRQ(ierr);
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
@@ -3208,10 +3208,10 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_ltilde = NULL, *p_mtilde = NULL, *p_m = NULL, *p_c = NULL,
+    ScalarType *p_ltilde = NULL, *p_m = NULL,
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
-               *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL, scale;
-    IntType nl, ng, nc, nt, l;
+               *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL;
+    IntType nl, ng, nc, nt;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
@@ -3246,43 +3246,18 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
-        l = nt*nc*nl;  // index for final condition
     } else {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-        l = 0;  // index for final condition
     }
 
-    // TODO ( l = k )
-    // set terminal condition \tilde{\lambda}_1 = -\tilde{m}_1
-    ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    if (this->m_CellDensity != NULL) {
-        ierr = GetRawPointer(this->m_CellDensity, &p_c); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-                scale = (1.0 - p_c[i]);
-                scale *= scale;
-                p_ltilde[l+k*nl+i] = -scale*p_mtilde[l+k*nl+i]; // / static_cast<ScalarType>(nc);
-            }
-        }
-}  // omp
-        ierr = RestoreRawPointer(this->m_CellDensity, &p_c); CHKERRQ(ierr);
-    } else {
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nl*nc; ++i) {
-            p_ltilde[l+i] = -p_mtilde[l+i]; // / static_cast<ScalarType>(nc);
-        }
-}  // omp
+    if (this->m_DistanceMeasure == NULL) {
+        ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetFinalConditionIAE(); CHKERRQ(ierr);
 
     // check if velocity field is zero
     if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {   // gauss newton

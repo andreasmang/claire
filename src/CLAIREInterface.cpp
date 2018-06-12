@@ -283,7 +283,6 @@ PetscErrorCode CLAIREInterface::SetReferenceImage(Vec mR) {
  *******************************************************************/
 PetscErrorCode CLAIREInterface::SetMask(Vec mask) {
     PetscErrorCode ierr = 0;
-    IntType nc;
     PetscFunctionBegin;
 
     ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);

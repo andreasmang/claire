@@ -632,6 +632,9 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
     ierr = this->m_DistanceMeasure->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     if (this->m_Mask != NULL) {
+        if (this->m_Opt->m_Verbosity > 1) {
+            ierr = DbgMsg("mask is enabled"); CHKERRQ(ierr);
+        }
         ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
     }
 
@@ -1400,7 +1403,6 @@ PetscErrorCode CLAIREBase::CheckBounds(Vec v, bool& boundreached) {
  *******************************************************************/
 PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
     PetscErrorCode ierr = 0;
-    ScalarType minddg, maxddg, meanddg;
     std::string filename, detstr;
     std::stringstream ss, ssnum;
     bool inverse = false;

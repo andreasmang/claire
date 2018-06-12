@@ -94,19 +94,19 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
 
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
     l = nt*nl*nc;
     value = 0.0;
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
         for (IntType i = 0; i < nc*nl; ++i) {
             dr = (p_mr[i] - p_m[l+i]);
             value += p_w[i]*dr*dr;
         }
-        ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
     } else {
         for (IntType i = 0; i < nc*nl; ++i) {
             dr = (p_mr[i] - p_m[l+i]);
@@ -117,8 +117,8 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // objective value
     *D = 0.5*l2distance/static_cast<ScalarType>(nc);
@@ -132,10 +132,10 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
 
 /********************************************************************
- * @brief set final condition for adjoint equaiton (varies for
- * different distance measres)
+ * @brief set final condition for adjoint equation (varies for
+ * different distance measures)
  *******************************************************************/
-PetscErrorCode DistanceMeasureSL2::SetFinalCondition() {
+PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, ll;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
@@ -158,23 +158,25 @@ PetscErrorCode DistanceMeasureSL2::SetFinalCondition() {
         ll = 0;
     }
 
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     l = nt*nc*nl;
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = VecGetArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp for
-        for (IntType i = 0; i < nc*nl; ++i) {
-            p_l[ll+i] = p_w[i]*(p_mr[i] - p_m[l+i]);
+        for (IntType k = 0; k < nc; ++k) {  // for all image components
+            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+                p_l[ll+k*nl+i] = p_w[i]*(p_mr[k*nl+i] - p_m[l+k*nl+i]);
+            }
         }
 }  // omp
-        ierr = VecRestoreArray(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
     } else {
 #pragma omp parallel
 {
@@ -184,15 +186,74 @@ PetscErrorCode DistanceMeasureSL2::SetFinalCondition() {
         }
 }  // omp
     }
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
 
+
+
+
+/********************************************************************
+ * @brief set final condition for incremental adjoint equation
+ * (varies for different distance measures)
+ *******************************************************************/
+PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
+    PetscErrorCode ierr = 0;
+    IntType nt, nc, nl, l;
+    ScalarType *p_mtilde = NULL, *p_ltilde = NULL, *p_w = NULL;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    // index for final condition
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
+        l = nt*nc*nl;
+    } else {
+        l = 0;
+    }
+    ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    // compute terminal condition \tilde{\lambda}_1 = -\tilde{m}_1
+    if (this->m_Mask != NULL) {
+        // mask objective functional
+        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+#pragma omp parallel
+{
+#pragma omp for
+        for (IntType k = 0; k < nc; ++k) {  // for all image components
+            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+                p_ltilde[l+k*nl+i] = -p_w[i]*p_mtilde[l+k*nl+i];
+            }
+        }
+}  // omp
+        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+    } else {
+#pragma omp parallel
+{
+#pragma omp for
+        for (IntType i = 0; i < nl*nc; ++i) {
+            p_ltilde[l+i] = -p_mtilde[l+i]; // / static_cast<ScalarType>(nc);
+        }
+}  // omp
+    }
+    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

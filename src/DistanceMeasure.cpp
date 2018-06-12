@@ -76,6 +76,8 @@ PetscErrorCode DistanceMeasure::Initialize() {
     this->m_ReferenceImage = NULL;
     this->m_StateVariable = NULL;
     this->m_AdjointVariable = NULL;
+    this->m_IncStateVariable = NULL;
+    this->m_IncAdjointVariable = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -177,6 +179,25 @@ PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
 
 
 /********************************************************************
+ * @brief set incremental state variable
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetIncStateVariable(Vec mtilde) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(mtilde != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_IncStateVariable = mtilde;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+/********************************************************************
  * @brief set adjoint variable
  *******************************************************************/
 PetscErrorCode DistanceMeasure::SetAdjointVariable(Vec lambda) {
@@ -187,6 +208,26 @@ PetscErrorCode DistanceMeasure::SetAdjointVariable(Vec lambda) {
 
     ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_AdjointVariable = lambda;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief set adjoint variable
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetIncAdjointVariable(Vec lambdatilde) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(lambdatilde != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_IncAdjointVariable = lambdatilde;
 
     this->m_Opt->Exit(__func__);
 

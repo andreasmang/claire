@@ -145,7 +145,7 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
  * @brief set final condition for adjoint equaiton (varies for
  * different distance measres)
  *******************************************************************/
-PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
+PetscErrorCode DistanceMeasureSL2aux::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, ll;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_c = NULL, scale;
@@ -170,10 +170,10 @@ PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
         ll = 0;
     }
 
-    ierr = VecGetArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     l = nt*nc*nl;
 #pragma omp parallel
@@ -188,15 +188,69 @@ PetscErrorCode DistanceMeasureSL2aux::SetFinalCondition() {
     }
 }  // omp
 
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
+
+
+
+
+/********************************************************************
+ * @brief set final condition for incremental adjoint equation
+ * (varies for different distance measures)
+ *******************************************************************/
+PetscErrorCode DistanceMeasureSL2aux::SetFinalConditionIAE() {
+    PetscErrorCode ierr = 0;
+    IntType nt, nc, nl, ll;
+    ScalarType *p_mtilde = NULL, *p_ltilde = NULL, *p_c = NULL;
+    ScalarType scale = 0.0;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_AuxVar1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    // index for final condition
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
+        ll = nt*nc*nl;
+    } else {
+        ll = 0;
+    }
+
+    ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+            scale = (1.0 - p_c[i]);
+            scale *= scale;
+            p_ltilde[ll+k*nl+i] = -scale*p_mtilde[ll+k*nl+i]; // / static_cast<ScalarType>(nc);
+        }
+    }
+}  // omp
+    ierr = RestoreRawPointer(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 
