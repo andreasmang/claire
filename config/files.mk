@@ -5,6 +5,9 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
+		$(SRCDIR)/Differentiation.cpp \
+		$(SRCDIR)/DifferentiationFD.cpp \
+		$(SRCDIR)/DifferentiationSM.cpp \
 		$(SRCDIR)/VecField.cpp \
 		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \

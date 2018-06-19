@@ -44,6 +44,9 @@
 #include "SemiLagrangianGPUNew.hpp"
 #endif
 #include "SemiLagrangian.hpp"
+#include "Differentiation.hpp"
+#include "DifferentiationFD.hpp"
+#include "DifferentiationSM.hpp"
 
 
 
@@ -218,11 +221,12 @@ class CLAIREBase : public OptimizationProblem {
     VecField* m_WorkVecField4;  ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField5;  ///< data container for vector field (temporary variable)
 
-    ReadWriteReg* m_ReadWrite;                  ///< io; set from outside (not to be delted)
+    ReadWriteReg* m_ReadWrite;                   ///< io; set from outside (not to be delted)
     RegularizationType* m_Regularization;        ///< regularization functional
-    DistanceMeasure* m_DistanceMeasure;          ///< disntance measure
+    DistanceMeasure* m_DistanceMeasure;          ///< distance measure
     SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
-    DeformationFields* m_DeformationFields;
+    DeformationFields* m_DeformationFields;      ///< interface to compute deformation fields from velocity
+    Differentiation* m_Differentiation;          ///< interface to evaluate / apply differential operators
 
     bool m_VelocityIsZero;
     bool m_StoreTimeHistory;
