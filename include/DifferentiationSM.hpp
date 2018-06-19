@@ -21,6 +21,7 @@
 #define _DIFFERENTIATIONSM_HPP_
 
 #ifdef REG_HAS_CUDA
+// TODO: include when starting GPU implementation
 //#include "DifferentiationSMGPU.hpp"
 #else
 
@@ -32,6 +33,10 @@
 
 
 namespace reg {
+
+
+
+
 class DifferentiationSM : public Differentiation {
  public:
     typedef Differentiation SuperClass;
@@ -42,11 +47,15 @@ class DifferentiationSM : public Differentiation {
     ~DifferentiationSM();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
 
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 };
+
 
 
 

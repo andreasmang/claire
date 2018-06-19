@@ -110,6 +110,52 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
 
 
 
+/********************************************************************
+ * @brief apply laplacian operator to scalar field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
+                                            ScalarType *m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief apply laplacian operator to vector field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
+                                            ScalarType *v1,
+                                            ScalarType *v2,
+                                            ScalarType *v3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+/********************************************************************
+ * @brief apply biharmonic operator to vector field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
+                                            ScalarType *v1,
+                                            ScalarType *v2,
+                                            ScalarType *v3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
 }  // end of name space
 
 

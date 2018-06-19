@@ -41,6 +41,7 @@ class DifferentiationSM : public Differentiation {
     ~DifferentiationSM();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
 
  protected:
     PetscErrorCode Initialize();

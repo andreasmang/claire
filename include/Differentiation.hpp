@@ -39,6 +39,9 @@ class Differentiation {
     virtual ~Differentiation();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*) = 0;
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*) = 0;
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*) = 0;
+    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*) = 0;
 
  protected:
     PetscErrorCode Initialize();
