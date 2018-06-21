@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _OPTIMIZATIONPROBLEM_H_
-#define _OPTIMIZATIONPROBLEM_H_
+#ifndef _OPTIMIZATIONPROBLEM_HPP_
+#define _OPTIMIZATIONPROBLEM_HPP_
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
@@ -81,6 +81,12 @@ class OptimizationProblem {
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
 
+    /*! set mask (objective masking) */
+    virtual PetscErrorCode SetMask(Vec) = 0;
+
+    /*! get mask (objective masking) */
+    virtual PetscErrorCode GetMask(Vec&) = 0;
+
     /*! set control variable */
     virtual PetscErrorCode SetControlVariable(VecField*) = 0;
 
@@ -139,4 +145,4 @@ class OptimizationProblem {
 
 
 
-#endif  // _OPTIMIZATIONPROBLEM_H_
+#endif  // _OPTIMIZATIONPROBLEM_HPP_

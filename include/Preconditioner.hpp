@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _PRECONDITIONER_H_
-#define _PRECONDITIONER_H_
+#ifndef _PRECONDITIONER_HPP_
+#define _PRECONDITIONER_HPP_
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
@@ -94,13 +94,14 @@ class Preconditioner {
 
     struct CoarseGrid {
         RegOpt* m_Opt;                        ///< registration options (on coarse grid)
-        OptProbType* m_OptimizationProblem;   ///< pointer to optimization problem (coarse level)
+        OptProbType* m_OptimizationProblem;   ///< pointer to optimization problem (on coarse level)
         Vec x;                                ///< array for input to hessian mat vec (on coarse level)
         Vec y;                                ///< array for hessian mat vec (on coarse level)
-        Vec m_StateVariable;                  ///< pointer to state variable (coarse level)
-        Vec m_AdjointVariable;                ///< pointer to adjoint variable (coarse level)
-        VecField* m_ControlVariable;          ///< pointer to velocity field (coarse level)
-        VecField* m_IncControlVariable;       ///< pointer to velocity field (coarse level)
+        Vec m_StateVariable;                  ///< pointer to state variable (on coarse level)
+        Vec m_AdjointVariable;                ///< pointer to adjoint variable (on coarse level)
+        Vec m_Mask;                           ///< on coarse level
+        VecField* m_ControlVariable;          ///< pointer to velocity field (on coarse level)
+        VecField* m_IncControlVariable;       ///< pointer to velocity field (on coarse level)
         Vec m_WorkScaField1;                  ///< temporary scalar field
         Vec m_WorkScaField2;                  ///< temprary scalar field
 
@@ -117,6 +118,7 @@ class Preconditioner {
     VecField* m_ControlVariable;            ///< pointer to velocity field
     VecField* m_IncControlVariable;         ///< pointer to velocity field
 
+    Vec m_Mask;                             ///< mask (objective masking)
     Vec m_WorkScaField1;                    ///< temporary scalar field
     Vec m_WorkScaField2;                    ///< temprary scalar field
     VecField* m_WorkVecField;               ///< temporary vector field

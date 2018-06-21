@@ -372,6 +372,28 @@ PetscErrorCode CLAIREBase::GetTemplateImage(Vec& mT) {
 
 
 /********************************************************************
+ * @brief get template image (i.e., the image to be registered)
+ *******************************************************************/
+PetscErrorCode CLAIREBase::GetMask(Vec& mask) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    // mask can be a null pointer
+//    ierr = Assert(this->m_Mask != NULL, "null pointer"); CHKERRQ(ierr);
+    mask = this->m_Mask;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
+/********************************************************************
  * @brief set velocity field
  *******************************************************************/
 PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
@@ -597,8 +619,9 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+    // for the hessian matvec, the template and reference images are not required
+//    ierr = Assert(this->m_TemplateImage != NULL, "null pointer (template)"); CHKERRQ(ierr);
+//    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer (reference)"); CHKERRQ(ierr);
 
     // delete regularization if already allocated
     // (should never happen)
@@ -623,8 +646,9 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
             }
-            ierr = Assert(this->m_CellDensity != NULL, "null pointer"); CHKERRQ(ierr);
-            ierr = Assert(this->m_AuxVariable != NULL, "null pointer"); CHKERRQ(ierr);
+            // TODO: Fix for 2 level preconditioner (these need to be set in preconditioner)
+            ierr = Assert(this->m_CellDensity != NULL, "null pointer (aux 1)"); CHKERRQ(ierr);
+            ierr = Assert(this->m_AuxVariable != NULL, "null pointer (aux 2)"); CHKERRQ(ierr);
             ierr = this->m_DistanceMeasure->SetAuxVariable(this->m_CellDensity,1); CHKERRQ(ierr);
             ierr = this->m_DistanceMeasure->SetAuxVariable(this->m_AuxVariable,2); CHKERRQ(ierr);
             break;
@@ -632,11 +656,16 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         default:
         {
             ierr = reg::ThrowError("distance measure not defined"); CHKERRQ(ierr);
+            break;
         }
     }
-
-    ierr = this->m_DistanceMeasure->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
-    ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    // for a pure evaluation of hessian operator, images may not have been set
+    if (this->m_TemplateImage != NULL) {
+        ierr = this->m_DistanceMeasure->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+    }
+    if (this->m_ReferenceImage != NULL) {
+       ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    }
     if (this->m_Mask != NULL) {
         if (this->m_Opt->m_Verbosity > 1) {
             ierr = DbgMsg("mask is enabled"); CHKERRQ(ierr);

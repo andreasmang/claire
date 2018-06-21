@@ -80,19 +80,22 @@ class CLAIREBase : public OptimizationProblem {
     /*! set reference image */
     PetscErrorCode SetReferenceImage(Vec);
 
-    /*! set auxilary variable (q; coupled formulation)*/
-    PetscErrorCode SetAuxVariable(Vec);
-
     /*! set mask (mask objective) */
     PetscErrorCode SetMask(Vec);
+
+    /*! set mask (mask objective) */
+    PetscErrorCode GetMask(Vec&);
 
     /*! set cell density c (coupled formulation) */
     PetscErrorCode SetCellDensity(Vec);
 
-    /*! set template image */
+    /*! set auxilary variable (q; coupled formulation)*/
+    PetscErrorCode SetAuxVariable(Vec);
+
+    /*! get template image */
     PetscErrorCode GetTemplateImage(Vec&);
 
-    /*! set reference image */
+    /*! get reference image */
     PetscErrorCode GetReferenceImage(Vec&);
 
     /*! set control variable */
@@ -110,7 +113,7 @@ class CLAIREBase : public OptimizationProblem {
     /*! set state variable */
     virtual PetscErrorCode SetStateVariable(Vec) = 0;
 
-    /*! get state variable */
+    /*! get adjoint variable */
     virtual PetscErrorCode GetAdjointVariable(Vec&) = 0;
 
     /*! set state variable */

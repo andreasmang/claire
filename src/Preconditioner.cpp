@@ -68,37 +68,43 @@ PetscErrorCode Preconditioner::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_CoarseGrid = new CoarseGrid();
-
-    this->m_CoarseGrid->m_Opt = NULL;   ///< options for coarse grid
 
     this->m_MatVec = NULL;              ///< pointer to matvec in krylov method
-    this->m_MatVecEigEst = NULL;        ///< pointer to matvec in krylov method
+    this->m_MatVecEigEst = NULL;        ///< pointer to matvec (to eigenvalue estimation)
     this->m_KrylovMethod = NULL;        ///< pointer to krylov method
-    this->m_KrylovMethodEigEst = NULL;  ///< pointer to krylov method
-    this->m_RandomNumGen = NULL;        ///< pointer to krylov method
-
-    this->m_CoarseGrid->x = NULL;     ///< container for input to hessian matvec on coarse grid
-    this->m_CoarseGrid->y = NULL;    ///< container for hessian matvec on coarse grid
-
-    this->m_PreProc = NULL;         ///< pointer to preprocessing operator
-    this->m_CoarseGrid->m_OptimizationProblem = NULL;   ///< options for coarse grid
+    this->m_KrylovMethodEigEst = NULL;  ///< pointer to krylov method (for eigenvalue estimation)
+    this->m_RandomNumGen = NULL;        ///< random number generator (for eigenvalue estimation)
+    this->m_PreProc = NULL;             ///< pointer to preprocessing operator
 
     this->m_ControlVariable = NULL;     ///< control variable on fine grid
     this->m_IncControlVariable = NULL;  ///< incremental control variable on fine grid
+    this->m_Mask = NULL;                ///< objective masking
 
+    this->m_WorkVecField = NULL;        ///< temporary vector field
+    this->m_WorkScaField1 = NULL;       ///< temporary scalar field
+    this->m_WorkScaField2 = NULL;       ///< temporary scalar field
+
+    try {this->m_CoarseGrid = new CoarseGrid();}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    this->m_CoarseGrid->m_Opt = NULL;                   ///< options for coarse grid
+    this->m_CoarseGrid->m_OptimizationProblem = NULL;   ///< options for coarse grid
     this->m_CoarseGrid->m_StateVariable = NULL;         ///< state variable on coarse grid
     this->m_CoarseGrid->m_AdjointVariable = NULL;       ///< adjoint variable on coarse grid
     this->m_CoarseGrid->m_ControlVariable = NULL;       ///< control variable on coarse grid
     this->m_CoarseGrid->m_IncControlVariable = NULL;    ///< incremental control variable on coarse grid
+    this->m_CoarseGrid->m_Mask = NULL;                  ///< mask (objective masking)
 
-    this->m_WorkVecField = NULL;            ///< temporary vector field
-    this->m_WorkScaField1 = NULL;           ///< temporary scalar field
-    this->m_WorkScaField2 = NULL;           ///< temporary scalar field
-    this->m_CoarseGrid->m_WorkScaField1 = NULL;     ///< temporary scalar field (coarse level)
-    this->m_CoarseGrid->m_WorkScaField2 = NULL;     ///< temporary scalar field (coarse level)
+    this->m_CoarseGrid->x = NULL;    ///< container for input to hessian matvec on coarse grid
+    this->m_CoarseGrid->y = NULL;    ///< container for hessian matvec on coarse grid
 
+    this->m_CoarseGrid->m_WorkScaField1 = NULL;         ///< temporary scalar field (coarse level)
+    this->m_CoarseGrid->m_WorkScaField2 = NULL;         ///< temporary scalar field (coarse level)
     this->m_CoarseGrid->setupdone = false;
+
+
 
     PetscFunctionReturn(ierr);
 }
@@ -455,6 +461,12 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
     ierr = VecCreate(this->m_CoarseGrid->x, 3*nlc, 3*ngc); CHKERRQ(ierr);
     ierr = VecCreate(this->m_CoarseGrid->y, 3*nlc, 3*ngc); CHKERRQ(ierr);
 
+    // get mask, and if mask is set, allocate memory for coarse grid
+    ierr = this->m_OptimizationProblem->GetMask(this->m_Mask); CHKERRQ(ierr);
+    if (this->m_Mask != NULL) {
+        ierr = VecCreate(this->m_CoarseGrid->m_Mask, nlc, ngc); CHKERRQ(ierr);
+    }
+    // switch flag
     this->m_CoarseGrid->setupdone = true;
 
     this->m_Opt->Exit(__func__);
@@ -779,6 +791,14 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetControlVariable(this->m_CoarseGrid->m_ControlVariable); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetStateVariable(this->m_CoarseGrid->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetAdjointVariable(this->m_CoarseGrid->m_AdjointVariable); CHKERRQ(ierr);
+
+    // if mask was set, we should have allocated mask for coarse grid
+    // during the setup phase
+    if (this->m_Mask != NULL) {
+        // apply restriction operator
+        ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid->m_Mask, this->m_Mask, nx_c, nx_f); CHKERRQ(ierr);
+        ierr = this->m_CoarseGrid->m_OptimizationProblem->SetMask(this->m_CoarseGrid->m_Mask); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
