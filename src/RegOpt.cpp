@@ -1408,8 +1408,10 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -regnorm <type>             regularization norm for velocity field" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 h1s          H1-seminorm" << std::endl;
-        std::cout << "                                 h1s-div      H1-seminorm with penalty on div(v); the penalty" << std::endl;
-        std::cout << "                                              is controlled by the regulariztion parameter beta-div (default)" << std::endl;
+        std::cout << "                                 h1s-div      H1-seminorm with penalty on div(v); penalty is" << std::endl;
+        std::cout << "                                              controlled by regulariztion parameter '-beta-div' (see" << std::endl;
+        std::cout << "                                              below); default value for regularization parameter" << std::endl;
+        std::cout << "                                              is 1E-4;" << std::endl;
         std::cout << "                                 h1s-stokes   H1-seminorm with incompressiblity constraint (i.e.," << std::endl;
         std::cout << "                                              the jacobian is 1; divergence free velocity)" << std::endl;
         std::cout << "                                 h2s          H2-seminorm" << std::endl;
@@ -1418,29 +1420,36 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 //        std::cout << "                                 h2           H2-norm" << std::endl;
 //        std::cout << "                                 h3           H3-norm" << std::endl;
         std::cout << "                                 l2           l2-norm (discouraged)" << std::endl;
-        std::cout << " -beta  <dbl>                regularization parameter (velocity field; default: 1E-2)" << std::endl;
-        std::cout << " -beta-div <dbl>             regularization parameter (mass source map; default: 1E-4; enable relaxed" << std::endl;
-        std::cout << "                             incompressibility to use this parameter via '-regnorm h1-div' option; see above)" << std::endl;
-//        std::cout << " -ic                         enable incompressibility constraint (det(grad(y))=1)" << std::endl;
-//        std::cout << " -ric                        enable relaxed incompressibility (control jacobians; det(grad(y)) ~ 1)" << std::endl;
+        std::cout << " -beta  <dbl>                set constant regularization parameter for velocity field (default: 1E-2)" << std::endl;
+        std::cout << " -beta-div <dbl>             set constant regularization parameter for mass source map (default: 1E-4);" << std::endl;
+        std::cout << "                             this parameter controls a penalty on divergence of the velocity, i.e.," << std::endl;
+        std::cout << "                             the incompressibility; the penalty is enabled via '-regnorm h1-div'" << std::endl;
+        std::cout << "                             option; details can be found above;" << std::endl;
         std::cout << " -scalecont                  enable scale continuation (continuation in smoothness of images;" << std::endl;
         std::cout << "                             i.e., use a multi-scale scheme to solve optimization problem)" << std::endl;
         std::cout << " -gridcont                   enable grid continuation (continuation in resolution of images;" << std::endl;
-        std::cout << "                             i.e., use multi-resultion scheme to solve optimization probelm)" << std::endl;
+        std::cout << "                             i.e., use multi-resultion scheme to solve optimization problem)" << std::endl;
         }
         // ####################### advanced options #######################
-
         std::cout << " -fastsolve                  switch on fast solve (preset number of iterations and tolerances to" << std::endl;
         std::cout << "                             reduce the time to solution; inaccurate solve)" << std::endl;
-        std::cout << " -train <type>               estimate regularization parameter (use 'jbound' to set bound" << std::endl;
-        std::cout << "                             for det(grad(y)) used during estimation)" << std::endl;
+        std::cout << " -train <type>               enable estimation of an adequate regularization parameter for" << std::endl;
+        std::cout << "                             velocity field; the measure to decide on regularization parameter is" << std::endl;
+        std::cout << "                             determinant of deformation gradient / jacobian; the user needs to " << std::endl;
+        std::cout << "                             set an adequate bound using the '-jbound' option; two search" << std::endl;
+        std::cout << "                             strategies are implemented, controlled by <type>:" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 binary       perform binary search (recommended)" << std::endl;
-        std::cout << "                                 reduce       reduce parameter by one order until bound is breached" << std::endl;
-        std::cout << " -jbound <dbl>               lower bound on determinant of deformation gradient (default: 2E-1)" << std::endl;
-        std::cout << " -betacont <dbl>             do parameter continuation in beta until target regularization" << std::endl;
-        std::cout << "                             parameter beta=<dbl> is reached (beta must be in (0,1))" << std::endl;
-        std::cout << " -betainit <dbl>             initial regularization weight for continuation" << std::endl;
+        std::cout << "                                 reduce       reduce parameter by one order until bound is" << std::endl;
+        std::cout << "                                              reached (faster than binary search, but less accurate)" << std::endl;
+        std::cout << " -jbound <dbl>               lower bound on determinant of deformation gradient / jacobian" << std::endl;
+        std::cout << "                             (default: 2E-1); the upper bound is one over lower bound (1/<dbl>);" << std::endl;
+        std::cout << " -betacont <dbl>             do parameter continuation in regularization parameter for velocity" << std::endl;
+        std::cout << "                             until target regularization parameter <dbl> is reached (value must be in (0,1));" << std::endl;
+        std::cout << "                             this option is intended to be used if user has identified an adequate" << std::endl;
+        std::cout << "                             regularization parameter for a particular registration problem  (e.g.," << std::endl;
+        std::cout << "                             identified via the training option above)" << std::endl;
+        std::cout << " -betainit <dbl>             initial regularization weight for parameter continuation (default is 1.0)" << std::endl;
 
         // ####################### advanced options #######################
         if (advanced) {

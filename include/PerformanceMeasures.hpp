@@ -17,11 +17,11 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _PERFORMANCEMEASURE_H_
-#define _PERFORMANCEMEASURE_H_
+#ifndef _PERFORMANCEMEASURE_HPP_
+#define _PERFORMANCEMEASURE_HPP_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+#include "CLAIREUtils.hpp"
 
 
 
@@ -54,4 +54,4 @@ class PerformanceMeasures {
 
 
 
-#endif  // _PERFORMANCEMEASURE_H_
+#endif  // _PERFORMANCEMEASURE_HPP_
