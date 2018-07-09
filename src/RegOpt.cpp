@@ -1325,7 +1325,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
 
         // ####################### advanced options #######################
         if (advanced) {
-        std::cout << " -defgrad                   write deformation gradient to file" << std::endl;
+        std::cout << " -defgrad                   write deformation gradient to file (full tensor t_ij; each file" << std::endl;
+        std::cout << "                            contains one component of the tensor field)" << std::endl;
         std::cout << " -detdefgrad                write determinant of deformation gradient to file" << std::endl;
         std::cout << " -defmap                    write deformation map to file" << std::endl;
         std::cout << " -deffield                  write deformation field/displacement field to file" << std::endl;
