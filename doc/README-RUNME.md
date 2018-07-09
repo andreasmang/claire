@@ -9,6 +9,8 @@
 * Registering Images
 * Controlling the Output
 * Parallel Execution
+* Estimating the Regularization Parameter
+* Post Processing
 
 
 
@@ -28,7 +30,7 @@ To run the problem with different grid size use the `-nx` option; i.e., for a pr
 
 ## Registering Images
 
-To register two NIfTI images `mR.nii.gz` (reference image) and `mT.nii.gz` do 
+To register two NIfTI images `mR.nii.gz` (reference image) and `mT.nii.gz` do
 
 ```bash
 ./bin/claire -mr /path/to/image/mR.nii.gz -mt ./path/to/image/mT.nii.gz
@@ -68,6 +70,23 @@ residual-t=1.nii.gz             | residual / mismatch after registration
 velocity-field-2norm.nii.gz     | l2 norm of velocity field
 
 
+## Estimating the Regularization Parameter
+
+CLAIRE features a method based on parameter continuation to identify an adequate regularization parameter for the velocity field. The search uses the determinant of the deformation gradient as a "metric". The user defines a lower bound for the Jacobian via the `-jbound <dbl>` option (the upper bound is `1/<dbl>`). To perform the search specify the `-train <type>` option. There are two strategies implemented: A simple reduction of the regularization parameter until the bound is hit (use `-train reduce`) and a binary search (use `-train binary`). An example is
+
+```bash
+./bin/claire -synthetic 0 -train binary -jbound 0.8
+```
+
+For neuroimaging applications with the standard regularization model (penalty on the divergence of v and H1-regularity for v) a bound of 0.2 is recommended. For H2 regularity, smaller bounds can be used (as volume conservation is not enforced). The test problem above is very smooth. Hence the large bound.
+
+Once the optimal regularization parameter is found, the user can run CLAIRE with this parameter on similar sets of images using a similar parameter continuation scheme (using parameter continuation is recommended since it usually yields a significant speedup for small regularization parameters):
+
+```bash
+./bin/claire -synthetic 0 -betacont 1E-3
+```
+
+The continuation starts with a regularization parameter of 1.0 and reduces this parameter until the target regularization parameter (1E-3 in the example above) is reached.
 
 
 ## Post Processing
