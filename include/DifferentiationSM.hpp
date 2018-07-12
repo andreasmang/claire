@@ -48,12 +48,16 @@ class DifferentiationSM : public Differentiation {
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*);
-    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Divergence(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*);
 
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    std::bitset<3> xyz;
+    double timer[NFFTTIMERS];
+    int c_grad;
+    int c_div;
 };
 
 

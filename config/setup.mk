@@ -8,7 +8,8 @@ MKDIRS = mkdir -p
 ifeq ($(DBGCODE),yes)
 	CXXFLAGS = -g -debug
 else
-	CXXFLAGS = -O3 -ansi
+	#CXXFLAGS = -O3 -ansi
+	CXXFLAGS = -O3 -ansi -g
 endif
 
 
@@ -19,7 +20,8 @@ ifeq ($(USEINTEL),yes)
 else
 	CXXFLAGS += -fopenmp
 #	CXXFLAGS += -mavx2
-	CXXFLAGS += -march=corei7-avx
+#	CXXFLAGS += -march=corei7-avx
+	CXXFLAGS += -march=native
 endif
 CXXFLAGS += -std=c++11
 
@@ -79,11 +81,11 @@ endif
 
 ifeq ($(USECUDA),yes)
 	ifeq ($(DBGCODE),yes)
-	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
-	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
 	else
-	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
-	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(HOME)/claire/external/libs/openmpi-3.0.1/ompi/include
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
 	endif
 else
 ifeq ($(DBGCODE),yes)

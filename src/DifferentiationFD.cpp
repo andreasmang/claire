@@ -119,7 +119,7 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
 /********************************************************************
  * @brief compute laplacian of a vector field
  *******************************************************************/
-PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
+PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
                                             ScalarType *v1,
                                             ScalarType *v2,
                                             ScalarType *v3) {
@@ -136,9 +136,7 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
  * @brief compute laplacian of a vector field
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b,
-                                            ScalarType *v1,
-                                            ScalarType *v2,
-                                            ScalarType *v3) {
+                                            ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
