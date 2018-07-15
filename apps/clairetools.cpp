@@ -367,6 +367,10 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
     ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
 
+    // write probability maps
+    if (regopt->m_RegToolFlags.saveprob) {
+        ierr = readwrite->Write(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
+    }
     // map transported "probability maps" (smooth classes)
     // to a hard segmentation
     ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
