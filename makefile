@@ -1,5 +1,5 @@
 CXX=mpicxx
-USECUDA=no
+USECUDA=yes
 USEINTEL=no
 USEINTELMPI=no
 USESINGLE=yes
@@ -15,7 +15,7 @@ include config/files.mk
 
 
 ifeq ($(USECUDA),yes)
-CUDAC=$(CUDA_DIR)/bin/nvcc
+CUDAC=nvcc
 CUDA_OBJS = $(patsubst $(SRCDIR)/%.cu,$(OBJDIR)/%.o,$(CUFILES))
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILESCUDA))
 else

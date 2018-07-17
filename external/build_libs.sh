@@ -16,6 +16,7 @@ enableAVX=0		# enable AVX	# (Advanced Vector Extensions (AVX)
 								# set architecture for microprocessors
 								# from Intel and AMD)
 enableOMP=1 # needed by ACCFFT
+enableCUDA=0
 useIMPI=0
 
 buildfftw=0
@@ -57,6 +58,10 @@ case $i in
     ;;
     --baccfft)
     buildaccfft=1
+    shift # past argument=value
+    ;;
+    --enableCUDA)
+    enableCUDA=1
     shift # past argument=value
     ;;
     --bnifti)
@@ -122,6 +127,7 @@ case $i in
     echo "     --useIMPI       flag: use intel MPI (instead ov MVAPICH and OpenMPI)"
     #echo "     --enableOMP     flag: use OpenMP"
     echo "     --enableAVX     flag: use AVX"
+    echo "     --enableCUDA    flag: use CUDA for AccFFT"
     echo ${myline}
     echo " build libraries"
     echo ${myline}
@@ -212,6 +218,10 @@ ACCFFT_OPTIONS="
 -DFFTW_USE_STATIC_LIBS=true
 -DBUILD_GPU=false
 -DBUILD_SHARED=false"
+
+if [ ${enableCUDA} -eq 1 ]; then
+	ACCFFT_OPTIONS="${ACCFFT_OPTIONS} -DBUILD_GPU=ON"
+fi
 
 
 ### NIFTI OPTIONS

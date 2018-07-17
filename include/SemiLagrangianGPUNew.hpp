@@ -21,7 +21,7 @@
 #define _SEMILAGRANGIANGPUNEW_HPP_
 
 #include "RegOpt.hpp"
-#include "RegUtils.hpp"
+//#include "RegUtils.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
 #include "interp3_gpu_new.hpp"

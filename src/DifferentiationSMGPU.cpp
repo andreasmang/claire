@@ -23,17 +23,30 @@
 
 
 
-#ifdef REG_HAS_CUDA
+#ifdef REG_FFT_CUDA
 
 
 
 
 #include "DifferentiationSMGPU.hpp"
-#include "accfft.h"
-#include "accfftf.h"
-#include "accfft_operators_cuda.h"
+#include "accfft_gpu.h"
+#include "accfft_gpuf.h"
+#include "accfft_operators_gpu.h"
 
 
+void deviceMemory() {
+  size_t free_byte ;
+  size_t total_byte ;
+
+  cudaMemGetInfo( &free_byte, &total_byte );
+
+  double free_db = (double)free_byte ;
+  double total_db = (double)total_byte ;
+  double used_db = total_db - free_db ;
+
+  printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
+    used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+}
 
 
 namespace reg {
@@ -79,10 +92,24 @@ PetscErrorCode DifferentiationSM::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    std::cout << "Diff_GPU create plan\n";
+    deviceMemory();
     xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     c_grad = 0;
     c_div = 0;
+    int nx[3];
+    nx[0] = m_Opt->m_Domain.nx[0];
+    nx[1] = m_Opt->m_Domain.nx[1];
+    nx[2] = m_Opt->m_Domain.nx[2];
+    cudaMalloc((void**)&u[0],  sizeof(ScalarType)*this->m_Opt->m_Domain.nl);
+    cudaMalloc((void**)&u[1],  sizeof(ScalarType)*this->m_Opt->m_Domain.nl);
+    cudaMalloc((void**)&u[2],  sizeof(ScalarType)*this->m_Opt->m_Domain.nl);
+    cudaMalloc((void**)&u[3],  sizeof(ScalarType)*this->m_Opt->m_Domain.nl);
+    plan = accfft_plan_dft_3d_r2c_gpuf(nx, nullptr, nullptr,
+                                       m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
 
+    std::cout << "Diff_GPU plan created\n";
+    deviceMemory();
     PetscFunctionReturn(ierr);
 }
 
@@ -95,6 +122,13 @@ PetscErrorCode DifferentiationSM::Initialize() {
 PetscErrorCode DifferentiationSM::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    accfft_destroy_plan(plan);
+    accfft_cleanup_gpuf();
+    cudaFree(u[0]);
+    cudaFree(u[1]);
+    cudaFree(u[2]);
+    cudaFree(u[3]);
 
     PetscFunctionReturn(ierr);
 }
@@ -115,7 +149,12 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_gpu_t(g1, g2, g3, m, this->m_Opt->m_FFT.plan, &xyz, timer);
+    //accfft_grad_gpu_t(g1, g2, g3, m, plan, &xyz, timer);
+    cudaMemcpy(u[0], m, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyHostToDevice);
+    accfft_grad_gpu_t(u[1], u[2], u[3], u[0], this->plan, &xyz, timer);
+    cudaMemcpy(g1, u[1], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost);
+    cudaMemcpy(g2, u[2], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost);
+    cudaMemcpy(g3, u[3], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
     
@@ -139,7 +178,7 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_laplace_gpu_t(l, m, this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l, m, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -163,7 +202,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_gpu_t(l, v1, v2, v3, this->m_Opt->m_FFT.plan, timer);
+    accfft_divergence_t(l, v1, v2, v3, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
@@ -188,7 +227,7 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_biharmonic_gpu_t(b, m, this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b, m, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);

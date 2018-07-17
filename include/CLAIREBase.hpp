@@ -63,9 +63,12 @@ class CLAIREBase : public OptimizationProblem {
     typedef Regularization RegularizationType;
 #ifdef REG_HAS_CUDA
     typedef SemiLagrangianGPUNew SemiLagrangianType;
-    typedef DifferentiationSMGPU DifferentiationType;
 #else
     typedef SemiLagrangian SemiLagrangianType;
+#endif
+#ifdef REG_FFT_CUDA
+    typedef DifferentiationSM DifferentiationType;
+#else
     typedef DifferentiationSM DifferentiationType;
 #endif
 

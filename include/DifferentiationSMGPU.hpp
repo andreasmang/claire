@@ -24,9 +24,6 @@
 #include "CLAIREUtils.hpp"
 #include "Differentiation.hpp"
 
-
-
-
 namespace reg {
 
 
@@ -52,6 +49,8 @@ class DifferentiationSM : public Differentiation {
     double timer[NFFTTIMERS];
     int c_grad;
     int c_div;
+    accfft_plan_gpuf *plan;
+    ScalarType *u[4];
 };
 
 

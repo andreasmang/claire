@@ -20,9 +20,9 @@
 #ifndef _DIFFERENTIATIONSM_HPP_
 #define _DIFFERENTIATIONSM_HPP_
 
-#ifdef REG_HAS_CUDA
+#ifdef REG_FFT_CUDA
 // TODO: include when starting GPU implementation
-//#include "DifferentiationSMGPU.hpp"
+#include "DifferentiationSMGPU.hpp"
 #else
 
 #include "RegOpt.hpp"
