@@ -102,9 +102,11 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     if (this->m_Mask != NULL) {
         // mask objective functional
         ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType i = 0; i < nc*nl; ++i) {
-            dr = (p_mr[i] - p_m[l+i]);
-            value += p_w[i]*dr*dr;
+        for (IntType k = 0; k < nc; ++k) {  // for all image components
+            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+                dr = (p_mr[k*nl+i] - p_m[l+k*nl+i]);
+                value += p_w[i]*dr*dr;
+            }
         }
         ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
     } else {
