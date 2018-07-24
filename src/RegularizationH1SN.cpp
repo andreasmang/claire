@@ -91,11 +91,12 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
 
         // X1 gradient
         ierr = this->m_WorkVecField->GetArrays(p_gv11, p_gv12, p_gv13); CHKERRQ(ierr);
-        this->m_Opt->StartTimer(FFTSELFEXEC);
+        /*this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
+        this->m_Opt->StopTimer(FFTSELFEXEC);*/
+        this->m_Differentiation->Gradient(p_gv11, p_gv12, p_gv13, p_v1);
         ierr = this->m_WorkVecField->RestoreArrays(p_gv11, p_gv12, p_gv13); CHKERRQ(ierr);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+        //this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute inner products
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
@@ -105,11 +106,12 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
 
         // X2 gradient
         ierr = this->m_WorkVecField->GetArrays(p_gv21, p_gv22, p_gv23); CHKERRQ(ierr);
-        this->m_Opt->StartTimer(FFTSELFEXEC);
+        /*this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
+        this->m_Opt->StopTimer(FFTSELFEXEC);*/
+        this->m_Differentiation->Gradient(p_gv21, p_gv22, p_gv23, p_v2);
         ierr = this->m_WorkVecField->RestoreArrays(p_gv21, p_gv22, p_gv23); CHKERRQ(ierr);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+        //this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         // compute inner products
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
@@ -119,11 +121,12 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
 
         // X3 gradient
         ierr = this->m_WorkVecField->GetArrays(p_gv31, p_gv32, p_gv33); CHKERRQ(ierr);
-        this->m_Opt->StartTimer(FFTSELFEXEC);
+        /*this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
+        this->m_Opt->StopTimer(FFTSELFEXEC);*/
+        this->m_Differentiation->Gradient(p_gv31, p_gv32, p_gv33, p_v3);
         ierr = this->m_WorkVecField->RestoreArrays(p_gv31, p_gv32, p_gv33); CHKERRQ(ierr);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+        //this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
         ierr = VecRestoreArray(this->m_WorkVecField->m_X1, &p_gv31); CHKERRQ(ierr);
         ierr = VecRestoreArray(this->m_WorkVecField->m_X2, &p_gv32); CHKERRQ(ierr);

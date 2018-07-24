@@ -66,11 +66,6 @@ class CLAIREBase : public OptimizationProblem {
 #else
     typedef SemiLagrangian SemiLagrangianType;
 #endif
-#ifdef REG_FFT_CUDA
-    typedef DifferentiationSM DifferentiationType;
-#else
-    typedef DifferentiationSM DifferentiationType;
-#endif
 
     CLAIREBase(void);
     CLAIREBase(RegOpt*);

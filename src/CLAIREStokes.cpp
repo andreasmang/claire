@@ -233,10 +233,12 @@ PetscErrorCode CLAIREStokes::SolveAdjointEquationSL() {
         if (j == 0) scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             // compute gradient of m
-            this->m_Opt->StartTimer(FFTSELFEXEC);
+            /*this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
+            this->m_Differentiation->Gradient(p_vec1, p_vec2, p_vec3, p_m+lm+k*nl);
+
 
             // compute body force
             for (IntType i = 0; i < nl; ++i) {
@@ -259,10 +261,12 @@ PetscErrorCode CLAIREStokes::SolveAdjointEquationSL() {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        this->m_Opt->StartTimer(FFTSELFEXEC);
+        /*this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m+lm, this->m_Opt->m_FFT.plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
+        this->m_Differentiation->Gradient(p_vec1, p_vec2, p_vec3, p_m+lm);
+
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
             lambda = p_l[ll+i];
@@ -350,10 +354,11 @@ PetscErrorCode CLAIREStokes::SolveIncAdjointEquationGNSL() {
             ll = k*nl;
 
             // compute gradient of m (for incremental body force)
-            this->m_Opt->StartTimer(FFTSELFEXEC);
+            /*this->m_Opt->StartTimer(FFTSELFEXEC);
             accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->m_FFT.plan, &xyz, timer);
             this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
+            this->m_Differentiation->Gradient(p_gradm1, p_gradm2, p_gradm3, p_m+lm);
 
             // compute incremental bodyforce
             for (IntType i = 0; i < nl; ++i) {
@@ -373,10 +378,12 @@ PetscErrorCode CLAIREStokes::SolveIncAdjointEquationGNSL() {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        this->m_Opt->StartTimer(FFTSELFEXEC);
+        /*this->m_Opt->StartTimer(FFTSELFEXEC);
         accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+lm, this->m_Opt->m_FFT.plan, &xyz, timer);
         this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
+        this->m_Differentiation->Gradient(p_gradm1, p_gradm2, p_gradm3, p_m+lm);
+
 
         // compute incremental bodyforce
         for (IntType i = 0; i < nl; ++i) {  // for all grid points

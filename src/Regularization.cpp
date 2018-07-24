@@ -69,6 +69,7 @@ PetscErrorCode Regularization::Initialize(void) {
 
     this->m_Opt = NULL;
     this->m_WorkVecField = NULL;
+    this->m_Differentiation = NULL;
 
     this->m_v1hat = NULL;
     this->m_v2hat = NULL;
@@ -110,6 +111,19 @@ PetscErrorCode Regularization::SetWorkVecField(VecField* v) {
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_WorkVecField = v;
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief set Differentiation interface
+ *******************************************************************/
+PetscErrorCode Regularization::SetDifferentiation(Differentiation* diff) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(diff != NULL, "null pointer"); CHKERRQ(ierr);
+    this->m_Differentiation = diff;
 
     PetscFunctionReturn(ierr);
 }

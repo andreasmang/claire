@@ -189,6 +189,7 @@ PetscErrorCode RunGradientBenchmark(reg::BenchmarkOpt *opt) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
+    ierr = registration->InitializeSolver(); CHKERRQ(ierr);
 
     ierr = reg::DbgMsg("run gradient benchmarck"); CHKERRQ(ierr);
 

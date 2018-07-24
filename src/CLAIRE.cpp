@@ -208,9 +208,15 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
     }
 
     if (this->m_Differentiation == NULL) {
-        try {this->m_Differentiation = new DifferentiationType(this->m_Opt);}
+        try {this->m_Differentiation = new DifferentiationSM(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        if (this->m_DeformationFields != NULL) {
+          this->m_DeformationFields->SetDifferentiation(this->m_Differentiation);
+        }
+        if (this->m_Regularization != NULL) {
+          this->m_Regularization->SetDifferentiation(this->m_Differentiation);
         }
     }
 
@@ -1018,7 +1024,9 @@ PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
 
     // copy
-    ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+    if (g != NULL) {
+      ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1049,7 +1057,9 @@ PetscErrorCode CLAIRE::EvaluateSobolevGradient(Vec g, bool flag) {
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_VelocityField); CHKERRQ(ierr);
 
     // copy to output
-    ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+    if (g != NULL) {
+      ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 

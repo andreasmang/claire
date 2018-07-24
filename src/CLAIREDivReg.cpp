@@ -222,20 +222,22 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
 
     // compute \idiv(\vect{v})
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->StartTimer(FFTSELFEXEC);
+    /*this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
+    this->m_Opt->StopTimer(FFTSELFEXEC);*/
+    this->m_Differentiation->Divergence(p_divv, p_v1, p_v2, p_v3);
     ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);
+    //this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
 
     // compute gradient of div(v)
     ierr = this->m_WorkVecField1->GetArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
-    this->m_Opt->StartTimer(FFTSELFEXEC);
+    /*this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_grad_t(p_gdv3, p_gdv2, p_gdv1, p_divv, this->m_Opt->m_FFT.plan, &XYZ, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
+    this->m_Opt->StopTimer(FFTSELFEXEC);*/
+    this->m_Differentiation->Gradient(p_gdv3,p_gdv2,p_gdv1,p_divv);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, FFTGRAD);
+    //this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
     ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
 

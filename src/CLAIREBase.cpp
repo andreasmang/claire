@@ -761,6 +761,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
     }
 
+    if (this->m_Differentiation != NULL) {
+      this->m_Regularization->SetDifferentiation(this->m_Differentiation);
+    }
 
     // set the containers for the spectral data
     ierr = this->SetupSpectralData(); CHKERRQ(ierr);
@@ -791,6 +794,10 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
 
     if (this->m_DeformationFields == NULL) {
         this->m_DeformationFields = new DeformationFields(this->m_Opt);
+    }
+    
+    if (this->m_Differentiation != NULL) {
+      this->m_DeformationFields->SetDifferentiation(this->m_Differentiation);
     }
 
     if (this->m_WorkVecField1 == NULL) {

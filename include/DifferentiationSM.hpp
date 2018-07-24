@@ -48,8 +48,10 @@ class DifferentiationSM : public Differentiation {
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
     virtual PetscErrorCode Divergence(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*);
+    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
 
  protected:
     PetscErrorCode Initialize();

@@ -25,6 +25,7 @@
 #include "VecField.hpp"
 #include "TenField.hpp"
 #include "SemiLagrangian.hpp"
+#include "Differentiation.hpp"
 #include "ReadWriteReg.hpp"
 #ifdef REG_HAS_CUDA
 #include "SemiLagrangianGPUNew.hpp"
@@ -63,6 +64,9 @@ class DeformationFields {
 
     /*! set io object */
     PetscErrorCode SetReadWrite(ReadWriteReg*);
+    
+    /*! set differentiation object */
+    PetscErrorCode SetDifferentiation(Differentiation*);
 
     /*! set semi-lagrangian method */
     PetscErrorCode SetSLM(SemiLagrangianType*);
@@ -124,6 +128,7 @@ private:
     TenField* m_WorkTenField4;  ///< data container for tensor field (temporary variable)
 
     ReadWriteReg* m_ReadWrite; ///< io; set from outside (not to be delted)
+    Differentiation* m_Differentiation; ///< Differentiation interface; set from outside (not to be delted)
 
     bool m_ComputeInverseDefMap;
 

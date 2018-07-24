@@ -142,6 +142,31 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
 /********************************************************************
  * @brief compute laplacian of a vector field
  *******************************************************************/
+PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
+                                            ScalarType *l2,
+                                            ScalarType *l3,
+                                            ScalarType *v1,
+                                            ScalarType *v2,
+                                            ScalarType *v3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    accfft_laplace_t(l1, v1, this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l2, v2, this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l3, v3, this->m_Opt->m_FFT.plan, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    this->m_Opt->IncreaseFFTTimers(timer);
+
+    PetscFunctionReturn(ierr);
+}
+ 
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
 PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
                                              ScalarType *v1,
                                              ScalarType *v2,
@@ -167,7 +192,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
 
 
 /********************************************************************
- * @brief compute laplacian of a vector field
+ * @brief compute biharmonic operator of a scalar field
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
                                              ScalarType *m) {
@@ -186,6 +211,30 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
 }
 
 
+/********************************************************************
+ * @brief compute biharmonic operator of a vector field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
+                                             ScalarType *b2,
+                                             ScalarType *b3,
+                                             ScalarType *v1,
+                                             ScalarType *v2,
+                                             ScalarType *v3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    accfft_biharmonic_t(b1, v1, this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b2, v2, this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b3, v3, this->m_Opt->m_FFT.plan, timer);
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    this->m_Opt->IncreaseFFTTimers(timer);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 }  // end of name space
