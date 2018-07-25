@@ -65,7 +65,7 @@ PetscErrorCode RegularizationH2::EvaluateFunctional(ScalarType* R, VecField* v) 
     PetscErrorCode ierr;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
-    ScalarType sqrtbeta[2], ipxi, scale;
+    ScalarType sqrtbeta[2], ipxi, scale, hd;
     IntType nx[3];
     double timer[NFFTTIMERS] = {0}, applytime;
     PetscFunctionBegin;
@@ -79,6 +79,7 @@ PetscErrorCode RegularizationH2::EvaluateFunctional(ScalarType* R, VecField* v) 
     // get regularization weight
     sqrtbeta[0] = sqrt(this->m_Opt->m_RegNorm.beta[0]);
     sqrtbeta[1] = sqrt(this->m_Opt->m_RegNorm.beta[1]);
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     *R = 0.0;
 
@@ -160,7 +161,7 @@ PetscErrorCode RegularizationH2::EvaluateFunctional(ScalarType* R, VecField* v) 
         this->m_Opt->IncreaseFFTTimers(timer);
 
         // multiply with regularization weight
-        *R *= 0.5;
+        *R *= 0.5*hd;
     }
 
     this->m_Opt->Exit(__func__);

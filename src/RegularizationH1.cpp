@@ -67,10 +67,10 @@ PetscErrorCode RegularizationH1::EvaluateFunctional(ScalarType* R, VecField* v) 
                 *p_gv11 = NULL, *p_gv12 = NULL, *p_gv13 = NULL,
                 *p_gv21 = NULL, *p_gv22 = NULL, *p_gv23 = NULL,
                 *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
-    ScalarType value, beta[2], H1v, L2v;
+    ScalarType value, beta[2], H1v, L2v, hd;
     std::bitset<3> xyz = 0; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
-
+    
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -79,6 +79,7 @@ PetscErrorCode RegularizationH1::EvaluateFunctional(ScalarType* R, VecField* v) 
 
     beta[0] = this->m_Opt->m_RegNorm.beta[0];
     beta[1] = this->m_Opt->m_RegNorm.beta[1];
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     *R= 0.0;
 
@@ -143,7 +144,7 @@ PetscErrorCode RegularizationH1::EvaluateFunctional(ScalarType* R, VecField* v) 
 
         // add up contributions
         //*R = 0.5*(beta[0]*H1v + beta[1]*L2v);
-        *R = 0.5*beta[0]*(H1v + beta[1]*L2v);
+        *R = 0.5*hd*beta[0]*(H1v + beta[1]*L2v);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
@@ -180,6 +181,7 @@ PetscErrorCode RegularizationH1::EvaluateGradient(VecField* dvR, VecField* v) {
 
     beta[0] = this->m_Opt->m_RegNorm.beta[0];
     beta[1] = this->m_Opt->m_RegNorm.beta[1];
+//   hd  = this->m_Opt->GetLebesgueMeasure();   
 
     // if regularization weight is zero, do noting
     //if ( (beta[0] == 0.0)  && (beta[1] == 0.0) ) {
@@ -223,7 +225,7 @@ PetscErrorCode RegularizationH1::EvaluateGradient(VecField* dvR, VecField* v) {
 //                    regop = -beta[0]*lapik;
 //                    if ((w[0] == 0) && (w[1] == 0) && (w[2] == 0)) regop += beta[1];
 //                    regop *= scale;
-                    //regop = scale*(-beta[0]*lapik + beta[1]);
+//                    regop = scale*(-beta[0]*lapik + beta[1]);
                     regop = scale*beta[0]*(-lapik + beta[1]);
 
 

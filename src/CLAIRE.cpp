@@ -226,7 +226,6 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
 
 
 
-
 /********************************************************************
  * @brief initialize the optimization (we essentially evaluate
  * the objective functional and the gradient for a given initial
@@ -236,7 +235,7 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     std::stringstream ss;
-    ScalarType value, hd, alpha, jvt, jv, lsred, descent;
+    ScalarType value, alpha, jvt, jv, lsred, descent;
     Vec g = NULL, dv = NULL, v = NULL, vtilde = NULL;
     bool lssuccess, restoreinitialguess = false;
     PetscFunctionBegin;
@@ -327,12 +326,9 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
     }
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    // get lebesque measure
-    hd = this->m_Opt->GetLebesqueMeasure();
-
     // evaluate distance measure
     ierr = this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
-    this->m_Opt->m_Monitor.dval0 = hd*value;
+    this->m_Opt->m_Monitor.dval0 = value;
 
     // evaluate objective functional
     ierr = this->EvaluateObjective(&value, v); CHKERRQ(ierr);
@@ -803,14 +799,11 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
  *******************************************************************/
 PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType D = 0.0, R = 0.0, hd;
+    ScalarType D = 0.0, R = 0.0;
     std::stringstream ss;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    // get lebesque measure
-    hd = this->m_Opt->GetLebesqueMeasure();
 
     // allocate
     if (this->m_VelocityField == NULL) {
@@ -846,12 +839,12 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     // add up the contributions
-    *J = hd*(D + R);
+    *J = D + R;
 
     // store for access (e.g., used in coupling)
     this->m_Opt->m_Monitor.jval = *J;
-    this->m_Opt->m_Monitor.dval = hd*D;
-    this->m_Opt->m_Monitor.rval = hd*R;
+    this->m_Opt->m_Monitor.dval = D;
+    this->m_Opt->m_Monitor.rval = R;
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "J(v) = D(v) + R(v) = " << std::scientific
@@ -973,7 +966,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // parse to output
     if (g != NULL) {
         // get and scale by lebesque measure
-        hd = this->m_Opt->GetLebesqueMeasure();
+        hd = this->m_Opt->GetLebesgueMeasure();
         ierr = VecScale(g, hd); CHKERRQ(ierr);
 
         if (this->m_Opt->m_Verbosity > 2) {
@@ -1196,7 +1189,7 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
 /********************************************************************
  * @brief applies the hessian to a vector
  * @param[in] vtilde incremental velocity field
- * @param[in] scale flag to switch on scaling by lebesque measure
+ * @param[in] scale flag to switch on scaling by lebesgue measure
  * @param[out] Hvtilde hessian applied to vector
  *******************************************************************/
 PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
@@ -1218,6 +1211,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
         {
             // apply hessian H to \tilde{v}
             ierr = this->HessMatVec(Hvtilde, vtilde); CHKERRQ(ierr);
+            //ierr = VecCopy(vtilde, Hvtilde); CHKERRQ(ierr);
             break;
         }
         case PRECONDMATVEC:
@@ -1244,7 +1238,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     if (Hvtilde != NULL) {
         // scale by lebesque measure
         if (scale) {
-            hd = this->m_Opt->GetLebesqueMeasure();
+            hd = this->m_Opt->GetLebesgueMeasure();
             ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
         }
 
@@ -1322,11 +1316,11 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
-
     // pass to output
     if (Hvtilde != NULL) {
         ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
     }
+
 
     this->m_Opt->Exit(__func__);
 
@@ -3262,6 +3256,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
+    ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetFinalConditionIAE(); CHKERRQ(ierr);

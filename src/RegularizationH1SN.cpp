@@ -68,7 +68,7 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
                 *p_gv21 = NULL, *p_gv22 = NULL, *p_gv23 = NULL,
                 *p_gv31 = NULL, *p_gv32 = NULL, *p_gv33 = NULL;
     std::bitset<3> xyz = 0; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    ScalarType beta, value;
+    ScalarType beta, value, hd;
     double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
@@ -79,6 +79,7 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
 
     // get regularization parameter
     beta = this->m_Opt->m_RegNorm.beta[0];
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     *R = 0.0;
 
@@ -137,7 +138,7 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
         // multiply with regularization weight
-        *R = 0.5*beta*(*R);
+        *R = 0.5*hd*beta*(*R);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
