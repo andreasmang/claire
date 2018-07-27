@@ -655,10 +655,10 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         }
         case NCC:
         {
-//            try {this->m_DistanceMeasure = new DistanceMeasureNCC(this->m_Opt);}
-//            catch (std::bad_alloc&) {
-//                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-//            }
+            try {this->m_DistanceMeasure = new DistanceMeasureNCC(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
             break;
         }
         default:

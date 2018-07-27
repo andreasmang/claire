@@ -967,7 +967,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     if (g != NULL) {
         // get and scale by lebesque measure
         hd = this->m_Opt->GetLebesgueMeasure();
-        ierr = VecScale(g, hd); CHKERRQ(ierr);
+//        ierr = VecScale(g, hd); CHKERRQ(ierr);
 
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -1194,7 +1194,7 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
  *******************************************************************/
 PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscErrorCode ierr = 0;
-    ScalarType hd; //, gamma;
+//   ScalarType hd; //, gamma;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1236,10 +1236,11 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 
 
     if (Hvtilde != NULL) {
-        // scale by lebesque measure
+        // TODO @ Andreas: fix for two-level precond
+        // scale by lebesgue measure
         if (scale) {
-            hd = this->m_Opt->GetLebesgueMeasure();
-            ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
+//            hd = this->m_Opt->GetLebesgueMeasure();
+//            ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
         }
 
 //        gamma = this->m_Opt->m_KrylovMethod.hessshift;
@@ -2116,6 +2117,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     IntType nl, nc, ng, nt;
     ScalarType *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_m = NULL, *p_l = NULL;
+    ScalarType hd;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
@@ -2133,6 +2135,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving adjoint equation (nx1,nx2,nx3,nc,nt) = ("
@@ -2251,6 +2254,9 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
+
+    // scale result by hd
+    ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
@@ -3213,6 +3219,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL;
     IntType nl, ng, nc, nt;
+    ScalarType hd;
     std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     double timer[NFFTTIMERS] = {0};
     std::stringstream ss;
@@ -3228,6 +3235,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
+    hd  = this->m_Opt->GetLebesgueMeasure();   
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -3368,6 +3376,10 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     // apply K[\tilde{b}]
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
+    // scale result by hd
+    ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
+
+    
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);

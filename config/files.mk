@@ -17,6 +17,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
+		$(SRCDIR)/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
@@ -58,6 +59,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/TransportEquation.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
+		$(SRCDIR)/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \

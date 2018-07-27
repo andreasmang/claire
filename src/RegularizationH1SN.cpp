@@ -160,7 +160,7 @@ PetscErrorCode RegularizationH1SN::EvaluateGradient(VecField* dvR, VecField* v) 
     IntType nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
-    ScalarType beta, scale;
+    ScalarType beta, scale, hd;
     double timer[NFFTTIMERS] = {0}, applytime;
     PetscFunctionBegin;
 
@@ -173,6 +173,7 @@ PetscErrorCode RegularizationH1SN::EvaluateGradient(VecField* dvR, VecField* v) 
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta = this->m_Opt->m_RegNorm.beta[0];
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
 
     // if regularization weight is zero, do noting
@@ -213,7 +214,7 @@ PetscErrorCode RegularizationH1SN::EvaluateGradient(VecField* dvR, VecField* v) 
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = -scale*beta*lapik;
+                    regop = -hd*scale*beta*lapik;
 
                     // get linear index
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
