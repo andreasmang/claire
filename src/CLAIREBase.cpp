@@ -653,6 +653,14 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
             ierr = this->m_DistanceMeasure->SetAuxVariable(this->m_AuxVariable,2); CHKERRQ(ierr);
             break;
         }
+        case NCC:
+        {
+            try {this->m_DistanceMeasure = new DistanceMeasureNCC(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
         default:
         {
             ierr = reg::ThrowError("distance measure not defined"); CHKERRQ(ierr);

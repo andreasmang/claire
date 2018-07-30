@@ -108,7 +108,7 @@ PetscErrorCode CLAIREDivReg::ClearMemory() {
  *******************************************************************/
 PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType D = 0.0, Rv = 0.0, Rw = 0.0, hd;
+    ScalarType D = 0.0, Rv = 0.0, Rw = 0.0;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -132,9 +132,6 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     ierr = this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
-
-    // get lebesque measure
-    hd = this->m_Opt->GetLebesqueMeasure();
 
     // set components of velocity field
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
@@ -160,16 +157,16 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     // add up the contributions
-    *J = hd*(D + Rv + Rw);
+    *J = D + Rv + Rw;
 
     // store for access
     this->m_Opt->m_Monitor.jval = *J;
-    this->m_Opt->m_Monitor.dval = hd*D;
-    this->m_Opt->m_Monitor.rval = hd*(Rv + Rw);
+    this->m_Opt->m_Monitor.dval = D;
+    this->m_Opt->m_Monitor.rval = Rv + Rw;
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "J(v) = D(v) + R1(v) + R2(div(v)) = " << std::scientific
-           << hd*D << " + " << hd*Rv << " + " << hd*Rw;
+           << D << " + " << Rv << " + " << Rw;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
     }
 
@@ -194,7 +191,7 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     PetscErrorCode ierr = 0;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_gdv1 = NULL, *p_gdv2 = NULL, *p_gdv3 = NULL, *p_divv = NULL;
-    ScalarType value, regvalue, betaw;
+    ScalarType value, regvalue, betaw, hd;
     double timer[NFFTTIMERS] = {0};
     IntType nl, ng;
     std::bitset<3> XYZ = 0; XYZ[0] = 1, XYZ[1] = 1, XYZ[2] = 1;
@@ -204,6 +201,7 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
 
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     if (this->m_WorkVecField1 == NULL) {
         try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
@@ -248,7 +246,7 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     ierr = VecTDot(this->m_WorkScaField1, this->m_WorkScaField1, &value); CHKERRQ(ierr); regvalue += value;
 
     // add up contributions
-    *Rw = 0.5*betaw*regvalue;
+    *Rw = 0.5*hd*betaw*regvalue;
 
     this->m_Opt->IncreaseFFTTimers(timer);
     this->m_Opt->Exit(__func__);

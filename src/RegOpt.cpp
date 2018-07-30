@@ -677,6 +677,17 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.hessshift = atof(argv[1]);
+        } else if (strcmp(argv[1], "-distance") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "sl2") == 0) {
+                this->m_Distance.type = SL2;
+	    } else if (strcmp(argv[1], "ncc") == 0) {
+                this->m_Distance.type = NCC;
+            } else {
+                msg = "\n\x1b[31m distance measure not available: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-regnorm") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "h1s") == 0) {
@@ -1403,6 +1414,13 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             after a warm start (in general for debugging purposes only)" << std::endl;
         std::cout << " -checksymmetry              check symmetry of hessian operator" << std::endl;
         std::cout << " -derivativecheck            check gradient/derivative" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " distance measure" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -distance <type>            distance measure" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 sl2          squared l2-distance (default)" << std::endl;
+        std::cout << "                                 ncc          normalized cross correlation" << std::endl;
         std::cout << line << std::endl;
         std::cout << " regularization/constraints" << std::endl;
         std::cout << line << std::endl;

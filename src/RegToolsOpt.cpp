@@ -268,6 +268,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             }
         } else if (strcmp(argv[1], "-tlabelmap") == 0) {
             this->m_RegToolFlags.tlabelmap = true;
+        } else if (strcmp(argv[1], "-saveprob") == 0) {
+            this->m_RegToolFlags.saveprob = true;
         } else if (strcmp(argv[1], "-computeravensmap") == 0) {
             this->m_RegToolFlags.computeravensmap = true;
         } else if (strcmp(argv[1], "-csynvel") == 0) {
@@ -368,6 +370,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.computeanalytics = false;
     this->m_RegToolFlags.computeresidual = false;
     this->m_RegToolFlags.reference2template = false;
+    this->m_RegToolFlags.saveprob = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
@@ -439,11 +442,19 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -residual                   compute residual between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -error                      compute error between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -analyze                    compute analytics for scalar field (-ifile option)" << std::endl;
-        //std::cout << " -nlabels                    number of labels in file" << std::endl;
         std::cout << " -deformimage                transport image (input: velocity field components and image" << std::endl;
         std::cout << "                             image to be deformed)" << std::endl;
-        std::cout << " -tlabelmap                  transport label map (input: velocity field and scalar field)" << std::endl;
-        std::cout << " -labels <l1,l2,...>         labels to be transported (ids/numbers)" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " ### label maps" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -tlabelmap                  transport label map; the inputs are the components velocity field set via" << std::endl;
+        std::cout << "                             '-v1', '-v2', -'v3' and the label map (a scalar field) set via '-ifile';" << std::endl;
+        std::cout << "                             output file name (transported label map) needs to be set via '-xfile' option;" << std::endl;
+        std::cout << "                             this will be a file that contains the individual label ids of the input;" << std::endl;
+        std::cout << "                             the user needs to specify the labels to be transported via the '-labels' option" << std::endl;
+        std::cout << "                             option (see below)" << std::endl;
+        std::cout << " -labels <l1,l2,...>         labels to be transported (ids/numbers of labels)" << std::endl;
+        std::cout << " -saveprob                   enable this flag to write probability maps for individual labels to file" << std::endl;
         std::cout << " -r2t                        map (transport) from reference to template space by enabling this flag" << std::endl;
         // ####################### advanced options #######################
         if (advanced) {
