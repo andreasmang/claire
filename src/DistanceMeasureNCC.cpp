@@ -107,14 +107,14 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
                 norm_m1_loc += p_w[i]*p_m[l+k*nl+i]*p_m[l+k*nl+i];
-		norm_mR_loc += p_w[i]*p_mr[k*nl+i]*p_mr[k*nl+i];
-		inpr_m1_mR_loc += p_w[i]*p_m[l+k*nl+i]*p_mr[k*nl+i];
+    		    norm_mR_loc += p_w[i]*p_mr[k*nl+i]*p_mr[k*nl+i];
+		        inpr_m1_mR_loc += p_w[i]*p_m[l+k*nl+i]*p_mr[k*nl+i];
             }
         }
         ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
     } else {
         for (IntType i = 0; i < nc*nl; ++i) {
-	    norm_m1_loc += p_m[l+i]*p_m[l+i];
+	        norm_m1_loc += p_m[l+i]*p_m[l+i];
             norm_mR_loc += p_mr[i]*p_mr[i];
             inpr_m1_mR_loc += p_m[l+i]*p_mr[i];
         }
@@ -125,10 +125,10 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
 
     rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    
+
     rval = MPI_Allreduce(&inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    
+
     ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
@@ -143,7 +143,7 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
 
 
 /********************************************************************
- * @brief set final condition for adjoint equation 
+ * @brief set final condition for adjoint equation
  * (varies for different distance measures)
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
@@ -151,7 +151,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     IntType nl, nc, nt, l, ll;
     int rval;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
-    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, norm_m1, norm_mR, inpr_m1_mR; 
+    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, norm_m1, norm_mR, inpr_m1_mR;
     ScalarType const1, const2, hx;
     PetscFunctionBegin;
 
@@ -164,7 +164,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();   
+    hx  = this->m_Opt->GetLebesgueMeasure();
 
     // Index for final condition
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -181,8 +181,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     norm_m1_loc = 0.0;
     norm_mR_loc = 0.0;
     inpr_m1_mR_loc = 0.0;
-    
-    /* compute terminal condition  
+
+    /* compute terminal condition
 	lambda = (<m1,mR>/<m1,m1><mR,mR>) * (mR - (<m1,mR>/<m1,m1>)*m1)
     */
 
@@ -205,19 +205,19 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
             inpr_m1_mR_loc += p_m[l+i]*p_mr[i];
         }
     }
-    
+
     // All reduce for full inner products
     rval = MPI_Allreduce(&norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    
+
     rval = MPI_Allreduce(&inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     // Now, write the terminal condition to lambda
-    const1 = inpr_m1_mR/(hx*norm_m1*norm_mR); 
+    const1 = inpr_m1_mR/(hx*norm_m1*norm_mR);
     const2 = (inpr_m1_mR*inpr_m1_mR)/(hx*norm_m1*norm_m1*norm_mR);
 
    if (this->m_Mask != NULL) {
@@ -262,10 +262,12 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     PetscErrorCode ierr = 0;
     IntType nt, nc, nl, ll, l;
     int rval;
-    ScalarType *p_m = NULL, *p_mr = NULL, *p_mtilde = NULL, *p_ltilde = NULL, *p_w = NULL;
-    ScalarType const1, const2, const3, const4, const5, hx; 
+    ScalarType *p_m = NULL, *p_mr = NULL, *p_mtilde = NULL,
+                *p_ltilde = NULL, *p_w = NULL;
+    ScalarType const1, const2, const3, const4, const5, hx;
     ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, inpr_m1_mtilde_loc, inpr_mR_mtilde_loc;
     ScalarType norm_m1, norm_mR, inpr_m1_mR, inpr_m1_mtilde, inpr_mR_mtilde;
+    ScalarType m1i, mRi, mtilde1i;
 
     this->m_Opt->Enter(__func__);
 
@@ -277,7 +279,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();   
+    hx  = this->m_Opt->GetLebesgueMeasure();
 
     // Index for final condition
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -289,63 +291,68 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    
-    // Compute terminal condition 
 
-    // First, calculate necessary inner products locally
+    // Compute terminal condition
+
+    // first, calculate necessary inner products locally
     norm_m1_loc = 0.0;
     norm_mR_loc = 0.0;
     inpr_m1_mR_loc = 0.0;
     inpr_m1_mtilde_loc = 0.0;
     inpr_mR_mtilde_loc = 0.0;
+
     l = nt*nc*nl;
 
     if (this->m_Mask != NULL) {
-        // Mask objective functional
+        // mask objective functional
         ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             for (IntType i = 0; i < nl; ++i) {
-	        norm_m1_loc += p_w[i]*p_m[l+k*nl+i]*p_m[l+k*nl+i];
-                norm_mR_loc += p_w[i]* p_mr[k*nl+i]*p_mr[k*nl+i];
-                inpr_m1_mR_loc += p_w[i]*p_m[l+k*nl+i]*p_mr[k*nl+i];
-                inpr_m1_mtilde_loc += p_w[i]*p_m[l+k*nl+i]*p_mtilde[l+k*nl+i];
-                inpr_mR_mtilde_loc += p_w[i]*p_mtilde[l+k*nl+i]*p_mr[k*nl+i];
+                mRi      = p_mr[k*nl+i];
+                m1i      = p_m[l+k*nl+i];
+                mtilde1i = p_mtilde[ll+k*nl+i];
+
+	            norm_m1_loc        += p_w[i]*(m1i*m1i);
+                norm_mR_loc        += p_w[i]*(mRi*mRi);
+                inpr_m1_mR_loc     += p_w[i]*(m1i*mRi);
+                inpr_m1_mtilde_loc += p_w[i]*(m1i*mtilde1i);
+                inpr_mR_mtilde_loc += p_w[i]*(mRi*mtilde1i);
             }
         }
         ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
     } else {
         for (IntType i = 0; i < nc*nl; ++i) {
-	    norm_m1_loc += p_m[l+i]*p_m[l+i];
-            norm_mR_loc += p_mr[i]*p_mr[i];
-            inpr_m1_mR_loc += p_m[l+i]*p_mr[i];
+            norm_m1_loc        += p_m[l+i]*p_m[l+i];
+            norm_mR_loc        += p_mr[i]*p_mr[i];
+            inpr_m1_mR_loc     += p_m[l+i]*p_mr[i];
             inpr_m1_mtilde_loc += p_m[l+i]*p_mtilde[l+i];
             inpr_mR_mtilde_loc += p_mr[i]*p_mtilde[l+i];
         }
     }
-    
+
     // All reduce for full inner products
     rval = MPI_Allreduce(&norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    
+
     rval = MPI_Allreduce(&inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     rval = MPI_Allreduce(&inpr_m1_mtilde_loc, &inpr_m1_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    
+
     rval = MPI_Allreduce(&inpr_mR_mtilde_loc, &inpr_mR_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-    
+
     // Now, write the terminal condition to lambda tilde
-    const1 = inpr_mR_mtilde/(hx*norm_m1*norm_mR); 
+    const1 = inpr_mR_mtilde/(hx*norm_m1*norm_mR);
     const2 = 2.0*(inpr_m1_mR*inpr_m1_mtilde)/(hx*norm_m1*norm_m1*norm_mR);
     const3 = 4.0*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hx*norm_m1*norm_m1*norm_m1*norm_mR);
     const4 = 2.0*(inpr_m1_mR*inpr_mR_mtilde)/(hx*norm_m1*norm_m1*norm_mR);
     const5 = (inpr_m1_mR*inpr_m1_mR)/(hx*norm_m1*norm_m1*norm_mR);
- 
+
     if (this->m_Mask != NULL) {
         // Mask objective functional
         ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
