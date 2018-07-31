@@ -152,7 +152,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     int rval;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
     ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, norm_m1, norm_mR, inpr_m1_mR; 
-    ScalarType const1, const2, hx;
+    ScalarType const1, const2, hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -164,7 +164,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();   
+    hd = this->m_Opt->GetLebesgueMeasure();   
 
     // Index for final condition
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -217,8 +217,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     // Now, write the terminal condition to lambda
-    const1 = inpr_m1_mR/(hx*norm_m1*norm_mR); 
-    const2 = (inpr_m1_mR*inpr_m1_mR)/(hx*norm_m1*norm_m1*norm_mR);
+    const1 = inpr_m1_mR/(hd*norm_m1*norm_mR); 
+    const2 = (inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
 
    if (this->m_Mask != NULL) {
         // mask objective functional
@@ -263,7 +263,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     IntType nt, nc, nl, ll, l;
     int rval;
     ScalarType *p_m = NULL, *p_mr = NULL, *p_mtilde = NULL, *p_ltilde = NULL, *p_w = NULL;
-    ScalarType const1, const2, const3, const4, const5, hx; 
+    ScalarType const1, const2, const3, const4, const5, hd; 
     ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, inpr_m1_mtilde_loc, inpr_mR_mtilde_loc;
     ScalarType norm_m1, norm_mR, inpr_m1_mR, inpr_m1_mtilde, inpr_mR_mtilde;
 
@@ -277,7 +277,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();   
+    hd = this->m_Opt->GetLebesgueMeasure();   
 
     // Index for final condition
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -340,11 +340,11 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     
     // Now, write the terminal condition to lambda tilde
-    const1 = inpr_mR_mtilde/(hx*norm_m1*norm_mR); 
-    const2 = 2.0*(inpr_m1_mR*inpr_m1_mtilde)/(hx*norm_m1*norm_m1*norm_mR);
-    const3 = 4.0*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hx*norm_m1*norm_m1*norm_m1*norm_mR);
-    const4 = 2.0*(inpr_m1_mR*inpr_mR_mtilde)/(hx*norm_m1*norm_m1*norm_mR);
-    const5 = (inpr_m1_mR*inpr_m1_mR)/(hx*norm_m1*norm_m1*norm_mR);
+    const1 = inpr_mR_mtilde/(hd*norm_m1*norm_mR); 
+    const2 = 2.0*(inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    const3 = 4.0*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_m1*norm_mR);
+    const4 = 2.0*(inpr_m1_mR*inpr_mR_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    const5 = (inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
  
     if (this->m_Mask != NULL) {
         // Mask objective functional
