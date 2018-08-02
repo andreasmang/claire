@@ -116,7 +116,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
     this->m_PDESolver.pdetype = opt.m_PDESolver.pdetype;
 
-
     this->m_RegModel = opt.m_RegModel;
 
     // smoothing
@@ -2024,9 +2023,29 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " parameters" << std::endl;
         std::cout << line << std::endl;
 
-        // display regularization model
-        std::cout << std::left << std::setw(indent) <<" regularization model v";
+        // display distance measure
+        std::cout << std::left << std::setw(indent) <<" distance measure";
 
+        switch (this->m_Distance.type) {
+            case SL2:
+            {
+                std::cout << "squared l2-distance" << std::endl;
+                break;
+            }
+            case NCC:
+            {
+                std::cout << "normalized cross-correlation" << std::endl;
+                break;
+            }
+            default:
+            {
+                ierr = ThrowError("distance measure not implemented"); CHKERRQ(ierr);
+                break;
+            }
+        }
+
+        // display distance measure
+        std::cout << std::left << std::setw(indent) <<" regularization model v";
         if ((this->m_ParaCont.strategy == PCONTBINSEARCH) || (this->m_ParaCont.strategy == PCONTREDUCESEARCH)) {
             switch (this->m_RegNorm.type) {
                 case L2:
