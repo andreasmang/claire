@@ -73,7 +73,7 @@ PetscErrorCode DistanceMeasureNCC::ClearMemory() {
 
 /********************************************************************
  * @brief evaluate the functional (i.e., the distance measure)
- * D = 1.0 - <m1,mR>_L2/(||m1||_L2 * ||mR||_L2)
+ * D = 0.5 - 0.5* <m1,mR>_L2/(||m1||_L2 * ||mR||_L2)
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
