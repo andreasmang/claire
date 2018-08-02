@@ -87,6 +87,12 @@ class OptimizationProblem {
     /*! get mask (objective masking) */
     virtual PetscErrorCode GetMask(Vec&) = 0;
 
+    /*! set reference image */
+    virtual PetscErrorCode SetReferenceImage(Vec) = 0;
+
+    /*! get reference image */
+    virtual PetscErrorCode GetReferenceImage(Vec&) = 0;
+
     /*! set control variable */
     virtual PetscErrorCode SetControlVariable(VecField*) = 0;
 

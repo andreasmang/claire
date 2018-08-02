@@ -79,6 +79,7 @@ PetscErrorCode Preconditioner::Initialize() {
     this->m_ControlVariable = NULL;     ///< control variable on fine grid
     this->m_IncControlVariable = NULL;  ///< incremental control variable on fine grid
     this->m_Mask = NULL;                ///< objective masking
+    this->m_ReferenceImage = NULL;      ///< objective masking
 
     this->m_WorkVecField = NULL;        ///< temporary vector field
     this->m_WorkScaField1 = NULL;       ///< temporary scalar field
@@ -96,6 +97,7 @@ PetscErrorCode Preconditioner::Initialize() {
     this->m_CoarseGrid->m_ControlVariable = NULL;       ///< control variable on coarse grid
     this->m_CoarseGrid->m_IncControlVariable = NULL;    ///< incremental control variable on coarse grid
     this->m_CoarseGrid->m_Mask = NULL;                  ///< mask (objective masking)
+    this->m_CoarseGrid->m_ReferenceImage = NULL;        ///< reference image
 
     this->m_CoarseGrid->x = NULL;    ///< container for input to hessian matvec on coarse grid
     this->m_CoarseGrid->y = NULL;    ///< container for hessian matvec on coarse grid
@@ -153,7 +155,10 @@ PetscErrorCode Preconditioner::ClearMemory() {
         ierr = VecDestroy(&this->m_CoarseGrid->m_AdjointVariable); CHKERRQ(ierr);
         this->m_CoarseGrid->m_AdjointVariable = NULL;
     }
-
+    if (this->m_CoarseGrid->m_ReferenceImage != NULL) {
+        ierr = VecDestroy(&this->m_CoarseGrid->m_ReferenceImage); CHKERRQ(ierr);
+        this->m_CoarseGrid->m_ReferenceImage = NULL;
+    }
 
     if (this->m_WorkVecField != NULL) {
         delete this->m_WorkVecField;
@@ -190,7 +195,6 @@ PetscErrorCode Preconditioner::ClearMemory() {
         delete this->m_IncControlVariable;
         this->m_IncControlVariable = NULL;
     }
-
 
     if (this->m_CoarseGrid->m_ControlVariable != NULL) {
         delete this->m_CoarseGrid->m_ControlVariable;
@@ -348,7 +352,7 @@ PetscErrorCode Preconditioner::DoSetup() {
  *******************************************************************/
 PetscErrorCode Preconditioner::SetupCoarseGrid() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc, nlc, ngc, nl, ng;
+    IntType nt, nc, nlc, ngc, nl, ng, nxc[3], nx[3];
     ScalarType scale, value;
     std::stringstream ss;
     PetscFunctionBegin;
@@ -466,6 +470,26 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
     if (this->m_Mask != NULL) {
         ierr = VecCreate(this->m_CoarseGrid->m_Mask, nlc, ngc); CHKERRQ(ierr);
     }
+
+    // allocate reference image (for NCC and NGF distance measures)
+    ierr = VecCreate(this->m_CoarseGrid->m_ReferenceImage, nlc, ngc); CHKERRQ(ierr);
+
+    for (int i = 0; i < 3; ++i) {
+        nx[i]  = this->m_Opt->m_Domain.nx[i];
+        nxc[i] = this->m_CoarseGrid->m_Opt->m_Domain.nx[i];
+    }
+
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("preconditioner: applying restriction to reference image"); CHKERRQ(ierr);
+    }
+    // apply restriction operator to incremental control variable
+    ierr = this->m_OptimizationProblem->GetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid->m_ReferenceImage,
+                                     this->m_ReferenceImage, nxc, nx); CHKERRQ(ierr);
+
+    //ierr = VecView(this->m_CoarseGrid->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = this->m_CoarseGrid->m_OptimizationProblem->SetReferenceImage(this->m_CoarseGrid->m_ReferenceImage); CHKERRQ(ierr);
+
     // switch flag
     this->m_CoarseGrid->setupdone = true;
 
