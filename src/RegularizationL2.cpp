@@ -64,7 +64,7 @@ RegularizationL2::RegularizationL2(RegOpt* opt) : SuperClass(opt) {
 PetscErrorCode RegularizationL2
 ::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
-    ScalarType beta, ipxi;
+    ScalarType beta, ipxi, hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -73,6 +73,7 @@ PetscErrorCode RegularizationL2
 
     // get regularization weight
     beta = this->m_Opt->m_RegNorm.beta[0];
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     *R = 0.0;
 
@@ -81,7 +82,7 @@ PetscErrorCode RegularizationL2
         ierr = VecTDot(v->m_X1, v->m_X1, &ipxi); CHKERRQ(ierr); *R += ipxi;
         ierr = VecTDot(v->m_X2, v->m_X2, &ipxi); CHKERRQ(ierr); *R += ipxi;
         ierr = VecTDot(v->m_X3, v->m_X3, &ipxi); CHKERRQ(ierr); *R += ipxi;
-        *R *= 0.5*beta;
+        *R *= 0.5*hd*beta;
     }
 
     this->m_Opt->Exit(__func__);

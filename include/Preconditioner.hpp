@@ -99,6 +99,7 @@ class Preconditioner {
         Vec y;                                ///< array for hessian mat vec (on coarse level)
         Vec m_StateVariable;                  ///< pointer to state variable (on coarse level)
         Vec m_AdjointVariable;                ///< pointer to adjoint variable (on coarse level)
+        Vec m_ReferenceImage;                 ///< pointer to adjoint variable (on coarse level)
         Vec m_Mask;                           ///< on coarse level
         VecField* m_ControlVariable;          ///< pointer to velocity field (on coarse level)
         VecField* m_IncControlVariable;       ///< pointer to velocity field (on coarse level)
@@ -119,6 +120,7 @@ class Preconditioner {
     VecField* m_IncControlVariable;         ///< pointer to velocity field
 
     Vec m_Mask;                             ///< mask (objective masking)
+    Vec m_ReferenceImage;                   ///< reference image
     Vec m_WorkScaField1;                    ///< temporary scalar field
     Vec m_WorkScaField2;                    ///< temprary scalar field
     VecField* m_WorkVecField;               ///< temporary vector field

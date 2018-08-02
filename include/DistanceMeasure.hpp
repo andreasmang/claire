@@ -70,6 +70,8 @@ class DistanceMeasure {
     /*! set the auxilary variables */
     PetscErrorCode SetAuxVariable(Vec, int);
 
+    PetscErrorCode SetWorkVecField(VecField*,int);
+
     /*! set the mask */
     PetscErrorCode SetMask(Vec);
 
@@ -88,6 +90,10 @@ class DistanceMeasure {
 
     Vec m_AuxVar1;
     Vec m_AuxVar2;
+
+    VecField* m_WorkVecField1;
+    VecField* m_WorkVecField2;
+    VecField* m_WorkVecField3;
 
     RegOpt* m_Opt;
 };

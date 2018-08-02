@@ -78,6 +78,9 @@ PetscErrorCode DistanceMeasure::Initialize() {
     this->m_AdjointVariable = NULL;
     this->m_IncStateVariable = NULL;
     this->m_IncAdjointVariable = NULL;
+    this->m_WorkVecField1 = NULL;
+    this->m_WorkVecField2 = NULL;
+    this->m_WorkVecField3 = NULL;
 
     PetscFunctionReturn(0);
 }
@@ -135,6 +138,37 @@ PetscErrorCode DistanceMeasure::SetTemplateImage(Vec mT) {
     PetscFunctionReturn(ierr);
 }
 
+
+
+/********************************************************************
+ * @brief set temporary vector fields 
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetWorkVecField(VecField* v, int id) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    switch (id) {
+        case 1:
+           this->m_WorkVecField1 = v;
+           break;
+        case 2:
+           this->m_WorkVecField2 = v;
+           break;
+        case 3:
+           this->m_WorkVecField3 = v;
+           break;
+	default:
+           ierr = ThrowError("id not defined"); CHKERRQ(ierr);
+           break;
+  }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

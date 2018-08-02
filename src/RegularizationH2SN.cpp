@@ -68,7 +68,7 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
     IntType nx[3];
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
-    ScalarType beta, ipxi, scale, value;
+    ScalarType beta, ipxi, scale, value, hd;
     double applytime;
     double timer[NFFTTIMERS] = {0};
 
@@ -82,6 +82,7 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
 
     // get regularization weight
     beta = static_cast<ScalarType>(this->m_Opt->m_RegNorm.beta[0]);
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     *R = 0.0; value = 0.0;
 
@@ -159,7 +160,7 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
         ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &ipxi); CHKERRQ(ierr); value += ipxi;
 
         // multiply with regularization weight
-        *R = static_cast<ScalarType>(0.5*beta*value);
+        *R = static_cast<ScalarType>(0.5*beta*hd*value);
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
@@ -181,7 +182,7 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
 PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
     IntType nx[3];
-    ScalarType beta, scale;
+    ScalarType beta, scale, hd;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
     double applytime;
@@ -198,6 +199,7 @@ PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) 
     ierr = Assert(this->m_v3hat != NULL, "null pointer"); CHKERRQ(ierr);
 
     beta = static_cast<double>(this->m_Opt->m_RegNorm.beta[0]);
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
@@ -239,7 +241,7 @@ PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) 
                     lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
                     // compute regularization operator
-                    regop = scale*beta*(lapik*lapik);
+                    regop = hd*scale*beta*(lapik*lapik);
 
                     // get linear index
                     i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);

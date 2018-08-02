@@ -116,7 +116,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
     this->m_PDESolver.pdetype = opt.m_PDESolver.pdetype;
 
-
     this->m_RegModel = opt.m_RegModel;
 
     // smoothing
@@ -677,6 +676,17 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.hessshift = atof(argv[1]);
+        } else if (strcmp(argv[1], "-distance") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "sl2") == 0) {
+                this->m_Distance.type = SL2;
+	    } else if (strcmp(argv[1], "ncc") == 0) {
+                this->m_Distance.type = NCC;
+            } else {
+                msg = "\n\x1b[31m distance measure not available: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-regnorm") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "h1s") == 0) {
@@ -1404,6 +1414,13 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -checksymmetry              check symmetry of hessian operator" << std::endl;
         std::cout << " -derivativecheck            check gradient/derivative" << std::endl;
         std::cout << line << std::endl;
+        std::cout << " distance measure" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -distance <type>            distance measure" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 sl2          squared l2-distance (default)" << std::endl;
+        std::cout << "                                 ncc          normalized cross correlation" << std::endl;
+        std::cout << line << std::endl;
         std::cout << " regularization/constraints" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -regnorm <type>             regularization norm for velocity field" << std::endl;
@@ -2006,9 +2023,29 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " parameters" << std::endl;
         std::cout << line << std::endl;
 
-        // display regularization model
-        std::cout << std::left << std::setw(indent) <<" regularization model v";
+        // display distance measure
+        std::cout << std::left << std::setw(indent) <<" distance measure";
 
+        switch (this->m_Distance.type) {
+            case SL2:
+            {
+                std::cout << "squared l2-distance" << std::endl;
+                break;
+            }
+            case NCC:
+            {
+                std::cout << "normalized cross-correlation" << std::endl;
+                break;
+            }
+            default:
+            {
+                ierr = ThrowError("distance measure not implemented"); CHKERRQ(ierr);
+                break;
+            }
+        }
+
+        // display distance measure
+        std::cout << std::left << std::setw(indent) <<" regularization model v";
         if ((this->m_ParaCont.strategy == PCONTBINSEARCH) || (this->m_ParaCont.strategy == PCONTREDUCESEARCH)) {
             switch (this->m_RegNorm.type) {
                 case L2:
