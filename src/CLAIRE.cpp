@@ -397,14 +397,14 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     }
 
     // copy m_0 to m(t=0)
-    ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(m0, &p_m0); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m0, p_m0+nl*nc, p_m);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(m0, &p_m0); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -439,14 +439,14 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     }
 
     // copy m(t=1) to m_1
-    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(m1, &p_m1); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(m1, &p_m1); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -966,7 +966,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // parse to output
     if (g != NULL) {
         // get and scale by lebesque measure
-        hd = this->m_Opt->GetLebesgueMeasure();
+//        hd = this->m_Opt->GetLebesgueMeasure();
 //        ierr = VecScale(g, hd); CHKERRQ(ierr);
 
         if (this->m_Opt->m_Verbosity > 2) {
@@ -1194,7 +1194,7 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
  *******************************************************************/
 PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscErrorCode ierr = 0;
-//   ScalarType hd; //, gamma;
+   ScalarType hd; //, gamma;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1238,9 +1238,9 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     if (Hvtilde != NULL) {
         // TODO @ Andreas: fix for two-level precond
         // scale by lebesgue measure
-        if (scale) {
-//            hd = this->m_Opt->GetLebesgueMeasure();
-//            ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
+        if (scale == false) {
+            hd = this->m_Opt->GetLebesgueMeasure();
+            ierr = VecScale(Hvtilde, 1/hd); CHKERRQ(ierr);
         }
 
 //        gamma = this->m_Opt->m_KrylovMethod.hessshift;
@@ -1341,6 +1341,7 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
  *******************************************************************/
 PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
+    ScalarType hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1386,7 +1387,8 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1} \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
-    ierr = this->m_WorkVecField2->WAXPY(1.0, this->m_IncVelocityField, this->m_WorkVecField1); CHKERRQ(ierr);
+    hd = this->m_Opt->GetLebesgueMeasure();
+    ierr = this->m_WorkVecField2->WAXPY(hd, this->m_IncVelocityField, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
     if (Hvtilde != NULL) {
@@ -1410,6 +1412,7 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
  *******************************************************************/
 PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
+    ScalarType hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1473,6 +1476,8 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta \D{A})^{-1/2}
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
+    hd = this->m_Opt->GetLebesgueMeasure();
+    ierr = this->m_WorkVecField5->Scale(hd); CHKERRQ(ierr);
     ierr = this->m_WorkVecField5->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
@@ -2135,7 +2140,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
-    hd  = this->m_Opt->GetLebesgueMeasure();   
+    hd  = this->m_Opt->GetLebesgueMeasure();
 
     if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving adjoint equation (nx1,nx2,nx3,nc,nt) = ("
@@ -3235,7 +3240,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
-    hd  = this->m_Opt->GetLebesgueMeasure();   
+    hd  = this->m_Opt->GetLebesgueMeasure();
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -3379,7 +3384,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     // scale result by hd
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
 
-    
+
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
