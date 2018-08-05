@@ -74,6 +74,7 @@ template <typename T>
 __host__ __device__
 inline T rec3_fmaf(T a, T b, T c, T d, T e, T f) {
     return fmaf(a, b, fmaf(c, d, e*f));
+    //return a*b + (c*d + e*f);
 }
 
 
@@ -444,8 +445,8 @@ __global__ void interp3D_kernel(
     float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
     // do single point interpolation - 4 methods
 
-    //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-    yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+    yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 /*    const float h = 2*PI*inv_nx.x;
@@ -501,7 +502,7 @@ void gpuInterp3D(
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
-    CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
     // create a texture from the spline coefficients
@@ -530,7 +531,7 @@ void gpuInterp3D(
     cudaEventRecord(stopEvent,0);
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
-    time+=dummy_time/1000;
+    time+=dummy_time;
     cudaDeviceSynchronize();
     
     // free texture and cudaArray from device memory
@@ -540,7 +541,7 @@ void gpuInterp3D(
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
     
-    printf("interp time = %f\n", time);
+//    printf("interp time = %fmsec\n", time);
     *interp_time += time;
     
 }
