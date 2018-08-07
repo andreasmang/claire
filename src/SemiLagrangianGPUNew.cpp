@@ -183,7 +183,6 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     ierr = VecGetArray(this->m_InitialTrajectory->m_X3, &p_x3); CHKERRQ(ierr);
 
 
-
 #pragma omp parallel
 {
 #pragma omp for
@@ -212,6 +211,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X3,&p_x3); CHKERRQ(ierr);
+
 
 //   ierr = PrintVectorMemoryLocation(this->m_InitialTrajectory->m_X1, "Initial trajectory before"); CHKERRQ(ierr);
 /*    ierr = GetRawPointer(this->m_InitialTrajectory->m_X1, &p_x1); CHKERRQ(ierr);

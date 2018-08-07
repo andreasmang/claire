@@ -61,6 +61,7 @@ following papers:
 #include <lagrange_kernel.cu>
 #include "interp3_gpu_new.hpp"
 
+
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -92,17 +93,15 @@ inline T rec4_fmaf(T a, T b, T c, T d, T e, T f, T g, T h) {
  * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
  * @parm[out] interpolated value
  *******************************************************************/
-__device__ float cubicTex3D_lagrangeFast( cudaTextureObject_t tex, const float3 coord, const float3 inv_ext)
+__device__ float cubicTex3D_lagrangeFast( cudaTextureObject_t tex, const float3 coord_grid, const float3 inv_ext)
 {
-	const float3 coord_grid = coord;
 	const float3 index = floor(coord_grid);
-	const float3 fraction = coord_grid - index;
 	float3 w0, w1, w2, w3;
-	lagrange_weights(fraction, w0, w1, w2, w3);
-
+	lagrange_weights(coord_grid - index, w0, w1, w2, w3);
+    
     // compute the locations for the trilinear, bilinear and linear interps
     const float3 g0 = w1 + w2;
-    const float3 h0 = ((w2/g0) + index + 0.5f)*inv_ext;
+    const float3 h0 = (w2/g0 + index + 0.5f)*inv_ext;
     float idx[2] = { (index.x-0.5f)*inv_ext.x, (index.x+2.5f)*inv_ext.x};
     float idy[2] = { (index.y-0.5f)*inv_ext.y, (index.y+2.5f)*inv_ext.y};
     float idz[2] = { (index.z-0.5f)*inv_ext.z, (index.z+2.5f)*inv_ext.z};
@@ -437,8 +436,7 @@ __global__ void interp3D_kernel(
         const PetscScalar* yq,
         const PetscScalar* zq, 
         PetscScalar* yo,
-        const float3 inv_nx,
-        cudaPitchedPtr yi)
+        const float3 inv_nx)
 {
     // Get thread index 
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -449,6 +447,7 @@ __global__ void interp3D_kernel(
     //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+
 /*    const float h = 2*PI*inv_nx.x;
     const float3 q = qcoord*h;
     float votrue = computeVx(q.z, q.y, q.x);
@@ -456,6 +455,7 @@ __global__ void interp3D_kernel(
         printf("tidz = %d  x = %f  y = %f  z = %f  vi = %f  vo = %f  votrue  = %f\n",tid, qcoord.x, qcoord.y, qcoord.z, *((float*)(yi.ptr)+tid), yo[tid], votrue);
     }
 */
+
 }
 
 
@@ -477,7 +477,7 @@ void gpuInterp3D(
            int*  nx,
            float* interp_time)
 {
-    
+   
     // timing variables
     float time=0, dummy_time=0;
     cudaEvent_t startEvent, stopEvent;
@@ -490,26 +490,31 @@ void gpuInterp3D(
                                         1.0f/static_cast<float>(nx[0]));
     // define nxq, the dimensions of the grid
     const float3 nxq = make_float3( nx[0], nx[1], nx[2]);
+    long int nq = nx[0]*nx[1]*nx[2]; 
 
     // create a common cudaResourceDesc objects
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
    
-    // start recording the interpolation kernel
-    time = 0; dummy_time = 0; 
-    cudaEventRecord(startEvent,0); 
+    // create cudaPitchedPointers for query points by copying them to another device location
+    //cudaPitchedPtr xq, yq, zq;
+    //xq = CopyVolumeDeviceToDevice(xq1, nq, 1, 1);
+    //yq = CopyVolumeDeviceToDevice(xq2, nq, 1, 1);
+    //zq = CopyVolumeDeviceToDevice(xq3, nq, 1, 1);
+    //////////////////////////////////////////////////////////////////////////////////////////////////    
     
+   
+
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
-    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+    CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
     // create a texture from the spline coefficients
     cudaTextureObject_t yi_tex = initTextureFromVolume(yi_cudaPitchedPtr,  yi_extent);
 
     int threads = 256;
-    long int nq = nx[0]*nx[1]*nx[2];
     int blocks = nq/threads;
     
     // check the correctness of the input data by checking the consistency across
@@ -523,8 +528,13 @@ void gpuInterp3D(
     printf("\n----------------------------------------------------------------------------------------------------------\n");
 */
 
+    // start recording the interpolation kernel
+    time = 0; dummy_time = 0; 
+    cudaEventRecord(startEvent,0); 
+    
     // launch the interpolation kernel
-    interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, yi_cudaPitchedPtr); 
+    interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx);
+    //interp3D_kernel<<<blocks,threads>>>(yi_tex, (PetscScalar*)xq.ptr, (PetscScalar*)yq.ptr, (PetscScalar*)zq.ptr, yo, inv_nx);
     if ( cudaSuccess != cudaGetLastError())
         printf("Error in running the interp3D kernel\n");
 
@@ -541,7 +551,7 @@ void gpuInterp3D(
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
     
-//    printf("interp time = %fmsec\n", time);
+    printf("interp time = %fmsec\n", time);
     *interp_time += time;
     
 }
