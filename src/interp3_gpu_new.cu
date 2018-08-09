@@ -102,67 +102,59 @@ __device__ float cubicTex3D_lagrangeFast( cudaTextureObject_t tex, const float3 
     // compute the locations for the trilinear, bilinear and linear interps
     const float3 g0 = w1 + w2;
     const float3 h0 = (w2/g0 + index + 0.5f)*inv_ext;
-    float idx[2] = { (index.x-0.5f)*inv_ext.x, (index.x+2.5f)*inv_ext.x};
-    float idy[2] = { (index.y-0.5f)*inv_ext.y, (index.y+2.5f)*inv_ext.y};
-    float idz[2] = { (index.z-0.5f)*inv_ext.z, (index.z+2.5f)*inv_ext.z};
+    const float idx[2] = { (index.x-0.5f)*inv_ext.x, (index.x+2.5f)*inv_ext.x};
+    const float idy[2] = { (index.y-0.5f)*inv_ext.y, (index.y+2.5f)*inv_ext.y};
+    const float idz[2] = { (index.z-0.5f)*inv_ext.z, (index.z+2.5f)*inv_ext.z};
 
-    // single trilinear lookup
-    float core = tex3D<float>( tex, h0.x, h0.y, h0.z);
-
-    // 6 bilinear lookups
-    float z0 = tex3D<float>( tex, h0.x, h0.y, idz[0]);
-    float z1 = tex3D<float>( tex, h0.x, h0.y, idz[1]);
-    float y0 = tex3D<float>( tex, h0.x, idy[0], h0.z);
-    float y1 = tex3D<float>( tex, h0.x, idy[1], h0.z);
-    float x0 = tex3D<float>( tex, idx[0], h0.y, h0.z);
-    float x1 = tex3D<float>( tex, idx[1], h0.y, h0.z);
-
-    // 12 linear lookups
-    // along z-axis
-    float x0y0 = tex3D<float>( tex, idx[0], idy[0], h0.z);
-    float x1y1 = tex3D<float>( tex, idx[1], idy[1], h0.z);
-    float x0y1 = tex3D<float>( tex, idx[0], idy[1], h0.z);
-    float x1y0 = tex3D<float>( tex, idx[1], idy[0], h0.z);
-    // aling y-axis
-    float x0z0 = tex3D<float>( tex, idx[0], h0.y, idz[0]);
-    float x1z1 = tex3D<float>( tex, idx[1], h0.y, idz[1]);
-    float x0z1 = tex3D<float>( tex, idx[0], h0.y, idz[1]);
-    float x1z0 = tex3D<float>( tex, idx[1], h0.y, idz[0]);
-    // along x-axis
-    float y0z0 = tex3D<float>( tex, h0.x, idy[0], idz[0]);
-    float y1z1 = tex3D<float>( tex, h0.x, idy[1], idz[1]);
-    float y0z1 = tex3D<float>( tex, h0.x, idy[0], idz[1]);
-    float y1z0 = tex3D<float>( tex, h0.x, idy[1], idz[0]);
-
-    // 8 single point look ups
-    float tex000 = tex3D<float>( tex, idx[0], idy[0], idz[0]);
-    float tex100 = tex3D<float>( tex, idx[1], idy[0], idz[0]);
-    float tex010 = tex3D<float>( tex, idx[0], idy[1], idz[0]);
-    float tex110 = tex3D<float>( tex, idx[1], idy[1], idz[0]);
-    float tex001 = tex3D<float>( tex, idx[0], idy[0], idz[1]);
-    float tex101 = tex3D<float>( tex, idx[1], idy[0], idz[1]);
-    float tex011 = tex3D<float>( tex, idx[0], idy[1], idz[1]);
-    float tex111 = tex3D<float>( tex, idx[1], idy[1], idz[1]);
-
-    // weighting in x direction
-    // slice 1 (z=0)
-    float row0 = rec3_fmaf( w0.x,  tex000,  g0.x,  y0z0,  w3.x,  tex100);
-    float row1 = rec3_fmaf( w0.x,  x0z0,    g0.x,  z0,    w3.x,  x1z0);
-    float row2 = rec3_fmaf( w0.x,  tex010,  g0.x,  y1z0,  w3.x,  tex110);
+    
+    /////////////////////// slice 1 ////////////////////////////////////////
+    // x weighting
+    float point0 = tex3D<float>( tex, idx[0], idy[0], idz[0]); // tex000
+    float point1 = tex3D<float>( tex, idx[1], idy[0], idz[0]); // tex100
+    float lin0 = tex3D<float>( tex, h0.x, idy[0], idz[0]); // y0z0
+    float row0 = rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1); // (w0.x * tex000) + (g0.x * y0z0) + (w3.x * tex100)
+    point0 = tex3D<float>( tex, idx[0], idy[1], idz[0]); // tex010
+    point1 = tex3D<float>( tex, idx[1], idy[1], idz[0]); // tex110
+    lin0 = tex3D<float>( tex, h0.x, idy[1], idz[0]); // y1z0
+    float row2 = rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1); // (w0.x * tex010) + (g0.x * y1z0) + (w3.x * tex110)
+    lin0 = tex3D<float>( tex, idx[0], h0.y, idz[0]); // x0z0
+    float lin1 = tex3D<float>( tex, idx[1], h0.y, idz[0]); // x1z0
+    float bi0 = tex3D<float>( tex, h0.x, h0.y, idz[0]); // z0
+    float row1 = rec3_fmaf( w0.x,  lin0,    g0.x,  bi0,    w3.x,  lin1); // (w0.x * x0z0) + (g0.x * z0) + (w3.x * x1z0)
     // weighting along y direction
     float Z0 = rec3_fmaf( w0.y, row0, g0.y, row1, w3.y, row2);
-    // slice 3 (z=1), weighing along x direction
-    row0 = rec3_fmaf( w0.x, tex001, g0.x, y0z1, w3.x, tex101);
-    row1 = rec3_fmaf( w0.x, x0z1,   g0.x, z1,   w3.x, x1z1);
-    row2 = rec3_fmaf( w0.x, tex011, g0.x, y1z1, w3.x, tex111);
-    // weighting along y direction
+    
+    ////////////////////////////////////////// slice 3 //////////////////////////////////////////////////////////
+    // x weighting
+    point0 = tex3D<float>( tex, idx[0], idy[0], idz[1]); // tex001
+    point1 = tex3D<float>( tex, idx[1], idy[0], idz[1]); // tex101
+    lin0 = tex3D<float>( tex, h0.x, idy[0], idz[1]); // y0z1
+    row0 = rec3_fmaf( w0.x, point0, g0.x, lin0, w3.x, point1); // (w0.x * tex001) + (g0.x * y0z1) + (w3.x * tex101)
+    point0 = tex3D<float>( tex, idx[0], idy[1], idz[1]); // tex011
+    point1 = tex3D<float>( tex, idx[1], idy[1], idz[1]); // tex111
+    lin0 = tex3D<float>( tex, h0.x, idy[1], idz[1]); // y1z1
+    row2 = rec3_fmaf( w0.x, point0, g0.x, lin0,  w3.x, point1); // (w0.x * tex011) + (g0.x * y1z1) + (w3.x * tex111)
+    lin0 = tex3D<float>( tex, idx[0], h0.y, idz[1]); // x0z1
+    lin1 = tex3D<float>( tex, idx[1], h0.y, idz[1]); // x1z1
+    bi0 = tex3D<float>( tex, h0.x, h0.y, idz[1]); // z1
+    row1 = rec3_fmaf( w0.x, lin0,   g0.x, bi0,   w3.x, lin1); // (w0.x * x0z1) + (g0.x * z1) + (w3.x * x1z1);
+    // y weighting
     float Z2 = rec3_fmaf( w0.y, row0, g0.y, row1, w3.y, row2);
-
-    // slice 2 (z in middle, 4 bilinear, 4 linear and 1 trilinear lookup), weighing along x-direction
-    row0 = rec3_fmaf( w0.x, x0y0, g0.x, y0, w3.x, x1y0);
-    row1 = rec3_fmaf( w0.x, x0, g0.x, core, w3.x, x1);
-    row2 = rec3_fmaf( w0.x, x1y0, g0.x, y1, w3.x, x1y1);
-    // weighting along y direction
+    
+    //////////////////////////////////////////////////// slice 2 ////////////////////////////////////////////////
+    // single trilinear lookup
+    lin0 = tex3D<float>( tex, idx[0], idy[0], h0.z); // x0y0
+    lin1 = tex3D<float>( tex, idx[1], idy[0], h0.z); // x1y0
+    bi0 = tex3D<float>( tex, h0.x, idy[0], h0.z); // y0
+    row0 = rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1); // (w0.x * x0y0) + (g0.x * y0) + (w3.x * x1y0)
+    bi0 = tex3D<float>( tex, idx[0], h0.y, h0.z); // x0
+    float bi1 = tex3D<float>( tex, idx[1], h0.y, h0.z); // x1
+    float core = tex3D<float>( tex, h0.x, h0.y, h0.z); // core
+    row1 = rec3_fmaf( w0.x, bi0, g0.x, core, w3.x, bi1); // (w0.x * x0) + (g0.x * core) + (w3.x * x1)
+    lin0 = tex3D<float>( tex, idx[0], idy[1], h0.z); // x0y1
+    lin1 = tex3D<float>( tex, idx[1], idy[1], h0.z); // x1y1
+    bi0 = tex3D<float>( tex, h0.x, idy[1], h0.z); // y1
+    row2 = rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1); // (w0.x * x0y1) + (g0.x * y1) + (w3.x * x1y1)
     float Z1 = rec3_fmaf( w0.y, row0, g0.y, row1, w3.y, row2);
     
     // weighting along z-direction
@@ -443,10 +435,10 @@ __global__ void interp3D_kernel(
     float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
     // do single point interpolation - 4 methods
 
-    yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-    //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
 /*    const float h = 2*PI*inv_nx.x;
     const float3 q = qcoord*h;
@@ -508,7 +500,7 @@ void gpuInterp3D(
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
-    CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
     // create a texture from the spline coefficients
