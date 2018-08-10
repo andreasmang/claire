@@ -406,6 +406,7 @@ struct RegNorm {
 struct Distance {
     DMType type;
     bool reset;
+    ScalarType scale;
 };
 
 

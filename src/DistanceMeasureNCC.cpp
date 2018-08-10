@@ -72,6 +72,99 @@ PetscErrorCode DistanceMeasureNCC::ClearMemory() {
 
 
 /********************************************************************
+* @brief Set up scale for NCC measure given by
+* scale = D_SL2(mR,mT)/D_NCC(mR,mT)
+********************************************************************/
+PetscErrorCode DistanceMeasureNCC::SetupScale(){
+    PetscErrorCode ierr = 0;	
+    ScalarType *p_mr = NULL, *p_mt = NULL, *p_w = NULL;
+    IntType nt, nc, nl, l;
+    ScalarType norm_l2_loc, norm_mT_loc, norm_mR_loc, inpr_mT_mR_loc, 
+	       norm_l2, norm_mT, norm_mR, inpr_mT_mR, mTi, mRi;
+    int rval;
+    ScalarType l2distance, nccdistance, hd;
+
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // get sizes
+    nt = this->m_Opt->m_Domain.nt;
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    hd  = this->m_Opt->GetLebesgueMeasure();   
+
+    ierr = GetRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+
+    l = nt*nl*nc;
+    norm_l2_loc = 0.0;
+    norm_mT_loc = 0.0;
+    norm_mR_loc = 0.0;
+    inpr_mT_mR_loc = 0.0;
+    if (this->m_Mask != NULL) {
+        // Mask objective functional
+        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        for (IntType k = 0; k < nc; ++k) {  // for all image components
+            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+		mTi = p_mt[k*nl+i];
+                mRi = p_mr[k*nl+i];
+                
+		// L2 Pieces
+                norm_l2_loc    += p_w[i]*(mTi - mRi)*(mTi - mRi);
+
+		// NCC Pieces
+                norm_mT_loc    += p_w[i]*(mTi*mTi);
+                norm_mR_loc    += p_w[i]*(mRi*mRi);
+                inpr_mT_mR_loc += p_w[i]*(mTi*mRi);
+            }
+        }
+        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+    } else {
+        for (IntType i = 0; i < nc*nl; ++i) {
+            mTi = p_mt[i];
+            mRi = p_mr[i];
+            
+	    // L2 Pieces
+            norm_l2_loc    += (mTi - mRi)*(mTi - mRi);
+            
+	    // NCC Pieces
+            norm_mT_loc    += (mTi*mTi);
+            norm_mR_loc    += (mRi*mRi);
+            inpr_mT_mR_loc += (mTi*mRi);
+        }
+    }
+    // All reduce the pieces
+    rval = MPI_Allreduce(&norm_l2_loc, &norm_l2, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+
+    rval = MPI_Allreduce(&norm_mT_loc, &norm_mT, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+
+    rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+
+    rval = MPI_Allreduce(&inpr_mT_mR_loc, &inpr_mT_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+
+    // Calculate two distance measures and scale
+    l2distance = 0.5*hd*norm_l2/static_cast<ScalarType>(nc);
+    nccdistance = 0.5 - 0.5*(inpr_mT_mR*inpr_mT_mR)/(norm_mT*norm_mR);
+    this->m_Opt->m_Distance.scale = l2distance/nccdistance;
+    this->m_Opt->Exit(__func__);
+
+
+    PetscFunctionReturn(ierr);   
+}
+
+
+/********************************************************************
  * @brief evaluate the functional (i.e., the distance measure)
  * D = 0.5 - 0.5* <m1,mR>_L2/(||m1||_L2 * ||mR||_L2)
  *******************************************************************/
@@ -79,8 +172,9 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     IntType nt, nc, nl, l;
-    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, norm_m1, norm_mR, inpr_m1_mR,
-                m1i, mRi;
+    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, 
+	       norm_m1, norm_mR, inpr_m1_mR,
+               m1i, mRi, scale;
     int rval;
 
     PetscFunctionBegin;
@@ -94,6 +188,7 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
+    scale = this->m_Opt->m_Distance.scale;
 
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
@@ -138,7 +233,9 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // Objective value
-    *D = 0.5 - 0.5*(inpr_m1_mR*inpr_m1_mR)/(norm_m1*norm_mR);
+    *D = scale*(0.5 - 0.5*(inpr_m1_mR*inpr_m1_mR)/(norm_m1*norm_mR));
+//    printf("scale = %f \n", *D);
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -157,7 +254,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     int rval;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
     ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, norm_m1, norm_mR, inpr_m1_mR;
-    ScalarType const1, const2, m1i, mRi, hx;
+    ScalarType const1, const2, m1i, mRi, hd, scale;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -169,7 +266,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();
+    hd  = this->m_Opt->GetLebesgueMeasure();
+    scale = this->m_Opt->m_Distance.scale;
 
     // Index for final condition
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -226,8 +324,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     // Now, write the terminal condition to lambda
-    const1 = inpr_m1_mR/(hx*norm_m1*norm_mR);
-    const2 = (inpr_m1_mR*inpr_m1_mR)/(hx*norm_m1*norm_m1*norm_mR);
+    const1 = scale*inpr_m1_mR/(hd*norm_m1*norm_mR);
+    const2 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
 
    if (this->m_Mask != NULL) {
         // mask objective functional
@@ -273,7 +371,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     int rval;
     ScalarType *p_m = NULL, *p_mr = NULL, *p_mtilde = NULL,
                 *p_ltilde = NULL, *p_w = NULL;
-    ScalarType const1, const2, const3, const4, const5, hx;
+    ScalarType const1, const2, const3, const4, const5, hd, scale;
     ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, inpr_m1_mtilde_loc, inpr_mR_mtilde_loc;
     ScalarType norm_m1, norm_mR, inpr_m1_mR, inpr_m1_mtilde, inpr_mR_mtilde;
     ScalarType m1i, mRi, mtilde1i;
@@ -288,7 +386,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();
+    hd  = this->m_Opt->GetLebesgueMeasure();
+    scale = this->m_Opt->m_Distance.scale;
 
     // Index for final condition
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -364,11 +463,11 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
     // Now, write the terminal condition to lambda tilde
-    const1 = inpr_mR_mtilde/(hx*norm_m1*norm_mR);
-    const2 = 2.0*(inpr_m1_mR*inpr_m1_mtilde)/(hx*norm_m1*norm_m1*norm_mR);
-    const3 = 4.0*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hx*norm_m1*norm_m1*norm_m1*norm_mR);
-    const4 = 2.0*(inpr_m1_mR*inpr_mR_mtilde)/(hx*norm_m1*norm_m1*norm_mR);
-    const5 = (inpr_m1_mR*inpr_m1_mR)/(hx*norm_m1*norm_m1*norm_mR);
+    const1 = scale*inpr_mR_mtilde/(hd*norm_m1*norm_mR);
+    const2 = 2.0*scale*(inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    const3 = 4.0*scale*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_m1*norm_mR);
+    const4 = 2.0*scale*(inpr_m1_mR*inpr_mR_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    const5 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
 
     if (this->m_Mask != NULL) {
         // Mask objective functional

@@ -687,6 +687,12 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
     }
 
+    // Setup scale for distance measure
+    // TODO: Do we need to rescale this for the 2level preconditioner? 
+    // Currently Temp and Ref image not in scope for restricted problem, so we use old scale value
+    if (this->m_TemplateImage != NULL && this->m_ReferenceImage != NULL) { 
+    	ierr = this->m_DistanceMeasure->SetupScale(); CHKERRQ(ierr);
+    }
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

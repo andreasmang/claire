@@ -39,6 +39,8 @@ class DistanceMeasureNCC : public DistanceMeasure {
     DistanceMeasureNCC(RegOpt*);
     virtual ~DistanceMeasureNCC(void);
 
+  //  PetscErrorCode GetScale();
+    PetscErrorCode SetupScale();
     PetscErrorCode EvaluateFunctional(ScalarType*);
     PetscErrorCode SetFinalConditionAE();
     PetscErrorCode SetFinalConditionIAE();

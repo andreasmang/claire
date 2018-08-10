@@ -101,6 +101,21 @@ PetscErrorCode DistanceMeasure::ClearMemory() {
 
 
 
+
+/********************************************************************
+ * @brief set up scale
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetupScale() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
  *******************************************************************/

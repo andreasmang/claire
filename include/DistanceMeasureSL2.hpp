@@ -39,6 +39,7 @@ class DistanceMeasureSL2 : public DistanceMeasure {
     DistanceMeasureSL2(RegOpt*);
     virtual ~DistanceMeasureSL2(void);
 
+    PetscErrorCode SetupScale();
     PetscErrorCode EvaluateFunctional(ScalarType*);
     PetscErrorCode SetFinalConditionAE();
     PetscErrorCode SetFinalConditionIAE();

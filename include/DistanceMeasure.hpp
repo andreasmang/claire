@@ -75,6 +75,9 @@ class DistanceMeasure {
     /*! set the mask */
     PetscErrorCode SetMask(Vec);
 
+    /*! set the scale */
+    virtual PetscErrorCode SetupScale();
+
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();

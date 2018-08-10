@@ -101,8 +101,9 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_Distance.type = opt.m_Distance.type;
     this->m_Distance.reset = opt.m_Distance.reset;
-
-    this->m_RegNorm.type = opt.m_RegNorm.type;
+    this->m_Distance.scale = opt.m_Distance.scale;
+    
+this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];  // weight for regularization operator A[v]
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];  // weight for identity operator in regularization norms (constant)
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[div(v)] (incompressibility)
@@ -758,7 +759,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
             // perform at least one iteration
             this->m_OptPara.miniter = 1;
-
             this->m_ParaCont.strategy = PCONTINUATION;
             this->m_ParaCont.enabled = true;
 
@@ -1076,6 +1076,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Distance = {};
     this->m_Distance.type = SL2;                        ///< default distance measure (squared l2 distance)
     this->m_Distance.reset = false;                     ///< re-allocate distance measure
+    this->m_Distance.scale = 0; 			///< set default scale for distance measure
 
     this->m_PDESolver = {};
     this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)

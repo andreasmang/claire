@@ -71,6 +71,21 @@ PetscErrorCode DistanceMeasureSL2::ClearMemory() {
 
 
 
+
+/********************************************************************
+ * @brief set up scale
+ *******************************************************************/
+PetscErrorCode DistanceMeasureSL2::SetupScale() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
 /********************************************************************
  * @brief evaluate the functional (i.e., the distance measure)
  * D = (1/2)*||m1 - mR||_L2
