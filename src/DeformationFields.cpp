@@ -1849,8 +1849,8 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
     }
 
     // allocate semi-lagrangian solver
-    if(this->m_SemiLagrangianMethod == NULL) {
-        try{this->m_SemiLagrangianMethod = new SemiLagrangian(this->m_Opt);}
+    if(this->m_SemiLagrangianMethod == NULL) {  
+        try{this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
         catch (std::bad_alloc&) {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
