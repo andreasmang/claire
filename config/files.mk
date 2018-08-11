@@ -48,6 +48,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
+		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
@@ -83,4 +84,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
-		$(SRCDIR)/SemiLagrangianGPUNew.cpp
+		$(SRCDIR)/SemiLagrangianGPUNew.cpp \
+		$(SRCDIR)/Differentiation.cpp \
+		$(SRCDIR)/DifferentiationSM.cpp \
+		$(SRCDIR)/DifferentiationFD.cpp

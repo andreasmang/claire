@@ -207,13 +207,14 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
+    /*
     if (this->m_Differentiation == NULL) {
         try {this->m_Differentiation = new DifferentiationSM(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-
+    */
 
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
@@ -397,14 +398,14 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     }
 
     // copy m_0 to m(t=0)
-    ierr = GetRawPointer(m0, &p_m0); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m0, p_m0+nl*nc, p_m);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(m0, &p_m0); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -439,14 +440,14 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     }
 
     // copy m(t=1) to m_1
-    ierr = GetRawPointer(m1, &p_m1); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(m1, &p_m1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
