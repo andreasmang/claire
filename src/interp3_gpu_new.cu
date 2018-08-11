@@ -109,74 +109,64 @@ __device__ float cubicTex3D_lagrangeFast( cudaTextureObject_t tex, const float3 
     float point0 = tex3D<float>( tex, idx[0], idy[0], idz[0]); // tex000
     float point1 = tex3D<float>( tex, idx[1], idy[0], idz[0]); // tex100
     float lin0 = tex3D<float>( tex, h0.x, idy[0], idz[0]); // y0z0
-    //float row0 = rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1); // (w0.x * tex000) + (g0.x * y0z0) + (w3.x * tex100)
+    // (w0.x * tex000) + (g0.x * y0z0) + (w3.x * tex100)
     Z0 = w0.y*rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1);
     
     point0 = tex3D<float>( tex, idx[0], idy[1], idz[0]); // tex010
     point1 = tex3D<float>( tex, idx[1], idy[1], idz[0]); // tex110
     lin0 = tex3D<float>( tex, h0.x, idy[1], idz[0]); // y1z0
-    //float row2 = rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1); // (w0.x * tex010) + (g0.x * y1z0) + (w3.x * tex110)
+    // (w0.x * tex010) + (g0.x * y1z0) + (w3.x * tex110)
     Z0 = fmaf(w3.y, rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1), Z0);
 
     lin0 = tex3D<float>( tex, idx[0], h0.y, idz[0]); // x0z0
     float lin1 = tex3D<float>( tex, idx[1], h0.y, idz[0]); // x1z0
     float bi0 = tex3D<float>( tex, h0.x, h0.y, idz[0]); // z0
-    //float row1 = rec3_fmaf( w0.x,  lin0,    g0.x,  bi0,    w3.x,  lin1); // (w0.x * x0z0) + (g0.x * z0) + (w3.x * x1z0)
+    // (w0.x * x0z0) + (g0.x * z0) + (w3.x * x1z0)
     Z0 = fmaf(g0.y, rec3_fmaf( w0.x,  lin0,    g0.x,  bi0,    w3.x,  lin1), Z0); 
-    
-    // weighting along y direction
-    //float Z0 = rec3_fmaf( w0.y, row0, g0.y, row1, w3.y, row2);
     
     ////////////////////////////////////////// slice 3 //////////////////////////////////////////////////////////
     // x weighting
     point0 = tex3D<float>( tex, idx[0], idy[0], idz[1]); // tex001
     point1 = tex3D<float>( tex, idx[1], idy[0], idz[1]); // tex101
     lin0 = tex3D<float>( tex, h0.x, idy[0], idz[1]); // y0z1
-    //row0 = rec3_fmaf( w0.x, point0, g0.x, lin0, w3.x, point1); // (w0.x * tex001) + (g0.x * y0z1) + (w3.x * tex101)
+    // (w0.x * tex001) + (g0.x * y0z1) + (w3.x * tex101)
     Z2 = w0.y * rec3_fmaf( w0.x, point0, g0.x, lin0, w3.x, point1);
 
     point0 = tex3D<float>( tex, idx[0], idy[1], idz[1]); // tex011
     point1 = tex3D<float>( tex, idx[1], idy[1], idz[1]); // tex111
     lin0 = tex3D<float>( tex, h0.x, idy[1], idz[1]); // y1z1
-    //row2 = rec3_fmaf( w0.x, point0, g0.x, lin0,  w3.x, point1); // (w0.x * tex011) + (g0.x * y1z1) + (w3.x * tex111)
+    // (w0.x * tex011) + (g0.x * y1z1) + (w3.x * tex111)
     Z2 = fmaf(w3.y, rec3_fmaf( w0.x, point0, g0.x, lin0,  w3.x, point1), Z2);
 
     lin0 = tex3D<float>( tex, idx[0], h0.y, idz[1]); // x0z1
     lin1 = tex3D<float>( tex, idx[1], h0.y, idz[1]); // x1z1
     bi0 = tex3D<float>( tex, h0.x, h0.y, idz[1]); // z1
-    //row1 = rec3_fmaf( w0.x, lin0,   g0.x, bi0,   w3.x, lin1); // (w0.x * x0z1) + (g0.x * z1) + (w3.x * x1z1);
+    // (w0.x * x0z1) + (g0.x * z1) + (w3.x * x1z1);
     Z2 = fmaf(g0.y, rec3_fmaf( w0.x, lin0,   g0.x, bi0,   w3.x, lin1), Z2);
     Z2 = fmaf(w0.z, Z0, w3.z*Z2);
 
-    // y weighting
-    //float Z2 = rec3_fmaf( w0.y, row0, g0.y, row1, w3.y, row2);
-    
     //////////////////////////////////////////////////// slice 2 ////////////////////////////////////////////////
     // single trilinear lookup
     lin0 = tex3D<float>( tex, idx[0], idy[0], h0.z); // x0y0
     lin1 = tex3D<float>( tex, idx[1], idy[0], h0.z); // x1y0
     bi0 = tex3D<float>( tex, h0.x, idy[0], h0.z); // y0
-    //row0 = rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1); // (w0.x * x0y0) + (g0.x * y0) + (w3.x * x1y0)
+    // (w0.x * x0y0) + (g0.x * y0) + (w3.x * x1y0)
     Z0 = w0.y* rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1);
 
     bi0 = tex3D<float>( tex, idx[0], h0.y, h0.z); // x0
     float bi1 = tex3D<float>( tex, idx[1], h0.y, h0.z); // x1
     float core = tex3D<float>( tex, h0.x, h0.y, h0.z); // core
-    //row1 = rec3_fmaf( w0.x, bi0, g0.x, core, w3.x, bi1); // (w0.x * x0) + (g0.x * core) + (w3.x * x1)
+    // (w0.x * x0) + (g0.x * core) + (w3.x * x1)
     Z0 = fmaf(g0.y, rec3_fmaf( w0.x, bi0, g0.x, core, w3.x, bi1), Z0);
 
 
     lin0 = tex3D<float>( tex, idx[0], idy[1], h0.z); // x0y1
     lin1 = tex3D<float>( tex, idx[1], idy[1], h0.z); // x1y1
     bi0 = tex3D<float>( tex, h0.x, idy[1], h0.z); // y1
-    //row2 = rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1); // (w0.x * x0y1) + (g0.x * y1) + (w3.x * x1y1)
+    // (w0.x * x0y1) + (g0.x * y1) + (w3.x * x1y1)
     Z0 = fmaf(w3.y, rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1), Z0);
     return fmaf(g0.z, Z0, Z2);
     
-    //float Z1 = rec3_fmaf( w0.y, row0, g0.y, row1, w3.y, row2);
-    
-    // weighting along z-direction
-    //return rec3_fmaf( w0.z, Z0, g0.z, Z1, w3.z, Z2);
 }
 
 
