@@ -47,7 +47,7 @@ following papers:
 #define one_six ((float)0.166666666666)
 #define m_one_six ((float)-0.166666666666)
 //#include "cutil_math_bugfixes.h"
-#include "helper_math.h"
+#include "cuda_helper_math.h"
 #include "math_func.cu"
 
 // Inline calculation of the lagrange convolution weights, without conditional statements

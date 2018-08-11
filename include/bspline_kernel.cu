@@ -48,7 +48,7 @@ following papers:
 #define two_three ((float)0.66666666666)
 
 //#include "cutil_math_bugfixes.h"
-#include "helper_math.h"
+#include "cuda_helper_math.h"
 #include "math_func.cu"
 
 // Cubic B-spline function
