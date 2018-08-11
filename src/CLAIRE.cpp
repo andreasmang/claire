@@ -2101,6 +2101,7 @@ PetscErrorCode CLAIRE::SolveStateEquationSL(void) {
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_m + lnext + k*nl, p_m + l + k*nl, "state"); CHKERRQ(ierr);
         }
     }
+    
     ierr = RestoreRawPointerReadWrite(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
