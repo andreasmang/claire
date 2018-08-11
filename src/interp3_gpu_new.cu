@@ -63,11 +63,6 @@ following papers:
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
-#define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-            _a > _b ? _a : _b; })
-
 #define KERNEL_DIM 4
 #define MAX_BLOCKS 1024
 
@@ -377,7 +372,70 @@ extern "C" cudaTextureObject_t initTextureFromVolume(cudaPitchedPtr volume, cuda
 
 }
 
+/********************************************************************
+ * @brief create texture object with empty data (cudaArray)
+ *******************************************************************/
+extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
+   cudaError_t err = cudaSuccess;
+   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+   cudaExtent extent = make_cudaExtent(nx[2], nx[1], nx[0]);
+   cudaArray* cuArray;
+   err = cudaMalloc3DArray(&cuArray, &channelDesc, extent, 0);
+   if (err != cudaSuccess){
+        fprintf(stderr, "Failed to allocate 3D cudaArray (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+   }
+    
+    /* create cuda resource description */
+    struct cudaResourceDesc resDesc;
+    memset( &resDesc, 0, sizeof(resDesc));
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = cuArray;
 
+    struct cudaTextureDesc texDesc;
+    memset(&texDesc, 0, sizeof(texDesc));
+    texDesc.addressMode[0] = cudaAddressModeWrap;
+    texDesc.addressMode[1] = cudaAddressModeWrap;
+    texDesc.addressMode[2] = cudaAddressModeWrap;
+    texDesc.readMode = cudaReadModeElementType;
+    texDesc.filterMode = cudaFilterModeLinear;
+    texDesc.normalizedCoords = 1;
+
+    cudaTextureObject_t texObj = 0;
+    err = cudaCreateTextureObject( &texObj, &resDesc, &texDesc, NULL);
+    if (err != cudaSuccess){
+        fprintf(stderr, "Failed to create texture (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+    return texObj;
+    
+
+}
+
+/********************************************************************************
+ * @brief update texture object by copying volume data to 3D cudaArray container
+ *******************************************************************************/
+void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextureObject_t texObj) {
+    cudaError_t err = cudaSuccess;
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+
+    /* create cuda resource description */
+    struct cudaResourceDesc resDesc;
+    memset( &resDesc, 0, sizeof(resDesc));
+    cudaGetTextureObjectResourceDesc( &resDesc, texObj);
+
+    cudaMemcpy3DParms p = {0};
+    p.srcPtr = volume;
+    p.dstArray = resDesc.res.array.array;
+    p.extent = extent;
+    p.kind = cudaMemcpyDeviceToDevice;
+    err = cudaMemcpy3D(&p);
+    if (err != cudaSuccess){
+        fprintf(stderr, "Failed to copy 3D memory to cudaArray (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+}
 
 /********************************************************************
  * @brief device function for computing the linear index from given 3D indices
@@ -388,55 +446,6 @@ __device__ int getLinearIdxfrom3DCoord(int x, int y, int z, int width, int heigh
     return  x +  width*y + width*height*z;
     
 }
-
-/********************************************************************
- * @brief device functions for computing the true velocity and function 
- * values at given coordinates for debugging purposes
- *******************************************************************/
-__device__ float computeVx(float x, float y, float z) {
-    return cosf(y)*cosf(z);
-}
-
-__device__ float computeVy(float x, float y, float z) {
-    return sinf(x)*sinf(z);
-}
-
-__device__ float computeVz(float x, float y, float z) {
-    return cosf(x)*cosf(y);
-}
-
-__device__ float computeM(float x, float y, float z) {
-    return (sinf(x)*sinf(x) + sinf(y)*sinf(y) + sinf(z)*sinf(z))/3.0f;
-}
-
-
-/********************************************************************
- * @brief kernel function for computing the linear index from given 3D indices
- *******************************************************************/
-__global__ void compareMemoryWithTexture( float* m, cudaPitchedPtr mptr, cudaTextureObject_t mtex, const float3 nx, const float3 inv_extent) {
-    const int tidx = blockIdx.x * blockDim.x + threadIdx.x;
-    const int tidy = blockIdx.y * blockDim.y + threadIdx.y;
-    const int tidz = blockIdx.z * blockDim.z + threadIdx.z;
-    const int tid = tidx*nx.y*nx.z + tidy*nx.z + tidz;
-    
-    float3 q = make_float3(tidx+0.5, tidy+0.5, tidz+0.5);
-    float3 qcoord = make_float3(tidx, tidy, tidz);
-    qcoord *= 2*PI*inv_extent.x;
-    q = q*inv_extent;
-    float mval = m[tid];
-    char* mptr1 = (char*)mptr.ptr;
-    size_t pitch = mptr.pitch;
-    size_t slicePitch = pitch*nx.y;
-    char* slice = mptr1 + tidx*slicePitch;
-    float* depth = (float*)(slice + tidy*pitch);
-    float mptrval = depth[tidz]; 
-    float mtexval = tex3D<float>(mtex, q.z, q.y, q.x);
-    float mtrue = computeVx(qcoord.x, qcoord.y, qcoord.z);
-    if (tid>=1 && tid<20) {
-        printf("[%d,%d,%d] \t tid = %d \t  mval = %f \t mptrval = %f \t mtexval = %f\t mtrue = %f\n", tidx, tidy, tidz, tid, mval, mptrval, mtexval, mtrue);
-    }
-}
-
 
 /********************************************************************
  * @brief interpolation kernel for scalar field
@@ -478,6 +487,7 @@ __global__ void interp3D_kernel(
  * @brief host function to do interpolation of a scalar field
  * @parm[in] yi input data values 
  * @parm[in] xq1,yq1,zq1 query coordinates
+ * @parm[in] yi_tex texture object
  * @parm[in] nx array denoting number of query coordinates in each dimension 
  * @parm[out] yo interpolated values
  * @parm[out] interp_time time for computing the interpolation
@@ -489,6 +499,7 @@ void gpuInterp3D(
            const PetscScalar* xq3,
            PetscScalar* yo,
            int*  nx,
+           cudaTextureObject_t yi_tex,
            float* interp_time)
 {
    
@@ -510,14 +521,6 @@ void gpuInterp3D(
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
    
-    // create cudaPitchedPointers for query points by copying them to another device location
-    //cudaPitchedPtr xq, yq, zq;
-    //xq = CopyVolumeDeviceToDevice(xq1, nq, 1, 1);
-    //yq = CopyVolumeDeviceToDevice(xq2, nq, 1, 1);
-    //zq = CopyVolumeDeviceToDevice(xq3, nq, 1, 1);
-    //////////////////////////////////////////////////////////////////////////////////////////////////    
-    
-   
 
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
@@ -525,30 +528,19 @@ void gpuInterp3D(
     //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-    // create a texture from the spline coefficients
-    cudaTextureObject_t yi_tex = initTextureFromVolume(yi_cudaPitchedPtr,  yi_extent);
+    
+    // update texture object
+    updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
 
     int threads = 256;
     int blocks = nq/threads;
     
-    // check the correctness of the input data by checking the consistency across
-    // the linear memory, pitched pointer and the texture
-/*	dim3 dimBlock(1, 16, 16);
-	dim3 dimGrid(nx[0] / dimBlock.x, nx[1] / dimBlock.y, nx[2] / dimBlock.z);
-    compareMemoryWithTexture<<<dimBlock, dimGrid>>>(yi, yi_cudaPitchedPtr, yi_tex, nxq, inv_nx);
-    if ( cudaSuccess != cudaGetLastError())
-        printf("Error in running the interp3D kernel\n");
-    cudaDeviceSynchronize(); 
-    printf("\n----------------------------------------------------------------------------------------------------------\n");
-*/
-
     // start recording the interpolation kernel
     time = 0; dummy_time = 0; 
     cudaEventRecord(startEvent,0); 
     
     // launch the interpolation kernel
     interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx);
-    //interp3D_kernel<<<blocks,threads>>>(yi_tex, (PetscScalar*)xq.ptr, (PetscScalar*)yq.ptr, (PetscScalar*)zq.ptr, yo, inv_nx);
     if ( cudaSuccess != cudaGetLastError())
         printf("Error in running the interp3D kernel\n");
 
@@ -558,75 +550,12 @@ void gpuInterp3D(
     time+=dummy_time;
     cudaDeviceSynchronize();
     
-    // free texture and cudaArray from device memory
-    cudaGetTextureObjectResourceDesc( &resDesc, yi_tex);
-    cudaDestroyTextureObject(yi_tex);
-    cudaFreeArray( resDesc.res.array.array);
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
     
-    printf("interp time = %fmsec\n", time);
+    // print interpolation time and number of interpolations in Mvoxels/sec
+    printf("interp time = %fmsec ==> %f MVoxels/sec\n", time, (nq/1E6)/(time/1000));
     *interp_time += time;
     
 }
 
-
-/********************************************************************
- * @brief kernel function to do get the initial condition i.e grid indices for SemiLagrangian 
- * @parm[out] x,y,z memory space for storing coordinates
- * @parm[in] nxq dimensions for the grid
- *******************************************************************/
-__global__ void getSMLInitialCondition_kernel(PetscScalar* x, PetscScalar* y, PetscScalar* z, const int3 nx) {
-     int tidx = blockIdx.x * blockDim.x + threadIdx.x;
-     int tidy = blockIdx.y * blockDim.y + threadIdx.y;
-     int tidz = blockIdx.z * blockDim.z + threadIdx.z;
-     int tid = tidx*nx.y*nx.z + tidy*nx.z + tidz;
-
-    x[tid] = static_cast<PetscScalar>(tidx);
-    y[tid] = static_cast<PetscScalar>(tidy);
-    z[tid] = static_cast<PetscScalar>(tidz);
-
-    if (tid>=4094 && tid<4098) {
-        printf("tid = %d \t x = %0.1f \t y = %0.1f \t z = %0.1f\n", tid, x[tid], y[tid], z[tid]);
-    }
-    
-}
-
-
-/********************************************************************
- * @brief host function to do get the initial condition i.e grid indices for SemiLagrangian 
- * @parm[out] x,y,z memory space for storing coordinates
- * @parm[out] compute_time time required to do the initialization
- *******************************************************************/
-void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, int* nx, PetscScalar* compute_time) {
-    float time=0, dummy_time=0;
-    cudaEvent_t startEvent, stopEvent;
-    cudaEventCreate(&startEvent);
-    cudaEventCreate(&stopEvent);
-    
-    const int3 nxq = make_int3(nx[0], nx[1], nx[2]);
-
-    dim3 dimBlock(1,16,16);
-	dim3 dimGrid( nx[0] / dimBlock.x, nx[1] / dimBlock.y, nx[2] / dimBlock.z );
-    
-/*	uint dimX = min(min(PowTwoDivider(nx[0]), PowTwoDivider(nx[1])), 64);
-	uint dimY = min(min(PowTwoDivider(nx[2]), PowTwoDivider(nx[1])), 512/dimX);
-	dim3 dimBlock(dimX, dimY);
-    
-	// Replace the voxel values by the b-spline coefficients
-	dim3 dimGrid(nx[1] / dimBlock.x, nx[2] / dimBlock.y);
-*/    
-    printf("blockx = %d, blocky = %d, gridx - %d, gridy = %d\n", dimBlock.x, dimBlock.y, dimGrid.x, dimGrid.y);
-  getSMLInitialCondition_kernel<<<dimBlock, dimGrid>>>(x, y, z, nxq);
-    
-    if ( cudaSuccess != cudaGetLastError())
-        printf("Error in running the SML initial condition kernel\n");
-    
-    cudaEventRecord(stopEvent,0);
-    cudaEventSynchronize(stopEvent);
-    cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
-    time+=dummy_time/1000;
-    cudaDeviceSynchronize();
-
-    *compute_time += time;
-}

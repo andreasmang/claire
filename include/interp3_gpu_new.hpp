@@ -9,7 +9,11 @@
 #include <cuda_runtime.h>
 
 
-void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx, PetscScalar* interp_time);
-void getSemiLagrangianInitialCondition(PetscScalar* x, PetscScalar* y, PetscScalar* z, int* nx, PetscScalar* compute_time);
+void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx,
+cudaTextureObject_t yi_tex, PetscScalar* interp_time);
+
+extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx);
+
+
 
 #endif

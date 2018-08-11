@@ -25,7 +25,6 @@
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
 #include "interp3_gpu_new.hpp"
-#include "interp3.hpp"
 
 
 
@@ -65,6 +64,7 @@ class SemiLagrangianGPUNew {
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    PetscErrorCode InitializeInterpolationTexture();
 
     virtual PetscErrorCode CommunicateCoord(std::string);
     PetscErrorCode ComputeTrajectoryRK2(VecField*, std::string);
@@ -78,6 +78,8 @@ class SemiLagrangianGPUNew {
     VecField* m_InitialTrajectory;
 
     int m_Dofs[2];
+    
+    cudaTextureObject_t m_texture;
 
     struct GhostPoints {
         int isize[3];
