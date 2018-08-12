@@ -73,8 +73,7 @@ CLAIRE_INC = -I$(INCDIR)
 
 ifeq ($(USECUDA),yes)
     # CUDA includes
-    CUDA_INTERP = $(HOME)/cudainterp3d
-    CUDA_INC = -I$(CUDA_DIR)/include -I$(CUDA_INTERP)/include -I$(INCDIR) -I$(HOME)/CUDA-9.1/samples/common/inc
+    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR)
 endif
 
 ifeq ($(USECUDA),yes)

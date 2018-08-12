@@ -86,5 +86,4 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
 		$(SRCDIR)/SemiLagrangianGPUNew.cpp \
 		$(SRCDIR)/Differentiation.cpp \
-		$(SRCDIR)/DifferentiationSM.cpp \
 		$(SRCDIR)/DifferentiationFD.cpp
