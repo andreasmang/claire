@@ -207,14 +207,14 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
-    /*
+    
     if (this->m_Differentiation == NULL) {
         try {this->m_Differentiation = new DifferentiationSM(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-    */
+    
 
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
