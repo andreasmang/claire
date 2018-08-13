@@ -873,7 +873,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
  *******************************************************************/
 PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType hd, value, nvx1, nvx2, nvx3;
+    ScalarType value, nvx1, nvx2, nvx3;
     std::stringstream ss;
     PetscFunctionBegin;
 
