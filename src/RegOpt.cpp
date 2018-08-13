@@ -783,6 +783,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-synthetic") == 0) {
             argc--; argv++;
             this->m_RegFlags.synprobid = atoi(argv[1]);
+            this->m_RegFlags.runsynprob = true;
         } else {
             msg = "\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -1217,6 +1218,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.runinversion = true;               ///< flag indicating that we run the inversion (switches on storage of m)
     this->m_RegFlags.registerprobmaps = false;          ///< flag indicating that we run the registration on probabilty maps (allows us to ensure partition of unity when writing results to file)
     this->m_RegFlags.synprobid = 0;                     ///< id to select synthetic problem to be performed
+    this->m_RegFlags.runsynprob = false;
 
     // parameter continuation
     this->m_ParaCont = {};
@@ -1571,8 +1573,10 @@ PetscErrorCode RegOpt::CheckArguments() {
         ierr = this->Usage(); CHKERRQ(ierr);
     } else if ( (readmT == false) && (readmR == false) ) {
         this->m_ReadWriteFlags.readfiles = false;
-        if (this->m_Verbosity > 2) {
-            ierr = DbgMsg("no input images set"); CHKERRQ(ierr);
+        if (this->m_RegFlags.runsynprob == false) {
+            msg = "\n\x1b[31m either define input images or specify synthetic test problem\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
 

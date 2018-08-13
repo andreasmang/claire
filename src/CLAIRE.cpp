@@ -207,14 +207,14 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
 
-    
+
     if (this->m_Differentiation == NULL) {
         try {this->m_Differentiation = new DifferentiationSM(this->m_Opt);}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-    
+
 
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
@@ -874,7 +874,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
  *******************************************************************/
 PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType  value, nvx1, nvx2, nvx3;
+    ScalarType value, nvx1, nvx2, nvx3;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -2102,7 +2102,7 @@ PetscErrorCode CLAIRE::SolveStateEquationSL(void) {
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_m + lnext + k*nl, p_m + l + k*nl, "state"); CHKERRQ(ierr);
         }
     }
-    
+
     ierr = RestoreRawPointerReadWrite(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
