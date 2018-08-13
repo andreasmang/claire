@@ -450,19 +450,11 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
     ierr = GetRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
     this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);
 
 
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jac, this->m_Opt->m_FFT.plan, &XYZ, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_gx1, p_gx2, p_gx3, p_jac);
 
 
@@ -472,10 +464,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
             p_jbar[i] = p_jac[i] + ht*p_rhs0[i];
         }
 
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gx1, p_gx2, p_gx3, p_jbar, this->m_Opt->m_FFT.plan, &XYZ, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_gx1, p_gx2, p_gx3, p_jbar);
 
 
@@ -550,10 +538,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
     ierr = GetRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
 
     // compute div(v)
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
     this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);
 
 
@@ -576,16 +560,9 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
         // compute grad(\phi_j)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phi, this->m_Opt->m_FFT.plan, &XYZ, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
+        this->m_Differentiation->Gradient(p_gphi1, p_gphi2, p_gphi3, p_phi);
 
         // compute div(\vect{v}\phi_j)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->m_FFT.plan, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
         this->m_Differentiation->Divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3);
 #pragma omp parallel
 {
@@ -607,17 +584,9 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
         }
 } // pragma omp
 
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gphi1, p_gphi2, p_gphi3, p_phibar, this->m_Opt->m_FFT.plan, &XYZ, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_gphi1, p_gphi2, p_gphi3, p_phibar);
 
         // compute div(\vect{v}\bar{\phi}_j)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_divergence_t(p_divvphi, p_phiv1, p_phiv2, p_phiv3, this->m_Opt->m_FFT.plan, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
         this->m_Differentiation->Divergence(p_divvphi, p_phiv1, p_phiv2, p_phiv3);
 #pragma omp parallel
 {
@@ -717,10 +686,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     alpha = inverse ? -1.0 : 1.0;
 
     // compute div(v)
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_vx1, p_vx2, p_vx3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
     this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);
 
     // compute div(v) at X
@@ -809,12 +774,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradViaDispField() {
     ierr = this->m_WorkVecField4->GetArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
 
     // compute gradient of components of displacement field
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(p_gu11, p_gu12, p_gu13, p_u1,this->m_Opt->m_FFT.plan,&XYZ,timer);
-    accfft_grad_t(p_gu21, p_gu22, p_gu23, p_u2,this->m_Opt->m_FFT.plan,&XYZ,timer);
-    accfft_grad_t(p_gu31, p_gu32, p_gu33, p_u3,this->m_Opt->m_FFT.plan,&XYZ,timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);*/
     this->m_Differentiation->Gradient(p_gu11, p_gu12, p_gu13, p_u1);
     this->m_Differentiation->Gradient(p_gu21, p_gu22, p_gu23, p_u2);
     this->m_Differentiation->Gradient(p_gu31, p_gu32, p_gu33, p_u3);
@@ -1061,12 +1020,6 @@ PetscErrorCode DeformationFields::ComputeDefGradSL() {
                                             p_gv21X, p_gv22X, p_gv23X,
                                             p_gv31X, p_gv32X, p_gv33X); CHKERRQ(ierr);
 
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(p_gv11, p_gv12, p_gv13, p_v1, this->m_Opt->m_FFT.plan, &XYZ, timer);  ///< X1 gradient
-    accfft_grad_t(p_gv21, p_gv22, p_gv23, p_v2, this->m_Opt->m_FFT.plan, &XYZ, timer);  ///< X2 gradient
-    accfft_grad_t(p_gv31, p_gv32, p_gv33, p_v3, this->m_Opt->m_FFT.plan, &XYZ, timer);  ///< X3 gradient
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 3*FFTGRAD);*/
     this->m_Differentiation->Gradient(p_gv11, p_gv12, p_gv13, p_v1);
     this->m_Differentiation->Gradient(p_gv21, p_gv22, p_gv23, p_v2);
     this->m_Differentiation->Gradient(p_gv31, p_gv32, p_gv33, p_v3);

@@ -37,6 +37,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "zeitgeist.hpp"
+
+
 #ifdef REG_HAS_PNETCDF
 #include "pnetcdf.h"
 #endif

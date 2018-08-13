@@ -185,6 +185,8 @@ PetscErrorCode RegularizationH1SN::EvaluateGradient(VecField* dvR, VecField* v) 
         nx[1] = this->m_Opt->m_Domain.nx[1];
         nx[2] = this->m_Opt->m_Domain.nx[2];
 
+        ZeitGeist_define(FFT_H1SN);
+        ZeitGeist_tick(FFT_H1SN);
         // compute forward fft
         this->m_Opt->StartTimer(FFTSELFEXEC);
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -247,7 +249,8 @@ PetscErrorCode RegularizationH1SN::EvaluateGradient(VecField* dvR, VecField* v) 
 
         // increment fft timer
         this->m_Opt->IncreaseFFTTimers(timer);
-
+        
+        ZeitGeist_tock(FFT_H1SN);
     }
 
     this->m_Opt->Exit(__func__);

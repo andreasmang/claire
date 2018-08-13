@@ -92,6 +92,15 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
 
     // delete all variables
     ierr = this->ClearVariables(); CHKERRQ(ierr);
+    
+#ifdef ZEITGEIST
+    printf("-----------------------------------------------------------------------------------------------------\n");
+    printf("ZeitGeist:\n");
+    for (auto zg : ZeitGeist::zgMap()) {
+      printf("  %16s: %5lix, %10lf\n",zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
+    }
+    printf("-----------------------------------------------------------------------------------------------------\n");
+#endif
 
     PetscFunctionReturn(ierr);
 }
@@ -918,6 +927,8 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     }
 
     // start timer
+    ZeitGeist_define(EVAL_GRAD);
+    ZeitGeist_tick(EVAL_GRAD);
     ierr = this->m_Opt->StartTimer(GRADEXEC); CHKERRQ(ierr);
 
     // parse input arguments
@@ -995,6 +1006,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
 
     // increment counter
     this->m_Opt->IncrementCounter(GRADEVAL);
+    ZeitGeist_tock(EVAL_GRAD);
 
     this->m_Opt->Exit(__func__);
 
@@ -1130,10 +1142,6 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
         ierr = GetRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {  // for all components
             // compute gradient of m
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_mt+k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_mt+k*nl);
 
             // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
@@ -1159,10 +1167,6 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
                 l = j*nl*nc + k*nl;
 
                 // grad(m^j)
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+l, this->m_Opt->m_FFT.plan, &xyz, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+l);
 
 #pragma omp parallel
@@ -1665,17 +1669,9 @@ PetscErrorCode CLAIRE::ComputeIncBodyForce() {
                 l = j*nl*nc + k*nl;
 
                 // computing gradient of m
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+l, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+l);
 
                 // computing gradient of \tilde{m}
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gradmt1, p_gradmt2, p_gradmt3, p_mt+l, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gradmt1,p_gradmt2,p_gradmt3,p_mt+l);
 
 #pragma omp parallel
@@ -1712,10 +1708,6 @@ PetscErrorCode CLAIRE::ComputeIncBodyForce() {
                 l = j*nl*nc + k*nl;
 
                 // compute gradient of m^j
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m+l, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+l);
 
 #pragma omp parallel
@@ -1832,6 +1824,9 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(SOLVE_STATE);
+    ZeitGeist_tick(SOLVE_STATE);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1932,6 +1927,8 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
+    
+    ZeitGeist_tock(SOLVE_STATE);
 
     this->m_Opt->Exit(__func__);
 
@@ -2003,10 +2000,6 @@ PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
 
         for (IntType k = 0; k < nc; ++k) {
             // compute gradient of k-th component of m_j
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + l + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+l+k*nl);
 
             // evaluate right hand side and compute intermediate rk2 step
@@ -2023,10 +2016,6 @@ PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
             }
 }  // omp
             // compute gradient of \bar{m}
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_mbar, this->m_Opt->m_FFT.plan, &XYZ, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_mbar);
 
             // evaluate right hand side and wrap up integration
@@ -2146,6 +2135,9 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(SOLVE_ADJ);
+    ZeitGeist_tick(SOLVE_ADJ);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2225,10 +2217,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
         for (IntType k = 0; k < nc; ++k) {  // for all components
             // compute gradient of m
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+k*nl);
 
             // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
@@ -2289,6 +2277,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
+    
+    ZeitGeist_tock(SOLVE_ADJ);
 
     this->m_Opt->Exit(__func__);
 
@@ -2393,10 +2383,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
             }  // for all grid points
 }  // omp
             // compute \idiv(\lambda\vect{v})
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_divergence_t(p_rhs0, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
             this->m_Differentiation->Divergence(p_rhs0,p_vec1,p_vec2,p_vec3);
 
 #pragma omp parallel
@@ -2413,17 +2399,9 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
             }
 }  // omp
             // compute \idiv(\bar{\lambda}\vect{v})
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_divergence_t(p_rhs1, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
             this->m_Differentiation->Divergence(p_rhs1,p_vec1,p_vec2,p_vec3);
 
             // grad(m^j)
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm+k*nl);
 
 #pragma omp parallel
@@ -2450,10 +2428,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m + lm, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm);
 
         for (IntType i = 0; i < nl; ++i) {  // for all grid points
@@ -2507,6 +2481,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -2562,11 +2537,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
 
     // compute divergence of velocity field
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
     this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
 
     // interpolate velocity field v(X)
@@ -2603,10 +2573,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_lx, p_l + ll + k*nl, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m (for incremental body force)
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm+k*nl);
 #pragma omp parallel
 {
@@ -2637,10 +2603,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_vec1, p_vec2, p_vec3, p_m + lm, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm);
 
 #pragma omp parallel
@@ -2665,7 +2627,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
     //this->m_Opt->IncreaseFFTTimers(timer);
-
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -2741,11 +2703,6 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
 
     // compute divergence of velocity field
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
     this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
 
     // interpolate velocity field v(X)
@@ -2971,10 +2928,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
         // compute gradient of first time point of image component
         for (IntType k = 0; k < nc; ++k) {
             // template image is constant in time
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+k*nl);
 
             // compute incremental state variable for all time points
@@ -3017,17 +2970,9 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
                 }
 
                 // compute gradient of m_j
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+lm+k*nl);
 
                 // compute gradient of \tilde{m}_j
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmtx1, p_gmtx2, p_gmtx3, p_mt + lmt + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gmtx1,p_gmtx2,p_gmtx3,p_mt+lmt+k*nl);
 
                 for (IntType i = 0; i < nl; ++i) {
@@ -3038,17 +2983,9 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
                 }
 
                 // compute gradient of m_{j+1}
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmx1, p_gmx2, p_gmx3, p_m + lmnext, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+lmnext);
 
                 // compute gradient of \tilde{m}_j
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gmtx1, p_gmtx2, p_gmtx3, p_mtbar, this->m_Opt->m_FFT.plan, &XYZ, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gmtx1,p_gmtx2,p_gmtx3,p_mtbar);
 
 #pragma omp parallel
@@ -3183,10 +3120,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
 
 
             // compute gradient for state variable
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gm1,p_gm2,p_gm3,p_m+lm+k*nl);
 
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_gm1, p_gm2, p_gm3, p_gm1, p_gm2, p_gm3, "state"); CHKERRQ(ierr);
@@ -3202,10 +3135,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
             }
 }  // omp
             // compute gradient for state variable at next time time point
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_m + lmnext + k*nl, this->m_Opt->m_FFT.plan, &XYZ, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gm1,p_gm2,p_gm3,p_m+lmnext+k*nl);
 
 #pragma omp parallel
@@ -3332,10 +3261,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
             // $m$ and $\tilde{\lambda}$ are constant
             for (IntType k = 0; k < nc; ++k) {  // for all components
                 // compute gradient of m
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
                 this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+k*nl);
 
 #pragma omp parallel
@@ -3517,10 +3442,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
             }  // for all grid points
 }  // omp
             // compute \idiv(\tilde{\lambda}\vect{v})
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_divergence_t(p_rhs0, p_ltjvx1, p_ltjvx2, p_ltjvx3, this->m_Opt->m_FFT.plan, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
             this->m_Differentiation->Divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3);
 
 #pragma omp parallel
@@ -3537,17 +3458,9 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
             }
 }  // omp
             // compute \idiv(\bar{\lambda}\vect{v})
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_divergence_t(p_rhs1, p_ltjvx1, p_ltjvx2, p_ltjvx3, this->m_Opt->m_FFT.plan, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
             this->m_Differentiation->Divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3);
 
             // compute gradient of m^j
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm+k*nl);
 
 #pragma omp parallel
@@ -3574,10 +3487,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm);
 
 #pragma omp parallel
@@ -3677,10 +3586,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
             }  // for all grid points
 }  // omp
             // compute \idiv(\tilde{\lambda}\vect{v})
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_divergence_t(p_rhs0, p_ltjvx1, p_ltjvx2, p_ltjvx3, this->m_Opt->m_FFT.plan, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
             this->m_Differentiation->Divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3);
 
             // compute numerical time integration
@@ -3724,10 +3629,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
                 }  // for all grid points
 }  // omp
                 // compute \idiv(\tilde{\lambda}\vect{v})
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_divergence_t(p_rhs0, p_ltjvx1, p_ltjvx2, p_ltjvx3, this->m_Opt->m_FFT.plan, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
                 this->m_Differentiation->Divergence(p_rhs0,p_ltjvx1,p_ltjvx1,p_ltjvx3);
 
 #pragma omp parallel
@@ -3745,10 +3646,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
                 }
 }  // omp
                 // compute \idiv(\bar{\lambda}\vect{v})
-                /*this->m_Opt->StartTimer(FFTSELFEXEC);
-                accfft_divergence_t(p_rhs1, p_ltjvx1, p_ltjvx2, p_ltjvx3, this->m_Opt->m_FFT.plan, timer);
-                this->m_Opt->StopTimer(FFTSELFEXEC);
-                this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
                 this->m_Differentiation->Divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3);
 
 #pragma omp parallel
@@ -3850,11 +3747,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
     ierr = GetRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Opt->IncrementCounter(FFT, FFTDIV);*/
     this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
 
     // compute v(X)
@@ -3889,10 +3781,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildex, p_ltilde + ll, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m^j
-            /*this->m_Opt->StartTimer(FFTSELFEXEC);
-            accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm + k*nl, this->m_Opt->m_FFT.plan, &xyz, timer);
-            this->m_Opt->StopTimer(FFTSELFEXEC);
-            this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
             this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm+k*nl);
 
 #pragma omp parallel
@@ -3925,10 +3813,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
         ll = k*nl; lm = k*nl;
 
         // compute gradient of m (for incremental body force)
-        /*this->m_Opt->StartTimer(FFTSELFEXEC);
-        accfft_grad_t(p_gradm1, p_gradm2, p_gradm3, p_m + lm, this->m_Opt->m_FFT.plan, &xyz, timer);
-        this->m_Opt->StopTimer(FFTSELFEXEC);
-        this->m_Opt->IncrementCounter(FFT, FFTGRAD);*/
         this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm);
 
 #pragma omp parallel

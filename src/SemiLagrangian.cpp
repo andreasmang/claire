@@ -536,7 +536,10 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
+    
+    ZeitGeist_define(SL_INTERPOL);
+    ZeitGeist_tick(SL_INTERPOL);
+    
     ierr = Assert(xi != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xo != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -580,6 +583,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);
+    
+    ZeitGeist_tock(SL_INTERPOL);
 
     this->m_Opt->Exit(__func__);
 
@@ -633,6 +638,9 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(SL_INTERPOL);
+    ZeitGeist_tick(SL_INTERPOL);
 
     ierr = Assert(vx1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(vx2 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -714,6 +722,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
+    
+    ZeitGeist_tock(SL_INTERPOL);
 
     this->m_Opt->Exit(__func__);
 

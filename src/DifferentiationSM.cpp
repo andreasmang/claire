@@ -101,6 +101,9 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    ZeitGeist_define(FFT_GRAD);
+    ZeitGeist_tick(FFT_GRAD);
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -110,6 +113,8 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     
     this->m_Opt->IncreaseFFTTimers(timer);
     c_grad++;
+    
+    ZeitGeist_tock(FFT_GRAD);
 
     PetscFunctionReturn(ierr);
 }
@@ -130,7 +135,7 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     this->m_Opt->StartTimer(FFTSELFEXEC);
     accfft_laplace_t(l, m, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
-    
+
     this->m_Opt->IncreaseFFTTimers(timer);
 
     PetscFunctionReturn(ierr);
@@ -174,6 +179,9 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    ZeitGeist_define(FFT_DIV);
+    ZeitGeist_tick(FFT_DIV);
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -184,6 +192,8 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     c_div++;
     
     this->m_Opt->IncreaseFFTTimers(timer);
+    
+    ZeitGeist_tock(FFT_DIV);
 
     PetscFunctionReturn(ierr);
 }
