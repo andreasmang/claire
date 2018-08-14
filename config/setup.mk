@@ -58,8 +58,8 @@ ifeq ($(USENIFTI),yes)
 endif
 
 ifeq ($(USECUDA),yes)
-	#CXXFLAGS += -DREG_HAS_CUDA
-	CXXFLAGS += -DREG_FFT_CUDA
+	CXXFLAGS += -DREG_HAS_CUDA
+	#CXXFLAGS += -DREG_FFT_CUDA
 endif
 
 BINDIR = ./bin
@@ -174,9 +174,9 @@ LDFLAGS += -lm
 
 # FFT LIBRARIES
 LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
-ifeq ($(USECUDA),yes)
-    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
-endif
+#ifeq ($(USECUDA),yes)
+#    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
+#endif
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif

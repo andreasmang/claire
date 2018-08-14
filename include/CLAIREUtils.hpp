@@ -53,9 +53,9 @@
 #include "accfft_operators.h"
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
-//#include "petsccuda.h"
+#include "petsccuda.h"
 #include "cuda.h"
-//#include <petsc/private/vecimpl.h>
+#include <petsc/private/vecimpl.h>
 #endif
 
 #if defined(REG_FFT_CUDA)

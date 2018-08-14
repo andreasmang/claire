@@ -52,6 +52,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
 		$(SRCDIR)/Differentiation.cpp \
+		$(SRCDIR)/DifferentiationSM.cpp \
 		$(SRCDIR)/DifferentiationFD.cpp \
 		$(SRCDIR)/DifferentiationSMGPU.cpp \
 		$(SRCDIR)/VecField.cpp \
