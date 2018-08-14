@@ -251,7 +251,7 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
     PetscErrorCode ierr = 0;
     IntType nl, ng;
     std::stringstream ss;
-    ScalarType value, hd, alpha, jvt, jv, lsred, descent;
+    ScalarType value, alpha, jvt, jv, lsred, descent;
     Vec g = NULL, dv = NULL, v = NULL, vtilde = NULL;
     bool lssuccess, restoreinitialguess = false;
     PetscFunctionBegin;
@@ -342,12 +342,9 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
     }
     ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
-    // get lebesque measure
-    hd = this->m_Opt->GetLebesqueMeasure();
-
     // evaluate distance measure
     ierr = this->EvaluateDistanceMeasure(&value); CHKERRQ(ierr);
-    this->m_Opt->m_Monitor.dval0 = hd*value;
+    this->m_Opt->m_Monitor.dval0 = value;
 
     // evaluate objective functional
     ierr = this->EvaluateObjective(&value, v); CHKERRQ(ierr);
@@ -818,14 +815,11 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
  *******************************************************************/
 PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType D = 0.0, R = 0.0, hd;
+    ScalarType D = 0.0, R = 0.0;
     std::stringstream ss;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    // get lebesque measure
-    hd = this->m_Opt->GetLebesqueMeasure();
 
     // allocate
     if (this->m_VelocityField == NULL) {
@@ -861,12 +855,12 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     // add up the contributions
-    *J = hd*(D + R);
+    *J = D + R;
 
     // store for access (e.g., used in coupling)
     this->m_Opt->m_Monitor.jval = *J;
-    this->m_Opt->m_Monitor.dval = hd*D;
-    this->m_Opt->m_Monitor.rval = hd*R;
+    this->m_Opt->m_Monitor.dval = D;
+    this->m_Opt->m_Monitor.rval = R;
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "J(v) = D(v) + R(v) = " << std::scientific
@@ -895,7 +889,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
  *******************************************************************/
 PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     PetscErrorCode ierr = 0;
-    ScalarType hd, value, nvx1, nvx2, nvx3;
+    ScalarType value, nvx1, nvx2, nvx3;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -990,8 +984,8 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // parse to output
     if (g != NULL) {
         // get and scale by lebesque measure
-        hd = this->m_Opt->GetLebesqueMeasure();
-        ierr = VecScale(g, hd); CHKERRQ(ierr);
+//        hd = this->m_Opt->GetLebesgueMeasure();
+//        ierr = VecScale(g, hd); CHKERRQ(ierr);
 
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -1089,12 +1083,10 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     IntType nt, nl, nc, l;
     std::stringstream ss;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     ScalarType *p_mt = NULL, *p_m = NULL, *p_l = NULL,
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType ht, scale, lambda, value;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1199,8 +1191,6 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
         ss.clear(); ss.str(std::string());
     }
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1212,7 +1202,7 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
 /********************************************************************
  * @brief applies the hessian to a vector
  * @param[in] vtilde incremental velocity field
- * @param[in] scale flag to switch on scaling by lebesque measure
+ * @param[in] scale flag to switch on scaling by lebesgue measure
  * @param[out] Hvtilde hessian applied to vector
  *******************************************************************/
 PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
@@ -1234,6 +1224,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
         {
             // apply hessian H to \tilde{v}
             ierr = this->HessMatVec(Hvtilde, vtilde); CHKERRQ(ierr);
+            //ierr = VecCopy(vtilde, Hvtilde); CHKERRQ(ierr);
             break;
         }
         case PRECONDMATVEC:
@@ -1258,10 +1249,11 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 
 
     if (Hvtilde != NULL) {
-        // scale by lebesque measure
-        if (scale) {
-            hd = this->m_Opt->GetLebesqueMeasure();
-            ierr = VecScale(Hvtilde, hd); CHKERRQ(ierr);
+        // TODO @ Andreas: fix for two-level precond
+        // scale by lebesgue measure
+        if (scale == false) {
+            hd = this->m_Opt->GetLebesgueMeasure();
+            ierr = VecScale(Hvtilde, 1/hd); CHKERRQ(ierr);
         }
 
 //        gamma = this->m_Opt->m_KrylovMethod.hessshift;
@@ -1362,6 +1354,7 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
  *******************************************************************/
 PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
+    ScalarType hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1407,7 +1400,8 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1} \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
-    ierr = this->m_WorkVecField2->WAXPY(1.0, this->m_IncVelocityField, this->m_WorkVecField1); CHKERRQ(ierr);
+    hd = this->m_Opt->GetLebesgueMeasure();
+    ierr = this->m_WorkVecField2->WAXPY(hd, this->m_IncVelocityField, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
     if (Hvtilde != NULL) {
@@ -1431,6 +1425,7 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
  *******************************************************************/
 PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
+    ScalarType hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -1494,6 +1489,8 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta \D{A})^{-1/2}
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
+    hd = this->m_Opt->GetLebesgueMeasure();
+    ierr = this->m_WorkVecField5->Scale(hd); CHKERRQ(ierr);
     ierr = this->m_WorkVecField5->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     // pass to output
@@ -1602,9 +1599,7 @@ PetscErrorCode CLAIRE::ComputeIncBodyForce() {
                 *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                 *p_gradmt1 = NULL, *p_gradmt2 = NULL, *p_gradmt3 = NULL;
-    //std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, scale, lj, ltj;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -1737,8 +1732,6 @@ PetscErrorCode CLAIRE::ComputeIncBodyForce() {
 
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);  // state variable for all t^j
     ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);  // incremental adjoint variable for all t^j
-
-    //this->m_Opt->IncreaseFFTTimers(timer);
 
     this->m_Opt->Exit(__func__);
 
@@ -1952,8 +1945,6 @@ PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
                 *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
     ScalarType ht = 0.0, hthalf = 0.0, rhs1;
     bool store = true;
-    //std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -2043,8 +2034,6 @@ PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
     ierr = this->m_WorkVecField1->RestoreArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -2128,8 +2117,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     IntType nl, nc, ng, nt;
     ScalarType *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_m = NULL, *p_l = NULL;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    //double timer[NFFTTIMERS] = {0};
+    ScalarType hd;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -2148,6 +2136,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
+    hd  = this->m_Opt->GetLebesgueMeasure();
 
     if (this->m_Opt->m_Verbosity > 2) {
         ss << "solving adjoint equation (nx1,nx2,nx3,nc,nt) = ("
@@ -2237,9 +2226,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
         // for full newton method we have to store the adjoint variable
         ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-
-        // increment timers
-        //this->m_Opt->IncreaseFFTTimers(timer);
     } else {
         // call the solver
         switch (this->m_Opt->m_PDESolver.type) {
@@ -2263,6 +2249,9 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
+
+    // scale result by hd
+    ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
@@ -2300,8 +2289,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
                *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType hthalf, ht, lambdabar, lambda, scale;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    //double timer[NFFTTIMERS] = {0};
     bool fullnewton = false;
     PetscFunctionBegin;
 
@@ -2448,8 +2435,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
     ierr = RestoreRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
@@ -2474,14 +2459,11 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
                 *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
     ScalarType ht, lambdax, lambda, rhs0, rhs1, scale;
     IntType nl, ng, nc, nt, ll, lm, llnext;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     bool fullnewton = false;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-    
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -2626,8 +2608,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -2648,10 +2628,7 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
                 *p_m = NULL, *p_mx = NULL;
     ScalarType mx, rhs0, rhs1, ht, hthalf;
     IntType nl, ng, nc, nt, l, lnext;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     bool store;
-
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -2751,8 +2728,6 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    //this->m_Opt->IncreaseFFTTimers(timer);
 
     this->m_Opt->Exit(__func__);
     PetscFunctionReturn(ierr);
@@ -2873,8 +2848,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
                 *p_gmtx1 = NULL, *p_gmtx2 = NULL, *p_gmtx3 = NULL,
                 *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL, *p_rhs0 = NULL;
     ScalarType ht, hthalf;
-    //std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    //double timer[NFFTTIMERS] = {0};
     bool fullnewton = false;
 
     PetscFunctionBegin;
@@ -3017,8 +2990,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
     ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
@@ -3037,13 +3008,11 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
 PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nt, nc, lm, lmnext, lmt, lmtnext;
-    //std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     ScalarType ht, hthalf;
     ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
                 *p_mtilde = NULL, *p_m = NULL, *p_mx = NULL;
     const ScalarType *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL,
                      *p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL;
-    //double timer[NFFTTIMERS] = {0};
     bool fullnewton = false;
     PetscFunctionBegin;
 
@@ -3157,8 +3126,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
     ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
@@ -3181,8 +3148,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
                *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL;
     IntType nl, ng, nc, nt;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    //double timer[NFFTTIMERS] = {0};
+    ScalarType hd;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -3196,6 +3162,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
+    hd  = this->m_Opt->GetLebesgueMeasure();
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -3224,6 +3191,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
+    ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetFinalConditionIAE(); CHKERRQ(ierr);
@@ -3280,9 +3249,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
             ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
             ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-
-            // increment timers
-            //this->m_Opt->IncreaseFFTTimers(timer);
         } else {
             // call the solver
             switch (this->m_Opt->m_PDESolver.type) {
@@ -3331,6 +3297,10 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     // apply K[\tilde{b}]
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
+    // scale result by hd
+    ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
+
+
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
@@ -3369,9 +3339,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
                 *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
                 *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL,
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
     ScalarType ht, hthalf, scale, ltilde;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -3511,8 +3479,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -3537,7 +3503,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
                 *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL,
                 *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
     ScalarType ht, hthalf, lambda, lambdatilde, ltbar;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -3668,7 +3633,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
     ierr = this->m_IncVelocityField->RestoreArrays(p_vtx1, p_vtx2, p_vtx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
 
-    //this->m_Opt->IncreaseFFTTimers(timer);
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
@@ -3694,8 +3658,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
                 *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
                 *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
     ScalarType ht, hthalf, ltilde, ltildex, rhs0, rhs1, scale;
-    //std::bitset<3> xyz; xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
 
@@ -3746,7 +3708,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
     // compute divergence of velocity field
     ierr = GetRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    
     this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
 
     // compute v(X)
@@ -3837,8 +3798,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
     ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
 
-    // increment fft timer
-    //this->m_Opt->IncreaseFFTTimers(timer);
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

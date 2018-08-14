@@ -101,8 +101,9 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_Distance.type = opt.m_Distance.type;
     this->m_Distance.reset = opt.m_Distance.reset;
-
-    this->m_RegNorm.type = opt.m_RegNorm.type;
+    this->m_Distance.scale = opt.m_Distance.scale;
+    
+this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];  // weight for regularization operator A[v]
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];  // weight for identity operator in regularization norms (constant)
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[div(v)] (incompressibility)
@@ -115,7 +116,6 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_PDESolver.monitorcflnumber = opt.m_PDESolver.monitorcflnumber;
     this->m_PDESolver.adapttimestep = opt.m_PDESolver.adapttimestep;
     this->m_PDESolver.pdetype = opt.m_PDESolver.pdetype;
-
 
     this->m_RegModel = opt.m_RegModel;
 
@@ -677,6 +677,17 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-hessshift") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.hessshift = atof(argv[1]);
+        } else if (strcmp(argv[1], "-distance") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "sl2") == 0) {
+                this->m_Distance.type = SL2;
+	    } else if (strcmp(argv[1], "ncc") == 0) {
+                this->m_Distance.type = NCC;
+            } else {
+                msg = "\n\x1b[31m distance measure not available: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-regnorm") == 0) {
             argc--; argv++;
             if (strcmp(argv[1], "h1s") == 0) {
@@ -748,7 +759,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             }
             // perform at least one iteration
             this->m_OptPara.miniter = 1;
-
             this->m_ParaCont.strategy = PCONTINUATION;
             this->m_ParaCont.enabled = true;
 
@@ -773,6 +783,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-synthetic") == 0) {
             argc--; argv++;
             this->m_RegFlags.synprobid = atoi(argv[1]);
+            this->m_RegFlags.runsynprob = true;
         } else {
             msg = "\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -1066,6 +1077,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Distance = {};
     this->m_Distance.type = SL2;                        ///< default distance measure (squared l2 distance)
     this->m_Distance.reset = false;                     ///< re-allocate distance measure
+    this->m_Distance.scale = 0; 			///< set default scale for distance measure
 
     this->m_PDESolver = {};
     this->m_PDESolver.type = SL;                    ///< PDE solver (semi-lagrangian or rk2)
@@ -1206,6 +1218,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.runinversion = true;               ///< flag indicating that we run the inversion (switches on storage of m)
     this->m_RegFlags.registerprobmaps = false;          ///< flag indicating that we run the registration on probabilty maps (allows us to ensure partition of unity when writing results to file)
     this->m_RegFlags.synprobid = 0;                     ///< id to select synthetic problem to be performed
+    this->m_RegFlags.runsynprob = false;
 
     // parameter continuation
     this->m_ParaCont = {};
@@ -1404,6 +1417,13 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -checksymmetry              check symmetry of hessian operator" << std::endl;
         std::cout << " -derivativecheck            check gradient/derivative" << std::endl;
         std::cout << line << std::endl;
+        std::cout << " distance measure" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -distance <type>            distance measure" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 sl2          squared l2-distance (default)" << std::endl;
+        std::cout << "                                 ncc          normalized cross correlation" << std::endl;
+        std::cout << line << std::endl;
         std::cout << " regularization/constraints" << std::endl;
         std::cout << line << std::endl;
         std::cout << " -regnorm <type>             regularization norm for velocity field" << std::endl;
@@ -1553,8 +1573,10 @@ PetscErrorCode RegOpt::CheckArguments() {
         ierr = this->Usage(); CHKERRQ(ierr);
     } else if ( (readmT == false) && (readmR == false) ) {
         this->m_ReadWriteFlags.readfiles = false;
-        if (this->m_Verbosity > 2) {
-            ierr = DbgMsg("no input images set"); CHKERRQ(ierr);
+        if (this->m_RegFlags.runsynprob == false) {
+            msg = "\n\x1b[31m either define input images or specify synthetic test problem\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
 
@@ -2006,9 +2028,29 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " parameters" << std::endl;
         std::cout << line << std::endl;
 
-        // display regularization model
-        std::cout << std::left << std::setw(indent) <<" regularization model v";
+        // display distance measure
+        std::cout << std::left << std::setw(indent) <<" distance measure";
 
+        switch (this->m_Distance.type) {
+            case SL2:
+            {
+                std::cout << "squared l2-distance" << std::endl;
+                break;
+            }
+            case NCC:
+            {
+                std::cout << "normalized cross-correlation" << std::endl;
+                break;
+            }
+            default:
+            {
+                ierr = ThrowError("distance measure not implemented"); CHKERRQ(ierr);
+                break;
+            }
+        }
+
+        // display distance measure
+        std::cout << std::left << std::setw(indent) <<" regularization model v";
         if ((this->m_ParaCont.strategy == PCONTBINSEARCH) || (this->m_ParaCont.strategy == PCONTREDUCESEARCH)) {
             switch (this->m_RegNorm.type) {
                 case L2:

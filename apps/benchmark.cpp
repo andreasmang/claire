@@ -343,11 +343,12 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     ierr = VecAXPY(m0, -1.0, m0true); CHKERRQ(ierr);
     ierr = VecNorm(m0, NORM_2, &val); CHKERRQ(ierr);
     ierr = VecNorm(m0true, NORM_2, &val0); CHKERRQ(ierr);
-
+    
+    /*
     ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
     ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
     ierr = readwrite->Write(m0true, "m0true.nc"); CHKERRQ(ierr);
-
+    */
     relval = val;
     relval /= val0 > 0.0 ? val0 : 1.0;
 

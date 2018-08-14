@@ -13,6 +13,7 @@ bin/
 obj/
 test/
 external/libs/
+external/libs-intel/
 results/
 environment_vars.sh
 *.o

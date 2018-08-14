@@ -653,6 +653,14 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
             ierr = this->m_DistanceMeasure->SetAuxVariable(this->m_AuxVariable,2); CHKERRQ(ierr);
             break;
         }
+        case NCC:
+        {
+            try {this->m_DistanceMeasure = new DistanceMeasureNCC(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
         default:
         {
             ierr = reg::ThrowError("distance measure not defined"); CHKERRQ(ierr);
@@ -661,18 +669,30 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
     }
     // for a pure evaluation of hessian operator, images may not have been set
     if (this->m_TemplateImage != NULL) {
+        if (this->m_Opt->m_Verbosity > 2) {
+            ierr = DbgMsg("distance measure: parsing template image"); CHKERRQ(ierr);
+        }
         ierr = this->m_DistanceMeasure->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
     if (this->m_ReferenceImage != NULL) {
+        if (this->m_Opt->m_Verbosity > 2) {
+            ierr = DbgMsg("distance measure: parsing reference image"); CHKERRQ(ierr);
+        }
        ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     }
     if (this->m_Mask != NULL) {
         if (this->m_Opt->m_Verbosity > 1) {
-            ierr = DbgMsg("mask is enabled"); CHKERRQ(ierr);
+            ierr = DbgMsg("distance measure: mask enabled"); CHKERRQ(ierr);
         }
         ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
     }
 
+    // Setup scale for distance measure
+    // TODO: Do we need to rescale this for the 2level preconditioner? 
+    // Currently Temp and Ref image not in scope for restricted problem, so we use old scale value
+    if (this->m_TemplateImage != NULL && this->m_ReferenceImage != NULL) { 
+    	ierr = this->m_DistanceMeasure->SetupScale(); CHKERRQ(ierr);
+    }
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

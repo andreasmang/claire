@@ -81,7 +81,7 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
     ScalarType *p_mr = NULL, *p_m = NULL, *p_q = NULL, *p_c = NULL;
     IntType nt, nc, nl, l;
     int rval;
-    ScalarType dr, value, val1, val2, l2distance;
+    ScalarType dr, value, val1, val2, l2distance, hx;
 
     PetscFunctionBegin;
 
@@ -96,6 +96,7 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
+    hx  = this->m_Opt->GetLebesgueMeasure();   
 
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
@@ -131,7 +132,7 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
     ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // objective value
-    *D = 0.5*l2distance/static_cast<ScalarType>(nc);
+    *D = 0.5*hx*l2distance/static_cast<ScalarType>(nc);
 
     this->m_Opt->Exit(__func__);
 

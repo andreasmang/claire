@@ -17,6 +17,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
+		$(SRCDIR)/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
@@ -41,7 +42,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp 
 
-#CUFILES=$(SRCDIR)/interp3_gpu_new.cu
+CUFILES=$(SRCDIR)/interp3_gpu_new.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
@@ -62,6 +63,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure.cpp \
+		$(SRCDIR)/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
 		$(SRCDIR)/SemiLagrangian.cpp \
@@ -85,4 +87,4 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
-		#$(SRCDIR)/SemiLagrangianGPUNew.cpp
+		$(SRCDIR)/SemiLagrangianGPUNew.cpp

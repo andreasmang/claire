@@ -71,6 +71,21 @@ PetscErrorCode DistanceMeasureSL2::ClearMemory() {
 
 
 
+
+/********************************************************************
+ * @brief set up scale
+ *******************************************************************/
+PetscErrorCode DistanceMeasureSL2::SetupScale() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+
+
+
+
 /********************************************************************
  * @brief evaluate the functional (i.e., the distance measure)
  * D = (1/2)*||m1 - mR||_L2
@@ -80,7 +95,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     IntType nt, nc, nl, l;
     int rval;
-    ScalarType dr, value, l2distance;
+    ScalarType dr, value, l2distance, hx;
 
     PetscFunctionBegin;
 
@@ -93,6 +108,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
+    hx  = this->m_Opt->GetLebesgueMeasure();   
 
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
@@ -123,7 +139,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // objective value
-    *D = 0.5*l2distance/static_cast<ScalarType>(nc);
+    *D = 0.5*hx*l2distance/static_cast<ScalarType>(nc);
 
     this->m_Opt->Exit(__func__);
 

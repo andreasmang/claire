@@ -30,6 +30,7 @@
 #include "DistanceMeasure.hpp"
 #include "DistanceMeasureSL2.hpp"
 #include "DistanceMeasureSL2aux.hpp"
+#include "DistanceMeasureNCC.hpp"
 #include "Regularization.hpp"
 #include "Regularization.hpp"
 #include "RegularizationL2.hpp"

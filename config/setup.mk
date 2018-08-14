@@ -76,21 +76,18 @@ CLAIRE_INC = -I$(INCDIR)
 
 ifeq ($(USECUDA),yes)
     # CUDA includes
-    #CUDA_INTERP = $(HOME)/cudainterp3d
-    #CUDA_INC = -I$(CUDA_DIR)/include -I$(CUDA_INTERP)/include -I$(INCDIR) -I$(HOME)/CUDA-9.1/samples/common/inc
+    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR)
 endif
 
-#ifeq ($(USECUDA),yes)
-#	PETSC_ARCH_CUDA_SINGLE_DBG = $(PETSC_ARCH_DBG_SINGLE)
-#	PETSC_ARCH_CUDA_SINGLE = $(PETSC_ARCH_SINGLE)
-#	ifeq ($(DBGCODE),yes)
-#	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include
-#	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include
-#	else
-#	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include
-#	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include
-#	endif
-#else
+ifeq ($(USECUDA),yes)
+	ifeq ($(DBGCODE),yes)
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
+	else
+	    CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
+	    CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
+	endif
+else
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
 		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DBG_SINGLE)/include
@@ -104,7 +101,7 @@ else
 		CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/include
 	endif
 endif
-#endif
+endif
 
 
 CLAIRE_INC += -I$(ACCFFT_DIR)/include
@@ -128,15 +125,13 @@ ifeq ($(USEPNETCDF),yes)
 	CLAIRE_INC += -I$(PNETCDF_DIR)/include
 endif
 
-#ifeq ($(USECUDA),yes)
-#	PETSC_ARCH_CUDA_SINGLE_DBG = $(PETSC_ARCH_DBG_SINGLE)
-#	PETSC_ARCH_CUDA_SINGLE = $(PETSC_ARCH_SINGLE)
-#	ifeq ($(DBGCODE),yes)
-#	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/lib
-#	else
-#	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/lib
-#	endif
-#else
+ifeq ($(USECUDA),yes)
+	ifeq ($(DBGCODE),yes)
+	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/lib
+	else
+	    LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/lib
+	endif
+else
 
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
@@ -151,7 +146,7 @@ else
 		LDFLAGS += -L$(PETSC_DIR)/lib -L$(PETSC_DIR)/$(PETSC_ARCH_DOUBLE)/lib
 	endif
 endif
-#endif
+endif
 LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
 
 #CUDA LINKERS

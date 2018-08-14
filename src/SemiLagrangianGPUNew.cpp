@@ -46,6 +46,7 @@ SemiLagrangianGPUNew::SemiLagrangianGPUNew() {
 SemiLagrangianGPUNew::SemiLagrangianGPUNew(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
+    this->InitializeInterpolationTexture();
     this->ComputeInitialTrajectory();
 }
 
@@ -72,15 +73,31 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     this->m_X = NULL;
     this->m_WorkVecField1 = NULL;
     this->m_InitialTrajectory = NULL;
+    this->m_texture = 0;
 
     this->m_Opt = NULL;
     this->m_Dofs[0] = 1;
     this->m_Dofs[1] = 3;
 
+
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief init empty texture for interpolation on GPU 
+ *******************************************************************/
+PetscErrorCode SemiLagrangianGPUNew::InitializeInterpolationTexture() {
+    PetscErrorCode ierr = 0;
+    int nx[3];
+    PetscFunctionBegin;
+    
+    for (unsigned int i = 0; i < 3; ++i){
+        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
+    }
 
+    this->m_texture = gpuInitEmptyTexture(nx);
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -99,6 +116,10 @@ PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
     if (this->m_InitialTrajectory != NULL) {
         delete this->m_InitialTrajectory;
         this->m_InitialTrajectory = NULL;
+    }
+
+    if (this->m_texture != 0) {
+        cudaDestroyTextureObject(this->m_texture);
     }
 
     PetscFunctionReturn(ierr);
@@ -178,12 +199,13 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
         istart[i] = this->m_Opt->m_Domain.istart[i];
     }
     
+    // allocate 1 time 3D Cuda Array for texture interpolation
+    
     ierr = VecGetArray(this->m_InitialTrajectory->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_InitialTrajectory->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_InitialTrajectory->m_X3, &p_x3); CHKERRQ(ierr);
 
 
-double runtime = -MPI_Wtime();
 #pragma omp parallel
 {
 #pragma omp for
@@ -208,13 +230,11 @@ double runtime = -MPI_Wtime();
         } // i2
     } // i3
 }// pragma omp for
-runtime += MPI_Wtime();
-this->m_Opt->m_GPUtime += runtime;
-PetscPrintf(PETSC_COMM_WORLD, "initialisation time = %g\n", runtime);
 
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X3,&p_x3); CHKERRQ(ierr);
+
 
 //   ierr = PrintVectorMemoryLocation(this->m_InitialTrajectory->m_X1, "Initial trajectory before"); CHKERRQ(ierr);
 /*    ierr = GetRawPointer(this->m_InitialTrajectory->m_X1, &p_x1); CHKERRQ(ierr);
@@ -282,42 +302,24 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
         istart[i] = this->m_Opt->m_Domain.istart[i];
     }
     
-    // compute runtime
-    runtime = -MPI_Wtime();
-    
     // X = x - ht v
-//    ierr = PrintVectorMemoryLocation(v->m_X1, "V before euler"); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X2, -scale*ht*invhx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X3, -scale*ht*invhx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-//    ierr = PrintVectorMemoryLocation(this->m_InitialTrajectory->m_X1, "x after euler"); CHKERRQ(ierr);
-//    ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "X=Xstar after euler"); CHKERRQ(ierr);
-    runtime +=  MPI_Wtime();
-    this->m_Opt->m_GPUtime += runtime;    
-    PetscPrintf(PETSC_COMM_WORLD, "euler point time = %g\n", runtime);
     
     // interpolate velocity field v(X)
-//    ierr = PrintVectorMemoryLocation(v->m_X1, "V before interpolation at Xstar"); CHKERRQ(ierr);
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-//    ierr = PrintVectorMemoryLocation(v->m_X1, "V after interpolation at Xstar"); CHKERRQ(ierr);
-//    ierr = PrintVectorMemoryLocation(this->m_WorkVecField1->m_X1, "V* after interpolation at Xstar"); CHKERRQ(ierr);
     
-
-    runtime = -MPI_Wtime();
     // X = x - 0.5*ht*(v + v(x - ht v))
-    // F0 + F1 = v + v(x-ht*v)
+    // F = F0 + F1 = v + v(x-ht*v)
     ierr = VecAXPY(this->m_WorkVecField1->m_X1, 1.0, v->m_X1); CHKERRQ(ierr);
     ierr = VecAXPY(this->m_WorkVecField1->m_X2, 1.0, v->m_X2); CHKERRQ(ierr);
     ierr = VecAXPY(this->m_WorkVecField1->m_X3, 1.0, v->m_X3); CHKERRQ(ierr);
 
-    // X = x - 0.5*ht*(F0+F1)
+    // X = x - 0.5*ht*F
     ierr = VecWAXPY(this->m_X->m_X1, -scale*hthalf*invhx[0], this->m_WorkVecField1->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X2, -scale*hthalf*invhx[1], this->m_WorkVecField1->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(this->m_X->m_X3, -scale*hthalf*invhx[2], this->m_WorkVecField1->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-//    ierr = PrintVectorMemoryLocation(this->m_X->m_X1, "X after RK2"); CHKERRQ(ierr);
-    runtime += MPI_Wtime();
-    this->m_Opt->m_GPUtime += runtime;
-    PetscPrintf(PETSC_COMM_WORLD, "SML point eval time = %g\n", runtime);
     
     this->m_Opt->Exit(__func__);
 
@@ -558,9 +560,10 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
 
     ierr = this->m_X->GetArraysRead(xq1, xq2, xq3);
     
+     
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
-        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
     }
     else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -650,13 +653,13 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     ierr = this->m_X->GetArraysRead(xq1, xq2, xq3); CHKERRQ(ierr);
 
     if (strcmp(flag.c_str(),"state") == 0) {
-        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx, &(this->m_Opt->m_GPUtime));
-        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, &(this->m_Opt->m_GPUtime));
-        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
-        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx, &(this->m_Opt->m_GPUtime));
-        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, &(this->m_Opt->m_GPUtime));
-        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx1, xq1, xq2, xq3, wx1, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }

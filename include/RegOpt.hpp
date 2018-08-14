@@ -63,6 +63,7 @@ enum RegNormType {
 // flags for regularization norms
 enum DMType {
     SL2,    ///< flag for squared L2-norm
+    NCC,    ///< flag for normalized cross-correlation
     SL2AUX, ///< flag for squared L2-norm (coupling)
 };
 
@@ -405,6 +406,7 @@ struct RegNorm {
 struct Distance {
     DMType type;
     bool reset;
+    ScalarType scale;
 };
 
 
@@ -480,7 +482,7 @@ class RegOpt {
     virtual ~RegOpt();
     void Copy(const RegOpt&);
 
-    inline ScalarType GetLebesqueMeasure(void) {
+    inline ScalarType GetLebesgueMeasure(void) {
         return  this->m_Domain.hx[0]
                *this->m_Domain.hx[1]
                *this->m_Domain.hx[2];
