@@ -1,12 +1,13 @@
 # developer flags (ignore)
-DBGCODE=no
+DBGCODE=yes
 PEDANTIC=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
 
 ifeq ($(DBGCODE),yes)
-	CXXFLAGS = -g -debug
+	#CXXFLAGS = -g -debug
+	CXXFLAGS = -g
 else
 	#CXXFLAGS = -O3 -ansi
 	CXXFLAGS = -O3 -ansi -g
@@ -59,7 +60,7 @@ endif
 
 ifeq ($(USECUDA),yes)
 	CXXFLAGS += -DREG_HAS_CUDA
-	#CXXFLAGS += -DREG_FFT_CUDA
+	CXXFLAGS += -DREG_FFT_CUDA
 endif
 
 BINDIR = ./bin
@@ -110,11 +111,13 @@ CLAIRE_INC += -I$(MORTON_DIR)
 CLAIRE_INC += -I./3rdparty
 # CUDA INCLUDE in CLAIRE
 ifeq ($(USECUDA),yes)
+		CUDA_INC += -I$(ACCFFT_DIR)/include
+		CUDA_INC += -I$(FFTW_DIR)/include
     CLAIRE_INC += -I$(CUDA_DIR)/include
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -O2 -gencode arch=compute_60,code=sm_60 -Xcompiler -fPIC -Wno-deprecated-gpu-targets
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -gencode arch=compute_60,code=sm_60 -Xcompiler -fPIC -Wno-deprecated-gpu-targets
 
 
 ifeq ($(USENIFTI),yes)
@@ -174,9 +177,9 @@ LDFLAGS += -lm
 
 # FFT LIBRARIES
 LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
-#ifeq ($(USECUDA),yes)
-#    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
-#endif
+ifeq ($(USECUDA),yes)
+    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
+endif
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif

@@ -217,15 +217,18 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     }
 
     if (this->m_x1hat != NULL) {
-        accfft_free(this->m_x1hat);
+        //accfft_free(this->m_x1hat);
+        cudaFree(this->m_x1hat);
         this->m_x1hat = NULL;
     }
     if (this->m_x2hat != NULL) {
-        accfft_free(this->m_x2hat);
+        //accfft_free(this->m_x2hat);
+        cudaFree(this->m_x2hat);
         this->m_x2hat = NULL;
     }
     if (this->m_x3hat != NULL) {
-        accfft_free(this->m_x3hat);
+        //accfft_free(this->m_x3hat);
+        cudaFree(this->m_x3hat);
         this->m_x3hat = NULL;
     }
 
@@ -244,15 +247,18 @@ PetscErrorCode CLAIREBase::SetupSpectralData() {
     PetscFunctionBegin;
 
     nalloc = this->m_Opt->m_FFT.nalloc;
-
+    
     if (this->m_x1hat == NULL) {
-        this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+        //this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+        cudaMalloc(reinterpret_cast<void**>(&this->m_x1hat), nalloc);
     }
     if (this->m_x2hat == NULL) {
-        this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+        //this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+        cudaMalloc(reinterpret_cast<void**>(&this->m_x2hat), nalloc);
     }
     if (this->m_x3hat == NULL) {
-        this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+        //this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+        cudaMalloc(reinterpret_cast<void**>(&this->m_x3hat), nalloc);
     }
 
     PetscFunctionReturn(ierr);
@@ -721,6 +727,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
     switch (this->m_Opt->m_RegNorm.type) {
         case L2:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate L2 regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationL2(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -729,6 +738,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H1:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate H1 regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationH1(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -737,6 +749,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H2:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate H2 regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationH2(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -745,6 +760,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H3:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate H3 regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationH3(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -753,6 +771,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H1SN:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate H1SN regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationH1SN(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -761,6 +782,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H2SN:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate H2SN regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationH2SN(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
@@ -769,6 +793,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
         case H3SN:
         {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate H3SN regularization"); CHKERRQ(ierr);
+            }
             try {this->m_Regularization = new RegularizationH3SN(this->m_Opt);}
             catch (std::bad_alloc&) {
                 ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);

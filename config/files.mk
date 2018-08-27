@@ -42,7 +42,10 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp 
 
-CUFILES=$(SRCDIR)/interp3_gpu_new.cu
+CUFILES=$(SRCDIR)/interp3_gpu_new.cu \
+		$(SRCDIR)/distance_kernel.cu \
+		$(SRCDIR)/adjoint_kernel.cu \
+		$(SRCDIR)/RegularizationGPU.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
@@ -52,9 +55,8 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/interp3.cpp \
 		$(SRCDIR)/Interp3_Plan.cpp \
 		$(SRCDIR)/Differentiation.cpp \
-		$(SRCDIR)/DifferentiationSM.cpp \
 		$(SRCDIR)/DifferentiationFD.cpp \
-		$(SRCDIR)/DifferentiationSMGPU.cpp \
+		$(SRCDIR)/DifferentiationSM.cpp \
 		$(SRCDIR)/VecField.cpp \
 		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \
@@ -78,7 +80,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationL2.cpp \
 		$(SRCDIR)/RegularizationH1.cpp \
 		$(SRCDIR)/RegularizationH2.cpp \
-		$(SRCDIR)/RegularizationH1SN.cpp \
+		$(SRCDIR)/RegularizationH1SN_GPU.cpp \
 		$(SRCDIR)/RegularizationH2SN.cpp \
 		$(SRCDIR)/RegularizationH3.cpp \
 		$(SRCDIR)/RegularizationH3SN.cpp \

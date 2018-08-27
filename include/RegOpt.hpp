@@ -412,7 +412,8 @@ struct Distance {
 
 
 struct FourierTransform {
-    accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
+    FFTPlanType* plan;  ///< accfft plan
+    //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
     //accfft_plan_t<double, Complex, fftw_plan>* plan;  ///< accfft plan
     //accfft_plan* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft

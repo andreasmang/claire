@@ -21,9 +21,6 @@
 #define _DIFFERENTIATIONSM_CPP_
 
 #include "DifferentiationSM.hpp"
-#include "accfft.h"
-#include "accfftf.h"
-#include "accfft_operators.h"
 
 namespace reg {
 

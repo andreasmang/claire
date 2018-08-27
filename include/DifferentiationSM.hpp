@@ -20,11 +20,6 @@
 #ifndef _DIFFERENTIATIONSM_HPP_
 #define _DIFFERENTIATIONSM_HPP_
 
-#ifdef REG_FFT_CUDA
-// TODO: include when starting GPU implementation
-#include "DifferentiationSMGPU.hpp"
-#else
-
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "Differentiation.hpp"
@@ -66,13 +61,5 @@ class DifferentiationSM : public Differentiation {
 
 
 }  // end of namespace
-
-
-
-
-#endif // REG_HAS_CUDA
-
-
-
 
 #endif  // _DIFFERENTIATION_HPP_

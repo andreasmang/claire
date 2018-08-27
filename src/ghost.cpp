@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <math.h> // M_PI
 #include <mpi.h>
-#include <accfft.h>
+//#include <accfft.h>
 #include <interp3.hpp>
 //#define VERBOSE2
 
@@ -18,7 +18,7 @@
  * @param[in] plan: AccFFT R2C plan
  */
 void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
-		accfft_plan_t<Real, TC, PL> * plan) {
+		FFTPlanType* plan) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -185,7 +185,7 @@ void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
  * @param[in] plan: AccFFT R2C plan
  */
 void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> padded_data, int g_size,
-		accfft_plan_t<Real, TC, PL> * plan) {
+		FFTPlanType* plan) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -351,7 +351,7 @@ void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> pa
  * @param[in] plan: AccFFT R2C plan
  */
 void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, int* isize_g,
-		accfft_plan_t<Real, TC, PL>* plan) {
+		FFTPlanType* plan) {
 
 	int * isize = plan->isize;
 	for (int i = 0; i < isize_g[0]; ++i)
@@ -386,7 +386,7 @@ void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, i
  * (that originally resided in the last processor).
  */
 
-size_t accfft_ghost_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_size,
+size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g) {
 
 	size_t alloc_max = plan->alloc_max;
@@ -410,10 +410,10 @@ size_t accfft_ghost_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_
 			+ 2 * g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
 }
 
-size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan, int g_size,
+/*size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g) {
-  return accfft_ghost_local_size_dft_r2c((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, istart_g);
-}
+  return accfft_ghost_local_size_dft_r2c((FFTPlanType*)plan, g_size, isize_g, istart_g);
+}*/
 /*
  * Gather the ghost cells for a real input when ghost cell padding is desired only in x and y
  * directions (and not z direction which is locally owned). This function currently has the following limitations:
@@ -437,7 +437,7 @@ size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan, int g_size,
  * @param[in] data: The local data whose ghost cells from other processors are sought.
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
-void accfft_get_ghost(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_g, Real* data,
+void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
 		Real* ghost_data) {
 	int nprocs, procid;
 	MPI_Comm_rank(plan->c_comm, &procid);
@@ -473,10 +473,10 @@ void accfft_get_ghost(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_
 
 }
 
-void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
+/*void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
 		Real* ghost_data) {
   accfft_get_ghost((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, data, ghost_data);
-}
+}*/
 /*
  * Returns the necessary memory allocation in Bytes for the ghost data, as well
  * the local ghost sizes when padding in all directions (including z direction that is locally owned by each process).
@@ -491,7 +491,7 @@ void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
  * (that originally resided in the last processor).
  */
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_size,
+size_t accfft_ghost_xyz_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g) {
 
 	size_t alloc_max = plan->alloc_max;
@@ -520,7 +520,7 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, in
   return alloc_max_g;
 }
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_planf* plan, int g_size,
+/*size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_planf* plan, int g_size,
 		int * isize_g, int* istart_g) {
   return accfft_ghost_xyz_local_size_dft_r2c((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, istart_g);
 }
@@ -528,7 +528,7 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_planf* plan, int g_size,
 size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
 		int * isize_g, int* istart_g) {
   return accfft_ghost_xyz_local_size_dft_r2c((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, istart_g);
-}
+}*/
 /*
  * Gather the ghost cells for a real input when ghost cell padding is desired in all directions including z direction
  * (which is locally owned). This function currently has the following limitations:
@@ -552,7 +552,7 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
  * @param[in] data: The local data whose ghost cells from other processors are sought.
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
-void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_g,
+void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 		Real* data, Real* ghost_data) {
 	int nprocs, procid;
 	MPI_Comm_rank(plan->c_comm, &procid);
@@ -612,7 +612,7 @@ void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* is
 	return;
 }
 
-void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
+/*void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 		Real* data, Real* ghost_data) {
   accfft_get_ghost_xyz((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, data, ghost_data);
-}
+}*/

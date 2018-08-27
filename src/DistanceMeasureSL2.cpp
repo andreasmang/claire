@@ -22,6 +22,9 @@
 
 #include "DistanceMeasureSL2.hpp"
 
+#ifdef REG_HAS_CUDA
+#include "distance_kernel.hpp"
+#endif
 
 
 
@@ -156,7 +159,9 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, ll;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
+    //ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
+    ScalarType *p_l = NULL;
+    const ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -176,15 +181,18 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
         ll = 0;
     }
 
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-
+    
     l = nt*nc*nl;
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = GetRawPointerRead(this->m_Mask, &p_w); CHKERRQ(ierr);
+#ifdef REG_HAS_CUDA
+        DistanceMeasureSetFinalMaskGPU(&p_l[ll],&p_m[l],p_mr,p_w,nl,nc);
+#else
 #pragma omp parallel
 {
 #pragma omp for
@@ -194,8 +202,12 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
             }
         }
 }  // omp
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+#endif
+        ierr = RestoreRawPointerRead(this->m_Mask, &p_w); CHKERRQ(ierr);
     } else {
+#ifdef REG_HAS_CUDA
+        DistanceMeasureSetFinalGPU(&p_l[ll],&p_m[l],p_mr,nc*nl);
+#else
 #pragma omp parallel
 {
 #pragma omp for
@@ -203,11 +215,13 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
             p_l[ll+i] = p_mr[i] - p_m[l+i];
         }
 }  // omp
+#endif
     }
+        
     ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
+    ierr = RestoreRawPointerRead(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

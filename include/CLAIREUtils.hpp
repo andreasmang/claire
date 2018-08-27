@@ -46,35 +46,9 @@
 
 
 // local includes
-#include "petsc.h"
-#include "petscsys.h"
-#include "accfft.h"
-#include "accfftf.h"
-#include "accfft_operators.h"
+#include "typedef.hpp"
 
-#if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
-#include "petsccuda.h"
-#include "cuda.h"
-#include <petsc/private/vecimpl.h>
-#endif
-
-#if defined(REG_FFT_CUDA)
-#include "accfft_gpu.h"
-#include "accfft_gpuf.h"
-#include "accfft_operators_gpu.h"
-#endif
-
-#define IntType PetscInt
-#define ScalarType PetscReal
-
-#if defined(PETSC_USE_REAL_SINGLE)
-#define ComplexType Complexf
-#define FFTWPlanType fftwf_plan
-#else
-#define ComplexType Complex
-#define FFTWPlanType fftw_plan
-#endif
-
+#define DBGCHK() printf("dbg %s:[%i]\n",__FILE__,__LINE__)
 
 namespace reg {
 

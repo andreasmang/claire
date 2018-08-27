@@ -1859,7 +1859,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute fft
     ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c(this->m_Opt->m_FFT.plan, p_x, this->m_xhat, timer);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x, this->m_xhat, timer);
     ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
 
     // compute cutoff frequency
@@ -1910,7 +1910,7 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute inverse fft
     ierr = VecGetArray(xflt, &p_xflt); CHKERRQ(ierr);
-    accfft_execute_c2r(this->m_Opt->m_FFT.plan, this->m_xhat, p_xflt, timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_xhat, p_xflt, timer);
     ierr = VecRestoreArray(xflt, &p_xflt); CHKERRQ(ierr);
 
     // increment fft timer
@@ -1997,7 +1997,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     for (IntType k = 0; k < nc; ++k) {
         // compute fft
         ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-        accfft_execute_r2c(this->m_Opt->m_FFT.plan, p_x + k*nl, this->m_xhat, timer);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x + k*nl, this->m_xhat, timer);
         ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 #pragma omp parallel
 {
@@ -2032,7 +2032,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
         }  // i3
 }  // pragma omp parallel
         ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
-        accfft_execute_c2r(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs + k*nl, timer);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs + k*nl, timer);
         ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
     }
 

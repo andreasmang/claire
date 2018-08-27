@@ -3,8 +3,9 @@
 
 #include "petsc.h"
 
-#include <accfft.h>
-#include <accfftf.h>
+//#include <accfft.h>
+//#include <accfftf.h>
+#include "typedef.hpp"
 // #include <glog/logging.h>
 // #define ParLOG if(procid==0) LOG(INFO)
 #undef PCOUT
@@ -181,21 +182,21 @@ void gpu_par_interp3_ghost_xyz_p(Real* reg_grid_vals, int data_dof, int* N_reg,
 
 // GHOST FUNCTIONS
 
-size_t accfft_ghost_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_size,
+size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g);
 //size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan, int g_size,
 //		int * isize_g, int* istart_g);
-void accfft_get_ghost(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_g, Real* data,
+void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
 		Real* ghost_data);
 //void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
 //		Real* ghost_data);
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan_t<Real, TC, PL>* plan, int g_size,
+size_t accfft_ghost_xyz_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g);
 //size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
 //		int * isize_g, int* istart_g);
 
-void accfft_get_ghost_xyz(accfft_plan_t<Real, TC, PL>* plan, int g_size, int* isize_g,
+void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 		Real* data, Real* ghost_data);
 //void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 //		Real* data, Real* ghost_data);

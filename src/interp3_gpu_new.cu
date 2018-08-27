@@ -61,6 +61,8 @@ following papers:
 #include <lagrange_kernel.cu>
 #include "interp3_gpu_new.hpp"
 
+#include "cuda_helper.hpp"
+
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
 #define KERNEL_DIM 4
@@ -531,8 +533,7 @@ void gpuInterp3D(
     
     // launch the interpolation kernel
     interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx);
-    if ( cudaSuccess != cudaGetLastError())
-        printf("Error in running the interp3D kernel\n");
+    cudaCheckKernelError();
 
     cudaEventRecord(stopEvent,0);
     cudaEventSynchronize(stopEvent);

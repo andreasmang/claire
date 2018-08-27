@@ -25,6 +25,7 @@ buildnifticlib=0
 buildpetscdbl=0
 buildpetscsgl=0
 buildpetsccudasgl=0
+buildpetsccudasgldbg=0
 buildpetscdbgsgl=0
 buildpetscdgbdbl=0
 buildpnetcdf=0
@@ -93,6 +94,10 @@ case $i in
     buildpetsccudasgl=1
     shift # past argument=value
     ;;
+    --bpetsccudasgldbg)
+    buildpetsccudasgldbg=1
+    shift # past argument=value
+    ;;
     --bpetscdbgsgl)
     buildpetscdbgsgl=1
     shift # past argument=value
@@ -144,7 +149,7 @@ case $i in
     echo "     --bpetscdbgsgl  build PETSc library (for developers; single precision; debug mode)"
     echo "     --bpetscdbgdbl  build PETSc library (for developers; double precision; debug mode)"
     echo "     --bpetsccudasgl build PETSc library with nVidia-CUDA library (single precision)"
-
+    echo "     --bpetsccudasgldbg build PETSc library with nVidia-CUDA library (single precision; debug mode)"
     echo "     --bpnetcdf      build pnetCDF library (optional)"
     echo ${myline}
     echo " clean libraries"
@@ -527,6 +532,39 @@ else
 fi
 
 echo "export PETSC_ARCH_DBG_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
+
+################################
+# PETSC-CUDA DBG SINGLE
+################################
+PETSC_ARCH=cuda_opt_dbg_sgl
+if [ ${builddep} -eq 1 -o ${buildpetsccudasgldbg} -eq 1 ]; then 
+	echo ""
+	echo ${myline} 
+	echo "configuring PETSC-CUDA (single precision; debug mode)"
+	echo ${myline} 
+	if [ -d ${SRC_DIR}/${PETSC_ARCH} -a ! ${SRC_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${SRC_DIR}/${PETSC_ARCH}
+	fi
+	if [ -d ${BLD_DIR}/${PETSC_ARCH} -a ! ${BLD_DIR}/${PETSC_ARCH} == ${HOME} ]; then
+		rm -rf ${BLD_DIR}/${PETSC_ARCH}
+	fi
+	cd ${SRC_DIR}
+	echo ./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS} ${PETSC_CUDA_OPTIONS} --with-precision=single
+	./configure PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} --prefix=${BLD_DIR}/${PETSC_ARCH} ${PETSC_DBG_OPTIONS} ${PETSC_CUDA_OPTIONS} --with-precision=single
+	echo ""
+	echo ${myline} 
+	echo "building PETSC" 
+	echo ${myline} 
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
+else
+	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
+		rm -rf ${PETSC_LIB_DIR}
+	fi
+fi
+
+echo "export PETSC_ARCH_CUDA_SINGLE_DBG=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
 echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 

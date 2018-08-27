@@ -564,8 +564,9 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
         gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
-    }
-    else {
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, this->m_texture, &(this->m_Opt->m_GPUtime));
+    } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
     

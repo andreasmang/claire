@@ -27,8 +27,9 @@
 // local includes
 #include "CLAIRE.hpp"
 
-
-
+#ifdef REG_HAS_CUDA
+#include "adjoint_kernel.hpp"
+#endif
 
 namespace reg {
 
@@ -943,8 +944,12 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // which is assigned to work vecfield 2
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
 
+    DBGCHK();
+
     // evaluate gradient of regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
+    
+    DBGCHK();
     if (this->m_VelocityIsZero) {
         // \vect{g}_v = \D{K}[\vect{b}]
         if (g != NULL) {
@@ -980,6 +985,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
         }
     }
 
+    DBGCHK();
 
     // parse to output
     if (g != NULL) {
@@ -1025,9 +1031,13 @@ PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
 
     // evaluate / apply gradient operator for regularization
     ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
-
+    
+    DBGCHK();
+    
     // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+    
+    DBGCHK();
 
     // copy
     if (g != NULL) {
@@ -2123,7 +2133,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-    
+        
     ZeitGeist_define(SOLVE_ADJ);
     ZeitGeist_tick(SOLVE_ADJ);
 
@@ -2161,16 +2171,23 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
+    DBGCHK();
     ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    DBGCHK();
     ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
+    DBGCHK();
     ierr = this->m_DistanceMeasure->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
+    DBGCHK();
     ierr = this->m_DistanceMeasure->SetFinalConditionAE(); CHKERRQ(ierr);
-
+    DBGCHK();
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
+    DBGCHK();
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
+        DBGCHK();
+      
         ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
         // adjoint variable is constant in time
         if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -2196,6 +2213,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
             }
         }
 
+        DBGCHK();
+        
         // init body force for numerical integration
         ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
@@ -2227,6 +2246,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
         // for full newton method we have to store the adjoint variable
         ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     } else {
+        DBGCHK();
         // call the solver
         switch (this->m_Opt->m_PDESolver.type) {
             case RK2:
@@ -2246,12 +2266,18 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
             }
         }
     }
+    
+    DBGCHK();
 
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
+    
+    DBGCHK();
 
     // scale result by hd
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
+    
+    DBGCHK();
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
@@ -2507,6 +2533,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
+    DBGCHK();
+
     // for full newton we store the adjoint variable
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         fullnewton = true;
@@ -2518,8 +2546,17 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     ierr = GetRawPointer(this->m_WorkScaField3, &p_lx); CHKERRQ(ierr);
 
     // compute divergence of velocity field
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->GetArraysReadWrite(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    
+    DBGCHK();
+    
     this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
+    
+    DBGCHK();
+    
+    ierr = this->m_VelocityField->RestoreArraysReadWrite(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    
+    DBGCHK();
 
     // interpolate velocity field v(X)
 //    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
@@ -2531,9 +2568,14 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
 //    this->m_Opt->StopTimer(FFTSELFEXEC);
 //    this->m_Opt->IncrementCounter(FFT, FFTDIV);
 
+    DBGCHK();
+
     // evaluate div(v) along characteristic X
     ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
 
+
+    DBGCHK();
+    
     // init body force for numerical integration
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
@@ -2554,8 +2596,17 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
             // compute lambda(t^j,X)
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_lx, p_l + ll + k*nl, "adjoint"); CHKERRQ(ierr);
 
+            DBGCHK();
+            
             // compute gradient of m (for incremental body force)
             this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm+k*nl);
+            
+            DBGCHK();
+            
+#ifdef REG_HAS_CUDA
+            ComputeAdjointBodyForceGPU(&p_l[llnext + k*nl],&p_l[ll + k*nl],p_lx,p_divv,p_divvx,p_vec1,p_vec2,p_vec3,p_b1,p_b2,p_b3,ht,scale/static_cast<ScalarType>(nc),nl);
+            DBGCHK();
+#else
 #pragma omp parallel
 {
 #pragma omp for
@@ -2574,11 +2625,14 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
                 p_b2[i] += scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
                 p_b3[i] += scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
             }
+} // omp
+#endif
         }
-}  // omp
         // trapezoidal rule (revert scaling; for body force)
         if (j == 0) scale *= 2.0;
     }
+    
+    DBGCHK();
 
     // compute body force for last time point t = 0 (i.e., for j = nt)
     for (IntType k = 0; k < nc; ++k) {  // for all image components
@@ -2586,7 +2640,11 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
 
         // compute gradient of m (for incremental body force)
         this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm);
-
+        DBGCHK();
+#ifdef REG_HAS_CUDA
+        ComputeAdjointBodyForceGPU(&p_l[ll],p_vec1,p_vec2,p_vec3,p_b1,p_b2,p_b3,0.5*scale/static_cast<ScalarType>(nc),nl);
+        DBGCHK();
+#else
 #pragma omp parallel
 {
 #pragma omp for
@@ -2597,8 +2655,12 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
             p_b2[i] += 0.5*scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
             p_b3[i] += 0.5*scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
         }
+} // omp
+#endif
     }
-}  // omp
+    
+    DBGCHK();
+    
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
 
@@ -2607,6 +2669,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    
+    DBGCHK();
 
     this->m_Opt->Exit(__func__);
 
@@ -2751,6 +2815,9 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(SOLVE_INC_STATE);
+    ZeitGeist_tick(SOLVE_INC_STATE);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2823,6 +2890,8 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
+
+    ZeitGeist_tock(SOLVE_INC_STATE);
 
     this->m_Opt->Exit(__func__);
 
@@ -3154,6 +3223,9 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(SOLVE_INC_ADJ);
+    ZeitGeist_tick(SOLVE_INC_ADJ);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -3314,6 +3386,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
+    
+    ZeitGeist_tock(SOLVE_INC_ADJ);
 
     this->m_Opt->Exit(__func__);
 
