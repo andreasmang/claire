@@ -61,8 +61,7 @@ RegularizationL2::RegularizationL2(RegOpt* opt) : SuperClass(opt) {
 /********************************************************************
  * @brief evaluates the functional
  *******************************************************************/
-PetscErrorCode RegularizationL2
-::EvaluateFunctional(ScalarType* R, VecField* v) {
+PetscErrorCode RegularizationL2::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, ipxi, hd;
     PetscFunctionBegin;
@@ -96,8 +95,7 @@ PetscErrorCode RegularizationL2
 /********************************************************************
  * @brief evaluates first variation of regularization norm
  *******************************************************************/
-PetscErrorCode RegularizationL2
-::EvaluateGradient(VecField* dvR, VecField* v) {
+PetscErrorCode RegularizationL2::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, *p_dvR1 = NULL, *p_dvR2 = NULL, *p_dvR3 = NULL,
                 *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
@@ -120,11 +118,7 @@ PetscErrorCode RegularizationL2
 
         ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
         ierr = dvR->GetArrays(p_dvR1, p_dvR2, p_dvR3); CHKERRQ(ierr);
-        for (IntType i = 0; i < nl; ++i) {
-            p_dvR1[i] = beta*p_v1[i];
-            p_dvR2[i] = beta*p_v2[i];
-            p_dvR3[i] = beta*p_v3[i];
-        }
+        ierr = ScaleVectorField(p_dvR1,p_dvR2,p_dvR3,p_v1,p_v2,p_v3,nl,beta); CHKERRQ(ierr);
         ierr = dvR->RestoreArrays(p_dvR1, p_dvR2, p_dvR3); CHKERRQ(ierr);
         ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     }
@@ -141,8 +135,7 @@ PetscErrorCode RegularizationL2
  * @brief applies second variation of regularization norm to
  * a vector
  *******************************************************************/
-PetscErrorCode RegularizationL2
-::HessianMatVec(VecField* dvvR, VecField* vtilde) {
+PetscErrorCode RegularizationL2::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr = 0;
     ScalarType beta;
     PetscFunctionBegin;
@@ -174,8 +167,7 @@ PetscErrorCode RegularizationL2
  * can invert this operator analytically due to the spectral
  * discretization
  *******************************************************************/
-PetscErrorCode RegularizationL2
-::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
+PetscErrorCode RegularizationL2::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr = 0;
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
                 *p_Ainvx1 = NULL, *p_Ainvx2 = NULL, *p_Ainvx3 = NULL, beta;
@@ -198,11 +190,7 @@ PetscErrorCode RegularizationL2
         nl = this->m_Opt->m_Domain.nl;
         ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
         ierr = Ainvx->GetArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
-        for (IntType i = 0; i < nl; ++i) {
-            p_Ainvx1[i] = p_x1[i]/beta;
-            p_Ainvx2[i] = p_x2[i]/beta;
-            p_Ainvx3[i] = p_x3[i]/beta;
-        }
+        ierr = ScaleVectorField(p_Ainvx1,p_Ainvx2,p_Ainvx3,p_x1,p_x2,p_x3,nl,1./beta); CHKERRQ(ierr);
         ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
         ierr = Ainvx->RestoreArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
     }
@@ -219,8 +207,7 @@ PetscErrorCode RegularizationL2
  * @brief computes the largest and smallest eigenvalue of
  * the inverse regularization operator
  *******************************************************************/
-PetscErrorCode RegularizationL2
-::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
+PetscErrorCode RegularizationL2::GetExtremeEigValsInvOp(ScalarType& emin, ScalarType& emax) {
     PetscErrorCode ierr = 0;
     ScalarType beta;
 

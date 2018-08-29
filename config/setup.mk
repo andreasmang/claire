@@ -122,10 +122,12 @@ CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -gencode arch=compute_60,c
 
 ifeq ($(USENIFTI),yes)
 	CLAIRE_INC += -I$(NIFTI_DIR)/include/nifti
+	CUDA_INC += -I$(NIFTI_DIR)/include/nifti
 endif
 
 ifeq ($(USEPNETCDF),yes)
 	CLAIRE_INC += -I$(PNETCDF_DIR)/include
+	CUDA_INC += -I$(PNETCDF_DIR)/include
 endif
 
 ifeq ($(USECUDA),yes)

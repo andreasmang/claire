@@ -181,7 +181,6 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
  *******************************************************************/
 PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
-    IntType nx[3];
     ScalarType beta, scale, hd;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_bv1 = NULL, *p_bv2 = NULL, *p_bv3 = NULL;
@@ -207,10 +206,6 @@ PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) 
         ierr = VecSet(dvR->m_X2, 0.0); CHKERRQ(ierr);
         ierr = VecSet(dvR->m_X3, 0.0); CHKERRQ(ierr);
     } else {
-        nx[0] = this->m_Opt->m_Domain.nx[0];
-        nx[1] = this->m_Opt->m_Domain.nx[1];
-        nx[2] = this->m_Opt->m_Domain.nx[2];
-
         scale = static_cast<ScalarType>(this->m_Opt->ComputeFFTScale());
 
         // compute forward fft
@@ -223,42 +218,7 @@ PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) 
         this->m_Opt->IncrementCounter(FFT, 3);
 
         applytime = -MPI_Wtime();
-#pragma omp parallel
-{
-        ScalarType lapik, regop;
-        IntType i, i1, i2, i3, w[3];
-#pragma omp for
-        for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {
-            for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {
-                for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {
-                    w[0] = i1 + this->m_Opt->m_FFT.ostart[0];
-                    w[1] = i2 + this->m_Opt->m_FFT.ostart[1];
-                    w[2] = i3 + this->m_Opt->m_FFT.ostart[2];
-
-                    ComputeWaveNumber(w, nx);
-
-                    // compute bilaplacian operator
-                    lapik = -static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-
-                    // compute regularization operator
-                    regop = hd*scale*beta*(lapik*lapik);
-
-                    // get linear index
-                    i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
-
-                    // apply to individual components
-                    this->m_v1hat[i][0] *= regop;
-                    this->m_v1hat[i][1] *= regop;
-
-                    this->m_v2hat[i][0] *= regop;
-                    this->m_v2hat[i][1] *= regop;
-
-                    this->m_v3hat[i][0] *= regop;
-                    this->m_v3hat[i][1] *= regop;
-                }
-            }
-        }
-}  // pragma omp parallel
+        ierr = EvaluateGradientKernel<2>(this->m_v1hat, this->m_v2hat, this->m_v3hat, this->m_Opt->m_FFT.ostart, this->m_Opt->m_Domain.nx, this->m_Opt->m_FFT.osize, hd*scale*beta, 0); CHKERRQ(ierr);
         applytime += MPI_Wtime();
         timer[FFTHADAMARD] += applytime;
 

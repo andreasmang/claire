@@ -35,6 +35,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationH2SN.cpp \
 		$(SRCDIR)/RegularizationH3.cpp \
 		$(SRCDIR)/RegularizationH3SN.cpp \
+		$(SRCDIR)/RegularizationKernel.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/CLAIREBase.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
@@ -45,7 +46,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 CUFILES=$(SRCDIR)/interp3_gpu_new.cu \
 		$(SRCDIR)/distance_kernel.cu \
 		$(SRCDIR)/adjoint_kernel.cu \
-		$(SRCDIR)/RegularizationGPU.cu
+		$(SRCDIR)/RegularizationKernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
@@ -80,7 +81,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegularizationL2.cpp \
 		$(SRCDIR)/RegularizationH1.cpp \
 		$(SRCDIR)/RegularizationH2.cpp \
-		$(SRCDIR)/RegularizationH1SN_GPU.cpp \
+		$(SRCDIR)/RegularizationH1SN.cpp \
 		$(SRCDIR)/RegularizationH2SN.cpp \
 		$(SRCDIR)/RegularizationH3.cpp \
 		$(SRCDIR)/RegularizationH3SN.cpp \

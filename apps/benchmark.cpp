@@ -251,6 +251,7 @@ PetscErrorCode RunHessianMatvecBenchmark(reg::BenchmarkOpt *opt) {
     }
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
     ierr = registration->SetIncControlVariable(v); CHKERRQ(ierr);
+    ierr = registration->InitializeSolver(); CHKERRQ(ierr);
 
     ierr = reg::DbgMsg("run hessian matvec benchmarck"); CHKERRQ(ierr);
 

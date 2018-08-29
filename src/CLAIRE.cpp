@@ -3161,6 +3161,8 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
             this->m_Differentiation->Gradient(p_gm1,p_gm2,p_gm3,p_m+lm+k*nl);
 
             ierr = this->m_SemiLagrangianMethod->Interpolate(p_gm1, p_gm2, p_gm3, p_gm1, p_gm2, p_gm3, "state"); CHKERRQ(ierr);
+            
+            DBGCHK();
 
             // first part of time integration
 #pragma omp parallel
@@ -3172,6 +3174,9 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
                                                       + p_gm3[i]*p_vtildex3[i]);
             }
 }  // omp
+
+            DBGCHK();
+            
             // compute gradient for state variable at next time time point
             this->m_Differentiation->Gradient(p_gm1,p_gm2,p_gm3,p_m+lmnext+k*nl);
 

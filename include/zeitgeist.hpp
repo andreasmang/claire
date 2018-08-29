@@ -86,7 +86,7 @@ public:
   const int64_t& Min () const { return min; }
   const int64_t& Max () const { return max; }
   const int64_t& Total () const { return tot; }
-  const double Total_s () const { return double(tot)*0.000001; }
+  double Total_s () const { return double(tot)*0.000001; }
   const int64_t& Count () const { return cnt; }
   double Avg () const {
     if (cnt == 0) return 0;
