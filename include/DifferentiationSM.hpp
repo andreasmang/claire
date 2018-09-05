@@ -24,9 +24,6 @@
 #include "CLAIREUtils.hpp"
 #include "Differentiation.hpp"
 
-
-
-
 namespace reg {
 
 
@@ -42,9 +39,13 @@ class DifferentiationSM : public Differentiation {
     ~DifferentiationSM();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Gradient(ScalarType**, ScalarType*);
+    virtual PetscErrorCode Gradient(VecField*, ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
     virtual PetscErrorCode Divergence(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Divergence(ScalarType*, ScalarType**);
+    virtual PetscErrorCode Divergence(ScalarType*, VecField*);
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*);
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
 

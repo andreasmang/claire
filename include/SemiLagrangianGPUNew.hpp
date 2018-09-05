@@ -89,6 +89,8 @@ class SemiLagrangianGPUNew {
     };
 };
 
+typedef SemiLagrangianGPUNew SemiLagrangian;
+
 
 
 

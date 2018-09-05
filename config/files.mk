@@ -43,9 +43,11 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp 
 
-CUFILES=$(SRCDIR)/Interpolation/interp3_gpu_new.cu \
-		$(SRCDIR)/DistanceMeasure/distance_kernel.cu \
+EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
+
+CUFILES=$(SRCDIR)/DistanceMeasure/distance_kernel.cu \
 		$(SRCDIR)/adjoint_kernel.cu \
+		$(SRCDIR)/TransportSolver/TransportKernel.cu \
 		$(SRCDIR)/Regularization/RegularizationKernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
@@ -62,15 +64,14 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
-		$(SRCDIR)/TransportProblem.cpp \
-		$(SRCDIR)/TransportEquation.cpp \
+		$(SRCDIR)/TransportSolver/TransportProblem.cpp \
+		$(SRCDIR)/TransportSolver/TransportEquationSL.cpp \
 		$(SRCDIR)/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2aux.cpp \
-		$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp \
 		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/KrylovInterface.cpp \

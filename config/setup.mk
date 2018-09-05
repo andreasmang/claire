@@ -68,16 +68,17 @@ SRCDIR = ./src
 OBJDIR = ./obj
 INCDIR = ./include
 APPDIR = ./apps
+EXSRCDIR = ./3rdparty
 
 #GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-CLAIRE_INC = -I$(INCDIR)
+CLAIRE_INC = -I$(INCDIR) -I$(EXSRCDIR)
 
 ifeq ($(USECUDA),yes)
     # CUDA includes
-    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR)
+    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR) -I$(EXSRCDIR)
 endif
 
 ifeq ($(USECUDA),yes)

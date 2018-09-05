@@ -97,6 +97,8 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_X1 = NULL;
     this->m_X2 = NULL;
     this->m_X3 = NULL;
+    
+    this->m_X = NULL;
 
     PetscFunctionReturn(ierr);
 }
@@ -122,6 +124,11 @@ PetscErrorCode VecField::ClearMemory() {
     if (this->m_X3 != NULL) {
         ierr = VecDestroy(&this->m_X3); CHKERRQ(ierr);
         this->m_X3 = NULL;
+    }
+    
+    if (this->m_X != NULL) {
+        ierr = VecDestroy(&this->m_X); CHKERRQ(ierr);
+        this->m_X = NULL;
     }
 
     PetscFunctionReturn(0);
@@ -221,6 +228,45 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
     // allocate vector field
+    ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X); CHKERRQ(ierr);
+    ierr = VecSetSizes(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
+    #ifdef REG_HAS_CUDA
+        ierr = VecSetType(this->m_X, VECCUDA); CHKERRQ(ierr);
+    #else
+        ierr = VecSetFromOptions(this->m_X); CHKERRQ(ierr);
+    #endif
+    
+    #ifdef REG_HAS_CUDA
+      ScalarType *mX;
+      VecCUDAGetArrayReadWrite(this->m_X, &mX);
+      VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[0], &this->m_X1);
+      VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[nl], &this->m_X2);
+      VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[2*nl], &this->m_X3);
+      VecCUDARestoreArrayReadWrite(this->m_X, &mX);
+    #else
+      ScalarType *mX;
+      VecGetArray(this->m_X, &mX);
+      VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[0], &this->m_X1);
+      VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[nl], &this->m_X2);
+      VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[2*nl], &this->m_X3);
+      VecRestorArray(this->m_X, &mX);
+    #endif
+    
+    /*{
+    printf("Vector %li byte:\n", sizeof(ScalarType)*nl);
+    ScalarType *pD, *pH;
+    VecCUDAGetArrayReadWrite(this->m_X, &pD); VecGetArray(this->m_X, &pH);
+    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
+    VecCUDAGetArrayReadWrite(this->m_X1, &pD); VecGetArray(this->m_X1, &pH);
+    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
+    VecCUDAGetArrayReadWrite(this->m_X2, &pD); VecGetArray(this->m_X2, &pH);
+    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
+    VecCUDAGetArrayReadWrite(this->m_X3, &pD); VecGetArray(this->m_X3, &pH);
+    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
+    }*/
+    
+    /*
+    // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X1); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X1, nl, ng); CHKERRQ(ierr);
     #ifdef REG_HAS_CUDA
@@ -246,7 +292,7 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
         ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
     #else
         ierr = VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
-    #endif
+    #endif*/
 
     PetscFunctionReturn(ierr);
 }
@@ -304,6 +350,19 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
 }
 
 
+/********************************************************************
+ * @brief get arrays of vector field
+ *******************************************************************/
+PetscErrorCode VecField::GetArrays(ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
+
+    ierr = GetRawPointer(this->m_X1, &p_x[0]); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_X2, &p_x[1]); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 /********************************************************************
@@ -321,7 +380,18 @@ PetscErrorCode VecField::GetArraysRead(const ScalarType*& p_x1,
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief get arrays of vector field
+ *******************************************************************/
+PetscErrorCode VecField::GetArraysRead(const ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
 
+    ierr = GetRawPointerRead(this->m_X1, &p_x[0]); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_X2, &p_x[1]); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -335,6 +405,20 @@ PetscErrorCode VecField::RestoreArrays(ScalarType*& p_x1,
     ierr = RestoreRawPointer(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_X3, &p_x3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief pointwise scale of a vector field
+ *******************************************************************/
+PetscErrorCode VecField::RestoreArrays(ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
+
+    ierr = RestoreRawPointer(this->m_X1, &p_x[0]); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_X2, &p_x[1]); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_X3, &p_x[2]); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -357,6 +441,20 @@ PetscErrorCode VecField::RestoreArraysRead(const ScalarType*& p_x1,
     PetscFunctionReturn(ierr);
 }
 
+
+/********************************************************************
+ * @brief restore arrays of vector field
+ *******************************************************************/
+PetscErrorCode VecField::RestoreArraysRead(const ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
+
+    ierr = RestoreRawPointerRead(this->m_X1, &p_x[0]); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_X2, &p_x[1]); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief get arrays of vector field for read/write
  *******************************************************************/
@@ -368,6 +466,19 @@ PetscErrorCode VecField::GetArraysReadWrite(ScalarType*& p_x1,
     ierr = GetRawPointerReadWrite(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = GetRawPointerReadWrite(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = GetRawPointerReadWrite(this->m_X3, &p_x3); CHKERRQ(ierr);
+    
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief get arrays of vector field for read/write
+ *******************************************************************/
+PetscErrorCode VecField::GetArraysReadWrite(ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
+
+    ierr = GetRawPointerReadWrite(this->m_X1, &p_x[0]); CHKERRQ(ierr);
+    ierr = GetRawPointerReadWrite(this->m_X2, &p_x[1]); CHKERRQ(ierr);
+    ierr = GetRawPointerReadWrite(this->m_X3, &p_x[2]); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -384,6 +495,20 @@ PetscErrorCode VecField::RestoreArraysReadWrite(ScalarType*& p_x1,
     ierr = RestoreRawPointerReadWrite(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = RestoreRawPointerReadWrite(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = RestoreRawPointerReadWrite(this->m_X3, &p_x3); CHKERRQ(ierr);
+    
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief resotre arrays of vector field for read/write
+ *******************************************************************/
+PetscErrorCode VecField::RestoreArraysReadWrite(ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
+
+    ierr = RestoreRawPointerReadWrite(this->m_X1, &p_x[0]); CHKERRQ(ierr);
+    ierr = RestoreRawPointerReadWrite(this->m_X2, &p_x[1]); CHKERRQ(ierr);
+    ierr = RestoreRawPointerReadWrite(this->m_X3, &p_x[2]); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -684,6 +809,24 @@ PetscErrorCode VecField::Norm(ScalarType& nvx1, ScalarType& nvx2, ScalarType& nv
     ierr = VecNorm(this->m_X1, NORM_2, &nvx1); CHKERRQ(ierr);
     ierr = VecNorm(this->m_X2, NORM_2, &nvx2); CHKERRQ(ierr);
     ierr = VecNorm(this->m_X3, NORM_2, &nvx3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief check if field is zero
+ *******************************************************************/
+PetscErrorCode VecField::IsZero(bool &zero) {
+    PetscErrorCode ierr = 0;
+    ScalarType normv1 = 0.0, normv2 = 0.0, normv3 = 0.0;
+    PetscFunctionBegin;
+
+    ierr = VecNorm(this->m_X1, NORM_INFINITY, &normv1); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X2, NORM_INFINITY, &normv2); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X3, NORM_INFINITY, &normv3); CHKERRQ(ierr);
+
+    zero = (normv1 == 0.0) && (normv2 == 0.0) && (normv3 == 0.0);
 
     PetscFunctionReturn(ierr);
 }

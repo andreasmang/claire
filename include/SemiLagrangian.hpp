@@ -20,6 +20,10 @@
 #ifndef _SEMILAGRANGIAN_HPP_
 #define _SEMILAGRANGIAN_HPP_
 
+#ifdef REG_HAS_CUDA
+#include "SemiLagrangianGPUNew.hpp"
+#else
+
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
@@ -98,7 +102,7 @@ class SemiLagrangian {
 
 }  // namespace
 
-
+#endif // REG_HAS_CUDA
 
 
 #endif

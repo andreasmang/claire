@@ -22,8 +22,9 @@
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
-
-
+#include "VecField.hpp"
+#include "TransportKernel.hpp"
+#include "Differentiation.hpp"
 
 
 namespace reg {
@@ -46,11 +47,19 @@ class TransportProblem {
     PetscErrorCode SetAdjointVariable(Vec);
     PetscErrorCode SetIncStateVariable(Vec);
     PetscErrorCode SetIncAdjointVariable(Vec);
+    
+    PetscErrorCode SetControlVariable(VecField*);
+    PetscErrorCode SetIncControlVariable(VecField*);
+    
+    PetscErrorCode SetWorkScaField(Vec, IntType);
+    PetscErrorCode SetWorkVecField(VecField*, IntType);
 
     virtual PetscErrorCode SolveForwardProblem() = 0;
     virtual PetscErrorCode SolveAdjointProblem() = 0;
     virtual PetscErrorCode SolveIncForwardProblem() = 0;
-    virtual PetscErrorCode SolveIncAdjointProblem() = 0;
+    virtual PetscErrorCode SolveIncAdjointProblem();
+    
+    PetscErrorCode SetDifferentiation(Differentiation*);
 
  protected:
     PetscErrorCode Initialize();
@@ -62,8 +71,16 @@ class TransportProblem {
     Vec m_AdjointVariable;
     Vec m_IncStateVariable;
     Vec m_IncAdjointVariable;
+    
+    VecField* m_VelocityField;
+    VecField* m_IncVelocityField;
+    
+    Vec m_WorkScaField[5];  ///< work scalar field
+    VecField* m_WorkVecField[5];  ///< data container for vector field (temporary variable)
 
     RegOpt* m_Opt;
+    
+    Differentiation* m_Differentiation;
 
  private:
 };

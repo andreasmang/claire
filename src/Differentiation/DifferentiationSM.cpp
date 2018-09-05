@@ -51,7 +51,6 @@ DifferentiationSM::DifferentiationSM(RegOpt* opt) : SuperClass(opt) {
  * @brief default destructor
  *******************************************************************/
 DifferentiationSM::~DifferentiationSM() {
-    printf("DifferentiationSM: %i grad, %i div\n",c_grad,c_div);
     this->ClearMemory();
 }
 
@@ -66,8 +65,6 @@ PetscErrorCode DifferentiationSM::Initialize() {
     PetscFunctionBegin;
     
     xyz[0] = 1; xyz[1] = 1; xyz[2] = 1;
-    c_grad = 0;
-    c_div = 0;
 
     PetscFunctionReturn(ierr);
 }
@@ -109,10 +106,39 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
     
     this->m_Opt->IncreaseFFTTimers(timer);
-    c_grad++;
     
     ZeitGeist_tock(FFT_GRAD);
 
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Gradient(VecField *g, ScalarType *m) {
+    PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = g->GetArraysReadWrite(g1, g2, g3); CHKERRQ(ierr);
+    
+    ierr = this->Gradient(g1, g2, g3, m); CHKERRQ(ierr);
+    
+    ierr = g->RestoreArraysReadWrite(g1, g2, g3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Gradient(ScalarType **g, ScalarType *m) {
+    PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
+    PetscFunctionBegin;
+        
+    ierr = this->Gradient(g[0], g[1], g[2], m); CHKERRQ(ierr);
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -185,8 +211,6 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     accfft_divergence_t(l, v1, v2, v3, this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
-
-    c_div++;
     
     this->m_Opt->IncreaseFFTTimers(timer);
     
@@ -195,6 +219,37 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     PetscFunctionReturn(ierr);
 }
 
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, VecField *v) {
+    PetscErrorCode ierr = 0;
+    ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = v->GetArraysReadWrite(v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = this->Divergence(l, v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = v->RestoreArraysReadWrite(v1, v2, v3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, ScalarType **v) {
+    PetscErrorCode ierr = 0;
+    ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
+    PetscFunctionBegin;
+        
+    ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
+    
+    PetscFunctionReturn(ierr);
+}
 
 
 

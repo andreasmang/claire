@@ -17,6 +17,7 @@ include config/files.mk
 ifeq ($(USECUDA),yes)
 CUDAC=nvcc
 CUDA_OBJS = $(patsubst $(SRCDIR)/%.cu,$(OBJDIR)/cuda/%.o,$(CUFILES))
+CUDA_OBJS += $(patsubst $(EXSRCDIR)/%.cu,$(OBJDIR)/cuda/%.o,$(EXCUFILES))
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILESCUDA))
 else
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
@@ -37,6 +38,10 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 
 $(OBJDIR)/cuda/%.o: $(SRCDIR)/%.cu
+	-@$(MKDIRS) $(dir $@)
+	$(CUDAC) $(CUDA_FLAGS) $(CUDA_INC) -c $^ -o $@
+	
+$(OBJDIR)/cuda/%.o: $(EXSRCDIR)/%.cu
 	-@$(MKDIRS) $(dir $@)
 	$(CUDAC) $(CUDA_FLAGS) $(CUDA_INC) -c $^ -o $@
 

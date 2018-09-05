@@ -17,50 +17,58 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TRANSPORTEQUATION_HPP_
-#define _TRANSPORTEQUATION_HPP_
+#ifndef _TRANSPORTKERNEL_HPP_
+#define _TRANSPORTKERNEL_HPP_
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
-#include "TransportProblem.hpp"
-
-
-
 
 namespace reg {
 
-
-
-
-class TransportEquation : public TransportProblem {
- public:
-    typedef TransportEquation Self;
-    typedef TransportProblem SuperClass;
-
-    TransportEquation();
-    TransportEquation(RegOpt*);
-    ~TransportEquation();
-
-    PetscErrorCode SolveForwardProblem();
-    PetscErrorCode SolveAdjointProblem();
-    PetscErrorCode SolveIncForwardProblem();
-    PetscErrorCode SolveIncAdjointProblem();
-
- protected:
-    PetscErrorCode Initialize();
-    PetscErrorCode ClearMemory();
-
- private:
-    PetscErrorCode SolveForwardProblemSL();
-    //PetscErrorCode SolveAdjointProblemSL();
+struct TransportKernelAdjointSL {
+  ScalarType *pB[3];
+  ScalarType *pGm[3];
+  ScalarType *pDivV;
+  ScalarType *pDivVx;
+  ScalarType *pL;
+  ScalarType *pLnext;
+  ScalarType *pLx;
+  
+  ScalarType scale;
+  ScalarType ht;
+  
+  IntType nl;
+  
+  PetscErrorCode ComputeBodyForcePart1();
+  PetscErrorCode ComputeBodyForcePart2();
 };
 
+struct TransportKernelIncStateSL {
+  ScalarType *pGm[3];
+  ScalarType *pMtilde;
+  const ScalarType *pVtilde[3];
+  const ScalarType *pVtildex[3];
+  
+  ScalarType hthalf;
+  
+  IntType nl;
+  
+  PetscErrorCode TimeIntegrationPart1();
+  PetscErrorCode TimeIntegrationPart2();
+};
 
+struct TransportKernelIncAdjointGN {
+  ScalarType *pLtilde;
+  ScalarType *pGm[3];
+  ScalarType *pBtilde[3];
+  
+  ScalarType scale;
+  
+  IntType nl;
+  
+  PetscErrorCode ComputeBodyForce();
+};
 
+}
 
-}  // namespace reg
-
-
-
-
-#endif  // _TRANSPORTEQUATION_HPP_
+#endif

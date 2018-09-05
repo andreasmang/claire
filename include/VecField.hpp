@@ -71,13 +71,19 @@ class VecField {
     PetscErrorCode GetSize(IntType&, IntType&);
 
     PetscErrorCode GetArrays(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode GetArrays(ScalarType**);
     PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode RestoreArrays(ScalarType**);
 
     PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
+    PetscErrorCode GetArraysRead(const ScalarType**);
     PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
+    PetscErrorCode RestoreArraysRead(const ScalarType**);
 
     PetscErrorCode GetArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode GetArraysReadWrite(ScalarType**);
     PetscErrorCode RestoreArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode RestoreArraysReadWrite(ScalarType**);
 
     PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
     PetscErrorCode AXPY(ScalarType, VecField*);
@@ -86,11 +92,16 @@ class VecField {
     PetscErrorCode Norm(Vec);
     PetscErrorCode Norm(ScalarType&);
     PetscErrorCode Norm(ScalarType&, ScalarType&, ScalarType&);
+    
+    PetscErrorCode IsZero(bool&);
 
     // individual components
     Vec m_X1;
     Vec m_X2;
     Vec m_X3;
+    
+    // all components
+    Vec m_X;
 
  private:
     PetscErrorCode Initialize(void);
