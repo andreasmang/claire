@@ -2041,9 +2041,14 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 std::cout << "normalized cross-correlation" << std::endl;
                 break;
             }
+            case SL2AUX:
+            {
+                std::cout << "Auxiliary l2-distance" << std::endl;
+                break;
+            }
             default:
             {
-                ierr = ThrowError("distance measure not implemented"); CHKERRQ(ierr);
+                ierr = ThrowError("distance measure still not implemented"); CHKERRQ(ierr);
                 break;
             }
         }
