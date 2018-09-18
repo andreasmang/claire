@@ -29,7 +29,8 @@ all: $(BIN)
 
 ifeq ($(USECUDA),yes)
 
-$(BINDIR)/%: $(OBJDIR)/%.o $(CUDA_OBJS) $(OBJS)
+#$(BINDIR)/%: $(OBJDIR)/%.o $(CUDA_OBJS) $(OBJS)
+$(BINDIR)/%: $(OBJDIR)/bin/%.o $(CUDA_OBJS) $(OBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
 
@@ -45,7 +46,7 @@ $(OBJDIR)/cuda/%.o: $(EXSRCDIR)/%.cu
 	-@$(MKDIRS) $(dir $@)
 	$(CUDAC) $(CUDA_FLAGS) $(CUDA_INC) -c $^ -o $@
 
-$(OBJDIR)/%.o: $(APPDIR)/%.cpp
+$(OBJDIR)/bin/%.o: $(APPDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 

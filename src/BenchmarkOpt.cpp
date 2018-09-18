@@ -254,6 +254,7 @@ PetscErrorCode BenchmarkOpt::Usage(bool advanced) {
         // ####################### advanced options #######################
         std::cout << " -forward                    benchmark forward solver"<<std::endl;
         std::cout << " -gradient                   benchmark gradient evaluation"<<std::endl;
+        std::cout << " -hessmatvec                 benchmark hessian matvec evaluation"<<std::endl;
         std::cout << " -repeats <int>              set number of repeats"<<std::endl;
         std::cout << " -terror                     compute numerical error for solution of transport equation"<<std::endl;
         std::cout << " -logwork                    log work load (requires -x option)"<<std::endl;

@@ -54,12 +54,13 @@ class TransportProblem {
     PetscErrorCode SetWorkScaField(Vec, IntType);
     PetscErrorCode SetWorkVecField(VecField*, IntType);
 
-    virtual PetscErrorCode SolveForwardProblem() = 0;
-    virtual PetscErrorCode SolveAdjointProblem() = 0;
+    virtual PetscErrorCode SolveForwardProblem();
+    virtual PetscErrorCode SolveAdjointProblem();
     virtual PetscErrorCode SolveIncForwardProblem() = 0;
     virtual PetscErrorCode SolveIncAdjointProblem();
     
-    PetscErrorCode SetDifferentiation(Differentiation*);
+    PetscErrorCode SetDifferentiation(Differentiation::Type);
+    PetscErrorCode GetDifferentiation(Differentiation::Type*);
 
  protected:
     PetscErrorCode Initialize();

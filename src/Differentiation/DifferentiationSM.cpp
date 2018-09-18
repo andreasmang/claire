@@ -40,7 +40,7 @@ DifferentiationSM::DifferentiationSM() : SuperClass() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-DifferentiationSM::DifferentiationSM(RegOpt* opt) : SuperClass(opt) {
+DifferentiationSM::DifferentiationSM(RegOpt* opt) : SuperClass(opt, Type::Spectral) {
     this->Initialize();
 }
 

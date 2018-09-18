@@ -21,7 +21,8 @@
 #define _CONTINUITYEQUATION_CPP_
 
 #include "TransportProblem.hpp"
-
+#include "DifferentiationSM.hpp"
+#include "DifferentiationFD.hpp"
 
 
 
@@ -82,6 +83,8 @@ PetscErrorCode TransportProblem::Initialize() {
       this->m_WorkScaField[i] = nullptr;
       this->m_WorkVecField[i] = nullptr;
     }
+    
+    this->m_Differentiation = nullptr;
 
     PetscFunctionReturn(0);
 }
@@ -95,6 +98,11 @@ PetscErrorCode TransportProblem::Initialize() {
 PetscErrorCode TransportProblem::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    if (this->m_Differentiation != nullptr) {
+      delete this->m_Differentiation;
+      this->m_Differentiation = nullptr;
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -255,13 +263,38 @@ PetscErrorCode TransportProblem::SetWorkVecField(VecField* field, IntType idx) {
 /********************************************************************
  * @brief set the differentiation method
  *******************************************************************/
-PetscErrorCode TransportProblem::SetDifferentiation(Differentiation *diff) {
+PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
+
+    if (this->m_Differentiation != nullptr && this->m_Differentiation->m_Type != type) {
+      delete this->m_Differentiation;
+      this->m_Differentiation = nullptr;
+    }
     
-    this->m_Differentiation = diff;
+    if (this->m_Differentiation == nullptr) {
+      switch (type) {
+      case Differentiation::Type::Spectral:
+        try {
+          this->m_Differentiation = new DifferentiationSM(this->m_Opt);
+        } catch (std::bad_alloc& err) {
+          ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        break;
+      case Differentiation::Type::Finite:
+        try {
+          this->m_Differentiation = new DifferentiationFD(this->m_Opt);
+        } catch (std::bad_alloc& err) {
+          ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        break;
+      default:
+        ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
+        break;
+      };
+    }
     
     this->m_Opt->Exit(__func__);
 
@@ -269,13 +302,126 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation *diff) {
 }
 
 /********************************************************************
- * @brief solve the adjoint problem for zero velocity fields with Gauss-Newton-scheme
+ * @brief get the differentiation method
+ *******************************************************************/
+PetscErrorCode TransportProblem::GetDifferentiation(Differentiation::Type* type) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+
+    if (this->m_Differentiation == nullptr) {
+      *type = Differentiation::Type::None;
+    } else {
+      *type = this->m_Differentiation->m_Type;
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief solve the forward problem for zero velocity fields
+ *******************************************************************/
+PetscErrorCode TransportProblem::SolveForwardProblem() {
+    PetscErrorCode ierr = 0;
+    ScalarType *pM = nullptr, *pL = nullptr;
+    IntType nc, nl, nt;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+    
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    nt = this->m_Opt->m_Domain.nt;
+    
+    ierr = Assert(this->m_TemplateImage != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    // m and \lambda are constant in time
+    
+    if (this->m_Opt->m_RegFlags.runinversion) {
+        ierr = GetRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
+        for (IntType j = 1; j <= nt; ++j) {
+            TransportKernelCopy(pM, pM + j*nc*nl, nc*nl);
+        }
+        ierr = RestoreRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief solve the adjoint problem for zero velocity fields
+ *******************************************************************/
+PetscErrorCode TransportProblem::SolveAdjointProblem() {
+    PetscErrorCode ierr = 0;
+    ScalarType *pM = nullptr, *pL = nullptr;
+    IntType nc, nl, nt;
+    TransportKernelAdjoint kernel;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+    
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    nt = this->m_Opt->m_Domain.nt;
+    kernel.nl = nl;
+    kernel.scale = 1.0/static_cast<ScalarType>(nc);
+    
+    ierr = Assert(this->m_TemplateImage != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = GetRawPointer(this->m_AdjointVariable, &pL); CHKERRQ(ierr);
+    // adjoint variable is constant in time
+    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
+        for (IntType j = 1; j <= nt; ++j) {
+            TransportKernelCopy(pL + nt*nc*nl, pL + (nt-j)*nl*nc, nc*nl);
+        }
+    }
+
+    ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
+
+    // m and \lambda are constant in time
+    ierr = GetRawPointer(this->m_TemplateImage, &pM); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->GetArrays(kernel.pGm); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->GetArrays(kernel.pB); CHKERRQ(ierr);
+    
+    for (IntType k = 0; k < nc; ++k) {  // for all components
+        kernel.pL = pL + k*nl;
+        
+        // compute gradient of m
+        ierr = this->m_Differentiation->Gradient(kernel.pGm,pM+k*nl); CHKERRQ(ierr);
+
+        // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
+        ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
+    }  // pragma
+   
+    ierr = this->m_WorkVecField[1]->RestoreArrays(kernel.pB); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->RestoreArrays(kernel.pGm); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_TemplateImage, &pM); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &pL); CHKERRQ(ierr);
+  
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief solve the incremental adjoint problem for zero velocity fields with Gauss-Newton-scheme
  *******************************************************************/
 PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
     PetscErrorCode ierr = 0;
     ScalarType *pM = nullptr, *pLtilde = nullptr;
     IntType nc, nl;
-    TransportKernelIncAdjointGN kernel;
+    TransportKernelAdjoint kernel;
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
@@ -301,20 +447,20 @@ PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
 
     // init body force for numerical integration
     ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[1]->GetArrays(kernel.pBtilde); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->GetArrays(kernel.pB); CHKERRQ(ierr);
 
     // $m$ and $\tilde{\lambda}$ are constant
     for (IntType k = 0; k < nc; ++k) {  // for all components
-        kernel.pLtilde = pLtilde + k*nl;
+        kernel.pL = pLtilde + k*nl;
         // compute gradient of m
         ierr = this->m_Differentiation->Gradient(kernel.pGm,pM + k*nl); CHKERRQ(ierr);
 
         ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
     }
-    ierr = this->m_WorkVecField[1]->RestoreArrays(kernel.pBtilde); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->RestoreArrays(kernel.pB); CHKERRQ(ierr);
     ierr = this->m_WorkVecField[0]->RestoreArrays(kernel.pGm); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &kernel.pLtilde); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &pLtilde); CHKERRQ(ierr);
   
     this->m_Opt->Exit(__func__);
 

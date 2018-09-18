@@ -65,12 +65,8 @@ TransportEquationSL::TransportEquationSL(RegOpt* opt) : SuperClass(opt) {
  *******************************************************************/
 PetscErrorCode TransportEquationSL::Initialize() {
     PetscFunctionBegin;
-
-    this->m_TemplateImage = NULL;
-    this->m_ReferenceImage = NULL;
     
     this->m_SemiLagrangianMethod = nullptr;
-    this->m_Differentiation = nullptr;
 
     PetscFunctionReturn(0);
 }
@@ -84,7 +80,7 @@ PetscErrorCode TransportEquationSL::Initialize() {
 PetscErrorCode TransportEquationSL::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    
+        
     if (this->m_SemiLagrangianMethod != nullptr) {
         delete this->m_SemiLagrangianMethod;
         this->m_SemiLagrangianMethod = nullptr;
@@ -94,11 +90,35 @@ PetscErrorCode TransportEquationSL::ClearMemory() {
 }
 
 
-
 /********************************************************************
  * @brief solve the forward problem (i.e., the continuity equation)
  *******************************************************************/
 PetscErrorCode TransportEquationSL::SolveForwardProblem() {
+    PetscErrorCode ierr = 0;
+    bool VelocityIsZero = false;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+    
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = this->m_VelocityField->IsZero(VelocityIsZero); CHKERRQ(ierr);
+    if (VelocityIsZero) {
+        ierr = SuperClass::SolveForwardProblem(); CHKERRQ(ierr);
+    } else {
+        ierr = this->SolveStateEquation(); CHKERRQ(ierr);
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief solve the forward problem (i.e., the continuity equation)
+ *******************************************************************/
+PetscErrorCode TransportEquationSL::SolveStateEquation() {
     PetscErrorCode ierr = 0;
     IntType nl, nc, nt, l, lnext;
     ScalarType *p_m = NULL;
@@ -150,16 +170,39 @@ PetscErrorCode TransportEquationSL::SolveForwardProblem() {
 }
 
 
-
-
 /********************************************************************
  * @brief solve the adjoint problem
  *******************************************************************/
 PetscErrorCode TransportEquationSL::SolveAdjointProblem() {
     PetscErrorCode ierr = 0;
+    bool VelocityIsZero = false;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+    
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = this->m_VelocityField->IsZero(VelocityIsZero); CHKERRQ(ierr);
+    if (VelocityIsZero) {
+        ierr = SuperClass::SolveAdjointProblem(); CHKERRQ(ierr);
+    } else {
+        ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief solve the adjoint problem
+ *******************************************************************/
+PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
+    PetscErrorCode ierr = 0;
     ScalarType *p_v1 = nullptr, *p_v2 = nullptr, *p_v3 = nullptr,
                 *p_l = nullptr, *p_m = nullptr;
-    IntType nl, ng, nc, nt, ll, lm, llnext;
+    IntType nl, nc, nt, ll, lm, llnext;
     TransportKernelAdjointSL kernel;
     bool fullnewton = false;
 
@@ -169,7 +212,6 @@ PetscErrorCode TransportEquationSL::SolveAdjointProblem() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     kernel.ht = this->m_Opt->GetTimeStepSize();
     kernel.scale = kernel.ht/static_cast<ScalarType>(nc);
     kernel.nl = nl;
@@ -282,7 +324,7 @@ PetscErrorCode TransportEquationSL::SolveAdjointProblem() {
  *******************************************************************/
 PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nt, nc, lm, lmnext, lmt, lmtnext;
+    IntType nl, nt, nc, lm, lmnext, lmt, lmtnext;
     ScalarType *p_mtilde = nullptr, *p_m = nullptr, *p_mx = nullptr;
     TransportKernelIncStateSL kernel;
     bool fullnewton = false;
@@ -293,7 +335,6 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     kernel.hthalf = 0.5*this->m_Opt->GetTimeStepSize();
     
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);

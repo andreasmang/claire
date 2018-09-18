@@ -34,18 +34,24 @@ using FFTWPlanType = fftw_plan;
 #if defined(REG_FFT_CUDA) // GPU FFT
 #if defined(PETSC_USE_REAL_SINGLE)
 using FFTPlanType = accfft_plan_gpuf;
-#define accfft_plan_dft_3d_r2c accfft_plan_dft_3d_r2c_gpuf
-inline void accfft_cleanup() { accfft_cleanup_gpuf(); }
+//#define accfft_plan_dft_3d_r2c accfft_plan_dft_3d_r2c_gpuf
+const auto accfft_plan_dft_3d_r2c = accfft_plan_dft_3d_r2c_gpuf;
+const auto accfft_cleanup = accfft_cleanup_gpuf;
+//inline void accfft_cleanup() { accfft_cleanup_gpuf(); }
 #else
 using FFTPlanType = accfft_plan_gpu;
-#define accfft_plan_dft_3d_r2c accfft_plan_dft_3d_r2c_gpu
-inline void accfft_cleanup() { accfft_cleanup_gpu(); }
+//#define accfft_plan_dft_3d_r2c accfft_plan_dft_3d_r2c_gpu
+const auto accfft_plan_dft_3d_r2c = accfft_plan_dft_3d_r2c_gpu;
+const auto accfft_cleanup = accfft_cleanup_gpu;
+//inline void accfft_cleanup() { accfft_cleanup_gpu(); }
 #endif
 // dummy function replacing fftw init (not needed by GPU fft)
 inline int accfft_init(int nthreads) { return 0; }
 // AccFFT wrapper for GPU kernels
 #define accfft_execute_r2c_t accfft_execute_r2c_gpu_t
+//const auto accfft_execute_r2c_t = accfft_execute_r2c_gpu_t<ScalarType>;
 #define accfft_execute_c2r_t accfft_execute_c2r_gpu_t
+//const auto accfft_execute_c2r_t = accfft_execute_c2r_gpu_t<ScalarType>;
 #define accfft_grad_t accfft_grad_gpu_t
 #define accfft_laplace_t accfft_laplace_gpu_t
 #define accfft_divergence_t accfft_divergence_gpu_t

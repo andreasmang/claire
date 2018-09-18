@@ -53,6 +53,8 @@ class TransportEquationSL : public TransportProblem {
     SemiLagrangian* m_SemiLagrangianMethod;
     
     PetscErrorCode SolveIncAdjointEquationGN();
+    PetscErrorCode SolveAdjointEquation();
+    PetscErrorCode SolveStateEquation();
 };
 
 

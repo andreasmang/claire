@@ -27,14 +27,12 @@
 
 namespace reg {
 
-
-
-
 class Differentiation {
  public:
+    enum Type {None, Spectral, Finite};
     typedef Differentiation Self;
     Differentiation();
-    Differentiation(RegOpt*);
+    Differentiation(RegOpt*, Type);
     virtual ~Differentiation();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*) = 0;
@@ -47,6 +45,8 @@ class Differentiation {
     virtual PetscErrorCode Divergence(ScalarType*, VecField*) = 0;
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*) = 0;
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*) = 0;
+    
+    const Type m_Type;
 
  protected:
     PetscErrorCode Initialize();

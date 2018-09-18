@@ -234,6 +234,11 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
+    
+    if (this->m_TransportProblem == nullptr) {
+        ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
+        this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -416,7 +421,7 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     // copy m_0 to m(t=0)
     ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m0, p_m0+nl*nc, p_m);}
+    try {std::copy(p_m0, p_m0+nl*nc, p_m); }
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
@@ -1833,6 +1838,11 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    if (this->m_TransportProblem == nullptr) {
+      ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
+      //ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+    }
 
     // check cfl condition / update time step
     if (this->m_Opt->m_PDESolver.monitorcflnumber ||
@@ -1859,9 +1869,16 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     // set initial condition m_0 = m_T
     ierr = this->SetInitialState(this->m_TemplateImage); CHKERRQ(ierr);
 
+    ierr = this->m_TransportProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
+
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
-    // check if velocity field is zero
+    
+    ierr = this->m_TransportProblem->SolveForwardProblem(); CHKERRQ(ierr);
+
+    /*// check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (this->m_VelocityIsZero) {
         // we copy m_0 to all t for v=0
@@ -1902,7 +1919,7 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
             ierr = ThrowError("PDE type does not exist"); CHKERRQ(ierr);
         }
 
-    }  // velocity field is zero
+    }  // velocity field is zero*/
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 

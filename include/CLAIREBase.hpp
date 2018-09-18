@@ -48,6 +48,8 @@
 #include "Differentiation.hpp"
 #include "DifferentiationFD.hpp"
 #include "DifferentiationSM.hpp"
+#include "TransportProblem.hpp"
+#include "TransportEquationSL.hpp"
 
 
 
@@ -198,6 +200,7 @@ class CLAIREBase : public OptimizationProblem {
     PetscErrorCode SetupDeformationField();
     PetscErrorCode SetupSpectralData();
     PetscErrorCode SetupDistanceMeasure();
+    PetscErrorCode SetupTransportProblem();
 
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
@@ -231,6 +234,7 @@ class CLAIREBase : public OptimizationProblem {
     SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
     DeformationFields* m_DeformationFields;      ///< interface to compute deformation fields from velocity
     Differentiation* m_Differentiation;          ///< interface to evaluate / apply differential operators
+    TransportProblem* m_TransportProblem;        ///< interface to compute the transport equation
 
     bool m_VelocityIsZero;
     bool m_StoreTimeHistory;

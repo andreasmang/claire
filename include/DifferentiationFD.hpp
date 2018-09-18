@@ -41,9 +41,15 @@ class DifferentiationFD : public Differentiation {
     virtual ~DifferentiationFD();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Gradient(ScalarType**, ScalarType*);
+    virtual PetscErrorCode Gradient(VecField*, ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
     virtual PetscErrorCode Divergence(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Divergence(ScalarType*, ScalarType**);
+    virtual PetscErrorCode Divergence(ScalarType*, VecField*);
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*);
+    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
 
  protected:
     PetscErrorCode Initialize();

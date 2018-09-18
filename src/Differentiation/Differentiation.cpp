@@ -34,7 +34,7 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-Differentiation::Differentiation() {
+Differentiation::Differentiation() : m_Type(Type::None) {
     this->Initialize();
 }
 
@@ -54,7 +54,7 @@ Differentiation::~Differentiation() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-Differentiation::Differentiation(RegOpt* opt) {
+Differentiation::Differentiation(RegOpt* opt, Type type) : m_Type(type) {
     this->Initialize();
     this->m_Opt = opt;
 }

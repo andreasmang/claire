@@ -57,10 +57,10 @@ struct TransportKernelIncStateSL {
   PetscErrorCode TimeIntegrationPart2();
 };
 
-struct TransportKernelIncAdjointGN {
-  ScalarType *pLtilde;
+struct TransportKernelAdjoint {
+  ScalarType *pL;
   ScalarType *pGm[3];
-  ScalarType *pBtilde[3];
+  ScalarType *pB[3];
   
   ScalarType scale;
   
@@ -68,6 +68,9 @@ struct TransportKernelIncAdjointGN {
   
   PetscErrorCode ComputeBodyForce();
 };
+
+template<typename T>
+PetscErrorCode TransportKernelCopy(T*, T*, IntType);
 
 }
 

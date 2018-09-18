@@ -103,7 +103,7 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart2() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode TransportKernelIncAdjointGN::Compute() {
+PetscErrorCode TransportKernelAdjoint::ComputeBodyForce() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -112,14 +112,30 @@ PetscErrorCode TransportKernelIncAdjointGN::Compute() {
 #pragma omp for
         // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
         for (IntType i = 0; i < nl; ++i) {
-            ScalarType ltilde = pLtilde[i];
-            pBtilde[0][i] += scale*ltilde*pGm[0][i];
-            pBtilde[1][i] += scale*ltilde*pGm[1][i];
-            pBtilde[2][i] += scale*ltilde*pGm[2][i];
+            ScalarType lambda = pL[i];
+            pB[0][i] += scale*lambda*pGm[0][i];
+            pB[1][i] += scale*lambda*pGm[1][i];
+            pB[2][i] += scale*lambda*pGm[2][i];
         }
 } // omp
 
   PetscFunctionReturn(ierr);
 }
+
+template<typename T>
+PetscErrorCode TransportKernelCopy(T* org, T* dest, IntType ne) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  try {
+      std::copy(org,org+ne,dest);
+  } catch (std::exception& err) {
+      ierr = ThrowError(err); CHKERRQ(ierr);
+  }
+  
+  PetscFunctionReturn(ierr);
+}
+template PetscErrorCode TransportKernelCopy<ScalarType>(ScalarType*, ScalarType*, IntType);
+
 
 } // namespace reg

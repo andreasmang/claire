@@ -105,6 +105,7 @@ PetscErrorCode CLAIREBase::Initialize() {
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
     this->m_DeformationFields = NULL;       ///< interface for computing deformation field (jacobian; mapping; ...)
     this->m_Differentiation = NULL;         ///< interface for differentiation
+    this->m_TransportProblem = NULL;        ///< interface for transport equation
 
     this->m_VelocityIsZero = false;          ///< flag: is velocity zero
     this->m_StoreTimeHistory = true;         ///< flag: store time history (needed for inversion)
@@ -167,6 +168,11 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     if (this->m_Differentiation != NULL) {
         delete this->m_Differentiation;
         this->m_Differentiation = NULL;
+    }
+    
+    if (this->m_TransportProblem != NULL) {
+        delete this->m_TransportProblem;
+        this->m_TransportProblem = NULL;
     }
 
     if (this->m_WorkScaField1 != NULL) {
@@ -817,6 +823,112 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
     ierr = this->m_Regularization->SetSpectralData(this->m_x1hat,
                                                    this->m_x2hat,
                                                    this->m_x3hat); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief allocate transport problem model
+ *******************************************************************/
+PetscErrorCode CLAIREBase::SetupTransportProblem() {
+    PetscErrorCode ierr = 0;
+    IntType nl, ng;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+    
+    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+
+    // delete regularization if already allocated
+    // (should never happen)
+    if (this->m_TransportProblem != NULL) {
+        delete this->m_TransportProblem;
+        this->m_TransportProblem = NULL;
+    }
+
+    // switch between regularization norms
+    switch (this->m_Opt->m_PDESolver.type) {
+        case SL:
+        {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate SL transport problem"); CHKERRQ(ierr);
+            }
+            try {this->m_TransportProblem = new TransportEquationSL(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }
+        /*case RK2:
+        {
+            if (this->m_Opt->m_Verbosity > 1) {
+              ierr = DbgMsg("allocate RK2 transport problem"); CHKERRQ(ierr);
+            }
+            try {this->m_TransportProblem = new TransportEquationRK2(this->m_Opt);}
+            catch (std::bad_alloc&) {
+                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+            }
+            break;
+        }*/
+        default:
+        {
+            ierr = reg::ThrowError("transport problem model not defined"); CHKERRQ(ierr);
+        }
+    }
+
+    if (this->m_WorkVecField1 == NULL) {
+        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField1, 0); CHKERRQ(ierr);
+
+    if (this->m_WorkVecField2 == NULL) {
+        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField2, 1); CHKERRQ(ierr);
+
+    if (this->m_WorkVecField3 == NULL) {
+        try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
+        catch (std::bad_alloc&) {
+            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+        }
+    }
+    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField3, 2); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField1 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    }
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField1, 0); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField2 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
+    }
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField2, 1); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField3 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
+    }
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField3, 2); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField4 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
+    }
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 3); CHKERRQ(ierr);
+
+    if (this->m_WorkScaField5 == NULL) {
+        ierr = VecCreate(this->m_WorkScaField5, nl, ng); CHKERRQ(ierr);
+    }
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 4); CHKERRQ(ierr);
+    
 
     this->m_Opt->Exit(__func__);
 

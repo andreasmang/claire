@@ -65,7 +65,7 @@ __global__ void TransformKernelIncStateSLGPU(ScalarType *pM,
     pM[i] -= hthalf*(pG1[i]*pV1[i] + pG2[i]*pV2[i] + pG3[i]*pV3[i]);
   }
 }
-#define TransformKernelIncAdjointGNGPU TransformKernelAdjointSLGPU
+#define TransformKernelIncAdjointGPU TransformKernelAdjointSLGPU
 
 namespace reg {
   
@@ -133,21 +133,35 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart2() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode TransportKernelIncAdjointGN::ComputeBodyForce() {
+PetscErrorCode TransportKernelAdjoint::ComputeBodyForce() {
   PetscErrorCode ierr = 0;
   dim3 block = dim3(256);
   dim3 grid  = dim3((nl + 255)/256);
   PetscFunctionBegin;
   
-  TransformKernelIncAdjointGNGPU<<<grid, block>>>(pLtilde, 
+  TransformKernelIncAdjointGPU<<<grid, block>>>(pL, 
       pGm[0], pGm[1], pGm[2], 
-      pBtilde[0], pBtilde[1], pBtilde[2], 
+      pB[0], pB[1], pB[2], 
       scale, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
 }
+
+template<typename T>
+PetscErrorCode TransportKernelCopy(T* org, T* dest, IntType ne) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  cudaMemcpy((void*)dest,(void*)org,sizeof(T)*ne,cudaMemcpyDeviceToDevice);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+template PetscErrorCode TransportKernelCopy<ScalarType>(ScalarType*, ScalarType*, IntType);
+
 
 } // namespace reg
 
