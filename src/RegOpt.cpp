@@ -2043,12 +2043,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
             case SL2AUX:
             {
-                std::cout << "Auxiliary l2-distance" << std::endl;
+                std::cout << "squared l2-distance measure for coupling" << std::endl;
                 break;
             }
             default:
             {
-                ierr = ThrowError("distance measure still not implemented"); CHKERRQ(ierr);
+                ierr = ThrowError("selected distance measure not implemented"); CHKERRQ(ierr);
                 break;
             }
         }
