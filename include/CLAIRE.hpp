@@ -153,19 +153,19 @@ class CLAIRE : public CLAIREBase {
     PetscErrorCode SolveIncAdjointEquationGNRK2();
 
     /*! sl solver for state equation */
-    PetscErrorCode SolveStateEquationSL();
+    //PetscErrorCode SolveStateEquationSL();
 
     /*! sl solver for adjoint equation */
-    virtual PetscErrorCode SolveAdjointEquationSL();
+    //virtual PetscErrorCode SolveAdjointEquationSL();
 
     /*! sl solver for inc state equation */
-    PetscErrorCode SolveIncStateEquationSL();
+    //PetscErrorCode SolveIncStateEquationSL();
 
     /*! sl solver for inc adjoint equation */
-    virtual PetscErrorCode SolveIncAdjointEquationGNSL();
+    //virtual PetscErrorCode SolveIncAdjointEquationGNSL();
 
     /*! sl solver for inc adjoint equation */
-    PetscErrorCode SolveIncAdjointEquationFNSL();
+    //PetscErrorCode SolveIncAdjointEquationFNSL();
 
     /*! apply the projection operator to the
         body force and the incremental body force */

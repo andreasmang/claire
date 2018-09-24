@@ -21,11 +21,7 @@
 #define _DISTANCEMEASURESL2_CPP_
 
 #include "DistanceMeasureSL2.hpp"
-
-#ifdef REG_HAS_CUDA
-#include "distance_kernel.hpp"
-#endif
-
+#include "DistanceMeasureKernel.hpp"
 
 
 namespace reg {
@@ -158,10 +154,8 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
  *******************************************************************/
 PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
-    IntType nl, nc, nt, l, ll;
-    //ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
-    ScalarType *p_l = NULL;
-    const ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
+    IntType nt;
+    DistanceMeasureKernelSL2 kernel;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -171,26 +165,28 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    kernel.nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
+
+    ierr = GetRawPointerRead(this->m_StateVariable, kernel.pM); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_ReferenceImage, &kernel.pMr); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_AdjointVariable, kernel.pL); CHKERRQ(ierr);
 
     // index for final condition
+    //kernel.pL = pL;
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        ll = nt*nc*nl;
-    } else {
-        ll = 0;
+        //kernel.pL += nt*kernel.nc*kernel.nl;
+        kernel.pL.SetOffest(nt*kernel.nc*kernel.nl);
     }
-
-    ierr = GetRawPointerRead(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    
-    l = nt*nc*nl;
+    //kernel.pM = pM + nt*kernel.nc*kernel.nl;
+    kernel.pM.SetOffest(nt*kernel.nc*kernel.nl);
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointerRead(this->m_Mask, &p_w); CHKERRQ(ierr);
-#ifdef REG_HAS_CUDA
+        ierr = GetRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
+        
+        ierr = kernel.ComputeFinalConditionMaskAE(); CHKERRQ(ierr);
+/*#ifdef REG_HAS_CUDA
         DistanceMeasureSetFinalMaskGPU(&p_l[ll],&p_m[l],p_mr,p_w,nl,nc);
 #else
 #pragma omp parallel
@@ -202,10 +198,11 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
             }
         }
 }  // omp
-#endif
-        ierr = RestoreRawPointerRead(this->m_Mask, &p_w); CHKERRQ(ierr);
+#endif*/
+        ierr = RestoreRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
     } else {
-#ifdef REG_HAS_CUDA
+        kernel.ComputeFinalConditionAE();
+/*#ifdef REG_HAS_CUDA
         DistanceMeasureSetFinalGPU(&p_l[ll],&p_m[l],p_mr,nc*nl);
 #else
 #pragma omp parallel
@@ -215,12 +212,12 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
             p_l[ll+i] = p_mr[i] - p_m[l+i];
         }
 }  // omp
-#endif
+#endif*/
     }
         
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_AdjointVariable, kernel.pL); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_ReferenceImage, &kernel.pMr); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_StateVariable, kernel.pM); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);
 
@@ -236,30 +233,38 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
  *******************************************************************/
 PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc, nl, l;
-    ScalarType *p_mtilde = NULL, *p_ltilde = NULL, *p_w = NULL;
-
+    IntType nt;
+    DistanceMeasureKernelSL2 kernel;
+    PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    kernel.nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
 
+    ierr = GetRawPointerRead(this->m_IncStateVariable, kernel.pM); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_IncAdjointVariable, kernel.pL); CHKERRQ(ierr);
+    
     // index for final condition
+    //kernel.pL = pLtilde;
+    //kernel.pM = pMtilde;
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        l = nt*nc*nl;
-    } else {
-        l = 0;
+        kernel.pL.SetOffest(nt*kernel.nc*kernel.nl);
+        kernel.pM.SetOffest(nt*kernel.nc*kernel.nl);
+        //kernel.pL += nt*kernel.nc*kernel.nl;
+        //kernel.pM += nt*kernel.nc*kernel.nl;
     }
-    ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    
     // compute terminal condition \tilde{\lambda}_1 = -\tilde{m}_1
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = GetRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
+        
+        ierr = kernel.ComputeFinalConditionMaskIAE(); CHKERRQ(ierr);
+/*
 #pragma omp parallel
 {
 #pragma omp for
@@ -268,19 +273,21 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
                 p_ltilde[l+k*nl+i] = -p_w[i]*p_mtilde[l+k*nl+i];
             }
         }
-}  // omp
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+}  // omp*/
+        ierr = RestoreRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
     } else {
+        ierr = kernel.ComputeFinalConditionIAE(); CHKERRQ(ierr);
+/*
 #pragma omp parallel
 {
 #pragma omp for
         for (IntType i = 0; i < nl*nc; ++i) {
             p_ltilde[l+i] = -p_mtilde[l+i]; // / static_cast<ScalarType>(nc);
         }
-}  // omp
+}  // omp*/
     }
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_IncAdjointVariable, kernel.pL); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_IncStateVariable, kernel.pM); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

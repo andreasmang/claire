@@ -20,6 +20,15 @@
 #include "accfft_operators.h"
 #endif
 
+#if defined(REG_DBG_CUDA)
+#include "nvToolsExt.h"
+#define DebugGPUStartEvent(str) nvtxRangePushA(str)
+#define DebugGPUStopEvent() nvtxRangePop()
+#else
+#define DebugGPUStartEvent(str)
+#define DebugGPUStopEvent()
+#endif
+
 using IntType = PetscInt;
 using ScalarType = PetscReal;
 

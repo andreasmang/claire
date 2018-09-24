@@ -217,6 +217,7 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
     kernel.nl = nl;
 
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
@@ -398,8 +399,12 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
             // compute gradient for state variable at next time time point
             this->m_Differentiation->Gradient(kernel.pGm, p_m+lmnext+k*nl);
 
+            DBGCHK();
+            
             // second part of time integration
             ierr = kernel.TimeIntegrationPart2(); CHKERRQ(ierr);
+            
+            DBGCHK();
         }
     }  // for all time points
 
@@ -461,6 +466,7 @@ PetscErrorCode TransportEquationSL::SolveIncAdjointEquationGN() {
     this->m_Opt->Enter(__func__);
     
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncAdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField[1] != nullptr, "null pointer"); CHKERRQ(ierr);

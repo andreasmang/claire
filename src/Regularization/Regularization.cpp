@@ -21,6 +21,8 @@
 #define _REGULARIZATION_CPP_
 
 #include "Regularization.hpp"
+#include "DifferentiationSM.hpp"
+#include "DifferentiationFD.hpp"
 
 
 
@@ -67,13 +69,13 @@ Regularization::Regularization(RegOpt* opt) {
 PetscErrorCode Regularization::Initialize(void) {
     PetscFunctionBegin;
 
-    this->m_Opt = NULL;
-    this->m_WorkVecField = NULL;
-    this->m_Differentiation = NULL;
+    this->m_Opt = nullptr;
+    this->m_WorkVecField = nullptr;
+    this->m_Differentiation = nullptr;
 
-    this->m_v1hat = NULL;
-    this->m_v2hat = NULL;
-    this->m_v3hat = NULL;
+    this->m_v1hat = nullptr;
+    this->m_v2hat = nullptr;
+    this->m_v3hat = nullptr;
 
     PetscFunctionReturn(0);
 }
@@ -83,14 +85,14 @@ PetscErrorCode Regularization::Initialize(void) {
  * @brief init variables
  *******************************************************************/
 PetscErrorCode Regularization::SetSpectralData(ComplexType* xhat1,
-                                                           ComplexType* xhat2,
-                                                           ComplexType* xhat3) {
+                                               ComplexType* xhat2,
+                                               ComplexType* xhat3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(xhat1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xhat2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xhat3 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xhat1 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xhat2 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xhat3 != nullptr, "null pointer"); CHKERRQ(ierr);
 
     this->m_v1hat = xhat1;
     this->m_v2hat = xhat2;
@@ -109,7 +111,7 @@ PetscErrorCode Regularization::SetWorkVecField(VecField* v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(v != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_WorkVecField = v;
 
     PetscFunctionReturn(ierr);
@@ -118,12 +120,36 @@ PetscErrorCode Regularization::SetWorkVecField(VecField* v) {
 /********************************************************************
  * @brief set Differentiation interface
  *******************************************************************/
-PetscErrorCode Regularization::SetDifferentiation(Differentiation* diff) {
+PetscErrorCode Regularization::SetDifferentiation(Differentiation::Type type) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(diff != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_Differentiation = diff;
+    if (this->m_Differentiation != nullptr && this->m_Differentiation->m_Type != type) {
+      delete this->m_Differentiation;
+      this->m_Differentiation = nullptr;
+    }
+    
+    if (this->m_Differentiation == nullptr) {
+      switch (type) {
+      case Differentiation::Type::Spectral:
+        try {
+          this->m_Differentiation = new DifferentiationSM(this->m_Opt);
+        } catch (std::bad_alloc& err) {
+          ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        break;
+      case Differentiation::Type::Finite:
+        try {
+          this->m_Differentiation = new DifferentiationFD(this->m_Opt);
+        } catch (std::bad_alloc& err) {
+          ierr = reg::ThrowError(err); CHKERRQ(ierr);
+        }
+        break;
+      default:
+        ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
+        break;
+      };
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -136,6 +162,11 @@ PetscErrorCode Regularization::SetDifferentiation(Differentiation* diff) {
 PetscErrorCode Regularization::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    if (this->m_Differentiation != nullptr) {
+      delete this->m_Differentiation;
+      this->m_Differentiation = nullptr;
+    }
 
     PetscFunctionReturn(ierr);
 }

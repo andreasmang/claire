@@ -206,6 +206,40 @@ PetscErrorCode TransportProblem::SetControlVariable(VecField *field) {
 }
 
 /********************************************************************
+ * @brief set incremental adjoint variable
+ *******************************************************************/
+PetscErrorCode TransportProblem::SetIncAdjointVariable(Vec m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(m != nullptr, "null pointer"); CHKERRQ(ierr);
+    this->m_IncAdjointVariable = m;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief set incremental state variable
+ *******************************************************************/
+PetscErrorCode TransportProblem::SetIncStateVariable(Vec m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(m != nullptr, "null pointer"); CHKERRQ(ierr);
+    this->m_IncStateVariable = m;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
  * @brief set incremental velocity field
  *******************************************************************/
 PetscErrorCode TransportProblem::SetIncControlVariable(VecField *field) {
@@ -294,26 +328,6 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) 
         ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
         break;
       };
-    }
-    
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief get the differentiation method
- *******************************************************************/
-PetscErrorCode TransportProblem::GetDifferentiation(Differentiation::Type* type) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    this->m_Opt->Enter(__func__);
-
-    if (this->m_Differentiation == nullptr) {
-      *type = Differentiation::Type::None;
-    } else {
-      *type = this->m_Differentiation->m_Type;
     }
     
     this->m_Opt->Exit(__func__);

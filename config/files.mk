@@ -46,11 +46,10 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 
 EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
 
-CUFILES=$(SRCDIR)/DistanceMeasure/distance_kernel.cu \
-		$(SRCDIR)/adjoint_kernel.cu \
-		$(SRCDIR)/Solver/TransportKernel.cu \
+CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/Regularization/RegularizationKernel.cu \
-		$(SRCDIR)/CLAIREUtilsKernel.cu
+		$(SRCDIR)/CLAIREUtilsKernel.cu \
+		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
@@ -63,12 +62,13 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationSM.cpp \
 		$(SRCDIR)/VecField.cpp \
+		$(SRCDIR)/ScaField.cpp \
 		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
 		$(SRCDIR)/Solver/TransportProblem.cpp \
 		$(SRCDIR)/Solver/TransportEquationSL.cpp \
-		$(SRCDIR)/ContinuityEquation.cpp \
+		$(SRCDIR)/Solver/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \

@@ -966,7 +966,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
+#ifdef REG_HAS_CUDA
+    cudaMalloc((void**)&u, sizeof(ScalarType)*nalloc);
+#else
     u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
+#endif
     ierr = Assert(u != NULL, "allocation failed"); CHKERRQ(ierr);
 
     // set up the fft
@@ -975,7 +979,11 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
+#ifdef REG_HAS_CUDA
+    cudaMalloc((void**)&uk, sizeof(ComplexType)*nalloc);
+#else
     uk = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+#endif
     ierr = Assert(uk != NULL, "allocation failed"); CHKERRQ(ierr);
 
     if (this->m_FFT.plan != NULL) {
@@ -989,6 +997,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     if (this->m_Verbosity > 2) {
         ierr = DbgMsg("allocating fft plan"); CHKERRQ(ierr);
     }
+    
     fftsetuptime = -MPI_Wtime();
     this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<ScalarType*>(uk),
                                               this->m_FFT.mpicomm, ACCFFT_MEASURE);
@@ -1015,8 +1024,13 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
 
     // clean up
+#ifdef REG_HAS_CUDA
+    if (u != NULL) {cudaFree(u); u = NULL;}
+    if (uk != NULL) {cudaFree(uk); uk = NULL;}
+#else
     if (u != NULL) {accfft_free(u); u = NULL;}
     if (uk != NULL) {accfft_free(uk); uk = NULL;}
+#endif
 
     this->Exit(__func__);
 

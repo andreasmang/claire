@@ -95,6 +95,8 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FFT Grad");
+    
     ZeitGeist_define(FFT_GRAD);
     ZeitGeist_tick(FFT_GRAD);
     
@@ -108,6 +110,8 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     this->m_Opt->IncreaseFFTTimers(timer);
     
     ZeitGeist_tock(FFT_GRAD);
+    
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -153,6 +157,8 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FFT Laplacian");
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -160,6 +166,8 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
     this->m_Opt->IncreaseFFTTimers(timer);
+    
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -179,6 +187,8 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FFT Laplacian Field");
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -188,6 +198,8 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
+    
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -202,6 +214,8 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FFT Divergence");
+    
     ZeitGeist_define(FFT_DIV);
     ZeitGeist_tick(FFT_DIV);
     
@@ -215,6 +229,8 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     this->m_Opt->IncreaseFFTTimers(timer);
     
     ZeitGeist_tock(FFT_DIV);
+    
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -243,7 +259,6 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, VecField *v) {
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, ScalarType **v) {
     PetscErrorCode ierr = 0;
-    ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
     PetscFunctionBegin;
         
     ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
@@ -261,6 +276,8 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FFT Biharmonic");
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -268,6 +285,8 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
+    
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -285,6 +304,8 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FFT Biharmonic Field");
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -294,6 +315,8 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
+    
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }

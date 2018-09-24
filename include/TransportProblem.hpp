@@ -60,8 +60,6 @@ class TransportProblem {
     virtual PetscErrorCode SolveIncAdjointProblem();
     
     PetscErrorCode SetDifferentiation(Differentiation::Type);
-    PetscErrorCode GetDifferentiation(Differentiation::Type*);
-
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();

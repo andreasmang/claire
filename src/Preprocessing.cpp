@@ -1996,9 +1996,11 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
 
     for (IntType k = 0; k < nc; ++k) {
         // compute fft
-        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        //ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        ierr = GetRawPointer(x, &p_x); CHKERRQ(ierr);
         accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x + k*nl, this->m_xhat, timer);
-        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+        ierr = RestoreRawPointer(x, &p_x); CHKERRQ(ierr);
+        //ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 #pragma omp parallel
 {
         IntType i1, i2, i3, li;
@@ -2031,9 +2033,11 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
             }  // i2
         }  // i3
 }  // pragma omp parallel
-        ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
+        //ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
+        ierr = GetRawPointer(xs, &p_xs); CHKERRQ(ierr);
         accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs + k*nl, timer);
-        ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
+        //ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
+        ierr = RestoreRawPointer(xs, &p_xs); CHKERRQ(ierr);
     }
 
     // increment fft timer

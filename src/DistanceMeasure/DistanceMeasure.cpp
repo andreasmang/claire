@@ -67,20 +67,20 @@ DistanceMeasure::DistanceMeasure(RegOpt* opt) {
 PetscErrorCode DistanceMeasure::Initialize() {
     PetscFunctionBegin;
 
-    this->m_Opt = NULL;
+    this->m_Opt = nullptr;
 
-    this->m_Mask = NULL;
-    this->m_AuxVar1 = NULL;
-    this->m_AuxVar2 = NULL;
-    this->m_TemplateImage = NULL;
-    this->m_ReferenceImage = NULL;
-    this->m_StateVariable = NULL;
-    this->m_AdjointVariable = NULL;
-    this->m_IncStateVariable = NULL;
-    this->m_IncAdjointVariable = NULL;
-    this->m_WorkVecField1 = NULL;
-    this->m_WorkVecField2 = NULL;
-    this->m_WorkVecField3 = NULL;
+    this->m_Mask = nullptr;
+    this->m_AuxVar1 = nullptr;
+    this->m_AuxVar2 = nullptr;
+    this->m_TemplateImage = nullptr;
+    this->m_ReferenceImage = nullptr;
+    this->m_StateVariable = nullptr;
+    this->m_AdjointVariable = nullptr;
+    this->m_IncStateVariable = nullptr;
+    this->m_IncAdjointVariable = nullptr;
+    this->m_WorkVecField1 = nullptr;
+    this->m_WorkVecField2 = nullptr;
+    this->m_WorkVecField3 = nullptr;
 
     PetscFunctionReturn(0);
 }
@@ -125,7 +125,7 @@ PetscErrorCode DistanceMeasure::SetReferenceImage(Vec mR) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mR != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_ReferenceImage = mR;
 
     this->m_Opt->Exit(__func__);
@@ -145,7 +145,7 @@ PetscErrorCode DistanceMeasure::SetTemplateImage(Vec mT) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mT != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_TemplateImage = mT;
 
     this->m_Opt->Exit(__func__);
@@ -164,7 +164,7 @@ PetscErrorCode DistanceMeasure::SetWorkVecField(VecField* v, int id) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(v != nullptr, "null pointer"); CHKERRQ(ierr);
     switch (id) {
         case 1:
            this->m_WorkVecField1 = v;
@@ -196,7 +196,7 @@ PetscErrorCode DistanceMeasure::SetMask(Vec mask) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mask != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_Mask = mask;
 
     this->m_Opt->Exit(__func__);
@@ -216,7 +216,7 @@ PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(m != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_StateVariable = m;
 
     this->m_Opt->Exit(__func__);
@@ -236,7 +236,7 @@ PetscErrorCode DistanceMeasure::SetIncStateVariable(Vec mtilde) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(mtilde != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(mtilde != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_IncStateVariable = mtilde;
 
     this->m_Opt->Exit(__func__);
@@ -255,7 +255,7 @@ PetscErrorCode DistanceMeasure::SetAdjointVariable(Vec lambda) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(lambda != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_AdjointVariable = lambda;
 
     this->m_Opt->Exit(__func__);
@@ -275,7 +275,7 @@ PetscErrorCode DistanceMeasure::SetIncAdjointVariable(Vec lambdatilde) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(lambdatilde != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(lambdatilde != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_IncAdjointVariable = lambdatilde;
 
     this->m_Opt->Exit(__func__);
@@ -295,7 +295,7 @@ PetscErrorCode DistanceMeasure::SetAuxVariable(Vec x, int id) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != nullptr, "null pointer"); CHKERRQ(ierr);
     if (id == 1) {
         this->m_AuxVar1 = x;
     } else if (id == 2) {

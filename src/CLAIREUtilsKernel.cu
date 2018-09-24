@@ -37,7 +37,7 @@ PetscErrorCode VecView(Vec x) {
     int rank;
     PetscFunctionBegin;
     
-    ierr = ThrowError("method not implemented for GPUs"); CHKERRQ(ierr);
+    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
 
     ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
     ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
@@ -91,7 +91,7 @@ PetscErrorCode Normalize(Vec x, IntType nc) {
     PetscFunctionBegin;
     
     
-    ierr = ThrowError("method not implemented for GPUs"); CHKERRQ(ierr);
+    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
 
     if (nc == 1) {
         // get max and min values
@@ -178,7 +178,7 @@ PetscErrorCode Clip(Vec x, IntType nc) {
 
     PetscFunctionBegin;
     
-    ierr = ThrowError("method not implemented for GPUs"); CHKERRQ(ierr);
+    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
 
     ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
     ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
@@ -203,7 +203,7 @@ PetscErrorCode EnsurePartitionOfUnity(Vec x, IntType nc) {
 
     PetscFunctionBegin;
     
-    ierr = ThrowError("method not implemented for GPUs"); CHKERRQ(ierr);
+    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
 
     ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
     nl /= nc;

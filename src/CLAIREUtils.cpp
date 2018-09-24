@@ -772,6 +772,34 @@ PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode GetRawPointerWrite(Vec v, ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDAGetArrayWrite(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecGetArray(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode RestoreRawPointerWrite(Vec v, ScalarType** a) {
+    PetscErrorCode ierr = 0;
+
+    PetscFunctionBegin;
+
+    #ifdef REG_HAS_CUDA
+        ierr = VecCUDARestoreArrayWrite(v, a); CHKERRQ(ierr);
+    #else
+        ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
+    #endif
+
+    PetscFunctionReturn(ierr);
+}
+
 
 PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
     PetscErrorCode ierr = 0;

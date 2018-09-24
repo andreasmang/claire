@@ -82,21 +82,21 @@ class DistanceMeasure {
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
-    Vec m_Mask;
-    Vec m_ReferenceImage;
-    Vec m_TemplateImage;
+    ScaField *m_Mask;
+    ScaField *m_ReferenceImage;
+    ScaField *m_TemplateImage;
 
-    Vec m_StateVariable;
-    Vec m_AdjointVariable;
-    Vec m_IncStateVariable;
-    Vec m_IncAdjointVariable;
+    ScaField *m_StateVariable;
+    ScaField *m_AdjointVariable;
+    ScaField *m_IncStateVariable;
+    ScaField *m_IncAdjointVariable;
 
-    Vec m_AuxVar1;
-    Vec m_AuxVar2;
+    ScaField *m_AuxVar1;
+    ScaField *m_AuxVar2;
 
-    VecField* m_WorkVecField1;
-    VecField* m_WorkVecField2;
-    VecField* m_WorkVecField3;
+    VecField *m_WorkVecField1;
+    VecField *m_WorkVecField2;
+    VecField *m_WorkVecField3;
 
     RegOpt* m_Opt;
 };

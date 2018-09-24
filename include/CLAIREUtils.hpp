@@ -48,11 +48,9 @@
 // local includes
 #include "typedef.hpp"
 
-#define DBGCHK() printf("dbg %s:[%i]\n",__FILE__,__LINE__)
+#define DBGCHK() printf("dbg %s:[%i] in %s\n",__FILE__,__LINE__,__FUNCTION__)
 
 namespace reg {
-
-
 
 
 /*! assert (PETSc interface) */
@@ -64,6 +62,37 @@ PetscErrorCode ThrowError(std::string);
 /*! throw error (PETSc interface) */
 PetscErrorCode ThrowError(std::bad_alloc&);
 PetscErrorCode ThrowError(std::exception&);
+
+template<class T, class ... Args>
+inline PetscErrorCode Allocate(T*& ptr, Args ... args) {
+  try {
+    ptr = new T(args...);
+  } catch (std::bad_alloc& err) {
+    return reg::ThrowError(err);
+  }
+  return 0;
+}
+template<class A, class T, class ... Args>
+inline PetscErrorCode Allocate(T*& ptr, Args ... args) {
+  try {
+    ptr = new A(args...);
+  } catch (std::bad_alloc& err) {
+    return reg::ThrowError(err);
+  }
+  return 0;
+}
+template<class T, class ... Args>
+inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
+  if (ptr == nullptr)
+    return Allocate(ptr, args...);
+  return 0;
+}
+template<class A, class T, class ... Args>
+inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
+  if (ptr == nullptr)
+    return Allocate<A>(ptr, args...);
+  return 0;
+}
 
 
 /*! mpi error handling */
@@ -133,6 +162,8 @@ PetscErrorCode GetRawPointerRead(Vec, const ScalarType**);
 PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**);
 PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**);
 PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**);
+PetscErrorCode GetRawPointerWrite(Vec, ScalarType**);
+PetscErrorCode RestoreRawPointerWrite(Vec, ScalarType**);
 PetscErrorCode PrintVectorMemoryLocation(Vec, std::string);
 
 

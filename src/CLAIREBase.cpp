@@ -416,12 +416,7 @@ PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
-    if (this->m_VelocityField == NULL) {
-        try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
 //    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
@@ -556,12 +551,7 @@ PetscErrorCode CLAIREBase::ComputeInitialGuess() {
 
     // if velocity field is null pointer, we did not set
     // any initial guess
-    if (this->m_VelocityField == NULL) {
-        try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     if (!this->m_Opt->m_OptPara.usezeroinitialguess) {
@@ -646,18 +636,12 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
     switch (this->m_Opt->m_Distance.type) {
         case SL2:
         {
-            try {this->m_DistanceMeasure = new DistanceMeasureSL2(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<DistanceMeasureSL2>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case SL2AUX:
         {
-            try {this->m_DistanceMeasure = new DistanceMeasureSL2aux(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<DistanceMeasureSL2aux>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
             // TODO: Fix for 2 level preconditioner (these need to be set in preconditioner)
             ierr = Assert(this->m_CellDensity != NULL, "null pointer (aux 1)"); CHKERRQ(ierr);
             ierr = Assert(this->m_AuxVariable != NULL, "null pointer (aux 2)"); CHKERRQ(ierr);
@@ -667,10 +651,7 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         }
         case NCC:
         {
-            try {this->m_DistanceMeasure = new DistanceMeasureNCC(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<DistanceMeasureNCC>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         default:
@@ -736,10 +717,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate L2 regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationL2(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationL2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H1:
@@ -747,10 +725,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H1 regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationH1(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationH1>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H2:
@@ -758,10 +733,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H2 regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationH2(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationH2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H3:
@@ -769,10 +741,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H3 regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationH3(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationH3>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H1SN:
@@ -780,10 +749,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H1SN regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationH1SN(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationH1SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H2SN:
@@ -791,10 +757,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H2SN regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationH2SN(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationH2SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H3SN:
@@ -802,10 +765,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H3SN regularization"); CHKERRQ(ierr);
             }
-            try {this->m_Regularization = new RegularizationH3SN(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<RegularizationH3SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         default:
@@ -814,9 +774,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
     }
 
-    if (this->m_Differentiation != NULL) {
-      this->m_Regularization->SetDifferentiation(this->m_Differentiation);
-    }
+    ierr = this->m_Regularization->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
 
     // set the containers for the spectral data
     ierr = this->SetupSpectralData(); CHKERRQ(ierr);
@@ -857,10 +815,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate SL transport problem"); CHKERRQ(ierr);
             }
-            try {this->m_TransportProblem = new TransportEquationSL(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<TransportEquationSL>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         /*case RK2:
@@ -880,28 +835,12 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
         }
     }
 
-    if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
+
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField1, 0); CHKERRQ(ierr);
-
-    if (this->m_WorkVecField2 == NULL) {
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField2, 1); CHKERRQ(ierr);
-
-    if (this->m_WorkVecField3 == NULL) {
-        try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField3, 2); CHKERRQ(ierr);
 
     if (this->m_WorkScaField1 == NULL) {
@@ -951,36 +890,18 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
 
-    if (this->m_DeformationFields == NULL) {
-        this->m_DeformationFields = new DeformationFields(this->m_Opt);
-    }
+    ierr = AllocateOnce(this->m_DeformationFields, this->m_Opt); CHKERRQ(ierr);
     
     if (this->m_Differentiation != NULL) {
       this->m_DeformationFields->SetDifferentiation(this->m_Differentiation);
     }
-
-    if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
+    
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
-
-    if (this->m_WorkVecField2 == NULL) {
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
-
-    if (this->m_WorkVecField3 == NULL) {
-        try{this->m_WorkVecField3 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField3, 3); CHKERRQ(ierr);
 
     if (this->m_WorkScaField1 == NULL) {
@@ -1011,14 +932,10 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
 
     ierr = this->m_DeformationFields->SetVelocityField(this->m_VelocityField); CHKERRQ(ierr);
 
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+
     ierr = this->m_DeformationFields->SetSLM(this->m_SemiLagrangianMethod); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
@@ -1142,20 +1059,9 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    if (this->m_WorkVecField2 == NULL) {
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
@@ -1202,11 +1108,9 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     }
 
     // allocate vector fields
+    
     if (this->m_VelocityField == NULL) {
-        try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
+        ierr = Allocate(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
         velocityallocated = true;
     }
@@ -1463,12 +1367,7 @@ PetscErrorCode CLAIREBase::ComputeCFLCondition() {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
 
-    if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
 
@@ -1545,12 +1444,7 @@ PetscErrorCode CLAIREBase::CheckBounds(Vec v, bool& boundreached) {
 
     this->m_Opt->Enter(__func__);
 
-    if (this->m_VelocityField == NULL) {
-       try{this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
 
     minboundreached = false;
     maxboundreached = false;
@@ -1613,11 +1507,8 @@ PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_VelocityField == NULL) {
-       try {this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-        ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+      ierr = Allocate(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+      ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 
     // check cfl condition / update time step

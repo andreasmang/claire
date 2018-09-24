@@ -61,6 +61,9 @@ endif
 ifeq ($(USECUDA),yes)
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
+	ifeq ($(USECUDADBG),yes)
+		CXXFLAGS += -DREG_DBG_CUDA
+	endif
 endif
 
 BINDIR = ./bin
@@ -158,6 +161,9 @@ LDFLAGS += -lpetsc -lf2clapack -lf2cblas
 #CUDA LINKERS
 ifeq ($(USECUDA),yes)
     LDFLAGS += -L$(CUDA_DIR)/lib64 -lcusparse -lcufft -lcublas -lcudart
+endif
+ifeq ($(USECUDADBG),yes)
+		LDFLAGS += -lnvToolsExt
 endif
 
 ifeq ($(USENIFTI),yes)
