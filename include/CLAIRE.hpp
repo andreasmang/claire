@@ -171,10 +171,10 @@ class CLAIRE : public CLAIREBase {
         body force and the incremental body force */
     virtual PetscErrorCode ApplyProjection();
 
-    Vec m_StateVariable;        ///< time dependent state variable m(x,t)
-    Vec m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
-    Vec m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
-    Vec m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    ScaField* m_StateVariable;        ///< time dependent state variable m(x,t)
+    ScaField* m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
+    ScaField* m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
+    ScaField* m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
 
  private:
     /*! compute the initial guess for the velocity field */

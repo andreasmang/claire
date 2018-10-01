@@ -92,7 +92,7 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
 PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
                                            ScalarType *g2,
                                            ScalarType *g3,
-                                           ScalarType *m) {
+                                           const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -102,7 +102,7 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
 /********************************************************************
  * @brief compute gradient of a scalar field
  *******************************************************************/
-PetscErrorCode DifferentiationFD::Gradient(VecField *g, ScalarType *m) {
+PetscErrorCode DifferentiationFD::Gradient(VecField *g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -112,7 +112,7 @@ PetscErrorCode DifferentiationFD::Gradient(VecField *g, ScalarType *m) {
 /********************************************************************
  * @brief compute gradient of a scalar field
  *******************************************************************/
-PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, ScalarType *m) {
+PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
             
@@ -126,7 +126,7 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, ScalarType *m) {
  * @brief compute laplacian of a scalar field
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
-                                            ScalarType *m) {
+                                            const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -142,9 +142,9 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
 PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
                                             ScalarType *l2,
                                             ScalarType *l3,
-                                            ScalarType *v1,
-                                            ScalarType *v2,
-                                            ScalarType *v3) {
+                                            const ScalarType *v1,
+                                            const ScalarType *v2,
+                                            const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -155,9 +155,9 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
  * @brief compute divergence of a vector field
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
-                                             ScalarType *v1,
-                                             ScalarType *v2,
-                                             ScalarType *v3) {
+                                             const ScalarType *v1,
+                                             const ScalarType *v2,
+                                             const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -179,7 +179,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, VecField *v) {
 /********************************************************************
  * @brief compute divergence of a vector field
  *******************************************************************/
-PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, ScalarType **v) {
+PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, const ScalarType **v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -192,7 +192,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, ScalarType **v) {
  * @brief compute biharmonic operator of a scalar field
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b,
-                                             ScalarType *m) {
+                                             const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -206,9 +206,9 @@ PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b,
 PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b1,
                                              ScalarType *b2,
                                              ScalarType *b3,
-                                             ScalarType *v1,
-                                             ScalarType *v2,
-                                             ScalarType *v3) {
+                                             const ScalarType *v1,
+                                             const ScalarType *v2,
+                                             const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 

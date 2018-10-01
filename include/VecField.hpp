@@ -72,18 +72,21 @@ class VecField {
 
     PetscErrorCode GetArrays(ScalarType*&, ScalarType*&, ScalarType*&);
     PetscErrorCode GetArrays(ScalarType**);
-    PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode RestoreArrays(ScalarType**);
-
     PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
     PetscErrorCode GetArraysRead(const ScalarType**);
-    PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
-    PetscErrorCode RestoreArraysRead(const ScalarType**);
-
     PetscErrorCode GetArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
     PetscErrorCode GetArraysReadWrite(ScalarType**);
+    PetscErrorCode GetArraysWrite(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode GetArraysWrite(ScalarType**);
+    
+    PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&);
+    PetscErrorCode RestoreArrays(ScalarType**);
+    PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
+    PetscErrorCode RestoreArraysRead(const ScalarType**);
     PetscErrorCode RestoreArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
     PetscErrorCode RestoreArraysReadWrite(ScalarType**);
+    
+    PetscErrorCode RestoreArrays();
 
     PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
     PetscErrorCode AXPY(ScalarType, VecField*);
@@ -101,9 +104,17 @@ class VecField {
     Vec m_X3;
     
     // all components
-    Vec m_X;
+    //Vec m_X;
 
  private:
+    typedef enum {None, Read, Write, ReadWrite} AccessType;
+    AccessType m_Type;
+    
+    union {
+      ScalarType *m_Ptr[3];
+      const ScalarType *m_ConstPtr[3];
+    };
+    
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
 

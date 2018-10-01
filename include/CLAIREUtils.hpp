@@ -93,6 +93,13 @@ inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
     return Allocate<A>(ptr, args...);
   return 0;
 }
+template<class T>
+inline void Free(T*& ptr) {
+  if (ptr != nullptr) {
+    delete ptr;
+    ptr = nullptr;
+  }
+}
 
 
 /*! mpi error handling */

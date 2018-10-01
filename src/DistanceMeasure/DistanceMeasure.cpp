@@ -119,7 +119,7 @@ PetscErrorCode DistanceMeasure::SetupScale() {
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetReferenceImage(Vec mR) {
+PetscErrorCode DistanceMeasure::SetReferenceImage(ScaField* mR) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -139,7 +139,7 @@ PetscErrorCode DistanceMeasure::SetReferenceImage(Vec mR) {
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetTemplateImage(Vec mT) {
+PetscErrorCode DistanceMeasure::SetTemplateImage(ScaField* mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -190,7 +190,7 @@ PetscErrorCode DistanceMeasure::SetWorkVecField(VecField* v, int id) {
 /********************************************************************
  * @brief set mask
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetMask(Vec mask) {
+PetscErrorCode DistanceMeasure::SetMask(ScaField* mask) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -210,7 +210,7 @@ PetscErrorCode DistanceMeasure::SetMask(Vec mask) {
 /********************************************************************
  * @brief set state variable
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
+PetscErrorCode DistanceMeasure::SetStateVariable(ScaField* m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -230,7 +230,7 @@ PetscErrorCode DistanceMeasure::SetStateVariable(Vec m) {
 /********************************************************************
  * @brief set incremental state variable
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetIncStateVariable(Vec mtilde) {
+PetscErrorCode DistanceMeasure::SetIncStateVariable(ScaField* mtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -249,7 +249,7 @@ PetscErrorCode DistanceMeasure::SetIncStateVariable(Vec mtilde) {
 /********************************************************************
  * @brief set adjoint variable
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetAdjointVariable(Vec lambda) {
+PetscErrorCode DistanceMeasure::SetAdjointVariable(ScaField* lambda) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -269,7 +269,7 @@ PetscErrorCode DistanceMeasure::SetAdjointVariable(Vec lambda) {
 /********************************************************************
  * @brief set adjoint variable
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetIncAdjointVariable(Vec lambdatilde) {
+PetscErrorCode DistanceMeasure::SetIncAdjointVariable(ScaField* lambdatilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -289,7 +289,7 @@ PetscErrorCode DistanceMeasure::SetIncAdjointVariable(Vec lambdatilde) {
 /********************************************************************
  * @brief set auxilary variable
  *******************************************************************/
-PetscErrorCode DistanceMeasure::SetAuxVariable(Vec x, int id) {
+PetscErrorCode DistanceMeasure::SetAuxVariable(ScaField* x, int id) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 

@@ -69,6 +69,80 @@ struct TransportKernelAdjoint {
   PetscErrorCode ComputeBodyForce();
 };
 
+struct TransportKernelAdjointRK2 {
+  ScalarType *pVec[3];
+  const ScalarType *pV[3];
+  ScalarType *pRHS[2];
+  ScalarType *pL;
+  ScalarType *pLnext;
+  ScalarType *pB[3];
+  
+  ScalarType scale;
+  ScalarType ht;
+  
+  IntType nl;
+  
+  PetscErrorCode TimeIntegrationPart1();
+  PetscErrorCode TimeIntegrationPart2();
+  PetscErrorCode TimeIntegrationPart3();
+  PetscErrorCode TimeIntegrationPart4();
+};
+
+struct TransportKernelIncAdjointRK2 {
+  const ScalarType *pVx[3];
+  const ScalarType *pVtx[3];
+  const ScalarType *pL;
+  ScalarType *pLt;
+  ScalarType *pLtnext;
+  ScalarType *pRHS[2];
+  ScalarType *pLtjVx[3];
+  
+  ScalarType ht;
+  
+  IntType nl;
+  
+  PetscErrorCode TimeIntegrationPart1a();
+  PetscErrorCode TimeIntegrationPart1b();
+  PetscErrorCode TimeIntegrationPart2a();
+  PetscErrorCode TimeIntegrationPart2b();
+  PetscErrorCode TimeIntegrationPart3b();
+};
+
+struct TransportKernelStateRK2 {
+  ScalarType *pMbar;
+  ScalarType *pGmx[3];
+  ScalarType *pM;
+  ScalarType *pMnext;
+  ScalarType *pRHS;
+  const ScalarType *pVx[3];
+  
+  ScalarType ht;
+  
+  IntType nl;
+  
+  PetscErrorCode TimeIntegrationPart1();
+  PetscErrorCode TimeIntegrationPart2();
+};
+
+struct TransportKernelIncStateRK2 {
+  ScalarType *pMtnext;
+  ScalarType *pMt;
+  ScalarType *pRHS;
+  ScalarType *pMtbar;
+  ScalarType *pGmx[3];
+  ScalarType *pGmtx[3];
+  const ScalarType *pVx[3];
+  const ScalarType *pVtx[3];
+  
+  ScalarType ht;
+  
+  IntType nl;
+  
+  PetscErrorCode TimeIntegrationEuler();
+  PetscErrorCode TimeIntegrationPart1();
+  PetscErrorCode TimeIntegrationPart2();
+}
+
 template<typename T>
 PetscErrorCode TransportKernelCopy(T*, T*, IntType);
 

@@ -122,6 +122,271 @@ PetscErrorCode TransportKernelAdjoint::ComputeBodyForce() {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode TransportKernelStateRK2::TimeIntegrationPart1() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {
+       pRHS[i] = - pGmx[0][i]*pVx[0][i] - pGmx[1][i]*pVx[1][i] - pGmx[2][i]*pVx[2][i];
+
+       // compute intermediate result
+       pMbar[i] = pM[i] + ht*pRHS[i];
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelStateRK2::TimeIntegrationPart2() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {
+      ScalarType rhs1 = - pGmx[0][i]*pVx[0][i] - pGmx[1][i]*pVx[1][i] - pGmx[2][i]*pVx[2][i];
+
+      // m_{j+1} = m_j + 0.5*ht*(RHS0 + RHS1)
+      pMnext[i] = pM[i] + 0.5*ht*(pRHS[i] + rhs1);
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart1() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType i = 0; i < nl; ++i) {  // for all grid points
+        ScalarType lambda = pL[i];
+        pVec[0][i] = lambda*pV[0][i];
+        pVec[1][i] = lambda*pV[1][i];
+        pVec[2][i] = lambda*pV[2][i];
+    }  // for all grid points
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart2() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      ScalarType lambdabar = pL[i] + ht*pRHS[0][i];
+
+      // scale \vect{v} by \bar{\lambda}
+      pVec[0][i] = pV[0][i]*lambdabar;
+      pVec[1][i] = pV[1][i]*lambdabar;
+      pVec[2][i] = pV[2][i]*lambdabar;
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart3() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      Scalar Type lambda = pL[i];
+      // second step of rk2 time integration
+      pLnext[i] = lambda + 0.5*ht*(pRHS[0][i] + pRHS[1][i]);
+
+      // compute bodyforce
+      pB[0][i] += scale*pVec[0][i]*lambda;
+      pB[1][i] += scale*pVec[1][i]*lambda;
+      pB[2][i] += scale*pVec[2][i]*lambda;
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart4() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      Scalar Type lambda = pL[i];
+      // compute bodyforce
+      pB[0][i] += 0.5*scale*pVec[0][i]*lambda;
+      pB[1][i] += 0.5*scale*pVec[1][i]*lambda;
+      pB[2][i] += 0.5*scale*pVec[2][i]*lambda;
+  }
+} // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart1a() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      ScalarType lambda = pL[i];
+
+      // scale \vect{v} by \lambda
+      pLtjvx[0][i] = pVtx[0][i]*lambda;
+      pLtjvx[1][i] = pVtx[1][i]*lambda;
+      pLtjvx[2][i] = pVtx[2][i]*lambda;
+  }  // for all grid points
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart1b() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      ScalarType lambda  = pL[i];
+      ScalarType lambdatilde = pLt[i];
+
+      pLtjvx[0][i] = pVx[0][i]*lambdatilde + pVtx[0][i]*lambda;
+      pLtjvx[1][i] = pVx[1][i]*lambdatilde + pVtx[1][i]*lambda;
+      pLtjvx[2][i] = pVx[2][i]*lambdatilde + pVtx[2][i]*lambda;
+  }  // for all grid points
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart2a() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      pLtnext[i] = pLt[i] + ht*pRHS[0][i];
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart2b() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      // \bar{\lambda} = \tilde{\lambda}^j + ht*\idiv(\lambda^j\vect{v})
+      ScalarType ltbar = pLt[i] + ht*pRHS[0][i];
+      ScalarType lambda = pL[i];
+
+      // v \bar{\lambda} + \vect{\tilde{v}}\lambda^{j+1}
+      pLtjvx[0][i] = pVx[0][i]*ltbar + pVtx[0][i]*lambda;
+      pLtjvx[1][i] = pVx[1][i]*ltbar + pVtx[1][i]*lambda;
+      pLtjvx[2][i] = pVx[2][i]*ltbar + pVtx[2][i]*lambda;
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart3b() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {  // for all grid points
+      pLtnext[i] = pLt[i] + 0.5*ht*(pRHS[0][i]+pRHS[1][i]);
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationEuler() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  // the right hand side remains constant;
+  // we can reduce the 2 RK2 steps to a single one
+  for (IntType i = 0; i < nl; ++i) {
+       pMtnext[i] = pMt[i] - ht*(pGmx[0][i]*pVtx[0][i]
+                               + pGmx[1][i]*pVtx[1][i]
+                               + pGmx[3][i]*pVtx[2][i]);
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationPart1() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {
+       pRHS[i] = -pGmtx[0][i]*pVx[0][i] - pGmtx[1][i]*pVx[1][i] - pGmtx[2][i]*pVx[2][i]
+                 -pGmx[0][i]*pVtx[0][i] - pGmx[1][i]*pVtx[1][i] - pGmx[2][i]*pVtx[2][i];
+       // compute intermediate result
+       pMtbar[i] = pMt[i] + ht*pRHS[i];
+  }
+} // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationPart2() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {
+      // evaluate right hand side
+      ScalarType rhs1 = -pGmtx[0][i]*pVx[0][i] - pGmtx[1][i]*pVx[1][i] - pGmtx[2][i]*pVx[2][i]
+                 -pGmx[0][i]*pVtx[0][i] - pGmx[1][i]*pVtx[1][i] - pGmx[2][i]*pVtx[2][i];
+
+      // compute intermediate result
+      pMtnext[i] = pMt[i] + 0.5*ht*(rhs1 + pRHS[i]);
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+
 template<typename T>
 PetscErrorCode TransportKernelCopy(T* org, T* dest, IntType ne) {
   PetscErrorCode ierr = 0;

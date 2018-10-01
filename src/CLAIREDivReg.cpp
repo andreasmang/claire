@@ -115,12 +115,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     this->m_Opt->Enter(__func__);
 
     // allocate velocity field
-    if (this->m_VelocityField == NULL) {
-        try{this->m_VelocityField = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
 
     // allocate regularization model
     if (this->m_Regularization == NULL) {
@@ -143,12 +138,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (!this->m_VelocityIsZero) {
         // evaluate the regularization model for v
-        if (this->m_WorkVecField1 == NULL) {
-            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_Regularization->EvaluateFunctional(&Rv, this->m_VelocityField); CHKERRQ(ierr);
 
@@ -203,20 +193,13 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     ng = this->m_Opt->m_Domain.ng;
     hd  = this->m_Opt->GetLebesgueMeasure();   
 
-    if (this->m_WorkVecField1 == NULL) {
-        try{this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
 
     // get regularization weight
     betaw = this->m_Opt->m_RegNorm.beta[2];
 
-    ierr = VecGetArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
 
     // compute \idiv(\vect{v})
     ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -237,7 +220,7 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
     //this->m_Opt->IncrementCounter(FFT, FFTGRAD);
 
-    ierr = VecRestoreArray(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
 
 
     // compute inner products ||\igrad w||_L2 + ||w||_L2
@@ -245,7 +228,7 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     ierr = VecTDot(this->m_WorkVecField1->m_X1, this->m_WorkVecField1->m_X1, &value); CHKERRQ(ierr); regvalue += value;
     ierr = VecTDot(this->m_WorkVecField1->m_X2, this->m_WorkVecField1->m_X2, &value); CHKERRQ(ierr); regvalue += value;
     ierr = VecTDot(this->m_WorkVecField1->m_X3, this->m_WorkVecField1->m_X3, &value); CHKERRQ(ierr); regvalue += value;
-    ierr = VecTDot(this->m_WorkScaField1, this->m_WorkScaField1, &value); CHKERRQ(ierr); regvalue += value;
+    ierr = VecTDot(*this->m_WorkScaField1, *this->m_WorkScaField1, &value); CHKERRQ(ierr); regvalue += value;
 
     // add up contributions
     *Rw = 0.5*hd*betaw*regvalue;

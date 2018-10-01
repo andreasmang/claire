@@ -91,7 +91,7 @@ PetscErrorCode DifferentiationSM::ClearMemory() {
 PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
                                            ScalarType *g2,
                                            ScalarType *g3,
-                                           ScalarType *m) {
+                                           const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -103,7 +103,7 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(g1, g2, g3, m, this->m_Opt->m_FFT.plan, &xyz, timer);
+    accfft_grad_t(g1, g2, g3, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, &xyz, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
     
@@ -119,16 +119,16 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
 /********************************************************************
  * @brief compute gradient of a scalar field
  *******************************************************************/
-PetscErrorCode DifferentiationSM::Gradient(VecField *g, ScalarType *m) {
+PetscErrorCode DifferentiationSM::Gradient(VecField *g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
     PetscFunctionBegin;
     
-    ierr = g->GetArraysReadWrite(g1, g2, g3); CHKERRQ(ierr);
+    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
     
     ierr = this->Gradient(g1, g2, g3, m); CHKERRQ(ierr);
     
-    ierr = g->RestoreArraysReadWrite(g1, g2, g3); CHKERRQ(ierr);
+    ierr = g->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -136,7 +136,7 @@ PetscErrorCode DifferentiationSM::Gradient(VecField *g, ScalarType *m) {
 /********************************************************************
  * @brief compute gradient of a scalar field
  *******************************************************************/
-PetscErrorCode DifferentiationSM::Gradient(ScalarType **g, ScalarType *m) {
+PetscErrorCode DifferentiationSM::Gradient(ScalarType **g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
     PetscFunctionBegin;
@@ -153,7 +153,7 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType **g, ScalarType *m) {
  * @brief compute laplacian of a scalar field
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
-                                            ScalarType *m) {
+                                            const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -162,7 +162,7 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_laplace_t(l, m, this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -181,9 +181,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
 PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
                                             ScalarType *l2,
                                             ScalarType *l3,
-                                            ScalarType *v1,
-                                            ScalarType *v2,
-                                            ScalarType *v3) {
+                                            const ScalarType *v1,
+                                            const ScalarType *v2,
+                                            const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -192,9 +192,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_laplace_t(l1, v1, this->m_Opt->m_FFT.plan, timer);
-    accfft_laplace_t(l2, v2, this->m_Opt->m_FFT.plan, timer);
-    accfft_laplace_t(l3, v3, this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l1, const_cast<ScalarType*>(v1), this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l2, const_cast<ScalarType*>(v2), this->m_Opt->m_FFT.plan, timer);
+    accfft_laplace_t(l3, const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -208,9 +208,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
  * @brief compute divergence of a vector field
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
-                                             ScalarType *v1,
-                                             ScalarType *v2,
-                                             ScalarType *v3) {
+                                             const ScalarType *v1,
+                                             const ScalarType *v2,
+                                             const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -222,7 +222,10 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(l, v1, v2, v3, this->m_Opt->m_FFT.plan, timer);
+    accfft_divergence_t(l, 
+      const_cast<ScalarType*>(v1), 
+      const_cast<ScalarType*>(v2), 
+      const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
     
@@ -241,14 +244,14 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, VecField *v) {
     PetscErrorCode ierr = 0;
-    ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
+    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
     PetscFunctionBegin;
     
-    ierr = v->GetArraysReadWrite(v1, v2, v3); CHKERRQ(ierr);
+    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
     
     ierr = this->Divergence(l, v1, v2, v3); CHKERRQ(ierr);
     
-    ierr = v->RestoreArraysReadWrite(v1, v2, v3); CHKERRQ(ierr);
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -257,7 +260,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, VecField *v) {
 /********************************************************************
  * @brief compute divergence of a vector field
  *******************************************************************/
-PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, ScalarType **v) {
+PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, const ScalarType **v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
         
@@ -272,7 +275,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, ScalarType **v) {
  * @brief compute biharmonic operator of a scalar field
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
-                                             ScalarType *m) {
+                                             const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -281,7 +284,7 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_biharmonic_t(b, m, this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -298,9 +301,9 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
 PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
                                              ScalarType *b2,
                                              ScalarType *b3,
-                                             ScalarType *v1,
-                                             ScalarType *v2,
-                                             ScalarType *v3) {
+                                             const ScalarType *v1,
+                                             const ScalarType *v2,
+                                             const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -309,9 +312,9 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_biharmonic_t(b1, v1, this->m_Opt->m_FFT.plan, timer);
-    accfft_biharmonic_t(b2, v2, this->m_Opt->m_FFT.plan, timer);
-    accfft_biharmonic_t(b3, v3, this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b1, const_cast<ScalarType*>(v1), this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b2, const_cast<ScalarType*>(v2), this->m_Opt->m_FFT.plan, timer);
+    accfft_biharmonic_t(b3, const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);

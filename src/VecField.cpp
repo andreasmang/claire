@@ -98,8 +98,11 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_X2 = NULL;
     this->m_X3 = NULL;
     
-    this->m_X = NULL;
-
+    this->m_Type = AccessType::None;
+    this->m_Ptr[0] = nullptr;
+    this->m_Ptr[1] = nullptr;
+    this->m_Ptr[2] = nullptr;
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -126,10 +129,10 @@ PetscErrorCode VecField::ClearMemory() {
         this->m_X3 = NULL;
     }
     
-    if (this->m_X != NULL) {
-        ierr = VecDestroy(&this->m_X); CHKERRQ(ierr);
-        this->m_X = NULL;
-    }
+    this->m_Type = AccessType::None;
+    this->m_Ptr[0] = nullptr;
+    this->m_Ptr[1] = nullptr;
+    this->m_Ptr[2] = nullptr;
 
     PetscFunctionReturn(0);
 }
@@ -228,7 +231,7 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
     // allocate vector field
-    ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X); CHKERRQ(ierr);
+    /*ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
     #ifdef REG_HAS_CUDA
         ierr = VecSetType(this->m_X, VECCUDA); CHKERRQ(ierr);
@@ -250,7 +253,7 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
       VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[nl], &this->m_X2);
       VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[2*nl], &this->m_X3);
       VecRestorArray(this->m_X, &mX);
-    #endif
+    #endif*/
     
     /*{
     printf("Vector %li byte:\n", sizeof(ScalarType)*nl);
@@ -265,7 +268,6 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
     }*/
     
-    /*
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X1); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X1, nl, ng); CHKERRQ(ierr);
@@ -274,7 +276,6 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     #else
         ierr = VecSetFromOptions(this->m_X1); CHKERRQ(ierr);
     #endif
-
 
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X2); CHKERRQ(ierr);
@@ -292,7 +293,7 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
         ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
     #else
         ierr = VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
-    #endif*/
+    #endif
 
     PetscFunctionReturn(ierr);
 }
@@ -341,10 +342,20 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
                                    ScalarType*& p_x2,
                                    ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = GetRawPointer(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_X3, &p_x3); CHKERRQ(ierr);
+    if (this->m_Type == AccessType::None) {
+      ierr = GetRawPointer(this->m_X1, &this->m_Ptr[0]); CHKERRQ(ierr);
+      ierr = GetRawPointer(this->m_X2, &this->m_Ptr[1]); CHKERRQ(ierr);
+      ierr = GetRawPointer(this->m_X3, &this->m_Ptr[2]); CHKERRQ(ierr);
+      this->m_Type = AccessType::ReadWrite;
+    } else {
+      ierr = Assert(this->m_Type == AccessType::ReadWrite, "can't access with different types"); CHKERRQ(ierr);
+    }
+    
+    p_x1 = this->m_Ptr[0];
+    p_x2 = this->m_Ptr[1];
+    p_x3 = this->m_Ptr[2];
 
     PetscFunctionReturn(ierr);
 }
@@ -355,15 +366,50 @@ PetscErrorCode VecField::GetArrays(ScalarType*& p_x1,
  *******************************************************************/
 PetscErrorCode VecField::GetArrays(ScalarType** p_x) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    ierr = this->GetArrays(p_x[0], p_x[1], p_x[2]); CHKERRQ(ierr);
 
-    ierr = GetRawPointer(this->m_X1, &p_x[0]); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_X2, &p_x[1]); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief get arrays of vector field
+ *******************************************************************/
+PetscErrorCode VecField::GetArraysWrite(ScalarType*& p_x1,
+                                   ScalarType*& p_x2,
+                                   ScalarType*& p_x3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    if (this->m_Type == AccessType::None) {
+      ierr = GetRawPointerWrite(this->m_X1, &this->m_Ptr[0]); CHKERRQ(ierr);
+      ierr = GetRawPointerWrite(this->m_X2, &this->m_Ptr[1]); CHKERRQ(ierr);
+      ierr = GetRawPointerWrite(this->m_X3, &this->m_Ptr[2]); CHKERRQ(ierr);
+      this->m_Type = AccessType::Write;
+    } else {
+      ierr = Assert(this->m_Type == AccessType::Write, "can't access with different types"); CHKERRQ(ierr);
+    }
+    
+    p_x1 = this->m_Ptr[0];
+    p_x2 = this->m_Ptr[1];
+    p_x3 = this->m_Ptr[2];
 
     PetscFunctionReturn(ierr);
 }
 
 
+/********************************************************************
+ * @brief get arrays of vector field
+ *******************************************************************/
+PetscErrorCode VecField::GetArraysWrite(ScalarType** p_x) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    ierr = this->GetArraysWrite(p_x[0], p_x[1], p_x[2]); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
 
 /********************************************************************
  * @brief get arrays of vector field
@@ -372,10 +418,20 @@ PetscErrorCode VecField::GetArraysRead(const ScalarType*& p_x1,
                                        const ScalarType*& p_x2,
                                        const ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
-
-    ierr = GetRawPointerRead(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+    PetscFunctionBegin;
+    
+    if (this->m_Type == AccessType::None) {
+      ierr = GetRawPointerRead(this->m_X1, &this->m_ConstPtr[0]); CHKERRQ(ierr);
+      ierr = GetRawPointerRead(this->m_X2, &this->m_ConstPtr[1]); CHKERRQ(ierr);
+      ierr = GetRawPointerRead(this->m_X3, &this->m_ConstPtr[2]); CHKERRQ(ierr);
+      this->m_Type = AccessType::Read;
+    } else {
+      ierr = Assert(this->m_Type == AccessType::Read, "can't access with different types"); CHKERRQ(ierr);
+    }
+    
+    p_x1 = this->m_ConstPtr[0];
+    p_x2 = this->m_ConstPtr[1];
+    p_x3 = this->m_ConstPtr[2];
 
     PetscFunctionReturn(ierr);
 }
@@ -385,10 +441,9 @@ PetscErrorCode VecField::GetArraysRead(const ScalarType*& p_x1,
  *******************************************************************/
 PetscErrorCode VecField::GetArraysRead(const ScalarType** p_x) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = GetRawPointerRead(this->m_X1, &p_x[0]); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(this->m_X2, &p_x[1]); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+    ierr = this->GetArraysRead(p_x[0], p_x[1], p_x[2]); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -401,10 +456,9 @@ PetscErrorCode VecField::RestoreArrays(ScalarType*& p_x1,
                                        ScalarType*& p_x2,
                                        ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = RestoreRawPointer(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -415,10 +469,9 @@ PetscErrorCode VecField::RestoreArrays(ScalarType*& p_x1,
  *******************************************************************/
 PetscErrorCode VecField::RestoreArrays(ScalarType** p_x) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = RestoreRawPointer(this->m_X1, &p_x[0]); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_X2, &p_x[1]); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -433,10 +486,9 @@ PetscErrorCode VecField::RestoreArraysRead(const ScalarType*& p_x1,
                                            const ScalarType*& p_x2,
                                            const ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = RestoreRawPointerRead(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -447,10 +499,9 @@ PetscErrorCode VecField::RestoreArraysRead(const ScalarType*& p_x1,
  *******************************************************************/
 PetscErrorCode VecField::RestoreArraysRead(const ScalarType** p_x) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = RestoreRawPointerRead(this->m_X1, &p_x[0]); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_X2, &p_x[1]); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -462,10 +513,20 @@ PetscErrorCode VecField::GetArraysReadWrite(ScalarType*& p_x1,
                                             ScalarType*& p_x2,
                                             ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = GetRawPointerReadWrite(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = GetRawPointerReadWrite(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = GetRawPointerReadWrite(this->m_X3, &p_x3); CHKERRQ(ierr);
+    if (this->m_Type == AccessType::None) {
+      ierr = GetRawPointer(this->m_X1, &this->m_Ptr[0]); CHKERRQ(ierr);
+      ierr = GetRawPointer(this->m_X2, &this->m_Ptr[1]); CHKERRQ(ierr);
+      ierr = GetRawPointer(this->m_X3, &this->m_Ptr[2]); CHKERRQ(ierr);
+      this->m_Type = AccessType::ReadWrite;
+    } else {
+      ierr = Assert(this->m_Type == AccessType::ReadWrite, "can't access with different types"); CHKERRQ(ierr);
+    }
+    
+    p_x1 = this->m_Ptr[0];
+    p_x2 = this->m_Ptr[1];
+    p_x3 = this->m_Ptr[2];
     
     PetscFunctionReturn(ierr);
 }
@@ -475,10 +536,9 @@ PetscErrorCode VecField::GetArraysReadWrite(ScalarType*& p_x1,
  *******************************************************************/
 PetscErrorCode VecField::GetArraysReadWrite(ScalarType** p_x) {
     PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
-    ierr = GetRawPointerReadWrite(this->m_X1, &p_x[0]); CHKERRQ(ierr);
-    ierr = GetRawPointerReadWrite(this->m_X2, &p_x[1]); CHKERRQ(ierr);
-    ierr = GetRawPointerReadWrite(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+    ierr = this->GetArraysReadWrite(p_x[0], p_x[1], p_x[2]); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -492,9 +552,7 @@ PetscErrorCode VecField::RestoreArraysReadWrite(ScalarType*& p_x1,
                                             ScalarType*& p_x3) {
     PetscErrorCode ierr = 0;
 
-    ierr = RestoreRawPointerReadWrite(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = RestoreRawPointerReadWrite(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = RestoreRawPointerReadWrite(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -506,9 +564,48 @@ PetscErrorCode VecField::RestoreArraysReadWrite(ScalarType*& p_x1,
 PetscErrorCode VecField::RestoreArraysReadWrite(ScalarType** p_x) {
     PetscErrorCode ierr = 0;
 
-    ierr = RestoreRawPointerReadWrite(this->m_X1, &p_x[0]); CHKERRQ(ierr);
-    ierr = RestoreRawPointerReadWrite(this->m_X2, &p_x[1]); CHKERRQ(ierr);
-    ierr = RestoreRawPointerReadWrite(this->m_X3, &p_x[2]); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
+    
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief resotre arrays of vector field
+ *******************************************************************/
+PetscErrorCode VecField::RestoreArrays() {
+    PetscErrorCode ierr = 0;
+
+    ierr = Assert(this->m_Type != AccessType::None, "can't restore without access"); CHKERRQ(ierr);
+  
+    switch (this->m_Type) {
+    case AccessType::Read:
+      ierr = RestoreRawPointerRead(this->m_X1, &this->m_ConstPtr[0]); CHKERRQ(ierr);
+      ierr = RestoreRawPointerRead(this->m_X2, &this->m_ConstPtr[1]); CHKERRQ(ierr);
+      ierr = RestoreRawPointerRead(this->m_X3, &this->m_ConstPtr[2]); CHKERRQ(ierr);
+      this->m_Ptr[0] = nullptr;
+      this->m_Ptr[1] = nullptr;
+      this->m_Ptr[2] = nullptr;
+      this->m_Type = AccessType::None;
+      break;
+    case AccessType::Write:
+      ierr = RestoreRawPointerWrite(this->m_X1, &this->m_Ptr[0]); CHKERRQ(ierr);
+      ierr = RestoreRawPointerWrite(this->m_X2, &this->m_Ptr[1]); CHKERRQ(ierr);
+      ierr = RestoreRawPointerWrite(this->m_X3, &this->m_Ptr[2]); CHKERRQ(ierr);
+      this->m_Ptr[0] = nullptr;
+      this->m_Ptr[1] = nullptr;
+      this->m_Ptr[2] = nullptr;
+      this->m_Type = AccessType::None;
+      break;
+    case AccessType::ReadWrite:
+      ierr = RestoreRawPointerReadWrite(this->m_X1, &this->m_Ptr[0]); CHKERRQ(ierr);
+      ierr = RestoreRawPointerReadWrite(this->m_X2, &this->m_Ptr[1]); CHKERRQ(ierr);
+      ierr = RestoreRawPointerReadWrite(this->m_X3, &this->m_Ptr[2]); CHKERRQ(ierr);
+      this->m_Ptr[0] = nullptr;
+      this->m_Ptr[1] = nullptr;
+      this->m_Ptr[2] = nullptr;
+      this->m_Type = AccessType::None;
+      break;
+    };
     
     PetscFunctionReturn(ierr);
 }

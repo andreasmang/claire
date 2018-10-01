@@ -23,6 +23,7 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
+#include "ScaField.hpp"
 #include "TransportKernel.hpp"
 #include "Differentiation.hpp"
 
@@ -40,18 +41,18 @@ class TransportProblem {
     TransportProblem(RegOpt*);
     virtual ~TransportProblem();
 
-    PetscErrorCode SetReferenceImage(Vec);
-    PetscErrorCode SetTemplateImage(Vec);
+    PetscErrorCode SetReferenceImage(ScaField*);
+    PetscErrorCode SetTemplateImage(ScaField*);
 
-    PetscErrorCode SetStateVariable(Vec);
-    PetscErrorCode SetAdjointVariable(Vec);
-    PetscErrorCode SetIncStateVariable(Vec);
-    PetscErrorCode SetIncAdjointVariable(Vec);
+    PetscErrorCode SetStateVariable(ScaField*);
+    PetscErrorCode SetAdjointVariable(ScaField*);
+    PetscErrorCode SetIncStateVariable(ScaField*);
+    PetscErrorCode SetIncAdjointVariable(ScaField*);
     
     PetscErrorCode SetControlVariable(VecField*);
     PetscErrorCode SetIncControlVariable(VecField*);
     
-    PetscErrorCode SetWorkScaField(Vec, IntType);
+    PetscErrorCode SetWorkScaField(ScaField*, IntType);
     PetscErrorCode SetWorkVecField(VecField*, IntType);
 
     virtual PetscErrorCode SolveForwardProblem();
@@ -64,17 +65,17 @@ class TransportProblem {
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
-    Vec m_ReferenceImage;
-    Vec m_TemplateImage;
-    Vec m_StateVariable;
-    Vec m_AdjointVariable;
-    Vec m_IncStateVariable;
-    Vec m_IncAdjointVariable;
+    ScaField* m_ReferenceImage;
+    ScaField* m_TemplateImage;
+    ScaField* m_StateVariable;
+    ScaField* m_AdjointVariable;
+    ScaField* m_IncStateVariable;
+    ScaField* m_IncAdjointVariable;
     
     VecField* m_VelocityField;
     VecField* m_IncVelocityField;
     
-    Vec m_WorkScaField[5];  ///< work scalar field
+    ScaField* m_WorkScaField[5];  ///< work scalar field
     VecField* m_WorkVecField[5];  ///< data container for vector field (temporary variable)
 
     RegOpt* m_Opt;

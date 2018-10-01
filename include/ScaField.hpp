@@ -21,19 +21,25 @@
 #define _SCAFIELD_HPP_
 
 #include "CLAIREUtils.hpp"
+#include "RegOpt.hpp"
 
 namespace reg {
-
+  
 class ScaField {
  public:
     typedef ScaField Self;
 
-    ScaField();
-    ScaField(Vec, IntType, IntType=1, IntType=1);
-    ScaField(IntType,IntType,IntType=1,IntType=1);
+    ScaField(RegOpt*, bool=false, bool=false);
+    ScaField(RegOpt*, ScalarType, bool=false, bool=false);
+    ScaField(RegOpt*, Vec, bool=false, bool=false);
     ~ScaField();
     
+    PetscErrorCode SetVector(Vec);
+    PetscErrorCode SetSize(IntType, IntType, IntType=1, IntType=1);
+    
     operator Vec& ();
+    
+    PetscErrorCode Set(ScalarType);
 
     PetscErrorCode GetArray(ScalarType*&, IntType=0, IntType=0, IntType=0);
     PetscErrorCode GetArrayRead(const ScalarType*&, IntType=0, IntType=0, IntType=0);
@@ -43,6 +49,7 @@ class ScaField {
     PetscErrorCode RestoreArray();
     
     PetscErrorCode Copy(Vec);
+    PetscErrorCode CopyFrame(IntType);
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;
     AccessType m_Type;
@@ -54,18 +61,44 @@ class ScaField {
       const ScalarType *m_ConstPtr;
     };
     
-    const IntType m_Dim[3];
-    const IntType m_Size[2];
+    IntType m_Dim[3];
+    IntType m_Size[3];
     size_t m_Allocated;
+    
+    RegOpt *m_Opt;
     
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
 
     PetscErrorCode Allocate(IntType, IntType);
-    PetscErrorCode Assign(Vec, IntType);
+    PetscErrorCode Assign(Vec);
 };
 
+inline PetscErrorCode GetRawPointer(ScaField* vec, ScalarType** ptr) {
+  return vec->GetArray(*ptr);
+}
+inline PetscErrorCode GetRawPointerRead(ScaField* vec, const ScalarType** ptr) {
+  return vec->GetArrayRead(*ptr);
+}
+inline PetscErrorCode GetRawPointerReadWrite(ScaField* vec, ScalarType** ptr) {
+  return vec->GetArrayReadWrite(*ptr);
+}
+inline PetscErrorCode GetRawPointerWrite(ScaField* vec, ScalarType** ptr) {
+  return vec->GetArrayWrite(*ptr);
+}
 
+inline PetscErrorCode RestoreRawPointer(ScaField* vec, ScalarType** ptr) {
+  return vec->RestoreArray();
+}
+inline PetscErrorCode RestoreRawPointerRead(ScaField* vec, const ScalarType** ptr) {
+  return vec->RestoreArray();
+}
+inline PetscErrorCode RestoreRawPointerReadWrite(ScaField* vec, ScalarType** ptr) {
+  return vec->RestoreArray();
+}
+inline PetscErrorCode RestoreRawPointerWrite(ScaField* vec, ScalarType** ptr) {
+  return vec->RestoreArray();
+}
 
 
 }  // namespace reg

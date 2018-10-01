@@ -114,12 +114,8 @@ PetscErrorCode CLAIREStokes::ComputeBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_WorkVecField1 == NULL) {
-        this->m_WorkVecField1 = new VecField(this->m_Opt);
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        this->m_WorkVecField2 = new VecField(this->m_Opt);
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
 
     // assigned to work vec field 2
     ierr = SuperClass::ComputeBodyForce(); CHKERRQ(ierr);
@@ -142,12 +138,8 @@ PetscErrorCode CLAIREStokes::ComputeIncBodyForce() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_WorkVecField1 == NULL) {
-        this->m_WorkVecField1 = new VecField(this->m_Opt);
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        this->m_WorkVecField2 = new VecField(this->m_Opt);
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
 
     // assigned to work vec field 2
     ierr = SuperClass::ComputeIncBodyForce(); CHKERRQ(ierr);
@@ -190,24 +182,11 @@ PetscErrorCode CLAIREStokes::SolveAdjointEquationSL() {
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute trajectory
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    
+    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+    
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
@@ -216,8 +195,8 @@ PetscErrorCode CLAIREStokes::SolveAdjointEquationSL() {
         fullnewton = true;
     }
 
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
 
@@ -279,8 +258,8 @@ PetscErrorCode CLAIREStokes::SolveAdjointEquationSL() {
 
     ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
 
@@ -315,24 +294,11 @@ PetscErrorCode CLAIREStokes::SolveIncAdjointEquationGNSL() {
     ht = this->m_Opt->GetTimeStepSize();
     scale = ht;
 
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
 
     if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
+        ierr = Allocate(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
@@ -340,8 +306,8 @@ PetscErrorCode CLAIREStokes::SolveIncAdjointEquationGNSL() {
     ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
 
     // get variables
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
 
@@ -397,8 +363,8 @@ PetscErrorCode CLAIREStokes::SolveIncAdjointEquationGNSL() {
     // restore variables
     ierr = this->m_WorkVecField2->RestoreArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->IncreaseFFTTimers(timer);
 

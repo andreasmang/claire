@@ -23,6 +23,7 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
+#include "ScaField.hpp"
 
 
 
@@ -50,30 +51,30 @@ class DistanceMeasure {
     virtual PetscErrorCode SetFinalConditionIAE() = 0;
 
     /*! set the reference image */
-    PetscErrorCode SetReferenceImage(Vec);
+    PetscErrorCode SetReferenceImage(ScaField*);
 
     /*! set the template image */
-    PetscErrorCode SetTemplateImage(Vec);
+    PetscErrorCode SetTemplateImage(ScaField*);
 
     /*! set the state variable */
-    PetscErrorCode SetStateVariable(Vec);
+    PetscErrorCode SetStateVariable(ScaField*);
 
     /*! set the incremental state variable */
-    PetscErrorCode SetIncStateVariable(Vec);
+    PetscErrorCode SetIncStateVariable(ScaField*);
 
     /*! set the adjoint variable */
-    PetscErrorCode SetAdjointVariable(Vec);
+    PetscErrorCode SetAdjointVariable(ScaField*);
 
     /*! set the incremental adjoint variable */
-    PetscErrorCode SetIncAdjointVariable(Vec);
+    PetscErrorCode SetIncAdjointVariable(ScaField*);
 
     /*! set the auxilary variables */
-    PetscErrorCode SetAuxVariable(Vec, int);
+    PetscErrorCode SetAuxVariable(ScaField*, int);
 
     PetscErrorCode SetWorkVecField(VecField*,int);
 
     /*! set the mask */
-    PetscErrorCode SetMask(Vec);
+    PetscErrorCode SetMask(ScaField*);
 
     /*! set the scale */
     virtual PetscErrorCode SetupScale();

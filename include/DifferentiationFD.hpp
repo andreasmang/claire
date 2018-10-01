@@ -40,16 +40,16 @@ class DifferentiationFD : public Differentiation {
     DifferentiationFD(RegOpt*);
     virtual ~DifferentiationFD();
 
-    virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
-    virtual PetscErrorCode Gradient(ScalarType**, ScalarType*);
-    virtual PetscErrorCode Gradient(VecField*, ScalarType*);
-    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*);
-    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
-    virtual PetscErrorCode Divergence(ScalarType*, ScalarType*, ScalarType*, ScalarType*);
-    virtual PetscErrorCode Divergence(ScalarType*, ScalarType**);
+    virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, const ScalarType*);
+    virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*);
+    virtual PetscErrorCode Gradient(VecField*, const ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*);
+    virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
+    virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
+    virtual PetscErrorCode Divergence(ScalarType*, const ScalarType**);
     virtual PetscErrorCode Divergence(ScalarType*, VecField*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*, ScalarType*);
+    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
+    virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*);
 
  protected:
     PetscErrorCode Initialize();

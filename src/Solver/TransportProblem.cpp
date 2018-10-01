@@ -24,12 +24,7 @@
 #include "DifferentiationSM.hpp"
 #include "DifferentiationFD.hpp"
 
-
-
 namespace reg {
-
-
-
 
 /********************************************************************
  * @brief default constructor
@@ -38,18 +33,12 @@ TransportProblem::TransportProblem() {
     this->Initialize();
 }
 
-
-
-
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
 TransportProblem::~TransportProblem() {
     this->ClearMemory();
 }
-
-
-
 
 /********************************************************************
  * @brief constructor
@@ -58,9 +47,6 @@ TransportProblem::TransportProblem(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
 }
-
-
-
 
 /********************************************************************
  * @brief init variables
@@ -89,9 +75,6 @@ PetscErrorCode TransportProblem::Initialize() {
     PetscFunctionReturn(0);
 }
 
-
-
-
 /********************************************************************
  * @brief clean up
  *******************************************************************/
@@ -99,21 +82,15 @@ PetscErrorCode TransportProblem::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    if (this->m_Differentiation != nullptr) {
-      delete this->m_Differentiation;
-      this->m_Differentiation = nullptr;
-    }
+    Free(this->m_Differentiation);
 
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set reference image (i.e., the fixed image)
  *******************************************************************/
-PetscErrorCode TransportProblem::SetReferenceImage(Vec mR) {
+PetscErrorCode TransportProblem::SetReferenceImage(ScaField* mR) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -127,13 +104,10 @@ PetscErrorCode TransportProblem::SetReferenceImage(Vec mR) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set template image (i.e., the image to be deformed)
  *******************************************************************/
-PetscErrorCode TransportProblem::SetTemplateImage(Vec mT) {
+PetscErrorCode TransportProblem::SetTemplateImage(ScaField* mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -147,13 +121,10 @@ PetscErrorCode TransportProblem::SetTemplateImage(Vec mT) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set state variable
  *******************************************************************/
-PetscErrorCode TransportProblem::SetStateVariable(Vec m) {
+PetscErrorCode TransportProblem::SetStateVariable(ScaField* m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -167,13 +138,10 @@ PetscErrorCode TransportProblem::SetStateVariable(Vec m) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set adjoint variable
  *******************************************************************/
-PetscErrorCode TransportProblem::SetAdjointVariable(Vec lambda) {
+PetscErrorCode TransportProblem::SetAdjointVariable(ScaField* lambda) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -186,7 +154,6 @@ PetscErrorCode TransportProblem::SetAdjointVariable(Vec lambda) {
 
     PetscFunctionReturn(ierr);
 }
-
 
 /********************************************************************
  * @brief set velocity field
@@ -208,7 +175,7 @@ PetscErrorCode TransportProblem::SetControlVariable(VecField *field) {
 /********************************************************************
  * @brief set incremental adjoint variable
  *******************************************************************/
-PetscErrorCode TransportProblem::SetIncAdjointVariable(Vec m) {
+PetscErrorCode TransportProblem::SetIncAdjointVariable(ScaField* m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -225,7 +192,7 @@ PetscErrorCode TransportProblem::SetIncAdjointVariable(Vec m) {
 /********************************************************************
  * @brief set incremental state variable
  *******************************************************************/
-PetscErrorCode TransportProblem::SetIncStateVariable(Vec m) {
+PetscErrorCode TransportProblem::SetIncStateVariable(ScaField* m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -259,16 +226,16 @@ PetscErrorCode TransportProblem::SetIncControlVariable(VecField *field) {
 /********************************************************************
  * @brief set working scalar field
  ********************************************************************/
-PetscErrorCode TransportProblem::SetWorkScaField(Vec field, IntType idx) {
+PetscErrorCode TransportProblem::SetWorkScaField(ScaField* field, IntType idx) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(field != nullptr, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(idx >= 0 && idx < 5, "index out of range"); CHKERRQ(ierr);
+    ierr = Assert(idx >= 1 && idx <= 5, "index out of range"); CHKERRQ(ierr);
     
-    this->m_WorkScaField[idx] = field;
+    this->m_WorkScaField[idx-1] = field;
 
     this->m_Opt->Exit(__func__);
 
@@ -285,9 +252,9 @@ PetscErrorCode TransportProblem::SetWorkVecField(VecField* field, IntType idx) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(field != nullptr, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(idx >= 0 && idx < 5, "index out of range"); CHKERRQ(ierr);
+    ierr = Assert(idx >= 1 && idx <= 5, "index out of range"); CHKERRQ(ierr);
     
-    this->m_WorkVecField[idx] = field;
+    this->m_WorkVecField[idx-1] = field;
 
     this->m_Opt->Exit(__func__);
 
@@ -304,25 +271,16 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) 
     this->m_Opt->Enter(__func__);
 
     if (this->m_Differentiation != nullptr && this->m_Differentiation->m_Type != type) {
-      delete this->m_Differentiation;
-      this->m_Differentiation = nullptr;
+      Free(this->m_Differentiation);
     }
     
     if (this->m_Differentiation == nullptr) {
       switch (type) {
       case Differentiation::Type::Spectral:
-        try {
-          this->m_Differentiation = new DifferentiationSM(this->m_Opt);
-        } catch (std::bad_alloc& err) {
-          ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
+        ierr = Allocate<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
         break;
       case Differentiation::Type::Finite:
-        try {
-          this->m_Differentiation = new DifferentiationFD(this->m_Opt);
-        } catch (std::bad_alloc& err) {
-          ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
+        ierr = Allocate<DifferentiationFD>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
         break;
       default:
         ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
@@ -335,13 +293,12 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) 
     PetscFunctionReturn(ierr);
 }
 
-
 /********************************************************************
  * @brief solve the forward problem for zero velocity fields
  *******************************************************************/
 PetscErrorCode TransportProblem::SolveForwardProblem() {
     PetscErrorCode ierr = 0;
-    ScalarType *pM = nullptr, *pL = nullptr;
+    ScalarType *pM = nullptr, *pMnext = nullptr;
     IntType nc, nl, nt;
     PetscFunctionBegin;
     
@@ -351,16 +308,18 @@ PetscErrorCode TransportProblem::SolveForwardProblem() {
     nl = this->m_Opt->m_Domain.nl;
     nt = this->m_Opt->m_Domain.nt;
     
-    ierr = Assert(this->m_TemplateImage != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     
     // m and \lambda are constant in time
     
     if (this->m_Opt->m_RegFlags.runinversion) {
-        ierr = GetRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
+        ierr = this->m_StateVariable->CopyFrame(0); CHKERRQ(ierr);
+        /*ierr = this->m_StateVariable->GetArrayReadWrite(pM); CHKERRQ(ierr);
         for (IntType j = 1; j <= nt; ++j) {
-            TransportKernelCopy(pM, pM + j*nc*nl, nc*nl);
+            ierr = this->m_StateVariable->GetArrayReadWrite(pMnext, 0, j); CHKERRQ(ierr);
+            TransportKernelCopy(pM, pMnext, nc*nl);
         }
-        ierr = RestoreRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
+        ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);*/
     }
     
     this->m_Opt->Exit(__func__);
@@ -373,7 +332,7 @@ PetscErrorCode TransportProblem::SolveForwardProblem() {
  *******************************************************************/
 PetscErrorCode TransportProblem::SolveAdjointProblem() {
     PetscErrorCode ierr = 0;
-    ScalarType *pM = nullptr, *pL = nullptr;
+    const ScalarType *pM = nullptr;
     IntType nc, nl, nt;
     TransportKernelAdjoint kernel;
     PetscFunctionBegin;
@@ -393,35 +352,36 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
     
     ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
     
-    ierr = GetRawPointer(this->m_AdjointVariable, &pL); CHKERRQ(ierr);
+    //ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL); CHKERRQ(ierr);
     // adjoint variable is constant in time
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        for (IntType j = 1; j <= nt; ++j) {
-            TransportKernelCopy(pL + nt*nc*nl, pL + (nt-j)*nl*nc, nc*nl);
-        }
+      this->m_AdjointVariable->CopyFrame(nt); CHKERRQ(ierr);
+        /*for (IntType j = 1; j <= nt; ++j) {
+            TransportKernelCopy(kernel.pL + nt*nc*nl, kernel.pL + (nt-j)*nl*nc, nc*nl);
+        }*/
     }
 
     ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
 
     // m and \lambda are constant in time
-    ierr = GetRawPointer(this->m_TemplateImage, &pM); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->GetArrays(kernel.pGm); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[1]->GetArrays(kernel.pB); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->GetArraysWrite(kernel.pB); CHKERRQ(ierr);
     
     for (IntType k = 0; k < nc; ++k) {  // for all components
-        kernel.pL = pL + k*nl;
+        ierr = this->m_TemplateImage->GetArrayRead(pM, k); CHKERRQ(ierr);
+        ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
         
         // compute gradient of m
-        ierr = this->m_Differentiation->Gradient(kernel.pGm,pM+k*nl); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
 
         // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
         ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
-    }  // pragma
+    }
    
-    ierr = this->m_WorkVecField[1]->RestoreArrays(kernel.pB); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->RestoreArrays(kernel.pGm); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_TemplateImage, &pM); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &pL); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
   
     this->m_Opt->Exit(__func__);
 
@@ -433,7 +393,7 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
  *******************************************************************/
 PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
     PetscErrorCode ierr = 0;
-    ScalarType *pM = nullptr, *pLtilde = nullptr;
+    const ScalarType *pM = nullptr;
     IntType nc, nl;
     TransportKernelAdjoint kernel;
     PetscFunctionBegin;
@@ -452,39 +412,33 @@ PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
     
     ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
 
-    // copy terminal condition \tilde{\lambda}_1 = -\tilde{m}_1 to all time points
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &pLtilde); CHKERRQ(ierr);
-
     // m and \lambda are constant in time
-    ierr = GetRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->GetArrays(kernel.pGm); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
 
     // init body force for numerical integration
     ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[1]->GetArrays(kernel.pB); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->GetArraysReadWrite(kernel.pB); CHKERRQ(ierr);
 
     // $m$ and $\tilde{\lambda}$ are constant
     for (IntType k = 0; k < nc; ++k) {  // for all components
-        kernel.pL = pLtilde + k*nl;
+        ierr = this->m_StateVariable->GetArrayRead(pM, k);
+        ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
+        
         // compute gradient of m
-        ierr = this->m_Differentiation->Gradient(kernel.pGm,pM + k*nl); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
 
         ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
     }
-    ierr = this->m_WorkVecField[1]->RestoreArrays(kernel.pB); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->RestoreArrays(kernel.pGm); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &pM); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &pLtilde); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[1]->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
   
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
 
-
 }  // namespace reg
-
-
-
 
 #endif  // _CONTINUITYEQUATION_CPP_

@@ -29,18 +29,12 @@
 
 namespace reg {
 
-
-
-
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
 CLAIRE::CLAIRE() : SuperClass() {
     this->Initialize();
 }
-
-
-
 
 /********************************************************************
  * @brief constructor
@@ -49,18 +43,12 @@ CLAIRE::CLAIRE(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
-
-
-
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
 CLAIRE::~CLAIRE() {
     this->ClearMemory();
 }
-
-
-
 
 /********************************************************************
  * @brief init variables
@@ -76,9 +64,6 @@ PetscErrorCode CLAIRE::Initialize() {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief clean up
@@ -102,9 +87,6 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief clean up
  *******************************************************************/
@@ -113,28 +95,13 @@ PetscErrorCode CLAIRE::ClearVariables(void) {
     PetscFunctionBegin;
 
     // delete all variables
-    if (this->m_StateVariable != NULL) {
-        ierr = VecDestroy(&this->m_StateVariable); CHKERRQ(ierr);
-        this->m_StateVariable = NULL;
-    }
-    if (this->m_AdjointVariable != NULL) {
-        ierr = VecDestroy(&this->m_AdjointVariable); CHKERRQ(ierr);
-        this->m_AdjointVariable = NULL;
-    }
-    if (this->m_IncStateVariable != NULL) {
-        ierr = VecDestroy(&this->m_IncStateVariable); CHKERRQ(ierr);
-        this->m_IncStateVariable = NULL;
-    }
-    if (this->m_IncAdjointVariable != NULL) {
-        ierr = VecDestroy(&this->m_IncAdjointVariable); CHKERRQ(ierr);
-        this->m_IncAdjointVariable = NULL;
-    }
+    Free(this->m_StateVariable);
+    Free(this->m_AdjointVariable);
+    Free(this->m_IncStateVariable);
+    Free(this->m_IncAdjointVariable);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief setup solver (to not have to allocate things on the
@@ -152,43 +119,17 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
 
-    if (this->m_StateVariable == NULL) {
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        if (this->m_AdjointVariable == NULL) {
-            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        }
-        if (this->m_IncAdjointVariable == NULL) {
-            ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        }
-        if (this->m_IncStateVariable == NULL) {
-            ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        }
-    } else {
-        if (this->m_AdjointVariable == NULL) {
-            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-        if (this->m_IncAdjointVariable == NULL) {
-            ierr = VecCreate(this->m_IncAdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-        if (this->m_IncStateVariable == NULL) {
-            ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, true); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_IncAdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_IncStateVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
 
     if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
@@ -216,9 +157,6 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief initialize the optimization (we essentially evaluate
@@ -349,9 +287,6 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set m at t=0
  * @param[in] m0 density/image at t=0 (initial condition of forward
@@ -374,31 +309,24 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     ng = this->m_Opt->m_Domain.ng;
 
     // allocate state variable
-    if (this->m_StateVariable == NULL) {
-        if (this->m_Opt->m_RegFlags.runinversion) {
-            ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
-        } else {
-            ierr = VecCreate(this->m_StateVariable, nl*nc, ng*nc); CHKERRQ(ierr);
-        }
-    }
-
+    ierr = Allocate(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
+    
+    DBGCHK();
+    
     // copy m_0 to m(t=0)
     ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m0, p_m0+nl*nc, p_m); }
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
-
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief get m at t=1
@@ -426,21 +354,18 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
 
     // copy m(t=1) to m_1
     ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief set lambda at t=1
@@ -470,13 +395,14 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     }
 
     // allocate pointer if not done so already
-    if (this->m_AdjointVariable == NULL) {
+    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, true); CHKERRQ(ierr);
+    /*if (this->m_AdjointVariable == NULL) {
         ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }
+    }*/
 
     // copy l1 to lambda(t=1)
     ierr = GetRawPointer(l1, &p_l1); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
+    ierr = GetRawPointer(*this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     try {std::copy(p_l+nt*nl*nc, p_l+(nt+1)*nl*nc, p_l1);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
@@ -488,9 +414,6 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief solve the forward problem (we assume the user has
@@ -511,7 +434,8 @@ PetscErrorCode CLAIRE::SolveForwardProblem(Vec m1, Vec m0) {
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set initial condition
-    this->m_TemplateImage = m0;
+    ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, m0, true); CHKERRQ(ierr);
+    //this->m_TemplateImage = m0;
 
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
@@ -527,9 +451,6 @@ PetscErrorCode CLAIRE::SolveForwardProblem(Vec m1, Vec m0) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief solve the adjoint problem (we assume the user has
@@ -556,10 +477,11 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     ng = this->m_Opt->m_Domain.ng;
 
     // allocate state variable
-    if (this->m_StateVariable == NULL) {
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
-        ierr = VecSet(this->m_StateVariable, 0); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, 0.0, true, true); CHKERRQ(ierr);
+    /*if (this->m_StateVariable == NULL) {
+        //ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
+        ierr = VecSet(*this->m_StateVariable, 0); CHKERRQ(ierr);
+    }*/
     
     DBGCHK();
 
@@ -593,9 +515,6 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
@@ -619,10 +538,12 @@ PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external
     // pointer
-    if (this->m_StateVariable == NULL) {
+    ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, true); CHKERRQ(ierr);
+    /*if (this->m_StateVariable == NULL) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }
-    ierr = VecCopy(m, this->m_StateVariable); CHKERRQ(ierr);
+    }*/
+    ierr = this->m_StateVariable->Copy(m); CHKERRQ(ierr);
+    //ierr = VecCopy(m, *this->m_StateVariable); CHKERRQ(ierr);
 
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
@@ -640,9 +561,6 @@ PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief set state variable from externally
  *******************************************************************/
@@ -654,15 +572,12 @@ PetscErrorCode CLAIRE::GetStateVariable(Vec& m) {
 
     ierr = Assert(m == NULL, "null pointer expected"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    m = this->m_StateVariable;
+    m = *this->m_StateVariable;
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief set adjoint variable from externally
@@ -686,14 +601,18 @@ PetscErrorCode CLAIRE::SetAdjointVariable(Vec lambda) {
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external pointer
-    if (this->m_AdjointVariable == NULL) {
+    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    /*if (this->m_AdjointVariable == NULL) {
         if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc, nt+1); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         } else {
-            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
     }
-    ierr = VecCopy(lambda, this->m_AdjointVariable); CHKERRQ(ierr);
+    ierr = VecCopy(lambda, *this->m_AdjointVariable); CHKERRQ(ierr);*/
+    ierr = this->m_AdjointVariable->Copy(lambda); CHKERRQ(ierr);
 
     if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -709,9 +628,6 @@ PetscErrorCode CLAIRE::SetAdjointVariable(Vec lambda) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief get adjoint variable
  *******************************************************************/
@@ -723,16 +639,13 @@ PetscErrorCode CLAIRE::GetAdjointVariable(Vec& lambda) {
 
     ierr = Assert(lambda == NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    lambda = this->m_AdjointVariable;
+    lambda = *this->m_AdjointVariable;
 //    ierr = VecCopy(this->m_AdjointVariable, lambda); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief evaluate the l2 distance between m_R and m_1
@@ -768,7 +681,6 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
 
     PetscFunctionReturn(ierr);
 }
-
 
 /********************************************************************
  * @brief evaluates the objective value
@@ -825,14 +737,10 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     // increment counter for objective evaluations
     this->m_Opt->IncrementCounter(OBJEVAL);
 
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian
@@ -947,9 +855,6 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian (l2)
  *******************************************************************/
@@ -983,9 +888,6 @@ PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief evaluates the reduced gradient of the lagrangian (in
  * sobolev space incuded by regularization operator)
@@ -1015,9 +917,6 @@ PetscErrorCode CLAIRE::EvaluateSobolevGradient(Vec g, bool flag) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief compute the body force
@@ -1130,9 +1029,6 @@ PetscErrorCode CLAIRE::ComputeBodyForce() {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief applies the hessian to a vector
  * @param[in] vtilde incremental velocity field
@@ -1181,7 +1077,6 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
         }
     }
 
-
     if (Hvtilde != NULL) {
         // TODO @ Andreas: fix for two-level precond
         // scale by lebesgue measure
@@ -1206,9 +1101,6 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief applies the hessian to a vector (default way of doing this)
@@ -1259,9 +1151,6 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief applies the analytically (spectrally) preconditioned
@@ -1316,9 +1205,6 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief applies the analytically (spectrally) preconditioned
@@ -1386,9 +1272,6 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief compute initial condition given some initial guess for
  * the state variable $m$ and the adjoint variable $\lambda$
@@ -1421,26 +1304,32 @@ PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
     }
 
     // allocate state and adjoint variables
-    if (this->m_StateVariable == NULL) {
+    /*if (this->m_StateVariable == NULL) {
         ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }
+    }*/
+    ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, true); CHKERRQ(ierr);
 
     // allocate state and adjoint variables
-    if (this->m_AdjointVariable == NULL) {
+    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    /*if (this->m_AdjointVariable == NULL) {
         if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc, nt+1); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         } else {
-            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-    }
+    }*/
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("piccard iteration"); CHKERRQ(ierr);
     }
 
     // copy input state and adjoint variable to class variables
-    ierr = VecCopy(m, this->m_StateVariable); CHKERRQ(ierr);
-    ierr = VecCopy(lambda, this->m_AdjointVariable); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->Copy(m); CHKERRQ(ierr);
+    ierr = this->m_AdjointVariable->Copy(lambda); CHKERRQ(ierr);
+    //ierr = VecCopy(m, *this->m_StateVariable); CHKERRQ(ierr);
+    //ierr = VecCopy(lambda, *this->m_AdjointVariable); CHKERRQ(ierr);
 
     // compute body force (assigned to work vec field 2)
     // TODO: this will crash for GAUSS NEWTON
@@ -1453,8 +1342,10 @@ PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
     ierr = this->m_Regularization->ApplyInverse(this->m_VelocityField, this->m_WorkVecField2); CHKERRQ(ierr);
 
     // reset the adjoint variables
-    ierr = VecSet(this->m_StateVariable, 0.0); CHKERRQ(ierr);
-    ierr = VecSet(this->m_AdjointVariable, 0.0); CHKERRQ(ierr);
+    //ierr = VecSet(*this->m_StateVariable, 0.0); CHKERRQ(ierr);
+    //ierr = VecSet(*this->m_AdjointVariable, 0.0); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->Set(0.0); CHKERRQ(ierr);
+    ierr = this->m_AdjointVariable->Set(0.0); CHKERRQ(ierr);
 
     ierr = this->m_ReadWrite->Write(this->m_VelocityField, "initial-condition"+ext); CHKERRQ(ierr);
 
@@ -1462,9 +1353,6 @@ PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief compute the incremental body force
@@ -1602,7 +1490,6 @@ PetscErrorCode CLAIRE::ComputeIncBodyForce() {
     PetscFunctionReturn(ierr);
 }
 
-
 /********************************************************************
  * @brief solve the forward problem (state equation)
  * \p_t m + \igrad m\cdot\vect{v} = 0
@@ -1628,9 +1515,10 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
     ext = this->m_Opt->m_FileNames.extension;
 
-    if (this->m_WorkScaField1 == NULL) {
+    /*if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
+    }*/
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
     // store time history
@@ -1653,18 +1541,15 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
             } else {
                 ss << "state-variable-j=" << std::setw(3) << std::setfill('0') << j << ext;
             }
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(*this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
         }  // for number of vector components
     }  // for number of time points
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
 
 /********************************************************************
  * @brief solve the forward problem (state equation)
@@ -1714,9 +1599,8 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
         ss.str(std::string()); ss.clear();
     }
 
-
     // set initial condition m_0 = m_T
-    ierr = this->SetInitialState(this->m_TemplateImage); CHKERRQ(ierr);
+    ierr = this->SetInitialState(*this->m_TemplateImage); CHKERRQ(ierr);
 
     ierr = this->m_TransportProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
@@ -1774,8 +1658,8 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval, nvx1, nvx2, nvx3;
-        ierr = VecMax(this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
-        ierr = VecMin(this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(*this->m_StateVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(*this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
         ss  << "state variable: [" << std::scientific
             << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -1787,7 +1671,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
-
 
     // store time series
     if (this->m_Opt->m_ReadWriteFlags.timeseries) {
@@ -1804,16 +1687,13 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief solve the forward problem (state equation)
  * \p_t m + \igrad m\cdot\vect{v} = 0
  * subject to m_0 - m_T = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
+/*PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
     ScalarType *p_m = NULL, *p_mbar = NULL, *p_rhs0 = NULL,
@@ -1837,12 +1717,8 @@ PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
     hthalf = 0.5*ht;
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
@@ -1908,74 +1784,7 @@ PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief solve the forward problem (state equation)
- * \p_t m + \igrad m\cdot\vect{v} = 0
- * subject to m_0 - m_T = 0
- * solved forward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveStateEquationSL(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, nc, nt, l, lnext;
-    ScalarType *p_m = NULL;
-    bool store = true;
-    std::stringstream ss;
-    std::string filename;
-
-    PetscFunctionBegin;
-    this->m_Opt->Enter(__func__);
-
-    // flag to identify if we store the time history
-    store = this->m_Opt->m_RegFlags.runinversion;
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-
-    // compute trajectory
-    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-
-    // get state variable m
-    ierr = GetRawPointerReadWrite(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    for (IntType j = 0; j < nt; ++j) {  // for all time points
-        if (store) {
-            l = j*nl*nc; lnext = (j+1)*nl*nc;
-        } else {
-            l = 0; lnext = 0;
-        }
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            // compute m(X,t^{j+1}) (interpolate state variable)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_m + lnext + k*nl, p_m + l + k*nl, "state"); CHKERRQ(ierr);
-        }
-    }
-    ierr = RestoreRawPointerReadWrite(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
 }*/
-
-
-
 
 /********************************************************************
  * @brief solve the adjoint problem (adjoint equation)
@@ -2021,15 +1830,16 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
         ss.str(std::string()); ss.clear();
     }
 
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
+    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    /*if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         if (this->m_AdjointVariable == NULL) {
-            ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+           ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
     } else {
         if (this->m_AdjointVariable == NULL) {
             ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-    }
+    }*/
 
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
@@ -2147,8 +1957,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
-        ierr = VecMin(this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
-        ierr = VecMax(this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(*this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(*this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
         ss << "adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -2168,14 +1978,12 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscFunctionReturn(ierr);
 }
 
-
-
 /********************************************************************
  * @brief solve the adjoint problem (adjoint equation)
  * -\p_t \lambda - \idiv \lambda\vect{v} = 0
  * subject to \lambda_1 + (m_R - m_1) = 0 (solved backward in time)
  *******************************************************************/
-PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
+/*PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
     PetscErrorCode ierr;
     IntType nl, ng, nc, nt, ll, lm, llnext;
     ScalarType *p_l = NULL, *p_m = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
@@ -2202,15 +2010,10 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "ht < 0"); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-
 
     // for full newton we store $\lambda$
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -2322,221 +2125,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
-}
-
-
-
-
-
-/********************************************************************
- * @brief solve the adjoint problem (adjoint equation)
- * -\p_t \lambda - \idiv \lambda\vect{v} = 0
- * subject to \lambda_1 + (m_R - m_1) = 0
- * solved backward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveAdjointEquationSL() {
-    PetscErrorCode ierr = 0;
-    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_divv = NULL, *p_divvx = NULL,
-                *p_l = NULL, *p_lx = NULL, *p_m = NULL,
-                *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
-                *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
-    ScalarType ht, lambdax, lambda, rhs0, rhs1, scale;
-    IntType nl, ng, nc, nt, ll, lm, llnext;
-    bool fullnewton = false;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    scale = ht;
-
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-
-    // compute trajectory for adjoint equations
-    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-
-    DBGCHK();
-
-    // for full newton we store the adjoint variable
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        fullnewton = true;
-    }
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField3, &p_lx); CHKERRQ(ierr);
-
-    // compute divergence of velocity field
-    ierr = this->m_VelocityField->GetArraysReadWrite(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    
-    DBGCHK();
-    
-    this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
-    
-    DBGCHK();
-    
-    ierr = this->m_VelocityField->RestoreArraysReadWrite(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    
-    DBGCHK();
-
-    // interpolate velocity field v(X)
-//    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-
-    // compute divergence of velocity field at X
-    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-//    this->m_Opt->StartTimer(FFTSELFEXEC);
-//    accfft_divergence_t(p_divvx, p_vec1, p_vec2, p_vec3, this->m_Opt->m_FFT.plan, timer);
-//    this->m_Opt->StopTimer(FFTSELFEXEC);
-//    this->m_Opt->IncrementCounter(FFT, FFTDIV);
-
-    DBGCHK();
-
-    // evaluate div(v) along characteristic X
-    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
-
-
-    DBGCHK();
-    
-    // init body force for numerical integration
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-
-    // perform numerical time integration for adjoint variable and
-    // add up body force
-    for (IntType j = 0; j < nt; ++j) {
-        lm = (nt-j)*nc*nl;
-        if (fullnewton) {
-            ll = (nt-j)*nc*nl; llnext = (nt-(j+1))*nc*nl;
-        } else {
-            ll = 0; llnext = 0;
-        }
-
-        // scaling for trapezoidal rule (for body force)
-        if (j == 0) scale *= 0.5;
-        for (IntType k = 0; k < nc; ++k) {
-            // compute lambda(t^j,X)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_lx, p_l + ll + k*nl, "adjoint"); CHKERRQ(ierr);
-
-            DBGCHK();
-            
-            // compute gradient of m (for incremental body force)
-            this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm+k*nl);
-            
-            DBGCHK();
-            
-#ifdef REG_HAS_CUDA
-            ComputeAdjointBodyForceGPU(&p_l[llnext + k*nl],&p_l[ll + k*nl],p_lx,p_divv,p_divvx,p_vec1,p_vec2,p_vec3,p_b1,p_b2,p_b3,ht,scale/static_cast<ScalarType>(nc),nl);
-            DBGCHK();
-#else
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                lambda  = p_l[ll + k*nl + i];
-                lambdax = p_lx[i];
-
-                rhs0 = lambdax*p_divvx[i];
-                rhs1 = (lambdax + ht*rhs0)*p_divv[i];
-
-                // compute \lambda(x,t^{j+1})
-                p_l[llnext + k*nl + i] = lambdax + 0.5*ht*(rhs0 + rhs1);
-
-                // compute bodyforce
-                p_b1[i] += scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
-                p_b2[i] += scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
-                p_b3[i] += scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
-            }
-} // omp
-#endif
-        }
-        // trapezoidal rule (revert scaling; for body force)
-        if (j == 0) scale *= 2.0;
-    }
-    
-    DBGCHK();
-
-    // compute body force for last time point t = 0 (i.e., for j = nt)
-    for (IntType k = 0; k < nc; ++k) {  // for all image components
-        ll = k*nl; lm = k*nl;
-
-        // compute gradient of m (for incremental body force)
-        this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm);
-        DBGCHK();
-#ifdef REG_HAS_CUDA
-        ComputeAdjointBodyForceGPU(&p_l[ll],p_vec1,p_vec2,p_vec3,p_b1,p_b2,p_b3,0.5*scale/static_cast<ScalarType>(nc),nl);
-        DBGCHK();
-#else
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nl; ++i) {  // for all grid points
-            lambda = p_l[ll + i];
-            // compute bodyforce
-            p_b1[i] += 0.5*scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
-            p_b2[i] += 0.5*scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
-            p_b3[i] += 0.5*scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
-        }
-} // omp
-#endif
-    }
-    
-    DBGCHK();
-    
-    ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-
-    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_lx); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    
-    DBGCHK();
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
 }*/
-
-
-
 
 /********************************************************************
  * @brief solve the forward problem (state equation)
@@ -2566,15 +2155,9 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = Allocate(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = Allocate(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = Allocate(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
 
     ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
@@ -2582,7 +2165,6 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-
 
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
@@ -2644,9 +2226,6 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief solve the incremental state equation
  * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
@@ -2689,13 +2268,15 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     }
 
     // allocate variables
-    if (this->m_IncStateVariable == NULL) {
+    ierr = Allocate(this->m_IncStateVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    /*if (this->m_IncStateVariable == NULL) {
         if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         } else {
-            ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
+            ierr = Allocate(this->m_IncStateVariable, ng, nl, nc); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-    }
+    }*/
     
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
@@ -2706,8 +2287,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     ierr = this->m_TransportProblem->SetIncControlVariable(this->m_IncVelocityField); CHKERRQ(ierr);
 
     // set initial value
-    ierr = VecSet(this->m_IncStateVariable, 0.0); CHKERRQ(ierr);
-
+    ierr = VecSet(*this->m_IncStateVariable, 0.0); CHKERRQ(ierr);
 
     // start timer
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
@@ -2739,8 +2319,8 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
-        ierr = VecMax(this->m_IncStateVariable, NULL, &maxval); CHKERRQ(ierr);
-        ierr = VecMin(this->m_IncStateVariable, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(*this->m_IncStateVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(*this->m_IncStateVariable, NULL, &minval); CHKERRQ(ierr);
         ss << "incremental state variable: [" << std::scientific << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -2761,9 +2341,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     PetscFunctionReturn(0);
 }
 
-
-
-
 /********************************************************************
  * @brief solve the incremental state equation
  * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
@@ -2771,7 +2348,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
  * subject to \tilde{m}_0 = 0
  * solved forward in time
  *******************************************************************/
-PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
+/*PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, lm, lmnext, lmt, lmtnext;
     ScalarType *p_m = NULL, *p_mt = NULL, *p_mtbar = NULL,
@@ -2796,14 +2373,8 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
     ierr = Assert(ht > 0, "time step size < 0"); CHKERRQ(ierr);
 
-    // allocate variables
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
 
@@ -2915,151 +2486,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief solve the incremental state equation
- * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
- *                + \igrad \tilde{m} \cdot \vect{v} = 0
- * subject to \tilde{m}_0 = 0
- * solved forward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nt, nc, lm, lmnext, lmt, lmtnext;
-    ScalarType ht, hthalf;
-    ScalarType *p_gm1 = NULL, *p_gm2 = NULL, *p_gm3 = NULL,
-                *p_mtilde = NULL, *p_m = NULL, *p_mx = NULL;
-    const ScalarType *p_vtilde1 = NULL, *p_vtilde2 = NULL, *p_vtilde3 = NULL,
-                     *p_vtildex1 = NULL, *p_vtildex2 = NULL, *p_vtildex3 = NULL;
-    bool fullnewton = false;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-    }
-
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
-        fullnewton = true;
-    }
-
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_mx); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-
-    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_IncVelocityField, "state"); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField2->GetArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
-    ierr = this->m_IncVelocityField->GetArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
-
-    for (IntType j = 0; j < nt; ++j) {  // for all time points
-        lm = j*nl*nc; lmnext = (j+1)*nl*nc;
-        if (fullnewton) {   // full newton
-            lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
-        } else {
-            lmt = 0; lmtnext = 0;
-        }
-
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            // interpolate incremental adjoint variable \tilde{m}^j(X)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mtilde + lmtnext + k*nl, p_mtilde + lmt + k*nl, "state"); CHKERRQ(ierr);
-            // interpolate m
-//            ierr = this->m_SemiLagrangianMethod->Interpolate(p_mx, p_m + lm + k*nl, "state"); CHKERRQ(ierr);
-
-            // compute gradient for state variable
-//            this->m_Opt->StartTimer(FFTSELFEXEC);
-//            accfft_grad_t(p_gm1, p_gm2, p_gm3, p_mx, this->m_Opt->m_FFT.plan, &XYZ, timer);
-//            this->m_Opt->StopTimer(FFTSELFEXEC);
-//            this->m_Opt->IncrementCounter(FFT, FFTGRAD);
-
-
-            // compute gradient for state variable
-            this->m_Differentiation->Gradient(p_gm1,p_gm2,p_gm3,p_m+lm+k*nl);
-
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_gm1, p_gm2, p_gm3, p_gm1, p_gm2, p_gm3, "state"); CHKERRQ(ierr);
-            
-            DBGCHK();
-
-            // first part of time integration
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lmtnext + k*nl + i] -= hthalf*(p_gm1[i]*p_vtildex1[i]
-                                                      + p_gm2[i]*p_vtildex2[i]
-                                                      + p_gm3[i]*p_vtildex3[i]);
-            }
-}  // omp
-
-            DBGCHK();
-            
-            // compute gradient for state variable at next time time point
-            this->m_Differentiation->Gradient(p_gm1,p_gm2,p_gm3,p_m+lmnext+k*nl);
-
-#pragma omp parallel
-{
-#pragma omp for
-            // second part of time integration
-            for (IntType i = 0; i < nl; ++i) {
-                p_mtilde[lmtnext + k*nl + i] -= hthalf*(p_gm1[i]*p_vtilde1[i]
-                                                      + p_gm2[i]*p_vtilde2[i]
-                                                      + p_gm3[i]*p_vtilde3[i]);
-            }
-        }  // for all image components
-}  // omp
-    }  // for all time points
-
-    ierr = this->m_IncVelocityField->RestoreArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_mx); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
 }*/
-
-
-
 
 /********************************************************************
  * @brief solve the incremental adjoint problem (incremental
@@ -3112,7 +2539,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
     // allocate state and adjoint variables
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
+    ierr = AllocateOnce(this->m_IncAdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    /*if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
         }
@@ -3120,7 +2548,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
         if (this->m_IncAdjointVariable == NULL) {
             ierr = VecCreate(this->m_IncAdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
         }
-    }
+    }*/
     
     DBGCHK();
 
@@ -3253,11 +2681,10 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     // scale result by hd
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
 
-
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
-        ierr = VecMax(this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
-        ierr = VecMin(this->m_IncAdjointVariable, NULL, &minval); CHKERRQ(ierr);
+        ierr = VecMax(*this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(*this->m_IncAdjointVariable, NULL, &minval); CHKERRQ(ierr);
         ss << "incremental adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
@@ -3277,9 +2704,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief solve the incremental adjoint problem (incremental
  * adjoint equation)
@@ -3288,7 +2712,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
+/*PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, ll, lm;
     ScalarType *p_ltilde = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL, *p_m = NULL,
@@ -3310,12 +2734,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
     scale = ht;
     hthalf = 0.5*ht;
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
@@ -3423,10 +2843,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
-}
-
-
-
+}*/
 
 /********************************************************************
  * @brief solve the incremental adjoint problem (incremental
@@ -3436,7 +2853,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
  * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
  * solved backward in time
  *******************************************************************/
-PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
+/*PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nt, l, lnext;
     ScalarType *p_l = NULL, *p_lt = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
@@ -3456,9 +2873,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
 
     ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -3504,9 +2919,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
 }  // omp
         }  // for all image components
     } else {  // velocity is zero
-        if (this->m_WorkScaField2 == NULL) {
-            ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-        }
+        ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
 
         ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
         ierr = GetRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
@@ -3572,195 +2985,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief solve the incremental adjoint problem (incremental
- * adjoint equation)
- * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
- *                       - \idiv \lambda\tilde{\vect{v}} = 0
- * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
- * solved backward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveIncAdjointEquationGNSL(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, ll, lm;
-    ScalarType *p_ltilde = NULL, *p_ltildex = NULL, *p_m = NULL,
-                *p_divv = NULL, *p_divvx = NULL,
-                *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
-                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
-    ScalarType ht, hthalf, ltilde, ltildex, rhs0, rhs1, scale;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    scale = ht;
-    hthalf = 0.5*ht;
-
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkVecField1 == NULL) {
-        try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_WorkVecField2 == NULL) {
-        try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-    }
-
-    if (this->m_SemiLagrangianMethod == NULL) {
-        try {this->m_SemiLagrangianMethod = new SemiLagrangianType(this->m_Opt);}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
-        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-    }
-
-    // compute divergence of velocity field
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
-
-    // compute v(X)
-//    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-
-    // evaluate divergence at X
-//    ierr = GetRawPointer(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-//    ierr = this->m_WorkVecField1->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-//    this->m_Opt->StartTimer(FFTSELFEXEC);
-//    accfft_divergence_t(p_divvx, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-//    this->m_Opt->StopTimer(FFTSELFEXEC);
-//    ierr = this->m_WorkVecField1->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvx, p_divv, "adjoint"); CHKERRQ(ierr);
-
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField3, &p_ltildex); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-
-    // initialize work vec field
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
-
-    for (IntType j = 0; j < nt; ++j) {
-        lm = (nt-j)*nc*nl;
-        if (j == 0) scale *= 0.5;
-        for (IntType k = 0; k < nc; ++k) {
-            ll = k*nl;
-            ierr = this->m_SemiLagrangianMethod->Interpolate(p_ltildex, p_ltilde + ll, "adjoint"); CHKERRQ(ierr);
-
-            // compute gradient of m^j
-            this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm+k*nl);
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                ltilde  = p_ltilde[ll + i];   // get \tilde{\lambda}(x)
-                ltildex = p_ltildex[i];       // get \tilde{\lambda}(X) (interpolated)
-
-                // scale div(v)(X) by \tilde{\lambda}(X)
-                rhs0 = ltildex*p_divvx[i];
-
-                // scale div(v) by \tilde{\lambda}*
-                rhs1 = (ltildex + ht*rhs0)*p_divv[i];
-
-                // final rk2 step
-                p_ltilde[ll + i] = ltildex + hthalf*(rhs0 + rhs1);
-
-                p_bt1[i] += scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
-                p_bt2[i] += scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
-                p_bt3[i] += scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
-            }
-}  // omp
-        }  // for all image components
-        if (j == 0) scale *= 2.0;
-    }  // for all time points
-
-    // compute body force for last time point t = 0 (i.e., for j = nt)
-    for (IntType k = 0; k < nc; ++k) {  // for all image components
-        ll = k*nl; lm = k*nl;
-
-        // compute gradient of m (for incremental body force)
-        this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm);
-
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nl; ++i) {  // for all grid points
-            ltilde = p_ltilde[ll + i];
-            // compute bodyforce
-            p_bt1[i] += 0.5*scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
-            p_bt2[i] += 0.5*scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
-            p_bt3[i] += 0.5*scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
-        }
-}  // omp
-    }
-
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_ltildex); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divvx); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
 }*/
-
-
-
-
-/********************************************************************
- * @brief solve the incremental adjoint problem (incremental
- * adjoint equation)
- * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
- *                       - \idiv \lambda\tilde{\vect{v}} = 0
- * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
- * solved backward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveIncAdjointEquationFNSL(void) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    ierr = ThrowError("not implemented"); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}*/
-
-
-
 
 /********************************************************************
  * @brief apply projection to map \tilde{v} onto the manifold
@@ -3771,9 +2996,6 @@ PetscErrorCode CLAIRE::ApplyProjection() {
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief finalize the current iteration
@@ -3826,9 +3048,10 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     // store iterates
     if (this->m_Opt->m_ReadWriteFlags.iterates) {
         // allocate
-        if (this->m_WorkScaFieldMC == NULL) {
+        ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, true); CHKERRQ(ierr);
+        /*f (this->m_WorkScaFieldMC == NULL) {
             ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
-        }
+        }*/
 
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
@@ -3844,7 +3067,7 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
         ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
         ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, ss.str(), nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, ss.str(), nc > 1); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         // construct file names for velocity field components
@@ -3856,11 +3079,9 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
         ierr = this->m_ReadWrite->Write(this->m_VelocityField, filename); CHKERRQ(ierr);
     }  // store iterates
 
-
     if (this->m_Opt->m_StoreCheckPoints) {
         ierr = this->m_ReadWrite->Write(this->m_VelocityField, "velocity-field-checkpoint"+ext); CHKERRQ(ierr);
     }
-
 
     // compute determinant of deformation gradient and write it to file
     if (this->m_Opt->m_Monitor.detdgradenabled) {
@@ -3891,9 +3112,6 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
 
     PetscFunctionReturn(0);
 }
-
-
-
 
 /********************************************************************
  * @brief finalize the registration
@@ -3932,12 +3150,14 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL) {
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt, true); CHKERRQ(ierr);
+    /*if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }
     if (this->m_WorkScaFieldMC == NULL) {
         ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
-    }
+    }*/
 
     // process timer
     ierr = this->m_Opt->ProcessTimers(); CHKERRQ(ierr);
@@ -3947,12 +3167,12 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // compute residuals
     if (this->m_Opt->m_Log.enabled[LOGDIST]) {
-        ierr = VecWAXPY(this->m_WorkScaFieldMC, -1.0, this->m_TemplateImage, this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr = VecWAXPY(*this->m_WorkScaFieldMC, -1.0, *this->m_TemplateImage, *this->m_ReferenceImage); CHKERRQ(ierr);
 
-        ierr = VecNorm(this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
+        ierr = VecNorm(*this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
         this->m_Opt->LogFinalResidual(0, value);
 
-        ierr = VecNorm(this->m_WorkScaFieldMC, NORM_INFINITY, &value); CHKERRQ(ierr);
+        ierr = VecNorm(*this->m_WorkScaFieldMC, NORM_INFINITY, &value); CHKERRQ(ierr);
         this->m_Opt->LogFinalResidual(1, value);
 
         // deformed template out (compute solution of state equation)
@@ -3969,12 +3189,12 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
         ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
 
         // ||m_R - m_1||
-        ierr = VecAXPY(this->m_WorkScaFieldMC, -1.0, this->m_ReferenceImage); CHKERRQ(ierr);
+        ierr = VecAXPY(*this->m_WorkScaFieldMC, -1.0, *this->m_ReferenceImage); CHKERRQ(ierr);
 
-        ierr = VecNorm(this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
+        ierr = VecNorm(*this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
         this->m_Opt->LogFinalResidual(2, value);
 
-        ierr = VecNorm(this->m_WorkScaFieldMC, NORM_INFINITY, &value); CHKERRQ(ierr);
+        ierr = VecNorm(*this->m_WorkScaFieldMC, NORM_INFINITY, &value); CHKERRQ(ierr);
         this->m_Opt->LogFinalResidual(3, value);
     }
 
@@ -3991,13 +3211,13 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
         ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
 
         if (this->m_Opt->m_RegFlags.registerprobmaps) {
-            ierr = EnsurePartitionOfUnity(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
-            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
-            ierr = ComputeBackGround(this->m_WorkScaField1, this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
-            ierr = this->m_ReadWrite->WriteT(this->m_WorkScaField1, "background-image" + ext, false); CHKERRQ(ierr);
+            ierr = EnsurePartitionOfUnity(*this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
+            ierr = ShowValues(*this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
+            ierr = ComputeBackGround(*this->m_WorkScaField1, *this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->WriteT(*this->m_WorkScaField1, "background-image" + ext, false); CHKERRQ(ierr);
         }
 
-        ierr = this->m_ReadWrite->WriteT(this->m_WorkScaFieldMC, "deformed-template-image" + ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->WriteT(*this->m_WorkScaFieldMC, "deformed-template-image" + ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write residual images to file
@@ -4012,19 +3232,18 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
                 p_dr[i] = PetscAbs(p_mt[i] - p_mr[i]);
             }
             ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
         }
 
         if (this->m_Opt->m_ReadWriteFlags.invresidual) {
-            ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = GetRawPointer(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             for (IntType i = 0; i < nl*nc; ++i) {
                 p_dr[i] = 1.0 - PetscAbs(p_mt[i] - p_mr[i]);
             }
             ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "inv-residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "inv-residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
         }
         ierr = RestoreRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-
 
         // write residual at t = 1 to file
         ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -4035,7 +3254,7 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
             }
             ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
 //            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
         if (this->m_Opt->m_ReadWriteFlags.invresidual) {
             ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
@@ -4045,7 +3264,7 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
             ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
 
 //            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
-            ierr = this->m_ReadWrite->Write(this->m_WorkScaFieldMC, "inv-residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
+            ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "inv-residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
         ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
@@ -4060,8 +3279,8 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // write norm of velocity field to file
     if (this->m_Opt->m_ReadWriteFlags.velnorm) {
-        ierr = this->m_VelocityField->Norm(this->m_WorkScaField1); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, "velocity-field-norm" + ext); CHKERRQ(ierr);
+        ierr = this->m_VelocityField->Norm(*this->m_WorkScaField1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(*this->m_WorkScaField1, "velocity-field-norm" + ext); CHKERRQ(ierr);
     }
 
     // write determinant of deformation gradient to file
@@ -4096,11 +3315,11 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     // write template and reference image
     if (this->m_Opt->m_ReadWriteFlags.templateim) {
 //        ierr = ShowValues(this->m_TemplateImage, nc); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->WriteT(this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->WriteT(*this->m_TemplateImage, "template-image"+ext, nc > 1); CHKERRQ(ierr);
     }
     if (this->m_Opt->m_ReadWriteFlags.referenceim) {
 //        ierr = ShowValues(this->m_ReferenceImage, nc); CHKERRQ(ierr);
-        ierr = this->m_ReadWrite->WriteR(this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->WriteR(*this->m_ReferenceImage, "reference-image"+ext, nc > 1); CHKERRQ(ierr);
     }
 
     // write log file
@@ -4111,12 +3330,6 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 }  // namespace reg
-
-
-
 
 #endif  // _CLAIRE_CPP_

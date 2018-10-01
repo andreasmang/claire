@@ -132,95 +132,37 @@ PetscErrorCode CLAIREBase::ClearMemory() {
 //    }
 
     if (this->m_DeleteControlVariable) {
-        if (this->m_VelocityField != NULL) {
-            delete this->m_VelocityField;
-            this->m_VelocityField = NULL;
-        }
+        Free(this->m_VelocityField);
     }
 
     if (this->m_DeleteIncControlVariable) {
-        if (this->m_IncVelocityField != NULL) {
-            delete this->m_IncVelocityField;
-            this->m_IncVelocityField = NULL;
-        }
+        Free(this->m_IncVelocityField);
     }
 
-    if (this->m_DistanceMeasure != NULL) {
-        delete this->m_DistanceMeasure;
-        this->m_DistanceMeasure = NULL;
-    }
-
-    if (this->m_Regularization != NULL) {
-        delete this->m_Regularization;
-        this->m_Regularization = NULL;
-    }
-
-    if (this->m_SemiLagrangianMethod != NULL) {
-        delete this->m_SemiLagrangianMethod;
-        this->m_SemiLagrangianMethod = NULL;
-    }
-
-    if (this->m_DeformationFields != NULL) {
-        delete this->m_DeformationFields;
-        this->m_DeformationFields = NULL;
-    }
-
-    if (this->m_Differentiation != NULL) {
-        delete this->m_Differentiation;
-        this->m_Differentiation = NULL;
-    }
+    Free(this->m_DistanceMeasure);
+    Free(this->m_Regularization);
+    Free(this->m_SemiLagrangianMethod);
+    Free(this->m_DeformationFields);
+    Free(this->m_Differentiation);
+    Free(this->m_TransportProblem);
     
-    if (this->m_TransportProblem != NULL) {
-        delete this->m_TransportProblem;
-        this->m_TransportProblem = NULL;
-    }
-
-    if (this->m_WorkScaField1 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField1); CHKERRQ(ierr);
-        this->m_WorkScaField1 = NULL;
-    }
-    if (this->m_WorkScaField2 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField2); CHKERRQ(ierr);
-        this->m_WorkScaField2 = NULL;
-    }
-    if (this->m_WorkScaField3 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField3); CHKERRQ(ierr);
-        this->m_WorkScaField3 = NULL;
-    }
-    if (this->m_WorkScaField4 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField4); CHKERRQ(ierr);
-        this->m_WorkScaField4 = NULL;
-    }
-    if (this->m_WorkScaField5 != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaField5); CHKERRQ(ierr);
-        this->m_WorkScaField5 = NULL;
-    }
-
-    if (this->m_WorkScaFieldMC != NULL) {
-        ierr = VecDestroy(&this->m_WorkScaFieldMC); CHKERRQ(ierr);
-        this->m_WorkScaFieldMC = NULL;
-    }
-
-    if (this->m_WorkVecField1 != NULL) {
-        delete this->m_WorkVecField1;
-        this->m_WorkVecField1 = NULL;
-    }
-    if (this->m_WorkVecField2 != NULL) {
-        delete this->m_WorkVecField2;
-        this->m_WorkVecField2 = NULL;
-    }
-    if (this->m_WorkVecField3 != NULL) {
-        delete this->m_WorkVecField3;
-        this->m_WorkVecField3 = NULL;
-    }
-    if (this->m_WorkVecField4 != NULL) {
-        delete this->m_WorkVecField4;
-        this->m_WorkVecField4 = NULL;
-    }
-    if (this->m_WorkVecField5 != NULL) {
-        delete this->m_WorkVecField5;
-        this->m_WorkVecField5 = NULL;
-    }
+    Free(this->m_TemplateImage);
+    Free(this->m_ReferenceImage);
+    Free(this->m_AuxVariable);
+    Free(this->m_CellDensity);
+    Free(this->m_Mask);
+    
+    Free(this->m_WorkScaField1);
+    Free(this->m_WorkScaField2);
+    Free(this->m_WorkScaField3);
+    Free(this->m_WorkScaField4);
+    Free(this->m_WorkScaField5);
+    Free(this->m_WorkScaFieldMC);
+    Free(this->m_WorkVecField1);
+    Free(this->m_WorkVecField2);
+    Free(this->m_WorkVecField3);
+    Free(this->m_WorkVecField4);
+    Free(this->m_WorkVecField5);
 
     if (this->m_x1hat != NULL) {
         //accfft_free(this->m_x1hat);
@@ -299,12 +241,14 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
+  
+    ierr = AllocateOnce(this->m_ReferenceImage, this->m_Opt, mR, true); CHKERRQ(ierr);
 
     // assign pointer
-    this->m_ReferenceImage = mR;
+    //this->m_ReferenceImage = mR;
     if (this->m_Opt->m_RegFlags.registerprobmaps) {
-        ierr = EnsurePartitionOfUnity(this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
-        ierr = ShowValues(this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+        ierr = EnsurePartitionOfUnity(*this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+        ierr = ShowValues(*this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
     }
 //    ierr = ShowValues(this->m_ReferenceImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
 
@@ -326,12 +270,14 @@ PetscErrorCode CLAIREBase::SetTemplateImage(Vec mT) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, mT, true); CHKERRQ(ierr);
 
     // assign pointer
-    this->m_TemplateImage = mT;
+    //this->m_TemplateImage = mT;
     if (this->m_Opt->m_RegFlags.registerprobmaps) {
-        ierr = EnsurePartitionOfUnity(this->m_TemplateImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
-        ierr = ShowValues(this->m_TemplateImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+        ierr = EnsurePartitionOfUnity(*this->m_TemplateImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
+        ierr = ShowValues(*this->m_TemplateImage, this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
     }
 //    ierr = ShowValues(this->m_TemplateImage,  this->m_Opt->m_Domain.nc); CHKERRQ(ierr);
 
@@ -353,7 +299,8 @@ PetscErrorCode CLAIREBase::GetReferenceImage(Vec& mR) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
-    mR = this->m_ReferenceImage;
+        
+    mR = *this->m_ReferenceImage;
 
     this->m_Opt->Exit(__func__);
 
@@ -373,7 +320,7 @@ PetscErrorCode CLAIREBase::GetTemplateImage(Vec& mT) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
-    mT = this->m_TemplateImage;
+    mT = *this->m_TemplateImage;
 
     this->m_Opt->Exit(__func__);
 
@@ -394,7 +341,7 @@ PetscErrorCode CLAIREBase::GetMask(Vec& mask) {
 
     // mask can be a null pointer
 //    ierr = Assert(this->m_Mask != NULL, "null pointer"); CHKERRQ(ierr);
-    mask = this->m_Mask;
+    mask = *this->m_Mask;
 
     this->m_Opt->Exit(__func__);
 
@@ -442,8 +389,9 @@ PetscErrorCode CLAIREBase::SetMask(Vec mask) {
 
     ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
 
+    ierr = AllocateOnce(this->m_Mask, this->m_Opt, mask); CHKERRQ(ierr);
     // assign pointer
-    this->m_Mask = mask;
+    //this->m_Mask = mask;
 
     this->m_Opt->Exit(__func__);
 
@@ -464,7 +412,11 @@ PetscErrorCode CLAIREBase::SetAuxVariable(Vec q) {
 //    this->m_Opt->m_Distance.type = SL2AUX;
 
     ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_AuxVariable = q;
+    
+    
+    ierr = AllocateOnce(this->m_AuxVariable, this->m_Opt, q, true); CHKERRQ(ierr);
+    
+    //this->m_AuxVariable = q;
 
     this->m_Opt->Exit(__func__);
 
@@ -485,7 +437,9 @@ PetscErrorCode CLAIREBase::SetCellDensity(Vec c) {
 //    this->m_Opt->m_Distance.type = SL2AUX;
 
     ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
-    this->m_CellDensity = c;
+    
+    ierr = AllocateOnce(this->m_CellDensity, this->m_Opt, c, true); CHKERRQ(ierr);
+    //this->m_CellDensity = c;
 
     this->m_Opt->Exit(__func__);
 
@@ -839,34 +793,21 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
 
-    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField1, 0); CHKERRQ(ierr);
-    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField2, 1); CHKERRQ(ierr);
-    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField3, 2); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField3, 3); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField1, 0); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField2, 1); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField3, 2); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField4 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 3); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField5 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField5, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 4); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt); CHKERRQ(ierr);
+    
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField1, 1); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField2, 2); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField3, 3); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 4); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 5); CHKERRQ(ierr);
     
 
     this->m_Opt->Exit(__func__);
@@ -903,32 +844,18 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField3, 3); CHKERRQ(ierr);
+    
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt); CHKERRQ(ierr);
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_DeformationFields->SetWorkScaField(this->m_WorkScaField1, 1); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField2 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField2, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_DeformationFields->SetWorkScaField(this->m_WorkScaField2, 2); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField3 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField3, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_DeformationFields->SetWorkScaField(this->m_WorkScaField3, 3); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField4 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField4, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_DeformationFields->SetWorkScaField(this->m_WorkScaField4, 4); CHKERRQ(ierr);
-
-    if (this->m_WorkScaField5 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField5, nl, ng); CHKERRQ(ierr);
-    }
-    ierr = this->m_DeformationFields->SetWorkScaField(this->m_WorkScaField5, 5); CHKERRQ(ierr);
-
+    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField1, 1); CHKERRQ(ierr);
+    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField2, 2); CHKERRQ(ierr);
+    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField3, 3); CHKERRQ(ierr);
+    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField4, 4); CHKERRQ(ierr);
+    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField5, 5); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetVelocityField(this->m_VelocityField); CHKERRQ(ierr);
 
@@ -1363,9 +1290,10 @@ PetscErrorCode CLAIREBase::ComputeCFLCondition() {
     ng = this->m_Opt->m_Domain.ng;
     nt = this->m_Opt->m_Domain.nt;
 
-    if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    //if (this->m_WorkScaField1 == NULL) {
+    //    ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
+    //}
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
 
@@ -1380,18 +1308,18 @@ PetscErrorCode CLAIREBase::ComputeCFLCondition() {
     ierr = VecAbs(this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
 
     // compute max( |v_1| + |v_2| + |v_3| )
-    ierr = VecSet(this->m_WorkScaField1, 0.0); CHKERRQ(ierr);
-    ierr = VecAXPY(this->m_WorkScaField1, 1.0, this->m_WorkVecField1->m_X1);
-    ierr = VecAXPY(this->m_WorkScaField1, 1.0, this->m_WorkVecField1->m_X2);
-    ierr = VecAXPY(this->m_WorkScaField1, 1.0, this->m_WorkVecField1->m_X3);
-    ierr = VecMax(this->m_WorkScaField1, NULL, &vmax); CHKERRQ(ierr);
+    ierr = VecSet(*this->m_WorkScaField1, 0.0); CHKERRQ(ierr);
+    ierr = VecAXPY(*this->m_WorkScaField1, 1.0, this->m_WorkVecField1->m_X1);
+    ierr = VecAXPY(*this->m_WorkScaField1, 1.0, this->m_WorkVecField1->m_X2);
+    ierr = VecAXPY(*this->m_WorkScaField1, 1.0, this->m_WorkVecField1->m_X3);
+    ierr = VecMax(*this->m_WorkScaField1, NULL, &vmax); CHKERRQ(ierr);
 
     // compute max( |v_1|/hx1 + |v_2|/hx2 + |v_3|/hx3 )
-    ierr = VecSet(this->m_WorkScaField1, 0.0); CHKERRQ(ierr);
-    ierr = VecAXPY(this->m_WorkScaField1, 1.0/hx[0], this->m_WorkVecField1->m_X1);
-    ierr = VecAXPY(this->m_WorkScaField1, 1.0/hx[1], this->m_WorkVecField1->m_X2);
-    ierr = VecAXPY(this->m_WorkScaField1, 1.0/hx[2], this->m_WorkVecField1->m_X3);
-    ierr = VecMax(this->m_WorkScaField1, NULL, &vmaxscaled); CHKERRQ(ierr);
+    ierr = VecSet(*this->m_WorkScaField1, 0.0); CHKERRQ(ierr);
+    ierr = VecAXPY(*this->m_WorkScaField1, 1.0/hx[0], this->m_WorkVecField1->m_X1);
+    ierr = VecAXPY(*this->m_WorkScaField1, 1.0/hx[1], this->m_WorkVecField1->m_X2);
+    ierr = VecAXPY(*this->m_WorkScaField1, 1.0/hx[2], this->m_WorkVecField1->m_X3);
+    ierr = VecMax(*this->m_WorkScaField1, NULL, &vmaxscaled); CHKERRQ(ierr);
 
     // if we have a zero velocity field, we do not have to worry
     ntcfl = nt;
@@ -1520,7 +1448,7 @@ PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
         ierr = this->SetupDeformationField(); CHKERRQ(ierr);
     }
 
-    ierr = VecSet(this->m_WorkScaField1, 1.0); CHKERRQ(ierr);
+    ierr = VecSet(*this->m_WorkScaField1, 1.0); CHKERRQ(ierr);
 
     // check if velocity field is zero
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
@@ -1531,11 +1459,11 @@ PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
     if (write2file) {
         filename = inverse ? "inverse-det-deformation-grad" : "det-deformation-grad";
         filename += this->m_Opt->m_FileNames.extension;
-        ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, filename); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(*this->m_WorkScaField1, filename); CHKERRQ(ierr);
     }
 
     if (detj != NULL) {
-        ierr = VecCopy(this->m_WorkScaField1, detj); CHKERRQ(ierr);
+        ierr = VecCopy(*this->m_WorkScaField1, detj); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);

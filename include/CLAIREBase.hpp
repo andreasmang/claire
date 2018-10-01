@@ -24,6 +24,7 @@
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 #include "TenField.hpp"
+#include "ScaField.hpp"
 #include "Preprocessing.hpp"
 #include "ReadWriteReg.hpp"
 #include "DeformationFields.hpp"
@@ -205,22 +206,22 @@ class CLAIREBase : public OptimizationProblem {
     /*! compute cfl condition */
     PetscErrorCode ComputeCFLCondition();
 
-    Vec m_TemplateImage;           ///< data container for reference image mR
-    Vec m_ReferenceImage;          ///< data container for template image mT
-    Vec m_AuxVariable;             ///< auxilary variable
-    Vec m_CellDensity;             ///< cell density
-    Vec m_Mask;                    ///< mask for objective functional masking
+    ScaField* m_TemplateImage;           ///< data container for reference image mR
+    ScaField* m_ReferenceImage;          ///< data container for template image mT
+    ScaField* m_AuxVariable;             ///< auxilary variable
+    ScaField* m_CellDensity;             ///< cell density
+    ScaField* m_Mask;                    ///< mask for objective functional masking
 
     VecField* m_VelocityField;      ///< data container for velocity field (control variable)
     VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)
 
-    Vec m_WorkScaField1;  ///< work scalar field
-    Vec m_WorkScaField2;  ///< work scalar field
-    Vec m_WorkScaField3;  ///< work scalar field
-    Vec m_WorkScaField4;  ///< work scalar field
-    Vec m_WorkScaField5;  ///< work scalar field
+    ScaField* m_WorkScaField1;  ///< work scalar field
+    ScaField* m_WorkScaField2;  ///< work scalar field
+    ScaField* m_WorkScaField3;  ///< work scalar field
+    ScaField* m_WorkScaField4;  ///< work scalar field
+    ScaField* m_WorkScaField5;  ///< work scalar field
 
-    Vec m_WorkScaFieldMC;  ///< work scalar field for multi-component/vector fields
+    ScaField* m_WorkScaFieldMC;  ///< work scalar field for multi-component/vector fields
 
     VecField* m_WorkVecField1;  ///< data container for vector field (temporary variable)
     VecField* m_WorkVecField2;  ///< data container for vector field (temporary variable)

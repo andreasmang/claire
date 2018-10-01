@@ -27,9 +27,9 @@ namespace reg {
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
-ScaField::ScaField() : m_Dim{0,0,0}, m_Size{0,0} {
+/*ScaField::ScaField() {
     this->Initialize();
-}
+}*/
 
 /********************************************************************
  * @brief default destructor
@@ -41,19 +41,66 @@ ScaField::~ScaField() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-ScaField::ScaField(Vec vec, IntType nl, IntType nc, IntType nt) 
-  : m_Dim{nl,nc,nt}, m_Size{nl,nl*nc} {
+ScaField::ScaField(RegOpt *opt, bool multicomponent, bool fullnewton) {
     this->Initialize();
-    this->Assign(vec, nl*nc*nt);
+    
+    this->m_Opt = opt;
+    
+    this->m_Dim[0] = opt->m_Domain.nl;
+    this->m_Dim[1] = multicomponent ? opt->m_Domain.nc : 1;
+    this->m_Dim[2] = fullnewton ? opt->m_Domain.nt + 1 : 1;
+    
+    this->m_Size[0] = this->m_Dim[0];
+    this->m_Size[1] = this->m_Dim[0]*this->m_Dim[1];
+    this->m_Size[2] = this->m_Dim[0]*this->m_Dim[1]*this->m_Dim[2];
+    
+    IntType global = this->m_Dim[1]*this->m_Dim[2]*opt->m_Domain.ng;
+    
+    this->Allocate(global, this->m_Size[2]);
 }
 
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-ScaField::ScaField(IntType ng, IntType nl, IntType nc, IntType nt) 
-  : m_Dim{nl,nc,nt}, m_Size{nl,nl*nc} {
+ScaField::ScaField(RegOpt *opt, ScalarType value, bool multicomponent, bool fullnewton) {
     this->Initialize();
-    this->Allocate(ng*nc*nt, nl*nc*nt);
+    
+    this->m_Opt = opt;
+    
+    this->m_Dim[0] = opt->m_Domain.nl;
+    this->m_Dim[1] = multicomponent ? opt->m_Domain.nc : 1;
+    this->m_Dim[2] = fullnewton ? opt->m_Domain.nt + 1 : 1;
+    
+    this->m_Size[0] = this->m_Dim[0];
+    this->m_Size[1] = this->m_Dim[0]*this->m_Dim[1];
+    this->m_Size[2] = this->m_Dim[0]*this->m_Dim[1]*this->m_Dim[2];
+    
+    IntType global = this->m_Dim[1]*this->m_Dim[2]*opt->m_Domain.ng;
+    
+    this->Allocate(global, this->m_Size[2]);
+    
+    this->Set(value);
+}
+
+/********************************************************************
+ * @brief constructor
+ *******************************************************************/
+ScaField::ScaField(RegOpt *opt, Vec vec, bool multicomponent, bool fullnewton) {
+    this->Initialize();
+    
+    this->m_Opt = opt;
+    
+    this->m_Dim[0] = opt->m_Domain.nl;
+    this->m_Dim[1] = multicomponent ? opt->m_Domain.nc : 1;
+    this->m_Dim[2] = fullnewton ? opt->m_Domain.nt + 1 : 1;
+    
+    this->m_Size[0] = this->m_Dim[0];
+    this->m_Size[1] = this->m_Dim[0]*this->m_Dim[1];
+    this->m_Size[2] = this->m_Dim[0]*this->m_Dim[1]*this->m_Dim[2];
+    
+    IntType global = this->m_Dim[1]*this->m_Dim[2]*opt->m_Domain.ng;
+    
+    this->Assign(vec);
 }
 
 /********************************************************************
@@ -67,6 +114,10 @@ PetscErrorCode ScaField::Initialize(void) {
     this->m_Ptr = nullptr;
     this->m_Type = AccessType::None;
     this->m_Allocated = 0;
+    this->m_Opt = nullptr;
+    
+    this->m_Dim[0] = this->m_Dim[1] = this->m_Dim[2] = 0;
+    this->m_Size[0] = this->m_Size[1] = 0;
 
     PetscFunctionReturn(ierr);
 }
@@ -80,9 +131,9 @@ PetscErrorCode ScaField::ClearMemory() {
     
     if (this->m_X != nullptr && this->m_Allocated > 0) {
         ierr = VecDestroy(&this->m_X); CHKERRQ(ierr);
-        this->m_X = nullptr;
-        this->m_Allocated = 0;
     }
+    this->m_X = nullptr;
+    this->m_Allocated = 0;
     this->m_Ptr = nullptr;
     this->m_Type = AccessType::None;
 
@@ -96,7 +147,6 @@ PetscErrorCode ScaField::Allocate(IntType ng, IntType nl) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
 
     // allocate vector field
@@ -114,18 +164,49 @@ PetscErrorCode ScaField::Allocate(IntType ng, IntType nl) {
 }
 
 /********************************************************************
+ * @brief set the vector
+ *******************************************************************/
+PetscErrorCode ScaField::SetVector(Vec vec) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = this->Assign(vec); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief allocate the vector
+ *******************************************************************/
+PetscErrorCode ScaField::SetSize(IntType ng, IntType nl, IntType nc, IntType nt) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  this->m_Dim[0] = nl;
+  this->m_Dim[1] = nc;
+  this->m_Dim[2] = nt;
+  
+  this->m_Size[0] = nl;
+  this->m_Size[1] = nl*nc;
+  this->m_Size[2] = nl*nc*nt;
+  
+  ierr = this->Allocate(ng*nc*nt, nl*nc*nt); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
  * @brief function to assign a vector field
  *******************************************************************/
-PetscErrorCode ScaField::Assign(Vec vec, IntType nl) {
+PetscErrorCode ScaField::Assign(Vec vec) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-
-    // make sure, that all pointers are deallocated
-    ierr = this->ClearMemory(); CHKERRQ(ierr);
+    
+    ierr = ClearMemory(); CHKERRQ(ierr);
     
     IntType vnl;
     ierr = VecGetLocalSize(vec, &vnl); CHKERRQ(ierr);
-    ierr = Assert(vnl == nl, "dimensions do not match"); CHKERRQ(ierr);
+    ierr = Assert(vnl == this->m_Size[2], "dimensions do not match"); CHKERRQ(ierr);
 
     this->m_X = vec;
 
@@ -142,7 +223,7 @@ ScaField::operator Vec& () {
 /********************************************************************
  * @brief get raw read/write access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType i, IntType j, IntType k) {
+PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType j, IntType k, IntType i) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -165,7 +246,7 @@ PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType i, IntType j, IntTyp
 /********************************************************************
  * @brief get raw read access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType i, IntType j, IntType k) {
+PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType j, IntType k, IntType i) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -188,7 +269,7 @@ PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType i, IntType
 /********************************************************************
  * @brief get raw write access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType i, IntType j, IntType k) {
+PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType j, IntType k, IntType i) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -211,7 +292,7 @@ PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType i, IntType j, I
 /********************************************************************
  * @brief get raw read/write access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArrayReadWrite(ScalarType*& ptr, IntType i, IntType j, IntType k) {
+PetscErrorCode ScaField::GetArrayReadWrite(ScalarType*& ptr, IntType j, IntType k, IntType i) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -271,6 +352,51 @@ PetscErrorCode ScaField::Copy(Vec vec) {
   VecCopy(vec, this->m_X);
   this->m_Ptr = nullptr;
   this->m_Type = AccessType::None;
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief copy a single frame to all timesteps
+ *******************************************************************/
+PetscErrorCode ScaField::CopyFrame(IntType src) {
+  PetscErrorCode ierr = 0;
+  ScalarType *ptr = nullptr, *orig = nullptr, *dest = nullptr;
+  PetscFunctionBegin;
+  
+  ierr = Assert(this->m_Type == AccessType::None, "can't copy with ongoing access"); CHKERRQ(ierr);
+  ierr = Assert(src >= 0 && src < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
+  
+  ierr = GetRawPointerReadWrite(this->m_X, &ptr); CHKERRQ(ierr);
+  
+  orig = ptr + src*this->m_Size[1];
+  
+  for (IntType i = 0; i < this->m_Dim[2]; ++i) {
+    if (i == src) continue;
+    dest = ptr + i*this->m_Size[1];
+#ifndef REG_HAS_CUDA
+    std::copy(orig, orig + this->m_Size[1], dest);
+#else
+    cudaMemcpy((void*)dest,(void*)orig,sizeof(ScalarType)*this->m_Size[1],cudaMemcpyDeviceToDevice);
+#endif
+  }
+#ifdef REG_HAS_CUDA
+  cudaDeviceSynchronize();
+#endif
+  
+  ierr = RestoreRawPointerReadWrite(this->m_X, &ptr); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief set value
+ *******************************************************************/
+PetscErrorCode ScaField::Set(ScalarType value) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  VecSet(this->m_X, value);
   
   PetscFunctionReturn(ierr);
 }

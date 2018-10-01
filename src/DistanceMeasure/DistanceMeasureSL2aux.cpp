@@ -98,13 +98,13 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
     nl = this->m_Opt->m_Domain.nl;
     hx  = this->m_Opt->GetLebesgueMeasure();   
 
-    ierr = VecGetArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
     l = nt*nl*nc;
     value = 0.0, val1 = 0.0, val2 = 0.0;
-    ierr = VecGetArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_AuxVar2, &p_q); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_AuxVar2, &p_q); CHKERRQ(ierr);
     for (IntType k = 0; k < nc; ++k) {  // for all image components
         for (IntType i = 0; i < nl; ++i) {
             // mismatch: mr - m1*(1-c1)
@@ -114,8 +114,8 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
             val2 += p_q[k*nl+i]*p_m[l+k*nl+i];
         }
     }
-    ierr = VecRestoreArray(this->m_AuxVar2, &p_q); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_AuxVar1, &p_c); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_AuxVar2, &p_q); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_AuxVar1, &p_c); CHKERRQ(ierr);
 
     // all reduce
     rval = MPI_Allreduce(&val1, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
@@ -128,8 +128,8 @@ PetscErrorCode DistanceMeasureSL2aux::EvaluateFunctional(ScalarType* D) {
     // parse value to registration monitor for display
     this->m_Opt->m_Monitor.qmval = value;
 
-    ierr = VecRestoreArray(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     // objective value
     *D = 0.5*hx*l2distance/static_cast<ScalarType>(nc);
