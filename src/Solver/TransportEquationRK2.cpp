@@ -132,14 +132,14 @@ PetscErrorCode TransportEquationRK2::SolveIncForwardProblem() {
     kernel.nl = this->m_Opt->m_Domain.nl;
     kernel.ht = this->m_Opt->GetTimeStepSize();
     
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncStateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[1] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[1] != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncVelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncStateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
         fullnewton = true;
@@ -149,7 +149,7 @@ PetscErrorCode TransportEquationRK2::SolveIncForwardProblem() {
     ierr = this->m_IncVelocityField->GetArraysRead(kernel.pVtx); CHKERRQ(ierr);
 
     // check if velocity field is zero
-    ierr = this->m_VelocityField->IsVelocityZero(VelocistyIsZero); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->IsZero(VelocityIsZero); CHKERRQ(ierr);
     if (VelocityIsZero) {
         // compute gradient of first time point of image component
         for (IntType k = 0; k < nc; ++k) {
@@ -181,14 +181,13 @@ PetscErrorCode TransportEquationRK2::SolveIncForwardProblem() {
         ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pRHS); CHKERRQ(ierr);
 
         ierr = this->m_WorkVecField[1]->GetArraysWrite(kernel.pGmtx); CHKERRQ(ierr);
-        ierr = this->m_VelocityField->GetArraysWrite(kernel.pVx); CHKERRQ(ierr);
+        ierr = this->m_VelocityField->GetArraysRead(kernel.pVx); CHKERRQ(ierr);
 
         // compute numerical time integration
         for (IntType j = 0; j < nt; ++j) {
             for (IntType k = 0; k < nc; ++k) {
-                lm = j*nl*nc; lmnext = (j+1)*nl*nc;
                 if (fullnewton) {
-                    lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
+                    lmt = j; lmtnext = j+1;
                 } else {
                     lmt = 0; lmtnext = 0;
                 }
@@ -227,7 +226,7 @@ PetscErrorCode TransportEquationRK2::SolveIncForwardProblem() {
     }  // velzero
 
     ierr = this->m_IncVelocityField->RestoreArrays(); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
 
     ierr = this->m_IncStateVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
@@ -273,7 +272,7 @@ PetscErrorCode TransportEquationRK2::SolveIncAdjointProblem() {
  *******************************************************************/
 PetscErrorCode TransportEquationRK2::SolveIncAdjointEquationGN() {
     PetscErrorCode ierr = 0;
-    IntType = nt, nc;
+    IntType nt, nc;
     const ScalarType *pM = nullptr;
     TransportKernelAdjointRK2 kernel;
     PetscFunctionBegin;
@@ -284,15 +283,15 @@ PetscErrorCode TransportEquationRK2::SolveIncAdjointEquationGN() {
     nc = this->m_Opt->m_Domain.nc;
     kernel.nl = this->m_Opt->m_Domain.nl;
     kernel.ht = this->m_Opt->GetTimeStepSize();
-    kernel.scale = ht/static_cast<ScalarType>(nc);
+    kernel.scale = kernel.ht/static_cast<ScalarType>(nc);
     
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_StateVariableVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[1] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[1] != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncAdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
     
     ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pRHS[0]); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pRHS[1]); CHKERRQ(ierr);
@@ -337,7 +336,7 @@ PetscErrorCode TransportEquationRK2::SolveIncAdjointEquationGN() {
     // compute body force for last time point t = 0 (i.e., for j = nt)
     for (IntType k = 0; k < nc; ++k) {  // for all image components
         ierr = this->m_StateVariable->GetArrayRead(pM, k); CHKERRQ(ierr);
-        ierr = this->m_IncAdjointVariable(kernel.pL, k); CHKERRQ(ierr);
+        ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
 
         // compute gradient of m (for incremental body force)
         ierr = this->m_Differentiation->Gradient(kernel.pVec, pM); CHKERRQ(ierr);
@@ -376,14 +375,14 @@ PetscErrorCode TransportEquationRK2::SolveIncAdjointEquationFN() {
     kernel.nl = this->m_Opt->m_Domain.nl;
     kernel.ht = this->m_Opt->GetTimeStepSize();
     
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[1] != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_IncAdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.p_RHS[0]); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pRHS[0]); CHKERRQ(ierr);
     ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pLtjVx); CHKERRQ(ierr);
     ierr = this->m_IncVelocityField->GetArraysRead(kernel.pVtx); CHKERRQ(ierr);
 
@@ -458,6 +457,7 @@ PetscErrorCode TransportEquationRK2::SolveIncAdjointEquationFN() {
 PetscErrorCode TransportEquationRK2::SolveAdjointEquation() {
     PetscErrorCode ierr = 0;
     IntType nt, nc, ll, llnext;
+    bool fullnewton = false;
     const ScalarType *pM = nullptr;
     TransportKernelAdjointRK2 kernel;
     PetscFunctionBegin;
@@ -469,13 +469,13 @@ PetscErrorCode TransportEquationRK2::SolveAdjointEquation() {
     kernel.ht = this->m_Opt->GetTimeStepSize();
     kernel.scale = kernel.ht/static_cast<ScalarType>(nc);
 
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField[1] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[0] != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField[1] != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_AdjointVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
 
     // for full newton we store $\lambda$
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
@@ -501,7 +501,7 @@ PetscErrorCode TransportEquationRK2::SolveAdjointEquation() {
         }
 
         // scaling for trapezoidal rule
-        if (j == 0) scale *= 0.5;
+        if (j == 0) kernel.scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {  // for all image components
             ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, k, ll); CHKERRQ(ierr);
             ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pLnext, k, llnext); CHKERRQ(ierr);
@@ -525,7 +525,7 @@ PetscErrorCode TransportEquationRK2::SolveAdjointEquation() {
             ierr = kernel.TimeIntegrationPart3(); CHKERRQ(ierr);
         }  // for all image components
         // trapezoidal rule (revert scaling)
-        if (j == 0) scale *= 2.0;
+        if (j == 0) kernel.scale *= 2.0;
     }  // for all time points
 
     // compute body force for last time point t = 0 (i.e., for j = nt)
@@ -570,8 +570,8 @@ PetscErrorCode TransportEquationRK2::SolveStateEquation() {
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     kernel.ht = this->m_Opt->GetTimeStepSize();
-    kernel.nl = nl;
     
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
@@ -613,11 +613,11 @@ PetscErrorCode TransportEquationRK2::SolveStateEquation() {
     }  // for all time points
 
     // copy initial condition to buffer
-    ierr = this->m_WorkScaField[0]->RestoreArray() CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[0]->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[1]->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
     ierr = this->m_VelocityField->RestoreArrays(); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);

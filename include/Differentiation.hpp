@@ -41,7 +41,7 @@ class Differentiation {
     virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*) = 0;
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
-    virtual PetscErrorCode Divergence(ScalarType*, const ScalarType**) = 0;
+    virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*const*) = 0;
     virtual PetscErrorCode Divergence(ScalarType*, VecField*) = 0;
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
     virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*) = 0;

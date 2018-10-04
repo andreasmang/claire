@@ -141,7 +141,7 @@ struct TransportKernelIncStateRK2 {
   PetscErrorCode TimeIntegrationEuler();
   PetscErrorCode TimeIntegrationPart1();
   PetscErrorCode TimeIntegrationPart2();
-}
+};
 
 template<typename T>
 PetscErrorCode TransportKernelCopy(T*, T*, IntType);

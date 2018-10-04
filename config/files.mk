@@ -68,6 +68,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
 		$(SRCDIR)/Solver/TransportProblem.cpp \
 		$(SRCDIR)/Solver/TransportEquationSL.cpp \
+		$(SRCDIR)/Solver/TransportEquationRK2.cpp \
 		$(SRCDIR)/Solver/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \

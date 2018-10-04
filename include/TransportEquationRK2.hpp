@@ -41,6 +41,8 @@ class TransportEquationRK2 : public TransportProblem {
     virtual PetscErrorCode SolveIncForwardProblem();
     virtual PetscErrorCode SolveIncAdjointProblem();
  protected:
+    PetscErrorCode Initialize();
+    PetscErrorCode ClearMemory();
 
  private:
     PetscErrorCode SolveIncAdjointEquationGN();

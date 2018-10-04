@@ -137,36 +137,6 @@ class CLAIRE : public CLAIREBase {
     /*! sl solver for continuity equation */
     PetscErrorCode SolveContinuityEquationSL();
 
-    /*! rk2 solver for state equation */
-    PetscErrorCode SolveStateEquationRK2();
-
-    /*! rk2 solver for adjoint equation */
-    PetscErrorCode SolveAdjointEquationRK2();
-
-    /*! rk2 solver for incremental state equation */
-    PetscErrorCode SolveIncStateEquationRK2();
-
-    /*! rk2 solver for incremental adjoint equation (Newton step) */
-    PetscErrorCode SolveIncAdjointEquationFNRK2();
-
-    /*! rk2 solver for incremental adjoint equation (Gauss--Newton approximation) */
-    PetscErrorCode SolveIncAdjointEquationGNRK2();
-
-    /*! sl solver for state equation */
-    //PetscErrorCode SolveStateEquationSL();
-
-    /*! sl solver for adjoint equation */
-    //virtual PetscErrorCode SolveAdjointEquationSL();
-
-    /*! sl solver for inc state equation */
-    //PetscErrorCode SolveIncStateEquationSL();
-
-    /*! sl solver for inc adjoint equation */
-    //virtual PetscErrorCode SolveIncAdjointEquationGNSL();
-
-    /*! sl solver for inc adjoint equation */
-    //PetscErrorCode SolveIncAdjointEquationFNSL();
-
     /*! apply the projection operator to the
         body force and the incremental body force */
     virtual PetscErrorCode ApplyProjection();

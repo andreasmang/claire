@@ -260,7 +260,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, VecField *v) {
 /********************************************************************
  * @brief compute divergence of a vector field
  *******************************************************************/
-PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, const ScalarType **v) {
+PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, const ScalarType *const *v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
         

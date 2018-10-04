@@ -179,7 +179,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, VecField *v) {
 /********************************************************************
  * @brief compute divergence of a vector field
  *******************************************************************/
-PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, const ScalarType **v) {
+PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, const ScalarType *const *v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     

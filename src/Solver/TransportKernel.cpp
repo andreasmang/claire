@@ -248,9 +248,9 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart1a() {
       ScalarType lambda = pL[i];
 
       // scale \vect{v} by \lambda
-      pLtjvx[0][i] = pVtx[0][i]*lambda;
-      pLtjvx[1][i] = pVtx[1][i]*lambda;
-      pLtjvx[2][i] = pVtx[2][i]*lambda;
+      pLtjVx[0][i] = pVtx[0][i]*lambda;
+      pLtjVx[1][i] = pVtx[1][i]*lambda;
+      pLtjVx[2][i] = pVtx[2][i]*lambda;
   }  // for all grid points
 }  // omp
 
@@ -268,9 +268,9 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart1b() {
       ScalarType lambda  = pL[i];
       ScalarType lambdatilde = pLt[i];
 
-      pLtjvx[0][i] = pVx[0][i]*lambdatilde + pVtx[0][i]*lambda;
-      pLtjvx[1][i] = pVx[1][i]*lambdatilde + pVtx[1][i]*lambda;
-      pLtjvx[2][i] = pVx[2][i]*lambdatilde + pVtx[2][i]*lambda;
+      pLtjVx[0][i] = pVx[0][i]*lambdatilde + pVtx[0][i]*lambda;
+      pLtjVx[1][i] = pVx[1][i]*lambdatilde + pVtx[1][i]*lambda;
+      pLtjVx[2][i] = pVx[2][i]*lambdatilde + pVtx[2][i]*lambda;
   }  // for all grid points
 }  // omp
 
@@ -305,9 +305,9 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart2b() {
       ScalarType lambda = pL[i];
 
       // v \bar{\lambda} + \vect{\tilde{v}}\lambda^{j+1}
-      pLtjvx[0][i] = pVx[0][i]*ltbar + pVtx[0][i]*lambda;
-      pLtjvx[1][i] = pVx[1][i]*ltbar + pVtx[1][i]*lambda;
-      pLtjvx[2][i] = pVx[2][i]*ltbar + pVtx[2][i]*lambda;
+      pLtjVx[0][i] = pVx[0][i]*ltbar + pVtx[0][i]*lambda;
+      pLtjVx[1][i] = pVx[1][i]*ltbar + pVtx[1][i]*lambda;
+      pLtjVx[2][i] = pVx[2][i]*ltbar + pVtx[2][i]*lambda;
   }
 }  // omp
 

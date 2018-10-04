@@ -396,9 +396,6 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
 
     // allocate pointer if not done so already
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, true); CHKERRQ(ierr);
-    /*if (this->m_AdjointVariable == NULL) {
-        ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }*/
 
     // copy l1 to lambda(t=1)
     ierr = GetRawPointer(l1, &p_l1); CHKERRQ(ierr);
@@ -478,10 +475,6 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
 
     // allocate state variable
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, 0.0, true, true); CHKERRQ(ierr);
-    /*if (this->m_StateVariable == NULL) {
-        //ierr = VecCreate(this->m_StateVariable, (nt+1)*nl*nc, (nt+1)*ng*nc); CHKERRQ(ierr);
-        ierr = VecSet(*this->m_StateVariable, 0); CHKERRQ(ierr);
-    }*/
     
     DBGCHK();
 
@@ -539,11 +532,8 @@ PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     // we need to make sure that we don't delete the external
     // pointer
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, true); CHKERRQ(ierr);
-    /*if (this->m_StateVariable == NULL) {
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }*/
+
     ierr = this->m_StateVariable->Copy(m); CHKERRQ(ierr);
-    //ierr = VecCopy(m, *this->m_StateVariable); CHKERRQ(ierr);
 
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
@@ -602,16 +592,7 @@ PetscErrorCode CLAIRE::SetAdjointVariable(Vec lambda) {
     // at the end once we're done; since it comes from external
     // we need to make sure that we don't delete the external pointer
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
-    /*if (this->m_AdjointVariable == NULL) {
-        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc, nt+1); CHKERRQ(ierr);
-            //ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        } else {
-            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc); CHKERRQ(ierr);
-            //ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-    }
-    ierr = VecCopy(lambda, *this->m_AdjointVariable); CHKERRQ(ierr);*/
+
     ierr = this->m_AdjointVariable->Copy(lambda); CHKERRQ(ierr);
 
     if (this->m_Opt->m_PDESolver.type == SL) {
@@ -1304,22 +1285,10 @@ PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
     }
 
     // allocate state and adjoint variables
-    /*if (this->m_StateVariable == NULL) {
-        ierr = VecCreate(this->m_StateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-    }*/
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, true); CHKERRQ(ierr);
 
     // allocate state and adjoint variables
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
-    /*if (this->m_AdjointVariable == NULL) {
-        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc, nt+1); CHKERRQ(ierr);
-            //ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        } else {
-            ierr = Allocate(this->m_AdjointVariable, ng, nl, nc); CHKERRQ(ierr);
-            //ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-    }*/
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("piccard iteration"); CHKERRQ(ierr);
@@ -1611,49 +1580,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     
     ierr = this->m_TransportProblem->SolveForwardProblem(); CHKERRQ(ierr);
 
-    /*// check if velocity field is zero
-    ierr = this->IsVelocityZero(); CHKERRQ(ierr);
-    if (this->m_VelocityIsZero) {
-        // we copy m_0 to all t for v=0
-        if (this->m_Opt->m_RegFlags.runinversion) {
-            ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-            for (IntType j = 1; j <= nt; ++j) {
-                try {std::copy(p_m, p_m+nc*nl, p_m+j*nl*nc);}
-                catch (std::exception& err) {
-                    ierr = ThrowError(err); CHKERRQ(ierr);
-                }
-            }
-            ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        }
-    } else {
-        // call the solver
-        if (this->m_Opt->m_PDESolver.pdetype == CONTINUITYEQ) {
-            ierr = this->SolveContinuityEquationSL(); CHKERRQ(ierr);
-        } else if (this->m_Opt->m_PDESolver.pdetype == TRANSPORTEQ) {
-            // call the solver
-            switch (this->m_Opt->m_PDESolver.type) {
-                case RK2:
-                {
-                    ierr = this->SolveStateEquationRK2(); CHKERRQ(ierr);
-                    break;
-                }
-                case SL:
-                {
-                    ierr = this->SolveStateEquationSL(); CHKERRQ(ierr);
-                    break;
-                }
-                default:
-                {
-                    ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-                    break;
-                }
-            }
-        } else {
-            ierr = ThrowError("PDE type does not exist"); CHKERRQ(ierr);
-        }
-
-    }  // velocity field is zero*/
-
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -1686,105 +1612,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     PetscFunctionReturn(ierr);
 }
-
-/********************************************************************
- * @brief solve the forward problem (state equation)
- * \p_t m + \igrad m\cdot\vect{v} = 0
- * subject to m_0 - m_T = 0
- * solved forward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveStateEquationRK2(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, l, lnext;
-    ScalarType *p_m = NULL, *p_mbar = NULL, *p_rhs0 = NULL,
-                *p_gmx1 = NULL, *p_gmx2 = NULL, *p_gmx3 = NULL,
-                *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
-    ScalarType ht = 0.0, hthalf = 0.0, rhs1;
-    bool store = true;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    // flag to identify if we store the time history
-    store = this->m_Opt->m_RegFlags.runinversion;
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-
-    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
-
-    // copy initial condition to buffer
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_mbar); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_rhs0); CHKERRQ(ierr);
-
-    // compute numerical time integration
-    for (IntType j = 0; j < nt; ++j) {
-        if (store) {
-            l = j*nl*nc; lnext = (j+1)*nl*nc;
-        } else {
-            l = 0; lnext = 0;
-        }
-
-        for (IntType k = 0; k < nc; ++k) {
-            // compute gradient of k-th component of m_j
-            this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+l+k*nl);
-
-            // evaluate right hand side and compute intermediate rk2 step
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                 p_rhs0[i] = -p_gmx1[i]*p_vx1[i]
-                             -p_gmx2[i]*p_vx2[i]
-                             -p_gmx3[i]*p_vx3[i];
-
-                 // compute intermediate result
-                 p_mbar[i] = p_m[l + k*nl + i] + ht*p_rhs0[i];
-            }
-}  // omp
-            // compute gradient of \bar{m}
-            this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_mbar);
-
-            // evaluate right hand side and wrap up integration
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                rhs1 = -p_gmx1[i]*p_vx1[i]
-                       -p_gmx2[i]*p_vx2[i]
-                       -p_gmx3[i]*p_vx3[i];
-
-                // we have overwritten m_j with intermediate result
-                // m_{j+1} = m_j + 0.5*ht*(RHS0 + RHS1)
-                p_m[lnext + k*nl + i] = p_m[l + k*nl + i] + hthalf*(p_rhs0[i] + rhs1);
-            }
-}  // omp
-        }  // for all components
-    }  // for all time points
-
-    // copy initial condition to buffer
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_mbar); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_rhs0); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}*/
 
 /********************************************************************
  * @brief solve the adjoint problem (adjoint equation)
@@ -1831,15 +1658,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     }
 
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
-    /*if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        if (this->m_AdjointVariable == NULL) {
-           ierr = VecCreate(this->m_AdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        }
-    } else {
-        if (this->m_AdjointVariable == NULL) {
-            ierr = VecCreate(this->m_AdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-    }*/
 
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
@@ -1859,89 +1677,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     ierr = this->m_TransportProblem->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
 
     ierr = this->m_TransportProblem->SolveAdjointProblem();
-    /*// check if velocity field is zero
-    ierr = this->IsVelocityZero(); CHKERRQ(ierr);
-    if (this->m_VelocityIsZero) {
-        DBGCHK();
-      
-        ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-        // adjoint variable is constant in time
-        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            for (IntType j = 1; j <= nt; ++j) {
-                try {std::copy(p_l + nt*nc*nl, p_l + (nt+1)*nc*nl, p_l + (nt-j)*nl*nc);}
-                catch (std::exception& err) {
-                    ierr = ThrowError(err); CHKERRQ(ierr);
-                }
-            }
-        }
-
-        // allocate the memory for the computation of the body force
-        if (this->m_WorkVecField1 == NULL) {
-            try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-        if (this->m_WorkVecField2 == NULL) {
-            try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
-
-        DBGCHK();
-        
-        // init body force for numerical integration
-        ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-
-        // m and \lambda are constant in time
-        ierr = GetRawPointer(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-
-        for (IntType k = 0; k < nc; ++k) {  // for all components
-            // compute gradient of m
-            this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+k*nl);
-
-            // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {
-                ScalarType lambda = p_l[k*nl+i];
-                p_b1[i] += lambda*p_gradm1[i]/static_cast<ScalarType>(nc);
-                p_b2[i] += lambda*p_gradm2[i]/static_cast<ScalarType>(nc);
-                p_b3[i] += lambda*p_gradm3[i]/static_cast<ScalarType>(nc);
-            }
-        }
-}  // pragma
-        ierr = RestoreRawPointer(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-
-        // for full newton method we have to store the adjoint variable
-        ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    } else {
-        DBGCHK();
-        // call the solver
-        switch (this->m_Opt->m_PDESolver.type) {
-            case RK2:
-            {
-                ierr = this->SolveAdjointEquationRK2(); CHKERRQ(ierr);
-                break;
-            }
-            case SL:
-            {
-                ierr = this->SolveAdjointEquationSL(); CHKERRQ(ierr);
-                break;
-            }
-            default:
-            {
-                ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-                break;
-            }
-        }
-    }*/
     
     DBGCHK();
 
@@ -1977,155 +1712,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
     PetscFunctionReturn(ierr);
 }
-
-/********************************************************************
- * @brief solve the adjoint problem (adjoint equation)
- * -\p_t \lambda - \idiv \lambda\vect{v} = 0
- * subject to \lambda_1 + (m_R - m_1) = 0 (solved backward in time)
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveAdjointEquationRK2(void) {
-    PetscErrorCode ierr;
-    IntType nl, ng, nc, nt, ll, lm, llnext;
-    ScalarType *p_l = NULL, *p_m = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
-               *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-               *p_vec1 = NULL, *p_vec2 = NULL, *p_vec3 = NULL,
-               *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL;
-    ScalarType hthalf, ht, lambdabar, lambda, scale;
-    bool fullnewton = false;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-    scale = ht;
-
-    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
-
-    ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
-    ierr = Assert(ht > 0, "ht < 0"); CHKERRQ(ierr);
-
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-
-    // for full newton we store $\lambda$
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        fullnewton = true;
-    }
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
-
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-
-    // init body force for numerical integration
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-
-    // compute numerical time integration
-    for (IntType j = 0; j < nt; ++j) {  // for all time points
-        lm = (nt-j)*nc*nl;
-        if (fullnewton) {
-            ll = (nt-j)*nc*nl; llnext = (nt-(j+1))*nc*nl;
-        } else {
-            ll = 0; llnext = 0;
-        }
-
-        // scaling for trapezoidal rule
-        if (j == 0) scale *= 0.5;
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            // scale \vect{v} by \lambda
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                lambda = p_l[ll + k*nl + i];
-                p_vec1[i] = lambda*p_v1[i];
-                p_vec2[i] = lambda*p_v2[i];
-                p_vec3[i] = lambda*p_v3[i];
-            }  // for all grid points
-}  // omp
-            // compute \idiv(\lambda\vect{v})
-            this->m_Differentiation->Divergence(p_rhs0,p_vec1,p_vec2,p_vec3);
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                // compute \bar{\lambda} = \lambda_j + ht*\idiv(\lambda\vect{v})
-                lambdabar = p_l[ll + k*nl +i] + ht*p_rhs0[i];
-
-                // scale \vect{v} by \bar{\lambda}
-                p_vec1[i] = p_v1[i]*lambdabar;
-                p_vec2[i] = p_v2[i]*lambdabar;
-                p_vec3[i] = p_v3[i]*lambdabar;
-            }
-}  // omp
-            // compute \idiv(\bar{\lambda}\vect{v})
-            this->m_Differentiation->Divergence(p_rhs1,p_vec1,p_vec2,p_vec3);
-
-            // grad(m^j)
-            this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm+k*nl);
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                lambda = p_l[ll + k*nl + i];
-                // second step of rk2 time integration
-                p_l[llnext + k*nl + i] = lambda + hthalf*(p_rhs0[i] + p_rhs1[i]);
-
-                // compute bodyforce
-                p_b1[i] += scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
-                p_b2[i] += scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
-                p_b3[i] += scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
-            }
-}  // omp
-        }  // for all image components
-        // trapezoidal rule (revert scaling)
-        if (j == 0) scale *= 2.0;
-    }  // for all time points
-
-    // compute body force for last time point t = 0 (i.e., for j = nt)
-    for (IntType k = 0; k < nc; ++k) {  // for all image components
-        ll = k*nl; lm = k*nl;
-
-        // compute gradient of m (for incremental body force)
-        this->m_Differentiation->Gradient(p_vec1,p_vec2,p_vec3,p_m+lm);
-
-        for (IntType i = 0; i < nl; ++i) {  // for all grid points
-            lambda = p_l[ll + i];
-            // compute bodyforce
-            p_b1[i] += 0.5*scale*p_vec1[i]*lambda/static_cast<ScalarType>(nc);
-            p_b2[i] += 0.5*scale*p_vec2[i]*lambda/static_cast<ScalarType>(nc);
-            p_b3[i] += 0.5*scale*p_vec3[i]*lambda/static_cast<ScalarType>(nc);
-        }
-    }
-
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vec1, p_vec2, p_vec3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
-}*/
 
 /********************************************************************
  * @brief solve the forward problem (state equation)
@@ -2269,14 +1855,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     // allocate variables
     ierr = Allocate(this->m_IncStateVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
-    /*if (this->m_IncStateVariable == NULL) {
-        if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-            //ierr = VecCreate(this->m_IncStateVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        } else {
-            ierr = Allocate(this->m_IncStateVariable, ng, nl, nc); CHKERRQ(ierr);
-            //ierr = VecCreate(this->m_IncStateVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-    }*/
     
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
@@ -2295,27 +1873,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     ierr = this->m_TransportProblem->SolveIncForwardProblem(); CHKERRQ(ierr);
     
     DBGCHK();
-
-/*    // call the solver
-    switch (this->m_Opt->m_PDESolver.type) {
-        case RK2:
-        {
-            ierr = this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
-            break;
-        }
-        case SL:
-        {
-            ierr = this->SolveIncStateEquationSL(); CHKERRQ(ierr);
-            //ierr = this->SolveIncStateEquationRK2(); CHKERRQ(ierr);
-            break;
-        }
-        default:
-        {
-            ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-            break;
-        }
-    }
-    */
 
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
@@ -2340,153 +1897,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     PetscFunctionReturn(0);
 }
-
-/********************************************************************
- * @brief solve the incremental state equation
- * \p_t \tilde{m} + \igrad m \cdot \vect{\tilde{v}}
- *                + \igrad \tilde{m} \cdot \vect{v} = 0
- * subject to \tilde{m}_0 = 0
- * solved forward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveIncStateEquationRK2(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, lm, lmnext, lmt, lmtnext;
-    ScalarType *p_m = NULL, *p_mt = NULL, *p_mtbar = NULL,
-                *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_gmx1 = NULL, *p_gmx2 = NULL, *p_gmx3 = NULL,
-                *p_gmtx1 = NULL, *p_gmtx2 = NULL, *p_gmtx3 = NULL,
-                *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL, *p_rhs0 = NULL;
-    ScalarType ht, hthalf;
-    bool fullnewton = false;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
-    ierr = Assert(ht > 0, "time step size < 0"); CHKERRQ(ierr);
-
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-
-    if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
-        fullnewton = true;
-    }
-
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField1->GetArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
-    ierr = this->m_IncVelocityField->GetArrays(p_vtx1, p_vtx2, p_vtx3); CHKERRQ(ierr);
-
-    // check if velocity field is zero
-    ierr = this->IsVelocityZero(); CHKERRQ(ierr);
-    if (this->m_VelocityIsZero) {
-        // compute gradient of first time point of image component
-        for (IntType k = 0; k < nc; ++k) {
-            // template image is constant in time
-            this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+k*nl);
-
-            // compute incremental state variable for all time points
-            // note: we do not need to store the time history for
-            // \tilde{m} if we consider a Gauss--Newton approximation
-            for (IntType j = 0; j < nt; ++j) {
-                if (fullnewton) {
-                    lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
-                } else {
-                    lmt = 0; lmtnext = 0;
-                }
-#pragma omp parallel
-{
-#pragma omp for
-                // the right hand side remains constant;
-                // we can reduce the 2 RK2 steps to a single one
-                for (IntType i = 0; i < nl; ++i) {
-                     p_mt[lmtnext + k*nl + i] = p_mt[lmt + k*nl + i] - ht*(p_gmx1[i]*p_vtx1[i]
-                                                                         + p_gmx2[i]*p_vtx2[i]
-                                                                         + p_gmx3[i]*p_vtx3[i]);
-                }
-}  // omp
-            }  // for all time points
-        }  // for all image components
-    } else {  // velocity field is non-zero
-        ierr = GetRawPointer(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
-        ierr = GetRawPointer(this->m_WorkScaField2, &p_rhs0); CHKERRQ(ierr);
-
-        ierr = this->m_WorkVecField2->GetArrays(p_gmtx1, p_gmtx2, p_gmtx3); CHKERRQ(ierr);
-        ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-        // compute numerical time integration
-        for (IntType j = 0; j < nt; ++j) {
-            for (IntType k = 0; k < nc; ++k) {
-                lm = j*nl*nc; lmnext = (j+1)*nl*nc;
-                if (fullnewton) {
-                    lmt = j*nl*nc; lmtnext = (j+1)*nl*nc;
-                } else {
-                    lmt = 0; lmtnext = 0;
-                }
-
-                // compute gradient of m_j
-                this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+lm+k*nl);
-
-                // compute gradient of \tilde{m}_j
-                this->m_Differentiation->Gradient(p_gmtx1,p_gmtx2,p_gmtx3,p_mt+lmt+k*nl);
-
-                for (IntType i = 0; i < nl; ++i) {
-                     p_rhs0[i] = -p_gmtx1[i]*p_vx1[i] - p_gmtx2[i]*p_vx2[i] - p_gmtx3[i]*p_vx3[i]
-                                 -p_gmx1[i]*p_vtx1[i] - p_gmx2[i]*p_vtx2[i] - p_gmx3[i]*p_vtx3[i];
-                     // compute intermediate result
-                     p_mtbar[i] = p_mt[lmt + k*nl + i] + ht*p_rhs0[i];
-                }
-
-                // compute gradient of m_{j+1}
-                this->m_Differentiation->Gradient(p_gmx1,p_gmx2,p_gmx3,p_m+lmnext);
-
-                // compute gradient of \tilde{m}_j
-                this->m_Differentiation->Gradient(p_gmtx1,p_gmtx2,p_gmtx3,p_mtbar);
-
-#pragma omp parallel
-{
-#pragma omp for
-                for (IntType i = 0; i < nl; ++i) {
-                    // evaluate right hand side
-                    ScalarType rhs1 = -p_gmtx1[i]*p_vx1[i] - p_gmtx2[i]*p_vx2[i] - p_gmtx3[i]*p_vx3[i]
-                                      -p_gmx1[i]*p_vtx1[i] - p_gmx2[i]*p_vtx2[i] - p_gmx3[i]*p_vtx3[i];
-
-                    // compute intermediate result
-                    p_mt[lmtnext + k*nl + i] = p_mt[lmt + k*nl + i] + hthalf*(rhs1 + p_rhs0[i]);
-                }
-            }  // for all image components
-}  // omp
-        }  // for all time points
-
-        // copy initial condition to buffer
-        ierr = RestoreRawPointer(this->m_WorkScaField1, &p_mtbar); CHKERRQ(ierr);
-        ierr = RestoreRawPointer(this->m_WorkScaField2, &p_rhs0); CHKERRQ(ierr);
-
-        ierr = this->m_WorkVecField2->RestoreArrays(p_gmtx1, p_gmtx2, p_gmtx3); CHKERRQ(ierr);
-        ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    }  // velzero
-
-    ierr = this->m_IncVelocityField->RestoreArrays(p_vtx1, p_vtx2, p_vtx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gmx1, p_gmx2, p_gmx3); CHKERRQ(ierr);
-
-    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mt); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
-}*/
 
 /********************************************************************
  * @brief solve the incremental adjoint problem (incremental
@@ -2540,15 +1950,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
 
     // allocate state and adjoint variables
     ierr = AllocateOnce(this->m_IncAdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
-    /*if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        if (this->m_IncAdjointVariable == NULL) {
-            ierr = VecCreate(this->m_IncAdjointVariable, (nt+1)*nc*nl, (nt+1)*nc*ng); CHKERRQ(ierr);
-        }
-    } else {
-        if (this->m_IncAdjointVariable == NULL) {
-            ierr = VecCreate(this->m_IncAdjointVariable, nc*nl, nc*ng); CHKERRQ(ierr);
-        }
-    }*/
     
     DBGCHK();
 
@@ -2578,103 +1979,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     
     DBGCHK();
 
-/*    // check if velocity field is zero
-    if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {   // gauss newton
-        ierr = this->IsVelocityZero(); CHKERRQ(ierr);
-        if (this->m_VelocityIsZero) {
-            // since we're already in gauss newton mode, we do not
-            // need to copy anything
-            // copy terminal condition \tilde{\lambda}_1 = -\tilde{m}_1 to all time points
-            ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-
-            if (this->m_WorkVecField1 == NULL) {
-                try {this->m_WorkVecField1 = new VecField(this->m_Opt);}
-                catch (std::bad_alloc& err) {
-                    ierr = reg::ThrowError(err); CHKERRQ(ierr);
-                }
-            }
-            if (this->m_WorkVecField2 == NULL) {
-                try {this->m_WorkVecField2 = new VecField(this->m_Opt);}
-                catch (std::bad_alloc& err) {
-                    ierr = reg::ThrowError(err); CHKERRQ(ierr);
-                }
-            }
-
-            // m and \lambda are constant in time
-            ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-            ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-
-            // init body force for numerical integration
-            ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-            ierr = this->m_WorkVecField2->GetArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
-
-            // $m$ and $\tilde{\lambda}$ are constant
-            for (IntType k = 0; k < nc; ++k) {  // for all components
-                // compute gradient of m
-                this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+k*nl);
-
-#pragma omp parallel
-{
-#pragma omp for
-                // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
-                for (IntType i = 0; i < nl; ++i) {
-                    ScalarType ltilde = p_ltilde[k*nl + i];
-                    p_btilde1[i] += ltilde*p_gradm1[i]/static_cast<ScalarType>(nc);
-                    p_btilde2[i] += ltilde*p_gradm2[i]/static_cast<ScalarType>(nc);
-                    p_btilde3[i] += ltilde*p_gradm3[i]/static_cast<ScalarType>(nc);
-                }
-            }
-}  // omp
-            ierr = this->m_WorkVecField2->RestoreArrays(p_btilde1, p_btilde2, p_btilde3); CHKERRQ(ierr);
-            ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-            ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-
-            ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-        } else {
-            // call the solver
-            switch (this->m_Opt->m_PDESolver.type) {
-                case RK2:
-                {
-                    ierr = this->SolveIncAdjointEquationGNRK2(); CHKERRQ(ierr);
-                    break;
-                }
-                case SL:
-                {
-                    ierr = this->SolveIncAdjointEquationGNSL(); CHKERRQ(ierr);
-                    break;
-                }
-                default:
-                {
-                    ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-                    break;
-                }
-            }
-        }  // zero velocity field
-    } else if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // full newton
-        // call the solver
-        switch (this->m_Opt->m_PDESolver.type) {
-            case RK2:
-            {
-                ierr = ThrowError("not tested"); CHKERRQ(ierr);
-                ierr = this->SolveIncAdjointEquationFNRK2(); CHKERRQ(ierr);
-                break;
-            }
-            case SL:
-            {
-                ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-//                ierr = this->SolveIncAdjointEquationRNRK2(); CHKERRQ(ierr);
-                break;
-            }
-            default:
-            {
-                ierr = ThrowError("PDE solver not implemented"); CHKERRQ(ierr);
-                break;
-            }
-        }
-    } else {
-        ierr = ThrowError("update method not defined"); CHKERRQ(ierr);
-    }
-*/
     // apply K[\tilde{b}]
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
@@ -2703,289 +2007,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
 
     PetscFunctionReturn(ierr);
 }
-
-/********************************************************************
- * @brief solve the incremental adjoint problem (incremental
- * adjoint equation)
- * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
- *                       - \idiv \lambda\tilde{\vect{v}} = 0
- * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
- * solved backward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveIncAdjointEquationGNRK2(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, ll, lm;
-    ScalarType *p_ltilde = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL, *p_m = NULL,
-                *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_bt1 = NULL, *p_bt2 = NULL, *p_bt3 = NULL,
-                *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL,
-                *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL;
-    ScalarType ht, hthalf, scale, ltilde;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    scale = ht;
-    hthalf = 0.5*ht;
-
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
-
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField3->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-    // init body force for numerical integration
-    ierr = this->m_WorkVecField2->SetValue(0.0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
-
-    // compute numerical time integration
-    for (IntType j = 0; j < nt; ++j) {  // for all time points
-        lm = (nt-j)*nc*nl;
-        if (j == 0) scale *= 0.5;
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            ll = k*nl;
-#pragma omp parallel
-{
-#pragma omp for
-            // scale \vect{v} by \lambda
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                ScalarType lt = p_ltilde[ll + i];
-
-                p_ltjvx1[i] = p_vx1[i]*lt;
-                p_ltjvx2[i] = p_vx2[i]*lt;
-                p_ltjvx3[i] = p_vx3[i]*lt;
-            }  // for all grid points
-}  // omp
-            // compute \idiv(\tilde{\lambda}\vect{v})
-            this->m_Differentiation->Divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3);
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                // compute \bar{\tilde{\lambda}} = \tilde{\lambda}^j + ht*\idiv(\tilde{\lambda}^j\vect{v})
-                ScalarType ltbar = p_ltilde[ll + i] + ht*p_rhs0[i];
-
-                // scale \vect{v} by \bar{\lambda}
-                p_ltjvx1[i] = p_vx1[i]*ltbar;
-                p_ltjvx2[i] = p_vx2[i]*ltbar;
-                p_ltjvx3[i] = p_vx3[i]*ltbar;
-            }
-}  // omp
-            // compute \idiv(\bar{\lambda}\vect{v})
-            this->m_Differentiation->Divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3);
-
-            // compute gradient of m^j
-            this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm+k*nl);
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                ltilde = p_ltilde[ll + i];    // get \tilde{\lambda}(x)
-
-                // compute integration
-                p_ltilde[ll + i] = ltilde + hthalf*(p_rhs0[i]+p_rhs1[i]);
-
-                // compute incremental body force
-                p_bt1[i] += scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
-                p_bt2[i] += scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
-                p_bt3[i] += scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
-            }
-}  // omp
-        }  // for all image components
-        if (j == 0) scale *= 2.0;
-    }  // for all time points
-
-    // compute body force for last time point t = 0 (i.e., for j = nt)
-    for (IntType k = 0; k < nc; ++k) {  // for all image components
-        ll = k*nl; lm = k*nl;
-
-        // compute gradient of m (for incremental body force)
-        this->m_Differentiation->Gradient(p_gradm1,p_gradm2,p_gradm3,p_m+lm);
-
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nl; ++i) {  // for all grid points
-            ltilde = p_ltilde[ll + i];
-            // compute bodyforce
-            p_bt1[i] += 0.5*scale*p_gradm1[i]*ltilde/static_cast<ScalarType>(nc);
-            p_bt2[i] += 0.5*scale*p_gradm2[i]*ltilde/static_cast<ScalarType>(nc);
-            p_bt3[i] += 0.5*scale*p_gradm3[i]*ltilde/static_cast<ScalarType>(nc);
-        }
-}  // omp
-    }
-
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_bt1, p_bt2, p_bt3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField3->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}*/
-
-/********************************************************************
- * @brief solve the incremental adjoint problem (incremental
- * adjoint equation)
- * -\p_t \tilde{\lambda} - \idiv \tilde{\lambda}\vect{v}
- *                       - \idiv \lambda\tilde{\vect{v}} = 0
- * subject to \tilde{\lambda}_1 + \tilde{m}_1 = 0
- * solved backward in time
- *******************************************************************/
-/*PetscErrorCode CLAIRE::SolveIncAdjointEquationFNRK2(void) {
-    PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt, l, lnext;
-    ScalarType *p_l = NULL, *p_lt = NULL, *p_rhs0 = NULL, *p_rhs1 = NULL,
-                *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_vtx1 = NULL, *p_vtx2 = NULL, *p_vtx3 = NULL,
-                *p_ltjvx1 = NULL, *p_ltjvx2 = NULL, *p_ltjvx3 = NULL;
-    ScalarType ht, hthalf, lambda, lambdatilde, ltbar;
-
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
-
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
-    ierr = this->m_IncVelocityField->GetArrays(p_vtx1, p_vtx2, p_vtx3); CHKERRQ(ierr);
-
-    ierr = this->IsVelocityZero(); CHKERRQ(ierr);
-    if (this->m_VelocityIsZero) {
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            l = k*nl;
-            // lambda and v are constant in time
-
-#pragma omp parallel
-{
-#pragma omp for
-            for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                ScalarType lambda = p_l[l+i];
-
-                // scale \vect{v} by \lambda
-                p_ltjvx1[i] = p_vtx1[i]*lambda;
-                p_ltjvx2[i] = p_vtx2[i]*lambda;
-                p_ltjvx3[i] = p_vtx3[i]*lambda;
-            }  // for all grid points
-}  // omp
-            // compute \idiv(\tilde{\lambda}\vect{v})
-            this->m_Differentiation->Divergence(p_rhs0,p_ltjvx1,p_ltjvx2,p_ltjvx3);
-
-            // compute numerical time integration
-            for (IntType j = 0; j < nt; ++j) {  // for all time points
-                l = (nt-j)*nc*nl + k*nl;
-                lnext = (nt-(j+1))*nc*nl + k*nl;
-
-#pragma omp parallel
-{
-#pragma omp for
-                for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                    p_lt[lnext+i] = p_lt[l+i] + ht*p_rhs0[i];
-                }
-            }  // for all time points
-}  // omp
-        }  // for all image components
-    } else {  // velocity is zero
-        ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-
-        ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-        ierr = GetRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
-
-        // compute numerical time integration
-        for (IntType j = 0; j < nt; ++j) {  // for all time points
-            for (IntType k = 0; k < nc; ++k) {  // for all image components
-                l = (nt-j)*nc*nl + k*nl;
-                lnext = (nt-(j+1))*nc*nl + k*nl;
-
-#pragma omp parallel
-{
-#pragma omp for
-                for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                    lambda  = p_l[l+i];
-                    lambdatilde = p_lt[l+i];
-
-                    p_ltjvx1[i] = p_vx1[i]*lambdatilde + p_vtx1[i]*lambda;
-                    p_ltjvx2[i] = p_vx2[i]*lambdatilde + p_vtx2[i]*lambda;
-                    p_ltjvx3[i] = p_vx3[i]*lambdatilde + p_vtx3[i]*lambda;
-                }  // for all grid points
-}  // omp
-                // compute \idiv(\tilde{\lambda}\vect{v})
-                this->m_Differentiation->Divergence(p_rhs0,p_ltjvx1,p_ltjvx1,p_ltjvx3);
-
-#pragma omp parallel
-{
-#pragma omp for
-                for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                    // \bar{\lambda} = \tilde{\lambda}^j + ht*\idiv(\lambda^j\vect{v})
-                    ltbar = p_lt[l+i] + ht*p_rhs0[i];
-                    lambda = p_l[lnext+i];
-
-                    // v \bar{\lambda} + \vect{\tilde{v}}\lambda^{j+1}
-                    p_ltjvx1[i] = p_vx1[i]*ltbar + p_vtx1[i]*lambda;
-                    p_ltjvx2[i] = p_vx2[i]*ltbar + p_vtx2[i]*lambda;
-                    p_ltjvx3[i] = p_vx3[i]*ltbar + p_vtx3[i]*lambda;
-                }
-}  // omp
-                // compute \idiv(\bar{\lambda}\vect{v})
-                this->m_Differentiation->Divergence(p_rhs1,p_ltjvx1,p_ltjvx2,p_ltjvx3);
-
-#pragma omp parallel
-{
-#pragma omp for
-                for (IntType i = 0; i < nl; ++i) {  // for all grid points
-                    p_lt[lnext+i] = p_lt[l+i] + hthalf*(p_rhs0[i]+p_rhs1[i]);
-                }
-}  // omp
-            }  // for all image components
-        }  // for all time points
-        ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-        ierr = RestoreRawPointer(this->m_WorkScaField2, &p_rhs1); CHKERRQ(ierr);
-    }  // velzero
-
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_lt); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_rhs0); CHKERRQ(ierr);
-
-    ierr = this->m_IncVelocityField->RestoreArrays(p_vtx1, p_vtx2, p_vtx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_ltjvx1, p_ltjvx2, p_ltjvx3); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
-}*/
 
 /********************************************************************
  * @brief apply projection to map \tilde{v} onto the manifold
@@ -3152,12 +2173,6 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt, true); CHKERRQ(ierr);
-    /*if (this->m_WorkScaField1 == NULL) {
-        ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
-    }
-    if (this->m_WorkScaFieldMC == NULL) {
-        ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
-    }*/
 
     // process timer
     ierr = this->m_Opt->ProcessTimers(); CHKERRQ(ierr);

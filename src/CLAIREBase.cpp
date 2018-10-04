@@ -772,17 +772,14 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
             ierr = Allocate<TransportEquationSL>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
         }
-        /*case RK2:
+        case RK2:
         {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate RK2 transport problem"); CHKERRQ(ierr);
             }
-            try {this->m_TransportProblem = new TransportEquationRK2(this->m_Opt);}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
+            ierr = Allocate<TransportEquationRK2>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
-        }*/
+        }
         default:
         {
             ierr = reg::ThrowError("transport problem model not defined"); CHKERRQ(ierr);
