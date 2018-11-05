@@ -89,14 +89,9 @@ PetscErrorCode Regularization::SetSpectralData(ComplexType* xhat1,
                                                ComplexType* xhat3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-
-    ierr = Assert(xhat1 != nullptr, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xhat2 != nullptr, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xhat3 != nullptr, "null pointer"); CHKERRQ(ierr);
-
-    this->m_v1hat = xhat1;
-    this->m_v2hat = xhat2;
-    this->m_v3hat = xhat3;
+    
+    ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = static_cast<DifferentiationSM*>(this->m_Differentiation)->SetupSpectralData(xhat1, xhat2, xhat3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -132,18 +127,10 @@ PetscErrorCode Regularization::SetDifferentiation(Differentiation::Type type) {
     if (this->m_Differentiation == nullptr) {
       switch (type) {
       case Differentiation::Type::Spectral:
-        try {
-          this->m_Differentiation = new DifferentiationSM(this->m_Opt);
-        } catch (std::bad_alloc& err) {
-          ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
+        ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
         break;
       case Differentiation::Type::Finite:
-        try {
-          this->m_Differentiation = new DifferentiationFD(this->m_Opt);
-        } catch (std::bad_alloc& err) {
-          ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
+        ierr = AllocateOnce<DifferentiationFD>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
         break;
       default:
         ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
@@ -163,11 +150,8 @@ PetscErrorCode Regularization::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    if (this->m_Differentiation != nullptr) {
-      delete this->m_Differentiation;
-      this->m_Differentiation = nullptr;
-    }
-
+    ierr = Free(this->m_Differentiation); CHKERRQ(ierr);
+    
     PetscFunctionReturn(ierr);
 }
 

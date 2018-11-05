@@ -40,7 +40,7 @@ class VecField {
     VecField(RegOpt*);
     VecField(RegOpt*,int);
     VecField(IntType,IntType);
-    ~VecField();
+    virtual ~VecField();
 
     PetscErrorCode SetOpt(RegOpt*);
 

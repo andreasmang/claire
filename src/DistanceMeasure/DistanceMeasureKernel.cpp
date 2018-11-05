@@ -20,8 +20,37 @@
 #include "DistanceMeasureKernel.hpp"
 
 namespace reg {
+namespace DistanceMeasureKernel {
+  
+PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  value = 0.0;
+  for (IntType k = 0; k < nc; ++k) {  // for all image components
+      for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+          ScalarType dr = (pMr[k*nl+i] - pM[k*nl+i]);
+          value += pW[i]*dr*dr;
+      }
+  }
+  
+  PetscFunctionReturn(ierr);
+}
+  
+PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  value = 0.0;
+  for (IntType i = 0; i < nc*nl; ++i) {
+      ScalarType dr = (pMr[i] - pM[i]);
+      value += dr*dr;
+  }
+  
+  PetscFunctionReturn(ierr);
+}
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -36,7 +65,7 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -53,7 +82,7 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionIAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -68,7 +97,7 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionIAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskIAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -85,4 +114,5 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskIAE() {
   PetscFunctionReturn(ierr);
 }
 
+} // namespace DistanceMeasureKernel
 } // namespace reg

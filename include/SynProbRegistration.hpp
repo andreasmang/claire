@@ -36,7 +36,7 @@ class SynProbRegistration {
     typedef SynProbRegistration Self;
     SynProbRegistration();
     SynProbRegistration(RegOpt*);
-    ~SynProbRegistration();
+    virtual ~SynProbRegistration();
 
     PetscErrorCode ComputeSquare(Vec);
     PetscErrorCode ComputeExpSin(Vec);

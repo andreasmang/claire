@@ -22,8 +22,6 @@
 
 #include "TransportEquationSL.hpp"
 
-#include "cuda_helper.hpp"
-
 namespace reg {
 
 /********************************************************************

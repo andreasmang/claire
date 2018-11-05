@@ -14,44 +14,38 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
+ *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONH2_H_
-#define _REGULARIZATIONH2_H_
+#ifndef _DIFFERENTIATIONKERNEL_HPP_
+#define _DIFFERENTIATIONKERNEL_HPP_
 
-#include "Regularization.hpp"
-
-
-
+#include "RegOpt.hpp"
+#include "CLAIREUtils.hpp"
 
 namespace reg {
+namespace DifferentiationKernel {
 
-
-
-
-class RegularizationH2 : public Regularization {
- public:
-    typedef Regularization SuperClass;
-    typedef RegularizationH2 Self;
-
-    RegularizationH2(void);
-    RegularizationH2(RegOpt*);
-    virtual ~RegularizationH2(void);
-
-    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
-    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);
-    virtual PetscErrorCode HessianMatVec(VecField*, VecField*);
-    virtual PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
-    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
+struct VectorField {
+  ComplexType *pXHat[3];
+  
+  IntType nx[3];
+  IntType nl[3];
+  IntType nstart[3];
+  
+  ScalarType scale;
+  
+  PetscErrorCode Laplacian(ScalarType);
+  PetscErrorCode Laplacian(ScalarType, ScalarType);
+  PetscErrorCode Bilaplacian(ScalarType);
+  PetscErrorCode Bilaplacian(ScalarType, ScalarType);
+  PetscErrorCode InverseBilaplacian(ScalarType);
+  PetscErrorCode InverseBilaplacianSqrt(ScalarType);
+  PetscErrorCode InverseBilaplacian(ScalarType, ScalarType);
+  PetscErrorCode InverseBilaplacianSqrt(ScalarType, ScalarType);
 };
 
-
-
-
-} // end of namespace
-
-
-
+} // namespace DifferentiationKernel
+} // namespace reg
 
 #endif

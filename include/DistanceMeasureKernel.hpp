@@ -22,13 +22,27 @@
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
-#include "OffsetPointer.hpp"
 
 namespace reg {
+namespace DistanceMeasureKernel {
+  
+struct EvaluateFunctionalSL2 {
+  const ScalarType *pW;
+  const ScalarType *pM;
+  const ScalarType *pMr;
+  
+  IntType nl;
+  IntType nc;
+  
+  ScalarType value;
+  
+  PetscErrorCode ComputeFunctional();
+  PetscErrorCode ComputeFunctionalMask();
+};
 
-struct DistanceMeasureKernelSL2 {
-  OffsetPointer<ScalarType> pL;
-  OffsetPointer<const ScalarType> pM;
+struct FinalConditionSL2 {
+  ScalarType *pL;
+  const ScalarType *pM;
   const ScalarType *pMr;
   const ScalarType *pW;
   
@@ -41,6 +55,7 @@ struct DistanceMeasureKernelSL2 {
   PetscErrorCode ComputeFinalConditionMaskIAE();
 };
 
-}
+} // namespace DistanceMeasureKernel
+} // namespace reg
 
 #endif

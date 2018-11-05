@@ -91,10 +91,10 @@ PetscErrorCode DistanceMeasureSL2::SetupScale() {
  *******************************************************************/
 PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
-    IntType nt, nc, nl, l;
+    IntType nt;
     int rval;
-    ScalarType dr, value, l2distance, hx;
+    DistanceMeasureKernel::EvaluateFunctionalSL2 kernel;
+    ScalarType l2distance, hx;
 
     PetscFunctionBegin;
 
@@ -105,40 +105,32 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
     // get sizes
     nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    kernel.nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     hx  = this->m_Opt->GetLebesgueMeasure();   
 
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
 
-    l = nt*nl*nc;
-    value = 0.0;
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-                dr = (p_mr[k*nl+i] - p_m[l+k*nl+i]);
-                value += p_w[i]*dr*dr;
-            }
-        }
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
+        
+        ierr = kernel.ComputeFunctionalMask(); CHKERRQ(ierr);
+    
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-            dr = (p_mr[i] - p_m[l+i]);
-            value += dr*dr;
-        }
+        ierr = kernel.ComputeFunctional(); CHKERRQ(ierr);
     }
     // all reduce
-    rval = MPI_Allreduce(&value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
 
     // objective value
-    *D = 0.5*hx*l2distance/static_cast<ScalarType>(nc);
+    *D = 0.5*hx*l2distance/static_cast<ScalarType>(kernel.nc);
 
     this->m_Opt->Exit(__func__);
 
@@ -155,7 +147,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
     IntType nt;
-    DistanceMeasureKernelSL2 kernel;
+    DistanceMeasureKernel::FinalConditionSL2 kernel;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -168,22 +160,19 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
     kernel.nc = this->m_Opt->m_Domain.nc;
     kernel.nl = this->m_Opt->m_Domain.nl;
 
-    ierr = GetRawPointerRead(this->m_StateVariable, kernel.pM); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(this->m_ReferenceImage, &kernel.pMr); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, kernel.pL); CHKERRQ(ierr);
-
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
     // index for final condition
-    //kernel.pL = pL;
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        //kernel.pL += nt*kernel.nc*kernel.nl;
-        kernel.pL.SetOffest(nt*kernel.nc*kernel.nl);
+      ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, 0, nt); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL); CHKERRQ(ierr);
     }
-    //kernel.pM = pM + nt*kernel.nc*kernel.nl;
-    kernel.pM.SetOffest(nt*kernel.nc*kernel.nl);
+    ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
         
         ierr = kernel.ComputeFinalConditionMaskAE(); CHKERRQ(ierr);
 /*#ifdef REG_HAS_CUDA
@@ -199,7 +188,7 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
         }
 }  // omp
 #endif*/
-        ierr = RestoreRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
         kernel.ComputeFinalConditionAE();
 /*#ifdef REG_HAS_CUDA
@@ -215,9 +204,9 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
 #endif*/
     }
         
-    ierr = RestoreRawPointer(this->m_AdjointVariable, kernel.pL); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_ReferenceImage, &kernel.pMr); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_StateVariable, kernel.pM); CHKERRQ(ierr);
+    ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);
 
@@ -234,7 +223,7 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
 PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
     PetscErrorCode ierr = 0;
     IntType nt;
-    DistanceMeasureKernelSL2 kernel;
+    DistanceMeasureKernel::FinalConditionSL2 kernel;
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
@@ -245,23 +234,19 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
     kernel.nc = this->m_Opt->m_Domain.nc;
     kernel.nl = this->m_Opt->m_Domain.nl;
 
-    ierr = GetRawPointerRead(this->m_IncStateVariable, kernel.pM); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncAdjointVariable, kernel.pL); CHKERRQ(ierr);
-    
     // index for final condition
-    //kernel.pL = pLtilde;
-    //kernel.pM = pMtilde;
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        kernel.pL.SetOffest(nt*kernel.nc*kernel.nl);
-        kernel.pM.SetOffest(nt*kernel.nc*kernel.nl);
-        //kernel.pL += nt*kernel.nc*kernel.nl;
-        //kernel.pM += nt*kernel.nc*kernel.nl;
+        ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL, 0, nt); CHKERRQ(ierr);
+        ierr = this->m_IncStateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL); CHKERRQ(ierr);
+      ierr = this->m_IncStateVariable->GetArrayRead(kernel.pM); CHKERRQ(ierr);
     }
     
     // compute terminal condition \tilde{\lambda}_1 = -\tilde{m}_1
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
         
         ierr = kernel.ComputeFinalConditionMaskIAE(); CHKERRQ(ierr);
 /*
@@ -274,7 +259,7 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
             }
         }
 }  // omp*/
-        ierr = RestoreRawPointerRead(this->m_Mask, &kernel.pW); CHKERRQ(ierr);
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
         ierr = kernel.ComputeFinalConditionIAE(); CHKERRQ(ierr);
 /*
@@ -286,8 +271,8 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
         }
 }  // omp*/
     }
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, kernel.pL); CHKERRQ(ierr);
-    ierr = RestoreRawPointerRead(this->m_IncStateVariable, kernel.pM); CHKERRQ(ierr);
+    ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_IncStateVariable->RestoreArray(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

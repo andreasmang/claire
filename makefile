@@ -1,6 +1,6 @@
 CXX=mpicxx
-USECUDA=yes
-USECUDADBG=yes
+USECUDA=no
+USECUDADBG=no
 USEINTEL=no
 USEINTELMPI=no
 USESINGLE=yes
@@ -22,6 +22,7 @@ CUDA_OBJS += $(patsubst $(EXSRCDIR)/%.cu,$(OBJDIR)/cuda/%.o,$(EXCUFILES))
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILESCUDA))
 else
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
+OBJS += $(patsubst $(EXSRCDIR)/%.cpp,$(OBJDIR)/%.o,$(EXCPPFILES))
 endif
 
 .SECONDARY: $(OBJS)
@@ -60,6 +61,10 @@ $(BINDIR)/%: $(OBJDIR)/%.o $(OBJS)
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+	-@$(MKDIRS) $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
+	
+$(OBJDIR)/%.o: $(EXSRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 

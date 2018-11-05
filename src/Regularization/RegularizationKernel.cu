@@ -70,35 +70,33 @@ __global__ void EvaluateGradientKernelGPU(ComplexType *v1, ComplexType *v2, Comp
 
 namespace reg {
 
-template<int N>
-PetscErrorCode EvaluateGradientKernel(ComplexType *v1, ComplexType *v2, ComplexType *v3,
-    IntType start[3], IntType total[3], IntType local[3],
-    ScalarType alpha, ScalarType beta) {
+//template<int N>
+//PetscErrorCode RegularizationKernel<N>::EvaluateGradient() {
+template <int N>
+PetscErrorCode EvaluateGradientKernel(ComplexType* v1, ComplexType* v2, ComplexType* v3, IntType nstart[3], IntType nx[3], IntType nl[3], ScalarType beta0, ScalarType beta1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   dim3 block(256,1,1);
-  dim3 grid((local[0] + 255)/256,local[1],local[2]);
-  dim3 wave(start[0],start[1],start[2]);
-  dim3 nx(total[0],total[1],total[2]);
-  dim3 nl(local[0],local[1],local[2]);
+  dim3 grid((nl[0] + 255)/256,nl[1],nl[2]);
+  dim3 wave(nstart[0],nstart[1],nstart[2]);
+  dim3 nx3(nx[0],nx[1],nx[2]);
+  dim3 nl3(nl[0],nl[1],nl[2]);
   
-  EvaluateGradientKernelGPU<N><<<grid,block>>>(v1,v2,v3,wave,nx,nl,alpha,beta);
+  EvaluateGradientKernelGPU<N><<<grid,block>>>(v1,v2,v3,wave,nx3,nl3,beta0,beta1);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
   PetscFunctionReturn(ierr);
 }
 
-template PetscErrorCode EvaluateGradientKernel<1>(ComplexType *, ComplexType *, ComplexType *,
-    IntType[3], IntType[3], IntType[3],
-    ScalarType, ScalarType);
-template PetscErrorCode EvaluateGradientKernel<2>(ComplexType *, ComplexType *, ComplexType *,
-    IntType[3], IntType[3], IntType[3],
-    ScalarType, ScalarType);
-template PetscErrorCode EvaluateGradientKernel<3>(ComplexType *, ComplexType *, ComplexType *,
-    IntType[3], IntType[3], IntType[3],
-    ScalarType, ScalarType);
+template PetscErrorCode EvaluateGradientKernel<1>(ComplexType*, ComplexType*, ComplexType*, IntType[3], IntType[3], IntType[3], ScalarType, ScalarType);  
+template PetscErrorCode EvaluateGradientKernel<2>(ComplexType*, ComplexType*, ComplexType*, IntType[3], IntType[3], IntType[3], ScalarType, ScalarType);  
+template PetscErrorCode EvaluateGradientKernel<3>(ComplexType*, ComplexType*, ComplexType*, IntType[3], IntType[3], IntType[3], ScalarType, ScalarType);  
+
+//template PetscErrorCode RegularizationKernel<1>::EvaluateGradientKernel();
+//template PetscErrorCode RegularizationKernel<2>::EvaluateGradientKernel();
+//template PetscErrorCode RegularizationKernel<3>::EvaluateGradientKernel();
 
 __global__ void ScaleVectorFieldGPU(ScalarType *vR1, ScalarType *vR2, ScalarType *vR3,
     ScalarType *v1, ScalarType *v2, ScalarType *v3,

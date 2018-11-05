@@ -23,13 +23,7 @@
 #include "Preprocessing.hpp"
 #include <time.h>
 
-
-
-
 namespace reg {
-
-
-
 
 /********************************************************************
  * @brief default constructor
@@ -37,9 +31,6 @@ namespace reg {
 Preprocessing::Preprocessing() {
     this->Initialize();
 }
-
-
-
 
 /********************************************************************
  * @brief constructor
@@ -49,9 +40,6 @@ Preprocessing::Preprocessing(RegOpt* opt) {
     this->m_Opt = opt;
 }
 
-
-
-
 /********************************************************************
  * @brief default deconstructor
  *******************************************************************/
@@ -59,65 +47,58 @@ Preprocessing::~Preprocessing() {
     this->ClearMemory();
 }
 
-
-
-
 /********************************************************************
  * @brief initialize
  *******************************************************************/
 PetscErrorCode Preprocessing::Initialize() {
     PetscErrorCode ierr = 0;
-    this->m_Opt = NULL;
+    this->m_Opt = nullptr;
 
     this->m_GridChangeOpsSet = false;
     this->m_ResetGridChangeOps = false;
     this->m_IndicesCommunicated = false;
     this->m_GridChangeIndicesComputed = false;
 
-    this->m_ReadWrite = NULL;
+    this->m_ReadWrite = nullptr;
 
-    this->m_XHatFine = NULL;
-    this->m_XHatCoarse = NULL;
-    this->m_FFTFinePlan = NULL;
-    this->m_FFTCoarsePlan = NULL;
+    //this->m_XHatFine = nullptr;
+    //this->m_XHatCoarse = nullptr;
+    this->m_FFTFinePlan = nullptr;
+    this->m_FFTCoarsePlan = nullptr;
 
-    this->m_FourierCoeffSendF = NULL;
-    this->m_FourierCoeffSendC = NULL;
+    this->m_FourierCoeffSendF = nullptr;
+    this->m_FourierCoeffSendC = nullptr;
 
-    this->m_FourierCoeffRecvF = NULL;
-    this->m_FourierCoeffRecvC = NULL;
+    this->m_FourierCoeffRecvF = nullptr;
+    this->m_FourierCoeffRecvC = nullptr;
 
-    this->m_FourierIndicesRecvF = NULL;
-    this->m_FourierIndicesRecvC = NULL;
+    this->m_FourierIndicesRecvF = nullptr;
+    this->m_FourierIndicesRecvC = nullptr;
 
-    this->m_FourierIndicesSendF = NULL;
-    this->m_FourierIndicesSendC = NULL;
+    this->m_FourierIndicesSendF = nullptr;
+    this->m_FourierIndicesSendC = nullptr;
 
-    this->m_NumSend = NULL;
-    this->m_NumRecv = NULL;
+    this->m_NumSend = nullptr;
+    this->m_NumRecv = nullptr;
 
-    this->m_OffsetSend = NULL;
-    this->m_OffsetRecv = NULL;
+    this->m_OffsetSend = nullptr;
+    this->m_OffsetRecv = nullptr;
 
     this->m_nAllocSend = 0;
     this->m_nAllocRecv = 0;
 
-    this->m_SendRequest = NULL;
-    this->m_RecvRequest = NULL;
+    this->m_SendRequest = nullptr;
+    this->m_RecvRequest = nullptr;
 
-    this->m_OverlapMeasures = NULL;
-//    this->m_LabelValues = NULL;
+    this->m_OverlapMeasures = nullptr;
+//    this->m_LabelValues = nullptr;
 //    this->m_NoLabel = -99;
 
-    this->m_xhat = NULL;
-    this->m_yhat = NULL;
-
+    //this->m_xhat = nullptr;
+    //this->m_yhat = nullptr;
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief clear memory
@@ -125,118 +106,57 @@ PetscErrorCode Preprocessing::Initialize() {
 PetscErrorCode Preprocessing::ClearMemory() {
     PetscErrorCode ierr = 0;
 
-    if (this->m_xhat != NULL) {
+    /*if (this->m_xhat != nullptr) {
         accfft_free(this->m_xhat);
-        this->m_xhat = NULL;
+        this->m_xhat = nullptr;
     }
-    if (this->m_yhat != NULL) {
+    if (this->m_yhat != nullptr) {
         accfft_free(this->m_yhat);
-        this->m_yhat = NULL;
+        this->m_yhat = nullptr;
     }
 
-    if (this->m_XHatFine != NULL) {
+    if (this->m_XHatFine != nullptr) {
         accfft_free(this->m_XHatFine);
-        this->m_XHatFine = NULL;
+        this->m_XHatFine = nullptr;
     }
-    if (this->m_XHatCoarse != NULL) {
+    if (this->m_XHatCoarse != nullptr) {
         accfft_free(this->m_XHatCoarse);
-        this->m_XHatCoarse = NULL;
-    }
+        this->m_XHatCoarse = nullptr;
+    }*/
 
-    if (this->m_FFTFinePlan != NULL) {
+    if (this->m_FFTFinePlan != nullptr) {
         accfft_destroy_plan(this->m_FFTFinePlan);
-        this->m_FFTFinePlan = NULL;
+        this->m_FFTFinePlan = nullptr;
     }
-    if (this->m_FFTCoarsePlan != NULL) {
+    if (this->m_FFTCoarsePlan != nullptr) {
         accfft_destroy_plan(this->m_FFTCoarsePlan);
-        this->m_FFTCoarsePlan = NULL;
+        this->m_FFTCoarsePlan = nullptr;
     }
 
-
-    if (this->m_FourierCoeffSendF != NULL) {
-        delete [] this->m_FourierCoeffSendF;
-        this->m_FourierCoeffSendF = NULL;
-    }
-
-    if (this->m_FourierCoeffSendC != NULL) {
-        delete [] this->m_FourierCoeffSendC;
-        this->m_FourierCoeffSendC = NULL;
-    }
-
-    if (this->m_FourierCoeffRecvF != NULL) {
-        delete [] this->m_FourierCoeffRecvF;
-        this->m_FourierCoeffRecvF = NULL;
-    }
-
-    if (this->m_FourierCoeffRecvC != NULL) {
-        delete [] this->m_FourierCoeffRecvC;
-        this->m_FourierCoeffRecvC = NULL;
-    }
-
-    if (this->m_FourierIndicesRecvF != NULL) {
-        delete [] this->m_FourierIndicesRecvF;
-        this->m_FourierIndicesRecvF = NULL;
-    }
-
-    if (this->m_FourierIndicesRecvC != NULL) {
-        delete [] this->m_FourierIndicesRecvC;
-        this->m_FourierIndicesRecvC = NULL;
-    }
-
-    if (this->m_FourierIndicesSendF != NULL) {
-        delete [] this->m_FourierIndicesSendF;
-        this->m_FourierIndicesSendF = NULL;
-    }
-
-    if (this->m_FourierIndicesSendC != NULL) {
-        delete [] this->m_FourierIndicesSendC;
-        this->m_FourierIndicesSendC = NULL;
-    }
-
-    if (this->m_NumSend != NULL) {
-        delete [] this->m_NumSend;
-        this->m_NumSend = NULL;
-    }
-    if (this->m_NumRecv != NULL) {
-        delete [] this->m_NumRecv;
-        this->m_NumRecv = NULL;
-    }
-
-    if (this->m_OffsetSend != NULL) {
-        delete [] this->m_OffsetSend;
-        this->m_OffsetSend = NULL;
-    }
-    if (this->m_OffsetRecv != NULL) {
-        delete [] this->m_OffsetRecv;
-        this->m_OffsetRecv = NULL;
-    }
-
-    if (this->m_SendRequest != NULL) {
-        delete [] this->m_SendRequest;
-        this->m_SendRequest = NULL;
-    }
-    if (this->m_RecvRequest != NULL) {
-        delete [] this->m_RecvRequest;
-        this->m_RecvRequest = NULL;
-    }
-
-    if (this->m_OverlapMeasures != NULL) {
-        delete [] this->m_OverlapMeasures;
-        this->m_OverlapMeasures = NULL;
-    }
-
+    FreeArray(this->m_FourierCoeffSendF);
+    FreeArray(this->m_FourierCoeffSendC);
+    FreeArray(this->m_FourierCoeffRecvF);
+    FreeArray(this->m_FourierCoeffRecvC);
+    FreeArray(this->m_FourierIndicesRecvF);
+    FreeArray(this->m_FourierIndicesRecvC);
+    FreeArray(this->m_FourierIndicesSendF);
+    FreeArray(this->m_FourierIndicesSendC);
+    FreeArray(this->m_NumSend);
+    FreeArray(this->m_NumRecv);
+    FreeArray(this->m_OffsetRecv);
+    FreeArray(this->m_OffsetSend);
+    FreeArray(this->m_SendRequest);
+    FreeArray(this->m_RecvRequest);
+    FreeArray(this->m_OverlapMeasures);
 /*
-    if (this->m_LabelValues != NULL) {
+    if (this->m_LabelValues != nullptr) {
         delete [] this->m_LabelValues;
-        this->m_LabelValues = NULL;
+        this->m_LabelValues = nullptr;
     }
 */
     PetscFunctionReturn(ierr);
 
 }
-
-
-
 
 /********************************************************************
  * @brief set read/write object for data
@@ -245,14 +165,11 @@ PetscErrorCode Preprocessing::SetReadWrite(Preprocessing::ReadWriteType* readwri
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(readwrite !=  NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(readwrite !=  nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_ReadWrite = readwrite;
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief do setup for applying prolongation and restriction
@@ -265,8 +182,8 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     IntType nalloc_c, nalloc_f;
     int _nx_f[3], _ostart_f[3], _osize_f[3], _isize_f[3], _istart_f[3],
         _nx_c[3], _ostart_c[3], _osize_c[3], _isize_c[3], _istart_c[3];
-    ScalarType *p_xfd = NULL, *p_xcd = NULL;
-    ComplexType *p_xfdhat = NULL, *p_xcdhat = NULL;
+    ScalarType *p_xfd = nullptr, *p_xcd = nullptr;
+    ComplexType *p_xfdhat = nullptr, *p_xcdhat = nullptr;
     std::stringstream ss;
     MPI_Comm mpicomm;
 
@@ -283,21 +200,21 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         ss.clear(); ss.str(std::string());
     }
 
-    if (this->m_XHatCoarse !=  NULL) {
+    /*if (this->m_XHatCoarse !=  nullptr) {
         accfft_free(this->m_XHatCoarse);
-        this->m_XHatCoarse = NULL;
+        this->m_XHatCoarse = nullptr;
     }
-    if (this->m_XHatFine !=  NULL) {
+    if (this->m_XHatFine !=  nullptr) {
         accfft_free(this->m_XHatFine);
-        this->m_XHatFine = NULL;
-    }
-    if (this->m_FFTFinePlan !=  NULL) {
+        this->m_XHatFine = nullptr;
+    }*/
+    if (this->m_FFTFinePlan !=  nullptr) {
         accfft_destroy_plan(this->m_FFTFinePlan);
-        this->m_FFTFinePlan = NULL;
+        this->m_FFTFinePlan = nullptr;
     }
-    if (this->m_FFTCoarsePlan !=  NULL) {
+    if (this->m_FFTCoarsePlan !=  nullptr) {
         accfft_destroy_plan(this->m_FFTCoarsePlan);
-        this->m_FFTCoarsePlan = NULL;
+        this->m_FFTCoarsePlan = nullptr;
     }
 
     // parse input sizes
@@ -359,53 +276,52 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
         ss.clear(); ss.str(std::string());
     }
 
-    if (this->m_XHatCoarse == NULL) {
+    /*if (this->m_XHatCoarse == nullptr) {
         this->m_XHatCoarse = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_c));
     }
-    ierr = Assert(this->m_XHatCoarse != NULL,"allocation failed"); CHKERRQ(ierr);
+    ierr = Assert(this->m_XHatCoarse != nullptr,"allocation failed"); CHKERRQ(ierr);
 
-    if (this->m_XHatFine == NULL) {
+    if (this->m_XHatFine == nullptr) {
         this->m_XHatFine = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_f));
     }
-    ierr = Assert(this->m_XHatFine != NULL,"allocation failed"); CHKERRQ(ierr);
+    ierr = Assert(this->m_XHatFine != nullptr,"allocation failed"); CHKERRQ(ierr);
+    */
+    ierr = this->m_XHatCoarse.Resize(nalloc_c); CHKERRQ(ierr);
+    ierr = this->m_XHatFine.Resize(nalloc_f); CHKERRQ(ierr);
 
     // allocate plan for fine grid
-    if (this->m_FFTFinePlan == NULL) {
+    if (this->m_FFTFinePlan == nullptr) {
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("initializing fft plan (fine grid)"); CHKERRQ(ierr);
         }
 
-        p_xfd = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc_f));
-        ierr = Assert(p_xfd != NULL, "allocation failed"); CHKERRQ(ierr);
-
-        p_xfdhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_f));
-        ierr = Assert(p_xfdhat != NULL, "malloc failed"); CHKERRQ(ierr);
+        // TODO: this is not nice! p_xfd and p_xfdhat are only used to tell accfft that it's not working inplace... accfft stores the pointer, but the memory is freed afterwards
+        ierr = AllocateMemoryOnce(p_xfd, nalloc_f); CHKERRQ(ierr);
+        ierr = AllocateMemoryOnce(p_xfdhat, nalloc_f); CHKERRQ(ierr);
 
         this->m_FFTFinePlan = accfft_plan_dft_3d_r2c(_nx_f, p_xfd, reinterpret_cast<ScalarType*>(p_xfdhat),
                                                      this->m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
-        ierr = Assert(this->m_FFTFinePlan != NULL, "malloc failed"); CHKERRQ(ierr);
+        ierr = Assert(this->m_FFTFinePlan != nullptr, "malloc failed"); CHKERRQ(ierr);
 
-        if (p_xfd != NULL) {accfft_free(p_xfd); p_xfd = NULL;}
-        if (p_xfdhat != NULL) {accfft_free(p_xfdhat); p_xfdhat = NULL;}
+        ierr = FreeMemory(p_xfd); CHKERRQ(ierr);
+        ierr = FreeMemory(p_xfdhat); CHKERRQ(ierr);
     }
 
     // allocate plan for coarse grid
-    if (this->m_FFTCoarsePlan == NULL) {
+    if (this->m_FFTCoarsePlan == nullptr) {
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("initializing fft plan (coarse grid)"); CHKERRQ(ierr);
         }
-        p_xcd = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc_c));
-        ierr = Assert(p_xcd != NULL, "malloc failed"); CHKERRQ(ierr);
-
-        p_xcdhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc_c));
-        ierr = Assert(p_xcdhat != NULL, "malloc failed"); CHKERRQ(ierr);
+        
+        ierr = AllocateMemoryOnce(p_xcd, nalloc_c); CHKERRQ(ierr);
+        ierr = AllocateMemoryOnce(p_xcdhat, nalloc_c); CHKERRQ(ierr);
 
         this->m_FFTCoarsePlan = accfft_plan_dft_3d_r2c(_nx_c, p_xcd, reinterpret_cast<ScalarType*>(p_xcdhat),
                                                        this->m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
-        ierr = Assert(this->m_FFTCoarsePlan != NULL, "malloc failed"); CHKERRQ(ierr);
+        ierr = Assert(this->m_FFTCoarsePlan != nullptr, "malloc failed"); CHKERRQ(ierr);
 
-        if (p_xcd != NULL) {accfft_free(p_xcd); p_xcd = NULL;}
-        if (p_xcdhat != NULL) {accfft_free(p_xcdhat); p_xcdhat = NULL;}
+        ierr = FreeMemory(p_xcd); CHKERRQ(ierr);
+        ierr = FreeMemory(p_xcdhat); CHKERRQ(ierr);
     }
 
     // set flag
@@ -416,9 +332,6 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief convert sharp label image to smooth multi-component image
  * @param labelim label image
@@ -427,8 +340,8 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
 PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
-    const ScalarType *p_labelmap = NULL;
-    ScalarType *p_m = NULL;
+    const ScalarType *p_labelmap = nullptr;
+    ScalarType *p_m = nullptr;
     int label;
     PetscFunctionBegin;
 
@@ -466,8 +379,8 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
 PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
-    const ScalarType *p_labelmap = NULL;
-    ScalarType *p_m = NULL;
+    const ScalarType *p_labelmap = nullptr;
+    ScalarType *p_m = nullptr;
     int label, numlabelfound = 0;
     bool labelfound, labelset;
     PetscFunctionBegin;
@@ -479,7 +392,7 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
 
     // TODO: scheme does not work in parallel
     // allocate array for labels (account for background)
-    if (this->m_LabelValues == NULL) {
+    if (this->m_LabelValues == nullptr) {
         try{this->m_LabelValues = new int[nc];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -549,8 +462,6 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
 }
 */
 
-
-
 /********************************************************************
  * @brief convert smooth multi-component image to sharp label image
  * @param labelim label image
@@ -560,8 +471,8 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
     int majoritylabel;
-    ScalarType *p_labels = NULL, *p_labelprobs = NULL;
-    const ScalarType *p_m = NULL;
+    ScalarType *p_labels = nullptr, *p_labelprobs = nullptr;
+    const ScalarType *p_m = nullptr;
     ScalarType value, majorityvote, labelsum;
     PetscFunctionBegin;
 
@@ -572,10 +483,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
 
     ierr = Assert(this->m_Opt->m_LabelIDs.size() == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
 
-    try {p_labelprobs = new ScalarType[nc+1];}
-    catch (std::bad_alloc& err) {
-        ierr = reg::ThrowError(err); CHKERRQ(ierr);
-    }
+    ierr = AllocateArray(p_labelprobs, nc+1); CHKERRQ(ierr);
 
     // set dummy values
     ierr = VecGetArrayRead(m, &p_m); CHKERRQ(ierr);
@@ -627,8 +535,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     ierr = VecRestoreArray(labelim, &p_labels); CHKERRQ(ierr);
     ierr = VecRestoreArrayRead(m, &p_m); CHKERRQ(ierr);
 
-
-    if (p_labelprobs != NULL) {delete [] p_labelprobs;}
+    ierr = FreeArray(p_labelprobs); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -639,8 +546,8 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
     int majoritylabel;
-    ScalarType *p_labels = NULL, *p_labelprobs = NULL;
-    const ScalarType *p_m = NULL;
+    ScalarType *p_labels = nullptr, *p_labelprobs = nullptr;
+    const ScalarType *p_m = nullptr;
     ScalarType value, majorityvote, labelsum;
     PetscFunctionBegin;
 
@@ -649,7 +556,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
 
-    if (this->m_LabelValues == NULL) {
+    if (this->m_LabelValues == nullptr) {
         try {this->m_LabelValues = new int[nc];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -714,16 +621,13 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
     ierr = VecRestoreArray(labelim, &p_labels); CHKERRQ(ierr);
     ierr = VecRestoreArrayRead(m, &p_m); CHKERRQ(ierr);
 
-
-    if (p_labelprobs != NULL) {delete [] p_labelprobs;}
+    if (p_labelprobs != nullptr) {delete [] p_labelprobs;}
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
 */
-
-
 
 /********************************************************************
  * @brief restrict vector field
@@ -737,8 +641,8 @@ PetscErrorCode Preprocessing::Restrict(VecField* vcoarse, VecField* vfine, IntTy
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(vfine != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vcoarse != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vfine != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vcoarse != nullptr, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->Restrict(&vcoarse->m_X1, vfine->m_X1, nx_c, nx_f); CHKERRQ(ierr);
     ierr = this->Restrict(&vcoarse->m_X2, vfine->m_X2, nx_c, nx_f); CHKERRQ(ierr);
@@ -748,9 +652,6 @@ PetscErrorCode Preprocessing::Restrict(VecField* vcoarse, VecField* vfine, IntTy
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief restrict data
@@ -764,7 +665,8 @@ PetscErrorCode Preprocessing::Restrict(VecField* vcoarse, VecField* vfine, IntTy
  *******************************************************************/
 PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2], value;
+    ScalarType scale, coeff[2], value, *p_xc = nullptr;
+    const ScalarType *p_xf = nullptr;
     IntType n, l, k_c[3], i_c[3], nr, os_recv, nyqfreqid[3];
     std::stringstream ss;
     int rank, nprocs;
@@ -784,8 +686,8 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
-    ierr = Assert(x_f != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(x_c != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x_f != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x_c != nullptr, "null pointer"); CHKERRQ(ierr);
 
     if ((nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2])) {
         ierr = VecCopy(x_f, *x_c); CHKERRQ(ierr);
@@ -812,11 +714,13 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
         ierr = this->SetupGridChangeOps(nx_f, nx_c); CHKERRQ(ierr);
     }
 
-    ierr = Assert(this->m_FFTFinePlan != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_FFTFinePlan != nullptr, "null pointer"); CHKERRQ(ierr);
 
     n  = this->m_osizeC[0];
     n *= this->m_osizeC[1];
     n *= this->m_osizeC[2];
+    
+    ierr = this->m_XHatCoarse.AllocateHost(); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -829,9 +733,10 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 } // #pragma omp parallel
 
     // compute fft of data on fine grid
-    ierr = VecGetArray(x_f, &p_xf); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_FFTFinePlan, p_xf, this->m_XHatFine, timer);
-    ierr = VecRestoreArray(x_f, &p_xf); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
+    accfft_execute_r2c_t(this->m_FFTFinePlan, const_cast<ScalarType*>(p_xf), this->m_XHatFine.WriteDevice(), timer);
+    ierr = RestoreRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
+    ierr = this->m_XHatFine.CopyDeviceToHost(); CHKERRQ(ierr);
 
     // compute indices
     if (!this->m_GridChangeIndicesComputed) {
@@ -893,9 +798,9 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
         }
     }
 
-    ierr = VecGetArray(*x_c, &p_xc); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_FFTCoarsePlan, this->m_XHatCoarse, p_xc, timer);
-    ierr = VecRestoreArray(*x_c, &p_xc); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
+    accfft_execute_c2r_t(this->m_FFTCoarsePlan, const_cast<ComplexType*>(this->m_XHatCoarse.ReadDevice()), p_xc, timer);
+    ierr = RestoreRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
 
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -907,9 +812,6 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief do setup for applying restriction operator
@@ -1049,9 +951,6 @@ PetscErrorCode Preprocessing::ComputeGridChangeIndices(IntType* nx_f, IntType* n
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief communicate indices
  *******************************************************************/
@@ -1069,43 +968,12 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
-    if (this->m_OffsetSend == NULL) {
-        try{this->m_OffsetSend = new IntType[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    if (this->m_OffsetRecv == NULL) {
-        try{this->m_OffsetRecv = new IntType[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_NumSend == NULL) {
-        try{this->m_NumSend = new IntType[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_NumRecv == NULL) {
-        try{this->m_NumRecv = new IntType[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_SendRequest == NULL) {
-        try{this->m_SendRequest = new MPI_Request[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_RecvRequest == NULL) {
-        try{this->m_RecvRequest = new MPI_Request[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
+    ierr = AllocateArrayOnce(this->m_OffsetSend, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_OffsetRecv, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_NumSend, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_NumRecv, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_SendRequest, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_RecvRequest, nprocs); CHKERRQ(ierr);
 
     // compute size to be allocated
     for (int p = 0; p < nprocs; ++p) {
@@ -1142,29 +1010,12 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
     // if we actually need to allocate something
     if (this->m_nAllocSend > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierIndicesSendF != NULL) {
-                delete [] this->m_FourierIndicesSendF;
-                this->m_FourierIndicesSendF=NULL;
-            }
-            if (this->m_FourierIndicesSendC != NULL) {
-                delete [] this->m_FourierIndicesSendC;
-                this->m_FourierIndicesSendC=NULL;
-            }
+            ierr = FreeArray(this->m_FourierIndicesSendC); CHKERRQ(ierr);
+            ierr = FreeArray(this->m_FourierIndicesSendF); CHKERRQ(ierr);
         }
 
-        if (this->m_FourierIndicesSendF==NULL) {
-            try{this->m_FourierIndicesSendF = new IntType[this->m_nAllocSend*3];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-
-        if (this->m_FourierIndicesSendC==NULL) {
-            try{this->m_FourierIndicesSendC = new IntType[this->m_nAllocSend*3];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateArrayOnce(this->m_FourierIndicesSendC, this->m_nAllocSend*3); CHKERRQ(ierr);
+        ierr = AllocateArrayOnce(this->m_FourierIndicesSendF, this->m_nAllocSend*3); CHKERRQ(ierr);
 
         // assign indices accross all procs
         for (int p = 0; p < nprocs; ++p) {
@@ -1205,29 +1056,12 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
     // allocate receiving array
     if (this->m_nAllocRecv > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierIndicesRecvF != NULL) {
-                delete [] this->m_FourierIndicesRecvF;
-                this->m_FourierIndicesRecvF = NULL;
-            }
-
-            if (this->m_FourierIndicesRecvC != NULL) {
-                delete [] this->m_FourierIndicesRecvC;
-                this->m_FourierIndicesRecvC = NULL;
-            }
+            ierr = FreeArray(this->m_FourierIndicesRecvF); CHKERRQ(ierr);
+            ierr = FreeArray(this->m_FourierIndicesRecvC); CHKERRQ(ierr);
         }
 
-        if (this->m_FourierIndicesRecvF == NULL) {
-            try{this->m_FourierIndicesRecvF = new IntType[this->m_nAllocRecv*3];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
-        if (this->m_FourierIndicesRecvC == NULL) {
-            try{this->m_FourierIndicesRecvC = new IntType[this->m_nAllocRecv*3];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateArrayOnce(this->m_FourierIndicesRecvF, this->m_nAllocRecv*3); CHKERRQ(ierr);
+        ierr = AllocateArrayOnce(this->m_FourierIndicesRecvC, this->m_nAllocRecv*3); CHKERRQ(ierr);
     } // alloc
 
     // for all procs, send indices
@@ -1239,7 +1073,7 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
         ns = this->m_NumSend[i];
         os_send = this->m_OffsetSend[i];
         if (ns > 0) {
-            ierr = Assert(&this->m_FourierIndicesSendF[3*os_send] != NULL, "null pointer"); CHKERRQ(ierr);
+            ierr = Assert(&this->m_FourierIndicesSendF[3*os_send] != nullptr, "null pointer"); CHKERRQ(ierr);
             merr = MPI_Isend(&this->m_FourierIndicesSendF[3*os_send],
                              3*ns, MPIU_INT, i_send, 0, PETSC_COMM_WORLD,
                              &this->m_SendRequest[i_send]);
@@ -1249,7 +1083,7 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
         nr = this->m_NumRecv[i];
         os_recv = this->m_OffsetRecv[i];
         if (nr > 0) {
-            ierr = Assert(&this->m_FourierIndicesRecvF[3*os_recv] != NULL, "null pointer"); CHKERRQ(ierr);
+            ierr = Assert(&this->m_FourierIndicesRecvF[3*os_recv] != nullptr, "null pointer"); CHKERRQ(ierr);
             merr = MPI_Irecv(&this->m_FourierIndicesRecvF[3*os_recv],
                              3*nr, MPIU_INT, i_recv, 0, PETSC_COMM_WORLD,
                              &this->m_RecvRequest[i_recv]);
@@ -1312,9 +1146,6 @@ PetscErrorCode Preprocessing::GridChangeCommIndices() {
     PetscFunctionReturn(0);
 }
 
-
-
-
 /********************************************************************
  * @brief do setup for applying restriction operator
  * @param nx_c grid size on coarse grid
@@ -1333,40 +1164,21 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     MPI_Comm_size(PETSC_COMM_WORLD,&nprocs);
 
-    ierr = Assert(this->m_OffsetSend != NULL, "error in setup"); CHKERRQ(ierr);
-    ierr = Assert(this->m_OffsetRecv != NULL, "error in setup"); CHKERRQ(ierr);
-    ierr = Assert(this->m_NumSend != NULL, "error in setup"); CHKERRQ(ierr);
-    ierr = Assert(this->m_NumRecv != NULL, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OffsetSend != nullptr, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OffsetRecv != nullptr, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumSend != nullptr, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumRecv != nullptr, "error in setup"); CHKERRQ(ierr);
 
-    if (this->m_SendRequest == NULL) {
-        try{this->m_SendRequest = new MPI_Request[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_RecvRequest == NULL) {
-        try{this->m_RecvRequest = new MPI_Request[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
+    ierr = AllocateArrayOnce(this->m_SendRequest, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_RecvRequest, nprocs); CHKERRQ(ierr);
 
     // if we actually need to allocate something
     if (this->m_nAllocSend > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierCoeffSendF != NULL) {
-                delete [] this->m_FourierCoeffSendF;
-                this->m_FourierCoeffSendF = NULL;
-            }
+            ierr = FreeArray(this->m_FourierCoeffSendF); CHKERRQ(ierr);
         }
 
-        if (this->m_FourierCoeffSendF == NULL) {
-            try{this->m_FourierCoeffSendF = new ScalarType[this->m_nAllocSend*2];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateArrayOnce(this->m_FourierCoeffSendF, this->m_nAllocSend*2); CHKERRQ(ierr);
 
         for (int p = 0; p < nprocs; ++p) {
             n = this->m_NumSend[p];
@@ -1399,19 +1211,11 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
 
     if (this->m_nAllocRecv > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierCoeffRecvF != NULL) {
-                delete [] this->m_FourierCoeffRecvF;
-                this->m_FourierCoeffRecvF=NULL;
-            }
+            ierr = FreeArray(this->m_FourierCoeffRecvF); CHKERRQ(ierr);
         }
-        if (this->m_FourierCoeffRecvF == NULL) {
-            try{this->m_FourierCoeffRecvF = new ScalarType[this->m_nAllocRecv*2];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        
+        ierr = AllocateArrayOnce(this->m_FourierCoeffRecvF, this->m_nAllocRecv*2); CHKERRQ(ierr);
     }
-
 
     // send and recv fourier coefficients on fine grid
     for (int i = 0; i < nprocs; ++i) {
@@ -1452,9 +1256,6 @@ PetscErrorCode Preprocessing::GridChangeCommDataRestrict() {
     PetscFunctionReturn(0);
 }
 
-
-
-
 /********************************************************************
  * @brief communicate data for prolongation (this is the transpose
  * of the restriction operator); we define the restriction as the
@@ -1476,39 +1277,20 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
-    ierr = Assert(this->m_NumSend != NULL, "error in setup"); CHKERRQ(ierr);
-    ierr = Assert(this->m_NumRecv != NULL, "error in setup"); CHKERRQ(ierr);
-    ierr = Assert(this->m_OffsetSend != NULL, "error in setup"); CHKERRQ(ierr);
-    ierr = Assert(this->m_OffsetRecv != NULL, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumSend != nullptr, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_NumRecv != nullptr, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OffsetSend != nullptr, "error in setup"); CHKERRQ(ierr);
+    ierr = Assert(this->m_OffsetRecv != nullptr, "error in setup"); CHKERRQ(ierr);
 
-    if (this->m_SendRequest == NULL) {
-        try{this->m_SendRequest = new MPI_Request[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-    if (this->m_RecvRequest == NULL) {
-        try{this->m_RecvRequest = new MPI_Request[nprocs];}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
+    ierr = AllocateArrayOnce(this->m_SendRequest, nprocs); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(this->m_RecvRequest, nprocs); CHKERRQ(ierr);
 
     // if we actually need to allocate something
     if (this->m_nAllocRecv > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierCoeffSendC != NULL) {
-                delete [] this->m_FourierCoeffSendC;
-                this->m_FourierCoeffSendC = NULL;
-            }
+            Free(this->m_FourierCoeffSendC);
         }
-        if (this->m_FourierCoeffSendC == NULL) {
-            try{this->m_FourierCoeffSendC = new ScalarType[this->m_nAllocRecv*2];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateArrayOnce(this->m_FourierCoeffSendC, this->m_nAllocRecv*2); CHKERRQ(ierr);
 
         for (int p = 0; p < nprocs; ++p) {
             n = this->m_NumRecv[p];
@@ -1541,18 +1323,10 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
 
     if (this->m_nAllocSend > 0) {
         if (this->m_ResetGridChangeOps) {
-            if (this->m_FourierCoeffRecvC != NULL) {
-                delete [] this->m_FourierCoeffRecvC;
-                this->m_FourierCoeffRecvC = NULL;
-            }
+            ierr = FreeArray(this->m_FourierCoeffRecvC); CHKERRQ(ierr);
         }
 
-        if (this->m_FourierCoeffRecvC == NULL) {
-            try{this->m_FourierCoeffRecvC = new ScalarType[this->m_nAllocSend*2];}
-            catch (std::bad_alloc&) {
-                ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateArrayOnce(this->m_FourierCoeffRecvC, this->m_nAllocSend*2); CHKERRQ(ierr);
     }
 
     // send and recv fourier coefficients on fine grid
@@ -1594,9 +1368,6 @@ PetscErrorCode Preprocessing::GridChangeCommDataProlong() {
     PetscFunctionReturn(0);
 }
 
-
-
-
 /********************************************************************
  * @brief prolong vector field
  * @param vcoarse input vector field
@@ -1608,8 +1379,8 @@ PetscErrorCode Preprocessing::Prolong(VecField* v_f, VecField* v_c, IntType* nx_
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(v_f != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(v_c != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(v_f != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(v_c != nullptr, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->Prolong(&v_f->m_X1, v_c->m_X1, nx_f, nx_c); CHKERRQ(ierr);
     ierr = this->Prolong(&v_f->m_X2, v_c->m_X2, nx_f, nx_c); CHKERRQ(ierr);
@@ -1619,9 +1390,6 @@ PetscErrorCode Preprocessing::Prolong(VecField* v_f, VecField* v_c, IntType* nx_
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief prolong scalar field
@@ -1637,7 +1405,8 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     PetscErrorCode ierr = 0;
     int rank, nprocs;
     IntType l, n, ns, os_send, k_f[3], i_f[3], nyqfreqid[3];
-    ScalarType *p_xf = NULL, *p_xc = NULL, scale, coeff[2], value;
+    ScalarType *p_xf = nullptr, scale, coeff[2], value;
+    const ScalarType *p_xc = nullptr;
     std::stringstream ss;
     double timer[NFFTTIMERS] = {0};
 
@@ -1648,8 +1417,8 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 
-    ierr = Assert(x_c != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(x_f != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x_c != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x_f != nullptr, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
         ss << "applying prolongation operator [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]"
@@ -1682,6 +1451,8 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     n  = this->m_osizeF[0];
     n *= this->m_osizeF[1];
     n *= this->m_osizeF[2];
+    
+    ierr = this->m_XHatFine.AllocateHost(); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -1695,9 +1466,10 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 } // pragma omp parallel
 
     // compute fft of data on fine grid
-    ierr = VecGetArray(x_c, &p_xc); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_FFTCoarsePlan, p_xc, this->m_XHatCoarse, timer);
-    ierr = VecRestoreArray(x_c, &p_xc); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
+    accfft_execute_r2c_t(this->m_FFTCoarsePlan, const_cast<ScalarType*>(p_xc), this->m_XHatCoarse.WriteDevice(), timer);
+    ierr = RestoreRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
+    ierr = this->m_XHatCoarse.CopyDeviceToHost(); CHKERRQ(ierr);
 
     // compute indices for mapping from coarse grid to fine grid
     if (!this->m_GridChangeIndicesComputed) {
@@ -1757,10 +1529,9 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
         }
     }
 
-
-    ierr = VecGetArray(*x_f, &p_xf); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_FFTFinePlan, this->m_XHatFine, p_xf, timer);
-    ierr = VecRestoreArray(*x_f, &p_xf); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
+    accfft_execute_c2r_t(this->m_FFTFinePlan, const_cast<ComplexType*>(this->m_XHatFine.ReadDevice()), p_xf, timer);
+    ierr = RestoreRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
 
     // set fft timeri
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -1772,10 +1543,6 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 
     PetscFunctionReturn(ierr);
 }
-
-
-
-
 
 /********************************************************************
  * @brief apply cutoff frequency filter
@@ -1799,9 +1566,6 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(VecField* vflt, VecField* v, S
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief apply cutoff frequency filter
  * @param xflt output/filtered x
@@ -1812,7 +1576,8 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(VecField* vflt, VecField* v, S
 PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pct, bool lowpass) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
-    ScalarType *p_x = NULL, *p_xflt = NULL;
+    ScalarType *p_xflt = nullptr;
+    const ScalarType *p_x = nullptr;
     ScalarType nxhalf[3], scale, cfreq[3][2], indicator[2], indic;
     int nx[3];
     double timer[NFFTTIMERS] = {0};
@@ -1821,8 +1586,8 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xflt != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xflt != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(pct >= 0.0 && pct <= 1.0, "parameter error"); CHKERRQ(ierr);
 
     if (pct == 1.0 && lowpass) {
@@ -1846,9 +1611,11 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     nalloc = this->m_Opt->m_FFT.nalloc;
 
     // allocate
-    if (this->m_xhat == NULL) {
+    /*if (this->m_xhat == nullptr) {
         this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
+    }*/
+    ierr = this->m_XHat.Resize(nalloc); CHKERRQ(ierr);
+    ierr = this->m_XHat.AllocateHost(); CHKERRQ(ierr);
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
@@ -1858,9 +1625,10 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     scale = this->m_Opt->ComputeFFTScale();
 
     // compute fft
-    ierr = VecGetArray(x,&p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x, this->m_xhat, timer);
-    ierr = VecRestoreArray(x,&p_x); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
+    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(p_x), this->m_XHat.WriteDevice(), timer);
+    ierr = RestoreRawPointerRead(x, &p_x); CHKERRQ(ierr);
+    ierr = this->m_XHat.CopyDeviceToHost(); CHKERRQ(ierr);
 
     // compute cutoff frequency
     cfreq[0][0] = pct*(nxhalf[0]-1);
@@ -1895,11 +1663,11 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
                 li = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
                 if (indic == 0) {
-                    this->m_xhat[li][0] = 0.0;
-                    this->m_xhat[li][1] = 0.0;
+                    this->m_XHat[li][0] = 0.0;
+                    this->m_XHat[li][1] = 0.0;
                 } else {
-                    this->m_xhat[li][0] *= scale;
-                    this->m_xhat[li][1] *= scale;
+                    this->m_XHat[li][0] *= scale;
+                    this->m_XHat[li][1] *= scale;
                 }
             } // i1
         } // i2
@@ -1907,11 +1675,10 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
 } // pragma omp parallel
 
-
     // compute inverse fft
-    ierr = VecGetArray(xflt, &p_xflt); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_xhat, p_xflt, timer);
-    ierr = VecRestoreArray(xflt, &p_xflt); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(xflt, &p_xflt); CHKERRQ(ierr);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, const_cast<ComplexType*>(this->m_XHat.ReadDevice()), p_xflt, timer);
+    ierr = RestoreRawPointerWrite(xflt, &p_xflt); CHKERRQ(ierr);
 
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -1924,9 +1691,6 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
@@ -1937,8 +1701,8 @@ PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x, IntType nc) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xs != nullptr, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->GaussianSmoothing(xs, x, nc); CHKERRQ(ierr);
 
@@ -1947,9 +1711,6 @@ PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x, IntType nc) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
  * @brief apply gaussian smoothing operator to input data
  *******************************************************************/
@@ -1957,7 +1718,8 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     PetscErrorCode ierr = 0;
     IntType nalloc, nl;
     std::stringstream ss;
-    ScalarType *p_x = NULL, *p_xs = NULL, c[3], scale; //, nx[3];
+    ScalarType *p_xs = nullptr, c[3], scale; //, nx[3];
+    const ScalarType *p_x = nullptr;
     int nx[3];
     double timer[NFFTTIMERS] = {0};
 
@@ -1965,17 +1727,19 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xs != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xs != nullptr, "null pointer"); CHKERRQ(ierr);
 
     // get local pencil size and allocation size
     nl     = this->m_Opt->m_Domain.nl;
     nalloc = this->m_Opt->m_FFT.nalloc;
     scale  = this->m_Opt->ComputeFFTScale();
 
-    if (this->m_xhat == NULL) {
-        this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-    }
+    //if (this->m_xhat == nullptr) {
+    //    this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+    //}
+    ierr = this->m_XHat.Resize(nalloc/sizeof(ComplexType)); CHKERRQ(ierr);
+    ierr = this->m_XHat.AllocateDevice(); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "applying smoothing: ("
@@ -1997,9 +1761,10 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     for (IntType k = 0; k < nc; ++k) {
         // compute fft
         //ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-        ierr = GetRawPointer(x, &p_x); CHKERRQ(ierr);
-        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x + k*nl, this->m_xhat, timer);
-        ierr = RestoreRawPointer(x, &p_x); CHKERRQ(ierr);
+        ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
+        accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(p_x + k*nl), this->m_XHat.WriteDevice(), timer);
+        ierr = RestoreRawPointerRead(x, &p_x); CHKERRQ(ierr);
+        ierr = this->m_XHat.CopyDeviceToHost(); CHKERRQ(ierr);
         //ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
 #pragma omp parallel
 {
@@ -2027,19 +1792,19 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
                     // compute linear / flat index
                     li = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
 
-                    this->m_xhat[li][0] *= scale*sik;
-                    this->m_xhat[li][1] *= scale*sik;
+                    this->m_XHat[li][0] *= scale*sik;
+                    this->m_XHat[li][1] *= scale*sik;
                 }  // i1
             }  // i2
         }  // i3
 }  // pragma omp parallel
         //ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
-        ierr = GetRawPointer(xs, &p_xs); CHKERRQ(ierr);
-        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_xhat, p_xs + k*nl, timer);
+        ierr = GetRawPointerReadWrite(xs, &p_xs); CHKERRQ(ierr);
+        accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, const_cast<ComplexType*>(this->m_XHat.ReadDevice()), p_xs + k*nl, timer);
         //ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
-        ierr = RestoreRawPointer(xs, &p_xs); CHKERRQ(ierr);
+        ierr = RestoreRawPointerReadWrite(xs, &p_xs); CHKERRQ(ierr);
     }
-
+    
     // increment fft timer
     this->m_Opt->IncreaseFFTTimers(timer);
     this->m_Opt->IncrementCounter(FFT, 2);
@@ -2049,12 +1814,6 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 }  // namespace reg
-
-
-
 
 #endif   // _PREPROCESSING_CPP_

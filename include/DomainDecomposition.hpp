@@ -39,7 +39,7 @@ public:
 
     DomainDecomposition();
     DomainDecomposition(RegOpt*);
-    ~DomainDecomposition();
+    virtual ~DomainDecomposition();
 
     PetscErrorCode CompositionData(Vec,unsigned int,std::string);
     PetscErrorCode CompositionTimeDependentData(Vec,unsigned int,std::string);

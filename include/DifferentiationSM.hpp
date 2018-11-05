@@ -23,6 +23,7 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "Differentiation.hpp"
+#include "DifferentiationKernel.hpp"
 
 namespace reg {
 
@@ -36,7 +37,7 @@ class DifferentiationSM : public Differentiation {
 
     DifferentiationSM();
     DifferentiationSM(RegOpt*);
-    ~DifferentiationSM();
+    virtual ~DifferentiationSM();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, const ScalarType*);
     virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*);
@@ -48,14 +49,24 @@ class DifferentiationSM : public Differentiation {
     virtual PetscErrorCode Divergence(ScalarType*, VecField*);
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*);
+    
+    virtual PetscErrorCode Laplacian(VecField*, VecField*, ScalarType=-1.0, ScalarType=0.0);
+    virtual PetscErrorCode Bilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
+    virtual PetscErrorCode InverseBilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
+    virtual PetscErrorCode InverseBilaplacianSqrt(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
+    
+    virtual PetscErrorCode SetupSpectralData(ComplexType*, ComplexType*, ComplexType*);
 
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    DifferentiationKernel::VectorField m_VecFieldKernel;
     std::bitset<3> xyz;
     double timer[NFFTTIMERS];
     int c_grad;
     int c_div;
+    
+    ComplexType *m_XHat[3];
 };
 
 

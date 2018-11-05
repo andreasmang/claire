@@ -311,7 +311,6 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     // allocate state variable
     ierr = Allocate(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
     
-    DBGCHK();
     
     // copy m_0 to m(t=0)
     ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
@@ -476,8 +475,6 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     // allocate state variable
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, 0.0, true, true); CHKERRQ(ierr);
     
-    DBGCHK();
-
     // copy memory for m_1
     ierr = GetRawPointer(m1, &p_m1); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -767,12 +764,9 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // which is assigned to work vecfield 2
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
 
-    DBGCHK();
-
     // evaluate gradient of regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     
-    DBGCHK();
     if (this->m_VelocityIsZero) {
         // \vect{g}_v = \D{K}[\vect{b}]
         if (g != NULL) {
@@ -807,8 +801,6 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
             }
         }
     }
-
-    DBGCHK();
 
     // parse to output
     if (g != NULL) {
@@ -852,13 +844,9 @@ PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
     // evaluate / apply gradient operator for regularization
     ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
     
-    DBGCHK();
-    
     // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
     
-    DBGCHK();
-
     // copy
     if (g != NULL) {
       ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
@@ -1676,20 +1664,14 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
 
-    ierr = this->m_TransportProblem->SolveAdjointProblem();
+    ierr = this->m_TransportProblem->SolveAdjointProblem(); CHKERRQ(ierr);
     
-    DBGCHK();
-
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
     
-    DBGCHK();
-
     // scale result by hd
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
     
-    DBGCHK();
-
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMin(*this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
@@ -1872,8 +1854,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     ierr = this->m_TransportProblem->SolveIncForwardProblem(); CHKERRQ(ierr);
     
-    DBGCHK();
-
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(*this->m_IncStateVariable, NULL, &maxval); CHKERRQ(ierr);
@@ -1917,8 +1897,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
 
     PetscFunctionBegin;
     
-    DBGCHK();
-
     this->m_Opt->Enter(__func__);
     
     DebugGPUStartEvent(__FUNCTION__);
@@ -1951,8 +1929,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     // allocate state and adjoint variables
     ierr = AllocateOnce(this->m_IncAdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
     
-    DBGCHK();
-
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
@@ -1960,10 +1936,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
-    DBGCHK();
     ierr = this->m_DistanceMeasure->SetFinalConditionIAE(); CHKERRQ(ierr);
-    
-    DBGCHK();
     
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
@@ -1973,12 +1946,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
     
-    DBGCHK();
-    
     ierr = this->m_TransportProblem->SolveIncAdjointProblem(); CHKERRQ(ierr);
     
-    DBGCHK();
-
     // apply K[\tilde{b}]
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 

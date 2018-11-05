@@ -85,7 +85,7 @@ PetscErrorCode CLAIREStokes::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_x1hat != NULL) {
+/*    if (this->m_x1hat != NULL) {
         accfft_free(this->m_x1hat);
         this->m_x1hat = NULL;
     }
@@ -96,7 +96,10 @@ PetscErrorCode CLAIREStokes::ClearMemory() {
     if (this->m_x3hat != NULL) {
         accfft_free(this->m_x3hat);
         this->m_x3hat = NULL;
-    }
+    }*/
+    Free(this->m_x1hat);
+    Free(this->m_x2hat);
+    Free(this->m_x3hat);
 
     PetscFunctionReturn(ierr);
 }
@@ -460,12 +463,12 @@ PetscErrorCode CLAIREStokes::ApplyProjection() {
 
                 // compute div(b)
                 this->m_x1hat[i][0] = -scale*(gradik1*x1hat[0]
-                                             + gradik2*x2hat[0]
-                                             + gradik3*x3hat[0]);
+                                                     + gradik2*x2hat[0]
+                                                     + gradik3*x3hat[0]);
 
                 this->m_x1hat[i][1] =  scale*(gradik1*x1hat[1]
-                                             + gradik2*x2hat[1]
-                                             + gradik3*x3hat[1]);
+                                                    + gradik2*x2hat[1]
+                                                    + gradik3*x3hat[1]);
 
                 // compute lap^{-1} div(b)
                 this->m_x1hat[i][0] *= lapinvik;

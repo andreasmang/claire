@@ -630,8 +630,11 @@ PetscErrorCode VecField::SetComponents(Vec w) {
     ierr = Assert(this->m_X2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_X3 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = GetRawPointerRead(w, &p_w); CHKERRQ(ierr);
-    ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(w, &p_w); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+    //ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
     nl = n / 3;
@@ -647,8 +650,11 @@ PetscErrorCode VecField::SetComponents(Vec w) {
     }
 }  // pragma omp parallel
 
-    ierr = RestoreRawPointerRead(w, &p_w); CHKERRQ(ierr);
-    ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(w, &p_w); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+    //ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -663,15 +669,18 @@ PetscErrorCode VecField::SetComponents(Vec w) {
 PetscErrorCode VecField::GetComponents(Vec w) {
     PetscErrorCode ierr = 0;
     IntType nl, n;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, *p_w = NULL;
+    ScalarType *p_w = NULL;
+    const ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
 
     PetscFunctionBegin;
 
     // get local size of vector field
     ierr = VecGetLocalSize(w, &n); CHKERRQ(ierr);
 
-    ierr = GetRawPointer(w, &p_w); CHKERRQ(ierr);
-    ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = VecGetArray(w, &p_w); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
     nl = n / 3;
@@ -686,8 +695,10 @@ PetscErrorCode VecField::GetComponents(Vec w) {
     }
 }  // pragma omp parallel
 
-    ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(w, &p_w); CHKERRQ(ierr);
+    ierr = VecRestoreArray(w, &p_w); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

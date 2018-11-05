@@ -64,7 +64,7 @@ class RegToolsOpt : public RegOpt {
     RegToolsOpt();
     RegToolsOpt(int, char**);
     RegToolsOpt(const RegToolsOpt&);
-    ~RegToolsOpt();
+    virtual ~RegToolsOpt();
 
     std::string GetVecFieldFN(int, int);
     std::string GetScaFieldFN(int);

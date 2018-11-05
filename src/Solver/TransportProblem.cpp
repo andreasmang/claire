@@ -381,7 +381,7 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
     ierr = this->m_WorkVecField[1]->RestoreArrays(); CHKERRQ(ierr);
     ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
     ierr = this->m_TemplateImage->RestoreArray(); CHKERRQ(ierr);
-    ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
   
     this->m_Opt->Exit(__func__);
 

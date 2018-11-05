@@ -47,7 +47,7 @@ class CLAIREInterface {
     typedef CLAIREBase RegProblemType;
 
     CLAIREInterface();
-    ~CLAIREInterface();
+    virtual ~CLAIREInterface();
     CLAIREInterface(RegOpt*);
 
     PetscErrorCode Run();

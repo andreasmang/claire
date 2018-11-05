@@ -143,6 +143,19 @@ struct TransportKernelIncStateRK2 {
   PetscErrorCode TimeIntegrationPart2();
 };
 
+struct TransportKernelContinuity {
+  ScalarType *pMx;
+  ScalarType *pDivV;
+  ScalarType *pDivVx;
+  ScalarType *pMnext;
+  
+  ScalarType ht;
+  
+  IntType nl;
+  
+  PetscErrorCode TimeIntegration();
+};
+
 template<typename T>
 PetscErrorCode TransportKernelCopy(T*, T*, IntType);
 

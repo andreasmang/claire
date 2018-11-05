@@ -164,21 +164,33 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     Free(this->m_WorkVecField4);
     Free(this->m_WorkVecField5);
 
-    if (this->m_x1hat != NULL) {
-        //accfft_free(this->m_x1hat);
+    FreeMemory(this->m_x1hat);
+    FreeMemory(this->m_x2hat);
+    FreeMemory(this->m_x3hat);
+    /*if (this->m_x1hat != NULL) {
+#ifndef REG_HAS_CUDA
+        accfft_free(this->m_x1hat);
+#else
         cudaFree(this->m_x1hat);
+#endif
         this->m_x1hat = NULL;
     }
     if (this->m_x2hat != NULL) {
-        //accfft_free(this->m_x2hat);
+#ifndef REG_HAS_CUDA
+        accfft_free(this->m_x2hat);
+#else
         cudaFree(this->m_x2hat);
+#endif
         this->m_x2hat = NULL;
     }
     if (this->m_x3hat != NULL) {
-        //accfft_free(this->m_x3hat);
+#ifndef REG_HAS_CUDA
+        accfft_free(this->m_x3hat);
+#else
         cudaFree(this->m_x3hat);
+#endif
         this->m_x3hat = NULL;
-    }
+    }*/
 
     PetscFunctionReturn(ierr);
 }
@@ -196,18 +208,30 @@ PetscErrorCode CLAIREBase::SetupSpectralData() {
 
     nalloc = this->m_Opt->m_FFT.nalloc;
     
-    if (this->m_x1hat == NULL) {
-        //this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+    ierr = AllocateMemoryOnce(this->m_x1hat, nalloc); CHKERRQ(ierr);
+    ierr = AllocateMemoryOnce(this->m_x2hat, nalloc); CHKERRQ(ierr);
+    ierr = AllocateMemoryOnce(this->m_x3hat, nalloc); CHKERRQ(ierr);
+    /*if (this->m_x1hat == NULL) {
+#ifndef REG_HAS_CUDA
+        this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+#else
         cudaMalloc(reinterpret_cast<void**>(&this->m_x1hat), nalloc);
+#endif
     }
     if (this->m_x2hat == NULL) {
-        //this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+#ifndef REG_HAS_CUDA
+        this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+#else
         cudaMalloc(reinterpret_cast<void**>(&this->m_x2hat), nalloc);
+#endif
     }
     if (this->m_x3hat == NULL) {
-        //this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+#ifndef REG_HAS_CUDA
+        this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+#else
         cudaMalloc(reinterpret_cast<void**>(&this->m_x3hat), nalloc);
-    }
+#endif
+    }*/
 
     PetscFunctionReturn(ierr);
 }
@@ -365,6 +389,7 @@ PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
 
     ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
 //    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+
     ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
 //    this->m_VelocityField = v;
@@ -729,12 +754,13 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
     }
 
     ierr = this->m_Regularization->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+    ierr = this->m_Regularization->SetSpectralData(nullptr, nullptr, nullptr); CHKERRQ(ierr);
 
     // set the containers for the spectral data
-    ierr = this->SetupSpectralData(); CHKERRQ(ierr);
+    /*ierr = this->SetupSpectralData(); CHKERRQ(ierr);
     ierr = this->m_Regularization->SetSpectralData(this->m_x1hat,
                                                    this->m_x2hat,
-                                                   this->m_x3hat); CHKERRQ(ierr);
+                                                   this->m_x3hat); CHKERRQ(ierr);*/
 
     this->m_Opt->Exit(__func__);
 
@@ -991,9 +1017,10 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
     }
 
     ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+    
     ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField2, this->m_WorkVecField1, flag); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
-
+  
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

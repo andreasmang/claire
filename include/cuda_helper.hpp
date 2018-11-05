@@ -5,19 +5,22 @@
 
 #include <cuda_runtime.h>
 
-#define cudaCheckError(ans) { cudaAssert((ans), __FILE__, __LINE__); }
-#define cudaCheckKernelError() { cudaCheckError(cudaPeekAtLastError()); }
-#define cudaCheckLastError() { cudaCheckError(cudaGetLastError()); }
-inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true) {
-   if (code != cudaSuccess) {
-      fprintf(stderr,"CUDA Error: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
+#define cudaCheckError(ans) cudaAssert((ans), __FILE__, __LINE__,false)
+#define cudaCheckKernelError() cudaCheckError(cudaPeekAtLastError())
+#define cudaCheckLastError() cudaCheckError(cudaGetLastError())
+
+inline int cudaAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+  if (code != cudaSuccess) {
+    fprintf(stderr,"CUDA Error: %s %s %d\n", cudaGetErrorString(code), file, line);
+    if (abort) exit(code);
+    return code;
+  }
+  return 0;
 }
 
 inline void cudaPrintDeviceMemory(int dev=0) {
-  size_t free_mem ;
-  size_t total_mem ;
+  size_t free_mem;
+  size_t total_mem;
 
   cudaSetDevice(dev);
   cudaMemGetInfo(&free_mem, &total_mem);

@@ -37,7 +37,7 @@ class CLAIREDivReg : public CLAIRE {
 
     CLAIREDivReg();
     CLAIREDivReg(RegOpt*);
-    ~CLAIREDivReg();
+    virtual ~CLAIREDivReg();
 
  protected:
     /*! init class variables (called by constructor) */

@@ -37,7 +37,7 @@ class RegularizationH1SN : public Regularization {
 
     RegularizationH1SN(void);
     RegularizationH1SN(RegOpt*);
-    ~RegularizationH1SN(void);
+    virtual ~RegularizationH1SN(void);
 
     virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
     virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);

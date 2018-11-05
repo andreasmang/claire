@@ -127,13 +127,18 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
 
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
-
+    
     try {registration = new reg::CLAIRE(opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
     }
+    DBGCHK();
+
     ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
 
+    DBGCHK();
+
+    
     ierr = reg::DbgMsg("run forward solver benchmarck"); CHKERRQ(ierr);
 
     // warm start

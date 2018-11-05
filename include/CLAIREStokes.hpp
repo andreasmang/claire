@@ -38,7 +38,7 @@ class CLAIREStokes : public CLAIRE {
 
     CLAIREStokes();
     CLAIREStokes(RegOpt*);
-    ~CLAIREStokes();
+    virtual ~CLAIREStokes();
 
  protected:
     /*! init class variables (called by constructor) */

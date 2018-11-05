@@ -32,7 +32,7 @@ class ScaField {
     ScaField(RegOpt*, bool=false, bool=false);
     ScaField(RegOpt*, ScalarType, bool=false, bool=false);
     ScaField(RegOpt*, Vec, bool=false, bool=false);
-    ~ScaField();
+    virtual ~ScaField();
     
     PetscErrorCode SetVector(Vec);
     PetscErrorCode SetSize(IntType, IntType, IntType=1, IntType=1);

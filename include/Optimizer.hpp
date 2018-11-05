@@ -36,7 +36,7 @@ class Optimizer {
     typedef OptimizationProblem OptProbType;
 
     Optimizer();
-    ~Optimizer();
+    virtual ~Optimizer();
     Optimizer(RegOpt*);
 
     PetscErrorCode SetProblem(OptProbType*);

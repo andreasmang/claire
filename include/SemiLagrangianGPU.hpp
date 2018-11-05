@@ -49,7 +49,7 @@ public:
 
     SemiLagrangianGPU();
     SemiLagrangianGPU(RegOpt*);
-    ~SemiLagrangianGPU();
+    virtual ~SemiLagrangianGPU();
 
     PetscErrorCode ComputeTrajectory(VecField*,std::string);
 

@@ -50,6 +50,11 @@ class DifferentiationFD : public Differentiation {
     virtual PetscErrorCode Divergence(ScalarType*, VecField*);
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*);
+    
+    virtual PetscErrorCode Laplacian(VecField*, VecField*, ScalarType=-1.0, ScalarType=0.0);
+    virtual PetscErrorCode Bilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
+    virtual PetscErrorCode InverseBilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
+    virtual PetscErrorCode InverseBilaplacianSqrt(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
 
  protected:
     PetscErrorCode Initialize();

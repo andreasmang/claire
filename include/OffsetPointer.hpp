@@ -27,10 +27,12 @@ template<typename T>
 class OffsetPointer {
  public:
   OffsetPointer() : m_RawPointer(nullptr), m_Offset(0) {};
-  ~OffsetPointer() {}
+  virtual ~OffsetPointer() {}
   
   T*& raw() { return m_RawPointer; }
   T* ptr() { return m_RawPointer + m_Offset; }
+  
+  T& operator [] (IntType idx) { return m_RawPointer[m_Offset + idx]; }
   
   operator T*() const { return m_RawPointer + m_Offset; }
   operator T**() { return &m_RawPointer; }

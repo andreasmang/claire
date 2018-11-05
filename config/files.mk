@@ -4,45 +4,52 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/ghost.cpp \
-		$(SRCDIR)/interp3.cpp \
-		$(SRCDIR)/Interp3_Plan.cpp \
-		$(SRCDIR)/Differentiation.cpp \
-		$(SRCDIR)/DifferentiationFD.cpp \
-		$(SRCDIR)/DifferentiationSM.cpp \
+		$(SRCDIR)/Interpolation/interp3.cpp \
+		$(SRCDIR)/Interpolation/Interp3_Plan.cpp \
+		$(SRCDIR)/Differentiation/Differentiation.cpp \
+		$(SRCDIR)/Differentiation/DifferentiationKernel.cpp \
+		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \
+		$(SRCDIR)/Differentiation/DifferentiationSM.cpp \
+		$(SRCDIR)/ScaField.cpp \
 		$(SRCDIR)/VecField.cpp \
 		$(SRCDIR)/TenField.cpp \
 		$(SRCDIR)/ReadWriteReg.cpp \
 		$(SRCDIR)/SynProbRegistration.cpp \
-		$(SRCDIR)/TransportProblem.cpp \
-		$(SRCDIR)/TransportEquation.cpp \
-		$(SRCDIR)/ContinuityEquation.cpp \
+		$(SRCDIR)/Solver/TransportProblem.cpp \
+		$(SRCDIR)/Solver/TransportEquationSL.cpp \
+		$(SRCDIR)/Solver/TransportEquationRK2.cpp \
+		$(SRCDIR)/Solver/TransportKernel.cpp \
+		$(SRCDIR)/Solver/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields.cpp \
-		$(SRCDIR)/DistanceMeasure.cpp \
-		$(SRCDIR)/DistanceMeasureNCC.cpp \
-		$(SRCDIR)/DistanceMeasureSL2.cpp \
-		$(SRCDIR)/DistanceMeasureSL2aux.cpp \
-		$(SRCDIR)/SemiLagrangian.cpp \
+		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \
+		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cpp \
+		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \
+		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2.cpp \
+		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2aux.cpp \
+		$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/KrylovInterface.cpp \
 		$(SRCDIR)/TaoInterface.cpp \
 		$(SRCDIR)/CLAIREInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/Preconditioner.cpp \
-		$(SRCDIR)/Regularization.cpp \
-		$(SRCDIR)/RegularizationL2.cpp \
-		$(SRCDIR)/RegularizationH1.cpp \
-		$(SRCDIR)/RegularizationH2.cpp \
-		$(SRCDIR)/RegularizationH1SN.cpp \
-		$(SRCDIR)/RegularizationH2SN.cpp \
-		$(SRCDIR)/RegularizationH3.cpp \
-		$(SRCDIR)/RegularizationH3SN.cpp \
-		$(SRCDIR)/RegularizationKernel.cpp \
+		$(SRCDIR)/Regularization/Regularization.cpp \
+		$(SRCDIR)/Regularization/RegularizationL2.cpp \
+		$(SRCDIR)/Regularization/RegularizationH1.cpp \
+		$(SRCDIR)/Regularization/RegularizationH2.cpp \
+		$(SRCDIR)/Regularization/RegularizationH1SN.cpp \
+		$(SRCDIR)/Regularization/RegularizationH2SN.cpp \
+		$(SRCDIR)/Regularization/RegularizationH3.cpp \
+		$(SRCDIR)/Regularization/RegularizationH3SN.cpp \
+		$(SRCDIR)/Regularization/RegularizationKernel.cpp \
 		$(SRCDIR)/OptimizationProblem.cpp \
 		$(SRCDIR)/CLAIREBase.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
-		$(SRCDIR)/Preprocessing.cpp 
+		$(SRCDIR)/Preprocessing.cpp
+
+EXCPPFILES=
 
 EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
 
@@ -50,6 +57,7 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/Regularization/RegularizationKernel.cu \
 		$(SRCDIR)/CLAIREUtilsKernel.cu \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
+		$(SRCDIR)/Differentiation/DifferentiationKernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \

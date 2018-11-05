@@ -51,7 +51,7 @@ class DeformationFields {
 
     DeformationFields();
     DeformationFields(RegOpt*);
-    ~DeformationFields();
+    virtual ~DeformationFields();
 
     /*! set velocity field */
     PetscErrorCode SetVelocityField(VecField*);

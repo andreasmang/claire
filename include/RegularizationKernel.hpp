@@ -14,44 +14,32 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
+ *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATIONH2_H_
-#define _REGULARIZATIONH2_H_
+#ifndef _REGULARIZATION_HPP_
+#define _REGULARIZATION_HPP_
 
-#include "Regularization.hpp"
-
-
-
+#include "RegOpt.hpp"
+#include "CLAIREUtils.hpp"
 
 namespace reg {
+  
 
-
-
-
-class RegularizationH2 : public Regularization {
- public:
-    typedef Regularization SuperClass;
-    typedef RegularizationH2 Self;
-
-    RegularizationH2(void);
-    RegularizationH2(RegOpt*);
-    virtual ~RegularizationH2(void);
-
-    virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
-    virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);
-    virtual PetscErrorCode HessianMatVec(VecField*, VecField*);
-    virtual PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false);
-    virtual PetscErrorCode GetExtremeEigValsInvOp(ScalarType&, ScalarType&);
+template<int N> struct RegularizationKernel {
+  ScalarType *pXHat[3];
+  
+  IntType nx[3];
+  IntType nl[3];
+  IntType nstart[3];
+  
+  ScalarType beta0;  
+  ScalarType beta1;
+  ScalarType scale;
+  
+  PetscErrorCode EvaluateGradient();
+  PetscErrorCode EvaluateFunctional();
+  PetscErrorCode ApplyInverse(bool usesqrt);
 };
-
-
-
-
-} // end of namespace
-
-
-
-
-#endif
+  
+} // namespace reg

@@ -204,7 +204,7 @@ PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart3() {
 {
 #pragma omp for
   for (IntType i = 0; i < nl; ++i) {  // for all grid points
-      Scalar Type lambda = pL[i];
+      ScalarType lambda = pL[i];
       // second step of rk2 time integration
       pLnext[i] = lambda + 0.5*ht*(pRHS[0][i] + pRHS[1][i]);
 
@@ -226,7 +226,7 @@ PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart4() {
 {
 #pragma omp for
   for (IntType i = 0; i < nl; ++i) {  // for all grid points
-      Scalar Type lambda = pL[i];
+      ScalarType lambda = pL[i];
       // compute bodyforce
       pB[0][i] += 0.5*scale*pVec[0][i]*lambda;
       pB[1][i] += 0.5*scale*pVec[1][i]*lambda;
@@ -382,6 +382,27 @@ PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationPart2() {
       pMtnext[i] = pMt[i] + 0.5*ht*(rhs1 + pRHS[i]);
   }
 }  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelContinuity::TimeIntegration() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {
+      ScalarType mx = pMx[i];
+
+      ScalarType rhs0 = -mx*pDivVx[i];
+      ScalarType rhs1 = -(mx + ht*rhs0)*pDivV[i];
+      //if (std::abs(p_divv[i]) > 0.1) { std::cout << p_divv[i] << " ";}
+      // compute \lambda(x,t^{j+1})
+      pMnext[i] = mx + 0.5*ht*(rhs0 + rhs1);
+  }
+}
 
   PetscFunctionReturn(ierr);
 }

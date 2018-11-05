@@ -37,7 +37,7 @@ public:
     TenField(RegOpt*);
     TenField(RegOpt*,int);
     TenField(IntType,IntType);
-    ~TenField();
+    virtual ~TenField();
 
     PetscErrorCode Copy(TenField*);
     PetscErrorCode SetValue(ScalarType);

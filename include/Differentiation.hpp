@@ -46,6 +46,11 @@ class Differentiation {
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
     virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*) = 0;
     
+    virtual PetscErrorCode Laplacian(VecField*, VecField*, ScalarType=-1.0, ScalarType=0.0) = 0;
+    virtual PetscErrorCode Bilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0) = 0;
+    virtual PetscErrorCode InverseBilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0) = 0;
+    virtual PetscErrorCode InverseBilaplacianSqrt(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0) = 0;
+    
     const Type m_Type;
 
  protected:

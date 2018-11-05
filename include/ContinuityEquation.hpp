@@ -23,14 +23,9 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "TransportProblem.hpp"
-
-
-
+#include "SemiLagrangian.hpp"
 
 namespace reg {
-
-
-
 
 class ContinuityEquation : public TransportProblem {
  public:
@@ -39,7 +34,7 @@ class ContinuityEquation : public TransportProblem {
 
     ContinuityEquation();
     ContinuityEquation(RegOpt*);
-    ~ContinuityEquation();
+    virtual ~ContinuityEquation();
 
     PetscErrorCode SolveForwardProblem();
     PetscErrorCode SolveAdjointProblem();
@@ -51,16 +46,9 @@ class ContinuityEquation : public TransportProblem {
     PetscErrorCode ClearMemory();
 
  private:
-    PetscErrorCode SolveForwardProblemSL();
-    //PetscErrorCode SolveAdjointProblemSL();
+    SemiLagrangian* m_SemiLagrangianMethod;
 };
 
-
-
-
 }  // namespace reg
-
-
-
 
 #endif  // _CONTINUITYEQUATION_HPP_

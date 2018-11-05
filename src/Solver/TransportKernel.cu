@@ -231,6 +231,18 @@ __global__ void TransformKernelScaleRK2GPU(const ScalarType *pL,
   }
 }
 #define TransformKernelScaleAddGPU TransformKernelAdjointSLGPU
+__global__ void TransformKernelContinuityGPU(const ScalarType *pMx,
+    const ScalarType *pDivV, const ScalarType *pDivVx, ScalarType *pMnext,
+    ScalarType ht, IntType nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  if (i < nl) {
+    ScalarType mx = pMx[i];
+    ScalarType rhs0 = - mx * pDivVx[i];
+    ScalarType rhs1 = - (mx + ht*rhs0)*pDivV[i];
+    
+    pMnext[i] = mx + 0.5*ht*(rhs0 + rhs1);
+  }
+}
 
 namespace reg {
   
@@ -538,6 +550,19 @@ PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationPart2() {
     pVtx[0], pVtx[1], pVtx[2],
     pMtnext,
     0.5*ht, nl);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelContinuity::TimeIntegration() {
+  PetscErrorCode ierr = 0;
+  dim3 block = dim3(256);
+  dim3 grid  = dim3((nl + 255)/256);
+  PetscFunctionBegin;
+  
+  TransformKernelContinuityGPU<<<grid, block>>>(pMx, pDivV, pDivVx, pMnext, ht, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
 

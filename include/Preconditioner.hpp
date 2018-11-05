@@ -42,7 +42,7 @@ class Preconditioner {
 
     Preconditioner();
     Preconditioner(RegOpt*);
-    ~Preconditioner();
+    virtual ~Preconditioner();
 
     /*! get parameters */
     inline RegOpt* GetOptions(){ return this->m_Opt; };

@@ -47,6 +47,7 @@
 
 // local includes
 #include "typedef.hpp"
+#include "MemoryUtils.hpp"
 
 #define DBGCHK() printf("dbg %s:[%i] in %s\n",__FILE__,__LINE__,__FUNCTION__)
 
@@ -62,44 +63,6 @@ PetscErrorCode ThrowError(std::string);
 /*! throw error (PETSc interface) */
 PetscErrorCode ThrowError(std::bad_alloc&);
 PetscErrorCode ThrowError(std::exception&);
-
-template<class T, class ... Args>
-inline PetscErrorCode Allocate(T*& ptr, Args ... args) {
-  try {
-    ptr = new T(args...);
-  } catch (std::bad_alloc& err) {
-    return reg::ThrowError(err);
-  }
-  return 0;
-}
-template<class A, class T, class ... Args>
-inline PetscErrorCode Allocate(T*& ptr, Args ... args) {
-  try {
-    ptr = new A(args...);
-  } catch (std::bad_alloc& err) {
-    return reg::ThrowError(err);
-  }
-  return 0;
-}
-template<class T, class ... Args>
-inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
-  if (ptr == nullptr)
-    return Allocate(ptr, args...);
-  return 0;
-}
-template<class A, class T, class ... Args>
-inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
-  if (ptr == nullptr)
-    return Allocate<A>(ptr, args...);
-  return 0;
-}
-template<class T>
-inline void Free(T*& ptr) {
-  if (ptr != nullptr) {
-    delete ptr;
-    ptr = nullptr;
-  }
-}
 
 
 /*! mpi error handling */
@@ -228,6 +191,13 @@ inline void ComputeWaveNumber(IntType w[3], IntType n[3]) {
     if      (w[0] >  n[0]/2) w[0] -= n[0];
     if      (w[1] >  n[1]/2) w[1] -= n[1];
     if      (w[2] >  n[2]/2) w[2] -= n[2];
+};
+
+/********************************************************************
+ * @brief check wave number
+ *******************************************************************/
+inline void ComputeWaveNumber(IntType &w, IntType n) {
+    if (w > n/2) w -= n;
 };
 
 

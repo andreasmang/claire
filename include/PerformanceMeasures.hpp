@@ -34,7 +34,7 @@ class PerformanceMeasures {
     typedef PerformanceMeasures Self;
     PerformanceMeasures();
     PerformanceMeasures(RegOpt*);
-    ~PerformanceMeasures();
+    virtual ~PerformanceMeasures();
 
     PetscErrorCode ComputeOverlapMeasures(Vec, Vec);
 

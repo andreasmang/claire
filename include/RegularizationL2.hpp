@@ -40,7 +40,7 @@ class RegularizationL2 : public Regularization {
 
     RegularizationL2(void);
     RegularizationL2(RegOpt*);
-    ~RegularizationL2(void);
+    virtual ~RegularizationL2(void);
 
     virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*);
     virtual PetscErrorCode EvaluateGradient(VecField*, VecField*);

@@ -38,7 +38,7 @@ class TransportEquationSL : public TransportProblem {
 
     TransportEquationSL();
     TransportEquationSL(RegOpt*);
-    ~TransportEquationSL();
+    virtual ~TransportEquationSL();
 
     PetscErrorCode SolveForwardProblem();
     PetscErrorCode SolveAdjointProblem();

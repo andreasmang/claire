@@ -64,7 +64,7 @@ class ReadWriteReg {
 
     ReadWriteReg(void);
     ReadWriteReg(RegOpt*);
-    ~ReadWriteReg(void);
+    virtual ~ReadWriteReg(void);
 
     /*! read reference image */
     PetscErrorCode ReadR(Vec*, std::vector < std::string >);

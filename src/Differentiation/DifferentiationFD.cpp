@@ -215,6 +215,31 @@ PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b1,
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode DifferentiationFD::Laplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationFD::Bilaplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationFD::InverseBilaplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationFD::InverseBilaplacianSqrt(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+
 
 
 

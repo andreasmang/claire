@@ -545,7 +545,7 @@ void gpuInterp3D(
     cudaEventDestroy(stopEvent);
     
     // print interpolation time and number of interpolations in Mvoxels/sec
-    printf("> interp time = %fmsec ==> %f MVoxels/sec\n", time, (nq/1E6)/(time/1000));
+    //printf("> interp time = %fmsec ==> %f MVoxels/sec\n", time, (nq/1E6)/(time/1000));
     *interp_time += time;
     
 }

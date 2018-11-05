@@ -1845,12 +1845,7 @@ PetscErrorCode CLAIREInterface::RunPostProcessing() {
 
     if (this->m_Opt->m_RegFlags.applysmoothing) {
         // allocate preprocessing class
-        if (this->m_PreProc == NULL) {
-            try{this->m_PreProc = new Preprocessing(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateOnce(this->m_PreProc, this->m_Opt); CHKERRQ(ierr);
         // apply smoothing
         ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
         ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
@@ -1903,12 +1898,7 @@ PetscErrorCode CLAIREInterface::SolveForwardProblem(Vec m1, Vec m0) {
 
     if (this->m_Opt->m_RegFlags.applysmoothing) {
         // allocate preprocessing class
-        if (this->m_PreProc == NULL) {
-            try {this->m_PreProc = new Preprocessing(this->m_Opt);}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-        }
+        ierr = AllocateOnce(this->m_PreProc, this->m_Opt); CHKERRQ(ierr);
         // apply smoothing
         nc = this->m_Opt->m_Domain.nc;
         ierr = this->m_PreProc->Smooth(m1, m0, nc); CHKERRQ(ierr);

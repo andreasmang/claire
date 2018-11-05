@@ -57,9 +57,139 @@ __global__ void VecNegGPU(ScalarType *pL, const ScalarType *pM, int nl) {
   }
 }
 
-namespace reg {
+template<int N> inline __device__ void LocalReductionSum(ScalarType *shared) {
+  if (threadIdx.x < N) {
+    shared[threadIdx.x] += shared[threadIdx.x + N];
+  }
+  __syncthreads();
+  LocalReductionSum<N/2>(shared);
+}
+template<> inline __device__ void LocalReductionSum<1>(ScalarType *shared) {
+  if (threadIdx.x == 0) {
+    shared[0] += shared[1];
+  }
+  __syncthreads();
+}
+template<int N> __global__ void ReductionSum(ScalarType *res, int n) {
+  __shared__ ScalarType value[N];
+  
+  value[threadIdx.x] = 0.0;
+  for (int i=threadIdx.x; i<n; i+=N) {
+    value[threadIdx.x] += res[i];
+  }
+  
+  __syncthreads();
+  
+  LocalReductionSum<N/2>(value);
+  
+  if (threadIdx.x == 0) {
+    res[0] = value[0];
+  }
+}
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionAE() {
+template<int N>
+__global__ void DistanceMeasureFunctionalGPU(ScalarType *res, 
+    const ScalarType *pW, const ScalarType *pMr, 
+    const ScalarType *pM, int nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  int k = blockIdx.y*nl + i;
+  
+  __shared__ ScalarType value[N];
+  
+  ScalarType tmp;
+  
+  value[threadIdx.x] = 0.0;
+  
+  if (i < nl) {
+    tmp = (pMr[k] - pM[k]);
+    value[threadIdx.x] = tmp*tmp*pW[i];
+  }
+  
+  __syncthreads();
+    
+  LocalReductionSum<N/2>(value);
+  
+  if (threadIdx.x == 0) {
+    res[blockIdx.x + blockIdx.y*gridDim.x] = value[0];
+  }
+}
+
+template<int N>
+__global__ void DistanceMeasureFunctionalGPU(ScalarType *res, 
+    const ScalarType *pMr, const ScalarType *pM, int nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  int k = blockIdx.y*nl + i;
+  
+  __shared__ ScalarType value[N];
+  ScalarType tmp;
+  
+  value[threadIdx.x] = 0.0;  
+  if (i < nl) {
+    tmp = (pMr[k] - pM[k]);
+    value[threadIdx.x] = tmp*tmp;
+  }
+  
+  __syncthreads();
+    
+  LocalReductionSum<N/2>(value);
+  
+  if (threadIdx.x == 0) {
+    res[blockIdx.x + blockIdx.y*gridDim.x] = value[0];
+  }
+}
+
+namespace reg {
+namespace DistanceMeasureKernel {
+  
+PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
+  PetscErrorCode ierr = 0;
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, nc, 1);
+  ScalarType *res = nullptr;
+  PetscFunctionBegin;
+  
+  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  
+  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pW, pMr, pM, nl);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ReductionSum<1024><<<1, 1024>>>(res, grid.x*grid.y);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+  
+  FreeMemory(res);
+  
+  PetscFunctionReturn(ierr);
+}
+  
+PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
+  PetscErrorCode ierr = 0;
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, nc, 1);
+  ScalarType *res = nullptr;
+  PetscFunctionBegin;
+  
+  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  
+  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pMr, pM, nl);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ReductionSum<1024><<<1, 1024>>>(res, grid.x*grid.y);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+  
+  FreeMemory(res);
+  
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
@@ -72,7 +202,7 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
@@ -85,7 +215,7 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionIAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
@@ -98,7 +228,7 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionIAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskIAE() {
+PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
@@ -111,4 +241,5 @@ PetscErrorCode DistanceMeasureKernelSL2::ComputeFinalConditionMaskIAE() {
   PetscFunctionReturn(ierr);
 }
 
+} // namespace DistanceMeasureKernel
 } // namespace reg

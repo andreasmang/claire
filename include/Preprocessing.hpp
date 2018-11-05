@@ -65,7 +65,7 @@ class Preprocessing {
 
     Preprocessing();
     Preprocessing(RegOpt*);
-    ~Preprocessing();
+    virtual ~Preprocessing();
 
     PetscErrorCode SetReadWrite(ReadWriteType*);
     PetscErrorCode Smooth(Vec, Vec, IntType nc = 1);
@@ -97,8 +97,6 @@ class Preprocessing {
     PetscErrorCode SetupGridChangeOps(IntType*, IntType*);
 
     RegOpt* m_Opt;
-    ComplexType* m_xhat;
-    ComplexType* m_yhat;
     ReadWriteType* m_ReadWrite;
 
     std::vector< std::vector<IntType> > m_IndicesF;
@@ -121,8 +119,9 @@ class Preprocessing {
     //accfft_plan* m_FFTFinePlan;
     //accfft_plan* m_FFTCoarsePlan;
 
-    ComplexType* m_XHatFine;
-    ComplexType* m_XHatCoarse;
+    ManagedMemory<ComplexType> m_XHat;
+    ManagedMemory<ComplexType> m_XHatFine;
+    ManagedMemory<ComplexType> m_XHatCoarse;
 
     IntType m_nxC[3];
     IntType m_nxF[3];
