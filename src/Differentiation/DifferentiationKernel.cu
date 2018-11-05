@@ -147,7 +147,7 @@ __global__ void SpectralKernelGPU(dim3 wave, dim3 nx, dim3 nl, Args ... args) {
   }
 }
 template<typename KernelFn, typename ... Args>
-PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3], Args ... args) {
+PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType nl[3], Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -171,7 +171,7 @@ PetscErrorCode VectorField::Laplacian(ScalarType b0) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NLaplacianKernelGPU<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NLaplacianKernelGPU<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -180,7 +180,7 @@ PetscErrorCode VectorField::Laplacian(ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NLaplacianRegularizationKernelGPU<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NLaplacianRegularizationKernelGPU<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -189,7 +189,7 @@ PetscErrorCode VectorField::Bilaplacian(ScalarType b0) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NLaplacianKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NLaplacianKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -198,7 +198,7 @@ PetscErrorCode VectorField::Bilaplacian(ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NLaplacianRegularizationKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NLaplacianRegularizationKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -207,7 +207,7 @@ PetscErrorCode VectorField::InverseBilaplacian(ScalarType b0) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NInvLaplacianKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NInvLaplacianKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -216,7 +216,7 @@ PetscErrorCode VectorField::InverseBilaplacianSqrt(ScalarType b0) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NInvLaplacianSqrtKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NInvLaplacianSqrtKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -225,7 +225,7 @@ PetscErrorCode VectorField::InverseBilaplacian(ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NInvLaplacianRegularizationKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NInvLaplacianRegularizationKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -234,7 +234,7 @@ PetscErrorCode VectorField::InverseBilaplacianSqrt(ScalarType b0, ScalarType b1)
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = SpectralKernelCall<NInvLaplacianRegularizationSqrtKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
+    ierr = SpectralKernelCallGPU<NInvLaplacianRegularizationSqrtKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
