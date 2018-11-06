@@ -9,6 +9,7 @@ USENIFTI=yes
 USEKNL=no
 USEHASWELL=no
 BUILDTOOLS=yes
+BUILDTEST=yes
 
 
 include config/setup.mk
@@ -16,11 +17,17 @@ include config/files.mk
 
 
 ifeq ($(USECUDA),yes)
+ifeq ($(BUILDTEST),yes)
+CPPFILESCUDA += $(TESTFILES)
+endif
 CUDAC=nvcc
 CUDA_OBJS = $(patsubst $(SRCDIR)/%.cu,$(OBJDIR)/cuda/%.o,$(CUFILES))
 CUDA_OBJS += $(patsubst $(EXSRCDIR)/%.cu,$(OBJDIR)/cuda/%.o,$(EXCUFILES))
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILESCUDA))
 else
+ifeq ($(BUILDTEST),yes)
+CPPFILES += $(TESTFILES)
+endif
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(CPPFILES))
 OBJS += $(patsubst $(EXSRCDIR)/%.cpp,$(OBJDIR)/%.o,$(EXCPPFILES))
 endif

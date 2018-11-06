@@ -249,6 +249,17 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
 
     // interpolate velocity field v(X)
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
+    
+    PetscViewer viewer;
+    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"x1.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+    ierr = VecView(this->m_WorkVecField1->m_X1,viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"x2.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+    ierr = VecView(this->m_WorkVecField1->m_X2,viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"x3.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+    ierr = VecView(this->m_WorkVecField1->m_X3,viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);

@@ -157,7 +157,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     
     {
       struct stat buffer;   
-      const char *fname = "forward_bench_ref.petscvec";
+      const char *fname = "forward_bench_ref.raw";
       if (stat (fname, &buffer) == 0) {
         PetscViewer viewer;
         ScalarType norm;
@@ -168,6 +168,14 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
         
         ierr = VecAXPY(m2, -1., m1); CHKERRQ(ierr);
         ierr = VecNorm(m2, NORM_INFINITY, &norm);
+        
+        ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"forward_bench_dif.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+        ierr = VecView(m2, viewer); CHKERRQ(ierr);
+        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+        
+        ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"forward_bench_curr.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+        ierr = VecView(m1, viewer); CHKERRQ(ierr);
+        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
         
         printf("inf norm to ref. solution: %le\n", static_cast<double>(norm));
       } else {

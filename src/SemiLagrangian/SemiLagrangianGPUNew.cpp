@@ -91,7 +91,7 @@ PetscErrorCode SemiLagrangianGPUNew::InitializeInterpolationTexture() {
     int nx[3];
     PetscFunctionBegin;
     
-    for (unsigned int i = 0; i < 3; ++i){
+    for (unsigned int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
     }
 

@@ -209,3 +209,6 @@ ifeq ($(BUILDTOOLS),yes)
 	BIN += $(BINDIR)/benchmark
 	BIN += $(BINDIR)/clairetools
 endif
+ifeq ($(BUILDTEST),yes)
+	BIN += $(BINDIR)/test
+endif
