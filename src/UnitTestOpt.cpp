@@ -378,12 +378,15 @@ PetscErrorCode UnitTestOpt::PrintTests() {
 }
 
 PetscErrorCode UnitTestOpt::CheckTests(char* argv, bool &found) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
   if (strcmp(argv, "-interp") == 0) {
     this->m_TestType = TestType::Interpolate;
   } else {
     found = false;
   }
   found = true;
+  PetscFunctionReturn(ierr);
 }
 
 
