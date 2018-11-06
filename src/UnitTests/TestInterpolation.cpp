@@ -101,10 +101,25 @@ PetscErrorCode UnitTestOpt::TestInterpolation() {
   }
   
 #ifdef REG_HAS_CUDA
+  ScalarType *pg, *pq1, *pq2, *pq3, *pe;
+  
+  cudaMalloc((void**)(&pg), sizeof(ScalarType)*isize[0]*isize[1]*isize[2]);
+  cudaMalloc((void**)(&pq1), sizeof(ScalarType)*neval);
+  cudaMalloc((void**)(&pq2), sizeof(ScalarType)*neval);
+  cudaMalloc((void**)(&pq3), sizeof(ScalarType)*neval);
+  cudaMalloc((void**)(&pe), sizeof(ScalarType)*neval);
+  
+  cudaMemcpy(pg, grid, sizeof(ScalarType)*isize[0]*isize[1]*isize[2], cudaMemcpyHostToDevice);
+  cudaMemcpy(pq1, q1, sizeof(ScalarType)*neval, cudaMemcpyHostToDevice);
+  cudaMemcpy(pq2, q2, sizeof(ScalarType)*neval, cudaMemcpyHostToDevice);
+  cudaMemcpy(pq3, q3, sizeof(ScalarType)*neval, cudaMemcpyHostToDevice);
+
   cudaTextureObject_t tex = gpuInitEmptyTexture(nx);
   float timer = 0;
   
-  gpuInterp3D(grid, q1, q2, q3, eval, nx, tex, &timer);
+  gpuInterp3D(pg, pq1, pq2, pq3, pe, nx, tex, &timer);
+  
+  cudaMemcpy(eval, pe, sizeof(ScalarType)*neval, cudaMemcpyDeviceToHost);
 #else
   std::cout << "unit test not implemented" << std::endl;
 #endif
