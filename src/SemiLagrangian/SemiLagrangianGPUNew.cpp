@@ -303,12 +303,9 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     }
     
     // X = x - ht v
-    ierr = VecWAXPY(this->m_X->m_X1, -scale*ht/hx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_X->m_X2, -scale*ht/hx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_X->m_X3, -scale*ht/hx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-    ierr = VecScale(this->m_X->m_X1, hx[0]/(PETSC_PI*2.0)); CHKERRQ(ierr);
-    ierr = VecScale(this->m_X->m_X2, hx[1]/(PETSC_PI*2.0)); CHKERRQ(ierr);
-    ierr = VecScale(this->m_X->m_X3, hx[2]/(PETSC_PI*2.0)); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X2, -scale*ht*invhx[0], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X3, -scale*ht*invhx[0], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
     
     // interpolate velocity field v(X)
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
@@ -320,13 +317,10 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ierr = VecAXPY(this->m_WorkVecField1->m_X3, 1.0, v->m_X3); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*F
-    ierr = VecWAXPY(this->m_X->m_X1, -scale*hthalf/hx[0], this->m_WorkVecField1->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_X->m_X2, -scale*hthalf/hx[1], this->m_WorkVecField1->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
-    ierr = VecWAXPY(this->m_X->m_X3, -scale*hthalf/hx[2], this->m_WorkVecField1->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-    
-    ierr = VecScale(this->m_X->m_X1, hx[0]/(PETSC_PI*2.0)); CHKERRQ(ierr);
-    ierr = VecScale(this->m_X->m_X2, hx[1]/(PETSC_PI*2.0)); CHKERRQ(ierr);
-    ierr = VecScale(this->m_X->m_X3, hx[2]/(PETSC_PI*2.0)); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X1, -scale*hthalf*invhx[0], this->m_WorkVecField1->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X2, -scale*hthalf*invhx[0], this->m_WorkVecField1->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
+    ierr = VecWAXPY(this->m_X->m_X3, -scale*hthalf*invhx[0], this->m_WorkVecField1->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
+  
     
     this->m_Opt->Exit(__func__);
 
