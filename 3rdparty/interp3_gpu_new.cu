@@ -82,6 +82,20 @@ inline T rec4_fmaf(T a, T b, T c, T d, T e, T f, T g, T h) {
     return fmaf(a, b, fmaf(c, d, fmaf( e, f, g*h)));
 }
 
+__global__ void interp0gpu(float* m, float* q1, float* q2, float *q3, float *q, dim3 nx) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  int x1 = q1[i];
+  int x2 = q2[i];
+  int x3 = q3[i];
+  q[i] = m[x3 + x2*nx.z + x1*nx.z*nx.y];
+}
+
+void interp0(float* m, float* q1, float* q2, float* q3, float* q, int nx[3]) {
+  dim3 n(nx[0], nx[1], nx[2]);
+  int nl = nx[0]*nx[1]*nx[2];
+  interp0gpu<<<nl/256,256>>>(m,q1,q2,q3,q,n);
+}
+
 
 /********************************************************************
  * @brief device function to do the interpolation of a single point using the Fast Lagrange Method

@@ -14,6 +14,8 @@ cudaTextureObject_t yi_tex, PetscScalar* interp_time);
 
 extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx);
 
+void interp0(float* m, float* q1, float *q2, float *q3, float *q, int nx[3]);
+
 
 
 #endif
