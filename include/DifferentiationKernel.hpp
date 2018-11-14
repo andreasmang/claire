@@ -35,14 +35,13 @@ struct VectorField {
   
   ScalarType scale;
   
-  PetscErrorCode Laplacian(ScalarType);
-  PetscErrorCode Laplacian(ScalarType, ScalarType);
-  PetscErrorCode Bilaplacian(ScalarType);
-  PetscErrorCode Bilaplacian(ScalarType, ScalarType);
-  PetscErrorCode InverseBilaplacian(ScalarType);
-  PetscErrorCode InverseBilaplacianSqrt(ScalarType);
-  PetscErrorCode InverseBilaplacian(ScalarType, ScalarType);
-  PetscErrorCode InverseBilaplacianSqrt(ScalarType, ScalarType);
+  PetscErrorCode Laplacian(ScalarType, ScalarType=0.0);
+  PetscErrorCode Bilaplacian(ScalarType, ScalarType=0.0);
+  PetscErrorCode Trilaplacian(ScalarType, ScalarType=0.0);
+  PetscErrorCode InverseLaplacian(bool, ScalarType, ScalarType=0.0);
+  PetscErrorCode InverseBilaplacian(bool, ScalarType, ScalarType=0.0);
+  PetscErrorCode InverseTrilaplacian(bool, ScalarType, ScalarType=0.0);
+  PetscErrorCode TrilaplacianFunctional(ScalarType, ScalarType=0.0);
 };
 
 } // namespace DifferentiationKernel

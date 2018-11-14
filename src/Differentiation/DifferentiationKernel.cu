@@ -23,111 +23,7 @@
 #include "DifferentiationKernel.hpp"
 #include "cuda_helper.hpp"
 
-/********************************************************************
- * @brief computes wave number on GPU
- *******************************************************************/
-__device__ inline void ComputeWaveNumber(dim3 &w, dim3 &n) {
-  if (w.x >  n.x/2) w.x -= n.x;
-  if (w.y >  n.y/2) w.y -= n.y;
-  if (w.z >  n.z/2) w.z -= n.z;
-}
-
-/********************************************************************
- * @brief computes linear array index on GPU
- *******************************************************************/
-__device__ inline int GetLinearIndex(int i1, int i2, int i3, dim3 size) {
-  return i1*size.y*size.z + i2*size.z + i3;
-}
-
-template<int N> __device__ inline ScalarType pow(ScalarType x) {
-  return x*pow<N-1>(x);
-}
-template<> __device__ inline ScalarType pow<0>(ScalarType x) {
-  return 1;
-}
-
-/********************************************************************
- * @brief computes linear array index on GPU
- *******************************************************************/
-template<int N> 
-__device__ inline ScalarType ComputeNLaplaceNumber(dim3 w) {
-  ScalarType norm = static_cast<ScalarType>(w.x*w.x + w.y*w.y + w.z*w.z);
-  return pow<N>(norm);
-}
-
-template<int N> struct NLaplacianKernelGPU {
-  static __device__ inline void call(int i, dim3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType b0) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w);
-    ScalarType regop = b0*lapik;
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NLaplacianRegularizationKernelGPU {
-  static __device__ inline void call(int i, dim3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType b0, ScalarType b1) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w) + b1;
-    ScalarType regop = b0*lapik;
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NInvLaplacianKernelGPU {
-  static __device__ inline void call (int i, dim3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType scale, ScalarType b0) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w);
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NInvLaplacianSqrtKernelGPU {
-  static __device__ inline void call(int i, dim3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType scale, ScalarType b0) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w);
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/sqrt(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NInvLaplacianRegularizationKernelGPU {
-  static __device__ inline void call(int i, dim3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
-      ScalarType scale, ScalarType b0, ScalarType b1) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w) + b1;
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> 
-struct NInvLaplacianRegularizationSqrtKernelGPU {
-  static __device__ inline void call(int i, dim3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
-      ScalarType scale, ScalarType b0, ScalarType b1) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w) + b1;
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/sqrt(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
+#include "DifferentiationKernel.txx"
 
 template<typename KernelFn, typename ... Args>
 __global__ void SpectralKernelGPU(dim3 wave, dim3 nx, dim3 nl, Args ... args) {
@@ -147,7 +43,8 @@ __global__ void SpectralKernelGPU(dim3 wave, dim3 nx, dim3 nl, Args ... args) {
   }
 }
 template<typename KernelFn, typename ... Args>
-PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType nl[3], Args ... args) {
+PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType nl[3], 
+    Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -157,7 +54,7 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   dim3 nx3(nx[0],nx[1],nx[2]);
   dim3 nl3(nl[0],nl[1],nl[2]);
   
-  SpectralKernelGPU<KernelFn><<<grid,block>>>(wave, nx3, nl3, args...);
+  SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
   ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
   ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   
@@ -167,76 +64,160 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
 namespace reg {
 namespace DifferentiationKernel {
   
-PetscErrorCode VectorField::Laplacian(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NLaplacianKernelGPU<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
 PetscErrorCode VectorField::Laplacian(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NLaplacianRegularizationKernelGPU<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCallGPU<NLaplacianKernel<1> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCallGPU<RelaxedNLaplacianKernel<1> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
-}
-
-PetscErrorCode VectorField::Bilaplacian(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NLaplacianKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode VectorField::Bilaplacian(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NLaplacianRegularizationKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCallGPU<NLaplacianKernel<2> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCallGPU<RelaxedNLaplacianKernel<2> >(nstart, nx, nl,
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacian(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NInvLaplacianKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
+PetscErrorCode VectorField::Trilaplacian(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCallGPU<NLaplacianKernel<3> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCallGPU<RelaxedNLaplacianKernel<3> >(nstart, nx, nl,
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacianSqrt(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NInvLaplacianSqrtKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
+PetscErrorCode VectorField::TrilaplacianFunctional(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCallGPU<TriLaplacianFunctionalKernel>(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCallGPU<RelaxedTriLaplacianFunctionalKernel>(nstart, nx, nl,
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacian(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NInvLaplacianRegularizationKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
+PetscErrorCode VectorField::InverseLaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (usesqrt) {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCallGPU<InverseNLaplacianSqrtKernel<1> >(nstart, nx, nl,
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCallGPU<RelaxedInverseNLaplacianSqrtKernel<1> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  } else {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCallGPU<InverseNLaplacianKernel<1> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2], 
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCallGPU<RelaxedInverseNLaplacianKernel<1> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacianSqrt(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCallGPU<NInvLaplacianRegularizationSqrtKernelGPU<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
+PetscErrorCode VectorField::InverseBilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (usesqrt) {
+    if (b1 == 0.0) {
+      /// scale/sqrt(b0*|lapik|^2) = scale/(sqrt(b0)*|lapik|)
+      ierr = SpectralKernelCallGPU<InverseNLaplacianKernel<1> >(nstart, nx, nl,
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, sqrt(b0)); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCallGPU<RelaxedInverseNLaplacianSqrtKernel<2> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  } else {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCallGPU<InverseNLaplacianKernel<2> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2], 
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCallGPU<RelaxedInverseNLaplacianKernel<2> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode VectorField::InverseTrilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (usesqrt) {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCallGPU<InverseNLaplacianSqrtKernel<3> >(nstart, nx, nl,
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, sqrt(b0)); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCallGPU<RelaxedInverseNLaplacianSqrtKernel<3> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  } else {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCallGPU<InverseNLaplacianKernel<3> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2], 
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCallGPU<RelaxedInverseNLaplacianKernel<3> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  }
+
+  PetscFunctionReturn(ierr);
 }
 
 } // namespace DifferentiationKernel

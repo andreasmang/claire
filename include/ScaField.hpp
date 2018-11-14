@@ -49,6 +49,7 @@ class ScaField {
     PetscErrorCode RestoreArray();
     
     PetscErrorCode Copy(Vec);
+    PetscErrorCode Copy(ScaField*);
     PetscErrorCode CopyFrame(IntType);
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;

@@ -44,6 +44,7 @@ class TransportEquationSL : public TransportProblem {
     PetscErrorCode SolveAdjointProblem();
     PetscErrorCode SolveIncForwardProblem();
     PetscErrorCode SolveIncAdjointProblem();
+    PetscErrorCode SolveInverseProblem();
 
  protected:
     PetscErrorCode Initialize();
@@ -54,7 +55,7 @@ class TransportEquationSL : public TransportProblem {
     
     PetscErrorCode SolveIncAdjointEquationGN();
     PetscErrorCode SolveAdjointEquation();
-    PetscErrorCode SolveStateEquation();
+    PetscErrorCode SolveStateEquation(VecField*);
 };
 
 

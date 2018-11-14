@@ -158,6 +158,47 @@ PetscErrorCode UnitTestOpt::ParseArguments(int argc, char** argv) {
             this->m_Verbosity = std::min(atoi(argv[1]),2);
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
+        } else if (strcmp(argv[1], "-regnorm") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "h1s") == 0) {
+                this->m_RegNorm.type = H1SN;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "h2s") == 0) {
+                this->m_RegNorm.type = H2SN;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "h3s") == 0) {
+                this->m_RegNorm.type = H3SN;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "h1") == 0) {
+                this->m_RegNorm.type = H1;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "h1s-div") == 0) {
+                this->m_RegNorm.type = H1SN;
+                this->m_RegModel = RELAXEDSTOKES;
+            } else if (strcmp(argv[1], "h1s-stokes") == 0) {
+                this->m_RegNorm.type = H1SN;
+                this->m_RegModel = STOKES;
+            } else if (strcmp(argv[1], "h2") == 0) {
+                this->m_RegNorm.type = H2;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "h3") == 0) {
+                this->m_RegNorm.type = H3;
+                this->m_RegModel = COMPRESSIBLE;
+            } else if (strcmp(argv[1], "l2") == 0) {
+                this->m_RegNorm.type = L2;
+                this->m_RegModel = COMPRESSIBLE;
+            } else {
+                msg = "\n\x1b[31m regularization norm not available: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
+        } else if (strcmp(argv[1], "-beta") == 0) {
+            argc--; argv++;
+            this->m_RegNorm.beta[0] = atof(argv[1]);
+//            this->m_RegNorm.beta[1] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-beta-div") == 0) {
+            argc--; argv++;
+            this->m_RegNorm.beta[2] = atof(argv[1]);
         } else {
             bool found;
             ierr = this->CheckTests(argv[1], found); CHKERRQ(ierr);
@@ -236,6 +277,9 @@ PetscErrorCode UnitTestOpt::Usage(bool advanced) {
     line = std::string(this->m_LineLength,'-');
 
     if (rank == 0) {
+        //this->m_Parser.help("test");
+        //std::cout << std::endl;
+        //std::cout << line << std::endl;
         std::cout << std::endl;
         std::cout << line << std::endl;
         std::cout << " usage: regbenchmark [options] " <<std::endl;
@@ -271,6 +315,27 @@ PetscErrorCode UnitTestOpt::Usage(bool advanced) {
         std::cout << " -adapttimestep              vary number of time steps according to defined number"<<std::endl;
         std::cout << " -cflnumber <dbl>            set cfl number"<<std::endl;
         std::cout << " -iporder <int>              order of interpolation model (default is 3)" << std::endl;
+        std::cout << line << std::endl;
+        std::cout << " -regnorm <type>             regularization norm for velocity field" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 h1s          H1-seminorm" << std::endl;
+        std::cout << "                                 h1s-div      H1-seminorm with penalty on div(v); penalty is" << std::endl;
+        std::cout << "                                              controlled by regulariztion parameter '-beta-div' (see" << std::endl;
+        std::cout << "                                              below); default value for regularization parameter" << std::endl;
+        std::cout << "                                              is 1E-4;" << std::endl;
+        std::cout << "                                 h1s-stokes   H1-seminorm with incompressiblity constraint (i.e.," << std::endl;
+        std::cout << "                                              the jacobian is 1; divergence free velocity)" << std::endl;
+        std::cout << "                                 h2s          H2-seminorm" << std::endl;
+//        std::cout << "                                 h3s          H3-seminorm" << std::endl;
+//        std::cout << "                                 h1           H1-norm" << std::endl;
+//        std::cout << "                                 h2           H2-norm" << std::endl;
+//        std::cout << "                                 h3           H3-norm" << std::endl;
+        std::cout << "                                 l2           l2-norm (discouraged)" << std::endl;
+        std::cout << " -beta  <dbl>                set constant regularization parameter for velocity field (default: 1E-2)" << std::endl;
+        std::cout << " -beta-div <dbl>             set constant regularization parameter for mass source map (default: 1E-4);" << std::endl;
+        std::cout << "                             this parameter controls a penalty on divergence of the velocity, i.e.," << std::endl;
+        std::cout << "                             the incompressibility; the penalty is enabled via '-regnorm h1-div'" << std::endl;
+        std::cout << "                             option; details can be found above;" << std::endl;
         std::cout << line << std::endl;
         // ####################### advanced options #######################
         std::cout << line << std::endl;
@@ -339,6 +404,63 @@ PetscErrorCode UnitTestOpt::DisplayOptions() {
                   << "(" << this->m_Domain.ng << ", "
                   << this->m_Domain.nl << ")" << std::endl;
         std::cout << line << std::endl;
+        
+        switch (this->m_RegNorm.type) {
+                case L2:
+                {
+                    std::cout   << std::scientific << "l2-norm (beta="
+                                << this->m_RegNorm.beta[0]
+                                << ")" << std::endl;
+                    break;
+                }
+                case H1:
+                {
+                    std::cout   << std::scientific << "h1-norm (beta="
+                                << this->m_RegNorm.beta[0]
+                                << ", " << this->m_RegNorm.beta[1]
+                                << ") " << std::endl;
+                    break;
+                }
+                case H2:
+                {
+                    std::cout   << std::scientific << "h2-norm (beta="
+                                << this->m_RegNorm.beta[0]
+                                << ", " << this->m_RegNorm.beta[1]
+                                << ")" << std::endl;
+                    break;
+                }
+                case H3:
+                {
+                    std::cout   << std::scientific << "h3-norm (beta="
+                                << this->m_RegNorm.beta[0]
+                                << ", " << this->m_RegNorm.beta[1]
+                                << ")" << std::endl;
+                    break;
+                }
+                case H1SN:
+                {
+                    std::cout   << std::scientific <<  "h1-seminorm (beta="
+                                <<  this->m_RegNorm.beta[0]
+                                << ")" << std::endl;
+                    break;
+                }
+                case H2SN:
+                {
+                    std::cout   << std::scientific << "h2-seminorm (beta="
+                                << this->m_RegNorm.beta[0]
+                                << ")" << std::endl;
+                    break;
+                }
+                case H3SN:
+                {
+                    std::cout   << std::scientific << "h3-seminorm (beta="
+                                << this->m_RegNorm.beta[0]
+                                << ")" << std::endl;
+                    break;
+                }
+                default: {ierr = ThrowError("regularization model not implemented"); CHKERRQ(ierr); break;}
+            };
+        std::cout << line << std::endl;
     }  // rank
 
     this->Exit(__func__);
@@ -373,6 +495,10 @@ PetscErrorCode UnitTestOpt::PrintTests() {
   PetscFunctionBegin;
   
   std::cout << " -interp                     interpolation unit test"<<std::endl;
+  std::cout << " -forward                    forward solver unit test"<<std::endl;
+  std::cout << " -trajectory                 trajectory solver unit test"<<std::endl;
+  std::cout << " -gradient                   gradient unit test"<<std::endl;
+  std::cout << " -hessian                    hessian unit test"<<std::endl;
   
   PetscFunctionReturn(ierr);
 }
@@ -382,6 +508,14 @@ PetscErrorCode UnitTestOpt::CheckTests(char* argv, bool &found) {
   PetscFunctionBegin;
   if (strcmp(argv, "-interp") == 0) {
     this->m_TestType = TestType::Interpolate;
+  } else if (strcmp(argv, "-forward") == 0) {
+    this->m_TestType = TestType::ForwardSolver;
+  } else if (strcmp(argv, "-trajectory") == 0) {
+    this->m_TestType = TestType::Trajectory;
+  } else if (strcmp(argv, "-gradient") == 0) {
+    this->m_TestType = TestType::Gradient;
+  } else if (strcmp(argv, "-hessian") == 0) {
+    this->m_TestType = TestType::Hessian;
   } else {
     found = false;
   }
@@ -396,10 +530,26 @@ PetscErrorCode UnitTestOpt::Run() {
   
   switch(this->m_TestType) {
   case TestType::All:
-    ierr = this->TestInterpolation(); CHKERRQ(ierr);
+    ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestForwardSolver(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestTrajectory(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestGradient(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestHessian(this); CHKERRQ(ierr);
     break;
   case TestType::Interpolate:
-    ierr = this->TestInterpolation(); CHKERRQ(ierr);
+    ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
+    break;
+  case TestType::ForwardSolver:
+    ierr = UnitTest::TestForwardSolver(this); CHKERRQ(ierr);
+    break;
+  case TestType::Trajectory:
+    ierr = UnitTest::TestTrajectory(this); CHKERRQ(ierr);
+    break;
+  case TestType::Gradient:
+    ierr = UnitTest::TestGradient(this); CHKERRQ(ierr);
+    break;
+  case TestType::Hessian:
+    ierr = UnitTest::TestHessian(this); CHKERRQ(ierr);
     break;
   };
   

@@ -24,6 +24,14 @@
 
 namespace reg {
 
+namespace UnitTest {  
+  PetscErrorCode TestInterpolation(RegOpt *m_Opt);
+  PetscErrorCode TestForwardSolver(RegOpt *m_Opt);
+  PetscErrorCode TestTrajectory(RegOpt *m_Opt);
+  PetscErrorCode TestGradient(RegOpt *m_Opt);
+  PetscErrorCode TestHessian(RegOpt *m_Opt);
+}
+
 class UnitTestOpt : public RegOpt {
  public:
     typedef UnitTestOpt Self;
@@ -50,10 +58,12 @@ class UnitTestOpt : public RegOpt {
     typedef enum {
       None=-2, 
       All=-1, 
-      Interpolate
+      Interpolate,
+      ForwardSolver,
+      Trajectory,
+      Gradient,
+      Hessian
     } TestType;
-    
-    PetscErrorCode TestInterpolation();
 
     TestType m_TestType;
 };

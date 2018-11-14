@@ -42,6 +42,7 @@ class DifferentiationSM : public Differentiation {
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, const ScalarType*);
     virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*);
     virtual PetscErrorCode Gradient(VecField*, const ScalarType*);
+    virtual PetscErrorCode Gradient(VecField*, const Vec);
     virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
@@ -50,16 +51,23 @@ class DifferentiationSM : public Differentiation {
     virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*);
     
-    virtual PetscErrorCode Laplacian(VecField*, VecField*, ScalarType=-1.0, ScalarType=0.0);
-    virtual PetscErrorCode Bilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
-    virtual PetscErrorCode InverseBilaplacian(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
-    virtual PetscErrorCode InverseBilaplacianSqrt(VecField*, VecField*, ScalarType=1.0, ScalarType=0.0);
+    virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
+    virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
+    virtual PetscErrorCode RegTriLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
+    virtual PetscErrorCode InvRegLapOp(VecField*, VecField*, bool, ScalarType, ScalarType=0.0);
+    virtual PetscErrorCode InvRegBiLapOp(VecField*, VecField*, bool, ScalarType, ScalarType=0.0);
+    virtual PetscErrorCode InvRegTriLapOp(VecField*, VecField*, bool, ScalarType, ScalarType=0.0);
+    virtual PetscErrorCode RegTriLapFunc(VecField*, VecField*, ScalarType, ScalarType=0.0);
     
     virtual PetscErrorCode SetupSpectralData(ComplexType*, ComplexType*, ComplexType*);
 
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    
+    PetscErrorCode ComputeForwardFFT(VecField*);
+    PetscErrorCode ComputeInverseFFT(VecField*);
+    
     DifferentiationKernel::VectorField m_VecFieldKernel;
     std::bitset<3> xyz;
     double timer[NFFTTIMERS];

@@ -131,13 +131,13 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
     ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
 
-    if (this->m_Opt->m_PDESolver.type == SL) {
+    /*if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-    }
+    }*/
 
     ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     if (this->m_DeformationFields != NULL) {

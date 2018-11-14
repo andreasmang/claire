@@ -1081,8 +1081,8 @@ PetscErrorCode RegOpt::Initialize() {
     //this->m_RegModel = RELAXEDSTOKES;
 
     this->m_RegNorm = {};
-//    this->m_RegNorm.type = H2SN;
-    this->m_RegNorm.type = H1SN;                    ///< default regularization norm
+    this->m_RegNorm.type = H2SN;
+//    this->m_RegNorm.type = H1SN;                    ///< default regularization norm
     this->m_RegNorm.beta[0] = 1E-2;                 ///< default regularization parameter for velocity
     this->m_RegNorm.beta[1] = 1E-4;                 ///< default regularization parameter for norm (idenity)
     this->m_RegNorm.beta[2] = 1E-4;                 ///< default regularization parameter for divergence of velocity
@@ -1294,10 +1294,90 @@ PetscErrorCode RegOpt::Initialize() {
 
     ierr = this->ResetTimers(); CHKERRQ(ierr);
     ierr = this->ResetCounters(); CHKERRQ(ierr);
+    
+    // ierr = this->SetupParser(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
 
+
+/*PetscErrorCode RegOpt::SetupParser() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  this->m_Parser.bind("-mr", [&](int ac, char **av) -> int {
+    if (ac != 1) return -1;
+    this->m_FileNames.mr.push_back(av[0]);
+    return 1;
+  });
+  this->m_Parser.add_help("-mr <file>", "reference image (*.nii, *.nii.gz, *.hdr)");
+  this->m_Parser.bind("-mt", [&](int ac, char **av) -> int {
+    if (ac != 1) return -1;
+    this->m_FileNames.mt.push_back(av[0]);
+    return 1;
+  });
+  this->m_Parser.add_help("-mt <file>", "template image (*.nii, *.nii.gz, *.hdr)");
+  this->m_Parser.bind("-v1", this->m_FileNames.iv1);
+  this->m_Parser.add_help("-v1 <file>", "x1 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)");
+  this->m_Parser.bind("-v2", this->m_FileNames.iv2);
+  this->m_Parser.add_help("-v2 <file>", "x2 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)");
+  this->m_Parser.bind("-v3", this->m_FileNames.iv3);
+  this->m_Parser.add_help("-v3 <file>", "x3 component of velocity field (*.nii, *.nii.gz, *.hdr, *.nc)");
+  this->m_Parser.bind("-mrc", [&](int ac, char **av) -> int {
+    if (ac < 1) return -1;
+    this->m_Domain.nc = static_cast<IntType>(atoi(av[0]));
+    if (this->m_Domain.nc < 1) {
+        printf("\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n", av[0]);
+        return -1;
+    }
+    if (ac != this->m_Domain.nc + 1) return -1;
+    for (IntType i = 0; i < this->m_Domain.nc; ++i) {
+        this->m_FileNames.mr.push_back(av[i+1]);
+    }
+    return ac;
+  }, 2);
+  this->m_Parser.add_help("-mrc <int> <files>", "list of reference images (*.nii, *.nii.gz, *.hdr), where <int> is the number of images for (registration of vector valued data)");
+  this->m_Parser.bind("-mtc", [&](int ac, char **av) -> int {
+    if (ac < 1) return -1;
+    this->m_Domain.nc = static_cast<IntType>(atoi(av[0]));
+    if (this->m_Domain.nc < 1) {
+        printf("\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n", av[0]);
+        return -1;
+    }
+    if (ac != this->m_Domain.nc + 1) return -1;
+    for (IntType i = 0; i < this->m_Domain.nc; ++i) {
+        this->m_FileNames.mt.push_back(av[i+1]);
+    }
+    return ac;
+  }, 2);
+  this->m_Parser.add_help("-mrc <int> <files>", "list of template images (*.nii, *.nii.gz, *.hdr), where <int> is the number of images for (registration of vector valued data)");
+  this->m_Parser.bind("-mask", this->m_FileNames.mask);
+  this->m_Parser.add_help("-mask <file>", "file that contains an indicator function to mask the evaluation of the distance measure; the mask should be smooth (*.nii, *.nii.gz, *.hdr, *.nc)");
+  
+  this->m_Parser.bind("-nx", [&](int ac, char **av) -> int {
+    if (ac != 1) return -1;
+    const std::string nxinput = av[0];
+    // strip the "x" in the string to get the numbers
+    std::vector<int> nx = String2Vec(nxinput);
+
+    if (nx.size() == 1) {
+        for(int i=0; i < 3; ++i) {
+            this->m_Domain.nx[i] = static_cast<IntType>(nx[0]);
+        }
+    } else if (nx.size() == 3) {
+        for(int i=0; i < 3; ++i) {
+            this->m_Domain.nx[i] = static_cast<IntType>(nx[i]);
+        }
+    } else {
+        printf("\n\x1b[31m error in grid size argument: %s\x1b[0m\n", av[0]);
+        return -1;
+    }
+    return 1;
+  });
+  this->m_Parser.bind("-nt", this->m_Domain.nt);
+  
+  PetscFunctionReturn(ierr);
+}*/
 
 
 

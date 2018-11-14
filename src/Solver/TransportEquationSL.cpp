@@ -84,7 +84,43 @@ PetscErrorCode TransportEquationSL::SolveForwardProblem() {
     if (VelocityIsZero) {
         ierr = SuperClass::SolveForwardProblem(); CHKERRQ(ierr);
     } else {
-        ierr = this->SolveStateEquation(); CHKERRQ(ierr);
+        ierr = this->SolveStateEquation(this->m_VelocityField); CHKERRQ(ierr);
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief solve the inverse forward problem (i.e., the continuity equation)
+ *******************************************************************/
+PetscErrorCode TransportEquationSL::SolveInverseProblem() {
+    PetscErrorCode ierr = 0;
+    bool VelocityIsZero = false;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+    
+    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[1] != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = this->m_VelocityField->IsZero(VelocityIsZero); CHKERRQ(ierr);
+    if (VelocityIsZero) {
+        ierr = SuperClass::SolveInverseProblem(); CHKERRQ(ierr);
+    } else {
+        ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+  
+        // compute trajectory
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+        
+        ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField[0], this->m_VelocityField, "state"); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField[1]->Copy(this->m_WorkVecField[0]); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField[1]->Scale(-1.); CHKERRQ(ierr);
+        
+        ierr = this->SolveStateEquation(this->m_WorkVecField[1]); CHKERRQ(ierr);
     }
     
     this->m_Opt->Exit(__func__);
@@ -95,7 +131,7 @@ PetscErrorCode TransportEquationSL::SolveForwardProblem() {
 /********************************************************************
  * @brief solve the forward problem (i.e., the continuity equation)
  *******************************************************************/
-PetscErrorCode TransportEquationSL::SolveStateEquation() {
+PetscErrorCode TransportEquationSL::SolveStateEquation(VecField *v) {
     PetscErrorCode ierr = 0;
     IntType nc, nt, l, lnext;
     ScalarType *pM = nullptr, *pMnext = nullptr;
@@ -104,7 +140,7 @@ PetscErrorCode TransportEquationSL::SolveStateEquation() {
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
     
-    ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(v != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
 
@@ -118,7 +154,7 @@ PetscErrorCode TransportEquationSL::SolveStateEquation() {
 
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
 
     // get state variable m
     for (IntType j = 0; j < nt; ++j) {  // for all time points

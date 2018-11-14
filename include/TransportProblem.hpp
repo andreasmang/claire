@@ -59,6 +59,7 @@ class TransportProblem {
     virtual PetscErrorCode SolveAdjointProblem();
     virtual PetscErrorCode SolveIncForwardProblem() = 0;
     virtual PetscErrorCode SolveIncAdjointProblem();
+    virtual PetscErrorCode SolveInverseProblem();
     
     PetscErrorCode SetDifferentiation(Differentiation::Type);
  protected:

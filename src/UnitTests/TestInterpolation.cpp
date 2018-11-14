@@ -37,8 +37,9 @@ void TestFunction(ScalarType &val, const ScalarType x1, const ScalarType x2, con
 
 
 namespace reg {
+namespace UnitTest {
   
-PetscErrorCode UnitTestOpt::TestInterpolation() {
+PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -51,10 +52,10 @@ PetscErrorCode UnitTestOpt::TestInterpolation() {
   
   nl = 1;
   for (int i = 0; i < 3; ++i) {
-    nx[i]     = this->m_Domain.nx[i];
-    isize[i]  = this->m_Domain.isize[i];
-    istart[i] = this->m_Domain.istart[i];
-    hx[i]     = this->m_Domain.hx[i];
+    nx[i]     = m_Opt->m_Domain.nx[i];
+    isize[i]  = m_Opt->m_Domain.isize[i];
+    istart[i] = m_Opt->m_Domain.istart[i];
+    hx[i]     = m_Opt->m_Domain.hx[i];
     nl *= isize[i];
   }
     
@@ -75,13 +76,13 @@ PetscErrorCode UnitTestOpt::TestInterpolation() {
         double x3 = hx[2]*static_cast<double>(i3 + istart[2]);
 
         // compute linear / flat index
-        int i = reg::GetLinearIndex(i1, i2, i3, this->m_Domain.isize);
+        int i = reg::GetLinearIndex(i1, i2, i3, m_Opt->m_Domain.isize);
         
         TestFunction(grid[i], x1, x2, x3);
     
-        x1 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
-        x2 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
-        x3 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        //x1 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        //x2 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        //x3 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
         
         TestFunction(ref[i], x1, x2, x3);
         eval[i] = 0.;
@@ -138,7 +139,7 @@ PetscErrorCode UnitTestOpt::TestInterpolation() {
   double max = 0;
   for (int i = 0; i < nl; ++i) {
     double local = static_cast<double>(ref[i]) - static_cast<double>(eval[i]);
-    double lmax = abs(eval[i]);
+    double lmax = std::abs(eval[i]);
     if (lmax > max) max = lmax;
     error += local*local;
   }
@@ -153,7 +154,7 @@ PetscErrorCode UnitTestOpt::TestInterpolation() {
   PetscFunctionReturn(ierr);
 }
 
-} // namespace reg
+}} // namespace reg
 
 #endif // _TESTINTERPOLATION_CPP_
 

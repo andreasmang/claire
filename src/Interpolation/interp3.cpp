@@ -183,7 +183,6 @@ void print512(__m512 x, const char* name) {
 
 
 
-
 #ifdef FAST_INTERPV
 #if defined(KNL)
 void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,

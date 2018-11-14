@@ -22,22 +22,13 @@
 
 #include "RegularizationH2SN.hpp"
 
-
-
-
 namespace reg {
-
-
-
 
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
 RegularizationH2SN::RegularizationH2SN() : SuperClass() {
 }
-
-
-
 
 /********************************************************************
  * @brief default destructor
@@ -46,17 +37,11 @@ RegularizationH2SN::~RegularizationH2SN(void) {
     this->ClearMemory();
 }
 
-
-
-
 /********************************************************************
  * @brief constructor
  *******************************************************************/
 RegularizationH2SN::RegularizationH2SN(RegOpt* opt) : SuperClass(opt) {
 }
-
-
-
 
 /********************************************************************
  * @brief evaluates the functional (we have to promote everything
@@ -82,7 +67,7 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
     if (beta != 0.0) {
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
         
-        ierr = this->m_Differentiation->Laplacian(this->m_WorkVecField, v); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, -1.); CHKERRQ(ierr);
 
         // compute inner product
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); value += ipxi;
@@ -97,9 +82,6 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief evaluates first variation of regularization norm
@@ -126,16 +108,13 @@ PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) 
         ierr = VecSet(dvR->m_X2, 0.0); CHKERRQ(ierr);
         ierr = VecSet(dvR->m_X3, 0.0); CHKERRQ(ierr);
     } else {
-        ierr = this->m_Differentiation->Bilaplacian(dvR, v, beta*hd); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->RegBiLapOp(dvR, v, beta*hd); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief applies second variation of regularization norm to vector
@@ -144,31 +123,16 @@ PetscErrorCode RegularizationH2SN::EvaluateGradient(VecField* dvR, VecField* v) 
  *******************************************************************/
 PetscErrorCode RegularizationH2SN::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr = 0;
-    ScalarType beta;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
-
-    beta = this->m_Opt->m_RegNorm.beta[0];
-
-    // if regularization weight is zero, do noting
-    if (beta == 0.0) {
-        ierr = dvvR->SetValue(0.0); CHKERRQ(ierr);
-    } else {
-        ierr = this->EvaluateGradient(dvvR, vtilde); CHKERRQ(ierr);
-    }
+    
+    ierr = this->EvaluateGradient(dvvR, vtilde); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
-
 
 /********************************************************************
  * @brief apply the inverse of the regularization operator; we
@@ -193,20 +157,13 @@ PetscErrorCode RegularizationH2SN::ApplyInverse(VecField* ainvv, VecField* v, bo
         ierr = VecCopy(v->m_X2, ainvv->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(v->m_X3, ainvv->m_X3); CHKERRQ(ierr);
     } else {
-        if (applysqrt) {
-          ierr = this->m_Differentiation->InverseBilaplacianSqrt(ainvv, v, beta); CHKERRQ(ierr);
-        } else {
-          ierr = this->m_Differentiation->InverseBilaplacian(ainvv, v, beta); CHKERRQ(ierr);
-        }
+        ierr = this->m_Differentiation->InvRegBiLapOp(ainvv, v, applysqrt, beta); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief computes the largest and smallest eigenvalue of
@@ -237,9 +194,6 @@ PetscErrorCode RegularizationH2SN::GetExtremeEigValsInvOp(ScalarType& emin, Scal
 
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 }  // namespace reg
 

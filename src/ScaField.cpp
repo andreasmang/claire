@@ -357,6 +357,20 @@ PetscErrorCode ScaField::Copy(Vec vec) {
 }
 
 /********************************************************************
+ * @brief copy vector
+ *******************************************************************/
+PetscErrorCode ScaField::Copy(ScaField *vec) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  VecCopy(*vec, this->m_X);
+  this->m_Ptr = nullptr;
+  this->m_Type = AccessType::None;
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
  * @brief copy a single frame to all timesteps
  *******************************************************************/
 PetscErrorCode ScaField::CopyFrame(IntType src) {

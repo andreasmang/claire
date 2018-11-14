@@ -251,6 +251,20 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     PetscFunctionReturn(0);
 }
 
+PetscErrorCode SemiLagrangianGPUNew::SetInitialTrajectory(const ScalarType* pX) {
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+    
+    ierr = AllocateOnce(this->m_InitialTrajectory, this->m_Opt); CHKERRQ(ierr);
+    
+    ierr = this->m_InitialTrajectory->SetComponents(pX, "stride"); CHKERRQ(ierr);
+    ierr = VecScale(this->m_InitialTrajectory->m_X1, 1./this->m_Opt->m_Domain.hx[0]); CHKERRQ(ierr);
+    ierr = VecScale(this->m_InitialTrajectory->m_X2, 1./this->m_Opt->m_Domain.hx[1]); CHKERRQ(ierr);
+    ierr = VecScale(this->m_InitialTrajectory->m_X3, 1./this->m_Opt->m_Domain.hx[2]); CHKERRQ(ierr);
+
+    PetscFunctionReturn(0);
+}
+
 /********************************************************************
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
@@ -710,6 +724,47 @@ PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* 
     // evaluate right hand side
     ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
     */
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = this->m_X->GetComponents(y1, y2, y3); CHKERRQ(ierr);
+#pragma omp parallel for
+    for (IntType i = 0; i < this->m_Opt->m_Domain.nl; ++i) {
+      y1[i] *= this->m_Opt->m_Domain.hx[0];
+      y2[i] *= this->m_Opt->m_Domain.hx[1];
+      y3[i] *= this->m_Opt->m_Domain.hx[2];
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = this->m_X->GetComponents(y, "stride"); CHKERRQ(ierr);
+#pragma omp parallel for
+    for (IntType i = 0; i < this->m_Opt->m_Domain.nl; ++i) {
+      y[3*i+0] *= this->m_Opt->m_Domain.hx[0];
+      y[3*i+1] *= this->m_Opt->m_Domain.hx[1];
+      y[3*i+2] *= this->m_Opt->m_Domain.hx[2];
+    }
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

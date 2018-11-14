@@ -150,7 +150,7 @@ PetscErrorCode SemiLagrangian::SetWorkVecField(VecField* x) {
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
  *******************************************************************/
-PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) {
+PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag, ScalarType *mX) {
     PetscErrorCode ierr = 0;
     IntType nl;
     PetscFunctionBegin;
@@ -170,9 +170,9 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
     // compute trajectory
 
     if (this->m_Opt->m_PDESolver.rkorder == 2) {
-        ierr = this->ComputeTrajectoryRK2(v, flag); CHKERRQ(ierr);
+        ierr = this->ComputeTrajectoryRK2(v, flag, mX); CHKERRQ(ierr);
     } else if (this->m_Opt->m_PDESolver.rkorder == 4) {
-        ierr = this->ComputeTrajectoryRK4(v, flag); CHKERRQ(ierr);
+        ierr = this->ComputeTrajectoryRK4(v, flag, mX); CHKERRQ(ierr);
     } else {
         ierr = ThrowError("rk order not implemented"); CHKERRQ(ierr);
     }
@@ -189,7 +189,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag) 
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
  *******************************************************************/
-PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string flag) {
+PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string flag, ScalarType *mX) {
     PetscErrorCode ierr = 0;
     ScalarType ht, hthalf, hx[3], x1, x2, x3, scale = 0.0;
     const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
@@ -228,13 +228,20 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
     for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
-                // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
-
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
+                
+                // compute coordinates (nodal grid)
+                if (mX) {
+                  x1 = mX[l*3 + 0];
+                  x2 = mX[l*3 + 1];
+                  x3 = mX[l*3 + 2];
+                } else {
+                  x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                  x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                  x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]); 
+                }
+                
                 this->m_X[l*3+0] = (x1 - scale*ht*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
                 this->m_X[l*3+1] = (x2 - scale*ht*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
                 this->m_X[l*3+2] = (x3 - scale*ht*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
@@ -249,17 +256,6 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
 
     // interpolate velocity field v(X)
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-    
-    PetscViewer viewer;
-    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"x1.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
-    ierr = VecView(this->m_WorkVecField1->m_X1,viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"x2.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
-    ierr = VecView(this->m_WorkVecField1->m_X2,viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"x3.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
-    ierr = VecView(this->m_WorkVecField1->m_X3,viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -267,13 +263,20 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
     for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
-                // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
-
                 // compute linear / flat index
                 l = GetLinearIndex(i1, i2, i3, isize);
+                
+                // compute coordinates (nodal grid)
+                if (mX) {
+                  x1 = mX[l*3 + 0];
+                  x2 = mX[l*3 + 1];
+                  x3 = mX[l*3 + 2];
+                } else {
+                  x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                  x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                  x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]); 
+                }
+                
                 this->m_X[l*3+0] = (x1 - scale*hthalf*(p_vX1[l] + p_v1[l]))/(2.0*PETSC_PI); // normalized to [0,1]
                 this->m_X[l*3+1] = (x2 - scale*hthalf*(p_vX2[l] + p_v2[l]))/(2.0*PETSC_PI); // normalized to [0,1]
                 this->m_X[l*3+2] = (x3 - scale*hthalf*(p_vX3[l] + p_v3[l]))/(2.0*PETSC_PI); // normalized to [0,1]
@@ -298,7 +301,7 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
  * @brief compute the trajectory from the velocity field based
  * on an rk2 scheme (todo: make the velocity field a const vector)
  *******************************************************************/
-PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string flag) {
+PetscErrorCode SemiLagrangian::ComputeTrajectoryRK4(VecField* v, std::string flag, ScalarType *mX) {
     PetscErrorCode ierr = 0;
     ScalarType ht, hthalf, hx[3], x1, x2, x3, scale = 0.0;
     const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
@@ -500,7 +503,52 @@ PetscErrorCode SemiLagrangian::SetQueryPoints(ScalarType* y1, ScalarType* y2, Sc
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief set coordinate vector and communicate to interpolation plan
+ *******************************************************************/
+PetscErrorCode SemiLagrangian::GetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // copy data to a flat vector
+    for (IntType i = 0; i < nl; ++i) {
+        y1[i] = this->m_X[3*i+0]*(2.0*PETSC_PI);
+        y2[i] = this->m_X[3*i+1]*(2.0*PETSC_PI);
+        y3[i] = this->m_X[3*i+2]*(2.0*PETSC_PI);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode SemiLagrangian::GetQueryPoints(ScalarType* y) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // copy data to a flat vector
+    for (IntType i = 0; i < nl*3; ++i) {
+        y[i] = this->m_X[i]*(2.0*PETSC_PI);
+    }
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

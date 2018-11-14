@@ -20,9 +20,9 @@ ifeq ($(USEINTEL),yes)
 	CXXFLAGS += -qopenmp
 else
 	CXXFLAGS += -fopenmp
-#	CXXFLAGS += -mavx2
+	CXXFLAGS += -mavx2
 #	CXXFLAGS += -march=corei7-avx
-	CXXFLAGS += -march=native
+#	CXXFLAGS += -march=native
 endif
 CXXFLAGS += -std=c++11
 
@@ -66,7 +66,11 @@ ifeq ($(USECUDA),yes)
 	endif
 endif
 
-BINDIR = ./bin
+ifeq ($(USECUDA),yes)
+	BINDIR = ./bingpu
+else
+	BINDIR = ./bin
+endif
 SRCDIR = ./src
 OBJDIR = ./obj
 INCDIR = ./include

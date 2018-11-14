@@ -44,7 +44,7 @@ class SemiLagrangian {
     SemiLagrangian(RegOpt*);
     virtual ~SemiLagrangian();
 
-    PetscErrorCode ComputeTrajectory(VecField*, std::string);
+    PetscErrorCode ComputeTrajectory(VecField*, std::string, ScalarType *mX=nullptr);
 
     /*! interpolate vector field */
     PetscErrorCode Interpolate(VecField*, VecField*, std::string);
@@ -62,6 +62,8 @@ class SemiLagrangian {
 
     /*! set coordinate vector */
     PetscErrorCode SetQueryPoints(ScalarType*, ScalarType*, ScalarType*, std::string);
+    PetscErrorCode GetQueryPoints(ScalarType*, ScalarType*, ScalarType*);
+    PetscErrorCode GetQueryPoints(ScalarType*);
 
 
 
@@ -73,8 +75,8 @@ class SemiLagrangian {
     PetscErrorCode ClearMemory();
 
     virtual PetscErrorCode CommunicateCoord(std::string);
-    PetscErrorCode ComputeTrajectoryRK2(VecField*, std::string);
-    PetscErrorCode ComputeTrajectoryRK4(VecField*, std::string);
+    PetscErrorCode ComputeTrajectoryRK2(VecField*, std::string, ScalarType *mX=nullptr);
+    PetscErrorCode ComputeTrajectoryRK4(VecField*, std::string, ScalarType *mX=nullptr);
 
     RegOpt* m_Opt;
 

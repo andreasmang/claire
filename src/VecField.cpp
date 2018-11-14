@@ -615,46 +615,87 @@ PetscErrorCode VecField::RestoreArrays() {
  * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
  *******************************************************************/
-PetscErrorCode VecField::SetComponents(Vec w) {
+PetscErrorCode VecField::SetComponents(Vec w, std::string format) {
     PetscErrorCode ierr = 0;
-    IntType nl, n;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
     const ScalarType *p_w = NULL;
 
     PetscFunctionBegin;
 
-    // get local size of vector field
-    ierr = VecGetLocalSize(w, &n); CHKERRQ(ierr);
-
-    ierr = Assert(this->m_X1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_X2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_X3 != NULL, "null pointer"); CHKERRQ(ierr);
-
     ierr = VecGetArrayRead(w, &p_w); CHKERRQ(ierr);
+    ierr = this->SetComponents(p_w, format); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(w, &p_w); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+
+    PetscFunctionBegin;
+
     ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
-    //ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
-    nl = n / 3;
-//    ierr = Assert(nl==this->m_Opt->m_Domain.nl,"dimension mismatch"); CHKERRQ(ierr);
-
-#pragma omp parallel
-{
-#pragma omp for
-    for (IntType i = 0; i < nl; ++i) {
-        p_x1[i] = p_w[i     ];
-        p_x2[i] = p_w[i+  nl];
-        p_x3[i] = p_w[i+2*nl];
+    nl = this->m_Opt->m_Domain.nl;
+    
+    bool block = true;
+    if (format == "block") {
+      block = true;
+    } else if (format == "stride") {
+      block = false;
+    } else {
+      ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-}  // pragma omp parallel
 
-    ierr = VecRestoreArrayRead(w, &p_w); CHKERRQ(ierr);
+    if (block) {
+#pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+        p_x1[i] = pX[i     ];
+        p_x2[i] = pX[i+  nl];
+        p_x3[i] = pX[i+2*nl];
+      }
+    } else {
+#pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+        p_x1[i] = pX[3*i+0];
+        p_x2[i] = pX[3*i+1];
+        p_x3[i] = pX[3*i+2];
+      }
+    }
+
     ierr = VecRestoreArray(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
-    //ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode VecField::SetComponents(const ScalarType *pX1, const ScalarType *pX2, const ScalarType *pX3) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+
+    PetscFunctionBegin;
+
+    ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+
+    // compute size of each individual component
+    nl = this->m_Opt->m_Domain.nl;
+
+#pragma omp parallel for
+    for (IntType i = 0; i < nl; ++i) {
+      p_x1[i] = pX1[i];
+      p_x2[i] = pX2[i];
+      p_x3[i] = pX3[i];
+    }
+
+    ierr = VecRestoreArray(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -666,42 +707,91 @@ PetscErrorCode VecField::SetComponents(Vec w) {
  * @brief get components of vector field and store them
  * in a flat vector
  *******************************************************************/
-PetscErrorCode VecField::GetComponents(Vec w) {
+PetscErrorCode VecField::GetComponents(Vec w, std::string format) {
     PetscErrorCode ierr = 0;
-    IntType nl, n;
     ScalarType *p_w = NULL;
+
+    PetscFunctionBegin;
+
+    ierr = VecGetArray(w, &p_w); CHKERRQ(ierr);
+    ierr = this->GetComponents(p_w, format); CHKERRQ(ierr);
+    ierr = VecRestoreArray(w, &p_w); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
     const ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
 
     PetscFunctionBegin;
 
-    // get local size of vector field
-    ierr = VecGetLocalSize(w, &n); CHKERRQ(ierr);
-
-    ierr = VecGetArray(w, &p_w); CHKERRQ(ierr);
     ierr = VecGetArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecGetArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecGetArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
-    nl = n / 3;
-
-#pragma omp parallel
-{
-#pragma omp for
-    for (IntType i = 0; i < nl; ++i) {
-        p_w[i     ] = p_x1[i];
-        p_w[i+  nl] = p_x2[i];
-        p_w[i+2*nl] = p_x3[i];
+    nl = this->m_Opt->m_Domain.nl;
+    
+    bool block = true;
+    if (format == "block") {
+      block = true;
+    } else if (format == "stride") {
+      block = false;
+    } else {
+      ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-}  // pragma omp parallel
 
-    ierr = VecRestoreArray(w, &p_w); CHKERRQ(ierr);
+    if (block) {
+#pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+        pX[i     ] = p_x1[i];
+        pX[i+  nl] = p_x2[i];
+        pX[i+2*nl] = p_x3[i];
+      }
+    } else {
+#pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+        pX[3*i+0] = p_x1[i];
+        pX[3*i+1] = p_x2[i];
+        pX[3*i+2] = p_x3[i];
+      }
+    }
+
     ierr = VecRestoreArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecRestoreArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecRestoreArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
+PetscErrorCode VecField::GetComponents(ScalarType *pX1, ScalarType *pX2, ScalarType *pX3) {
+    PetscErrorCode ierr = 0;
+    IntType nl;
+    const ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+
+    PetscFunctionBegin;
+
+    ierr = VecGetArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+
+    // compute size of each individual component
+    nl = this->m_Opt->m_Domain.nl;
+
+#pragma omp parallel for
+    for (IntType i = 0; i < nl; ++i) {
+      pX1[i] = p_x1[i];
+      pX2[i] = p_x2[i];
+      pX3[i] = p_x3[i];
+    }
+
+    ierr = VecRestoreArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 

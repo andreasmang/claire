@@ -46,11 +46,15 @@ class VecField {
 
     /*! set individual vector components based on a
         flat PETSc vector as an input */
-    PetscErrorCode SetComponents(Vec);
+    PetscErrorCode SetComponents(Vec, std::string format="block");
+    PetscErrorCode SetComponents(const ScalarType*, std::string format="block");
+    PetscErrorCode SetComponents(const ScalarType*, const ScalarType*, const ScalarType*);
 
     /*! get individual vector components based on a
         flat PETSc vector as an input */
-    PetscErrorCode GetComponents(Vec);
+    PetscErrorCode GetComponents(Vec, std::string format="block");
+    PetscErrorCode GetComponents(ScalarType*, std::string format="block");
+    PetscErrorCode GetComponents(ScalarType*, ScalarType*, ScalarType*);
 
     /*! set all components to a given value*/
     PetscErrorCode SetValue(ScalarType);

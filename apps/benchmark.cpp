@@ -117,8 +117,6 @@ int main(int argc, char **argv) {
 PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     PetscErrorCode ierr = 0;
     Vec m = 0;
-    Vec m1 = 0;
-    Vec m2 = 0;
     reg::VecField* v = NULL;
     reg::CLAIRE* registration = NULL;
     std::stringstream ss;
@@ -127,14 +125,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
 
     // make sure we do not store time history
     opt->m_RegFlags.runinversion = false;
-    
-    // allocate data
-    if (m1 == NULL) {
-        ierr = reg::VecCreate(m1, opt->m_Domain.nl, opt->m_Domain.ng); CHKERRQ(ierr);
-    }
-    if (m2 == NULL) {
-        ierr = reg::VecCreate(m2, opt->m_Domain.nl, opt->m_Domain.ng); CHKERRQ(ierr);
-    }
+  
 
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
@@ -153,38 +144,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
     ierr = reg::DbgMsg("run forward solver benchmarck"); CHKERRQ(ierr);
 
     // warm start
-    ierr = registration->SolveForwardProblem(m1, m); CHKERRQ(ierr);
-    
-    {
-      struct stat buffer;   
-      const char *fname = "forward_bench_ref.raw";
-      if (stat (fname, &buffer) == 0) {
-        PetscViewer viewer;
-        ScalarType norm;
-        
-        ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,fname,FILE_MODE_READ,&viewer); CHKERRQ(ierr);
-        ierr = VecLoad(m2,viewer); CHKERRQ(ierr);
-        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-        
-        ierr = VecAXPY(m2, -1., m1); CHKERRQ(ierr);
-        ierr = VecNorm(m2, NORM_INFINITY, &norm);
-        
-        ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"forward_bench_dif.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
-        ierr = VecView(m2, viewer); CHKERRQ(ierr);
-        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-        
-        ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"forward_bench_curr.raw",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
-        ierr = VecView(m1, viewer); CHKERRQ(ierr);
-        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-        
-        printf("inf norm to ref. solution: %le\n", static_cast<double>(norm));
-      } else {
-        PetscViewer viewer;
-        ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,fname,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
-        ierr = VecView(m1,viewer); CHKERRQ(ierr);
-        ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-      }
-    }
+    ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
 
     // reset all timers and counters
     ierr = opt->ResetTimers(); CHKERRQ(ierr);
@@ -208,8 +168,6 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
 
     if (registration != NULL) {delete registration; registration = NULL;}
     if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
-    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
-    if (m2 != NULL) {ierr = VecDestroy(&m2); CHKERRQ(ierr); m2 = NULL;}
     if (v != NULL) {delete v; v = NULL;}
 
     PetscFunctionReturn(ierr);

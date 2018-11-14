@@ -22,9 +22,7 @@
 
 // local includes
 #include "CLAIREUtils.hpp"
-
-
-
+#include "ARGVParser.hpp"
 
 namespace reg {
 
@@ -610,6 +608,7 @@ class RegOpt {
     virtual PetscErrorCode ParseArguments(int, char**);
     virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);
+    //virtual PetscErrorCode SetupParser(void);
     PetscErrorCode SetPresetParameters();
     PetscErrorCode WriteWorkLoadLog();
     PetscErrorCode WriteWorkLoadLogReadable();
@@ -633,6 +632,8 @@ class RegOpt {
     double m_TTSSlowest;
     double m_FFTSlowest;
     int m_IDSlowest;
+    
+    //ARGVParser m_Parser;
 };
 
 

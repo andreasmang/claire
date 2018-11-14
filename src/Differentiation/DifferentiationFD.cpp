@@ -120,6 +120,17 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, const ScalarType *m) 
 }
 
 
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
+PetscErrorCode DifferentiationFD::Gradient(VecField *g, const Vec m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+            
+    PetscFunctionReturn(ierr);
+}
+
+
 
 
 /********************************************************************
@@ -215,25 +226,44 @@ PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b1,
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DifferentiationFD::Laplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
   PetscFunctionReturn(ierr);
 }
-PetscErrorCode DifferentiationFD::Bilaplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationFD::RegBiLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
   PetscFunctionReturn(ierr);
 }
-PetscErrorCode DifferentiationFD::InverseBilaplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationFD::RegTriLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
   PetscFunctionReturn(ierr);
 }
-PetscErrorCode DifferentiationFD::InverseBilaplacianSqrt(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationFD::RegTriLapFunc(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationFD::InvRegBiLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationFD::InvRegTriLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 

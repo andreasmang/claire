@@ -314,12 +314,34 @@ PetscErrorCode TransportProblem::SolveForwardProblem() {
     
     if (this->m_Opt->m_RegFlags.runinversion) {
         ierr = this->m_StateVariable->CopyFrame(0); CHKERRQ(ierr);
-        /*ierr = this->m_StateVariable->GetArrayReadWrite(pM); CHKERRQ(ierr);
-        for (IntType j = 1; j <= nt; ++j) {
-            ierr = this->m_StateVariable->GetArrayReadWrite(pMnext, 0, j); CHKERRQ(ierr);
-            TransportKernelCopy(pM, pMnext, nc*nl);
-        }
-        ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);*/
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief solve the inverse forward problem for zero velocity fields
+ *******************************************************************/
+PetscErrorCode TransportProblem::SolveInverseProblem() {
+    PetscErrorCode ierr = 0;
+    ScalarType *pM = nullptr, *pMnext = nullptr;
+    IntType nc, nl, nt;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+    
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+    nt = this->m_Opt->m_Domain.nt;
+    
+    ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
+    
+    // m and \lambda are constant in time
+    
+    if (this->m_Opt->m_RegFlags.runinversion) {
+        ierr = this->m_StateVariable->CopyFrame(nt); CHKERRQ(ierr);
     }
     
     this->m_Opt->Exit(__func__);

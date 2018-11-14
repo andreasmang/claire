@@ -106,4 +106,5 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Preprocessing.cpp
 
 TESTFILES=$(SRCDIR)/UnitTestOpt.cpp \
-		$(SRCDIR)/UnitTests/TestInterpolation.cpp
+		$(SRCDIR)/UnitTests/TestInterpolation.cpp \
+		$(SRCDIR)/UnitTests/TestClaire.cpp

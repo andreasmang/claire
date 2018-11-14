@@ -185,6 +185,26 @@ PetscErrorCode DifferentiationSM::Gradient(VecField *g, const ScalarType *m) {
 /********************************************************************
  * @brief compute gradient of a scalar field
  *******************************************************************/
+PetscErrorCode DifferentiationSM::Gradient(VecField *g, const Vec m) {
+    PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
+    const ScalarType *pm = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(m, &pm); CHKERRQ(ierr);
+    
+    ierr = this->Gradient(g1, g2, g3, pm); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointerRead(m, &pm); CHKERRQ(ierr);
+    ierr = g->RestoreArrays(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
 PetscErrorCode DifferentiationSM::Gradient(ScalarType **g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
@@ -362,116 +382,150 @@ PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DifferentiationSM::Laplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
-    const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
-    ScalarType *pBV[3] = {nullptr, nullptr, nullptr};
-    ComplexType **pXHat = this->m_VecFieldKernel.pXHat;
     PetscFunctionBegin;
     
-    DebugGPUStartEvent("FFT Bilaplacian Field");
-    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+    DebugGPUStartEvent("FFT laplacian regularization operator");
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
-    ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[0]), pXHat[0], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[1]), pXHat[1], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[2]), pXHat[2], timer);
-    ierr = v->RestoreArrays(); CHKERRQ(ierr);
-    
-    if (b1 == 0.0) {
-      ierr = this->m_VecFieldKernel.Laplacian(b0); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_VecFieldKernel.Laplacian(b0, b1); CHKERRQ(ierr);
-    }
-    
-    ierr = bv->GetArraysWrite(pBV); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], pBV[0], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], pBV[1], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], pBV[2], timer);
-    ierr = bv->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.Laplacian(b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 6);
-    this->m_Opt->IncreaseFFTTimers(timer);
     
     DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
-PetscErrorCode DifferentiationSM::Bilaplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationSM::RegBiLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
-    const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
-    ScalarType *pBV[3] = {nullptr, nullptr, nullptr};
-    ComplexType **pXHat = this->m_VecFieldKernel.pXHat;
     PetscFunctionBegin;
     
-    DebugGPUStartEvent("FFT Bilaplacian Field");
-    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+    DebugGPUStartEvent("FFT inverse bilaplacian regularization operator");
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
-    ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[0]), pXHat[0], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[1]), pXHat[1], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[2]), pXHat[2], timer);
-    ierr = v->RestoreArrays(); CHKERRQ(ierr);
-    
-    if (b1 == 0.0) {
-      ierr = this->m_VecFieldKernel.Bilaplacian(b0); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_VecFieldKernel.Bilaplacian(b0, b1); CHKERRQ(ierr);
-    }
-    
-    ierr = bv->GetArraysWrite(pBV); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], pBV[0], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], pBV[1], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], pBV[2], timer);
-    ierr = bv->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.Bilaplacian(b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 6);
-    this->m_Opt->IncreaseFFTTimers(timer);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationSM::RegTriLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FFT trilaplacian regularization operator");
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.Trilaplacian(b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
     
     DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DifferentiationSM::InverseBilaplacian(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationSM::RegTriLapFunc(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
-    const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
-    ScalarType *pBV[3] = {nullptr, nullptr, nullptr};
-    ComplexType **pXHat = this->m_VecFieldKernel.pXHat;
     PetscFunctionBegin;
     
-    DebugGPUStartEvent("FFT inverse Bilaplacian Field");
-    
-    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+    DebugGPUStartEvent("FFT trilaplacian regularization functional");
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.TrilaplacianFunctional(b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationSM::InvRegLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FFT inverse laplacian regularization operator");
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.InverseLaplacian(usesqrt, b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationSM::InvRegBiLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FFT inverse bilaplacian regularization operator");
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.InverseBilaplacian(usesqrt, b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationSM::InvRegTriLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FFT inverse trilaplacian regularization operator");
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_VecFieldKernel.InverseTrilaplacian(usesqrt, b0, b1); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
+    PetscErrorCode ierr = 0;
+    const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
+    ComplexType **pXHat = this->m_VecFieldKernel.pXHat;
+    PetscFunctionBegin;
+        
+    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+        
     ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
     accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[0]), pXHat[0], timer);
     accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[1]), pXHat[1], timer);
     accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[2]), pXHat[2], timer);
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
     
-    if (b1 == 0.0) {
-      ierr = this->m_VecFieldKernel.InverseBilaplacian(b0); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_VecFieldKernel.InverseBilaplacian(b0, b1); CHKERRQ(ierr);
-    }
-    
-    ierr = bv->GetArraysWrite(pBV); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], pBV[0], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], pBV[1], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], pBV[2], timer);
-    ierr = bv->RestoreArrays(); CHKERRQ(ierr);
-    
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 6);
+    this->m_Opt->IncrementCounter(FFT, 3);
     this->m_Opt->IncreaseFFTTimers(timer);
     
     DebugGPUStopEvent();
@@ -479,39 +533,21 @@ PetscErrorCode DifferentiationSM::InverseBilaplacian(VecField* bv, VecField* v, 
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DifferentiationSM::InverseBilaplacianSqrt(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationSM::ComputeInverseFFT(VecField* v) {
     PetscErrorCode ierr = 0;
-    const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
-    ScalarType *pBV[3] = {nullptr, nullptr, nullptr};
+    ScalarType *pV[3] = {nullptr, nullptr, nullptr};
     ComplexType **pXHat = this->m_VecFieldKernel.pXHat;
     PetscFunctionBegin;
-    
-    DebugGPUStartEvent("FFT inverse Bilaplacian Field");
-    
+        
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
-    
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    
-    ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[0]), pXHat[0], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[1]), pXHat[1], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[2]), pXHat[2], timer);
+        
+    ierr = v->GetArraysWrite(pV); CHKERRQ(ierr);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], pV[0], timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], pV[1], timer);
+    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], pV[2], timer);
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
     
-    if (b1 == 0.0) {
-      ierr = this->m_VecFieldKernel.InverseBilaplacianSqrt(b0); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_VecFieldKernel.InverseBilaplacianSqrt(b0, b1); CHKERRQ(ierr);
-    }
-    
-    ierr = bv->GetArraysWrite(pBV); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], pBV[0], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], pBV[1], timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], pBV[2], timer);
-    ierr = bv->RestoreArrays(); CHKERRQ(ierr);
-    
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 6);
+    this->m_Opt->IncrementCounter(FFT, 3);
     this->m_Opt->IncreaseFFTTimers(timer);
     
     DebugGPUStopEvent();

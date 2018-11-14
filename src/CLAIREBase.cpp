@@ -1109,8 +1109,10 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     /// for stokes we are going to use an incompressible velocity
     if (this->m_Opt->m_RegModel == STOKES) {vcase = 3;}
 
-    ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = GetRawPointer(mT, &p_mt); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_VelocityField->m_X1, &p_vx1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_VelocityField->m_X2, &p_vx2); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_VelocityField->m_X3, &p_vx3); CHKERRQ(ierr);
+    ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
 //#pragma omp parallel
 //{
     IntType i1, i2, i3;
@@ -1165,8 +1167,10 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
         }  // i2
     }  // i3
 //}  // pragma omp parallel
-    ierr = RestoreRawPointer(mT, &p_mt); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_VelocityField->m_X1, &p_vx1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_VelocityField->m_X2, &p_vx2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_VelocityField->m_X3, &p_vx3); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
@@ -1197,21 +1201,21 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     // if the image has more than one component, just copy the
     // content of first image to all other
     if (nc == 2) {
-        ierr = GetRawPointer(mT, &p_mt); CHKERRQ(ierr);
+        ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
         for (IntType i = 0; i < nl; ++i) {
             p_mt[nl + i] = 1.0 - p_mt[i];
         }
-        ierr = RestoreRawPointer(mT, &p_mt); CHKERRQ(ierr);
+        ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     }
     if (nc > 2) {
-        ierr = GetRawPointer(mT, &p_mt); CHKERRQ(ierr);
+        ierr = VecGetArray(mT, &p_mt); CHKERRQ(ierr);
         for (IntType k = 1; k < nc; ++k) {
             try {std::copy(p_mt, p_mt+nl, p_mt+k*nl);}
             catch (std::exception&) {
                 ierr = ThrowError("copy failed"); CHKERRQ(ierr);
             }
         }
-        ierr = RestoreRawPointer(mT, &p_mt); CHKERRQ(ierr);
+        ierr = VecRestoreArray(mT, &p_mt); CHKERRQ(ierr);
     }
     ierr = Rescale(mT, 0, 1, nc); CHKERRQ(ierr);
 

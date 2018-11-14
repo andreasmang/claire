@@ -43,6 +43,7 @@ class SemiLagrangianGPUNew {
 
     PetscErrorCode ComputeTrajectory(VecField*, std::string);
     PetscErrorCode ComputeInitialTrajectory();
+    PetscErrorCode SetInitialTrajectory(const ScalarType*);
 
     /*! interpolate vector field */
     PetscErrorCode Interpolate(VecField*, VecField*, std::string);
@@ -61,6 +62,8 @@ class SemiLagrangianGPUNew {
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetWorkVecField(VecField*);
     PetscErrorCode SetQueryPoints(ScalarType*, ScalarType*, ScalarType*, std::string);
+    PetscErrorCode GetQueryPoints(ScalarType*, ScalarType*, ScalarType*);
+    PetscErrorCode GetQueryPoints(ScalarType*);
 
  protected:
     PetscErrorCode Initialize();
