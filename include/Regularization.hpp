@@ -49,9 +49,11 @@ class Regularization {
 
     PetscErrorCode SetWorkVecField(VecField*);
     PetscErrorCode SetDifferentiation(Differentiation::Type);
-    PetscErrorCode SetSpectralData(ComplexType*, ComplexType*, ComplexType*);
+    PetscErrorCode SetSpectralData(ComplexType* =nullptr, ComplexType* =nullptr, ComplexType* =nullptr);
 
+    /// TODO Note: The inner product can be computed in spectral space as $\int |Op(v)|^2 dx = \int |\hat{Op(v)}|^2 dx$, thus no inverse FFT needed here
     virtual PetscErrorCode EvaluateFunctional(ScalarType*, VecField*) = 0;
+    
     virtual PetscErrorCode EvaluateGradient(VecField*, VecField*) = 0;
     virtual PetscErrorCode HessianMatVec(VecField*, VecField*) = 0;
     virtual PetscErrorCode ApplyInverse(VecField*, VecField*, bool applysqrt = false) = 0;

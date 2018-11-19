@@ -67,7 +67,7 @@ PetscErrorCode RegularizationH2SN::EvaluateFunctional(ScalarType* R, VecField* v
     if (beta != 0.0) {
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
         
-        ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, -1.); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, 1.); CHKERRQ(ierr);
 
         // compute inner product
         ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); value += ipxi;

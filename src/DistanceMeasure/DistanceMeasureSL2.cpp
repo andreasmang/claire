@@ -94,7 +94,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     IntType nt;
     int rval;
     DistanceMeasureKernel::EvaluateFunctionalSL2 kernel;
-    ScalarType l2distance, hx;
+    ScalarType l2distance, hd;
 
     PetscFunctionBegin;
 
@@ -107,7 +107,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     nt = this->m_Opt->m_Domain.nt;
     kernel.nc = this->m_Opt->m_Domain.nc;
     kernel.nl = this->m_Opt->m_Domain.nl;
-    hx  = this->m_Opt->GetLebesgueMeasure();   
+    hd  = this->m_Opt->GetLebesgueMeasure();   
 
     ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
@@ -130,7 +130,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
 
     // objective value
-    *D = 0.5*hx*l2distance/static_cast<ScalarType>(kernel.nc);
+    *D = 0.5*hd*l2distance/static_cast<ScalarType>(kernel.nc);
 
     this->m_Opt->Exit(__func__);
 

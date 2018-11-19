@@ -67,9 +67,9 @@ PetscErrorCode CLAIREDivReg::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_x1hat = NULL;
-    this->m_x2hat = NULL;
-    this->m_x3hat = NULL;
+    //this->m_x1hat = NULL;
+    //this->m_x2hat = NULL;
+    //this->m_x3hat = NULL;
 
     PetscFunctionReturn(ierr);
 }
@@ -84,7 +84,7 @@ PetscErrorCode CLAIREDivReg::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_x1hat != NULL) {
+    /*if (this->m_x1hat != NULL) {
         accfft_free(this->m_x1hat);
         this->m_x1hat = NULL;
     }
@@ -95,7 +95,7 @@ PetscErrorCode CLAIREDivReg::ClearMemory() {
     if (this->m_x3hat != NULL) {
         accfft_free(this->m_x3hat);
         this->m_x3hat = NULL;
-    }
+    }*/
 
     PetscFunctionReturn(ierr);
 }
@@ -179,18 +179,11 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
  *******************************************************************/
 PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_gdv1 = NULL, *p_gdv2 = NULL, *p_gdv3 = NULL, *p_divv = NULL;
     ScalarType value, regvalue, betaw, hd;
-    double timer[NFFTTIMERS] = {0};
-    IntType nl, ng;
-    std::bitset<3> XYZ = 0; XYZ[0] = 1, XYZ[1] = 1, XYZ[2] = 1;
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     hd  = this->m_Opt->GetLebesgueMeasure();   
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
@@ -199,29 +192,11 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     // get regularization weight
     betaw = this->m_Opt->m_RegNorm.beta[2];
 
-    ierr = VecGetArray(*this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-
-    // compute \idiv(\vect{v})
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_divergence_t(p_divv, p_v1, p_v2, p_v3, this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);*/
-    this->m_Differentiation->Divergence(p_divv, p_v1, p_v2, p_v3);
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    //this->m_Opt->IncrementCounter(FFT, FFTDIV);
-
+    // compute \div(\vect{v})
+    ierr = this->m_Differentiation->Divergence(*this->m_WorkScaField1, this->m_VelocityField); CHKERRQ(ierr);
 
     // compute gradient of div(v)
-    ierr = this->m_WorkVecField1->GetArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
-    /*this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_grad_t(p_gdv3, p_gdv2, p_gdv1, p_divv, this->m_Opt->m_FFT.plan, &XYZ, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);*/
-    this->m_Differentiation->Gradient(p_gdv3,p_gdv2,p_gdv1,p_divv);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gdv1, p_gdv2, p_gdv3); CHKERRQ(ierr);
-    //this->m_Opt->IncrementCounter(FFT, FFTGRAD);
-
-    ierr = VecRestoreArray(*this->m_WorkScaField1, &p_divv); CHKERRQ(ierr);
-
+    ierr = this->m_Differentiation->Gradient(this->m_WorkVecField1, *this->m_WorkScaField1); CHKERRQ(ierr);
 
     // compute inner products ||\igrad w||_L2 + ||w||_L2
     regvalue = 0.0;
@@ -233,7 +208,6 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     // add up contributions
     *Rw = 0.5*hd*betaw*regvalue;
 
-    this->m_Opt->IncreaseFFTTimers(timer);
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
@@ -297,27 +271,32 @@ PetscErrorCode CLAIREDivReg::ComputeIncBodyForce() {
  *******************************************************************/
 PetscErrorCode CLAIREDivReg::ApplyProjection() {
     PetscErrorCode ierr = 0;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
-    ScalarType beta[3], scale;
-    long int nx[3];
+    //ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+    ScalarType beta[3];//, scale;
+    //long int nx[3];
     //IntType nalloc;
-    double applytime;
-    ComplexType x1hat, x2hat, x3hat;
-    double timer[NFFTTIMERS] = {0};
+    //double applytime;
+    //ComplexType x1hat, x2hat, x3hat;
+    //double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
 
-    nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
-    nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
-    nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
+    //nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
+    //nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
+    //nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
 
-    scale = this->m_Opt->ComputeFFTScale();
+    //scale = this->m_Opt->ComputeFFTScale();
 
     // allocate spectral data
     ierr = this->SetupSpectralData(); CHKERRQ(ierr);
+    
+    beta[0] = this->m_Opt->m_RegNorm.beta[0];
+    beta[2] = this->m_Opt->m_RegNorm.beta[2];
+    
+    ierr = this->m_Differentiation->LerayOperator(this->m_WorkVecField1, this->m_WorkVecField2, beta[0], beta[2]); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
+    /*ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
@@ -328,8 +307,7 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 
-    beta[0] = this->m_Opt->m_RegNorm.beta[0];
-    beta[2] = this->m_Opt->m_RegNorm.beta[2];
+    
 
     applytime = -MPI_Wtime();
 #pragma omp parallel
@@ -424,10 +402,10 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);*/
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
-    this->m_Opt->IncreaseFFTTimers(timer);
+    //this->m_Opt->IncreaseFFTTimers(timer);
 
     this->m_Opt->Exit(__func__);
 

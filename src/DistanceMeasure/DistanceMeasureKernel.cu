@@ -159,7 +159,7 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   cudaCheckKernelError();
   
   ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-  
+    
   FreeMemory(res);
   
   PetscFunctionReturn(ierr);
@@ -183,7 +183,7 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   cudaCheckKernelError();
   
   ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-  
+    
   FreeMemory(res);
   
   PetscFunctionReturn(ierr);

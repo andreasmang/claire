@@ -830,6 +830,10 @@ PetscErrorCode VecField::Scale(Vec s) {
     ierr = GetRawPointer(s, &p_s); CHKERRQ(ierr);
     ierr = this->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
 
+#ifdef REG_HAS_CUDA
+    ierr = WrngMsg("Not implemented for CUDA"); CHKERRQ(ierr);
+#endif
+
 #pragma omp parallel
 {
     ScalarType scale;
@@ -870,6 +874,10 @@ PetscErrorCode VecField::Scale(VecField* v, Vec s) {
     ierr = GetRawPointer(s, &p_s); CHKERRQ(ierr);
     ierr = this->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
     ierr = v->GetArrays(p_sv1, p_sv2, p_sv3); CHKERRQ(ierr);
+    
+#ifdef REG_HAS_CUDA
+    ierr = WrngMsg("Not implemented for CUDA"); CHKERRQ(ierr);
+#endif
 
 #pragma omp parallel
 {
@@ -944,6 +952,10 @@ PetscErrorCode VecField::Norm(Vec xnorm) {
 
     ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
     ierr = GetRawPointer(xnorm, &p_x); CHKERRQ(ierr);
+    
+#ifdef REG_HAS_CUDA
+    ierr = WrngMsg("Not implemented for CUDA"); CHKERRQ(ierr);
+#endif
 
 #pragma omp parallel
 {
@@ -969,27 +981,15 @@ PetscErrorCode VecField::Norm(Vec xnorm) {
  *******************************************************************/
 PetscErrorCode VecField::Norm(ScalarType& value) {
     PetscErrorCode ierr = 0;
-    IntType nl;
-    ScalarType vnorm;
-    int rval;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+    ScalarType nvx1, nvx2, nvx3;
 
     PetscFunctionBegin;
 
-    // get local size of vector field
-    ierr = VecGetLocalSize(this->m_X1, &nl); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X1, NORM_2, &nvx1); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X2, NORM_2, &nvx2); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X3, NORM_2, &nvx3); CHKERRQ(ierr);
 
-    vnorm = 0.0;
-    ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-    for (IntType i = 0; i < nl; ++i) {
-        vnorm += p_x1[i]*p_x1[i] + p_x2[i]*p_x2[i] + p_x3[i]*p_x3[i];
-    }
-    ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&vnorm, &value, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-    ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
-
-    value = PetscSqrtReal(value);
+    value = nvx1 + nvx2 + nvx3;
 
     PetscFunctionReturn(ierr);
 }

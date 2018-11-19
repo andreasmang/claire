@@ -278,7 +278,7 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
             // compute lambda(t^j,X)
             ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLx, kernel.pL, "adjoint"); CHKERRQ(ierr);
             
-            // compute gradient of m (for incremental body force)
+            // compute gradient of m (for body force)
             ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
             
             // compute \lambda(x,t^{j+1}) and bodyforce

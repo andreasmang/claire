@@ -48,27 +48,25 @@ RegularizationH2::RegularizationH2(RegOpt* opt) : SuperClass(opt) {
  *******************************************************************/
 PetscErrorCode RegularizationH2::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr;
-    ScalarType sqrtbeta[2], ipxi, hd;
-    IntType nx[3];
-    double timer[NFFTTIMERS] = {0}, applytime;
+    ScalarType sqrtbeta0, beta1, ipxi, hd;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     // get regularization weight
-    sqrtbeta[0] = sqrt(this->m_Opt->m_RegNorm.beta[0]);
-    sqrtbeta[1] = sqrt(this->m_Opt->m_RegNorm.beta[1]);
+    sqrtbeta0 = sqrt(this->m_Opt->m_RegNorm.beta[0]);
+    beta1 = this->m_Opt->m_RegNorm.beta[1];
     hd  = this->m_Opt->GetLebesgueMeasure();   
 
     *R = 0.0;
 
     // if regularization weight is zero, do noting
     //if (sqrtbeta[0] != 0.0 && sqrtbeta[1] != 0.0) {
-    if (sqrtbeta[0] != 0.0) {
+    if (sqrtbeta0 != 0.0) {
         ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
         
-        ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, -sqrtbeta[0], -sqrtbeta[1]); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, sqrtbeta0, beta1); CHKERRQ(ierr);
         
         ierr=VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); *R += ipxi;
         ierr=VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &ipxi); CHKERRQ(ierr); *R += ipxi;

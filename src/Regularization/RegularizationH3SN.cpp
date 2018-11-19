@@ -63,7 +63,7 @@ RegularizationH3SN::RegularizationH3SN(RegOpt* opt) : SuperClass(opt) {
  *******************************************************************/
 PetscErrorCode RegularizationH3SN::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr;
-    ScalarType beta, ipxi, hd;
+    ScalarType beta, hd, value[9];
 
     PetscFunctionBegin;
 
@@ -80,15 +80,37 @@ PetscErrorCode RegularizationH3SN::EvaluateFunctional(ScalarType* R, VecField* v
         ierr = Assert(v != NULL,"null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
         
-        ierr = this->m_Differentiation->RegTriLapFunc(this->m_WorkVecField, v, beta); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->Laplacian(this->m_WorkVecField, v); CHKERRQ(ierr);
+        
+        // X1 gradient
+        ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, this->m_WorkVecField->m_X1); CHKERRQ(ierr);
+        // compute inner products
+        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value[0]); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value[1]); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value[2]); CHKERRQ(ierr);
+        
+        ierr = this->m_Differentiation->Laplacian(this->m_WorkVecField, v); CHKERRQ(ierr);
+        
+        // X2 gradient
+        ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, this->m_WorkVecField->m_X2); CHKERRQ(ierr);
+        // compute inner products
+        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value[3]); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value[4]); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value[5]); CHKERRQ(ierr);
 
-        // compute inner product
-        ierr=VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &ipxi); CHKERRQ(ierr); *R += ipxi;
-        ierr=VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &ipxi); CHKERRQ(ierr); *R += ipxi;
-        ierr=VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &ipxi); CHKERRQ(ierr); *R += ipxi;
-
+        ierr = this->m_Differentiation->Laplacian(this->m_WorkVecField, v); CHKERRQ(ierr);
+        
+        // X3 gradient
+        ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, m_WorkVecField->m_X3); CHKERRQ(ierr);
+        // compute inner products
+        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value[6]); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value[7]); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value[8]); CHKERRQ(ierr);
+        
         // multiply with regularization weight
-        *R *= 0.5*hd;
+        *R = 0.5*hd*beta*(value[0] + value[1] + value[2] 
+                        + value[3] + value[4] + value[5]
+                        + value[6] + value[7] + value[8]);
     }
 
     this->m_Opt->Exit(__func__);

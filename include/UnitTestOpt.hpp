@@ -21,15 +21,22 @@
 #define _UNITTESTOPT_H_
 
 #include "RegOpt.hpp"
+#include "VecField.hpp"
 
 namespace reg {
 
-namespace UnitTest {  
+namespace UnitTest { 
+  PetscErrorCode ComputeSyntheticData(Vec& m, RegOpt* opt);
+  PetscErrorCode ComputeSyntheticData(VecField*&, RegOpt*, IntType=1);
+  PetscErrorCode ComputeDiffFunction(VecField *, VecField *, int, RegOpt*);
+  
   PetscErrorCode TestInterpolation(RegOpt *m_Opt);
   PetscErrorCode TestForwardSolver(RegOpt *m_Opt);
   PetscErrorCode TestTrajectory(RegOpt *m_Opt);
   PetscErrorCode TestGradient(RegOpt *m_Opt);
   PetscErrorCode TestHessian(RegOpt *m_Opt);
+  PetscErrorCode TestRegularization(RegOpt *m_Opt);
+  PetscErrorCode TestDifferentiation(RegOpt *m_Opt);
 }
 
 class UnitTestOpt : public RegOpt {
@@ -42,7 +49,6 @@ class UnitTestOpt : public RegOpt {
     UnitTestOpt(const UnitTestOpt&);
     virtual ~UnitTestOpt();
 
-    virtual PetscErrorCode DisplayOptions(void);
     virtual PetscErrorCode Run();
 
  protected:
@@ -62,7 +68,9 @@ class UnitTestOpt : public RegOpt {
       ForwardSolver,
       Trajectory,
       Gradient,
-      Hessian
+      Hessian,
+      Reg,
+      Diff
     } TestType;
 
     TestType m_TestType;

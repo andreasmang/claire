@@ -68,11 +68,12 @@ endif
 
 ifeq ($(USECUDA),yes)
 	BINDIR = ./bingpu
+	OBJDIR = ./objgpu
 else
 	BINDIR = ./bin
+	OBJDIR = ./obj
 endif
 SRCDIR = ./src
-OBJDIR = ./obj
 INCDIR = ./include
 APPDIR = ./apps
 EXSRCDIR = ./3rdparty

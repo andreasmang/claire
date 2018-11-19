@@ -208,9 +208,15 @@ PetscErrorCode CLAIREBase::SetupSpectralData() {
 
     nalloc = this->m_Opt->m_FFT.nalloc;
     
-    ierr = AllocateMemoryOnce(this->m_x1hat, nalloc); CHKERRQ(ierr);
-    ierr = AllocateMemoryOnce(this->m_x2hat, nalloc); CHKERRQ(ierr);
-    ierr = AllocateMemoryOnce(this->m_x3hat, nalloc); CHKERRQ(ierr);
+    //ierr = AllocateMemoryOnce(this->m_x1hat, nalloc); CHKERRQ(ierr);
+    //ierr = AllocateMemoryOnce(this->m_x2hat, nalloc); CHKERRQ(ierr);
+    //ierr = AllocateMemoryOnce(this->m_x3hat, nalloc); CHKERRQ(ierr);
+    
+    // TODO: possible to allocate spectral data twice (once here and once in Regularization)
+    ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Differentiation->m_Type == Differentiation::Spectral, "no spectral differentiation"); CHKERRQ(ierr);
+    ierr = static_cast<DifferentiationSM*>(this->m_Differentiation)->SetupSpectralData(); CHKERRQ(ierr);
+    
     /*if (this->m_x1hat == NULL) {
 #ifndef REG_HAS_CUDA
         this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));

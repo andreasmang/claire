@@ -696,7 +696,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
 
     // add up the contributions
     *J = D + R;
-
+    
     // store for access (e.g., used in coupling)
     this->m_Opt->m_Monitor.jval = *J;
     this->m_Opt->m_Monitor.dval = D;
@@ -1847,7 +1847,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     ierr = this->m_TransportProblem->SetIncControlVariable(this->m_IncVelocityField); CHKERRQ(ierr);
 
     // set initial value
-    ierr = VecSet(*this->m_IncStateVariable, 0.0); CHKERRQ(ierr);
+    ierr = this->m_IncStateVariable->Set(0.0); CHKERRQ(ierr);
 
     // start timer
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);

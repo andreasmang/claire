@@ -161,9 +161,7 @@ PetscErrorCode RegularizationH1SN::ApplyInverse(VecField* Ainvx, VecField* x, bo
 
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
-        ierr = VecCopy(x->m_X1, Ainvx->m_X1); CHKERRQ(ierr);
-        ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
-        ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
+        ierr = Ainvx->Copy(x); CHKERRQ(ierr);
     } else {
         ierr = this->m_Differentiation->InvRegLapOp(Ainvx, x, applysqrt, beta); CHKERRQ(ierr);
     }

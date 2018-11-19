@@ -285,6 +285,7 @@ PetscErrorCode UnitTestOpt::Usage(bool advanced) {
         std::cout << " usage: regbenchmark [options] " <<std::endl;
         std::cout << line << std::endl;
         std::cout << " where [options] is one or more of the following"<<std::endl;
+        std::cout << line << std::endl;
         // ####################### advanced options #######################
         ierr = this->PrintTests(); CHKERRQ(ierr);
         if (advanced) {
@@ -353,124 +354,6 @@ PetscErrorCode UnitTestOpt::Usage(bool advanced) {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
-/********************************************************************
- * @brief display options
- *******************************************************************/
-PetscErrorCode UnitTestOpt::DisplayOptions() {
-    PetscErrorCode ierr = 0;
-    int rank, indent;
-    std::string msg, line;
-
-    PetscFunctionBegin;
-
-    this->Enter(__func__);
-
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
-    indent = 40;
-    line = std::string(this->m_LineLength, '-');
-
-    // display the parameters (only on rank 0)
-    if (rank == 0) {
-        std::cout << std::endl;
-        std::cout << line << std::endl;
-        std::cout << " CLAIRE: Constrained Large Deformation Diffeomorphic Registration" << std::endl;
-        std::cout << line << std::endl;
-        std::time_t result = std::time(NULL);
-#ifdef GIT_VERSION
-        std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
-#else
-        std::cout << " " << std::asctime(std::localtime(&result));
-#endif
-        std::cout << line << std::endl;
-        std::cout << " problem setup" << std::endl;
-        std::cout << line << std::endl;
-        std::cout << std::left << std::setw(indent) << " problem dimensions"
-                  << "(nx1,nx2,nx3,nt)=("
-                  << this->m_Domain.nx[0] << ", "
-                  << this->m_Domain.nx[1] << ", "
-                  << this->m_Domain.nx[2] << ", "
-                  << this->m_Domain.nt << ")" << std::endl;
-        std::cout << std::left << std::setw(indent) << " network dimensions"
-                  << this->m_CartGridDims[0] << "x"
-                  << this->m_CartGridDims[1] << std::endl;
-        std::cout << std::left << std::setw(indent) << " threads"
-                  //<< this->m_NumThreads << std::endl;
-                  << omp_get_max_threads() << std::endl;
-        std::cout << std::left << std::setw(indent) << " (ng,nl)"
-                  << "(" << this->m_Domain.ng << ", "
-                  << this->m_Domain.nl << ")" << std::endl;
-        std::cout << line << std::endl;
-        
-        switch (this->m_RegNorm.type) {
-                case L2:
-                {
-                    std::cout   << std::scientific << "l2-norm (beta="
-                                << this->m_RegNorm.beta[0]
-                                << ")" << std::endl;
-                    break;
-                }
-                case H1:
-                {
-                    std::cout   << std::scientific << "h1-norm (beta="
-                                << this->m_RegNorm.beta[0]
-                                << ", " << this->m_RegNorm.beta[1]
-                                << ") " << std::endl;
-                    break;
-                }
-                case H2:
-                {
-                    std::cout   << std::scientific << "h2-norm (beta="
-                                << this->m_RegNorm.beta[0]
-                                << ", " << this->m_RegNorm.beta[1]
-                                << ")" << std::endl;
-                    break;
-                }
-                case H3:
-                {
-                    std::cout   << std::scientific << "h3-norm (beta="
-                                << this->m_RegNorm.beta[0]
-                                << ", " << this->m_RegNorm.beta[1]
-                                << ")" << std::endl;
-                    break;
-                }
-                case H1SN:
-                {
-                    std::cout   << std::scientific <<  "h1-seminorm (beta="
-                                <<  this->m_RegNorm.beta[0]
-                                << ")" << std::endl;
-                    break;
-                }
-                case H2SN:
-                {
-                    std::cout   << std::scientific << "h2-seminorm (beta="
-                                << this->m_RegNorm.beta[0]
-                                << ")" << std::endl;
-                    break;
-                }
-                case H3SN:
-                {
-                    std::cout   << std::scientific << "h3-seminorm (beta="
-                                << this->m_RegNorm.beta[0]
-                                << ")" << std::endl;
-                    break;
-                }
-                default: {ierr = ThrowError("regularization model not implemented"); CHKERRQ(ierr); break;}
-            };
-        std::cout << line << std::endl;
-    }  // rank
-
-    this->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
 /********************************************************************
  * @brief check the arguments set by user
  *******************************************************************/
@@ -499,6 +382,8 @@ PetscErrorCode UnitTestOpt::PrintTests() {
   std::cout << " -trajectory                 trajectory solver unit test"<<std::endl;
   std::cout << " -gradient                   gradient unit test"<<std::endl;
   std::cout << " -hessian                    hessian unit test"<<std::endl;
+  std::cout << " -reg                        regularization unit test"<<std::endl;
+  std::cout << " -diff                       differentiation unit test"<<std::endl;
   
   PetscFunctionReturn(ierr);
 }
@@ -516,6 +401,10 @@ PetscErrorCode UnitTestOpt::CheckTests(char* argv, bool &found) {
     this->m_TestType = TestType::Gradient;
   } else if (strcmp(argv, "-hessian") == 0) {
     this->m_TestType = TestType::Hessian;
+  } else if (strcmp(argv, "-reg") == 0) {
+    this->m_TestType = TestType::Reg;
+  } else if (strcmp(argv, "-diff") == 0) {
+    this->m_TestType = TestType::Diff;
   } else {
     found = false;
   }
@@ -535,6 +424,7 @@ PetscErrorCode UnitTestOpt::Run() {
     ierr = UnitTest::TestTrajectory(this); CHKERRQ(ierr);
     ierr = UnitTest::TestGradient(this); CHKERRQ(ierr);
     ierr = UnitTest::TestHessian(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestRegularization(this); CHKERRQ(ierr);
     break;
   case TestType::Interpolate:
     ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
@@ -550,6 +440,12 @@ PetscErrorCode UnitTestOpt::Run() {
     break;
   case TestType::Hessian:
     ierr = UnitTest::TestHessian(this); CHKERRQ(ierr);
+    break;
+  case TestType::Reg:
+    ierr = UnitTest::TestRegularization(this); CHKERRQ(ierr);
+    break;
+  case TestType::Diff:
+    ierr = UnitTest::TestDifferentiation(this); CHKERRQ(ierr);
     break;
   };
   

@@ -144,7 +144,27 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief compute laplacian of a scalar field
+ *******************************************************************/
+PetscErrorCode DifferentiationFD::Laplacian(VecField *l,
+                                            VecField *m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute laplacian of a scalar field
+ *******************************************************************/
+PetscErrorCode DifferentiationFD::Laplacian(Vec l,
+                                            const Vec m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -180,6 +200,16 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
  * @brief compute divergence of a vector field
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, VecField *v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode DifferentiationFD::Divergence(Vec l, VecField *v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -264,6 +294,13 @@ PetscErrorCode DifferentiationFD::InvRegBiLapOp(VecField* bv, VecField* v, bool 
   PetscFunctionReturn(ierr);
 }
 PetscErrorCode DifferentiationFD::InvRegTriLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationFD::LerayOperator(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 

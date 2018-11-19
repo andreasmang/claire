@@ -42,6 +42,8 @@ struct VectorField {
   PetscErrorCode InverseBilaplacian(bool, ScalarType, ScalarType=0.0);
   PetscErrorCode InverseTrilaplacian(bool, ScalarType, ScalarType=0.0);
   PetscErrorCode TrilaplacianFunctional(ScalarType, ScalarType=0.0);
+  
+  PetscErrorCode Leray(ScalarType, ScalarType);
 };
 
 } // namespace DifferentiationKernel

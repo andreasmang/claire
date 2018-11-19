@@ -773,7 +773,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_GridCont.enabled = true;
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
-            this->m_Verbosity = std::min(atoi(argv[1]), 2);
+            this->m_Verbosity = std::min(atoi(argv[1]), 3);
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
         } else if (strcmp(argv[1], "-monitordefgrad") == 0) {
@@ -2085,6 +2085,9 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
 #else
         std::cout << " " << std::asctime(std::localtime(&result));
+#endif
+#ifdef REG_HAS_CUDA
+        std::cout << " compiled for GPU" << std::endl;
 #endif
         std::cout << line << std::endl;
         std::cout << " problem setup" << std::endl;

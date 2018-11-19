@@ -64,6 +64,7 @@ RegularizationL2::RegularizationL2(RegOpt* opt) : SuperClass(opt) {
 PetscErrorCode RegularizationL2::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, ipxi, hd;
+    ScalarType n1, n2, n3;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -97,9 +98,7 @@ PetscErrorCode RegularizationL2::EvaluateFunctional(ScalarType* R, VecField* v) 
  *******************************************************************/
 PetscErrorCode RegularizationL2::EvaluateGradient(VecField* dvR, VecField* v) {
     PetscErrorCode ierr = 0;
-    ScalarType beta, *p_dvR1 = NULL, *p_dvR2 = NULL, *p_dvR3 = NULL,
-                *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
-    IntType nl;
+    ScalarType beta;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -113,14 +112,9 @@ PetscErrorCode RegularizationL2::EvaluateGradient(VecField* dvR, VecField* v) {
     // if regularization weight is zero, do noting
     if (beta == 0.0) {
         ierr = dvR->SetValue(0.0); CHKERRQ(ierr);
-    } else {
-        nl = this->m_Opt->m_Domain.nl;
-
-        ierr = v->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-        ierr = dvR->GetArrays(p_dvR1, p_dvR2, p_dvR3); CHKERRQ(ierr);
-        ierr = ScaleVectorField(p_dvR1,p_dvR2,p_dvR3,p_v1,p_v2,p_v3,nl,beta); CHKERRQ(ierr);
-        ierr = dvR->RestoreArrays(p_dvR1, p_dvR2, p_dvR3); CHKERRQ(ierr);
-        ierr = v->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    } else {        
+        ierr = dvR->Copy(v); CHKERRQ(ierr);
+        ierr = dvR->Scale(beta); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -137,22 +131,11 @@ PetscErrorCode RegularizationL2::EvaluateGradient(VecField* dvR, VecField* v) {
  *******************************************************************/
 PetscErrorCode RegularizationL2::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr = 0;
-    ScalarType beta;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(dvvR != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
-
-    beta = this->m_Opt->m_RegNorm.beta[0];
-
-    // if regularization weight is zero, do noting
-    if (beta == 0.0) {
-        ierr = dvvR->SetValue(0.0); CHKERRQ(ierr);
-    } else {
-        ierr = this->EvaluateGradient(dvvR, vtilde); CHKERRQ(ierr);
-    }
+    ierr = this->EvaluateGradient(dvvR, vtilde); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -169,9 +152,7 @@ PetscErrorCode RegularizationL2::HessianMatVec(VecField* dvvR, VecField* vtilde)
  *******************************************************************/
 PetscErrorCode RegularizationL2::ApplyInverse(VecField* Ainvx, VecField* x, bool applysqrt) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL,
-                *p_Ainvx1 = NULL, *p_Ainvx2 = NULL, *p_Ainvx3 = NULL, beta;
-    IntType nl;
+    ScalarType beta;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -187,12 +168,8 @@ PetscErrorCode RegularizationL2::ApplyInverse(VecField* Ainvx, VecField* x, bool
         ierr = VecCopy(x->m_X2, Ainvx->m_X2); CHKERRQ(ierr);
         ierr = VecCopy(x->m_X3, Ainvx->m_X3); CHKERRQ(ierr);
     } else {
-        nl = this->m_Opt->m_Domain.nl;
-        ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-        ierr = Ainvx->GetArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
-        ierr = ScaleVectorField(p_Ainvx1,p_Ainvx2,p_Ainvx3,p_x1,p_x2,p_x3,nl,1./beta); CHKERRQ(ierr);
-        ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-        ierr = Ainvx->RestoreArrays(p_Ainvx1, p_Ainvx2, p_Ainvx3); CHKERRQ(ierr);
+        ierr = Ainvx->Copy(x); CHKERRQ(ierr);
+        ierr = Ainvx->Scale(1./beta); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);

@@ -23,115 +23,34 @@
 #include "DifferentiationKernel.hpp"
 #include "CLAIREUtils.hpp"
 
-template<int N> inline ScalarType pow(ScalarType x) {
-  return x*pow<N-1>(x);
-}
-template<> inline ScalarType pow<0>(ScalarType x) {
-  return 1;
-}
-
-/********************************************************************
- * @brief computes linear array index on GPU
- *******************************************************************/
-template<int N> 
-inline ScalarType ComputeNLaplaceNumber(IntType w[3]) {
-  ScalarType norm = static_cast<ScalarType>(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-  return pow<N>(norm);
-}
-
-template<int N> struct NLaplacianKernel {
-  static inline void call(int i, IntType w[3], 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType b0) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w);
-    ScalarType regop = b0*lapik;
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NLaplacianRegularizationKernel {
-  static inline void call(int i, IntType w[3], 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType b0, ScalarType b1) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w) + b1;
-    ScalarType regop = b0*lapik;
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NInvLaplacianKernel {
-  static inline void call (int i, IntType w[3], 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType scale, ScalarType b0) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w);
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NInvLaplacianSqrtKernel {
-  static inline void call(int i, IntType w[3], 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, ScalarType scale, ScalarType b0) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w);
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/sqrt(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> struct NInvLaplacianRegularizationKernel {
-  static inline void call(int i, IntType w[3], 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
-      ScalarType scale, ScalarType b0, ScalarType b1) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w) + b1;
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
-template<int N> 
-struct NInvLaplacianRegularizationSqrtKernel {
-  static inline void call(int i, IntType w[3], 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
-      ScalarType scale, ScalarType b0, ScalarType b1) {
-    ScalarType lapik = ComputeNLaplaceNumber<N>(w) + b1;
-    if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/sqrt(b0*lapik);
-
-    v1[i][0] *= regop; v1[i][1] *= regop;
-    v2[i][0] *= regop; v2[i][1] *= regop;
-    v3[i][0] *= regop; v3[i][1] *= regop;
-  }
-};
+#include "DifferentiationKernel.txx"
 
 template<typename KernelFn, typename ... Args>
 PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3], Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
+  int3 nx3, nl3;
+  nx3.x = nx[0];
+  nx3.y = nx[1];
+  nx3.z = nx[2];
+  nl3.x = nl[0];
+  nl3.y = nl[1];
+  nl3.z = nl[2];
+  
 #pragma omp parallel
 {
 #pragma omp for
     for (IntType i1 = 0; i1 < nl[0]; ++i1) {
-        IntType w[3];
-        w[0] = i1 + nstart[0];
-        reg::ComputeWaveNumber(w[0], nx[0]);
         for (IntType i2 = 0; i2 < nl[1]; ++i2) {
-            w[1] = i2 + nstart[1];
-            reg::ComputeWaveNumber(w[1], nx[1]);
             for (IntType i3 = 0; i3 < nl[2]; ++i3) {
-                w[2] = i3 + nstart[2];
-                reg::ComputeWaveNumber(w[2], nx[2]);
-                IntType i = reg::GetLinearIndex(i1, i2, i3, nl);
+                int3 w;
+                w.x = i1 + nstart[0];
+                w.y = i2 + nstart[1];
+                w.z = i3 + nstart[2];
+                
+                ComputeWaveNumber(w, nx3);
+                IntType i = GetLinearIndex(i1, i2, i3, nl3);
                 
                 KernelFn::call(i, w, args...);
             }
@@ -145,76 +64,163 @@ PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3
 namespace reg {
 namespace DifferentiationKernel {
   
-PetscErrorCode VectorField::Laplacian(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NLaplacianKernel<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
 PetscErrorCode VectorField::Laplacian(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NLaplacianRegularizationKernel<1> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCall<NLaplacianKernel<1> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCall<RelaxedNLaplacianKernel<1> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
-}
-
-PetscErrorCode VectorField::Bilaplacian(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NLaplacianKernel<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode VectorField::Bilaplacian(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NLaplacianRegularizationKernel<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], b0*scale, b1); CHKERRQ(ierr);
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCall<NLaplacianKernel<2> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCall<RelaxedNLaplacianKernel<2> >(nstart, nx, nl,
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacian(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NInvLaplacianKernel<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
+PetscErrorCode VectorField::Trilaplacian(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCall<NLaplacianKernel<3> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCall<RelaxedNLaplacianKernel<3> >(nstart, nx, nl,
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacianSqrt(ScalarType b0) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NInvLaplacianSqrtKernel<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
+PetscErrorCode VectorField::TrilaplacianFunctional(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = ThrowError("relaxed trilaplacian operator not implemented"); CHKERRQ(ierr);
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacian(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NInvLaplacianRegularizationKernel<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
+PetscErrorCode VectorField::InverseLaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (usesqrt) {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCall<InverseNLaplacianSqrtKernel<1> >(nstart, nx, nl,
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCall<RelaxedInverseNLaplacianSqrtKernel<1> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  } else {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCall<InverseNLaplacianKernel<1> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2], 
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCall<RelaxedInverseNLaplacianKernel<1> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacianSqrt(ScalarType b0, ScalarType b1) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = SpectralKernelCall<NInvLaplacianRegularizationSqrtKernel<2> >(nstart, nx, nl, pXHat[0], pXHat[1], pXHat[2], scale, b0, b1); CHKERRQ(ierr);
+PetscErrorCode VectorField::InverseBilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (usesqrt) {
+    if (b1 == 0.0) {
+      /// scale/sqrt(b0*|lapik|^2) = scale/(sqrt(b0)*|lapik|)
+      ierr = SpectralKernelCall<InverseNLaplacianKernel<1> >(nstart, nx, nl,
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, sqrt(b0)); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCall<RelaxedInverseNLaplacianSqrtKernel<2> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  } else {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCall<InverseNLaplacianKernel<2> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2], 
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCall<RelaxedInverseNLaplacianKernel<2> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  }
 
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode VectorField::InverseTrilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (usesqrt) {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCall<InverseNLaplacianSqrtKernel<3> >(nstart, nx, nl,
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, sqrt(b0)); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCall<RelaxedInverseNLaplacianSqrtKernel<3> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  } else {
+    if (b1 == 0.0) {
+      ierr = SpectralKernelCall<InverseNLaplacianKernel<3> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2], 
+        scale, b0); CHKERRQ(ierr);
+    } else {
+      ierr = SpectralKernelCall<RelaxedInverseNLaplacianKernel<3> >(nstart, nx, nl, 
+        pXHat[0], pXHat[1], pXHat[2],
+        scale, b0, b1); CHKERRQ(ierr);
+    }
+  }
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode VectorField::Leray(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCall<LerayKernel>(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], 
+    scale, b0, b1); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
 }
 
 } // namespace DifferentiationKernel

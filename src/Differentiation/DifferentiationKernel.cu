@@ -26,7 +26,7 @@
 #include "DifferentiationKernel.txx"
 
 template<typename KernelFn, typename ... Args>
-__global__ void SpectralKernelGPU(dim3 wave, dim3 nx, dim3 nl, Args ... args) {
+__global__ void SpectralKernelGPU(int3 wave, int3 nx, int3 nl, Args ... args) {
   int i1 = threadIdx.x + blockIdx.x*blockDim.x;
   int i2 = blockIdx.y;
   int i3 = blockIdx.z;
@@ -50,13 +50,16 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   dim3 block(256,1,1);
   dim3 grid((nl[0] + 255)/256,nl[1],nl[2]);
-  dim3 wave(nstart[0],nstart[1],nstart[2]);
-  dim3 nx3(nx[0],nx[1],nx[2]);
-  dim3 nl3(nl[0],nl[1],nl[2]);
+  int3 wave, nx3, nl3;
+  wave.x = nstart[0]; wave.y = nstart[1]; wave.z = nstart[2];
+  nx3.x = nx[0]; nx3.y = nx[1]; nx3.z = nx[2];
+  nl3.x = nl[0]; nl3.y = nl[1]; nl3.z = nl[2];
   
-  SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
-  ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
-  ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+  if (nl[0]*nl[1]*nl[2] > 0) {
+    SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+  }
   
   PetscFunctionReturn(ierr);
 }
@@ -119,15 +122,7 @@ PetscErrorCode VectorField::TrilaplacianFunctional(ScalarType b0, ScalarType b1)
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  if (b1 == 0.0) {
-    ierr = SpectralKernelCallGPU<TriLaplacianFunctionalKernel>(nstart, nx, nl, 
-      pXHat[0], pXHat[1], pXHat[2], 
-      b0*scale); CHKERRQ(ierr);
-  } else {
-    ierr = SpectralKernelCallGPU<RelaxedTriLaplacianFunctionalKernel>(nstart, nx, nl,
-      pXHat[0], pXHat[1], pXHat[2], 
-      b0*scale, b1); CHKERRQ(ierr);
-  }
+  ierr = ThrowError("trilaplacian operator not implemented"); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);
 }
@@ -216,6 +211,17 @@ PetscErrorCode VectorField::InverseTrilaplacian(bool usesqrt, ScalarType b0, Sca
         scale, b0, b1); CHKERRQ(ierr);
     }
   }
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode VectorField::Leray(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCallGPU<LerayKernel>(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], 
+    scale, b0, b1); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);
 }
