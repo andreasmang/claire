@@ -52,7 +52,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   
   ierr = AllocateOnce(m_dif, m_Opt); CHKERRQ(ierr);
   m_dif->SetupSpectralData();
-  
+    
   ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // Grad
   ierr = m_dif->Gradient(dv, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);

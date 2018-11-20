@@ -696,6 +696,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
 
     // add up the contributions
     *J = D + R;
+    //*J = R;
     
     // store for access (e.g., used in coupling)
     this->m_Opt->m_Monitor.jval = *J;

@@ -773,7 +773,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_GridCont.enabled = true;
         } else if (strcmp(argv[1], "-verbosity") == 0) {
             argc--; argv++;
-            this->m_Verbosity = std::min(atoi(argv[1]), 3);
+            this->m_Verbosity = std::min(atoi(argv[1]), 2);
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
         } else if (strcmp(argv[1], "-monitordefgrad") == 0) {

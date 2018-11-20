@@ -180,6 +180,10 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
     ScalarType hx[3], x1, x2, x3;
     IntType i;
     PetscFunctionBegin;
+    
+    using std::exp;
+    using std::sin;
+    using std::cos;
 
     opt->Enter(__func__);
 
@@ -209,33 +213,33 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
                 
                 switch (type) {
                 case 0: // grad : sca -> vec
-                  pv[0][i]  = exp(-x1*x1)*cos(x1*0.5) *
-                              exp(-x2*x2)*cos(x2*0.5) *
-                              exp(-x3*x3)*cos(x3*0.5);
-                  pdv[0][i] = -0.5*exp(-x1*x1)*(4*x1*cos(x1*0.5) + sin(x1*0.5)) *
-                              exp(-x2*x2)*cos(x2*0.5) *
-                              exp(-x3*x3)*cos(x3*0.5);
-                  pdv[1][i] = exp(-x1*x1)*cos(x1*0.5) *
-                              -0.5*exp(-x2*x2)*(4*x2*cos(x2*0.5) + sin(x2*0.5)) *
-                              exp(-x3*x3)*cos(x3*0.5);
-                  pdv[2][i] = exp(-x1*x1)*cos(x1*0.5) *
-                              exp(-x2*x2)*cos(x2*0.5) *
-                              -0.5*exp(-x3*x3)*(4*x3*cos(x3*0.5) + sin(x3*0.5));
+                  pv[0][i]  = sin(M_PI*sin(x1)) *
+                              sin(M_PI*sin(x2)) *
+                              sin(M_PI*sin(x3));
+                  pdv[0][i] = M_PI*cos(x1)*cos(M_PI*sin(x1)) *
+                              sin(M_PI*sin(x2)) *
+                              sin(M_PI*sin(x3));
+                  pdv[1][i] = sin(M_PI*sin(x1)) *
+                              M_PI*cos(x2)*cos(M_PI*sin(x2)) *
+                              sin(M_PI*sin(x3));
+                  pdv[2][i] = sin(M_PI*sin(x1)) *
+                              sin(M_PI*sin(x2)) *
+                              M_PI*cos(x3)*cos(M_PI*sin(x3));
                   break;
                 case 1: // div : vec -> sca
-                  pv[0][i]  = exp(-x1*x1)*cos(x1*0.5) * sin(x2) * cos(x3);
-                  pv[1][i]  = exp(-x2*x2)*cos(x2*0.5) * sin(x3) * cos(x1);
-                  pv[2][i]  = exp(-x3*x3)*cos(x3*0.5) * sin(x1) * cos(x2);
-                  pdv[0][i] = -0.5*exp(-x1*x1)*(4*x1*cos(x1*0.5) + sin(x1*0.5)) * sin(x2) * cos(x3)
-                              -0.5*exp(-x2*x2)*(4*x2*cos(x2*0.5) + sin(x2*0.5)) * sin(x3) * cos(x1)
-                              -0.5*exp(-x3*x3)*(4*x3*cos(x3*0.5) + sin(x3*0.5)) * sin(x1) * cos(x2);
+                  pv[0][i]  = sin(M_PI*sin(x1)) * sin(x2) * cos(x3);
+                  pv[1][i]  = sin(M_PI*sin(x2)) * sin(x3) * cos(x1);
+                  pv[2][i]  = sin(M_PI*sin(x3)) * sin(x1) * cos(x2);
+                  pdv[0][i] = M_PI*cos(x1)*cos(M_PI*sin(x1)) * sin(x2) * cos(x3)
+                            + M_PI*cos(x2)*cos(M_PI*sin(x2)) * sin(x3) * cos(x1)
+                            + M_PI*cos(x3)*cos(M_PI*sin(x3)) * sin(x1) * cos(x2);
                   break;
                 case 2: // lap : vec -> vec
-                  pv[0][i]  = exp(-x1*x1)*cos(x1*0.5) * sin(x2) * cos(x3);
+                  pv[0][i]  = sin(M_PI*sin(x1)) * sin(x2) * cos(x3);
                   pv[1][i]  = pv[0][i];
                   pv[2][i]  = pv[0][i];
-                  pdv[0][i] = 0.25*exp(-x1*x1)*((16.*x1*x1-9.)*cos(x1*0.5) + 8.*x1*sin(x1*0.5)) * sin(x2) * cos(x3)
-                            - 2.*exp(-x1*x1)*cos(x1*0.5) * sin(x2) * cos(x3);
+                  pdv[0][i] = (-M_PI*M_PI*cos(x1)*cos(x1)*sin(M_PI*sin(x1))-M_PI*sin(x1)*cos(M_PI*sin(x1)))*sin(x2)*cos(x3)
+                            - 2.*sin(M_PI*sin(x1))*sin(x2)*cos(x3);
                   pdv[1][i] = pdv[0][i];
                   pdv[2][i] = pdv[0][i];
                   break;

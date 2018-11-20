@@ -166,9 +166,9 @@ LDFLAGS += -lpetsc -lf2clapack -lf2cblas
 #CUDA LINKERS
 ifeq ($(USECUDA),yes)
     LDFLAGS += -L$(CUDA_DIR)/lib64 -lcusparse -lcufft -lcublas -lcudart
-endif
-ifeq ($(USECUDADBG),yes)
-		LDFLAGS += -lnvToolsExt
+    ifeq ($(USECUDADBG),yes)
+			LDFLAGS += -lnvToolsExt
+		endif
 endif
 
 ifeq ($(USENIFTI),yes)
