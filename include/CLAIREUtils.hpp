@@ -46,7 +46,7 @@
 
 
 // local includes
-#include "typedef.hpp"
+#include "TypeDef.hpp"
 #include "MemoryUtils.hpp"
 
 #define DBGCHK() printf("dbg %s:[%i] in %s\n",__FILE__,__LINE__,__FUNCTION__)
@@ -84,7 +84,9 @@ PetscErrorCode Msg(std::string);
 PetscErrorCode WrngMsg(std::string);
 
 /*! display dgb message (PETSc interface) */
-PetscErrorCode DbgMsg(std::string);
+#define DbgMsg(str) DbgMsgCall(str, __LINE__, __FILE__)
+PetscErrorCode DbgMsgCall(std::string);
+PetscErrorCode DbgMsgCall(std::string, int, const char*);
 
 /*! interface to create a vector (essentially simplifies
  * the petsc vector creation) */

@@ -317,6 +317,77 @@ PetscErrorCode VecField::Copy(VecField* v) {
 
 
 
+/********************************************************************
+ * @brief print debug info
+ *******************************************************************/
+PetscErrorCode VecField::DebugInfo(std::string str, int line, const char *file) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (this->m_Opt->m_Verbosity > 2) {
+      ScalarType maxval, minval, nvx1, nvx2, nvx3;
+      std::stringstream ss;
+      
+    if (this->m_Opt->m_Verbosity > 3) {
+      ScalarType *p_x1, *p_x2, *p_x3;
+      IntType nl;
+      size_t fingerprint = 0;
+      ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
+      ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
+      ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+      // compute size of each individual component
+      nl = this->m_Opt->m_Domain.nl;
+  #pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+#if defined(PETSC_USE_REAL_SINGLE)
+        fingerprint += reinterpret_cast<uint32_t*>(p_x1)[i];
+        fingerprint += reinterpret_cast<uint32_t*>(p_x2)[i];
+        fingerprint += reinterpret_cast<uint32_t*>(p_x2)[i];
+#else
+        fingerprint += reinterpret_cast<uint64_t*>(p_x1)[i];
+        fingerprint += reinterpret_cast<uint64_t*>(p_x2)[i];
+        fingerprint += reinterpret_cast<uint64_t*>(p_x2)[i];
+#endif
+      }
+      ierr = VecRestoreArray(this->m_X1, &p_x1); CHKERRQ(ierr);
+      ierr = VecRestoreArray(this->m_X2, &p_x2); CHKERRQ(ierr);
+      ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+      
+      ss  << str << " hash: " << std::hex << fingerprint;
+      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+    }
+
+      ierr = this->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
+      ss  << str << " norm: (" << std::scientific
+          << nvx1 << "," << nvx2 << "," << nvx3 <<")";
+      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+      
+      ierr = VecMax(this->m_X1, NULL, &maxval); CHKERRQ(ierr);
+      ierr = VecMin(this->m_X1, NULL, &minval); CHKERRQ(ierr);
+      ss  << str << " min/max: [" << std::scientific
+          << minval << "," << maxval << "]";
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+      ierr = VecMax(this->m_X2, NULL, &maxval); CHKERRQ(ierr);
+      ierr = VecMin(this->m_X2, NULL, &minval); CHKERRQ(ierr);
+      ss  << std::string(str.size(),' ') << "          [" << std::scientific
+          << minval << "," << maxval << "] ";
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+      ierr = VecMax(this->m_X3, NULL, &maxval); CHKERRQ(ierr);
+      ierr = VecMin(this->m_X3, NULL, &minval); CHKERRQ(ierr);
+      ss  << std::string(str.size(), ' ') << "          [" << std::scientific
+          << minval << "," << maxval << "]";
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+  }
+  
+  PetscFunctionReturn(ierr);
+}
+
+
 
 /********************************************************************
  * @brief set value

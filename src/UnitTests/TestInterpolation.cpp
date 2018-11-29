@@ -100,6 +100,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
     }  // i2
   }  // i3
 
+/*
 #ifdef REG_HAS_CUDA
   ScalarType *pg, *pq1, *pq2, *pq3, *pe;
   
@@ -134,6 +135,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
 #else
   std::cout << "unit test not implemented" << std::endl;
 #endif
+*/
   
   double error = 0;
   double max = 0;

@@ -51,7 +51,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 
 EXCPPFILES=
 
-EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
+EXCUFILES=
+#$(EXSRCDIR)/interp3_gpu_new.cu
 
 CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/Regularization/RegularizationKernel.cu \
@@ -83,7 +84,6 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2aux.cpp \
-		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp \
 		$(SRCDIR)/Optimizer.cpp \
 		$(SRCDIR)/KrylovInterface.cpp \
 		$(SRCDIR)/TaoInterface.cpp \
@@ -103,7 +103,9 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
-		$(SRCDIR)/Preprocessing.cpp
+		$(SRCDIR)/Preprocessing.cpp \
+		$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp
+#		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp \
 
 TESTFILES=$(SRCDIR)/UnitTestOpt.cpp \
 		$(SRCDIR)/UnitTests/TestInterpolation.cpp \

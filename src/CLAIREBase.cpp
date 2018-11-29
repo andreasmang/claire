@@ -272,6 +272,7 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
   
+    ierr = Free(this->m_ReferenceImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_ReferenceImage, this->m_Opt, mR, true); CHKERRQ(ierr);
 
     // assign pointer
@@ -301,6 +302,7 @@ PetscErrorCode CLAIREBase::SetTemplateImage(Vec mT) {
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
     
+    ierr = Free(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, mT, true); CHKERRQ(ierr);
 
     // assign pointer
@@ -420,6 +422,7 @@ PetscErrorCode CLAIREBase::SetMask(Vec mask) {
 
     ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
 
+    ierr = Free(this->m_Mask); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_Mask, this->m_Opt, mask); CHKERRQ(ierr);
     // assign pointer
     //this->m_Mask = mask;
@@ -444,7 +447,7 @@ PetscErrorCode CLAIREBase::SetAuxVariable(Vec q) {
 
     ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
     
-    
+    ierr = Free(this->m_AuxVariable); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_AuxVariable, this->m_Opt, q, true); CHKERRQ(ierr);
     
     //this->m_AuxVariable = q;
@@ -469,6 +472,7 @@ PetscErrorCode CLAIREBase::SetCellDensity(Vec c) {
 
     ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
     
+    ierr = Free(this->m_CellDensity); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_CellDensity, this->m_Opt, c, true); CHKERRQ(ierr);
     //this->m_CellDensity = c;
 
@@ -540,10 +544,14 @@ PetscErrorCode CLAIREBase::ComputeInitialGuess() {
     ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
     if (!this->m_Opt->m_OptPara.usezeroinitialguess) {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg("compute nonzero initial guess"); CHKERRQ(ierr);
+        }
+      
         nl = this->m_Opt->m_Domain.nl;
         ng = this->m_Opt->m_Domain.ng;
-        ierr = VecCreate(v, nl, ng); CHKERRQ(ierr);
-        ierr = VecCreate(g, nl, ng); CHKERRQ(ierr);
+        ierr = VecCreate(v, 3*nl, 3*ng); CHKERRQ(ierr);
+        ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
 
         ierr = this->m_VelocityField->GetComponents(v); CHKERRQ(ierr);
 
@@ -621,12 +629,12 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
     switch (this->m_Opt->m_Distance.type) {
         case SL2:
         {
-            ierr = Allocate<DistanceMeasureSL2>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<DistanceMeasureSL2>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case SL2AUX:
         {
-            ierr = Allocate<DistanceMeasureSL2aux>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<DistanceMeasureSL2aux>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
             // TODO: Fix for 2 level preconditioner (these need to be set in preconditioner)
             ierr = Assert(this->m_CellDensity != NULL, "null pointer (aux 1)"); CHKERRQ(ierr);
             ierr = Assert(this->m_AuxVariable != NULL, "null pointer (aux 2)"); CHKERRQ(ierr);
@@ -636,7 +644,7 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         }
         case NCC:
         {
-            ierr = Allocate<DistanceMeasureNCC>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<DistanceMeasureNCC>(this->m_DistanceMeasure, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         default:
@@ -702,7 +710,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate L2 regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationL2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationL2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H1:
@@ -710,7 +718,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H1 regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationH1>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationH1>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H2:
@@ -718,7 +726,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H2 regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationH2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationH2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H3:
@@ -726,7 +734,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H3 regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationH3>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationH3>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H1SN:
@@ -734,7 +742,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H1SN regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationH1SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationH1SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H2SN:
@@ -742,7 +750,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H2SN regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationH2SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationH2SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case H3SN:
@@ -750,7 +758,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate H3SN regularization"); CHKERRQ(ierr);
             }
-            ierr = Allocate<RegularizationH3SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<RegularizationH3SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         default:
@@ -801,7 +809,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate SL transport problem"); CHKERRQ(ierr);
             }
-            ierr = Allocate<TransportEquationSL>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<TransportEquationSL>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         case RK2:
@@ -809,7 +817,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
             if (this->m_Opt->m_Verbosity > 1) {
               ierr = DbgMsg("allocate RK2 transport problem"); CHKERRQ(ierr);
             }
-            ierr = Allocate<TransportEquationRK2>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
+            ierr = AllocateOnce<TransportEquationRK2>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
         }
         default:
@@ -1067,7 +1075,7 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     // allocate vector fields
     
     if (this->m_VelocityField == NULL) {
-        ierr = Allocate(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
         velocityallocated = true;
     }
@@ -1286,6 +1294,8 @@ PetscErrorCode CLAIREBase::CopyToAllTimePoints(Vec u, Vec uj) {
     ierr = GetRawPointer(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
     ierr = GetRawPointer(uj, &p_uj); CHKERRQ(ierr);    ///< vec at single point in time
 
+    ierr = DebugGPUNotImplemented(); CHKERRQ(ierr);
+
     // for all time points
     for (IntType j = 0; j <= nt; ++j) {
         // copy data to all time points
@@ -1469,7 +1479,7 @@ PetscErrorCode CLAIREBase::ComputeDetDefGrad(bool write2file, Vec detj) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_VelocityField == NULL) {
-      ierr = Allocate(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+      ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
       ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
     }
 

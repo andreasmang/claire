@@ -172,6 +172,20 @@ PetscErrorCode TransportProblem::SetControlVariable(VecField *field) {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode TransportProblem::InitializeControlVariable(VecField *field) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(field != nullptr, "null pointer"); CHKERRQ(ierr);
+    this->m_VelocityField = field;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief set incremental adjoint variable
  *******************************************************************/
@@ -277,10 +291,10 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) 
     if (this->m_Differentiation == nullptr) {
       switch (type) {
       case Differentiation::Type::Spectral:
-        ierr = Allocate<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+        ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
         break;
       case Differentiation::Type::Finite:
-        ierr = Allocate<DifferentiationFD>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+        ierr = AllocateOnce<DifferentiationFD>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
         break;
       default:
         ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
@@ -384,10 +398,11 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
     }
 
     ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
-
+    
     // m and \lambda are constant in time
+    ierr = this->m_WorkVecField[1]->GetArraysReadWrite(kernel.pB); CHKERRQ(ierr);
     ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[1]->GetArraysWrite(kernel.pB); CHKERRQ(ierr);
+
     
     for (IntType k = 0; k < nc; ++k) {  // for all components
         ierr = this->m_TemplateImage->GetArrayRead(pM, k); CHKERRQ(ierr);
@@ -396,7 +411,7 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
         // compute gradient of m
         ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
 
-        // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
+        // b = \sum_k\int_0^1 \lambda_k \grad m_k dt
         ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
     }
    
@@ -404,7 +419,7 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
     ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
     ierr = this->m_TemplateImage->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
-  
+      
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

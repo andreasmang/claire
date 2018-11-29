@@ -513,6 +513,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-opttol") == 0) {
             argc--; argv++;
             this->m_OptPara.tol[2] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-ffttol") == 0) {
+            argc--; argv++;
+            this->m_FFT.threshold = atof(argv[1]);
         } else if (strcmp(argv[1], "-stopcond") == 0) {
             argc--; argv++;
             flag = atof(argv[1]);
@@ -776,6 +779,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             this->m_Verbosity = std::min(atoi(argv[1]), 2);
         } else if (strcmp(argv[1], "-debug") == 0) {
             this->m_Verbosity = 3;
+        } else if (strcmp(argv[1], "-develop") == 0) {
+            this->m_Verbosity = 4;
         } else if (strcmp(argv[1], "-monitordefgrad") == 0) {
             this->m_Monitor.detdgradenabled = true;
         } else if (strcmp(argv[1], "-invdefgrad") == 0) {
@@ -1059,6 +1064,11 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FFT.ostart[0] = 0;
     this->m_FFT.ostart[1] = 0;
     this->m_FFT.ostart[2] = 0;
+#if defined(PETSC_USE_REAL_SINGLE)
+    this->m_FFT.threshold = 0.;
+#else
+    this->m_FFT.threshold = 0.;
+#endif
 
     this->m_Domain = {};
     this->m_Domain.nl = 0;
@@ -1107,23 +1117,32 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
 
-//#if defined(PETSC_USE_REAL_SINGLE)
-//    this->m_KrylovMethod.tol[0] = 1E-9;     ///< relative tolerance
-//    this->m_KrylovMethod.tol[1] = 1E-9;     ///< absolute tolerance
-//    this->m_KrylovMethod.tol[2] = 1E+06;    ///< divergence tolerance
-//#else
+#if defined(PETSC_USE_REAL_SINGLE)
+    this->m_KrylovMethod = {};  
+    // as in master
+    this->m_KrylovMethod.tol[0] = 1E-16;     ///< relative tolerance
+    this->m_KrylovMethod.tol[1] = 1E-20;
+    //this->m_KrylovMethod.tol[0] = 1E-5;     ///< relative tolerance
+    //this->m_KrylovMethod.tol[1] = 1E-7;     ///< absolute tolerance
+    this->m_KrylovMethod.tol[2] = 1E+06;    ///< divergence tolerance
+#else
     this->m_KrylovMethod = {};
-    this->m_KrylovMethod.tol[0] = 1E-12;     ///< relative tolerance
-    this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
+    // as in master
+    this->m_KrylovMethod.tol[0] = 1E-16;     ///< relative tolerance
+    this->m_KrylovMethod.tol[1] = 1E-20;
+    //this->m_KrylovMethod.tol[0] = 1E-12;     ///< relative tolerance
+    //this->m_KrylovMethod.tol[1] = 1E-16;     ///< absolute tolerance
     this->m_KrylovMethod.tol[2] = 1E+06;     ///< divergence tolerance
-//#endif
+#endif
     //this->m_KrylovMethod.maxiter = 1000;     ///< max number of iterations
     this->m_KrylovMethod.maxiter = 50;         ///< max number of iterations
-//#if defined(PETSC_USE_REAL_SINGLE)
-//    this->m_KrylovMethod.reltol = 1E-9;      ///< relative tolerance (actually computed in solver)
-//#else
+#if defined(PETSC_USE_REAL_SINGLE)
+    // as in master
+    this->m_KrylovMethod.reltol = 1E-12;
+    //this->m_KrylovMethod.reltol = 1E-9;      ///< relative tolerance (actually computed in solver)
+#else
     this->m_KrylovMethod.reltol = 1E-12;     ///< relative tolerance (actually computed in solver)
-//#endif
+#endif
     this->m_KrylovMethod.fseqtype = SLFS;
     this->m_KrylovMethod.pctype = INVREG;
     this->m_KrylovMethod.solver = PCG;
@@ -1136,15 +1155,18 @@ PetscErrorCode RegOpt::Initialize() {
     //this->m_KrylovMethod.pcmaxit = 1000;
     this->m_KrylovMethod.pcmaxit = 10;
     this->m_KrylovMethod.pcgridscale = 2;
-//#if defined(PETSC_USE_REAL_SINGLE)
-//    this->m_KrylovMethod.pctol[0] = 1E-9;    ///< relative tolerance
-//    this->m_KrylovMethod.pctol[1] = 1E-9;    ///< absolute tolerance
-//    this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
-//#else
+#if defined(PETSC_USE_REAL_SINGLE)
+    // as in master
+    this->m_KrylovMethod.pctol[0] = 1E-12;    ///< relative tolerance
+    this->m_KrylovMethod.pctol[1] = 1E-16;    ///< absolute tolerance
+    //this->m_KrylovMethod.pctol[0] = 1E-5;    ///< relative tolerance
+    //this->m_KrylovMethod.pctol[1] = 1E-5;    ///< absolute tolerance
+    this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
+#else
     this->m_KrylovMethod.pctol[0] = 1E-12;   ///< relative tolerance
     this->m_KrylovMethod.pctol[1] = 1E-16;   ///< absolute tolerance
     this->m_KrylovMethod.pctol[2] = 1E+06;   ///< divergence tolerance
-//#endif
+#endif
     this->m_KrylovMethod.monitorpcsolver = false;
 
     this->m_KrylovMethod.usepetsceigest = true;
@@ -1159,12 +1181,16 @@ PetscErrorCode RegOpt::Initialize() {
     // tolerances for optimization
     this->m_OptPara = {};
     this->m_OptPara.stopcond = GRAD;                ///< identifier for stopping conditions
+#if defined(PETSC_USE_REAL_SINGLE)
+    // as in master
     this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
-//#if defined(PETSC_USE_REAL_SINGLE)
-//    this->m_OptPara.tol[1] = 1E-9;                  ///< grad rel tol ||g(x)||/J(x) < tol
-//#else
+    this->m_OptPara.tol[1] = 1E-16;                  ///< grad rel tol ||g(x)||/J(x) < tol
+    //this->m_OptPara.tol[0] = 1E-5;                  ///< grad abs tol ||g(x)|| < tol
+    //this->m_OptPara.tol[1] = 1E-5;                  ///< grad rel tol ||g(x)||/J(x) < tol
+#else
+    this->m_OptPara.tol[0] = 1E-6;                  ///< grad abs tol ||g(x)|| < tol
     this->m_OptPara.tol[1] = 1E-16;                 ///< grad rel tol ||g(x)||/J(x) < tol
-//#endif
+#endif
 //    this->m_OptPara.tol[2] = 1E-2;                    ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.tol[2] = 5E-2;                    ///< grad rel tol ||g(x)||/||g(x0)|| < tol
     this->m_OptPara.maxiter = 50;                     ///< max number of iterations
@@ -1445,6 +1471,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " optimization specific parameters" << std::endl;
         std::cout << line << std::endl;
+        std::cout << " -ffttol <dbl>               FFT threshold, zero or negative for none" << std::endl;
         std::cout << " -optmeth <type>             optimization method" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
         std::cout << "                                 gn           Gauss-Newton (default)" << std::endl;

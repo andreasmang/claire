@@ -205,6 +205,13 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
 
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        std::string str = "update trajectory: ";
+        str += flag;
+        ierr = DbgMsg(str); CHKERRQ(ierr);
+        ierr = v->DebugInfo("SL v", __LINE__, __FILE__); CHKERRQ(ierr);
+    }
 
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -224,7 +231,10 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
 
 
     // \tilde{X} = x - ht v
-    ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    //ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X3, &p_v3); CHKERRQ(ierr);
     for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
@@ -248,7 +258,10 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
             }  // i1
         }  // i2
     }  // i3
-    ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    //ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X3, &p_v3); CHKERRQ(ierr);
 
 
     // communicate the characteristic
@@ -258,8 +271,14 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
 
     // X = x - 0.5*ht*(v + v(x - ht v))
-    ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    //ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X3, &p_v3); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkVecField1->m_X1, &p_vX1); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkVecField1->m_X2, &p_vX2); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkVecField1->m_X3, &p_vX3); CHKERRQ(ierr);
     for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
         for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
             for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
@@ -283,8 +302,14 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
             }  // i1
         }  // i2
     }  // i3
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-    ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkVecField1->m_X1, &p_vX1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkVecField1->m_X2, &p_vX2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(this->m_WorkVecField1->m_X3, &p_vX3); CHKERRQ(ierr);
+    //ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X1, &p_v1); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X2, &p_v2); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X3, &p_v3); CHKERRQ(ierr);
 
     // communicate the characteristic
     ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
@@ -566,13 +591,13 @@ PetscErrorCode SemiLagrangian::Interpolate(Vec* xo, Vec xi, std::string flag) {
     ierr = Assert(*xo != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert( xi != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = VecGetArray( xi, &p_xi); CHKERRQ(ierr);
-    ierr = VecGetArray(*xo, &p_xo); CHKERRQ(ierr);
+    ierr = GetRawPointer( xi, &p_xi); CHKERRQ(ierr);
+    ierr = GetRawPointer(*xo, &p_xo); CHKERRQ(ierr);
 
     ierr = this->Interpolate(p_xo, p_xi, flag); CHKERRQ(ierr);
 
-    ierr = VecRestoreArray(*xo, &p_xo); CHKERRQ(ierr);
-    ierr = VecRestoreArray( xi, &p_xi); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(*xo, &p_xo); CHKERRQ(ierr);
+    ierr = RestoreRawPointer( xi, &p_xi); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -608,6 +633,16 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     order  = this->m_Opt->m_PDESolver.iporder;
     nghost = order;
     neval  = static_cast<int>(nl);
+    
+#ifdef REG_HAS_CUDA
+    ScalarType *xi_d = xi;
+    ScalarType *xo_d = xo;
+    
+    xi = new ScalarType[nl];
+    xo = new ScalarType[nl];
+    
+    cudaMemcpy(xi, xi_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+#endif
 
     for (int i = 0; i < 3; ++i) {
         nx[i]     = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
@@ -644,6 +679,13 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     this->m_Opt->IncrementCounter(IP);
     
     ZeitGeist_tock(SL_INTERPOL);
+    
+#ifdef REG_HAS_CUDA
+    cudaMemcpy(xo_d, xo, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+    
+    delete[] xo;
+    delete[] xi;
+#endif
 
     this->m_Opt->Exit(__func__);
 
@@ -711,6 +753,26 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     nl = this->m_Opt->m_Domain.nl;
     order = this->m_Opt->m_PDESolver.iporder;
     nghost = order;
+
+#ifdef REG_HAS_CUDA
+    ScalarType *xi1_d = vx1;
+    ScalarType *xi2_d = vx2;
+    ScalarType *xi3_d = vx3;
+    ScalarType *xo1_d = wx1;
+    ScalarType *xo2_d = wx2;
+    ScalarType *xo3_d = wx3;
+    
+    vx1 = new ScalarType[nl];
+    vx2 = new ScalarType[nl];
+    vx3 = new ScalarType[nl];
+    wx1 = new ScalarType[nl];
+    wx2 = new ScalarType[nl];
+    wx3 = new ScalarType[nl];
+    
+    cudaMemcpy(vx1, xi1_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+    cudaMemcpy(vx2, xi2_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+    cudaMemcpy(vx3, xi3_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+#endif
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
@@ -783,6 +845,19 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     this->m_Opt->IncrementCounter(IPVEC);
     
     ZeitGeist_tock(SL_INTERPOL);
+    
+#ifdef REG_HAS_CUDA
+    cudaMemcpy(xo1_d, wx1, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+    cudaMemcpy(xo2_d, wx2, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+    cudaMemcpy(xo3_d, wx3, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+    
+    delete[] vx1;
+    delete[] vx2;
+    delete[] vx3;
+    delete[] wx1;
+    delete[] wx2;
+    delete[] wx3;
+#endif
 
     this->m_Opt->Exit(__func__);
 

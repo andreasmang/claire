@@ -48,6 +48,8 @@ class ScaField {
     
     PetscErrorCode RestoreArray();
     
+    PetscErrorCode DebugInfo(std::string, int, const char*);
+    
     PetscErrorCode Copy(Vec);
     PetscErrorCode Copy(ScaField*);
     PetscErrorCode CopyFrame(IntType);

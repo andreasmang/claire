@@ -27,7 +27,7 @@ namespace reg {
   
 /*! throw error (PETSc interface) defined elsewhere */
 extern PetscErrorCode ThrowError(std::bad_alloc&);
-
+/*
 template<class T> inline PetscErrorCode AllocateArray(T*& ptr, size_t N) {
   try {
     ptr = new T[N];
@@ -47,21 +47,29 @@ template<class A, class T, class ... Args> inline PetscErrorCode Allocate(T*& pt
 template<class T, class ... Args> inline PetscErrorCode Allocate(T*& ptr, Args ... args) {
   return Allocate<T>(ptr, args...);
 }
-
+*/
 template<class T> inline PetscErrorCode AllocateArrayOnce(T*& ptr, size_t N) {
-  if (ptr == nullptr)
-    return AllocateArray(ptr, N);
-  return 0;
-}
-template<class T, class ... Args> inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
-  if (ptr == nullptr)
-    return Allocate<T>(ptr, args...);
+  if (ptr == nullptr) {
+    try {
+      ptr = new T[N];
+    } catch (std::bad_alloc& err) {
+      return reg::ThrowError(err);
+    }
+  }
   return 0;
 }
 template<class A, class T, class ... Args> inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
-  if (ptr == nullptr)
-    return Allocate<A>(ptr, args...);
+  if (ptr == nullptr) {
+    try {
+      ptr = new A(args...);
+    } catch (std::bad_alloc& err) {
+      return reg::ThrowError(err);
+    }
+  }
   return 0;
+}
+template<class T, class ... Args> inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
+  return AllocateOnce<T>(ptr, args...);
 }
 template<class T> inline PetscErrorCode AllocateMemoryOnce(T*& ptr, size_t size) {
   PetscErrorCode ierr = 0;

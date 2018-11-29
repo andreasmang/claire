@@ -113,9 +113,9 @@ PetscErrorCode TransportKernelAdjoint::ComputeBodyForce() {
         // b = \sum_k\int_{\Omega} \lambda_k \grad m_k dt
         for (IntType i = 0; i < nl; ++i) {
             ScalarType lambda = pL[i];
-            pB[0][i] += scale*lambda*pGm[0][i];
-            pB[1][i] += scale*lambda*pGm[1][i];
-            pB[2][i] += scale*lambda*pGm[2][i];
+            pB[0][i] += lambda*pGm[0][i]*scale;
+            pB[1][i] += lambda*pGm[1][i]*scale;
+            pB[2][i] += lambda*pGm[2][i]*scale;
         }
 } // omp
 

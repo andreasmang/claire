@@ -725,12 +725,21 @@ PetscErrorCode CLAIREInterface::Run() {
 
     // switch between solvers we have to solve optimization problem
     if (this->m_Opt->m_ParaCont.enabled) {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg("run regularization parameter continuation (for betav)"); CHKERRQ(ierr);
+        }
         // run regularization parameter continuation (for betav)
         ierr = this->RunSolverRegParaCont(); CHKERRQ(ierr);
     } else if (this->m_Opt->m_ScaleCont.enabled) {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg("run scale-continuation (smoothing)"); CHKERRQ(ierr);
+        }
         // run scale-continuation (smoothing)
         ierr = this->RunSolverScaleCont(); CHKERRQ(ierr);
     } else if (this->m_Opt->m_GridCont.enabled) {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg("run grid-continuation"); CHKERRQ(ierr);
+        }
         // run grid-continuation
         nxmax = PETSC_MIN_INT;
         for (int i = 0; i < 3; ++i) {
@@ -748,6 +757,9 @@ PetscErrorCode CLAIREInterface::Run() {
             ierr = this->RunSolver(); CHKERRQ(ierr);
         }
     } else {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg("run solver"); CHKERRQ(ierr);
+        }
         ierr = this->RunSolver(); CHKERRQ(ierr);
     }
 

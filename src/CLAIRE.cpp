@@ -152,6 +152,11 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
         ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
         this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral);
     }
+    
+    if (this->m_Opt->m_PDESolver.type == SL) {
+      ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
+      ierr = this->m_TransportProblem->InitializeControlVariable(this->m_VelocityField); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -183,7 +188,7 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("allocating velocity field"); CHKERRQ(ierr);
         }
-        ierr = Allocate(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
     } else { // user might have provided initial guess
         ierr = this->IsVelocityZero(); CHKERRQ(ierr);
         if (!this->m_VelocityIsZero) {
@@ -309,7 +314,7 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     ng = this->m_Opt->m_Domain.ng;
 
     // allocate state variable
-    ierr = Allocate(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
     
     
     // copy m_0 to m(t=0)
@@ -638,6 +643,7 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
 
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
+    
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     // allocate distance measure
@@ -670,6 +676,10 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("evaluating objective"); CHKERRQ(ierr);
+    }
 
     // allocate
     ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
@@ -696,7 +706,6 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
 
     // add up the contributions
     *J = D + R;
-    //*J = R;
     
     // store for access (e.g., used in coupling)
     this->m_Opt->m_Monitor.jval = *J;
@@ -764,7 +773,9 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // and compute body force \int_0^1 grad(m)\lambda dt
     // which is assigned to work vecfield 2
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
-
+    
+    ierr = this->m_WorkVecField2->DebugInfo("adjoint grad", __LINE__, __FILE__); CHKERRQ(ierr);
+  
     // evaluate gradient of regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     
@@ -816,6 +827,25 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
             ss.clear(); ss.str(std::string());
         }
     }
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
+      if(this->m_IncStateVariable) this->m_IncStateVariable->DebugInfo("inc state   ",__LINE__,__FILE__);
+      else DbgMsg("inc state        : nullptr");
+      if(this->m_IncAdjointVariable) this->m_IncAdjointVariable->DebugInfo("inc adjoint ",__LINE__,__FILE__);
+      else DbgMsg("inc adjoint      : nullptr");
+      if(this->m_ReferenceImage) this->m_ReferenceImage->DebugInfo("reference   ",__LINE__,__FILE__);
+      else DbgMsg("reference        : nullptr");
+      if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+      if(this->m_VelocityField) this->m_VelocityField->DebugInfo("velocity    ",__LINE__,__FILE__);
+      else DbgMsg("velocity         : nullptr");
+      if(this->m_IncVelocityField) this->m_IncVelocityField->DebugInfo("inc velocity",__LINE__,__FILE__);
+      else DbgMsg("inc velocity     : nullptr");
+    }
 
     // stop timer
     ierr = this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
@@ -845,8 +875,51 @@ PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
     // evaluate / apply gradient operator for regularization
     ierr = this->m_Regularization->EvaluateGradient(this->m_WorkVecField1, this->m_VelocityField); CHKERRQ(ierr);
     
+    ierr = this->m_WorkVecField1->DebugInfo("reg grad", __LINE__, __FILE__); CHKERRQ(ierr);
+    if (this->m_Opt->m_ReadWriteFlags.iterates) {
+        std::stringstream ss;
+        std::string ext;
+        IntType iter = 0;
+        std::string ver = "cpu-";
+#ifdef REG_HAS_CUDA
+        ver = "gpu-";
+#endif
+        
+        // parse extension
+        ext = this->m_Opt->m_FileNames.extension;
+        // log objective values
+        iter = this->m_Opt->GetCounter(ITERATIONS);
+        
+        ss  << ver << "reg-grad-field-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+        ss  << ver << "adjoint-grad-field-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField2, ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
+    
     // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField1->DebugInfo("gradient    ", __LINE__, __FILE__); CHKERRQ(ierr);
+    if (this->m_Opt->m_ReadWriteFlags.iterates) {
+        std::stringstream ss;
+        std::string ext;
+        IntType iter = 0;
+        std::string ver = "cpu-";
+#ifdef REG_HAS_CUDA
+        ver = "gpu-";
+#endif
+        
+        // parse extension
+        ext = this->m_Opt->m_FileNames.extension;
+        // log objective values
+        iter = this->m_Opt->GetCounter(ITERATIONS);
+        
+        ss  << ver << "grad-field-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+    }
     
     // copy
     if (g != NULL) {
@@ -1015,6 +1088,25 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing hessian matvec"); CHKERRQ(ierr);
     }
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
+      if(this->m_IncStateVariable) this->m_IncStateVariable->DebugInfo("inc state   ",__LINE__,__FILE__);
+      else DbgMsg("inc state        : nullptr");
+      if(this->m_IncAdjointVariable) this->m_IncAdjointVariable->DebugInfo("inc adjoint ",__LINE__,__FILE__);
+      else DbgMsg("inc adjoint      : nullptr");
+      if(this->m_ReferenceImage) this->m_ReferenceImage->DebugInfo("reference   ",__LINE__,__FILE__);
+      else DbgMsg("reference        : nullptr");
+      if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+      if(this->m_VelocityField) this->m_VelocityField->DebugInfo("velocity    ",__LINE__,__FILE__);
+      else DbgMsg("velocity         : nullptr");
+      if(this->m_IncVelocityField) this->m_IncVelocityField->DebugInfo("inc velocity",__LINE__,__FILE__);
+      else DbgMsg("inc velocity     : nullptr");
+    }
 
     ierr = this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
 
@@ -1078,6 +1170,10 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("regular hessian matvec"); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Enter(__func__);
 
@@ -1088,12 +1184,12 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
-
+    
     // parse input
     if (vtilde != NULL) {
         ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
     }
-
+    
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
 
@@ -1111,11 +1207,19 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_WorkVecField1) this->m_WorkVecField1->DebugInfo("hessian     ",__LINE__,__FILE__);
+      else DbgMsg("hessian          : nullptr");
+    }
 
     // pass to output
     if (Hvtilde != NULL) {
         ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
     }
+    
+    ierr = this->m_VelocityField->DebugInfo("velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->DebugInfo("inc velocity", __LINE__, __FILE__); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1134,6 +1238,10 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     ScalarType hd;
     PetscFunctionBegin;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("preconditioned hessian matvec"); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Enter(__func__);
 
@@ -1187,6 +1295,10 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     ScalarType hd;
     PetscFunctionBegin;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("symmetric preconditioned hessian matvec"); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Enter(__func__);
 
@@ -1332,6 +1444,8 @@ PetscErrorCode CLAIRE::ComputeIncBodyForce() {
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncAdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    ierr = DebugGPUNotImplemented(); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -1462,6 +1576,8 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
     std::string ext;
 
     PetscFunctionBegin;
+    
+    ierr = DebugGPUNotImplemented(); CHKERRQ(ierr);
 
     this->m_Opt->Enter(__func__);
 
@@ -1559,13 +1675,18 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     // set initial condition m_0 = m_T
     ierr = this->SetInitialState(*this->m_TemplateImage); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+    }
 
-    ierr = this->m_TransportProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
-
     
     ierr = this->m_TransportProblem->SolveForwardProblem(); CHKERRQ(ierr);
 
@@ -1585,11 +1706,35 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
             << nvx1 << "," << nvx2 << "," << nvx3 <<")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
+        
+        ierr = VecMax(this->m_VelocityField->m_X1, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_VelocityField->m_X1, NULL, &minval); CHKERRQ(ierr);
+        ss  << "velocity min/max: [" << std::scientific
+            << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+        ierr = VecMax(this->m_VelocityField->m_X2, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_VelocityField->m_X2, NULL, &minval); CHKERRQ(ierr);
+        ss  << "                  [" << std::scientific
+            << minval << "," << maxval << "] ";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+        ierr = VecMax(this->m_VelocityField->m_X3, NULL, &maxval); CHKERRQ(ierr);
+        ierr = VecMin(this->m_VelocityField->m_X3, NULL, &minval); CHKERRQ(ierr);
+        ss  << "                  [" << std::scientific
+            << minval << "," << maxval << "]";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
     }
 
     // store time series
     if (this->m_Opt->m_ReadWriteFlags.timeseries) {
         ierr = this->StoreStateVariable(); CHKERRQ(ierr);
+    }
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
     }
 
     // increment counter
@@ -1657,29 +1802,39 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     ierr = this->m_DistanceMeasure->SetFinalConditionAE(); CHKERRQ(ierr);
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
     
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
+      if(this->m_ReferenceImage) this->m_ReferenceImage->DebugInfo("reference   ",__LINE__,__FILE__);
+      else DbgMsg("reference        : nullptr");
+      if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+    }
+    
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
     }
     ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
 
     ierr = this->m_TransportProblem->SolveAdjointProblem(); CHKERRQ(ierr);
     
+    ierr = this->m_WorkVecField2->DebugInfo("post adj grad", __LINE__, __FILE__); CHKERRQ(ierr);
+        
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
     
     // scale result by hd
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
     
-    if (this->m_Opt->m_Verbosity > 2) {
-        ScalarType maxval, minval;
-        ierr = VecMin(*this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
-        ierr = VecMax(*this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
-        ss << "adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
     }
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
@@ -1711,6 +1866,8 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     bool store;
 
     PetscFunctionBegin;
+    
+    ierr = DebugGPUNotImplemented(); CHKERRQ(ierr);
 
     this->m_Opt->Enter(__func__);
 
@@ -1724,9 +1881,9 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
-    ierr = Allocate(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = Allocate(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = Allocate(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
 
     ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
@@ -1741,8 +1898,7 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     ierr = GetRawPointer(this->m_WorkScaField3, &p_mx); CHKERRQ(ierr);
 
     // compute divergence of velocity field
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    this->m_Differentiation->Divergence(p_divv,p_v1,p_v2,p_v3);
+    this->m_Differentiation->Divergence(p_divv, this->m_VelocityField);
 
     // interpolate velocity field v(X)
 //    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField1, this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
@@ -1837,7 +1993,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     }
 
     // allocate variables
-    ierr = Allocate(this->m_IncStateVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_IncStateVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
     
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
@@ -2040,29 +2196,49 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     if (this->m_Opt->m_ReadWriteFlags.iterates) {
         // allocate
         ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, true); CHKERRQ(ierr);
-        /*f (this->m_WorkScaFieldMC == NULL) {
-            ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
-        }*/
+        if (this->m_WorkScaFieldMC == NULL) {
+            ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt); CHKERRQ(ierr);
+            //ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
+        }
 
         iter = this->m_Opt->GetCounter(ITERATIONS);
         ierr = Assert(iter >= 0, "problem in counter"); CHKERRQ(ierr);
+        
+        std::string ver = "cpu-";
+#ifdef REG_HAS_CUDA
+        ver = "gpu-";
+#endif
 
         // copy memory for m_1
-        ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
         try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
         catch (std::exception& err) {
             ierr = ThrowError(err); CHKERRQ(ierr);
         }
-        ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
-        ss  << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        ss  << ver << "deformed-template-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, ss.str(), nc > 1); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+        
+        // copy memory for m_1
+        ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_AdjointVariable, &p_m); CHKERRQ(ierr);
+        try {std::copy(p_m, p_m+nl*nc, p_m1);}
+        catch (std::exception& err) {
+            ierr = ThrowError(err); CHKERRQ(ierr);
+        }
+        ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_AdjointVariable, &p_m); CHKERRQ(ierr);
+
+        ss  << ver << "adjoint-image-i=" << std::setw(3) << std::setfill('0') << iter << ext;
         ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, ss.str(), nc > 1); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         // construct file names for velocity field components
-        ss  << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << ext;
+        ss  << ver << "velocity-field-i=" << std::setw(3) << std::setfill('0') << iter << ext;
         filename = ss.str();
         ss.str(std::string()); ss.clear();
 

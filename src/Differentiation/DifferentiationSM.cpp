@@ -73,7 +73,7 @@ PetscErrorCode DifferentiationSM::Initialize() {
     this->m_VecFieldKernel.nstart[1] = 0;
     this->m_VecFieldKernel.nstart[2] = 0;
     this->m_VecFieldKernel.scale = 0;
-
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -91,7 +91,7 @@ PetscErrorCode DifferentiationSM::ClearMemory() {
     this->m_VecFieldKernel.pXHat[0] = nullptr;
     this->m_VecFieldKernel.pXHat[1] = nullptr;
     this->m_VecFieldKernel.pXHat[2] = nullptr;
-
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -130,7 +130,7 @@ PetscErrorCode DifferentiationSM::SetupSpectralData(ComplexType *x1, ComplexType
     this->m_VecFieldKernel.nstart[1] = this->m_Opt->m_FFT.ostart[1];
     this->m_VecFieldKernel.nstart[2] = this->m_Opt->m_FFT.ostart[2];
     this->m_VecFieldKernel.scale = this->m_Opt->ComputeFFTScale();
-    
+        
     PetscFunctionReturn(ierr);
 }
 
@@ -207,7 +207,6 @@ PetscErrorCode DifferentiationSM::Gradient(VecField *g, const Vec m) {
  *******************************************************************/
 PetscErrorCode DifferentiationSM::Gradient(ScalarType **g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
-    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
     PetscFunctionBegin;
         
     ierr = this->Gradient(g[0], g[1], g[2], m); CHKERRQ(ierr);
@@ -450,7 +449,11 @@ PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
-    ierr = this->m_VecFieldKernel.Laplacian(b0, b1); CHKERRQ(ierr);
+    if (this->m_Opt->m_FFT.threshold > 0.) {
+      ierr = this->m_VecFieldKernel.LaplacianTol(b0, b1); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_VecFieldKernel.Laplacian(b0, b1); CHKERRQ(ierr);
+    }
     ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
@@ -596,6 +599,17 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
     PetscFunctionBegin;
         
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
+    
+    if (this->m_Opt->m_FFT.threshold > 0) {
+      ScalarType value;
+      VecNorm(v->m_X1, NORM_INFINITY, &value);
+      this->m_VecFieldKernel.tol = value;
+      VecNorm(v->m_X2, NORM_INFINITY, &value);
+      this->m_VecFieldKernel.tol = std::max(this->m_VecFieldKernel.tol, std::abs(value));
+      VecNorm(v->m_X3, NORM_INFINITY, &value);
+      this->m_VecFieldKernel.tol = std::max(this->m_VecFieldKernel.tol, std::abs(value));
+      this->m_VecFieldKernel.tol *= this->m_Opt->m_FFT.threshold;
+    }
         
     ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
     accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV[0]), pXHat[0], timer);

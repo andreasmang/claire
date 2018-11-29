@@ -91,6 +91,8 @@ class VecField {
     PetscErrorCode RestoreArraysReadWrite(ScalarType**);
     
     PetscErrorCode RestoreArrays();
+    
+    PetscErrorCode DebugInfo(std::string, int, const char*);
 
     PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
     PetscErrorCode AXPY(ScalarType, VecField*);

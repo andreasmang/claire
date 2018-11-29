@@ -72,7 +72,7 @@ class DifferentiationSM : public Differentiation {
     
     PetscErrorCode ComputeForwardFFT(VecField*);
     PetscErrorCode ComputeInverseFFT(VecField*);
-    
+        
     DifferentiationKernel::VectorField m_VecFieldKernel;
     std::bitset<3> xyz;
     double timer[NFFTTIMERS];

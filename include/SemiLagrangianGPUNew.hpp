@@ -78,7 +78,8 @@ class SemiLagrangianGPUNew {
 
     VecField* m_WorkVecField1;
 
-    VecField* m_X;
+    VecField* m_Xstate;
+    VecField* m_Xadjoint;
     VecField* m_InitialTrajectory;
 
     int m_Dofs[2];

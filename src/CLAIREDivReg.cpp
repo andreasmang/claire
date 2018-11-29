@@ -271,22 +271,10 @@ PetscErrorCode CLAIREDivReg::ComputeIncBodyForce() {
  *******************************************************************/
 PetscErrorCode CLAIREDivReg::ApplyProjection() {
     PetscErrorCode ierr = 0;
-    //ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
-    ScalarType beta[3];//, scale;
-    //long int nx[3];
-    //IntType nalloc;
-    //double applytime;
-    //ComplexType x1hat, x2hat, x3hat;
-    //double timer[NFFTTIMERS] = {0};
+    ScalarType beta[3];
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
-
-    //nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
-    //nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
-    //nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
-
-    //scale = this->m_Opt->ComputeFFTScale();
 
     // allocate spectral data
     ierr = this->SetupSpectralData(); CHKERRQ(ierr);
@@ -295,8 +283,22 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     beta[2] = this->m_Opt->m_RegNorm.beta[2];
     
     ierr = this->m_Differentiation->LerayOperator(this->m_WorkVecField1, this->m_WorkVecField2, beta[0], beta[2]); CHKERRQ(ierr);
+    
+    /*ScalarType scale;
+    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+    long int nx[3];
+    IntType nalloc;
+    double applytime;
+    ComplexType x1hat, x2hat, x3hat;
+    double timer[NFFTTIMERS] = {0};
 
-    /*ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
+    nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
+    nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
+    nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
+
+    scale = this->m_Opt->ComputeFFTScale();
+
+    ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute forward fft
@@ -403,6 +405,7 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     this->m_Opt->IncrementCounter(FFT, 3);
 
     ierr = this->m_WorkVecField1->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);*/
+    
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     //this->m_Opt->IncreaseFFTTimers(timer);

@@ -5,7 +5,7 @@
 
 //#include <accfft.h>
 //#include <accfftf.h>
-#include "typedef.hpp"
+#include "TypeDef.hpp"
 // #include <glog/logging.h>
 // #define ParLOG if(procid==0) LOG(INFO)
 #undef PCOUT

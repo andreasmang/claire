@@ -414,6 +414,54 @@ PetscErrorCode ScaField::Set(ScalarType value) {
   
   PetscFunctionReturn(ierr);
 }
+
+/********************************************************************
+ * @brief print debug info
+ *******************************************************************/
+PetscErrorCode ScaField::DebugInfo(std::string str, int line, const char *file) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  if (this->m_Opt->m_Verbosity > 2) {
+      ScalarType maxval, minval, nvx1;
+      std::stringstream ss;
+      
+    if (this->m_Opt->m_Verbosity > 3) {
+      ScalarType *p_x1;
+      size_t fingerprint = 0;
+      ierr = VecGetArray(this->m_X, &p_x1); CHKERRQ(ierr);
+      // compute size of each individual component
+#pragma omp parallel for
+      for (IntType i = 0; i < this->m_Size[2]; ++i) {
+#if defined(PETSC_USE_REAL_SINGLE)
+        fingerprint += reinterpret_cast<uint32_t*>(p_x1)[i];
+#else
+        fingerprint += reinterpret_cast<uint64_t*>(p_x1)[i];
+#endif
+      }
+      ierr = VecRestoreArray(this->m_X, &p_x1); CHKERRQ(ierr);
+      
+      ss  << str << " hash: " << std::hex << fingerprint;
+      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+    }
+
+      ierr = VecNorm(this->m_X, NORM_2, &nvx1); CHKERRQ(ierr);
+      ss  << str << " 2-norm: " << std::scientific
+          << nvx1;
+      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+      
+      ierr = VecMax(this->m_X, NULL, &maxval); CHKERRQ(ierr);
+      ierr = VecMin(this->m_X, NULL, &minval); CHKERRQ(ierr);
+      ss  << str << " min/max: [" << std::scientific
+          << minval << "," << maxval << "]";
+      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+  }
+  
+  PetscFunctionReturn(ierr);
+}
   
 } // namespace reg
 

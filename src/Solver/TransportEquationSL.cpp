@@ -68,6 +68,28 @@ PetscErrorCode TransportEquationSL::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode TransportEquationSL::InitializeControlVariable(VecField *field) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(field != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
+    this->m_VelocityField = field;
+    
+    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+  
+    // compute trajectory
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief solve the forward problem (i.e., the continuity equation)
  *******************************************************************/
@@ -343,20 +365,26 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
     ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_SemiLagrangianMethod == nullptr) {
-        ierr = Allocate(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
-        //ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
-        //ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
     }
-    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+    //ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
         fullnewton = true;
     }
+    
+    ierr = this->m_VelocityField->DebugInfo("velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->DebugInfo("inc velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_IncStateVariable->DebugInfo("inc state pre ", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->DebugInfo("state pre ", __LINE__, __FILE__); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
 
     ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField[1], this->m_IncVelocityField, "state"); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField[1]->DebugInfo("work vec", __LINE__, __FILE__); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField[1]->GetArraysRead(kernel.pVtildex); CHKERRQ(ierr);
     ierr = this->m_IncVelocityField->GetArraysRead(kernel.pVtilde); CHKERRQ(ierr);
@@ -399,6 +427,8 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
     ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
     ierr = this->m_IncStateVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    
+    ierr = this->m_IncStateVariable->DebugInfo("inc state post", __LINE__, __FILE__); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -465,12 +495,10 @@ PetscErrorCode TransportEquationSL::SolveIncAdjointEquationGN() {
     kernel.scale = kernel.ht/static_cast<ScalarType>(nc);
 
     if (this->m_SemiLagrangianMethod == nullptr) {
-        ierr = Allocate(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
-        //ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
-        //ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }
-    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
 
     // compute divergence of velocity field
     ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);

@@ -483,7 +483,7 @@ PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec m) {
 
     ierr = Assert(this->m_Opt->m_LabelIDs.size() == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
 
-    ierr = AllocateArray(p_labelprobs, nc+1); CHKERRQ(ierr);
+    ierr = AllocateArrayOnce(p_labelprobs, nc+1); CHKERRQ(ierr);
 
     // set dummy values
     ierr = VecGetArrayRead(m, &p_m); CHKERRQ(ierr);

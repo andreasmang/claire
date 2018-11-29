@@ -35,7 +35,10 @@ struct VectorField {
   
   ScalarType scale;
   
+  ScalarType tol;
+  
   PetscErrorCode Laplacian(ScalarType, ScalarType=0.0);
+  PetscErrorCode LaplacianTol(ScalarType, ScalarType=0.0);
   PetscErrorCode Bilaplacian(ScalarType, ScalarType=0.0);
   PetscErrorCode Trilaplacian(ScalarType, ScalarType=0.0);
   PetscErrorCode InverseLaplacian(bool, ScalarType, ScalarType=0.0);

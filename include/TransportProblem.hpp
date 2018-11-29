@@ -54,6 +54,8 @@ class TransportProblem {
     
     PetscErrorCode SetWorkScaField(ScaField*, IntType);
     PetscErrorCode SetWorkVecField(VecField*, IntType);
+    
+    virtual PetscErrorCode InitializeControlVariable(VecField*);
 
     virtual PetscErrorCode SolveForwardProblem();
     virtual PetscErrorCode SolveAdjointProblem();

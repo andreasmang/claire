@@ -29,6 +29,9 @@ struct int3 { int x, y, z; };
 
 /********************************************************************
  * @brief computes wave number
+ * TODO Note: The Nyquist is set to zero here! This is wrong for even (2nd, 4th, ...)
+ * derivatives. Filtering the data with Nyquist = 0 changes the function space,
+ * but makes this valid.
  *******************************************************************/
 __kernel__ inline void ComputeWaveNumber(int3 &w, int3 n) {
   if (w.x > n.x/2) w.x -= n.x;
@@ -49,11 +52,18 @@ __kernel__ inline int GetLinearIndex(int i1, int i2, int i3, int3 size) {
 /********************************************************************
  * @brief pre-processor evaluated power
  *******************************************************************/
-template<int N> __kernel__ inline ScalarType pow(ScalarType x) {
-  return x*pow<N-1>(x);
-}
-template<> __kernel__ inline ScalarType pow<0>(ScalarType x) {
-  return 1.0;
+template<int N> struct _pow {
+  template<typename T> static __kernel__ inline T call(T x) {
+    return x*_pow<N-1>::call(x);
+  }
+};
+template<> struct _pow<0> {
+  template<typename T> static __kernel__ inline T call(T x) {
+    return 1;
+  }
+};
+template<int N, typename T> __kernel__ inline T pow(T x) {
+  return _pow<N>::call(x);
 }
 
 /********************************************************************
@@ -63,6 +73,30 @@ template<> __kernel__ inline ScalarType pow<0>(ScalarType x) {
 __kernel__ inline ScalarType LaplaceNumber(int3 w) {
   return -static_cast<ScalarType>(w.x*w.x + w.y*w.y + w.z*w.z);
 }
+
+template<int N> struct NLaplacianFilterKernel {
+  static __kernel__ inline void call(int i, int3 w, 
+      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
+      ScalarType b0, ScalarType tol) {
+    ScalarType regop = b0*pow<N>(-LaplaceNumber(w));
+    
+    if (abs(v1[i][0]) < tol &&  abs(v1[i][1]) < tol) {
+      v1[i][0] = 0.0; v1[i][1] = 0.0;
+    } else {
+      v1[i][0] *= regop; v1[i][1] *= regop;
+    }
+    if (abs(v2[i][0]) < tol &&  abs(v2[i][1]) < tol) {
+      v2[i][0] = 0.0; v2[i][1] = 0.0;
+    } else {
+      v2[i][0] *= regop; v2[i][1] *= regop;
+    }
+    if (abs(v3[i][0]) < tol &&  abs(v3[i][1]) < tol) {
+      v3[i][0] = 0.0; v3[i][1] = 0.0;
+    } else {
+      v3[i][0] *= regop; v3[i][1] *= regop;
+    }
+  }
+};
 
 template<int N> struct NLaplacianKernel {
   static __kernel__ inline void call(int i, int3 w, 
@@ -178,6 +212,10 @@ struct TriLaplacianFunctionalKernel {
   }
 };
 
+/**
+ * TODO Note: The Nyquist is set zero after applying the first gradient, it should
+ * be set again after second gradient
+ **/
 struct LerayKernel {
   static __kernel__ inline void call(int i, int3 w,
       ComplexType *v1, ComplexType *v2, ComplexType *v3,
@@ -185,7 +223,6 @@ struct LerayKernel {
     // compute inverse laplacian operator
     ScalarType lapik = LaplaceNumber(w);
 
-    //lapinvik = round(lapinvik) == 0.0 ? -1.0 : 1.0/lapinvik;
     ScalarType lapinvik = (lapik == 0.0 ? -1.0 : 1.0/lapik);
 
     // compute gradient operator
@@ -198,9 +235,9 @@ struct LerayKernel {
                               + gradik2*v2[i][1]
                               + gradik3*v3[i][1]);
 
-    ScalarType divVim =  scale*(gradik1*v1[i][0]
-                              + gradik2*v2[i][0]
-                              + gradik3*v3[i][0]);
+    ScalarType divVim = scale*(gradik1*v1[i][0]
+                             + gradik2*v2[i][0]
+                             + gradik3*v3[i][0]);
 
     // compute M^{-1] = (\beta_v (\beta_w(-\ilap + 1))^{-1} + 1)^{-1}
     // TODO Note: could be numerical instable due to lapik +- 1
@@ -208,8 +245,8 @@ struct LerayKernel {
     opik = 1.0/(b0*opik + 1.0);
     
     // compute lap^{-1} div(b)
-    divVre *= opik*lapinvik;
-    divVim *= opik*lapinvik;
+    divVre *= -opik*lapinvik;
+    divVim *= -opik*lapinvik;
 
     // compute x1 gradient of lab^{-1} div(b), note grad multiplies by i
     v1[i][0] = -gradik1*divVim;

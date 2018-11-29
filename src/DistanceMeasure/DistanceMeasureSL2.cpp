@@ -107,7 +107,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     nt = this->m_Opt->m_Domain.nt;
     kernel.nc = this->m_Opt->m_Domain.nc;
     kernel.nl = this->m_Opt->m_Domain.nl;
-    hd  = this->m_Opt->GetLebesgueMeasure();   
+    hd  = this->m_Opt->GetLebesgueMeasure();
 
     ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
@@ -120,7 +120,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
     
         ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        ierr = kernel.ComputeFunctional(); CHKERRQ(ierr);
+      ierr = kernel.ComputeFunctional(); CHKERRQ(ierr);
     }
     // all reduce
     rval = MPI_Allreduce(&kernel.value, &l2distance, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);

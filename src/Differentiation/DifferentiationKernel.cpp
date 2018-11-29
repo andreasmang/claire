@@ -64,6 +64,28 @@ PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3
 namespace reg {
 namespace DifferentiationKernel {
   
+PetscErrorCode VectorField::LaplacianTol(ScalarType b0, ScalarType b1) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType lognx = 0.;
+  lognx += log2(static_cast<ScalarType>(nx[0]));
+  lognx += log2(static_cast<ScalarType>(nx[1]));
+  lognx += log2(static_cast<ScalarType>(nx[2]));
+  
+  if (b1 == 0.0) {
+    ierr = SpectralKernelCall<NLaplacianFilterKernel<1> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, tol*lognx); CHKERRQ(ierr);
+  } else {
+    ierr = SpectralKernelCall<RelaxedNLaplacianKernel<1> >(nstart, nx, nl, 
+      pXHat[0], pXHat[1], pXHat[2], 
+      b0*scale, b1); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(ierr);
+}
+  
 PetscErrorCode VectorField::Laplacian(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;

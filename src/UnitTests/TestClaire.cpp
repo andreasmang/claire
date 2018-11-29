@@ -37,11 +37,11 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
   std::cout << "starting trajectory solver unit test" << std::endl;
   reg::VecField* v = nullptr;
   reg::VecField* t = nullptr;
-#ifdef REG_HAS_CUDA
-  reg::SemiLagrangianGPUNew *sl = nullptr;
-#else
+//#ifdef REG_HAS_CUDA
+//  reg::SemiLagrangianGPUNew *sl = nullptr;
+//#else
   reg::SemiLagrangian *sl = nullptr;
-#endif
+//#endif
   ScalarType *X1 = nullptr;
   ScalarType *X2 = nullptr;
   ScalarType *X3 = nullptr;
@@ -50,10 +50,10 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
   ierr = AllocateOnce(v, m_Opt); CHKERRQ(ierr);
   ierr = AllocateOnce(t, m_Opt); CHKERRQ(ierr);
   ierr = AllocateOnce(sl, m_Opt); CHKERRQ(ierr);
-  ierr = AllocateArray(X1, m_Opt->m_Domain.nl); CHKERRQ(ierr);
-  ierr = AllocateArray(X2, m_Opt->m_Domain.nl); CHKERRQ(ierr);
-  ierr = AllocateArray(X3, m_Opt->m_Domain.nl); CHKERRQ(ierr);
-  ierr = AllocateArray(X, m_Opt->m_Domain.nl*3); CHKERRQ(ierr);
+  ierr = AllocateArrayOnce(X1, m_Opt->m_Domain.nl); CHKERRQ(ierr);
+  ierr = AllocateArrayOnce(X2, m_Opt->m_Domain.nl); CHKERRQ(ierr);
+  ierr = AllocateArrayOnce(X3, m_Opt->m_Domain.nl); CHKERRQ(ierr);
+  ierr = AllocateArrayOnce(X, m_Opt->m_Domain.nl*3); CHKERRQ(ierr);
   
   ierr = ComputeSyntheticData(v, m_Opt); CHKERRQ(ierr);
   
@@ -71,7 +71,7 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
     }  // i2
   }  // i3
   
-#ifdef REG_HAS_CUDA
+/*#ifdef REG_HAS_CUDA
   ierr = sl->SetInitialTrajectory(X); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
   ierr = sl->Interpolate(t, v, "state"); CHKERRQ(ierr);
@@ -80,14 +80,14 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
   ierr = v->Scale(-1.); CHKERRQ(ierr);
   ierr = sl->SetInitialTrajectory(X); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
-#else
+#else*/
   ierr = sl->ComputeTrajectory(v, "state", X); CHKERRQ(ierr);
   ierr = sl->Interpolate(t, v, "state"); CHKERRQ(ierr);
   ierr = v->Copy(t); CHKERRQ(ierr);
   ierr = sl->GetQueryPoints(X);
   ierr = v->Scale(-1.); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state", X); CHKERRQ(ierr);
-#endif
+//#endif
   
   ierr = sl->GetQueryPoints(X1, X2, X3);
   double ex = 0.0;

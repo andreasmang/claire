@@ -45,6 +45,8 @@ class TransportEquationSL : public TransportProblem {
     PetscErrorCode SolveIncForwardProblem();
     PetscErrorCode SolveIncAdjointProblem();
     PetscErrorCode SolveInverseProblem();
+    
+    PetscErrorCode InitializeControlVariable(VecField*);
 
  protected:
     PetscErrorCode Initialize();
