@@ -94,6 +94,18 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-ifile") == 0) {
             argc--; argv++;
             this->m_FileNames.isc = argv[1];
+        } else if (strcmp(argv[1], "-ifilevec") == 0) {
+            argc--; argv++;
+            this->m_Domain.nc = static_cast<IntType>(atoi(argv[1]));
+            if (this->m_Domain.nc < 1) {
+                msg = "\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(true); CHKERRQ(ierr);
+            }
+            for (IntType i = 0; i < this->m_Domain.nc; ++i) {
+                argc--; argv++;
+                this->m_FileNames.ivec.push_back(argv[1]);
+            }
         } else if (strcmp(argv[1], "-xfile") == 0) {
             argc--; argv++;
             this->m_FileNames.xsc = argv[1];
@@ -245,6 +257,8 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_RegToolFlags.computeerror = true;
         } else if (strcmp(argv[1], "-deformimage") == 0) {
             this->m_RegToolFlags.deformimage = true;
+        } else if (strcmp(argv[1], "-tprobmap") == 0) {
+            this->m_RegToolFlags.tprobmaps = true;
         } else if (strcmp(argv[1], "-smooth") == 0) {
             this->m_RegToolFlags.applysmoothing = true;
             argc--; argv++;
@@ -423,6 +437,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -v2 <file>                  x2-component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -v3 <file>                  x3-component of vector field (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
         std::cout << " -ifile <filename>           input file (scalar field/image)" << std::endl;
+        std::cout << " -ifilevec <filenames>       list of input files  (fields/images)" << std::endl;
         std::cout << " -xfile <filename>           output file (scalar field/image)" << std::endl;
         std::cout << " -i <path>                   input path (defines where registration results (i.e., velocity field, " << std::endl;
         std::cout << "                             template image, and reference image) are stored; a prefix can be" << std::endl;
@@ -454,6 +469,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << "                             the user needs to specify the labels to be transported via the '-labels' option" << std::endl;
         std::cout << "                             option (see below)" << std::endl;
         std::cout << " -labels <l1,l2,...>         labels to be transported (ids/numbers of labels)" << std::endl;
+        std::cout << " -tprobmap                   transport multi-component probability maps" << std::endl;
         std::cout << " -saveprob                   enable this flag to write probability maps for individual labels to file" << std::endl;
         std::cout << " -r2t                        map (transport) from reference to template space by enabling this flag" << std::endl;
         // ####################### advanced options #######################

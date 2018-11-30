@@ -260,7 +260,9 @@ struct FileNames {
     std::vector < std::string > mr;     ///< reference image file name
     std::string mask;                   ///< mask for objective
     std::string isc;                    ///< filename for input scalar field
+    std::vector < std::string > ivec;   ///< filename for input vector image field
     std::string xsc;                    ///< filename for output scalar field
+    std::vector < std::string > xvec;    ///< filename for output vector image field
     std::string extension;              ///< identifier for file extension
 };
 

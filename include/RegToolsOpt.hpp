@@ -45,6 +45,7 @@ struct RegToolFlags {
     bool computeerror;          ///< compute difference / error between two scalar fields
     bool deformimage;           ///< transport scalar field (forward problem)
     bool tlabelmap;             ///< transport label map (solve forward problem)
+    bool tprobmaps;             ///< transport probability map (solve forward problem)
     bool saveprob;              ///< store transported probability maps
     bool convert;               ///< convert image data
     bool computeanalytics;      ///< compute analytics of scalar field
