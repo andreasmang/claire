@@ -25,44 +25,7 @@
 
 #include "DifferentiationKernel.txx"
 
-template<typename KernelFn, typename ... Args>
-__global__ void SpectralKernelGPU(int3 wave, int3 nx, int3 nl, Args ... args) {
-  int i1 = threadIdx.x + blockIdx.x*blockDim.x;
-  int i2 = blockIdx.y;
-  int i3 = blockIdx.z;
-  
-  if (i1 < nl.x) {
-    wave.x += i1;
-    wave.y += i2;
-    wave.z += i3;
-
-    ComputeWaveNumber(wave, nx);
-    int i = GetLinearIndex(i1, i2, i3, nl);
-
-    KernelFn::call(i, wave, args...);
-  }
-}
-template<typename KernelFn, typename ... Args>
-PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType nl[3], 
-    Args ... args) {
-  PetscErrorCode ierr = 0;
-  PetscFunctionBegin;
-  
-  dim3 block(256,1,1);
-  dim3 grid((nl[0] + 255)/256,nl[1],nl[2]);
-  int3 wave, nx3, nl3;
-  wave.x = nstart[0]; wave.y = nstart[1]; wave.z = nstart[2];
-  nx3.x = nx[0]; nx3.y = nx[1]; nx3.z = nx[2];
-  nl3.x = nl[0]; nl3.y = nl[1]; nl3.z = nl[2];
-  
-  if (nl[0]*nl[1]*nl[2] > 0) {
-    SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
-    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
-    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
-  }
-  
-  PetscFunctionReturn(ierr);
-}
+using KernelUtils::SpectralKernelCallGPU;
 
 namespace reg {
 namespace DifferentiationKernel {

@@ -76,12 +76,14 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
     ierr = this->ClearVariables(); CHKERRQ(ierr);
     
 #ifdef ZEITGEIST
-    printf("-----------------------------------------------------------------------------------------------------\n");
-    printf("ZeitGeist:\n");
+    Msg("-----------------------------------------------------------------------------------------------------");
+    Msg("ZeitGeist:");
     for (auto zg : ZeitGeist::zgMap()) {
-      printf("  %16s: %5lix, %10lf\n",zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
+      char txt[120];
+      sprintf(txt, "  %16s: %5lix, %10lf",zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
+      Msg(txt);
     }
-    printf("-----------------------------------------------------------------------------------------------------\n");
+    Msg("-----------------------------------------------------------------------------------------------------");
 #endif
 
     PetscFunctionReturn(ierr);
@@ -688,6 +690,8 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     // start timer
+    ZeitGeist_define(EVAL_OBJ);
+    ZeitGeist_tick(EVAL_OBJ);
     ierr = this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
 
     // set components of velocity field
@@ -721,6 +725,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
 
     // stop timer
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
+    ZeitGeist_tock(EVAL_OBJ);
 
     // increment counter for objective evaluations
     this->m_Opt->IncrementCounter(OBJEVAL);
@@ -1108,6 +1113,8 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
       else DbgMsg("inc velocity     : nullptr");
     }
 
+    ZeitGeist_define(EVAL_HESS);
+    ZeitGeist_tick(EVAL_HESS);
     ierr = this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
 
     // switch between hessian operators
@@ -1155,6 +1162,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 
     // stop hessian matvec timer
     ierr = this->m_Opt->StopTimer(HMVEXEC); CHKERRQ(ierr);
+    ZeitGeist_tock(EVAL_HESS);
 
     // increment matvecs
     this->m_Opt->IncrementCounter(HESSMATVEC);
@@ -1640,9 +1648,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-    
-    ZeitGeist_define(SOLVE_STATE);
-    ZeitGeist_tick(SOLVE_STATE);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1740,8 +1745,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
     
-    ZeitGeist_tock(SOLVE_STATE);
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1766,9 +1769,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     this->m_Opt->Enter(__func__);
     
     DebugGPUStartEvent(__FUNCTION__);
-        
-    ZeitGeist_define(SOLVE_ADJ);
-    ZeitGeist_tick(SOLVE_ADJ);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1841,9 +1841,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
-    
-    ZeitGeist_tock(SOLVE_ADJ);
-    
+        
     DebugGPUStopEvent();
 
     this->m_Opt->Exit(__func__);
@@ -1968,9 +1966,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     this->m_Opt->Enter(__func__);
     
     DebugGPUStartEvent(__FUNCTION__);
-    
-    ZeitGeist_define(SOLVE_INC_STATE);
-    ZeitGeist_tick(SOLVE_INC_STATE);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2025,8 +2020,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
-
-    ZeitGeist_tock(SOLVE_INC_STATE);
     
     DebugGPUStopEvent();
 
@@ -2057,9 +2050,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     this->m_Opt->Enter(__func__);
     
     DebugGPUStartEvent(__FUNCTION__);
-    
-    ZeitGeist_define(SOLVE_INC_ADJ);
-    ZeitGeist_tick(SOLVE_INC_ADJ);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_IncVelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2124,9 +2114,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
-    
-    ZeitGeist_tock(SOLVE_INC_ADJ);
-    
+
     DebugGPUStopEvent();
 
     this->m_Opt->Exit(__func__);

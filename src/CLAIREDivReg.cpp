@@ -126,6 +126,8 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
         ierr = DbgMsg("evaluating objective functional"); CHKERRQ(ierr);
     }
 
+    ZeitGeist_define(EVAL_OBJ);
+    ZeitGeist_tick(EVAL_OBJ);
     ierr = this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
 
     // set components of velocity field
@@ -161,6 +163,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
+    ZeitGeist_tock(EVAL_OBJ);
 
     this->m_Opt->IncrementCounter(OBJEVAL);
 

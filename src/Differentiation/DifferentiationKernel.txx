@@ -20,62 +20,13 @@
 #ifndef _DIFFERENTIATIONKERNEL_TXX_
 #define _DIFFERENTIATIONKERNEL_TXX_
 
-#ifndef REG_HAS_CUDA
-#define __kernel__
-struct int3 { int x, y, z; };
-#else
-#define __kernel__ __host__ __device__
-#endif
+#include "KernelUtils.hpp"
 
-/********************************************************************
- * @brief computes wave number
- * TODO Note: The Nyquist is set to zero here! This is wrong for even (2nd, 4th, ...)
- * derivatives. Filtering the data with Nyquist = 0 changes the function space,
- * but makes this valid.
- *******************************************************************/
-__kernel__ inline void ComputeWaveNumber(int3 &w, int3 n) {
-  if (w.x > n.x/2) w.x -= n.x;
-  else if (w.x == n.x/2) w.x = 0;
-  if (w.y > n.y/2) w.y -= n.y;
-  else if (w.y == n.y/2) w.y = 0;
-  if (w.z > n.z/2) w.z -= n.z;
-  else if (w.z == n.z/2) w.z = 0;
-}
-
-/********************************************************************
- * @brief computes linear array index in Z-Y-X layout
- *******************************************************************/
-__kernel__ inline int GetLinearIndex(int i1, int i2, int i3, int3 size) {
-  return i1*size.y*size.z + i2*size.z + i3;
-}
-
-/********************************************************************
- * @brief pre-processor evaluated power
- *******************************************************************/
-template<int N> struct _pow {
-  template<typename T> static __kernel__ inline T call(T x) {
-    return x*_pow<N-1>::call(x);
-  }
-};
-template<> struct _pow<0> {
-  template<typename T> static __kernel__ inline T call(T x) {
-    return 1;
-  }
-};
-template<int N, typename T> __kernel__ inline T pow(T x) {
-  return _pow<N>::call(x);
-}
-
-/********************************************************************
- * @brief computes absolute N-laplacian operator
- *******************************************************************/
-/// TODO Note: first cast w, then multiply might be faster. Check accuracy there
-__kernel__ inline ScalarType LaplaceNumber(int3 w) {
-  return -static_cast<ScalarType>(w.x*w.x + w.y*w.y + w.z*w.z);
-}
+using KernelUtils::real3;
+using KernelUtils::pow;
 
 template<int N> struct NLaplacianFilterKernel {
-  static __kernel__ inline void call(int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType b0, ScalarType tol) {
     ScalarType regop = b0*pow<N>(-LaplaceNumber(w));
@@ -99,7 +50,7 @@ template<int N> struct NLaplacianFilterKernel {
 };
 
 template<int N> struct NLaplacianKernel {
-  static __kernel__ inline void call(int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType b0) {
     ScalarType regop = b0*pow<N>(-LaplaceNumber(w));
@@ -110,7 +61,7 @@ template<int N> struct NLaplacianKernel {
   }
 };
 template<int N> struct RelaxedNLaplacianKernel {
-  static __kernel__ inline void call(int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType b0, ScalarType b1) {
     ScalarType regop = b0*pow<N>(-LaplaceNumber(w) + b1);
@@ -121,7 +72,7 @@ template<int N> struct RelaxedNLaplacianKernel {
   }
 };
 template<int N> struct InverseNLaplacianKernel {
-  static __kernel__ inline void call (int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType scale, ScalarType b0) {
     ScalarType lapik = pow<N>(-LaplaceNumber(w));
@@ -134,7 +85,7 @@ template<int N> struct InverseNLaplacianKernel {
   }
 };
 template<int N> struct InverseNLaplacianSqrtKernel {
-  static __kernel__ inline void call(int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3,
       ScalarType scale, ScalarType b0) {
     ScalarType lapik = pow<N>(-LaplaceNumber(w));
@@ -147,7 +98,7 @@ template<int N> struct InverseNLaplacianSqrtKernel {
   }
 };
 template<int N> struct RelaxedInverseNLaplacianKernel {
-  static __kernel__ inline void call(int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType scale, ScalarType b0, ScalarType b1) {
     ScalarType lapik = pow<N>(-LaplaceNumber(w) + b1);
@@ -160,7 +111,7 @@ template<int N> struct RelaxedInverseNLaplacianKernel {
   }
 };
 template<int N> struct RelaxedInverseNLaplacianSqrtKernel {
-  static __kernel__ inline void call(int i, int3 w, 
+  KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType scale, ScalarType b0, ScalarType b1) {
     ScalarType lapik = pow<N>(-LaplaceNumber(w) + b1);
@@ -175,7 +126,7 @@ template<int N> struct RelaxedInverseNLaplacianSqrtKernel {
 
 // TODO: This is not correct! This is not grad(lap(v)), but diag(grad)*lap(v)
 struct TriLaplacianFunctionalKernel {
-  static __kernel__ inline void call(int i, int3 w,
+  KernelOperator (int i, real3 w,
       ComplexType *v1, ComplexType *v2, ComplexType *v3,
       ScalarType b0) {
     ScalarType regop, gradik, lapik, tmp;
@@ -184,7 +135,7 @@ struct TriLaplacianFunctionalKernel {
     lapik = LaplaceNumber(w);
 
     // compute gradient operator
-    gradik = static_cast<ScalarType>(w.x);
+    gradik = w.x;
     // compute regularization operator
     regop = b0*gradik*lapik;
     // apply regularization operator (note: gradient multiplies by i)
@@ -193,7 +144,7 @@ struct TriLaplacianFunctionalKernel {
     v1[i][1] = tmp;
     
     // compute gradient operator
-    gradik = static_cast<ScalarType>(w.y);
+    gradik = w.y;
     // compute regularization operator
     regop = b0*gradik*lapik;
     // apply regularization operator (note: gradient multiplies by i)
@@ -202,7 +153,7 @@ struct TriLaplacianFunctionalKernel {
     v2[i][1] = tmp;
     
     // compute gradient operator
-    gradik = static_cast<ScalarType>(w.z);
+    gradik = w.z;
     // compute regularization operator
     regop = b0*gradik*lapik;
     // apply regularization operator (note: gradient multiplies by i)
@@ -217,7 +168,7 @@ struct TriLaplacianFunctionalKernel {
  * be set again after second gradient
  **/
 struct LerayKernel {
-  static __kernel__ inline void call(int i, int3 w,
+  KernelOperator (int i, real3 w,
       ComplexType *v1, ComplexType *v2, ComplexType *v3,
       ScalarType scale, ScalarType b0, ScalarType b1) {
     // compute inverse laplacian operator
@@ -226,9 +177,9 @@ struct LerayKernel {
     ScalarType lapinvik = (lapik == 0.0 ? -1.0 : 1.0/lapik);
 
     // compute gradient operator
-    ScalarType gradik1 = static_cast<ScalarType>(w.x);
-    ScalarType gradik2 = static_cast<ScalarType>(w.y);
-    ScalarType gradik3 = static_cast<ScalarType>(w.z);
+    ScalarType gradik1 = w.x;
+    ScalarType gradik2 = w.y;
+    ScalarType gradik3 = w.z;
 
     // compute div(v), note v multiplies by i
     ScalarType divVre = -scale*(gradik1*v1[i][1]

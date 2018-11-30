@@ -295,6 +295,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
         ierr=this->ComputeInitialTrajectory(); CHKERRQ(ierr);
     }
     
+    X = this->m_Xstate;
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {
         ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
@@ -557,6 +558,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     ierr = Assert(xi != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(xo != NULL, "null pointer"); CHKERRQ(ierr);
 
+    ZeitGeist_define(SL_INTERPOL);
+    ZeitGeist_tick(SL_INTERPOL);
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     nl     = this->m_Opt->m_Domain.nl;
@@ -587,6 +590,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     }
         
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
+    ZeitGeist_tock(SL_INTERPOL);
+    
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);
 
@@ -661,7 +666,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
         istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
-    
+    ZeitGeist_define(SL_INTERPOL);
+    ZeitGeist_tick(SL_INTERPOL);
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     if (strcmp(flag.c_str(),"state") == 0) {
@@ -681,6 +687,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     }
 
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
+    ZeitGeist_tock(SL_INTERPOL);
 
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);

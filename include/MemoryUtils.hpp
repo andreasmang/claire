@@ -21,7 +21,7 @@
 #ifndef _MEMORYUTILS_HPP
 #define _MEMORYUTILS_HPP_
 
-#include "typedef.hpp"
+#include "TypeDef.hpp"
 
 namespace reg {
   

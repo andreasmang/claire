@@ -224,6 +224,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     
     DebugGPUStartEvent("FFT Laplacian");
     
+    ZeitGeist_define(FFT_LAP);
+    ZeitGeist_tick(FFT_LAP);
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -231,6 +234,8 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
     this->m_Opt->IncreaseFFTTimers(timer);
+    
+    ZeitGeist_tock(FFT_LAP);
     
     DebugGPUStopEvent();
 
@@ -251,6 +256,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
     
     DebugGPUStartEvent("FFT Laplacian Field");
     
+    ZeitGeist_define(FFT_LAP);
+    ZeitGeist_tick(FFT_LAP);
+    
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
@@ -260,6 +268,7 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
     this->m_Opt->IncreaseFFTTimers(timer);
+    ZeitGeist_tock(FFT_LAP);
     
     DebugGPUStopEvent();
 
@@ -273,6 +282,8 @@ PetscErrorCode DifferentiationSM::Laplacian(VecField *l, VecField *v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    ZeitGeist_define(FFT_LAP);
+    ZeitGeist_tick(FFT_LAP);
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
@@ -280,6 +291,7 @@ PetscErrorCode DifferentiationSM::Laplacian(VecField *l, VecField *v) {
     ierr = this->ComputeInverseFFT(l); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
+    ZeitGeist_tock(FFT_LAP);
     
     PetscFunctionReturn(ierr);
 }
@@ -446,6 +458,9 @@ PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType
     
     DebugGPUStartEvent("FFT laplacian regularization operator");
     
+    ZeitGeist_define(FFT_REG);
+    ZeitGeist_tick(FFT_REG);
+    
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
@@ -458,6 +473,8 @@ PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
+    ZeitGeist_tock(FFT_REG);
+    
     DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
@@ -468,6 +485,9 @@ PetscErrorCode DifferentiationSM::RegBiLapOp(VecField* bv, VecField* v, ScalarTy
     
     DebugGPUStartEvent("FFT inverse bilaplacian regularization operator");
     
+    ZeitGeist_define(FFT_REG);
+    ZeitGeist_tick(FFT_REG);
+    
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
@@ -475,6 +495,8 @@ PetscErrorCode DifferentiationSM::RegBiLapOp(VecField* bv, VecField* v, ScalarTy
     ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    ZeitGeist_tock(FFT_REG);
     
     DebugGPUStopEvent();
 
@@ -524,6 +546,9 @@ PetscErrorCode DifferentiationSM::InvRegLapOp(VecField* bv, VecField* v, bool us
     
     DebugGPUStartEvent("FFT inverse laplacian regularization operator");
     
+    ZeitGeist_define(FFT_REG);
+    ZeitGeist_tick(FFT_REG);
+    
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
@@ -531,6 +556,8 @@ PetscErrorCode DifferentiationSM::InvRegLapOp(VecField* bv, VecField* v, bool us
     ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    ZeitGeist_tock(FFT_REG);
     
     DebugGPUStopEvent();
 
@@ -579,6 +606,9 @@ PetscErrorCode DifferentiationSM::LerayOperator(VecField* bv, VecField* v, Scala
     
     DebugGPUStartEvent("FFT leray operator");
     
+    ZeitGeist_define(FFT_PROJ);
+    ZeitGeist_tick(FFT_PROJ);
+    
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
@@ -586,6 +616,8 @@ PetscErrorCode DifferentiationSM::LerayOperator(VecField* bv, VecField* v, Scala
     ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    ZeitGeist_tock(FFT_PROJ);
     
     DebugGPUStopEvent();
 

@@ -25,44 +25,10 @@
 
 #include "DifferentiationKernel.txx"
 
-template<typename KernelFn, typename ... Args>
-PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3], Args ... args) {
-  PetscErrorCode ierr = 0;
-  PetscFunctionBegin;
-  
-  int3 nx3, nl3;
-  nx3.x = nx[0];
-  nx3.y = nx[1];
-  nx3.z = nx[2];
-  nl3.x = nl[0];
-  nl3.y = nl[1];
-  nl3.z = nl[2];
-  
-#pragma omp parallel
-{
-#pragma omp for
-    for (IntType i1 = 0; i1 < nl[0]; ++i1) {
-        for (IntType i2 = 0; i2 < nl[1]; ++i2) {
-            for (IntType i3 = 0; i3 < nl[2]; ++i3) {
-                int3 w;
-                w.x = i1 + nstart[0];
-                w.y = i2 + nstart[1];
-                w.z = i3 + nstart[2];
-                
-                ComputeWaveNumber(w, nx3);
-                IntType i = GetLinearIndex(i1, i2, i3, nl3);
-                
-                KernelFn::call(i, w, args...);
-            }
-        }
-    }
-}  // pragma omp parallel
-  
-  PetscFunctionReturn(ierr);
-}
-
 namespace reg {
 namespace DifferentiationKernel {
+  
+using KernelUtils::SpectralKernelCall;
   
 PetscErrorCode VectorField::LaplacianTol(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;

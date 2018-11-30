@@ -71,7 +71,7 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
     }  // i2
   }  // i3
   
-/*#ifdef REG_HAS_CUDA
+#ifdef REG_HAS_CUDA
   ierr = sl->SetInitialTrajectory(X); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
   ierr = sl->Interpolate(t, v, "state"); CHKERRQ(ierr);
@@ -80,14 +80,14 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
   ierr = v->Scale(-1.); CHKERRQ(ierr);
   ierr = sl->SetInitialTrajectory(X); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
-#else*/
+#else
   ierr = sl->ComputeTrajectory(v, "state", X); CHKERRQ(ierr);
   ierr = sl->Interpolate(t, v, "state"); CHKERRQ(ierr);
   ierr = v->Copy(t); CHKERRQ(ierr);
   ierr = sl->GetQueryPoints(X);
   ierr = v->Scale(-1.); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state", X); CHKERRQ(ierr);
-//#endif
+#endif
   
   ierr = sl->GetQueryPoints(X1, X2, X3);
   double ex = 0.0;
