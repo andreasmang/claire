@@ -367,8 +367,11 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
                 wx3 = x3;
 
                 if (x1 > nx[0]/2) wx1 -= nx[0];
+                else if(x1 == nx[0]/2) wx1 = 0;
                 if (x2 > nx[1]/2) wx2 -= nx[1];
+                else if(x2 == nx[1]/2) wx2 = 0;
                 if (x3 > nx[2]/2) wx3 -= nx[2];
+                else if(x3 == nx[2]/2) wx3 = 0;
 
                 // compute inverse laplacian operator
                 lapik = -static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);

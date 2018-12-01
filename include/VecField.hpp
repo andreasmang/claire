@@ -81,6 +81,8 @@ class VecField {
 
     PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
     PetscErrorCode AXPY(ScalarType, VecField*);
+    
+    PetscErrorCode DebugInfo(std::string, int, const char*);
 
     /*! compute norm of vector field */
     PetscErrorCode Norm(Vec);

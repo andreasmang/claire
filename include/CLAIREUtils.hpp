@@ -69,9 +69,6 @@
 
 namespace reg {
 
-
-
-
 /*! assert (PETSc interface) */
 PetscErrorCode Assert(bool, std::string);
 
@@ -151,6 +148,48 @@ PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**);
 PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**);
 PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**);
 PetscErrorCode PrintVectorMemoryLocation(Vec, std::string);
+
+
+inline PetscErrorCode DebugInfo(Vec vec, std::string str, int line, const char* file) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+      ScalarType maxval, minval, nvx1;
+      std::stringstream ss;
+      
+      ScalarType *p_x1;
+      IntType nl;
+      size_t fingerprint = 0;
+      ierr = VecGetArray(vec, &p_x1); CHKERRQ(ierr);
+      // compute size of each individual component
+      ierr = VecGetLocalSize(vec, &nl); CHKERRQ(ierr);
+  #pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+#if defined(PETSC_USE_REAL_SINGLE)
+        fingerprint += reinterpret_cast<uint32_t*>(p_x1)[i];
+#else
+        fingerprint += reinterpret_cast<uint64_t*>(p_x1)[i];
+#endif
+      }
+      ierr = VecRestoreArray(vec, &p_x1); CHKERRQ(ierr);
+      
+      ss  << str << " hash: " << std::hex << fingerprint;
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+
+      ierr = VecNorm(vec, NORM_2, &nvx1); CHKERRQ(ierr);
+      ss  << str << " 2-norm: " << std::scientific
+          << nvx1;
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+      
+      ierr = VecMax(vec, NULL, &maxval); CHKERRQ(ierr);
+      ierr = VecMin(vec, NULL, &minval); CHKERRQ(ierr);
+      ss  << str << " min/max: [" << std::scientific
+          << minval << "," << maxval << "]";
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+  PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

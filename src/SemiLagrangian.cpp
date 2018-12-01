@@ -205,6 +205,13 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
 
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        std::string str = "update trajectory: ";
+        str += flag;
+        ierr = DbgMsg(str); CHKERRQ(ierr);
+        ierr = v->DebugInfo("SL velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    }
 
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {

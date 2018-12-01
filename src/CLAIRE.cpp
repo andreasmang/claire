@@ -805,6 +805,10 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("evaluating objective"); CHKERRQ(ierr);
+    }
 
     // allocate
     if (this->m_VelocityField == NULL) {
@@ -925,6 +929,8 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     // and compute body force \int_0^1 grad(m)\lambda dt
     // which is assigned to work vecfield 2
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField2->DebugInfo("adjoint grad", __LINE__, __FILE__); CHKERRQ(ierr);
 
     // evaluate gradient of regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
@@ -977,6 +983,25 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
             ss.clear(); ss.str(std::string());
         }
     }
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_StateVariable) DebugInfo(this->m_StateVariable, "state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_AdjointVariable) DebugInfo(this->m_AdjointVariable, "adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
+      if(this->m_IncStateVariable) DebugInfo(this->m_IncStateVariable, "inc state   ",__LINE__,__FILE__);
+      else DbgMsg("inc state        : nullptr");
+      if(this->m_IncAdjointVariable) DebugInfo(this->m_IncAdjointVariable, "inc adjoint ",__LINE__,__FILE__);
+      else DbgMsg("inc adjoint      : nullptr");
+      if(this->m_ReferenceImage) DebugInfo(this->m_ReferenceImage, "reference   ",__LINE__,__FILE__);
+      else DbgMsg("reference        : nullptr");
+      if(this->m_TemplateImage) DebugInfo(this->m_TemplateImage, "template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+      if(this->m_VelocityField) this->m_VelocityField->DebugInfo("velocity    ",__LINE__,__FILE__);
+      else DbgMsg("velocity         : nullptr");
+      if(this->m_IncVelocityField) this->m_IncVelocityField->DebugInfo("inc velocity",__LINE__,__FILE__);
+      else DbgMsg("inc velocity     : nullptr");
+    }
 
     // stop timer
     ierr = this->m_Opt->StopTimer(GRADEXEC); CHKERRQ(ierr);
@@ -1010,6 +1035,11 @@ PetscErrorCode CLAIRE::EvaluateL2Gradient(Vec g) {
 
     // \vect{g}_v = \beta_v \D{A}[\vect{v}] + \D{K}[\vect{b}]
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_WorkVecField1) this->m_WorkVecField1->DebugInfo("gradient    ",__LINE__,__FILE__);
+      else DbgMsg("gradient         : nullptr");
+    }
 
     // copy
     ierr = this->m_WorkVecField1->GetComponents(g); CHKERRQ(ierr);
@@ -1203,6 +1233,25 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg("computing hessian matvec"); CHKERRQ(ierr);
     }
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_StateVariable) DebugInfo(this->m_StateVariable, "state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_AdjointVariable) DebugInfo(this->m_AdjointVariable, "adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
+      if(this->m_IncStateVariable) DebugInfo(this->m_IncStateVariable, "inc state   ",__LINE__,__FILE__);
+      else DbgMsg("inc state        : nullptr");
+      if(this->m_IncAdjointVariable) DebugInfo(this->m_IncAdjointVariable, "inc adjoint ",__LINE__,__FILE__);
+      else DbgMsg("inc adjoint      : nullptr");
+      if(this->m_ReferenceImage) DebugInfo(this->m_ReferenceImage, "reference   ",__LINE__,__FILE__);
+      else DbgMsg("reference        : nullptr");
+      if(this->m_TemplateImage) DebugInfo(this->m_TemplateImage, "template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+      if(this->m_VelocityField) this->m_VelocityField->DebugInfo("velocity    ",__LINE__,__FILE__);
+      else DbgMsg("velocity         : nullptr");
+      if(this->m_IncVelocityField) this->m_IncVelocityField->DebugInfo("inc velocity",__LINE__,__FILE__);
+      else DbgMsg("inc velocity     : nullptr");
+    }
 
     ierr = this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
 
@@ -1318,10 +1367,18 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
     ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_WorkVecField1) this->m_WorkVecField1->DebugInfo("hessian     ",__LINE__,__FILE__);
+      else DbgMsg("hessian          : nullptr");
+    }
     // pass to output
     if (Hvtilde != NULL) {
         ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
     }
+    
+    ierr = this->m_VelocityField->DebugInfo("velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->DebugInfo("inc velocity", __LINE__, __FILE__); CHKERRQ(ierr);
 
 
     this->m_Opt->Exit(__func__);
@@ -1843,9 +1900,15 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
         ss.str(std::string()); ss.clear();
     }
 
-
     // set initial condition m_0 = m_T
     ierr = this->SetInitialState(this->m_TemplateImage); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_StateVariable) DebugInfo(this->m_StateVariable, "state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_TemplateImage) DebugInfo(this->m_TemplateImage, "template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+    }
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
@@ -1914,6 +1977,10 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     // store time series
     if (this->m_Opt->m_ReadWriteFlags.timeseries) {
         ierr = this->StoreStateVariable(); CHKERRQ(ierr);
+    }
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_StateVariable) DebugInfo(this->m_StateVariable, "state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
     }
 
     // increment counter
@@ -2171,6 +2238,17 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetAdjointVariable(this->m_AdjointVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetFinalConditionAE(); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      if(this->m_StateVariable) DebugInfo(this->m_StateVariable, "state       ",__LINE__,__FILE__);
+      else DbgMsg("state            : nullptr");
+      if(this->m_AdjointVariable) DebugInfo(this->m_AdjointVariable, "adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
+      if(this->m_ReferenceImage) DebugInfo(this->m_ReferenceImage, "reference   ",__LINE__,__FILE__);
+      else DbgMsg("reference        : nullptr");
+      if(this->m_TemplateImage) DebugInfo(this->m_TemplateImage, "template    ",__LINE__,__FILE__);
+      else DbgMsg("template         : nullptr");
+    }
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
 
@@ -2207,8 +2285,10 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 
         // m and \lambda are constant in time
         ierr = GetRawPointer(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->GetArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->GetArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
+        
+        ScalarType scale = 1.0/static_cast<ScalarType>(nc);
 
         for (IntType k = 0; k < nc; ++k) {  // for all components
             // compute gradient of m
@@ -2223,15 +2303,15 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
 #pragma omp for
             for (IntType i = 0; i < nl; ++i) {
                 ScalarType lambda = p_l[k*nl+i];
-                p_b1[i] += lambda*p_gradm1[i]/static_cast<ScalarType>(nc);
-                p_b2[i] += lambda*p_gradm2[i]/static_cast<ScalarType>(nc);
-                p_b3[i] += lambda*p_gradm3[i]/static_cast<ScalarType>(nc);
+                p_b1[i] += lambda*p_gradm1[i]*scale;
+                p_b2[i] += lambda*p_gradm2[i]*scale;
+                p_b3[i] += lambda*p_gradm3[i]*scale;
             }
-        }
-}  // pragma
+} //pragma
+        }  
         ierr = RestoreRawPointer(this->m_TemplateImage, &p_m); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->RestoreArrays(p_b1, p_b2, p_b3); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->RestoreArrays(p_gradm1, p_gradm2, p_gradm3); CHKERRQ(ierr);
 
         // for full newton method we have to store the adjoint variable
         ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
@@ -2258,7 +2338,10 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
             }
         }
     }
+    
+    ierr = this->m_WorkVecField2->DebugInfo("post adj grad", __LINE__, __FILE__); CHKERRQ(ierr);
 
+    
     // apply projection
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
 
@@ -2266,12 +2349,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ScalarType maxval, minval;
-        ierr = VecMin(this->m_AdjointVariable, NULL, &minval); CHKERRQ(ierr);
-        ierr = VecMax(this->m_AdjointVariable, NULL, &maxval); CHKERRQ(ierr);
-        ss << "adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.str(std::string()); ss.clear();
+      if(this->m_AdjointVariable) DebugInfo(this->m_AdjointVariable, "adjoint     ",__LINE__,__FILE__);
+      else DbgMsg("adjoint          : nullptr");
     }
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
@@ -3126,6 +3205,13 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
         fullnewton = true;
     }
+    
+    ierr = this->m_VelocityField->DebugInfo("velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->DebugInfo("inc velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    if (this->m_Opt->m_Verbosity > 2) {
+      ierr = DebugInfo(this->m_IncStateVariable, "inc state pre ", __LINE__, __FILE__); CHKERRQ(ierr);
+      ierr = DebugInfo(this->m_StateVariable, "state", __LINE__, __FILE__); CHKERRQ(ierr);
+    }
 
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
@@ -3133,6 +3219,8 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
     ierr = this->m_WorkVecField1->GetArrays(p_gm1, p_gm2, p_gm3); CHKERRQ(ierr);
 
     ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_IncVelocityField, "state"); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField2->DebugInfo("work vec", __LINE__, __FILE__); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField2->GetArraysRead(p_vtildex1, p_vtildex2, p_vtildex3); CHKERRQ(ierr);
     ierr = this->m_IncVelocityField->GetArraysRead(p_vtilde1, p_vtilde2, p_vtilde3); CHKERRQ(ierr);
@@ -3201,6 +3289,10 @@ PetscErrorCode CLAIRE::SolveIncStateEquationSL(void) {
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_mx); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      ierr = DebugInfo(this->m_IncStateVariable, "inc state post", __LINE__, __FILE__); CHKERRQ(ierr);
+    }
 
     this->m_Opt->IncreaseFFTTimers(timer);
 

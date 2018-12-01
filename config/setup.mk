@@ -1,12 +1,12 @@
 # developer flags (ignore)
-DBGCODE=no
+DBGCODE=yes
 PEDANTIC=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
 
 ifeq ($(DBGCODE),yes)
-	CXXFLAGS = -g -debug
+	CXXFLAGS = -g
 else
 	CXXFLAGS = -O3 -ansi
 endif
