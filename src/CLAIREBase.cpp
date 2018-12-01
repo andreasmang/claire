@@ -104,7 +104,6 @@ PetscErrorCode CLAIREBase::Initialize() {
     this->m_DistanceMeasure = NULL;         ///< distance measure
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
     this->m_DeformationFields = NULL;       ///< interface for computing deformation field (jacobian; mapping; ...)
-    this->m_Differentiation = NULL;         ///< interface for differentiation
 
     this->m_VelocityIsZero = false;          ///< flag: is velocity zero
     this->m_StoreTimeHistory = true;         ///< flag: store time history (needed for inversion)
@@ -162,11 +161,6 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     if (this->m_DeformationFields != NULL) {
         delete this->m_DeformationFields;
         this->m_DeformationFields = NULL;
-    }
-
-    if (this->m_Differentiation != NULL) {
-        delete this->m_Differentiation;
-        this->m_Differentiation = NULL;
     }
 
     if (this->m_WorkScaField1 != NULL) {

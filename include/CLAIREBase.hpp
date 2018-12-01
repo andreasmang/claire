@@ -41,13 +41,7 @@
 #include "RegularizationH2SN.hpp"
 #include "RegularizationH3SN.hpp"
 #include "OptimizationProblem.hpp"
-#ifdef REG_HAS_CUDA
-#include "SemiLagrangianGPUNew.hpp"
-#endif
 #include "SemiLagrangian.hpp"
-#include "Differentiation.hpp"
-#include "DifferentiationFD.hpp"
-#include "DifferentiationSM.hpp"
 
 
 
@@ -62,11 +56,7 @@ class CLAIREBase : public OptimizationProblem {
     typedef CLAIREBase Self;
     typedef OptimizationProblem SuperClass;
     typedef Regularization RegularizationType;
-#ifdef REG_HAS_CUDA
-    typedef SemiLagrangianGPUNew SemiLagrangianType;
-#else
     typedef SemiLagrangian SemiLagrangianType;
-#endif
 
     CLAIREBase(void);
     CLAIREBase(RegOpt*);
@@ -230,7 +220,6 @@ class CLAIREBase : public OptimizationProblem {
     DistanceMeasure* m_DistanceMeasure;          ///< distance measure
     SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
     DeformationFields* m_DeformationFields;      ///< interface to compute deformation fields from velocity
-    Differentiation* m_Differentiation;          ///< interface to evaluate / apply differential operators
 
     bool m_VelocityIsZero;
     bool m_StoreTimeHistory;

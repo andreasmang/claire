@@ -159,7 +159,7 @@ void print256(__m256 x, const char* name) {
             << "\n [6] = " << ptr[6]
             << "\n [7] = " << ptr[7] << std::endl;
 }
-void print512(__m512 x, const char* name) {
+void print512(__m512 &x, const char* name) {
   Real* ptr = (Real*)&x;
   std::cout << name
             << "\n [0] = " << ptr[0]
