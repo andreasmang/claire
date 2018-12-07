@@ -24,9 +24,8 @@
 #include "CLAIREUtils.hpp"
 
 namespace reg {
-namespace DifferentiationKernel {
 
-struct VectorField {
+struct DifferentiationKernel {
   ComplexType *pXHat[3];
   
   IntType nx[3];
@@ -46,10 +45,13 @@ struct VectorField {
   PetscErrorCode InverseTrilaplacian(bool, ScalarType, ScalarType=0.0);
   PetscErrorCode TrilaplacianFunctional(ScalarType, ScalarType=0.0);
   
+  PetscErrorCode GaussianFilter(const ScalarType*);
+  
+  PetscErrorCode Gradient();
+  
   PetscErrorCode Leray(ScalarType, ScalarType);
 };
 
-} // namespace DifferentiationKernel
 } // namespace reg
 
 #endif

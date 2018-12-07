@@ -342,6 +342,73 @@ PetscErrorCode ScaField::RestoreArray() {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode ScaField::SetFrame(Vec X, IntType t) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  IntType nl;
+  ScalarType *ptr;
+  const ScalarType *orig;
+  
+  ierr = VecGetLocalSize(X, &nl); CHKERRQ(ierr);
+
+  ierr = Assert(nl == this->m_Size[1], "dimensions do not match"); CHKERRQ(ierr);
+  ierr = Assert(this->m_Type == AccessType::None, "can't copy with ongoing access"); CHKERRQ(ierr);
+  ierr = Assert(t >= 0 && t < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
+  
+  ierr = this->GetArrayReadWrite(ptr); CHKERRQ(ierr);
+  ierr = GetRawPointerRead(X, &orig); CHKERRQ(ierr);
+  
+  ptr += t*this->m_Size[1];
+  
+#ifndef REG_HAS_CUDA
+    std::copy(orig, orig + this->m_Size[1], ptr);
+#else
+    ierr = cudaMemcpy((void*)ptr,(void*)orig,sizeof(ScalarType)*this->m_Size[1],cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+#endif
+#ifdef REG_HAS_CUDA
+  cudaDeviceSynchronize();
+#endif
+  
+  ierr = RestoreRawPointerRead(X, &orig); CHKERRQ(ierr);
+  ierr = this->RestoreArray(); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode ScaField::GetFrame(Vec X, IntType t) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  IntType nl;
+  ScalarType *ptr;
+  const ScalarType *orig;
+  
+  ierr = VecGetLocalSize(X, &nl); CHKERRQ(ierr);
+
+  ierr = Assert(nl == this->m_Size[1], "dimensions do not match"); CHKERRQ(ierr);
+  ierr = Assert(this->m_Type == AccessType::None, "can't copy with ongoing access"); CHKERRQ(ierr);
+  ierr = Assert(t >= 0 && t < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
+  
+  ierr = this->GetArrayRead(orig); CHKERRQ(ierr);
+  ierr = GetRawPointerWrite(X, &ptr); CHKERRQ(ierr);
+  
+  orig += t*this->m_Size[1];
+  
+#ifndef REG_HAS_CUDA
+    std::copy(orig, orig + this->m_Size[1], ptr);
+#else
+    ierr = cudaMemcpy((void*)ptr,(void*)orig,sizeof(ScalarType)*this->m_Size[1],cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+#endif
+#ifdef REG_HAS_CUDA
+  cudaDeviceSynchronize();
+#endif
+  
+  ierr = RestoreRawPointerWrite(X, &ptr); CHKERRQ(ierr);
+  ierr = this->RestoreArray(); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief copy vector
  *******************************************************************/
@@ -349,7 +416,26 @@ PetscErrorCode ScaField::Copy(Vec vec) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  VecCopy(vec, this->m_X);
+  ScalarType *dest;
+  const ScalarType *orig;
+  IntType nl;
+  ierr = VecGetLocalSize(vec, &nl); CHKERRQ(ierr);
+  
+  if (nl == this->m_Size[2]) {
+   ierr = VecCopy(vec, this->m_X); CHKERRQ(ierr);
+  } else if (nl == this->m_Size[0] || nl == this->m_Size[1]) {
+    ierr = GetRawPointerRead(vec, &orig); CHKERRQ(ierr);
+    ierr = this->GetArrayWrite(dest); CHKERRQ(ierr);
+#ifndef REG_HAS_CUDA
+    std::copy(orig, orig + nl, dest);
+#else
+    cudaMemcpy((void*)dest,(void*)orig,sizeof(ScalarType)*nl,cudaMemcpyDeviceToDevice);
+#endif
+    ierr = RestoreRawPointerRead(vec, &orig); CHKERRQ(ierr);
+    ierr = this->RestoreArray(); CHKERRQ(ierr);
+  } else {
+    ierr = ThrowError("dimensions do not match"); CHKERRQ(ierr);
+  }
   this->m_Ptr = nullptr;
   this->m_Type = AccessType::None;
   

@@ -209,7 +209,7 @@ CXXOPTFLAGS='-O3'
 PETSC_CUDA_OPTIONS="
 --with-cuda=1
 --download-cusp=yes
---CUDAFLAGS=-arch=sm_60"
+--CUDAFLAGS='-arch=sm_70'"
 
 PETSC_DBG_OPTIONS="
 --with-cc=${MPI_C}

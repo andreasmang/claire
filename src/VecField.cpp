@@ -692,9 +692,9 @@ PetscErrorCode VecField::SetComponents(Vec w, std::string format) {
 
     PetscFunctionBegin;
 
-    ierr = VecGetArrayRead(w, &p_w); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(w, &p_w); CHKERRQ(ierr);
     ierr = this->SetComponents(p_w, format); CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(w, &p_w); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(w, &p_w); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -704,10 +704,8 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format)
     ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
 
     PetscFunctionBegin;
-
-    ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+    
+    ierr = this->GetArraysWrite(p_x1, p_x2, p_x3);
 
     // compute size of each individual component
     nl = this->m_Opt->m_Domain.nl;
@@ -721,6 +719,18 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format)
       ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
+#ifdef REG_HAS_CUDA
+    if (block) {
+      ierr = cudaMemcpy(static_cast<void*>(p_x1), static_cast<const void*>(pX), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaMemcpy(static_cast<void*>(p_x2), static_cast<const void*>(&pX[nl]),
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaMemcpy(static_cast<void*>(p_x3), static_cast<const void*>(&pX[2*nl]),
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+    } else {
+      DebugGPUNotImplemented();
+    }
+#else
     if (block) {
 #pragma omp parallel for
       for (IntType i = 0; i < nl; ++i) {
@@ -736,10 +746,9 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format)
         p_x3[i] = pX[3*i+2];
       }
     }
+#endif
 
-    ierr = VecRestoreArray(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -750,23 +759,28 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX1, const ScalarType *
 
     PetscFunctionBegin;
 
-    ierr = VecGetArray(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->GetArraysWrite(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
     nl = this->m_Opt->m_Domain.nl;
 
+#ifdef REG_HAS_CUDA
+      ierr = cudaMemcpy(static_cast<void*>(p_x1), static_cast<const void*>(pX1), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaMemcpy(static_cast<void*>(p_x2), static_cast<const void*>(pX2),
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaMemcpy(static_cast<void*>(p_x3), static_cast<const void*>(pX3),
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+#else
 #pragma omp parallel for
     for (IntType i = 0; i < nl; ++i) {
       p_x1[i] = pX1[i];
       p_x2[i] = pX2[i];
       p_x3[i] = pX3[i];
     }
+#endif
 
-    ierr = VecRestoreArray(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -784,9 +798,9 @@ PetscErrorCode VecField::GetComponents(Vec w, std::string format) {
 
     PetscFunctionBegin;
 
-    ierr = VecGetArray(w, &p_w); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(w, &p_w); CHKERRQ(ierr);
     ierr = this->GetComponents(p_w, format); CHKERRQ(ierr);
-    ierr = VecRestoreArray(w, &p_w); CHKERRQ(ierr);
+    ierr = RestoreRawPointerWrite(w, &p_w); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -797,9 +811,7 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
 
     PetscFunctionBegin;
 
-    ierr = VecGetArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecGetArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecGetArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->GetArraysRead(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
     nl = this->m_Opt->m_Domain.nl;
@@ -813,6 +825,18 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
       ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
+#ifdef REG_HAS_CUDA
+    if (block) {
+      ierr = cudaMemcpy(static_cast<void*>(pX), static_cast<const void*>(p_x1), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaMemcpy(static_cast<void*>(&pX[nl]), static_cast<const void*>(p_x2), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaMemcpy(static_cast<void*>(&pX[2*nl]), static_cast<const void*>(p_x3), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+    } else {
+      DebugGPUNotImplemented();
+    }
+#else
     if (block) {
 #pragma omp parallel for
       for (IntType i = 0; i < nl; ++i) {
@@ -828,10 +852,9 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
         pX[3*i+2] = p_x3[i];
       }
     }
+#endif
 
-    ierr = VecRestoreArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -842,23 +865,28 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX1, ScalarType *pX2, ScalarT
 
     PetscFunctionBegin;
 
-    ierr = VecGetArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecGetArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecGetArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->GetArraysRead(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     // compute size of each individual component
     nl = this->m_Opt->m_Domain.nl;
 
+#ifdef REG_HAS_CUDA
+    ierr = cudaMemcpy(static_cast<void*>(pX1), static_cast<const void*>(p_x1), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+    ierr = cudaMemcpy(static_cast<void*>(pX2), static_cast<const void*>(p_x2), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+    ierr = cudaMemcpy(static_cast<void*>(pX3), static_cast<const void*>(p_x3), 
+                sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+#else
 #pragma omp parallel for
     for (IntType i = 0; i < nl; ++i) {
       pX1[i] = p_x1[i];
       pX2[i] = p_x2[i];
       pX3[i] = p_x3[i];
     }
+#endif
 
-    ierr = VecRestoreArrayRead(this->m_X1, &p_x1); CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(this->m_X2, &p_x2); CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(this->m_X3, &p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

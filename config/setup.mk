@@ -136,7 +136,9 @@ ifeq ($(USECUDA),yes)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -gencode arch=compute_60,code=sm_60 -Xcompiler -fPIC -Wno-deprecated-gpu-targets
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets
+CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
+CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 
 
 ifeq ($(USENIFTI),yes)

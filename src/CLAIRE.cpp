@@ -267,6 +267,7 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
 
     // compute gradient
     ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
+    ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
     // compute gradient norm
     ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -320,14 +321,16 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     
     
     // copy m_0 to m(t=0)
-    ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
+    /*ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
     ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m0, p_m0+nl*nc, p_m); }
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
     ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);*/
+    
+    ierr = this->m_StateVariable->SetFrame(m0, 0); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);
 
@@ -359,14 +362,15 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     }
 
     // copy m(t=1) to m_1
-    ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
+    /*ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
     ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
     ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);*/
+    ierr = this->m_StateVariable->GetFrame(m1, nt);
 
     this->m_Opt->Exit(__func__);
 
@@ -404,14 +408,15 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, true); CHKERRQ(ierr);
 
     // copy l1 to lambda(t=1)
-    ierr = GetRawPointer(l1, &p_l1); CHKERRQ(ierr);
+    /*ierr = GetRawPointer(l1, &p_l1); CHKERRQ(ierr);
     ierr = GetRawPointer(*this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     try {std::copy(p_l+nt*nl*nc, p_l+(nt+1)*nl*nc, p_l1);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
     ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(l1, &p_l1); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(l1, &p_l1); CHKERRQ(ierr);*/
+    ierr = this->m_AdjointVariable->GetFrame(l1, nt); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -483,27 +488,29 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, 0.0, true, true); CHKERRQ(ierr);
     
     // copy memory for m_1
-    ierr = GetRawPointer(m1, &p_m1); CHKERRQ(ierr);
+    /*ierr = GetRawPointer(m1, &p_m1); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
     try {std::copy(p_m1, p_m1+nl*nc, p_m+nt*nl*nc);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
     ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(m1, &p_m1); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(m1, &p_m1); CHKERRQ(ierr);*/
+    ierr = this->m_StateVariable->SetFrame(m1, nt); CHKERRQ(ierr);
 
     // compute solution of state equation
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
 
     // copy memory for lambda0
-    ierr = GetRawPointer(l0, &p_l0); CHKERRQ(ierr);
+    /*ierr = GetRawPointer(l0, &p_l0); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
     try {std::copy(p_l, p_l+nl*nc, p_l0);}
     catch (std::exception& err) {
         ierr = ThrowError(err); CHKERRQ(ierr);
     }
     ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(l0, &p_l0); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(l0, &p_l0); CHKERRQ(ierr);*/
+    ierr = this->m_AdjointVariable->GetFrame(l0, 0); CHKERRQ(ierr);
     
     DebugGPUStopEvent();
 
@@ -1604,16 +1611,16 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
     // store time history
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
     // store individual time points
     for (IntType j = 0; j <= nt; ++j) {
         for (IntType k = 0; k < nc; ++k) {
-            ierr = GetRawPointer(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+            ierr = VecGetArray(*this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
             try {std::copy(p_m+j*nl*nc + k*nl, p_m+j*nl*nc + (k+1)*nl, p_mj);}
             catch (std::exception& err) {
                 ierr = ThrowError(err); CHKERRQ(ierr);
             }
-            ierr = RestoreRawPointer(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+            ierr = VecRestoreArray(*this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
             // write out
             ss.str(std::string()); ss.clear();
 
@@ -1626,7 +1633,7 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
             ierr = this->m_ReadWrite->Write(*this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
         }  // for number of vector components
     }  // for number of time points
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -1648,6 +1655,8 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    DebugGPUStartEvent(__FUNCTION__);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1744,6 +1753,8 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
+    
+    DebugGPUStopEvent();
     
     this->m_Opt->Exit(__func__);
 
@@ -2328,14 +2339,14 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
         ierr = this->SolveStateEquation(); CHKERRQ(ierr);
 
         // copy memory for m_1
-        ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
         try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
         catch (std::exception& err) {
             ierr = ThrowError(err); CHKERRQ(ierr);
         }
-        ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
 
         // ||m_R - m_1||
         ierr = VecAXPY(*this->m_WorkScaFieldMC, -1.0, *this->m_ReferenceImage); CHKERRQ(ierr);
@@ -2350,14 +2361,14 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     // write deformed template image to file
     if (this->m_Opt->m_ReadWriteFlags.deftemplate) {
         // copy memory for m_1
-        ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
-        ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
         try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
         catch (std::exception& err) {
             ierr = ThrowError(err); CHKERRQ(ierr);
         }
-        ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-        ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
 
         if (this->m_Opt->m_RegFlags.registerprobmaps) {
             ierr = EnsurePartitionOfUnity(*this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
@@ -2371,54 +2382,54 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // write residual images to file
     if (this->m_Opt->m_ReadWriteFlags.residual || this->m_Opt->m_ReadWriteFlags.invresidual) {
-        ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
         // write residual at t = 0 to file
-        ierr = GetRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
         if (this->m_Opt->m_ReadWriteFlags.residual) {
-            ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             for (IntType i = 0; i < nl*nc; ++i) {
                 p_dr[i] = PetscAbs(p_mt[i] - p_mr[i]);
             }
-            ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
         }
 
         if (this->m_Opt->m_ReadWriteFlags.invresidual) {
-            ierr = GetRawPointer(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             for (IntType i = 0; i < nl*nc; ++i) {
                 p_dr[i] = 1.0 - PetscAbs(p_mt[i] - p_mr[i]);
             }
-            ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "inv-residual-t=0" + ext, nc > 1); CHKERRQ(ierr);
         }
-        ierr = RestoreRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
 
         // write residual at t = 1 to file
-        ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
         if (this->m_Opt->m_ReadWriteFlags.residual) {
-            ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             for (IntType i = 0; i < nl*nc; ++i) {
                 p_dr[i] = PetscAbs(p_m[nt*nl*nc + i] - p_mr[i]);
             }
-            ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
 //            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
             ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
         if (this->m_Opt->m_ReadWriteFlags.invresidual) {
-            ierr = GetRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
             for (IntType i = 0; i < nl*nc; ++i) {
                 p_dr[i] = 1.0 - PetscAbs(p_m[nt*nl*nc + i] - p_mr[i]);
             }
-            ierr = RestoreRawPointer(this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
+            ierr = VecRestoreArray(*this->m_WorkScaFieldMC, &p_dr); CHKERRQ(ierr);
 
 //            ierr = ShowValues(this->m_WorkScaFieldMC, nc); CHKERRQ(ierr);
             ierr = this->m_ReadWrite->Write(*this->m_WorkScaFieldMC, "inv-residual-t=1" + ext, nc > 1); CHKERRQ(ierr);
         }
-        ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
 
         // restore reference image
-        ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+        ierr = VecRestoreArray(*this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
     }
 
     // write velocity field to file

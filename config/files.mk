@@ -54,7 +54,6 @@ EXCPPFILES=
 EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
 
 CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
-		$(SRCDIR)/Regularization/RegularizationKernel.cu \
 		$(SRCDIR)/CLAIREUtilsKernel.cu \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
 		$(SRCDIR)/Differentiation/DifferentiationKernel.cu

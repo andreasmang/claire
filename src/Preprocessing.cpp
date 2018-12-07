@@ -21,6 +21,7 @@
 #define _PREPROCESSING_CPP_
 
 #include "Preprocessing.hpp"
+#include "DifferentiationSM.hpp"
 #include <time.h>
 
 namespace reg {
@@ -1722,6 +1723,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     const ScalarType *p_x = nullptr;
     int nx[3];
     double timer[NFFTTIMERS] = {0};
+    DifferentiationSM *spectral = nullptr;
 
     PetscFunctionBegin;
 
@@ -1735,17 +1737,28 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     nalloc = this->m_Opt->m_FFT.nalloc;
     scale  = this->m_Opt->ComputeFFTScale();
 
+    ierr = AllocateOnce(spectral, this->m_Opt);
+    ierr = spectral->SetupSpectralData(); CHKERRQ(ierr);
     //if (this->m_xhat == nullptr) {
     //    this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     //}
-    ierr = this->m_XHat.Resize(nalloc/sizeof(ComplexType)); CHKERRQ(ierr);
-    ierr = this->m_XHat.AllocateDevice(); CHKERRQ(ierr);
+    //ierr = this->m_XHat.Resize(nalloc/sizeof(ComplexType)); CHKERRQ(ierr);
+    //ierr = this->m_XHat.AllocateHost(); CHKERRQ(ierr);
+    //ierr = this->m_XHat.AllocateDevice(); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "applying smoothing: ("
            << this->m_Opt->m_Sigma[0]
            << ", " << this->m_Opt->m_Sigma[1]
            << ", " << this->m_Opt->m_Sigma[2] << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+        ScalarType norm;
+        ierr = VecNorm(x, NORM_2, &norm);
+        ss << "norm: " << norm;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -1757,11 +1770,17 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
         c[i] = this->m_Opt->m_Sigma[i]*this->m_Opt->m_Domain.hx[i];
         c[i] *= c[i];
     }
+    
+    ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(xs, &p_xs); CHKERRQ(ierr);
 
     for (IntType k = 0; k < nc; ++k) {
         // compute fft
         //ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-        ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
+       
+        ierr = spectral->GaussianFilter(p_xs + k*nl, p_x + k*nl, c); CHKERRQ(ierr);
+        
+        /*ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
         accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(p_x + k*nl), this->m_XHat.WriteDevice(), timer);
         ierr = RestoreRawPointerRead(x, &p_x); CHKERRQ(ierr);
         ierr = this->m_XHat.CopyDeviceToHost(); CHKERRQ(ierr);
@@ -1798,16 +1817,30 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
             }  // i2
         }  // i3
 }  // pragma omp parallel
+        ierr = this->m_XHat.CopyHostToDevice(); CHKERRQ(ierr);
         //ierr = VecGetArray(xs, &p_xs); CHKERRQ(ierr);
         ierr = GetRawPointerReadWrite(xs, &p_xs); CHKERRQ(ierr);
         accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, const_cast<ComplexType*>(this->m_XHat.ReadDevice()), p_xs + k*nl, timer);
         //ierr = VecRestoreArray(xs, &p_xs); CHKERRQ(ierr);
-        ierr = RestoreRawPointerReadWrite(xs, &p_xs); CHKERRQ(ierr);
+        ierr = RestoreRawPointerReadWrite(xs, &p_xs); CHKERRQ(ierr);*/
+    }
+    
+    ierr = RestoreRawPointerRead(x, &p_x); CHKERRQ(ierr);
+    ierr = RestoreRawPointerWrite(xs, &p_xs); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+        ScalarType norm;
+        ierr = VecNorm(xs, NORM_2, &norm);
+        ss << "norm: " << norm;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
     }
     
     // increment fft timer
-    this->m_Opt->IncreaseFFTTimers(timer);
-    this->m_Opt->IncrementCounter(FFT, 2);
+    //this->m_Opt->IncreaseFFTTimers(timer);
+    //this->m_Opt->IncrementCounter(FFT, 2);
+    
+    ierr = Free(spectral); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

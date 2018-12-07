@@ -29,7 +29,11 @@ namespace KernelUtils {
   struct int3 { int x, y, z; };
 #endif
 
-struct real3 { ScalarType x, y, z; };
+template<typename T> struct array3_t {
+  T x, y, z;
+};
+
+typedef array3_t<ScalarType> real3;
 
 /********************************************************************
  * @brief compute kernels are static methods
@@ -55,6 +59,7 @@ struct real3 { ScalarType x, y, z; };
  * single struct/class.
 *******************************************************************/
 #define KernelOperator static __hostdevice__ inline void call
+#define KernelFunction(T) static __hostdevice__ inline T call
 #define ReductionFunctional static __hostdevice__ inline ScalarType func
 
 /********************************************************************
@@ -63,7 +68,8 @@ struct real3 { ScalarType x, y, z; };
  * derivatives. Filtering the data with Nyquist = 0 changes the function space,
  * but makes this valid.
  *******************************************************************/
-__hostdevice__ inline void ComputeWaveNumber(real3 &w, real3 n) {
+template<typename T>
+__hostdevice__ inline void ComputeWaveNumber(array3_t<T> &w, array3_t<T> n) {
   if (w.x > n.x/2) w.x -= n.x;
   else if (w.x == n.x/2) w.x = 0;
   if (w.y > n.y/2) w.y -= n.y;
@@ -103,7 +109,8 @@ template<int N, typename T> __hostdevice__ inline T pow(T x) {
 /********************************************************************
  * @brief computes absolute laplacian operator
  *******************************************************************/
-__hostdevice__ inline ScalarType LaplaceNumber(real3 w) {
+template<typename T>
+__hostdevice__ inline T LaplaceNumber(array3_t<T> w) {
   return -(w.x*w.x + w.y*w.y + w.z*w.z);
 }
 
@@ -179,11 +186,11 @@ __global__ void ReductionKernelGPU(ScalarType *res, int nl, Args ... args) {
  *******************************************************************/
 template<typename KernelFn, typename ... Args>
 __global__ void SpectralKernelGPU(real3 wave, real3 nx, int3 nl, Args ... args) {
-  int i1 = threadIdx.x + blockIdx.x*blockDim.x;
+  int i3 = threadIdx.x + blockIdx.x*blockDim.x;
   int i2 = blockIdx.y;
-  int i3 = blockIdx.z;
+  int i1 = blockIdx.z;
   
-  if (i1 < nl.x) {
+  if (i3 < nl.z) {
     wave.x += i1;
     wave.y += i2;
     wave.z += i3;
@@ -217,8 +224,16 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  dim3 block(256,1,1); // 256 threads per block
-  dim3 grid((nl[0] + 255)/256,nl[1],nl[2]); // $\lceil nl_0 / 256 \rceil, nl_1, nl_2 $
+  dim3 block, grid;
+  if (nl[2] <= 1024 && nl[2] >= 32) {
+    block.x = nl[2];
+    grid.x = 1;
+  } else {
+    block.x = 128; // 128 threads per block
+    grid.x = (nl[2] + 127)/128;  // $\lceil nl_2 / 256 \rceil$
+  }
+  grid.y = nl[1];
+  grid.z = nl[0];
   real3 wave, nx3;
   int3 nl3;
   wave.x = nstart[0]; wave.y = nstart[1]; wave.z = nstart[2];
@@ -227,7 +242,7 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
-    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    //ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
   

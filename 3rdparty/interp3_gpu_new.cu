@@ -226,6 +226,7 @@ __device__ float cubicTex3D_lagrangeSimple(cudaTextureObject_t tex, float3 coord
     
     for(k=0; k<KERNEL_DIM; k++){
         sk = 0;
+#pragma unroll
         for(j=0; j<KERNEL_DIM; j++){
             sj = rec4_fmaf( wx[0],  tex3D<float>(tex, idx[0], idy[j], idz[k]), 
                             wx[1],  tex3D<float>(tex, idx[1], idy[j], idz[k]),
@@ -474,8 +475,8 @@ __global__ void interp3D_kernel(
     
     //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-    //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-    yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
 /*    const float h = 2*PI*inv_nx.x;
     const float3 q = qcoord*h;

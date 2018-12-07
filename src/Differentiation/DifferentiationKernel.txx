@@ -24,32 +24,46 @@
 
 using KernelUtils::real3;
 using KernelUtils::pow;
+using KernelUtils::array3_t;
+
+template<typename FnOp> struct VecFieldKernel {
+  template<typename T, typename ... Args>
+  KernelOperator (int i, array3_t<T> w, array3_t<T(*)[2]> v, Args ... args) {
+    T op = FnOp::call(w, args...);
+    
+    v.x[i][0] *= op; v.x[i][1] *= op;
+    v.y[i][0] *= op; v.y[i][1] *= op;
+    v.z[i][0] *= op; v.z[i][1] *= op;
+  }
+};
 
 template<int N> struct NLaplacianFilterKernel {
-  KernelOperator (int i, real3 w, 
-      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
-      ScalarType b0, ScalarType tol) {
-    ScalarType regop = b0*pow<N>(-LaplaceNumber(w));
+  template<typename T>
+  KernelOperator (int i, array3_t<T> w, array3_t<T(*)[2]> v, T b0, T tol) {
+    T regop = b0*pow<N>(-LaplaceNumber(w));
     
-    if (abs(v1[i][0]) < tol &&  abs(v1[i][1]) < tol) {
-      v1[i][0] = 0.0; v1[i][1] = 0.0;
+    if (abs(v.x[i][0]) < tol &&  abs(v.x[i][1]) < tol) {
+      v.x[i][0] = 0.0; v.x[i][1] = 0.0;
     } else {
-      v1[i][0] *= regop; v1[i][1] *= regop;
+      v.x[i][0] *= regop; v.x[i][1] *= regop;
     }
-    if (abs(v2[i][0]) < tol &&  abs(v2[i][1]) < tol) {
-      v2[i][0] = 0.0; v2[i][1] = 0.0;
+    if (abs(v.y[i][0]) < tol &&  abs(v.y[i][1]) < tol) {
+      v.y[i][0] = 0.0; v.y[i][1] = 0.0;
     } else {
-      v2[i][0] *= regop; v2[i][1] *= regop;
+      v.y[i][0] *= regop; v.y[i][1] *= regop;
     }
-    if (abs(v3[i][0]) < tol &&  abs(v3[i][1]) < tol) {
-      v3[i][0] = 0.0; v3[i][1] = 0.0;
+    if (abs(v.z[i][0]) < tol &&  abs(v.z[i][1]) < tol) {
+      v.z[i][0] = 0.0; v.z[i][1] = 0.0;
     } else {
-      v3[i][0] *= regop; v3[i][1] *= regop;
+      v.z[i][0] *= regop; v.z[i][1] *= regop;
     }
   }
 };
 
 template<int N> struct NLaplacianKernel {
+  template<typename T> KernelFunction(T) (array3_t<T> w, T b0) {
+    return b0*pow<N>(-LaplaceNumber(w));
+  }
   KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType b0) {
@@ -61,6 +75,9 @@ template<int N> struct NLaplacianKernel {
   }
 };
 template<int N> struct RelaxedNLaplacianKernel {
+  template<typename T> KernelFunction(T) (array3_t<T> w, T b0, T b1) {
+    return b0*pow<N>(-LaplaceNumber(w) + b1);
+  }
   KernelOperator (int i, real3 w, 
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType b0, ScalarType b1) {
@@ -210,6 +227,34 @@ struct LerayKernel {
     // compute x3 gradient of lab^{-1} div(b)
     v3[i][0] = -gradik3*divVim;
     v3[i][1] =  gradik3*divVre;
+  }
+};
+
+struct GaussianFilterKernel {
+  KernelOperator(int i, real3 w,
+      ComplexType *x, ScalarType c0, ScalarType c1, ScalarType c2, ScalarType scale) {
+    ScalarType sik = 0.5*( (w.x*w.x*c0) + (w.y*w.y*c1) + (w.z*w.z*c2) );
+    sik = exp(-sik);
+
+    x[i][0] *= scale*sik;
+    x[i][1] *= scale*sik;
+  }
+};
+
+struct GradientKernel {
+  KernelOperator(int i, real3 w,
+      ComplexType *x1, ComplexType *x2, ComplexType *x3, ScalarType scale) {
+    ScalarType mRe, mIm;
+    
+    mRe = x1[i][0]*scale;
+    mIm = x1[i][1]*scale;
+    
+    x1[i][0] = -w.x*mIm;
+    x1[i][1] =  w.x*mRe;
+    x2[i][0] = -w.y*mIm;
+    x2[i][1] =  w.y*mRe;
+    x3[i][0] = -w.z*mIm;
+    x3[i][1] =  w.z*mRe;
   }
 };
 

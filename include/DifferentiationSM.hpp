@@ -64,6 +64,8 @@ class DifferentiationSM : public Differentiation {
     
     virtual PetscErrorCode LerayOperator(VecField*, VecField*, ScalarType, ScalarType);
     
+    virtual PetscErrorCode GaussianFilter(ScalarType*, const ScalarType*, const ScalarType*);
+    
     virtual PetscErrorCode SetupSpectralData(ComplexType* =nullptr, ComplexType* =nullptr, ComplexType* =nullptr);
 
  protected:
@@ -71,9 +73,11 @@ class DifferentiationSM : public Differentiation {
     PetscErrorCode ClearMemory();
     
     PetscErrorCode ComputeForwardFFT(VecField*);
+    PetscErrorCode ComputeForwardFFT(const ScalarType*);
     PetscErrorCode ComputeInverseFFT(VecField*);
+    PetscErrorCode ComputeInverseFFT(ScalarType*);
         
-    DifferentiationKernel::VectorField m_VecFieldKernel;
+    DifferentiationKernel m_SpectralKernel;
     std::bitset<3> xyz;
     double timer[NFFTTIMERS];
     int c_grad;

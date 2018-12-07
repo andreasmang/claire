@@ -239,6 +239,12 @@ template<class T> PetscErrorCode ManagedMemory<T>::CopyHostToDevice() {
   } else {
     ierr = this->AllocateDevice(); CHKERRQ(ierr);
     this->m_DeviceValid = true;
+    if (this->m_HostPtr) {
+      ierr = cudaMemcpy(static_cast<void*>(this->m_DevicePtr), 
+        static_cast<const void*>(this->m_HostPtr),
+        this->m_N*sizeof(T),
+        cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+    }
   }
 #endif
   this->m_CurrentPtr = this->m_DevicePtr;
@@ -261,6 +267,12 @@ template<class T> PetscErrorCode ManagedMemory<T>::CopyDeviceToHost() {
   } else {
     ierr = this->AllocateHost(); CHKERRQ(ierr);
     this->m_HostValid = true;
+    if (this->m_DevicePtr) {
+      ierr = cudaMemcpy(static_cast<void*>(this->m_HostPtr), 
+        static_cast<const void*>(this->m_DevicePtr),
+        this->m_N*sizeof(T),
+        cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+    }
   }
 #endif
   this->m_CurrentPtr = this->m_HostPtr;

@@ -1291,8 +1291,8 @@ PetscErrorCode CLAIREBase::CopyToAllTimePoints(Vec u, Vec uj) {
     nl = this->m_Opt->m_Domain.nl;
 
     // get pointers
-    ierr = GetRawPointer(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
-    ierr = GetRawPointer(uj, &p_uj); CHKERRQ(ierr);    ///< vec at single point in time
+    ierr = VecGetArray(u, &p_u); CHKERRQ(ierr);      ///< vec for entire time horizon
+    ierr = VecGetArray(uj, &p_uj); CHKERRQ(ierr);    ///< vec at single point in time
 
     ierr = DebugGPUNotImplemented(); CHKERRQ(ierr);
 
@@ -1306,8 +1306,8 @@ PetscErrorCode CLAIREBase::CopyToAllTimePoints(Vec u, Vec uj) {
     }
 
     // restore pointers
-    ierr = RestoreRawPointer(u, &p_u); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(uj, &p_uj); CHKERRQ(ierr);
+    ierr = VecRestoreArray(u, &p_u); CHKERRQ(ierr);
+    ierr = VecRestoreArray(uj, &p_uj); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

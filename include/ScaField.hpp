@@ -50,6 +50,9 @@ class ScaField {
     
     PetscErrorCode DebugInfo(std::string, int, const char*);
     
+    PetscErrorCode SetFrame(Vec, IntType);
+    PetscErrorCode GetFrame(Vec, IntType);
+    
     PetscErrorCode Copy(Vec);
     PetscErrorCode Copy(ScaField*);
     PetscErrorCode CopyFrame(IntType);

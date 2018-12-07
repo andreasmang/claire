@@ -28,9 +28,8 @@
 using KernelUtils::SpectralKernelCallGPU;
 
 namespace reg {
-namespace DifferentiationKernel {
   
-PetscErrorCode VectorField::Laplacian(ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::Laplacian(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -47,7 +46,7 @@ PetscErrorCode VectorField::Laplacian(ScalarType b0, ScalarType b1) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::LaplacianTol(ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::LaplacianTol(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -56,9 +55,13 @@ PetscErrorCode VectorField::LaplacianTol(ScalarType b0, ScalarType b1) {
   lognx += log2(static_cast<ScalarType>(nx[1]));
   lognx += log2(static_cast<ScalarType>(nx[2]));
   
+  KernelUtils::array3_t<ComplexType*> v;
+  v.x = pXHat[0];
+  v.y = pXHat[1];
+  v.z = pXHat[2];
+  
   if (b1 == 0.0) {
-    ierr = SpectralKernelCallGPU<NLaplacianFilterKernel<1> >(nstart, nx, nl, 
-      pXHat[0], pXHat[1], pXHat[2], 
+    ierr = SpectralKernelCallGPU<NLaplacianFilterKernel<1> >(nstart, nx, nl, v, 
       b0*scale, tol*lognx); CHKERRQ(ierr);
   } else {
     ierr = SpectralKernelCallGPU<RelaxedNLaplacianKernel<1> >(nstart, nx, nl, 
@@ -69,7 +72,7 @@ PetscErrorCode VectorField::LaplacianTol(ScalarType b0, ScalarType b1) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::Bilaplacian(ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::Bilaplacian(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -86,7 +89,7 @@ PetscErrorCode VectorField::Bilaplacian(ScalarType b0, ScalarType b1) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::Trilaplacian(ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::Trilaplacian(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -103,7 +106,7 @@ PetscErrorCode VectorField::Trilaplacian(ScalarType b0, ScalarType b1) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::TrilaplacianFunctional(ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::TrilaplacianFunctional(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -112,7 +115,7 @@ PetscErrorCode VectorField::TrilaplacianFunctional(ScalarType b0, ScalarType b1)
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseLaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::InverseLaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -141,7 +144,7 @@ PetscErrorCode VectorField::InverseLaplacian(bool usesqrt, ScalarType b0, Scalar
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseBilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::InverseBilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -171,7 +174,7 @@ PetscErrorCode VectorField::InverseBilaplacian(bool usesqrt, ScalarType b0, Scal
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::InverseTrilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::InverseTrilaplacian(bool usesqrt, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -200,7 +203,7 @@ PetscErrorCode VectorField::InverseTrilaplacian(bool usesqrt, ScalarType b0, Sca
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode VectorField::Leray(ScalarType b0, ScalarType b1) {
+PetscErrorCode DifferentiationKernel::Leray(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -211,7 +214,26 @@ PetscErrorCode VectorField::Leray(ScalarType b0, ScalarType b1) {
   PetscFunctionReturn(ierr);
 }
 
-} // namespace DifferentiationKernel
+PetscErrorCode DifferentiationKernel::GaussianFilter(const ScalarType c[3]) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCallGPU<GaussianFilterKernel>(nstart, nx, nl, 
+    pXHat[0], c[0], c[1], c[2], scale); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationKernel::Gradient() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCallGPU<GradientKernel>(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], scale); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
+
 } // namespace reg
 
 #endif

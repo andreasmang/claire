@@ -256,7 +256,7 @@ PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart1() {
     pGm[0], pGm[1], pGm [2], 
     pB[0], pB[1], pB[2], 
     scale, ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -272,7 +272,7 @@ PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart2() {
     pGm[0], pGm[1], pGm[2], 
     pB[0], pB[1], pB[2], 
     scale, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -288,7 +288,7 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart1() {
     pVtildex[0], pVtildex[1], pVtildex[2], 
     pGm[0], pGm[1], pGm[2], 
     hthalf, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -304,7 +304,7 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart2() {
     pVtilde[0], pVtilde[1], pVtilde[2], 
     pGm[0], pGm[1], pGm[2], 
     hthalf, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -320,7 +320,7 @@ PetscErrorCode TransportKernelAdjoint::ComputeBodyForce() {
       pGm[0], pGm[1], pGm[2], 
       pB[0], pB[1], pB[2], 
       scale, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -337,7 +337,7 @@ PetscErrorCode TransportKernelStateRK2::TimeIntegrationPart1() {
     pVx[0], pVx[1], pVx[2],
     pMbar, pRHS,
     ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -354,7 +354,7 @@ PetscErrorCode TransportKernelStateRK2::TimeIntegrationPart2() {
     pVx[0], pVx[1], pVx[2],
     pMnext, 
     0.5*ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -370,7 +370,7 @@ PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart1() {
     pV[0], pV[1], pV[2],
     pVec[0], pVec[1], pVec[2],
     nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -386,7 +386,7 @@ PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart2() {
     pV[0], pV[1], pV[2],
     pVec[0], pVec[1], pVec[2],
     ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -403,7 +403,7 @@ PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart3() {
     pB[0], pB[1], pB[2],
     pLnext,
     0.5*ht, scale, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -419,7 +419,7 @@ PetscErrorCode TransportKernelAdjointRK2::TimeIntegrationPart4() {
     pVec[0], pVec[1], pVec[2],
     pB[0], pB[1], pB[2],
     0.5*scale, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -435,7 +435,7 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart1a() {
     pVtx[0], pVtx[1], pVtx[2],
     pLtjVx[0], pLtjVx[1], pLtjVx[2],
     nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -452,7 +452,7 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart1b() {
     pVtx[0], pVtx[1], pVtx[2],
     pLtjVx[0], pLtjVx[1], pLtjVx[2],
     nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -465,7 +465,7 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart2a() {
   PetscFunctionBegin;
   
   TransformKernelEulerGPU<<<grid, block>>>(pLt, pRHS[0], pLtnext, ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -482,7 +482,7 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart2b() {
     pVtx[0], pVtx[1], pVtx[2],
     pLtjVx[0], pLtjVx[1], pLtjVx[2],
     ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -495,7 +495,7 @@ PetscErrorCode TransportKernelIncAdjointRK2::TimeIntegrationPart3b() {
   PetscFunctionBegin;
   
   TransformKernelRK2GPU<<<grid, block>>>(pLt, pRHS[0], pRHS[1], pLtnext, 0.5*ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -512,7 +512,7 @@ PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationEuler() {
     pVtx[0], pVtx[1], pVtx[2],
     pMtnext,
     ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -531,7 +531,7 @@ PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationPart1() {
     pVtx[0], pVtx[1], pVtx[2],
     pMtbar, pRHS,
     ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -550,7 +550,7 @@ PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationPart2() {
     pVtx[0], pVtx[1], pVtx[2],
     pMtnext,
     0.5*ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -563,7 +563,7 @@ PetscErrorCode TransportKernelContinuity::TimeIntegration() {
   PetscFunctionBegin;
   
   TransformKernelContinuityGPU<<<grid, block>>>(pMx, pDivV, pDivVx, pMnext, ht, nl);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
 
   PetscFunctionReturn(ierr);
@@ -575,7 +575,7 @@ PetscErrorCode TransportKernelCopy(T* org, T* dest, IntType ne) {
   PetscFunctionBegin;
   
   cudaMemcpy((void*)dest,(void*)org,sizeof(T)*ne,cudaMemcpyDeviceToDevice);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cudaCheckKernelError();
   
   PetscFunctionReturn(ierr);
