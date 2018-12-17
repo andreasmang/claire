@@ -1,6 +1,7 @@
 # developer flags (ignore)
 DBGCODE=no
 PEDANTIC=yes
+USEKNL=no
 
 RM = rm -f
 MKDIRS = mkdir -p
