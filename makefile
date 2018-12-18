@@ -11,7 +11,6 @@ USEHASWELL=no
 BUILDTOOLS=yes
 BUILDTEST=yes
 
-
 include config/setup.mk
 include config/files.mk
 

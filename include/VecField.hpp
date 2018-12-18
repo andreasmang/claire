@@ -96,7 +96,7 @@ class VecField {
 
     PetscErrorCode WAXPY(ScalarType, VecField*, VecField*);
     PetscErrorCode AXPY(ScalarType, VecField*);
-
+    
     /*! compute norm of vector field */
     PetscErrorCode Norm(Vec);
     PetscErrorCode Norm(ScalarType&);

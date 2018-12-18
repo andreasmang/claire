@@ -267,7 +267,6 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
 
     // compute gradient
     ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
-    ierr = this->EvaluateGradient(g, v); CHKERRQ(ierr);
 
     // compute gradient norm
     ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
@@ -318,20 +317,10 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
 
     // allocate state variable
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
-    
-    
+
     // copy m_0 to m(t=0)
-    /*ierr = VecGetArray(m0, &p_m0); CHKERRQ(ierr);
-    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m0, p_m0+nl*nc, p_m); }
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
-    }
-    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m0, &p_m0); CHKERRQ(ierr);*/
-    
     ierr = this->m_StateVariable->SetFrame(m0, 0); CHKERRQ(ierr);
-    
+
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -362,14 +351,6 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     }
 
     // copy m(t=1) to m_1
-    /*ierr = VecGetArray(m1, &p_m1); CHKERRQ(ierr);
-    ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m+nt*nl*nc, p_m+(nt+1)*nl*nc, p_m1);}
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
-    }
-    ierr = VecRestoreArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);*/
     ierr = this->m_StateVariable->GetFrame(m1, nt);
 
     this->m_Opt->Exit(__func__);
@@ -408,14 +389,6 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, true); CHKERRQ(ierr);
 
     // copy l1 to lambda(t=1)
-    /*ierr = GetRawPointer(l1, &p_l1); CHKERRQ(ierr);
-    ierr = GetRawPointer(*this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    try {std::copy(p_l+nt*nl*nc, p_l+(nt+1)*nl*nc, p_l1);}
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
-    }
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(l1, &p_l1); CHKERRQ(ierr);*/
     ierr = this->m_AdjointVariable->GetFrame(l1, nt); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
@@ -488,28 +461,12 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, 0.0, true, true); CHKERRQ(ierr);
     
     // copy memory for m_1
-    /*ierr = GetRawPointer(m1, &p_m1); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    try {std::copy(p_m1, p_m1+nl*nc, p_m+nt*nl*nc);}
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
-    }
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(m1, &p_m1); CHKERRQ(ierr);*/
     ierr = this->m_StateVariable->SetFrame(m1, nt); CHKERRQ(ierr);
 
     // compute solution of state equation
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
 
     // copy memory for lambda0
-    /*ierr = GetRawPointer(l0, &p_l0); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    try {std::copy(p_l, p_l+nl*nc, p_l0);}
-    catch (std::exception& err) {
-        ierr = ThrowError(err); CHKERRQ(ierr);
-    }
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(l0, &p_l0); CHKERRQ(ierr);*/
     ierr = this->m_AdjointVariable->GetFrame(l0, 0); CHKERRQ(ierr);
     
     DebugGPUStopEvent();
@@ -787,7 +744,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     ierr = this->SolveAdjointEquation(); CHKERRQ(ierr);
     
     ierr = this->m_WorkVecField2->DebugInfo("adjoint grad", __LINE__, __FILE__); CHKERRQ(ierr);
-  
+
     // evaluate gradient of regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     
@@ -1860,6 +1817,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscFunctionReturn(ierr);
 }
 
+
 /********************************************************************
  * @brief solve the forward problem (state equation)
  * \p_t m + \idiv m\vect{v} = 0  with initial condition m_0 = m_T
@@ -1875,7 +1833,7 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     bool store;
 
     PetscFunctionBegin;
-    
+
     ierr = DebugGPUNotImplemented(); CHKERRQ(ierr);
 
     this->m_Opt->Enter(__func__);
@@ -2031,7 +1989,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     // increment counter
     this->m_Opt->IncrementCounter(PDESOLVE);
-    
+
     DebugGPUStopEvent();
 
     this->m_Opt->Exit(__func__);
@@ -2127,7 +2085,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     this->m_Opt->IncrementCounter(PDESOLVE);
 
     DebugGPUStopEvent();
-
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
