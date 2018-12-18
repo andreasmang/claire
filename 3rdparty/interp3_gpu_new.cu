@@ -475,8 +475,8 @@ __global__ void interp3D_kernel(
     
     //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-    yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-    //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+    yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
 /*    const float h = 2*PI*inv_nx.x;
     const float3 q = qcoord*h;

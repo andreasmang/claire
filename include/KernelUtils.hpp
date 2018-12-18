@@ -160,7 +160,6 @@ template<int N, typename KernelFn, typename ... Args>
 __global__ void ReductionKernelGPU(ScalarType *res, int nl, Args ... args) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   __shared__ ScalarType value[N];
-  ScalarType tmp;
   
   value[threadIdx.x] = 0.0;
   if (i < nl) { // execute kernel
@@ -226,11 +225,12 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   dim3 block, grid;
   if (nl[2] <= 1024 && nl[2] >= 32) {
-    block.x = nl[2];
+    block.x = (nl[2] + 31)/32;
+    block.x *= 32;
     grid.x = 1;
   } else {
     block.x = 128; // 128 threads per block
-    grid.x = (nl[2] + 127)/128;  // $\lceil nl_2 / 256 \rceil$
+    grid.x = (nl[2] + 127)/128;  // $\lceil nl_2 / 128 \rceil$
   }
   grid.y = nl[1];
   grid.z = nl[0];
@@ -242,7 +242,7 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
-    //ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
   

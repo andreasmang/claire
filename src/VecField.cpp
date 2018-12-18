@@ -727,6 +727,7 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format)
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
       ierr = cudaMemcpy(static_cast<void*>(p_x3), static_cast<const void*>(&pX[2*nl]),
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     } else {
       DebugGPUNotImplemented();
     }

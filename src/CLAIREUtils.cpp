@@ -239,7 +239,7 @@ PetscErrorCode DbgMsgCall(std::string msg, int line, const char *file) {
     ss2 << file << ":" << line;
     ss << std::setw(98-ss2.str().size()) << std::left << msg << std::right << ss2.str();
     //ss << std::left << msg;
-    msg = "\x001b[90m[ "  + ss.str() + "]\x1b[0m\n";
+    msg = "\x1b[34m[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
     ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);

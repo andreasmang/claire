@@ -292,8 +292,8 @@ PetscErrorCode Optimizer::SetupTao() {
         maxit  = this->m_Opt->m_KrylovMethod.maxiter;    // 1000;
         maxit  = std::max(static_cast<IntType>(0), maxit-1);
         ierr = KSPSetTolerances(this->m_KrylovMethod, reltol, abstol, divtol, maxit); CHKERRQ(ierr);
-//        ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
-        ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_TRUE); CHKERRQ(ierr);
+        ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
+//        ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_TRUE); CHKERRQ(ierr);
 
         // KSP_NORM_UNPRECONDITIONED unpreconditioned norm: ||b-Ax||_2)
         // KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
