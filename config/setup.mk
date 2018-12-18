@@ -6,10 +6,8 @@ RM = rm -f
 MKDIRS = mkdir -p
 
 ifeq ($(DBGCODE),yes)
-	#CXXFLAGS = -g -debug
 	CXXFLAGS = -g
 else
-	#CXXFLAGS = -O3 -ansi
 	CXXFLAGS = -O3 -ansi -g
 endif
 
@@ -20,8 +18,6 @@ ifeq ($(USEINTEL),yes)
 	CXXFLAGS += -qopenmp
 else
 	CXXFLAGS += -fopenmp
-#	CXXFLAGS += -mavx2
-#	CXXFLAGS += -march=corei7-avx
 	CXXFLAGS += -march=native
 endif
 CXXFLAGS += -std=c++11

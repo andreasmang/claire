@@ -42,9 +42,6 @@
 #include "RegularizationH2SN.hpp"
 #include "RegularizationH3SN.hpp"
 #include "OptimizationProblem.hpp"
-/*#ifdef REG_HAS_CUDA
-#include "SemiLagrangianGPUNew.hpp"
-#endif*/
 #include "SemiLagrangian.hpp"
 #include "Differentiation.hpp"
 #include "DifferentiationFD.hpp"
@@ -66,11 +63,7 @@ class CLAIREBase : public OptimizationProblem {
     typedef CLAIREBase Self;
     typedef OptimizationProblem SuperClass;
     typedef Regularization RegularizationType;
-//#ifdef REG_HAS_CUDA
-//    typedef SemiLagrangianGPUNew SemiLagrangianType;
-//#else
     typedef SemiLagrangian SemiLagrangianType;
-//#endif
 
     CLAIREBase(void);
     CLAIREBase(RegOpt*);

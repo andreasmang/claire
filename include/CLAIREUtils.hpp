@@ -139,6 +139,48 @@ PetscErrorCode RestoreRawPointerWrite(Vec, ScalarType**);
 PetscErrorCode PrintVectorMemoryLocation(Vec, std::string);
 
 
+inline PetscErrorCode DebugInfo(Vec vec, std::string str, int line, const char* file) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+      ScalarType maxval, minval, nvx1;
+      std::stringstream ss;
+      
+      ScalarType *p_x1;
+      IntType nl;
+      size_t fingerprint = 0;
+      ierr = VecGetArray(vec, &p_x1); CHKERRQ(ierr);
+      // compute size of each individual component
+      ierr = VecGetLocalSize(vec, &nl); CHKERRQ(ierr);
+  #pragma omp parallel for
+      for (IntType i = 0; i < nl; ++i) {
+#if defined(PETSC_USE_REAL_SINGLE)
+        fingerprint += reinterpret_cast<uint32_t*>(p_x1)[i];
+#else
+        fingerprint += reinterpret_cast<uint64_t*>(p_x1)[i];
+#endif
+      }
+      ierr = VecRestoreArray(vec, &p_x1); CHKERRQ(ierr);
+      
+      ss  << str << " hash: " << std::hex << fingerprint;
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+
+      ierr = VecNorm(vec, NORM_2, &nvx1); CHKERRQ(ierr);
+      ss  << str << " 2-norm: " << std::scientific
+          << nvx1;
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+      
+      ierr = VecMax(vec, NULL, &maxval); CHKERRQ(ierr);
+      ierr = VecMin(vec, NULL, &minval); CHKERRQ(ierr);
+      ss  << str << " min/max: [" << std::scientific
+          << minval << "," << maxval << "]";
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+  PetscFunctionReturn(ierr);
+}
+
+
 /********************************************************************
  * @brief map 3d index to linear index (accfft style)
  *******************************************************************/
@@ -166,8 +208,11 @@ inline IntType GetLinearIndex(IntType i, IntType j, IntType k, IntType isize[3])
  *******************************************************************/
 inline void CheckWaveNumbersInv(long int w[3], int n[3]) {
     if (w[0] > n[0]/2) w[0] -= n[0];
+    else if (w[0] == n[0]/2) w[0]  = 0;
     if (w[1] > n[1]/2) w[1] -= n[1];
+    else if (w[1] == n[1]/2) w[1]  = 0;
     if (w[2] > n[2]/2) w[2] -= n[2];
+    else if (w[2] == n[2]/2) w[2]  = 0;
 }
 
 
@@ -191,8 +236,11 @@ inline void CheckWaveNumbers(long int w[3], int n[3]) {
  *******************************************************************/
 inline void ComputeWaveNumber(IntType w[3], IntType n[3]) {
     if      (w[0] >  n[0]/2) w[0] -= n[0];
+    else if (w[0] == n[0]/2) w[0]  = 0;
     if      (w[1] >  n[1]/2) w[1] -= n[1];
+    else if (w[1] == n[1]/2) w[1]  = 0;
     if      (w[2] >  n[2]/2) w[2] -= n[2];
+    else if (w[2] == n[2]/2) w[2]  = 0;
 };
 
 /********************************************************************
