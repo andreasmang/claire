@@ -19,3 +19,5 @@ environment_vars.sh
 *.o
 *.nc
 scripts/
+bingpu/
+external/libs-cuda-openmpi/

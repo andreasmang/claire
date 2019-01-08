@@ -199,7 +199,8 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
     ierr = VecGetArray(dv->m_X1, &pdv[0]); CHKERRQ(ierr);
     ierr = VecGetArray(dv->m_X2, &pdv[1]); CHKERRQ(ierr);
     ierr = VecGetArray(dv->m_X3, &pdv[2]); CHKERRQ(ierr);
-
+    
+    int s = 32;
     for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
         for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
             for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
@@ -242,6 +243,24 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
                             - 2.*sin(M_PI*sin(x1))*sin(x2)*cos(x3);
                   pdv[1][i] = pdv[0][i];
                   pdv[2][i] = pdv[0][i];
+                  break;
+                case 3: // simple function for grad
+                  pv[0][i] = i;
+                  pdv[0][i] = 0;
+                  pdv[1][i] = 0;
+                  pdv[2][i] = 0;
+                  break;
+                case 4:
+                  pv[0][i]  = sin(s*x1)*sin(s*x2)*sin(s*x3);
+                  pdv[0][i] = s*cos(s*x1)*sin(s*x2)*sin(s*x3);
+                  pdv[1][i] = s*sin(s*x1)*cos(s*x2)*sin(s*x3);
+                  pdv[2][i] = s*sin(s*x1)*sin(s*x2)*cos(s*x3);
+                  break;
+                case 5:
+                  pv[0][i]  = sin(s*x1);
+                  pdv[0][i] = s*cos(s*x1);
+                  pdv[1][i] = 0;
+                  pdv[2][i] = 0;
                   break;
                 };
 

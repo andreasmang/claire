@@ -26,6 +26,7 @@
 #include "UnitTestOpt.hpp"
 #include "Differentiation.hpp"
 #include "DifferentiationSM.hpp"
+#include "DifferentiationFD.hpp"
 #include "VecField.hpp"
 
 namespace reg {
@@ -38,6 +39,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   std::cout << "starting differentiation unit test" << std::endl;
   
   DifferentiationSM *m_dif = nullptr;
+  DifferentiationFD *m_fd = nullptr;
   VecField *v = nullptr;
   VecField *dv = nullptr;
   VecField *ref = nullptr;
@@ -51,10 +53,13 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = AllocateOnce(t, m_Opt); CHKERRQ(ierr);
   
   ierr = AllocateOnce(m_dif, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(m_fd, m_Opt); CHKERRQ(ierr);
   m_dif->SetupSpectralData();
-    
-  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // Grad
-  ierr = m_dif->Gradient(dv, v->m_X1); CHKERRQ(ierr);
+  m_fd->SetupData();
+
+  
+  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // FD Grad
+  ierr = m_fd->Gradient(dv, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
@@ -77,6 +82,31 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   
+ 
+  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // FFT grad 
+  ierr = m_dif->Gradient(dv, v->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "grad_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "grad_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "grad_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "grad_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "grad_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+
   std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); // Div
   ierr = m_dif->Divergence(dv->m_X1, v); CHKERRQ(ierr);
@@ -147,7 +177,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
-  
+*/  
   ierr = Free(v); CHKERRQ(ierr);
   ierr = Free(dv); CHKERRQ(ierr);
   ierr = Free(m_dif); CHKERRQ(ierr);
