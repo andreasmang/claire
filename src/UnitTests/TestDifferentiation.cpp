@@ -177,7 +177,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
-*/  
+  
   ierr = Free(v); CHKERRQ(ierr);
   ierr = Free(dv); CHKERRQ(ierr);
   ierr = Free(m_dif); CHKERRQ(ierr);

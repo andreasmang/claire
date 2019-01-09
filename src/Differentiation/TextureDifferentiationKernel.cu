@@ -252,10 +252,10 @@ __global__ void TextureGradientComputeKernel_old(cudaTextureObject_t tex, Scalar
         //printf("gid=%d,\t tidx=%d,\t tidy=%d,\t tidz=%d,\t x=%f,\t y=%f,\t z=%f,\t mtrue=%f,\t m=%f,\t ref=%f,\t gxt=%f,\t gxc=%f\n\n", gid, tidx, tidy, tidz, x1, x2,
         //x3, mtrue, m, ref[gid], gxtrue, gx[gid]);
     }
-*/   
 
 }
 
+*/   
 
 void printFloat3(float3 a){
     printf("x = %f\t y = %f\t z = %f\n",a.x,a.y,a.z);
