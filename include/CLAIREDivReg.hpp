@@ -49,12 +49,6 @@ class CLAIREDivReg : public CLAIRE {
     /*! compute body force */
     PetscErrorCode EvaluateObjective(ScalarType*,Vec);
 
-    /*! compute body force */
-    PetscErrorCode ComputeBodyForce(void);
-
-    /*! compute incremental body force */
-    PetscErrorCode ComputeIncBodyForce(void);
-
     /*! apply the projection operator to the
         body force and the incremental body force */
     virtual PetscErrorCode ApplyProjection();

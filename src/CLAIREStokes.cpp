@@ -23,13 +23,7 @@
 #include <math.h>
 #include "CLAIREStokes.hpp"
 
-
-
-
 namespace reg {
-
-
-
 
 /********************************************************************
  * @brief default constructor
@@ -38,18 +32,12 @@ CLAIREStokes::CLAIREStokes() : SuperClass() {
     this->Initialize();
 }
 
-
-
-
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
 CLAIREStokes::~CLAIREStokes() {
     this->ClearMemory();
 }
-
-
-
 
 /********************************************************************
  * @brief constructor
@@ -58,9 +46,6 @@ CLAIREStokes::CLAIREStokes(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
-
-
-
 /********************************************************************
  * @brief init variables
  *******************************************************************/
@@ -68,15 +53,8 @@ PetscErrorCode CLAIREStokes::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_x1hat = NULL;
-    this->m_x2hat = NULL;
-    this->m_x3hat = NULL;
-
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief clean up
@@ -85,75 +63,8 @@ PetscErrorCode CLAIREStokes::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-/*    if (this->m_x1hat != NULL) {
-        accfft_free(this->m_x1hat);
-        this->m_x1hat = NULL;
-    }
-    if (this->m_x2hat != NULL) {
-        accfft_free(this->m_x2hat);
-        this->m_x2hat = NULL;
-    }
-    if (this->m_x3hat != NULL) {
-        accfft_free(this->m_x3hat);
-        this->m_x3hat = NULL;
-    }*/
-    Free(this->m_x1hat);
-    Free(this->m_x2hat);
-    Free(this->m_x3hat);
-
     PetscFunctionReturn(ierr);
 }
-
-
-
-
-/********************************************************************
- * @brief compute the body force
- * b = K[\int_0^1 \igrad m \lambda d t],
- * where K is an operator that projects v onto the manifold of
- * divergence free velocity fields
- *******************************************************************/
-PetscErrorCode CLAIREStokes::ComputeBodyForce() {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-
-    // assigned to work vec field 2
-    ierr = SuperClass::ComputeBodyForce(); CHKERRQ(ierr);
-
-    ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(0);
-}
-
-
-
-
-/********************************************************************
- * @brief compute the body force
- * b = K[\int_0^1\igrad\tilde{m}\lambda+\igrad m \tilde{\lambda} dt]
- * where K is an operator that projects \tilde{v} onto the manifold
- * of divergence free velocity fields
- *******************************************************************/
-PetscErrorCode CLAIREStokes::ComputeIncBodyForce() {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-
-    // assigned to work vec field 2
-    ierr = SuperClass::ComputeIncBodyForce(); CHKERRQ(ierr);
-
-    ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
 
 /********************************************************************
  * @brief solve the adjoint problem (adjoint equation)

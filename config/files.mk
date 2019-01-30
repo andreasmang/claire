@@ -20,7 +20,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Solver/TransportEquationRK2.cpp \
 		$(SRCDIR)/Solver/TransportKernel.cpp \
 		$(SRCDIR)/Solver/ContinuityEquation.cpp \
-		$(SRCDIR)/DeformationFields.cpp \
+		$(SRCDIR)/DeformationFields/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \
@@ -77,7 +77,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Solver/TransportEquationSL.cpp \
 		$(SRCDIR)/Solver/TransportEquationRK2.cpp \
 		$(SRCDIR)/Solver/ContinuityEquation.cpp \
-		$(SRCDIR)/DeformationFields.cpp \
+		$(SRCDIR)/DeformationFields/DeformationFields.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureSL2.cpp \

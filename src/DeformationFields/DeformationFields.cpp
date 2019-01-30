@@ -297,7 +297,9 @@ PetscErrorCode DeformationFields
     }
 
     // compute initial condition
-    ierr = x->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = VecGetArray(x->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecGetArray(x->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecGetArray(x->m_X3, &p_x3); CHKERRQ(ierr);
 
 #pragma omp parallel
 {
@@ -318,7 +320,9 @@ PetscErrorCode DeformationFields
     } // i3
 }  // pragma omp for
 
-    ierr = x->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x->m_X1, &p_x1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x->m_X2, &p_x2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(x->m_X3, &p_x3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -444,10 +448,10 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
 
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
     this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);

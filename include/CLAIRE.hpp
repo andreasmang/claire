@@ -122,12 +122,6 @@ class CLAIRE : public CLAIREBase {
     /*! solve incremental adjoint equation */
     virtual PetscErrorCode SolveIncAdjointEquation(void);
 
-    /*! compute body force */
-    virtual PetscErrorCode ComputeBodyForce(void);
-
-    /*! compute incremental body force */
-    virtual PetscErrorCode ComputeIncBodyForce(void);
-
     /*! evaluate l2-gradient */
     virtual PetscErrorCode EvaluateL2Gradient(Vec);
 

@@ -209,7 +209,7 @@ CXXOPTFLAGS='-O3'
 PETSC_CUDA_OPTIONS="
 --with-cuda=1
 --download-cusp=yes
---CUDAFLAGS='-arch=sm_70'"
+--CUDAFLAGS='-arch=sm_50'"
 
 PETSC_DBG_OPTIONS="
 --with-cc=${MPI_C}
@@ -247,7 +247,7 @@ ACCFFT_OPTIONS="
 -DBUILD_SHARED=false"
 
 if [ ${enableCUDA} -eq 1 ]; then
-	ACCFFT_OPTIONS="${ACCFFT_OPTIONS} -DBUILD_GPU=ON"
+	ACCFFT_OPTIONS="${ACCFFT_OPTIONS} -DBUILD_GPU=true"
 fi
 
 

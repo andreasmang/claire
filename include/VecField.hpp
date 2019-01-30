@@ -108,9 +108,6 @@ class VecField {
     Vec m_X1;
     Vec m_X2;
     Vec m_X3;
-    
-    // all components
-    //Vec m_X;
 
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;

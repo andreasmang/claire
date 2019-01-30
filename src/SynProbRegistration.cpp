@@ -230,7 +230,11 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
         hx[i] = this->m_Opt->m_Domain.hx[i];
     }
 
-    ierr = v->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    //ierr = v->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    
+    ierr = VecGetArray(v->m_X1, &p_vx1); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X2, &p_vx2); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X3, &p_vx3); CHKERRQ(ierr);
 #pragma omp parallel
 {
 #pragma omp for
@@ -280,7 +284,10 @@ PetscErrorCode SynProbRegistration::ComputeSmoothVectorField(VecField* v, int id
         }  // i2
     }  // i3
 }  // pragma omp parallel
-    ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X1, &p_vx1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X2, &p_vx2); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X3, &p_vx3); CHKERRQ(ierr);
+    //ierr = v->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

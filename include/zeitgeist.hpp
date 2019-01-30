@@ -12,11 +12,13 @@
 #define ZeitGeist_define(NAME) static ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock()
+#define ZeitGeist_inc(NAME) NAME ## _zg.Inc()
 #define ZeitGeist_reset() ZeitGeist::ResetAll()
 #else
 #define ZeitGeist_define(NAME)
 #define ZeitGeist_tick(NAME)
 #define ZeitGeist_tock(NAME)
+#define ZeitGeist_inc(NAME)
 #define ZeitGeist_reset()
 #endif
 //------------------------------------------------------------------------------
@@ -60,6 +62,9 @@ public:
     gettimeofday(&tmp_tv, NULL);
     ++cnt;
     tot += usec() - tick;
+  }
+  inline void Inc() {
+    ++cnt;
   }
   int64_t Tock_stat () {
     gettimeofday(&tmp_tv, NULL);

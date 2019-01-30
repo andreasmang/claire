@@ -22,13 +22,7 @@
 
 #include "CLAIREDivReg.hpp"
 
-
-
-
 namespace reg {
-
-
-
 
 /********************************************************************
  * @brief default constructor
@@ -37,18 +31,12 @@ CLAIREDivReg::CLAIREDivReg() : SuperClass() {
     this->Initialize();
 }
 
-
-
-
 /********************************************************************
  * @brief default destructor
  *******************************************************************/
 CLAIREDivReg::~CLAIREDivReg() {
     this->ClearMemory();
 }
-
-
-
 
 /********************************************************************
  * @brief constructor
@@ -57,9 +45,6 @@ CLAIREDivReg::CLAIREDivReg(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
 }
 
-
-
-
 /********************************************************************
  * @brief init variables
  *******************************************************************/
@@ -67,15 +52,8 @@ PetscErrorCode CLAIREDivReg::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    //this->m_x1hat = NULL;
-    //this->m_x2hat = NULL;
-    //this->m_x3hat = NULL;
-
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief clean up
@@ -84,24 +62,8 @@ PetscErrorCode CLAIREDivReg::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    /*if (this->m_x1hat != NULL) {
-        accfft_free(this->m_x1hat);
-        this->m_x1hat = NULL;
-    }
-    if (this->m_x2hat != NULL) {
-        accfft_free(this->m_x2hat);
-        this->m_x2hat = NULL;
-    }
-    if (this->m_x3hat != NULL) {
-        accfft_free(this->m_x3hat);
-        this->m_x3hat = NULL;
-    }*/
-
     PetscFunctionReturn(ierr);
 }
-
-
-
 
 /********************************************************************
  * @brief evaluates the objective value
@@ -171,9 +133,6 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     PetscFunctionReturn(0);
 }
 
-
-
-
 /********************************************************************
  * @brief compute the body force
  * b = K[\int_0^1 \igrad m \lambda d t],
@@ -216,58 +175,6 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     PetscFunctionReturn(0);
 }
 
-
-
-
-/********************************************************************
- * @brief compute the body force
- * b = K[\int_0^1 \igrad m \lambda d t],
- * where K is an operator that projects v onto the manifold of
- * divergence free velocity fields
- *******************************************************************/
-PetscErrorCode CLAIREDivReg::ComputeBodyForce() {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-
-    // assigned to work vec field 2
-    ierr = SuperClass::ComputeBodyForce(); CHKERRQ(ierr);
-
-    ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
-/********************************************************************
- * @brief compute the body force
- * b = K[\int_0^1\igrad\tilde{m}\lambda+\igrad m \tilde{\lambda} dt]
- * where K is an operator that projects \tilde{v} onto the manifold
- * of divergence free velocity fields
- *******************************************************************/
-PetscErrorCode CLAIREDivReg::ComputeIncBodyForce() {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    this->m_Opt->Enter(__func__);
-
-    // assigned to work vec field 2
-    ierr = SuperClass::ComputeIncBodyForce(); CHKERRQ(ierr);
-
-    ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-
-
 /********************************************************************
  * @brief apply projection to map \tilde{v} onto the manifold
  * of divergence free velocity fields
@@ -280,149 +187,19 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     this->m_Opt->Enter(__func__);
 
     // allocate spectral data
-    ierr = this->SetupSpectralData(); CHKERRQ(ierr);
+    //ierr = this->SetupSpectralData(); CHKERRQ(ierr);
     
     beta[0] = this->m_Opt->m_RegNorm.beta[0];
     beta[2] = this->m_Opt->m_RegNorm.beta[2];
     
     ierr = this->m_Differentiation->LerayOperator(this->m_WorkVecField1, this->m_WorkVecField2, beta[0], beta[2]); CHKERRQ(ierr);
     
-    /*ScalarType scale;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
-    long int nx[3];
-    IntType nalloc;
-    double applytime;
-    ComplexType x1hat, x2hat, x3hat;
-    double timer[NFFTTIMERS] = {0};
-
-    nx[0] = static_cast<long int>(this->m_Opt->m_Domain.nx[0]);
-    nx[1] = static_cast<long int>(this->m_Opt->m_Domain.nx[1]);
-    nx[2] = static_cast<long int>(this->m_Opt->m_Domain.nx[2]);
-
-    scale = this->m_Opt->ComputeFFTScale();
-
-    ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField2); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
-
-    // compute forward fft
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x1, this->m_x1hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x2, this->m_x2hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x3, this->m_x3hat, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 3);
-
-    
-
-    applytime = -MPI_Wtime();
-#pragma omp parallel
-{
-    long int x1, x2, x3, wx1, wx2, wx3;
-    ScalarType lapik, lapinvik, gradik1, gradik2, gradik3, opik;
-    long int i;
-    IntType i1, i2, i3;
-#pragma omp for
-    for (i1 = 0; i1 < this->m_Opt->m_FFT.osize[0]; ++i1) {
-        for (i2 = 0; i2 < this->m_Opt->m_FFT.osize[1]; ++i2) {
-            for (i3 = 0; i3 < this->m_Opt->m_FFT.osize[2]; ++i3) {
-                x1 = static_cast<long int>(i1 + this->m_Opt->m_FFT.ostart[0]);
-                x2 = static_cast<long int>(i2 + this->m_Opt->m_FFT.ostart[1]);
-                x3 = static_cast<long int>(i3 + this->m_Opt->m_FFT.ostart[2]);
-
-                // set wavenumber
-                wx1 = x1;
-                wx2 = x2;
-                wx3 = x3;
-
-                if (x1 > nx[0]/2) wx1 -= nx[0];
-                else if(x1 == nx[0]/2) wx1 = 0;
-                if (x2 > nx[1]/2) wx2 -= nx[1];
-                else if(x2 == nx[1]/2) wx2 = 0;
-                if (x3 > nx[2]/2) wx3 -= nx[2];
-                else if(x3 == nx[2]/2) wx3 = 0;
-
-                // compute inverse laplacian operator
-                lapik = -static_cast<ScalarType>(wx1*wx1 + wx2*wx2 + wx3*wx3);
-
-                //lapinvik = round(lapinvik) == 0.0 ? -1.0 : 1.0/lapinvik;
-                lapinvik = lapik == 0.0 ? -1.0 : 1.0/lapik;
-
-                if (x1 == nx[0]/2) wx1 = 0;
-                if (x2 == nx[1]/2) wx2 = 0;
-                if (x3 == nx[2]/2) wx3 = 0;
-
-                // compute gradient operator
-                gradik1 = static_cast<ScalarType>(wx1);
-                gradik2 = static_cast<ScalarType>(wx2);
-                gradik3 = static_cast<ScalarType>(wx3);
-
-                i = GetLinearIndex(i1, i2, i3, this->m_Opt->m_FFT.osize);
-
-                x1hat[0] = this->m_x1hat[i][0];
-                x1hat[1] = this->m_x1hat[i][1];
-
-                x2hat[0] = this->m_x2hat[i][0];
-                x2hat[1] = this->m_x2hat[i][1];
-
-                x3hat[0] = this->m_x3hat[i][0];
-                x3hat[1] = this->m_x3hat[i][1];
-
-                // compute div(b)
-                this->m_x1hat[i][0] = -scale*(gradik1*x1hat[0]
-                                            + gradik2*x2hat[0]
-                                            + gradik3*x3hat[0]);
-
-                this->m_x1hat[i][1] =  scale*(gradik1*x1hat[1]
-                                            + gradik2*x2hat[1]
-                                            + gradik3*x3hat[1]);
-
-                // compute M^{-1] = (\beta_v (\beta_w(-\ilap + 1))^{-1} + 1)^{-1}
-                opik = 1.0/(beta[2]*(-lapik + 1.0));
-                opik = 1.0/(beta[0]*opik + 1.0);
-
-                // compute lap^{-1} div(b)
-                this->m_x1hat[i][0] *= opik*lapinvik;
-                this->m_x1hat[i][1] *= opik*lapinvik;
-
-                // compute x2 gradient of lab^{-1} div(b)
-                this->m_x2hat[i][0] = -gradik2*this->m_x1hat[i][0];
-                this->m_x2hat[i][1] =  gradik2*this->m_x1hat[i][1];
-
-                // compute x3 gradient of lab^{-1} div(b)
-                this->m_x3hat[i][0] = -gradik3*this->m_x1hat[i][0];
-                this->m_x3hat[i][1] =  gradik3*this->m_x1hat[i][1];
-
-                // compute x1 gradient of lab^{-1} div(b)
-                this->m_x1hat[i][0] *= -gradik1;
-                this->m_x1hat[i][1] *=  gradik1;
-            }
-        }
-    }
-}  // pragma omp parallel
-    applytime += MPI_Wtime();
-    timer[FFTHADAMARD] += applytime;
-
-    // compute inverse fft
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x1hat, p_x1, timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x2hat, p_x2, timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x3hat, p_x3, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    this->m_Opt->IncrementCounter(FFT, 3);
-
-    ierr = this->m_WorkVecField1->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);*/
-    
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
-
-    //this->m_Opt->IncreaseFFTTimers(timer);
 
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);
 }
-
-
-
 
 }  // namespace reg
 

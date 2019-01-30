@@ -47,12 +47,6 @@ class CLAIREStokes : public CLAIRE {
     /*! clear memory (called by destructor) */
     PetscErrorCode ClearMemory(void);
 
-    /*! compute body force */
-    PetscErrorCode ComputeBodyForce(void);
-
-    /*! compute incremental body force */
-    PetscErrorCode ComputeIncBodyForce(void);
-
     /*! reimplementation (accounting for incompressiblity) */
     PetscErrorCode SolveAdjointEquationSL(void);
 

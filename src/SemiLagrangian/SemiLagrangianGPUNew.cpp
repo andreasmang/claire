@@ -688,6 +688,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
 
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     ZeitGeist_tock(SL_INTERPOL);
+    ZeitGeist_inc(SL_INTERPOL);
+    ZeitGeist_inc(SL_INTERPOL);
 
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);

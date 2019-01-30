@@ -229,44 +229,6 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
 
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
-
-    // allocate vector field
-    /*ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X); CHKERRQ(ierr);
-    ierr = VecSetSizes(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
-    #ifdef REG_HAS_CUDA
-        ierr = VecSetType(this->m_X, VECCUDA); CHKERRQ(ierr);
-    #else
-        ierr = VecSetFromOptions(this->m_X); CHKERRQ(ierr);
-    #endif
-    
-    #ifdef REG_HAS_CUDA
-      ScalarType *mX;
-      VecCUDAGetArrayReadWrite(this->m_X, &mX);
-      VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[0], &this->m_X1);
-      VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[nl], &this->m_X2);
-      VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[2*nl], &this->m_X3);
-      VecCUDARestoreArrayReadWrite(this->m_X, &mX);
-    #else
-      ScalarType *mX;
-      VecGetArray(this->m_X, &mX);
-      VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[0], &this->m_X1);
-      VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[nl], &this->m_X2);
-      VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &mX[2*nl], &this->m_X3);
-      VecRestorArray(this->m_X, &mX);
-    #endif*/
-    
-    /*{
-    printf("Vector %li byte:\n", sizeof(ScalarType)*nl);
-    ScalarType *pD, *pH;
-    VecCUDAGetArrayReadWrite(this->m_X, &pD); VecGetArray(this->m_X, &pH);
-    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
-    VecCUDAGetArrayReadWrite(this->m_X1, &pD); VecGetArray(this->m_X1, &pH);
-    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
-    VecCUDAGetArrayReadWrite(this->m_X2, &pD); VecGetArray(this->m_X2, &pH);
-    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
-    VecCUDAGetArrayReadWrite(this->m_X3, &pD); VecGetArray(this->m_X3, &pH);
-    printf("%016lx %016lx\n",reinterpret_cast<size_t>(pH),reinterpret_cast<size_t>(pD));
-    }*/
     
     // allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X1); CHKERRQ(ierr);

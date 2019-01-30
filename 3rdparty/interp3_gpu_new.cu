@@ -554,7 +554,6 @@ void gpuInterp3D(
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
     time+=dummy_time;
-    cudaDeviceSynchronize();
     
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);

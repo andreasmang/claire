@@ -10,6 +10,8 @@
 *.exrc
 *.DS_Store
 bin/
+bingpu/
+data/
 obj/
 test/
 external/libs/

@@ -233,6 +233,15 @@ PetscErrorCode DifferentiationKernel::Gradient() {
 
   PetscFunctionReturn(ierr);
 }
+PetscErrorCode DifferentiationKernel::Divergence() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCallGPU<DivergenceKernel>(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], scale); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
 
 } // namespace reg
 

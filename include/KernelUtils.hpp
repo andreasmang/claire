@@ -32,6 +32,11 @@ namespace KernelUtils {
 template<typename T> struct array3_t {
   T x, y, z;
 };
+template<typename T> struct array9_t {
+  //template<int i> inline array3_t<T> row() { return array3_t({a[i*3 + 0], a[i*3 + 1], a[i*3 + 2]}); }
+  //template<int i> inline array3_t<T> col() { return array3_t({a[i + 0], a[i + 3], a[i + 6]}); }
+  T a[9];
+};
 
 typedef array3_t<ScalarType> real3;
 
@@ -242,7 +247,7 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
-    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    //ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
   

@@ -56,11 +56,11 @@ class ScaField {
     PetscErrorCode Copy(Vec);
     PetscErrorCode Copy(ScaField*);
     PetscErrorCode CopyFrame(IntType);
+    
+    Vec m_X;
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;
     AccessType m_Type;
-    
-    Vec m_X;
     
     union {
       ScalarType *m_Ptr;

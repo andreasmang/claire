@@ -25,6 +25,10 @@
 #include "Differentiation.hpp"
 #include "DifferentiationKernel.hpp"
 
+#ifdef REG_HAS_CUDA
+#include <cufft.h>
+#endif
+
 namespace reg {
 
 
@@ -73,8 +77,10 @@ class DifferentiationSM : public Differentiation {
     PetscErrorCode ClearMemory();
     
     PetscErrorCode ComputeForwardFFT(VecField*);
+    PetscErrorCode ComputeForwardFFT(const ScalarType*,const ScalarType*,const ScalarType*);
     PetscErrorCode ComputeForwardFFT(const ScalarType*);
     PetscErrorCode ComputeInverseFFT(VecField*);
+    PetscErrorCode ComputeInverseFFT(ScalarType*,ScalarType*,ScalarType*);
     PetscErrorCode ComputeInverseFFT(ScalarType*);
         
     DifferentiationKernel m_SpectralKernel;
@@ -82,6 +88,11 @@ class DifferentiationSM : public Differentiation {
     double timer[NFFTTIMERS];
     int c_grad;
     int c_div;
+    
+#ifdef REG_HAS_CUDA
+    cufftHandle *m_planR2C;
+    cufftHandle *m_planC2R;
+#endif
     
     ComplexType *m_XHat[3];
 };

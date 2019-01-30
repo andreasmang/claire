@@ -258,4 +258,23 @@ struct GradientKernel {
   }
 };
 
+struct DivergenceKernel {
+  KernelOperator(int i, real3 w,
+      ComplexType *x1, ComplexType *x2, ComplexType *x3, ScalarType scale) {
+    ScalarType mRe1, mIm1;
+    ScalarType mRe2, mIm2;
+    ScalarType mRe3, mIm3;
+    
+    mRe1 = x1[i][0]*scale;
+    mIm1 = x1[i][1]*scale;
+    mRe2 = x2[i][0]*scale;
+    mIm2 = x2[i][1]*scale;
+    mRe3 = x3[i][0]*scale;
+    mIm3 = x3[i][1]*scale;
+    
+    x1[i][0] = -w.x*mIm1 -w.y*mIm2 -w.z*mIm3;
+    x1[i][1] =  w.x*mRe1 +w.y*mRe2 +w.z*mRe3;
+  }
+};
+
 #endif // _DIFFERENTIATIONKERNEL_TXX_

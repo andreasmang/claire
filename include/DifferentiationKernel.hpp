@@ -48,6 +48,7 @@ struct DifferentiationKernel {
   PetscErrorCode GaussianFilter(const ScalarType*);
   
   PetscErrorCode Gradient();
+  PetscErrorCode Divergence();
   
   PetscErrorCode Leray(ScalarType, ScalarType);
 };

@@ -69,7 +69,7 @@ template<class A, class T, class ... Args> inline PetscErrorCode AllocateOnce(T*
   return 0;
 }
 template<class T, class ... Args> inline PetscErrorCode AllocateOnce(T*& ptr, Args ... args) {
-  return AllocateOnce<T>(ptr, args...);
+  return AllocateOnce<T, T, Args...>(ptr, args...);
 }
 template<class T> inline PetscErrorCode AllocateMemoryOnce(T*& ptr, size_t size) {
   PetscErrorCode ierr = 0;

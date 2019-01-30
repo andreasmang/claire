@@ -296,10 +296,10 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
             ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, k, ll); CHKERRQ(ierr);
             ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pLnext, k, llnext); CHKERRQ(ierr);
             ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j); CHKERRQ(ierr);
-            
+
             // compute lambda(t^j,X)
             ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLx, kernel.pL, "adjoint"); CHKERRQ(ierr);
-            
+
             // compute gradient of m (for body force)
             ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
             
@@ -400,10 +400,9 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
             ierr = this->m_IncStateVariable->GetArrayReadWrite(kernel.pMtilde, k, lmtnext); CHKERRQ(ierr);
             ierr = this->m_IncStateVariable->GetArrayReadWrite(pMtilde, k, lmt); CHKERRQ(ierr);
             ierr = this->m_StateVariable->GetArrayRead(pM, k, j); CHKERRQ(ierr);
-            
+
             // interpolate incremental adjoint variable \tilde{m}^j(X)
             ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pMtilde, pMtilde, "state"); CHKERRQ(ierr);
-
             // compute gradient for state variable
             ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
 

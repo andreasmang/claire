@@ -845,6 +845,9 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     this->m_Opt->IncrementCounter(IPVEC);
     
     ZeitGeist_tock(SL_INTERPOL);
+    ZeitGeist_inc(SL_INTERPOL);
+    ZeitGeist_inc(SL_INTERPOL);
+    
     
 #ifdef REG_HAS_CUDA
     cudaMemcpy(xo1_d, wx1, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
