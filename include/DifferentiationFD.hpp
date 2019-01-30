@@ -23,7 +23,7 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "Differentiation.hpp"
-
+#include "TextureDifferentiationKernel.hpp"
 
 
 
@@ -64,10 +64,18 @@ class DifferentiationFD : public Differentiation {
     virtual PetscErrorCode RegTriLapFunc(VecField*, VecField*, ScalarType, ScalarType=0.0);
     
     virtual PetscErrorCode LerayOperator(VecField*, VecField*, ScalarType, ScalarType);
+    
+    virtual PetscErrorCode SetupData(ScalarType* =nullptr, ScalarType* =nullptr, ScalarType* =nullptr);
 
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    cudaTextureObject_t mtex;
+    
+    IntType nx[3];
+    ScalarType* m_grad[3];
+    ScalarType* m;
+
 };
 
 

@@ -67,10 +67,51 @@ PetscErrorCode DifferentiationFD::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+    this->m_grad[0] = nullptr;
+    this->m_grad[1] = nullptr;
+    this->m_grad[2] = nullptr;
+
+    ierr = this->SetupData(); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
 
 
+/********************************************************************
+ * @brief init variables
+ *******************************************************************/
+PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, ScalarType *x3) {
+    PetscErrorCode ierr = 0;
+    IntType nalloc;
+    PetscFunctionBegin;
+    
+    nalloc = this->m_Opt->m_Domain.nl;
+    
+    if (!x1) {
+      ierr = AllocateMemoryOnce(this->m_grad[0], nalloc); CHKERRQ(ierr);
+    } else {
+      this->m_grad[1] = x1;
+    }
+    if (!x2) {
+      ierr = AllocateMemoryOnce(this->m_grad[1], nalloc); CHKERRQ(ierr);
+    } else {
+      this->m_grad[1] = x2;
+    }
+    if (!x3) {
+      ierr = AllocateMemoryOnce(this->m_grad[2], nalloc); CHKERRQ(ierr);
+    } else {
+      this->m_grad[2] = x3;
+    }
+
+    ierr = AllocateMemoryOnce(this->m, nalloc); CHKERRQ(ierr);
+    
+    for (unsigned int i = 0; i < 3; ++i) {
+        this->nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
+    }
+
+    this->mtex = gpuInitEmptyGradientTexture(this->nx);
+    
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -79,11 +120,17 @@ PetscErrorCode DifferentiationFD::Initialize() {
 PetscErrorCode DifferentiationFD::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = FreeMemory(this->m_grad[0]); CHKERRQ(ierr);
+    ierr = FreeMemory(this->m_grad[1]); CHKERRQ(ierr);
+    ierr = FreeMemory(this->m_grad[2]); CHKERRQ(ierr);
+    ierr = FreeMemory(this->m); CHKERRQ(ierr);
 
+    if (this->mtex != 0) {
+        cudaDestroyTextureObject(this->mtex);
+    }
     PetscFunctionReturn(ierr);
 }
-
-
 
 
 /********************************************************************
@@ -96,8 +143,18 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+    // TODO texture kernel call to compute gradient
+    //size_t count = sizeof(this->m_Opt->m_Domain.nl);
+    //cudaMemcpy((void*)this->m, (const void*)m, count, cudaMemcpyHostToDevice);
+    ierr = computeTextureGradient(g1, g2, g3, m, this->mtex, this->nx); CHKERRQ(ierr);
+
+    //cudaMemcpy((void*)g1, (const void*)this->m_grad[0], count, cudaMemcpyDeviceToHost);     
+    //cudaMemcpy((void*)g2, (const void*)this->m_grad[1], count, cudaMemcpyDeviceToHost);     
+    //cudaMemcpy((void*)g3, (const void*)this->m_grad[2], count, cudaMemcpyDeviceToHost);     
+    
     PetscFunctionReturn(ierr);
 }
+
 
 /********************************************************************
  * @brief compute gradient of a scalar field
@@ -125,7 +182,17 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, const ScalarType *m) 
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Gradient(VecField *g, const Vec m) {
     PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
+    const ScalarType *pm = nullptr;
     PetscFunctionBegin;
+    
+    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(m, &pm); CHKERRQ(ierr);
+    
+    ierr = this->Gradient(g1, g2, g3, pm); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointerRead(m, &pm); CHKERRQ(ierr);
+    ierr = g->RestoreArrays(); CHKERRQ(ierr);
             
     PetscFunctionReturn(ierr);
 }

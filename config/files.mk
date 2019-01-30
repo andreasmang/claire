@@ -56,7 +56,8 @@ EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
 CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/CLAIREUtilsKernel.cu \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
-		$(SRCDIR)/Differentiation/DifferentiationKernel.cu
+		$(SRCDIR)/Differentiation/DifferentiationKernel.cu \
+		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
