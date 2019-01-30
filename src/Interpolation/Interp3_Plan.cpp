@@ -717,8 +717,7 @@ void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals,
 	}
 
 	timings[1] += -MPI_Wtime();
-//#ifdef FAST_INTERP
-#if 0
+#ifdef FAST_INTERP
 #ifdef FAST_INTERPV
   const int N_reg3 = isize_g[0] * isize_g[1] * isize_g[2];
   const int* N_reg_c = N_reg;
@@ -746,7 +745,7 @@ void Interp3_Plan::interpolate(Real* __restrict ghost_reg_grid_vals,
   if(total_query_points!=0)
 	 interp3_ghost_xyz_p(ghost_reg_grid_vals, data_dofs_[version], N_reg, N_reg_g, isize_g,
 			istart, total_query_points, g_size, &all_query_points[0], &all_f_cubic[0],
-			3, true);
+			true);
 #endif
 	timings[1] += +MPI_Wtime();
 
