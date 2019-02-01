@@ -32,6 +32,13 @@
   #define DebugGPUNotImplemented() 0
 #endif
 
+#define DebugNotImplemented() ThrowError("Not implemented")
+
+#define WrngMsg(str) WrngMsgCall(str, __LINE__, __FILE__);
+#define ThrowError(str) ThrowErrorMsg(str, __LINE__, __FILE__)
+#define DbgMsg(str) DbgMsgCall(str, __LINE__, __FILE__)
+
+
 using IntType = PetscInt;
 using ScalarType = PetscReal;
 

@@ -152,7 +152,6 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
     
     if (this->m_TransportProblem == nullptr) {
         ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
-        this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral);
     }
     
     if (this->m_Opt->m_PDESolver.type == SL) {
@@ -1535,7 +1534,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
     }
-    ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
@@ -1713,7 +1711,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
     }
-    ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetIncControlVariable(this->m_IncVelocityField); CHKERRQ(ierr);
@@ -1808,7 +1805,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
     }
-    ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);

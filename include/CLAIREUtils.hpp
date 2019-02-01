@@ -58,11 +58,10 @@ namespace reg {
 PetscErrorCode Assert(bool, std::string);
 
 /*! throw error (PETSc interface) */
-PetscErrorCode ThrowError(std::string);
-
+PetscErrorCode ThrowErrorMsg(std::string, int, const char*);
 /*! throw error (PETSc interface) */
-PetscErrorCode ThrowError(std::bad_alloc&);
-PetscErrorCode ThrowError(std::exception&);
+PetscErrorCode ThrowErrorMsg(std::bad_alloc&, int, const char*);
+PetscErrorCode ThrowErrorMsg(std::exception&, int, const char*);
 
 
 /*! mpi error handling */
@@ -80,11 +79,11 @@ bool FileExists(const std::string&);
 /*! display message (PETSc interface) */
 PetscErrorCode Msg(std::string);
 
+
 /*! display warning message (PETSc interface) */
-PetscErrorCode WrngMsg(std::string);
+PetscErrorCode WrngMsgCall(std::string, int, const char*);
 
 /*! display dgb message (PETSc interface) */
-#define DbgMsg(str) DbgMsgCall(str, __LINE__, __FILE__)
 PetscErrorCode DbgMsgCall(std::string);
 PetscErrorCode DbgMsgCall(std::string, int, const char*);
 

@@ -79,6 +79,9 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_FFT.ostart[0] = opt.m_FFT.ostart[0];
     this->m_FFT.ostart[1] = opt.m_FFT.ostart[1];
     this->m_FFT.ostart[2] = opt.m_FFT.ostart[2];
+    
+    this->m_Diff.diffReg = SPECTRAL;
+    this->m_Diff.diffPDE = SPECTRAL;
 
     this->m_Domain.nl = opt.m_Domain.nl;
     this->m_Domain.ng = opt.m_Domain.ng;
@@ -570,6 +573,30 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 this->m_KrylovMethod.name = "GMRES";
             } else {
                 msg = "\n\x1b[31m optimization method not defined: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(); CHKERRQ(ierr);
+            }
+        } else if (strcmp(argv[1], "-diffreg") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "spectral") == 0) {
+                this->m_Diff.diffReg = SPECTRAL;
+            } else if (strcmp(argv[1], "finite") == 0) {
+                this->m_Diff.diffReg = FINITE;
+            } else if (strcmp(argv[1], "mixed") == 0) {
+                this->m_Diff.diffReg = MIXED;
+            } else {
+                msg = "\n\x1b[31m differentiation method not defined: %s\x1b[0m\n";
+                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                ierr = this->Usage(); CHKERRQ(ierr);
+            }
+        } else if (strcmp(argv[1], "-diffpde") == 0) {
+            argc--; argv++;
+            if (strcmp(argv[1], "spectral") == 0) {
+                this->m_Diff.diffPDE = SPECTRAL;
+            } else if (strcmp(argv[1], "finite") == 0) {
+                this->m_Diff.diffPDE = FINITE;
+            } else {
+                msg = "\n\x1b[31m differentiation method not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
@@ -1070,6 +1097,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FFT.threshold = 0.;
 #endif
 
+    this->m_Diff.diffPDE = SPECTRAL;
+    this->m_Diff.diffReg = SPECTRAL;
+
     this->m_Domain = {};
     this->m_Domain.nl = 0;
     this->m_Domain.ng = 0;
@@ -1567,6 +1597,15 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             this parameter controls a penalty on divergence of the velocity, i.e.," << std::endl;
         std::cout << "                             the incompressibility; the penalty is enabled via '-regnorm h1-div'" << std::endl;
         std::cout << "                             option; details can be found above;" << std::endl;
+        std::cout << " -diffreg <type>             differentiation scheme for regularization" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 spectral      Spectral differentiation(default)" << std::endl;
+        std::cout << "                                 finite        Finite differences" << std::endl;
+        std::cout << "                                 mixed         FD for 1st order, else spectral" << std::endl;
+        std::cout << " -diffpde <type>             differentiation scheme for transport equations" << std::endl;
+        std::cout << "                             <type> is one of the following" << std::endl;
+        std::cout << "                                 spectral      Spectral differentiation(default)" << std::endl;
+        std::cout << "                                 finite        Finite differences" << std::endl;
         std::cout << " -scalecont                  enable scale continuation (continuation in smoothness of images;" << std::endl;
         std::cout << "                             i.e., use a multi-scale scheme to solve optimization problem)" << std::endl;
         std::cout << " -gridcont                   enable grid continuation (continuation in resolution of images;" << std::endl;
@@ -2645,6 +2684,16 @@ PetscErrorCode RegOpt::ResetTimers() {
     PetscFunctionBegin;
 
     this->Enter(__func__);
+    
+    if (this->m_Verbosity > 2) {
+        ierr = DbgMsg("resetting timers"); CHKERRQ(ierr);
+    }
+    
+#ifdef ZEITGEIST
+    for (auto zg : ZeitGeist::zgMap()) {
+      zg.second.Reset();
+    }
+#endif
 
     for (int i = 0; i < NTIMERS; ++i) {
         if (i != FFTSETUP) {

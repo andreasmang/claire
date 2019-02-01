@@ -85,7 +85,11 @@ enum GlobalMethType{
     IPMLS,       ///<
 };
 
-
+enum DifferentiationType {
+    SPECTRAL,    ///< spectral differentiation
+    FINITE,      ///< finite difference differentiation
+    MIXED        ///< FD for 1st order, Spectral for higher order
+};
 
 
 /*! hessian mat vec type */
@@ -407,13 +411,8 @@ struct Distance {
     ScalarType scale;
 };
 
-
-
 struct FourierTransform {
     FFTPlanType* plan;  ///< accfft plan
-    //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* plan;  ///< accfft plan
-    //accfft_plan_t<double, Complex, fftw_plan>* plan;  ///< accfft plan
-    //accfft_plan* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft
     bool mpicommexists; ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain
@@ -422,6 +421,10 @@ struct FourierTransform {
     ScalarType threshold; ///< threshold to cut of frequencies to zero
 };
 
+struct DifferentiationScheme {
+    DifferentiationType diffReg;
+    DifferentiationType diffPDE;
+};
 
 struct RegFlags {
     bool applysmoothing;         ///< apply smoothing to images
@@ -580,8 +583,9 @@ class RegOpt {
     RegFlags m_RegFlags {};              ///< flags for registration
     Monitor m_Monitor {};                ///< monitor for registration
     RegNorm m_RegNorm {};                ///< parameters for regularization model
-    Distance m_Distance {};                  ///< parameters for distance measure
+    Distance m_Distance {};              ///< parameters for distance measure
     FourierTransform m_FFT {};           ///< parameters for FFT/accfft
+    DifferentiationScheme m_Diff {};     ///< differentiation schemes
     ParCont m_ParaCont {};               ///< flags for parameter continuation
     SolveType m_SolveType {};            ///< solver
     FileNames m_FileNames {};            ///< file names for input/output

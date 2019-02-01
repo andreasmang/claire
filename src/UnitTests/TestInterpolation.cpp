@@ -80,9 +80,9 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
         
         TestFunction(grid[i], x1, x2, x3);
     
-        //x1 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
-        //x2 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
-        //x3 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        x1 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        x2 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        x3 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
         
         TestFunction(ref[i], x1, x2, x3);
         eval[i] = 0.;
@@ -100,7 +100,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
     }  // i2
   }  // i3
 
-/*
+
 #ifdef REG_HAS_CUDA
   ScalarType *pg, *pq1, *pq2, *pq3, *pe;
   
@@ -135,7 +135,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
 #else
   std::cout << "unit test not implemented" << std::endl;
 #endif
-*/
+
   
   double error = 0;
   double max = 0;

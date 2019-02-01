@@ -185,25 +185,79 @@ __global__ void gradient_x(ScalarType* dfx, const ScalarType* f) {
 
 }
 
+__global__ void TextureDivXComputeKernel(cudaTextureObject_t tex, ScalarType* div) {
+    const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
+    const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
+    
+    if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
+      // global index
+      const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
+      float3 id = make_float3( tidz*d_invnz, tidy*d_invny, tidx*d_invnx);
+      
+      float dfx=0;
+      for(int l=1; l<HALO+1; l++) {
+          dfx += (tex3D<float>(tex, id.x, id.y, id.z + l*d_invnx) - tex3D<float>(tex, id.x, id.y, id.z - l*d_invnx))*d_cx[l-1];
+      }
+      div[gid] = dfx;
+    }
+}
+__global__ void TextureDivYComputeKernel(cudaTextureObject_t tex, ScalarType* div) {
+    const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
+    const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
+    
+    if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
+      // global index
+      const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
+      float3 id = make_float3( tidz*d_invnz, tidy*d_invny, tidx*d_invnx);
+      
+      float dfy=0;
+      for(int l=1; l<HALO+1; l++) {
+          dfy += (tex3D<float>(tex, id.x, id.y + l*d_invny, id.z) - tex3D<float>(tex, id.x, id.y - l*d_invny, id.z))*d_cy[l-1];
+      }
+      div[gid] += dfy;
+    }
+}
+__global__ void TextureDivZComputeKernel(cudaTextureObject_t tex, ScalarType* div) {
+    const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
+    const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
+    
+    if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
+      // global index
+      const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
+      float3 id = make_float3( tidz*d_invnz, tidy*d_invny, tidx*d_invnx);
+      
+      float dfz=0;
+      for(int l=1; l<HALO+1; l++) {
+          dfz += (tex3D<float>(tex, id.x + l*d_invnz, id.y, id.z) - tex3D<float>(tex, id.x - l*d_invnz, id.y, id.z))*d_cz[l-1];
+      }
+      div[gid] += dfz;
+    }
+}
+
+
 __global__ void TextureGradientComputeKernel(cudaTextureObject_t tex, ScalarType* dmx, ScalarType* dmy, ScalarType* dmz) {
     const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
     const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
     
-    
-    // global index
-    const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
-    float3 id = make_float3( tidz*d_invnz, tidy*d_invny, tidx*d_invnx);
-    
-    float dfx=0,dfy=0,dfz=0;
-    for(int l=1; l<HALO+1; l++) {
-        dfz += (tex3D<float>(tex, id.x + l*d_invnz, id.y, id.z) - tex3D<float>(tex, id.x - l*d_invnz, id.y, id.z))*d_cz[l-1];
-        dfy += (tex3D<float>(tex, id.x, id.y + l*d_invny, id.z) - tex3D<float>(tex, id.x, id.y - l*d_invny, id.z))*d_cy[l-1];
-        dfx += (tex3D<float>(tex, id.x, id.y, id.z + l*d_invnx) - tex3D<float>(tex, id.x, id.y, id.z - l*d_invnx))*d_cx[l-1];
+    if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
+      // global index
+      const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
+      float3 id = make_float3( tidz*d_invnz, tidy*d_invny, tidx*d_invnx);
+      
+      float dfx=0,dfy=0,dfz=0;
+      for(int l=1; l<HALO+1; l++) {
+          dfz += (tex3D<float>(tex, id.x + l*d_invnz, id.y, id.z) - tex3D<float>(tex, id.x - l*d_invnz, id.y, id.z))*d_cz[l-1];
+          dfy += (tex3D<float>(tex, id.x, id.y + l*d_invny, id.z) - tex3D<float>(tex, id.x, id.y - l*d_invny, id.z))*d_cy[l-1];
+          dfx += (tex3D<float>(tex, id.x, id.y, id.z + l*d_invnx) - tex3D<float>(tex, id.x, id.y, id.z - l*d_invnx))*d_cx[l-1];
+      }
+      dmz[gid] = dfz;
+      dmy[gid] = dfy;
+      dmx[gid] = dfx;
     }
-    dmz[gid] = dfz;
-    dmy[gid] = dfy;
-    dmx[gid] = dfx;
 }
 
 
@@ -325,18 +379,95 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
 
 }
 
+PetscErrorCode initConstants(IntType* nx) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[0]),
+                                        1.0f/static_cast<float>(nx[1]), 
+                                        1.0f/static_cast<float>(nx[2]));
+  const float3 hx = make_float3(2*M_PI/(nx[0]), 2*M_PI/(nx[1]), 2*M_PI/(nx[2]));
+  const float3 inv_hx = make_float3(0.5f/hx.x, 0.5f/hx.y, 0.5f/hx.z);
+  
+  cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
+
+  cudaMemcpyToSymbol(d_invnx, &inv_nx.x, sizeof(float), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_invny, &inv_nx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_invnz, &inv_nx.z, sizeof(float), 0, cudaMemcpyHostToDevice);
+
+  cudaMemcpyToSymbol(d_invhx, &inv_hx.x, sizeof(float), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_invhy, &inv_hx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_invhz, &inv_hx.z, sizeof(float), 0, cudaMemcpyHostToDevice);
+  
+  float h_c[HALO] = {4.f / 5.f , -1.f / 5.f , 4.f / 105.f, -1.f / 280.f};
+  float h_ct[HALO];
+  for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.x;
+  cudaMemcpyToSymbol(d_cx, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
+  for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.y;
+  cudaMemcpyToSymbol(d_cy, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
+  for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.z;
+  cudaMemcpyToSymbol(d_cz, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
+  
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode computeTextureDivergence(ScalarType* l, const ScalarType* g1, const ScalarType* g2, const ScalarType* g3, cudaTextureObject_t mtex, IntType* nx) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+   // create a cudaExtent for input resolution
+  cudaExtent extent = make_cudaExtent(nx[2], nx[1], nx[0]);
+  
+  // Texture gradient
+  dim3 threadsPerBlock(1,8,32);
+  dim3 numBlocks(nx[0]/threadsPerBlock.x, (nx[1]+7)/threadsPerBlock.y, (nx[2]+31)/threadsPerBlock.z);
+  
+  cudaPitchedPtr m_cudaPitchedPtr;
+  
+  // make input image a cudaPitchedPtr for m
+  m_cudaPitchedPtr = make_cudaPitchedPtr((void*)(g1), nx[2]*sizeof(ScalarType), nx[2], nx[1]);
+  // update texture object
+  updateTextureFromVolume(m_cudaPitchedPtr, extent, mtex);
+
+  TextureDivXComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, l);
+  cudaCheckKernelError();
+  cudaDeviceSynchronize();
+  
+  // make input image a cudaPitchedPtr for m
+  m_cudaPitchedPtr = make_cudaPitchedPtr((void*)(g2), nx[2]*sizeof(ScalarType), nx[2], nx[1]);
+  // update texture object
+  updateTextureFromVolume(m_cudaPitchedPtr, extent, mtex);
+
+  TextureDivYComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, l);
+  cudaCheckKernelError();
+  cudaDeviceSynchronize();
+  
+  // make input image a cudaPitchedPtr for m
+  m_cudaPitchedPtr = make_cudaPitchedPtr((void*)(g3), nx[2]*sizeof(ScalarType), nx[2], nx[1]);
+  // update texture object
+  updateTextureFromVolume(m_cudaPitchedPtr, extent, mtex);
+
+  TextureDivZComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, l);
+  cudaCheckKernelError();
+  cudaDeviceSynchronize();
+  
+  
+  PetscFunctionReturn(ierr);
+}
 
 PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType* gz, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    float time=0, dummy_time=0;
-    int repcount = 1;
-    cudaEvent_t startEvent, stopEvent;
-    cudaEventCreate(&startEvent);
-    cudaEventCreate(&stopEvent);
+    //float time=0, dummy_time=0;
+    //int repcount = 1;
+    //cudaEvent_t startEvent, stopEvent;
+    //cudaEventCreate(&startEvent);
+    //cudaEventCreate(&stopEvent);
 
-    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[0]),
+    /*const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[0]),
                                         1.0f/static_cast<float>(nx[1]), 
                                         1.0f/static_cast<float>(nx[2]));
     const float3 hx = make_float3(2*M_PI/(nx[0]), 2*M_PI/(nx[1]), 2*M_PI/(nx[2]));
@@ -363,15 +494,15 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.y;
     cudaMemcpyToSymbol(d_cy, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
     for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.z;
-    cudaMemcpyToSymbol(d_cz, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_cz, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);*/
 
     // create a common cudaResourceDesc objects
-    struct cudaResourceDesc resDesc;
-    memset(&resDesc, 0, sizeof(resDesc));
+    //struct cudaResourceDesc resDesc;
+    //memset(&resDesc, 0, sizeof(resDesc));
    
 
     // make input image a cudaPitchedPtr for m
-    cudaPitchedPtr m_cudaPitchedPtr = make_cudaPitchedPtr((void*)(m), nx[2]*sizeof(float), nx[2], nx[1]);
+    cudaPitchedPtr m_cudaPitchedPtr = make_cudaPitchedPtr((void*)(m), nx[2]*sizeof(ScalarType), nx[2], nx[1]);
     
     // create a cudaExtent for input resolution
     cudaExtent extent = make_cudaExtent(nx[2], nx[1], nx[0]);
@@ -382,11 +513,10 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
  
     // Texture gradient
     dim3 threadsPerBlock(1,8,32);
-    dim3 numBlocks(nx[0]/threadsPerBlock.x, nx[1]/threadsPerBlock.y, nx[2]/threadsPerBlock.z);
+    dim3 numBlocks(nx[0]/threadsPerBlock.x, (nx[1]+7)/threadsPerBlock.y, (nx[2]+31)/threadsPerBlock.z);
     TextureGradientComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, gx, gy, gz);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup gradz kernel\n");
     cudaCheckKernelError();
+    cudaDeviceSynchronize();
 /*
     // Z-Gradient
     dim3 threadsPerBlock_z(sy, sx, 1);
@@ -413,16 +543,17 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     cudaCheckKernelError();
 */    
     // start recording the interpolation kernel
-    time = 0; dummy_time = 0; 
+    /*time = 0; dummy_time = 0; 
     cudaEventRecord(startEvent,0); 
     
 
     for (int rep=0; rep<repcount; rep++) { 
-        TextureGradientComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, gx, gy, gz);  
+        TextureGradientComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, gx, gy, gz);  */
 /*        gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz, m);
         gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
         gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
-*/        if ( cudaSuccess != cudaGetLastError())
+*/
+/*        if ( cudaSuccess != cudaGetLastError())
                     printf("Error in running gradx kernel\n");
         cudaCheckKernelError();
     }
@@ -436,7 +567,7 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     cudaEventDestroy(stopEvent);
     
     // print interpolation time and number of interpolations in Mvoxels/sec
-    printf("> gradient avg eval time = %fmsec\n", time/repcount);
+    printf("> gradient avg eval time = %fmsec\n", time/repcount);*/
     //*interp_time += time;
     
     PetscFunctionReturn(ierr);

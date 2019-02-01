@@ -1738,7 +1738,7 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     scale  = this->m_Opt->ComputeFFTScale();
 
     ierr = AllocateOnce(spectral, this->m_Opt);
-    ierr = spectral->SetupSpectralData(); CHKERRQ(ierr);
+    //ierr = spectral->SetupSpectralData(); CHKERRQ(ierr);
     //if (this->m_xhat == nullptr) {
     //    this->m_xhat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
     //}

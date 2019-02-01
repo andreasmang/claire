@@ -47,16 +47,16 @@ class DifferentiationSM : public Differentiation {
     virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*);
     virtual PetscErrorCode Gradient(VecField*, const ScalarType*);
     virtual PetscErrorCode Gradient(VecField*, const Vec);
+    
     virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Laplacian(Vec, const Vec);
     virtual PetscErrorCode Laplacian(VecField*, VecField*);
+    
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*const*);
     virtual PetscErrorCode Divergence(ScalarType*, VecField*);
     virtual PetscErrorCode Divergence(Vec, VecField*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*);
     
     virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
@@ -70,11 +70,11 @@ class DifferentiationSM : public Differentiation {
     
     virtual PetscErrorCode GaussianFilter(ScalarType*, const ScalarType*, const ScalarType*);
     
-    virtual PetscErrorCode SetupSpectralData(ComplexType* =nullptr, ComplexType* =nullptr, ComplexType* =nullptr);
-
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    
+    PetscErrorCode SetupData(ComplexType* =nullptr, ComplexType* =nullptr, ComplexType* =nullptr);
     
     PetscErrorCode ComputeForwardFFT(VecField*);
     PetscErrorCode ComputeForwardFFT(const ScalarType*,const ScalarType*,const ScalarType*);

@@ -90,8 +90,8 @@ PetscErrorCode Regularization::SetSpectralData(ComplexType* xhat1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
-    ierr = static_cast<DifferentiationSM*>(this->m_Differentiation)->SetupSpectralData(xhat1, xhat2, xhat3); CHKERRQ(ierr);
+    //ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
+    //ierr = this->m_Differentiation->SetupData(xhat1, xhat2, xhat3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

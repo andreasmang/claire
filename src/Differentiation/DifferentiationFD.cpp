@@ -21,6 +21,7 @@
 #define _DIFFERENTIATIONFD_CPP_
 
 #include "DifferentiationFD.hpp"
+#include "TextureDifferentiationKernel.hpp"
 
 
 
@@ -67,11 +68,8 @@ PetscErrorCode DifferentiationFD::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    this->m_grad[0] = nullptr;
-    this->m_grad[1] = nullptr;
-    this->m_grad[2] = nullptr;
-
     ierr = this->SetupData(); CHKERRQ(ierr);
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -83,32 +81,9 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     PetscErrorCode ierr = 0;
     IntType nalloc;
     PetscFunctionBegin;
-    
-    nalloc = this->m_Opt->m_Domain.nl;
-    
-    if (!x1) {
-      ierr = AllocateMemoryOnce(this->m_grad[0], nalloc); CHKERRQ(ierr);
-    } else {
-      this->m_grad[1] = x1;
-    }
-    if (!x2) {
-      ierr = AllocateMemoryOnce(this->m_grad[1], nalloc); CHKERRQ(ierr);
-    } else {
-      this->m_grad[1] = x2;
-    }
-    if (!x3) {
-      ierr = AllocateMemoryOnce(this->m_grad[2], nalloc); CHKERRQ(ierr);
-    } else {
-      this->m_grad[2] = x3;
-    }
 
-    ierr = AllocateMemoryOnce(this->m, nalloc); CHKERRQ(ierr);
-    
-    for (unsigned int i = 0; i < 3; ++i) {
-        this->nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-    }
-
-    this->mtex = gpuInitEmptyGradientTexture(this->nx);
+    this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
+    ierr = initConstants(this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -120,11 +95,6 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
 PetscErrorCode DifferentiationFD::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    
-    ierr = FreeMemory(this->m_grad[0]); CHKERRQ(ierr);
-    ierr = FreeMemory(this->m_grad[1]); CHKERRQ(ierr);
-    ierr = FreeMemory(this->m_grad[2]); CHKERRQ(ierr);
-    ierr = FreeMemory(this->m); CHKERRQ(ierr);
 
     if (this->mtex != 0) {
         cudaDestroyTextureObject(this->mtex);
@@ -143,14 +113,7 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    // TODO texture kernel call to compute gradient
-    //size_t count = sizeof(this->m_Opt->m_Domain.nl);
-    //cudaMemcpy((void*)this->m, (const void*)m, count, cudaMemcpyHostToDevice);
-    ierr = computeTextureGradient(g1, g2, g3, m, this->mtex, this->nx); CHKERRQ(ierr);
-
-    //cudaMemcpy((void*)g1, (const void*)this->m_grad[0], count, cudaMemcpyDeviceToHost);     
-    //cudaMemcpy((void*)g2, (const void*)this->m_grad[1], count, cudaMemcpyDeviceToHost);     
-    //cudaMemcpy((void*)g3, (const void*)this->m_grad[2], count, cudaMemcpyDeviceToHost);     
+    ierr = computeTextureGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -161,7 +124,14 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Gradient(VecField *g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
     PetscFunctionBegin;
+    
+    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
+    
+    ierr = this->Gradient(g1, g2, g3, m); CHKERRQ(ierr);
+    
+    ierr = g->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -172,6 +142,8 @@ PetscErrorCode DifferentiationFD::Gradient(VecField *g, const ScalarType *m) {
 PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = this->Gradient(g[0], g[1], g[2], m); CHKERRQ(ierr);
             
     PetscFunctionReturn(ierr);
 }
@@ -207,6 +179,8 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
                                             const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -218,6 +192,8 @@ PetscErrorCode DifferentiationFD::Laplacian(VecField *l,
                                             VecField *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -229,6 +205,8 @@ PetscErrorCode DifferentiationFD::Laplacian(Vec l,
                                             const Vec m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -245,6 +223,8 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
                                             const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -258,6 +238,8 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
                                              const ScalarType *v3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    ierr = computeTextureDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -268,7 +250,14 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, VecField *v) {
     PetscErrorCode ierr = 0;
+    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
     PetscFunctionBegin;
+    
+    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = this->Divergence(l, v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -278,7 +267,17 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, VecField *v) {
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Divergence(Vec l, VecField *v) {
     PetscErrorCode ierr = 0;
+    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
+    ScalarType *pl;
     PetscFunctionBegin;
+    
+    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(l, &pl); CHKERRQ(ierr);
+    
+    ierr = this->Divergence(pl, v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointerWrite(l, &pl); CHKERRQ(ierr);
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -290,42 +289,17 @@ PetscErrorCode DifferentiationFD::Divergence(Vec l, VecField *v) {
 PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, const ScalarType *const *v) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+        
+    ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
     
-    PetscFunctionReturn(ierr);
-}
-
-
-
-/********************************************************************
- * @brief compute biharmonic operator of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b,
-                                             const ScalarType *m) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
- * @brief compute biharmonic operator of a vector field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Biharmonic(ScalarType *b1,
-                                             ScalarType *b2,
-                                             ScalarType *b3,
-                                             const ScalarType *v1,
-                                             const ScalarType *v2,
-                                             const ScalarType *v3) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-
     PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+  
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);
 }
@@ -333,17 +307,23 @@ PetscErrorCode DifferentiationFD::RegBiLapOp(VecField* bv, VecField* v, ScalarTy
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+
   PetscFunctionReturn(ierr);
 }
 PetscErrorCode DifferentiationFD::RegTriLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+
   PetscFunctionReturn(ierr);
 }
 PetscErrorCode DifferentiationFD::RegTriLapFunc(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);
 }
@@ -352,11 +332,15 @@ PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool us
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+
   PetscFunctionReturn(ierr);
 }
 PetscErrorCode DifferentiationFD::InvRegBiLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);
 }
@@ -364,12 +348,16 @@ PetscErrorCode DifferentiationFD::InvRegTriLapOp(VecField* bv, VecField* v, bool
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+
   PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode DifferentiationFD::LerayOperator(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);
 }

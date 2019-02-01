@@ -79,7 +79,7 @@ PetscErrorCode DifferentiationSM::Initialize() {
     this->m_planR2C = nullptr;
 #endif
     
-    ierr = this->SetupSpectralData(); CHKERRQ(ierr);
+    ierr = this->SetupData(); CHKERRQ(ierr);
         
     PetscFunctionReturn(ierr);
 }
@@ -109,7 +109,7 @@ PetscErrorCode DifferentiationSM::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode DifferentiationSM::SetupSpectralData(ComplexType *x1, ComplexType *x2, ComplexType *x3) {
+PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, ComplexType *x3) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
     PetscFunctionBegin;
@@ -440,58 +440,6 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l, const ScalarType *co
         
     ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
     
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief compute biharmonic operator of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b,
-                                             const ScalarType *m) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    DebugGPUStartEvent("FFT Biharmonic");
-    
-    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
-    
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_biharmonic_t(b, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    
-    this->m_Opt->IncreaseFFTTimers(timer);
-    
-    DebugGPUStopEvent();
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief compute biharmonic operator of a vector field
- *******************************************************************/
-PetscErrorCode DifferentiationSM::Biharmonic(ScalarType *b1,
-                                             ScalarType *b2,
-                                             ScalarType *b3,
-                                             const ScalarType *v1,
-                                             const ScalarType *v2,
-                                             const ScalarType *v3) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    DebugGPUStartEvent("FFT Biharmonic Field");
-    
-    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
-    
-    this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_biharmonic_t(b1, const_cast<ScalarType*>(v1), this->m_Opt->m_FFT.plan, timer);
-    accfft_biharmonic_t(b2, const_cast<ScalarType*>(v2), this->m_Opt->m_FFT.plan, timer);
-    accfft_biharmonic_t(b3, const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);
-    this->m_Opt->StopTimer(FFTSELFEXEC);
-    
-    this->m_Opt->IncreaseFFTTimers(timer);
-    
-    DebugGPUStopEvent();
-
     PetscFunctionReturn(ierr);
 }
 

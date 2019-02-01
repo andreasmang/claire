@@ -467,25 +467,27 @@ __global__ void interp3D_kernel(
         const PetscScalar* yq,
         const PetscScalar* zq, 
         PetscScalar* yo,
-        const float3 inv_nx)
+        const float3 inv_nx, int nq)
 {
     // Get thread index 
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
     
-    //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-    //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-    //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-    yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    if (tid < nq) {
+      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
+      
+      //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+      //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+      //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+      yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
-/*    const float h = 2*PI*inv_nx.x;
-    const float3 q = qcoord*h;
-    float votrue = computeVx(q.z, q.y, q.x);
-    if (tid>=60 && tid<70) {
-        printf("tidz = %d  x = %f  y = %f  z = %f  vi = %f  vo = %f  votrue  = %f\n",tid, qcoord.x, qcoord.y, qcoord.z, *((float*)(yi.ptr)+tid), yo[tid], votrue);
+  /*    const float h = 2*PI*inv_nx.x;
+      const float3 q = qcoord*h;
+      float votrue = computeVx(q.z, q.y, q.x);
+      if (tid>=60 && tid<70) {
+          printf("tidz = %d  x = %f  y = %f  z = %f  vi = %f  vo = %f  votrue  = %f\n",tid, qcoord.x, qcoord.y, qcoord.z, *((float*)(yi.ptr)+tid), yo[tid], votrue);
+      }
+  */
     }
-*/
-
 }
 
 
@@ -522,7 +524,7 @@ void gpuInterp3D(
                                         1.0f/static_cast<float>(nx[0]));
     // define nxq, the dimensions of the grid
     const float3 nxq = make_float3( nx[0], nx[1], nx[2]);
-    long int nq = nx[0]*nx[1]*nx[2]; 
+    int nq = nx[0]*nx[1]*nx[2]; 
 
     // create a common cudaResourceDesc objects
     struct cudaResourceDesc resDesc;
@@ -540,14 +542,14 @@ void gpuInterp3D(
     updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
 
     int threads = 256;
-    int blocks = nq/threads;
+    int blocks = (nq+255)/threads;
     
     // start recording the interpolation kernel
     time = 0; dummy_time = 0; 
     cudaEventRecord(startEvent,0); 
     
     // launch the interpolation kernel
-    interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx);
+    interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
     cudaCheckKernelError();
 
     cudaEventRecord(stopEvent,0);

@@ -28,38 +28,6 @@
 namespace reg {
   
 /********************************************************************
- * @brief view vector entries (transpose output)
- *******************************************************************/
-PetscErrorCode VecView(Vec x) {
-    PetscErrorCode ierr = 0;
-    ScalarType *p_x = NULL;
-    IntType nl;
-    int rank;
-    PetscFunctionBegin;
-    
-    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
-
-    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
-    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
-    if (rank == 0) {
-        std::cout << " VEC VIEW" << std::endl;
-        std::cout << " ";
-        for (IntType i = 0; i < nl; ++i) {
-            std::cout << p_x[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
  * @brief interface to create vector
  *******************************************************************/
 PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
@@ -76,97 +44,6 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
 
     PetscFunctionReturn(ierr);
 }
-
-
-/********************************************************************
- * @brief rescale data to [0,1]
- *******************************************************************/
-PetscErrorCode Normalize(Vec x, IntType nc) {
-    PetscErrorCode ierr = 0;
-    ScalarType xmin, xmax, xmin_g, xmax_g, *p_x = NULL;
-    IntType nl, l;
-    int rval;
-    std::stringstream ss;
-
-    PetscFunctionBegin;
-    
-    
-    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
-
-    if (nc == 1) {
-        // get max and min values
-        ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
-        ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
-
-        if (xmin < 0.0) {
-            ss << "negative values in input data detected "
-               << xmin << " (setting to zero)";
-            ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
-            ss.clear(); ss.str(std::string());
-
-            // compute local size from input vector
-            ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
-
-            xmin = 0.0; // resetting
-            ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-            for (IntType i = 0; i < nc*nl; ++i) {
-                if (p_x[i] < 0.0) p_x[i] = 0.0;
-            }
-            ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
-        }
-
-        ierr = VecShift(x, -xmin); CHKERRQ(ierr);
-        ierr = VecScale(x, 1.0/xmax); CHKERRQ(ierr);
-    } else {
-        // compute local size from input vector
-        ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
-        nl /= nc;
-        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {
-            xmin = std::numeric_limits<ScalarType>::max();
-            xmax = std::numeric_limits<ScalarType>::min();
-
-            // get min and max values
-            for (IntType i = 0; i < nl; ++i) {
-                l = k*nl + i;
-                if (p_x[l] < xmin) {xmin = p_x[l];}
-                if (p_x[l] > xmax) {xmax = p_x[l];}
-            }
-
-            // get min accross all procs
-            rval = MPI_Allreduce(&xmin, &xmin_g, 1, MPIU_REAL, MPI_MIN, PETSC_COMM_WORLD);
-            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
-
-            // get max accross all procs
-            rval = MPI_Allreduce(&xmax, &xmax_g, 1, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD);
-            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
-
-            if (xmin_g < 0.0) {
-                ss << "negative values in input data detected "
-                   << xmin << " (setting to zero)";
-                ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
-                ss.clear(); ss.str(std::string());
-
-                xmin_g = 0.0; // resetting
-                for (IntType i = 0; i < nl; ++i) {
-                    if (p_x[k*nl + i] < 0.0) p_x[k*nl + i] = 0.0;
-                }
-            }
-
-            // make sure we do not devide by zero
-            xmax_g = (xmax_g != 0.0) ? xmax_g : 1.0;
-
-            // apply shift and scale
-            for (IntType i = 0; i < nl; ++i) {
-                p_x[k*nl + i] = (p_x[k*nl + i] - xmin_g) / xmax_g;
-            }
-        }  // for all components
-        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
-    }  // if else
-
-    PetscFunctionReturn(ierr);
-}
-
 
 /********************************************************************
  * @brief clip image to be in [0,1]

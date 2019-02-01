@@ -26,7 +26,7 @@
 namespace reg {
   
 /*! throw error (PETSc interface) defined elsewhere */
-extern PetscErrorCode ThrowError(std::bad_alloc&);
+extern PetscErrorCode ThrowErrorMsg(std::bad_alloc&, int, const char*);
 /*
 template<class T> inline PetscErrorCode AllocateArray(T*& ptr, size_t N) {
   try {
@@ -53,7 +53,7 @@ template<class T> inline PetscErrorCode AllocateArrayOnce(T*& ptr, size_t N) {
     try {
       ptr = new T[N];
     } catch (std::bad_alloc& err) {
-      return reg::ThrowError(err);
+      return ThrowError(err);
     }
   }
   return 0;
@@ -63,7 +63,7 @@ template<class A, class T, class ... Args> inline PetscErrorCode AllocateOnce(T*
     try {
       ptr = new A(args...);
     } catch (std::bad_alloc& err) {
-      return reg::ThrowError(err);
+      return ThrowError(err);
     }
   }
   return 0;

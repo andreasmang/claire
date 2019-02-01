@@ -47,8 +47,6 @@ class Differentiation {
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*const*) = 0;
     virtual PetscErrorCode Divergence(ScalarType*, VecField*) = 0;
     virtual PetscErrorCode Divergence(Vec, VecField*) = 0;
-    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
-    virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*) = 0;
     
     virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0) = 0;
     virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0) = 0;
@@ -59,7 +57,7 @@ class Differentiation {
     virtual PetscErrorCode RegTriLapFunc(VecField*, VecField*, ScalarType, ScalarType=0.0) = 0;
     
     virtual PetscErrorCode LerayOperator(VecField*, VecField*, ScalarType, ScalarType) = 0;
-    
+        
     const Type m_Type;
 
  protected:

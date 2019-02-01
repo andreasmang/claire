@@ -23,14 +23,9 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "Differentiation.hpp"
-#include "TextureDifferentiationKernel.hpp"
-
 
 
 namespace reg {
-
-
-
 
 class DifferentiationFD : public Differentiation {
  public:
@@ -44,17 +39,19 @@ class DifferentiationFD : public Differentiation {
     virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*);
     virtual PetscErrorCode Gradient(VecField*, const ScalarType*);
     virtual PetscErrorCode Gradient(VecField*, const Vec);
+    
+    // Laplacian not implemented for FD
     virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Laplacian(Vec, const Vec);
     virtual PetscErrorCode Laplacian(VecField*, VecField*);
+    
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*const*);
     virtual PetscErrorCode Divergence(ScalarType*, VecField*);
     virtual PetscErrorCode Divergence(Vec, VecField*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
-    virtual PetscErrorCode Biharmonic(ScalarType*, const ScalarType*);
     
+    // Regularization Operators not implemented for FD
     virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegTriLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
@@ -63,27 +60,23 @@ class DifferentiationFD : public Differentiation {
     virtual PetscErrorCode InvRegTriLapOp(VecField*, VecField*, bool, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegTriLapFunc(VecField*, VecField*, ScalarType, ScalarType=0.0);
     
+    // Leray Operator not implemented for FD
     virtual PetscErrorCode LerayOperator(VecField*, VecField*, ScalarType, ScalarType);
     
-    virtual PetscErrorCode SetupData(ScalarType* =nullptr, ScalarType* =nullptr, ScalarType* =nullptr);
-
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
+    
+    PetscErrorCode SetupData(ScalarType* =nullptr, ScalarType* =nullptr, ScalarType* =nullptr);
+    
     cudaTextureObject_t mtex;
     
-    IntType nx[3];
-    ScalarType* m_grad[3];
-    ScalarType* m;
+    //IntType nx[3];
+    //ScalarType* m_grad[3];
+    //ScalarType* m;
 
 };
 
-
-
-
 }  // end of namespace
-
-
-
 
 #endif  // _DIFFERENTIATIONFD_HPP_

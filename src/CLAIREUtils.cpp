@@ -28,7 +28,120 @@
 namespace reg {
 
 
+/********************************************************************
+ * @brief rescale data to [0,1]
+ *******************************************************************/
+PetscErrorCode Normalize(Vec x, IntType nc) {
+    PetscErrorCode ierr = 0;
+    ScalarType xmin, xmax, xmin_g, xmax_g, *p_x = NULL;
+    IntType nl, l;
+    int rval;
+    std::stringstream ss;
 
+    PetscFunctionBegin;
+    
+    if (nc == 1) {
+        // get max and min values
+        ierr = VecMin(x, NULL, &xmin); CHKERRQ(ierr);
+        ierr = VecMax(x, NULL, &xmax); CHKERRQ(ierr);
+
+        if (xmin < 0.0) {
+            ss << "negative values in input data detected "
+               << xmin << " (setting to zero)";
+            ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+            ss.clear(); ss.str(std::string());
+
+            // compute local size from input vector
+            ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+
+            xmin = 0.0; // resetting
+            ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+            for (IntType i = 0; i < nc*nl; ++i) {
+                if (p_x[i] < 0.0) p_x[i] = 0.0;
+            }
+            ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+        }
+
+        ierr = VecShift(x, -xmin); CHKERRQ(ierr);
+        ierr = VecScale(x, 1.0/xmax); CHKERRQ(ierr);
+    } else {
+        // compute local size from input vector
+        ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+        nl /= nc;
+        ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+        for (IntType k = 0; k < nc; ++k) {
+            xmin = std::numeric_limits<ScalarType>::max();
+            xmax = std::numeric_limits<ScalarType>::min();
+
+            // get min and max values
+            for (IntType i = 0; i < nl; ++i) {
+                l = k*nl + i;
+                if (p_x[l] < xmin) {xmin = p_x[l];}
+                if (p_x[l] > xmax) {xmax = p_x[l];}
+            }
+
+            // get min accross all procs
+            rval = MPI_Allreduce(&xmin, &xmin_g, 1, MPIU_REAL, MPI_MIN, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            // get max accross all procs
+            rval = MPI_Allreduce(&xmax, &xmax_g, 1, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD);
+            ierr = Assert(rval == MPI_SUCCESS, "mpi reduce returned error"); CHKERRQ(ierr);
+
+            if (xmin_g < 0.0) {
+                ss << "negative values in input data detected "
+                   << xmin << " (setting to zero)";
+                ierr = WrngMsg(ss.str()); CHKERRQ(ierr);
+                ss.clear(); ss.str(std::string());
+
+                xmin_g = 0.0; // resetting
+                for (IntType i = 0; i < nl; ++i) {
+                    if (p_x[k*nl + i] < 0.0) p_x[k*nl + i] = 0.0;
+                }
+            }
+
+            // make sure we do not devide by zero
+            xmax_g = (xmax_g != 0.0) ? xmax_g : 1.0;
+
+            // apply shift and scale
+            for (IntType i = 0; i < nl; ++i) {
+                p_x[k*nl + i] = (p_x[k*nl + i] - xmin_g) / xmax_g;
+            }
+        }  // for all components
+        ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    }  // if else
+
+    PetscFunctionReturn(ierr);
+}
+  
+/********************************************************************
+ * @brief view vector entries (transpose output)
+ *******************************************************************/
+PetscErrorCode VecView(Vec x) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_x = NULL;
+    IntType nl;
+    int rank;
+    PetscFunctionBegin;
+
+    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
+    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
+
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    if (rank == 0) {
+        std::cout << " VEC VIEW" << std::endl;
+        std::cout << " ";
+        for (IntType i = 0; i < nl; ++i) {
+            std::cout << p_x[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
 
 /********************************************************************
  * @brief error handling: check if condition is valid, and if
@@ -253,13 +366,15 @@ PetscErrorCode DbgMsgCall(std::string msg, int line, const char *file) {
 /********************************************************************
  * @brief print warning msg (interfaces petsc)
  *******************************************************************/
-PetscErrorCode WrngMsg(std::string msg) {
+PetscErrorCode WrngMsgCall(std::string msg, int line, const char* file) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
+    std::stringstream ss2;
 
     PetscFunctionBegin;
 
-    ss << std::left << std::setw(98) << msg;
+    ss2 << file << ":" << line;
+    ss << std::setw(98-ss2.str().size()) << std::left << msg << std::right << ss2.str();
     msg = "\x1b[33m[ " + ss.str() + "]\x1b[0m\n";
 
     // display error
@@ -274,13 +389,14 @@ PetscErrorCode WrngMsg(std::string msg) {
 /********************************************************************
  * @brief throw error
  *******************************************************************/
-PetscErrorCode ThrowError(std::bad_alloc& err) {
+PetscErrorCode ThrowErrorMsg(std::bad_alloc& err, int line, const char *file) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
+
     PetscFunctionBegin;
 
     ss << "allocation error " << err.what();
-    ierr = ThrowError(ss.str()); CHKERRQ(ierr);
+    ierr = ThrowErrorMsg(ss.str(), line, file); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -291,13 +407,13 @@ PetscErrorCode ThrowError(std::bad_alloc& err) {
 /********************************************************************
  * @brief throw error
  *******************************************************************/
-PetscErrorCode ThrowError(std::exception& err) {
+PetscErrorCode ThrowErrorMsg(std::exception& err, int line, const char *file) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     PetscFunctionBegin;
 
     ss << "exception caught: " << err.what();
-    ierr = ThrowError(ss.str()); CHKERRQ(ierr);
+    ierr = ThrowErrorMsg(ss.str(), line, file); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -308,12 +424,16 @@ PetscErrorCode ThrowError(std::exception& err) {
 /********************************************************************
  * @brief throw error
  *******************************************************************/
-PetscErrorCode ThrowError(std::string msg) {
+PetscErrorCode ThrowErrorMsg(std::string msg, int line, const char *file) {
     PetscErrorCode ierr = 0;
+    std::stringstream ss;
+    std::stringstream ss2;
 
     PetscFunctionBegin;
 
-    std::string errmsg = "\x1b[31mERROR: " + msg + "\x1b[0m";
+    ss2 << file << ":" << line;
+    ss << std::setw(98-ss2.str().size()) << std::left << msg << std::right << ss2.str();
+    std::string errmsg = "\x1b[31mERROR: " + ss.str() + "\x1b[0m";
     ierr = PetscError(PETSC_COMM_WORLD, __LINE__, PETSC_FUNCTION_NAME, __FILE__, 1, PETSC_ERROR_INITIAL, errmsg.c_str()); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);

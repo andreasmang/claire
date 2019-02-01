@@ -13,7 +13,6 @@
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock()
 #define ZeitGeist_inc(NAME) NAME ## _zg.Inc()
-#define ZeitGeist_reset() ZeitGeist::ResetAll()
 #else
 #define ZeitGeist_define(NAME)
 #define ZeitGeist_tick(NAME)
@@ -41,9 +40,6 @@ public:
   static std::map<std::string, ZeitGeist>& zgMap () {
     static std::map<std::string, ZeitGeist> _zg;
     return _zg;
-  }
-  static void ResetAll () {
-    ZeitGeist::zgMap().clear();
   }
 
   ZeitGeist () {

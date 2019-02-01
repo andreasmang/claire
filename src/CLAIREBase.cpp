@@ -215,7 +215,7 @@ PetscErrorCode CLAIREBase::SetupSpectralData() {
     // TODO: possible to allocate spectral data twice (once here and once in Regularization)
     ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_Differentiation->m_Type == Differentiation::Spectral, "no spectral differentiation"); CHKERRQ(ierr);
-    ierr = static_cast<DifferentiationSM*>(this->m_Differentiation)->SetupSpectralData(); CHKERRQ(ierr);
+    //ierr = this->m_Differentiation->SetupData(); CHKERRQ(ierr);
     
     /*if (this->m_x1hat == NULL) {
 #ifndef REG_HAS_CUDA
@@ -768,7 +768,8 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
     }
 
     ierr = this->m_Regularization->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
-    ierr = this->m_Regularization->SetSpectralData(nullptr, nullptr, nullptr); CHKERRQ(ierr);
+    
+    //ierr = this->m_Regularization->SetSpectralData(); CHKERRQ(ierr);
 
     // set the containers for the spectral data
     /*ierr = this->SetupSpectralData(); CHKERRQ(ierr);
@@ -845,6 +846,17 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField3, 3); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 4); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 5); CHKERRQ(ierr);
+    
+    switch (this->m_Opt->m_Diff.diffPDE) {
+        case SPECTRAL:
+          ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+          break;
+        case FINITE:
+          ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Finite); CHKERRQ(ierr);
+          break;
+        default:
+          ierr = reg::ThrowError("differentiation scheme for transport problem not defined"); CHKERRQ(ierr);
+    }
     
 
     this->m_Opt->Exit(__func__);
