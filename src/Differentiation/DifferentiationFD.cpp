@@ -21,8 +21,10 @@
 #define _DIFFERENTIATIONFD_CPP_
 
 #include "DifferentiationFD.hpp"
-#include "TextureDifferentiationKernel.hpp"
 
+#ifdef REG_HAS_CUDA
+#include "TextureDifferentiationKernel.hpp"
+#endif
 
 
 
@@ -82,8 +84,10 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     IntType nalloc;
     PetscFunctionBegin;
 
+#ifdef REG_HAS_CUDA
     this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
     ierr = initConstants(this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#endif
     
     PetscFunctionReturn(ierr);
 }
@@ -96,9 +100,12 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+#ifdef REG_HAS_CUDA
     if (this->mtex != 0) {
         cudaDestroyTextureObject(this->mtex);
     }
+#endif
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -113,7 +120,11 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+#ifdef REG_HAS_CUDA
     ierr = computeTextureGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#else
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
+#endif
     
     PetscFunctionReturn(ierr);
 }
@@ -239,7 +250,11 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+#ifdef REG_HAS_CUDA
     ierr = computeTextureDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#else
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
+#endif
 
     PetscFunctionReturn(ierr);
 }

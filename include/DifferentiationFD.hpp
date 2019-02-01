@@ -69,12 +69,9 @@ class DifferentiationFD : public Differentiation {
     
     PetscErrorCode SetupData(ScalarType* =nullptr, ScalarType* =nullptr, ScalarType* =nullptr);
     
+#ifdef REG_HAS_CUDA
     cudaTextureObject_t mtex;
-    
-    //IntType nx[3];
-    //ScalarType* m_grad[3];
-    //ScalarType* m;
-
+#endif    
 };
 
 }  // end of namespace
