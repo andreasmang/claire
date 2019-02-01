@@ -36,17 +36,19 @@ class Differentiation {
     virtual ~Differentiation();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, const ScalarType*) = 0;
-    virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*) = 0;
-    virtual PetscErrorCode Gradient(VecField*, const ScalarType*) = 0;
-    virtual PetscErrorCode Gradient(VecField*, const Vec) = 0;
+    PetscErrorCode Gradient(ScalarType**, const ScalarType*);
+    PetscErrorCode Gradient(VecField*, const ScalarType*);
+    PetscErrorCode Gradient(VecField*, const Vec);
+    
     virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*) = 0;
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
-    virtual PetscErrorCode Laplacian(Vec, const Vec) = 0;
-    virtual PetscErrorCode Laplacian(VecField*, VecField*) = 0;
+    PetscErrorCode Laplacian(Vec, const Vec);
+    PetscErrorCode Laplacian(VecField*, VecField*);
+    
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*) = 0;
-    virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*const*) = 0;
-    virtual PetscErrorCode Divergence(ScalarType*, VecField*) = 0;
-    virtual PetscErrorCode Divergence(Vec, VecField*) = 0;
+    PetscErrorCode Divergence(ScalarType*, const ScalarType*const*);
+    PetscErrorCode Divergence(ScalarType*, VecField*);
+    PetscErrorCode Divergence(Vec, VecField*);
     
     virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0) = 0;
     virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0) = 0;

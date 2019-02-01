@@ -87,6 +87,146 @@ PetscErrorCode Differentiation::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
+PetscErrorCode Differentiation::Gradient(VecField *g, const ScalarType *m) {
+    PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
+    
+    ierr = this->Gradient(g1, g2, g3, m); CHKERRQ(ierr);
+    
+    ierr = g->RestoreArrays(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
+PetscErrorCode Differentiation::Gradient(ScalarType **g, const ScalarType *m) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    ierr = this->Gradient(g[0], g[1], g[2], m); CHKERRQ(ierr);
+            
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief compute gradient of a scalar field
+ *******************************************************************/
+PetscErrorCode Differentiation::Gradient(VecField *g, const Vec m) {
+    PetscErrorCode ierr = 0;
+    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
+    const ScalarType *pm = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(m, &pm); CHKERRQ(ierr);
+    
+    ierr = this->Gradient(g1, g2, g3, pm); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointerRead(m, &pm); CHKERRQ(ierr);
+    ierr = g->RestoreArrays(); CHKERRQ(ierr);
+            
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute laplacian of a scalar field
+ *******************************************************************/
+PetscErrorCode Differentiation::Laplacian(VecField *l,
+                                            VecField *m) {
+    PetscErrorCode ierr = 0;
+    ScalarType *l1 = nullptr, *l2 = nullptr, *l3 = nullptr;
+    const ScalarType *m1 = nullptr, *m2 = nullptr, *m3 = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = m->GetArraysRead(m1, m2, m3); CHKERRQ(ierr);
+    ierr = l->GetArraysWrite(l1, l2, l3); CHKERRQ(ierr);
+    
+    ierr = this->Laplacian(l1, l2, l3, m1, m2, m3); CHKERRQ(ierr);
+    
+    ierr = m->RestoreArrays(); CHKERRQ(ierr);
+    ierr = l->RestoreArrays(); CHKERRQ(ierr);
+    
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode Differentiation::Laplacian(Vec l, const Vec v) {
+    PetscErrorCode ierr = 0;
+    const ScalarType *pv = nullptr;
+    ScalarType *pl;
+    PetscFunctionBegin;
+    
+    ierr = GetRawPointerWrite(l, &pl); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(v, &pv); CHKERRQ(ierr);
+    
+    ierr = this->Laplacian(pl, pv); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointerWrite(l, &pl); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(v, &pv); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode Differentiation::Divergence(ScalarType *l, VecField *v) {
+    PetscErrorCode ierr = 0;
+    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
+    PetscFunctionBegin;
+    
+    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = this->Divergence(l, v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode Differentiation::Divergence(Vec l, VecField *v) {
+    PetscErrorCode ierr = 0;
+    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
+    ScalarType *pl;
+    PetscFunctionBegin;
+    
+    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(l, &pl); CHKERRQ(ierr);
+    
+    ierr = this->Divergence(pl, v1, v2, v3); CHKERRQ(ierr);
+    
+    ierr = RestoreRawPointerWrite(l, &pl); CHKERRQ(ierr);
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+
+/********************************************************************
+ * @brief compute divergence of a vector field
+ *******************************************************************/
+PetscErrorCode Differentiation::Divergence(ScalarType *l, const ScalarType *const *v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+        
+    ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
+    
+    PetscFunctionReturn(ierr);
+}
 
 
 

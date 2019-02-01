@@ -57,7 +57,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   //m_dif->SetupSpectralData();
   //m_fd->SetupData();
 
-  
+#ifdef REG_HAS_CUDA  
   ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // FD Grad
   ierr = m_fd->Gradient(dv, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
@@ -81,7 +81,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "FD grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
-  
+#endif
  
   ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // FFT grad 
   ierr = m_dif->Gradient(dv, v->m_X1); CHKERRQ(ierr);
@@ -107,6 +107,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 
+#ifdef REG_HAS_CUDA
   std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); // Div
   ierr = m_fd->Divergence(dv->m_X1, v); CHKERRQ(ierr);
@@ -117,6 +118,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "FD div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+#endif
 
   std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); // Div

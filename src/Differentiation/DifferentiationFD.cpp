@@ -119,68 +119,20 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
                                            const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FD Grad");
 
+    ZeitGeist_define(FD_GRAD);
+    ZeitGeist_tick(FD_GRAD);
 #ifdef REG_HAS_CUDA
     ierr = computeTextureGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
+    ZeitGeist_tock(FD_GRAD);
     
     PetscFunctionReturn(ierr);
 }
-
-
-/********************************************************************
- * @brief compute gradient of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Gradient(VecField *g, const ScalarType *m) {
-    PetscErrorCode ierr = 0;
-    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
-    PetscFunctionBegin;
-    
-    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
-    
-    ierr = this->Gradient(g1, g2, g3, m); CHKERRQ(ierr);
-    
-    ierr = g->RestoreArrays(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief compute gradient of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Gradient(ScalarType **g, const ScalarType *m) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = this->Gradient(g[0], g[1], g[2], m); CHKERRQ(ierr);
-            
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
- * @brief compute gradient of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Gradient(VecField *g, const Vec m) {
-    PetscErrorCode ierr = 0;
-    ScalarType *g1 = nullptr, *g2 = nullptr, *g3 = nullptr;
-    const ScalarType *pm = nullptr;
-    PetscFunctionBegin;
-    
-    ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
-    ierr = GetRawPointerRead(m, &pm); CHKERRQ(ierr);
-    
-    ierr = this->Gradient(g1, g2, g3, pm); CHKERRQ(ierr);
-    
-    ierr = RestoreRawPointerRead(m, &pm); CHKERRQ(ierr);
-    ierr = g->RestoreArrays(); CHKERRQ(ierr);
-            
-    PetscFunctionReturn(ierr);
-}
-
-
 
 
 /********************************************************************
@@ -188,32 +140,6 @@ PetscErrorCode DifferentiationFD::Gradient(VecField *g, const Vec m) {
  *******************************************************************/
 PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
                                             const ScalarType *m) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = DebugNotImplemented(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief compute laplacian of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Laplacian(VecField *l,
-                                            VecField *m) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    ierr = DebugNotImplemented(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief compute laplacian of a scalar field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Laplacian(Vec l,
-                                            const Vec m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
@@ -250,63 +176,17 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FD Divergence");
+    
+    ZeitGeist_define(FD_DIV);
+    ZeitGeist_tick(FD_DIV);
 #ifdef REG_HAS_CUDA
     ierr = computeTextureDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
+    ZeitGeist_tock(FD_DIV);
 
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
- * @brief compute divergence of a vector field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, VecField *v) {
-    PetscErrorCode ierr = 0;
-    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
-    PetscFunctionBegin;
-    
-    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
-    
-    ierr = this->Divergence(l, v1, v2, v3); CHKERRQ(ierr);
-    
-    ierr = v->RestoreArrays(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief compute divergence of a vector field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Divergence(Vec l, VecField *v) {
-    PetscErrorCode ierr = 0;
-    const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
-    ScalarType *pl;
-    PetscFunctionBegin;
-    
-    ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
-    ierr = GetRawPointerWrite(l, &pl); CHKERRQ(ierr);
-    
-    ierr = this->Divergence(pl, v1, v2, v3); CHKERRQ(ierr);
-    
-    ierr = RestoreRawPointerWrite(l, &pl); CHKERRQ(ierr);
-    ierr = v->RestoreArrays(); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
- * @brief compute divergence of a vector field
- *******************************************************************/
-PetscErrorCode DifferentiationFD::Divergence(ScalarType *l, const ScalarType *const *v) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-        
-    ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
-    
     PetscFunctionReturn(ierr);
 }
 

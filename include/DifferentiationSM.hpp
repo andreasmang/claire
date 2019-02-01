@@ -38,25 +38,21 @@ class DifferentiationSM : public Differentiation {
  public:
     typedef Differentiation SuperClass;
     typedef DifferentiationSM Self;
+    
+    using SuperClass::Gradient;
+    using SuperClass::Divergence;
+    using SuperClass::Laplacian;
 
     DifferentiationSM();
     DifferentiationSM(RegOpt*);
     virtual ~DifferentiationSM();
 
     virtual PetscErrorCode Gradient(ScalarType*, ScalarType*, ScalarType*, const ScalarType*);
-    virtual PetscErrorCode Gradient(ScalarType**, const ScalarType*);
-    virtual PetscErrorCode Gradient(VecField*, const ScalarType*);
-    virtual PetscErrorCode Gradient(VecField*, const Vec);
     
     virtual PetscErrorCode Laplacian(ScalarType*, const ScalarType*);
     virtual PetscErrorCode Laplacian(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
-    virtual PetscErrorCode Laplacian(Vec, const Vec);
-    virtual PetscErrorCode Laplacian(VecField*, VecField*);
     
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
-    virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*const*);
-    virtual PetscErrorCode Divergence(ScalarType*, VecField*);
-    virtual PetscErrorCode Divergence(Vec, VecField*);
     
     virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
