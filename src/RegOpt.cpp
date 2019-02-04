@@ -388,6 +388,50 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 argc--; argv++;
                 this->m_FileNames.mt.push_back(argv[1]);
             }
+        } else if (strcmp(argv[1], "-mrf") == 0) {
+            argc--; argv++;
+            std::string fname;
+            std::ifstream listfile(argv[1]);
+            if (listfile) {
+              while(std::getline(listfile, fname)) {
+                if (!fname.empty()) {
+                  this->m_FileNames.mr.push_back(fname);
+                }
+              }
+              listfile.close();
+              this->m_Domain.nc = this->m_FileNames.mr.size();
+              if (this->m_Domain.nc < 1) {
+                  msg = "\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n";
+                  ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                  ierr = this->Usage(true); CHKERRQ(ierr);
+              }
+            } else {
+              msg = "\n\x1b[31m error loading file: %s\x1b[0m\n";
+              ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+              ierr = this->Usage(true); CHKERRQ(ierr);
+            }
+        } else if (strcmp(argv[1], "-mtf") == 0) {
+            argc--; argv++;
+            std::string fname;
+            std::ifstream listfile(argv[1]);
+            if (listfile) {
+              while(std::getline(listfile, fname)) {
+                if (!fname.empty()) {
+                  this->m_FileNames.mt.push_back(fname);
+                }
+              }
+              listfile.close();
+              this->m_Domain.nc = this->m_FileNames.mt.size();
+              if (this->m_Domain.nc < 1) {
+                  msg = "\n\x1b[31m number of components has to be larger than 1: %s\x1b[0m\n";
+                  ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+                  ierr = this->Usage(true); CHKERRQ(ierr);
+              }
+            } else {
+              msg = "\n\x1b[31m error loading file: %s\x1b[0m\n";
+              ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
+              ierr = this->Usage(true); CHKERRQ(ierr);
+            }
         } else if (strcmp(argv[1], "-mask") == 0) {
             argc--; argv++;
             this->m_FileNames.mask = argv[1];
@@ -1469,6 +1513,10 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                             is the number of images for (registration of vector valued data)" << std::endl;
         std::cout << " -mtc <int> <files>          list of template images (*.nii, *.nii.gz, *.hdr), where <int>" << std::endl;
         std::cout << "                             is the number of images for (registration of vector valued data)" << std::endl;
+        std::cout << " -mrf <file>                 text file with list of reference images (*.nii, *.nii.gz, *.hdr)," << std::endl;
+        std::cout << "                             where each line is file path (registration of vector valued data)" << std::endl;
+        std::cout << " -mtf <file>                 text file with list of reference images (*.nii, *.nii.gz, *.hdr)," << std::endl;
+        std::cout << "                             where each line is file path (registration of vector valued data)" << std::endl;
         std::cout << " -mask <file>                file that contains an indicator function to mask the evaluation" << std::endl;
         std::cout << "                             of the distance measure; the mask should be smooth" << std::endl;
         std::cout << "                             (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
