@@ -457,6 +457,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
 
     // write probability maps
     if (regopt->m_RegToolFlags.saveprob) {
+        ierr = preproc->EnsurePatitionOfUnity(m1);
         ierr = readwrite->Write(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
     }
     // map transported "probability maps" (smooth classes)

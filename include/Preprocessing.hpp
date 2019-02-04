@@ -82,6 +82,7 @@ class Preprocessing {
 
     PetscErrorCode Labels2MultiCompImage(Vec, Vec);
     PetscErrorCode MultiCompImage2Labels(Vec, Vec);
+    PetscErrorCode EnsurePatitionOfUnity(Vec);
 
  private:
     PetscErrorCode ClearMemory();

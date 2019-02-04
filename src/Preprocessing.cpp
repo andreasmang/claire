@@ -549,6 +549,65 @@ PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
 }
 */
 
+PetscErrorCode Preprocessing::EnsurePatitionOfUnity(Vec m) {
+    PetscErrorCode ierr = 0;
+    IntType nl, nc;
+    ScalarType *p_labelprobs = NULL;
+    ScalarType *p_m = NULL;
+    ScalarType labelsum;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(this->m_Opt->m_LabelIDs.size() == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
+
+    try {p_labelprobs = new ScalarType[nc+1];}
+    catch (std::bad_alloc& err) {
+        ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+
+    // set dummy values
+    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+
+        // compute value for background
+        labelsum = 0.0; p_labelprobs[nc] = 1.0;
+        for (int l = 0; l < nc; ++l){
+            // get label probability
+            p_labelprobs[l] = p_m[l*nl + i];
+
+            // compute background
+            p_labelprobs[nc] -= p_labelprobs[l];
+
+            // accumulate label probabilities
+            labelsum += p_labelprobs[l];
+        }
+
+        // set to zero, if negative
+        if (p_labelprobs[nc] < 0.0) p_labelprobs[nc] = 0.0;
+        labelsum += p_labelprobs[nc];
+//        labelsum = labelsum > 1E-1 ? labelsum : 1.0;
+
+        // normalize (partition of unity)
+        for (int l = 0; l < nc+1; ++l) {
+            p_labelprobs[l] /= labelsum;
+            p_m[l*nl + i] = p_labelprobs[l];
+        }
+    }
+
+    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+
+
+    if (p_labelprobs != NULL) {delete [] p_labelprobs;}
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 /********************************************************************
