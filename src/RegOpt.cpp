@@ -80,8 +80,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_FFT.ostart[1] = opt.m_FFT.ostart[1];
     this->m_FFT.ostart[2] = opt.m_FFT.ostart[2];
     
-    this->m_Diff.diffReg = SPECTRAL;
-    this->m_Diff.diffPDE = SPECTRAL;
+    this->m_Diff.diffReg = opt.m_Diff.diffReg;
+    this->m_Diff.diffPDE = opt.m_Diff.diffPDE;
 
     this->m_Domain.nl = opt.m_Domain.nl;
     this->m_Domain.ng = opt.m_Domain.ng;

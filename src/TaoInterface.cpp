@@ -529,7 +529,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
 PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     IntType iter;
-    int iterdisp;
+    int iterdisp, cnthess, cntgrad;
     char msg[256];
     std::string statusmsg;
     ScalarType J, gnorm, step, D, J0, D0, gnorm0;
@@ -583,11 +583,14 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
     // get the solution vector and finalize the iteration
     ierr = TaoGetSolutionVector(tao, &x); CHKERRQ(ierr);
     ierr = optprob->FinalizeIteration(x); CHKERRQ(ierr);
+    
+    cnthess = optprob->GetOptions()->GetCounter(HESSMATVEC);
+    cntgrad = optprob->GetOptions()->GetCounter(OBJEVAL);
 
     // display progress to user
     iterdisp = static_cast<int>(iter);
-    sprintf(msg, "  %03d  %-20.12E %-20.12E %-20.12E %-20.12E %.6f",
-            iterdisp, J/J0, D/D0, gnorm/gnorm0, gnorm, step);
+    sprintf(msg, "  %03d %04d %04d  %-18.12E %-18.12E %-18.12E %-18.12E %.6f",
+            iterdisp, cnthess, cntgrad, J/J0, D/D0, gnorm/gnorm0, gnorm, step);
     PetscPrintf(MPI_COMM_WORLD, "%-80s\n", msg);
 
     if (optprob->GetOptions()->m_Monitor.qmval != -1.0) {

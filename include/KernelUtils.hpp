@@ -247,7 +247,7 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
-    //ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
   

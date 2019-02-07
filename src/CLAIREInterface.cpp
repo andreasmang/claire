@@ -718,8 +718,8 @@ PetscErrorCode CLAIREInterface::Run() {
 
     ierr = Msg("starting optimization"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
-    ierr = PetscPrintf(PETSC_COMM_WORLD," %s  %-20s %-20s %-20s %-20s %-20s\n",
-                       "iter", "objective (rel)", "mismatch (rel)",
+    ierr = PetscPrintf(PETSC_COMM_WORLD," %s %s %s  %-18s %-18s %-18s %-18s %-18s\n",
+                       "iter","hess","obj ", "objective (rel)", "mismatch (rel)",
                        "||gradient||_2,rel", "||gradient||_2", "step"); CHKERRQ(ierr);
     if (rank == 0) std::cout << std::string(this->m_Opt->m_LineLength, '-') << std::endl;
 

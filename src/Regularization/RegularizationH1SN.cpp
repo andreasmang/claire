@@ -65,6 +65,11 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
     // if regularization weight is zero, do noting
     if (beta != 0.0) {
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
+        
+        /*ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, 0.5*hd*beta); CHKERRQ(ierr);
+        ierr = VecTDot(this->m_WorkVecField->m_X1, v->m_X1, &value); *R +=value;
+        ierr = VecTDot(this->m_WorkVecField->m_X2, v->m_X2, &value); *R +=value;
+        ierr = VecTDot(this->m_WorkVecField->m_X3, v->m_X3, &value); *R +=value;*/
 
         // X1 gradient
         ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, v->m_X1); CHKERRQ(ierr);

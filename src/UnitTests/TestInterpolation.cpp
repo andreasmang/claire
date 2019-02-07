@@ -119,7 +119,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   float timer = 0;
  
   cudaDeviceSynchronize();
-  gpuInterp3D(pg, pq1, pq2, pq3, pe, nx, tex, &timer);
+  gpuInterp3D(pg, pq1, pq2, pq3, pe, nx, tex, m_Opt->m_PDESolver.iporder, &timer);
   //interp0(pg,pq1,pq2,pq3,pe,nx);
   cudaDeviceSynchronize();
   

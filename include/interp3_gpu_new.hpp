@@ -10,7 +10,7 @@
 
 
 void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx,
-cudaTextureObject_t yi_tex, PetscScalar* interp_time);
+cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 
 extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx);
 

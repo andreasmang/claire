@@ -25,10 +25,14 @@
 #include "cuda_helper.hpp"
 #include "cuda_profiler_api.h"
 #define HALO 4 
+//#define HALO 2 
 #define spencil 4
 #define lpencil 32
 #define sharedrows 64
 #define perthreadcomp 8
+
+const float h_c[HALO] = {4.f / 5.f , -1.f / 5.f , 4.f / 105.f, -1.f / 280.f};
+//const float h_c[HALO] = {2.f / 3.f , -1.f / 12.f};
 
 
 // device constants
@@ -401,7 +405,6 @@ PetscErrorCode initConstants(IntType* nx) {
   cudaMemcpyToSymbol(d_invhy, &inv_hx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
   cudaMemcpyToSymbol(d_invhz, &inv_hx.z, sizeof(float), 0, cudaMemcpyHostToDevice);
   
-  float h_c[HALO] = {4.f / 5.f , -1.f / 5.f , 4.f / 105.f, -1.f / 280.f};
   float h_ct[HALO];
   for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.x;
   cudaMemcpyToSymbol(d_cx, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);

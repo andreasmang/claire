@@ -329,6 +329,12 @@ __device__ float cubicTex3D_splineFast(cudaTextureObject_t tex, const float3 coo
     return lerp( tex001, tex000, g0.z);
 }
 
+__device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, const float3 inv_reg_extent)
+{
+  const float3 coord = (coord_grid+0.5f)*inv_reg_extent;
+  return tex3D<float>(tex, coord.x, coord.y, coord.z);
+}
+
 
 
 /********************************************************************
@@ -479,6 +485,7 @@ __global__ void interp3D_kernel(
       //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
       //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
       yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+      //yo[tid] = linTex3D(yi_tex, qcoord, inv_nx);
 
   /*    const float h = 2*PI*inv_nx.x;
       const float3 q = qcoord*h;
@@ -487,6 +494,28 @@ __global__ void interp3D_kernel(
           printf("tidz = %d  x = %f  y = %f  z = %f  vi = %f  vo = %f  votrue  = %f\n",tid, qcoord.x, qcoord.y, qcoord.z, *((float*)(yi.ptr)+tid), yo[tid], votrue);
       }
   */
+    }
+}
+
+/********************************************************************
+ * @brief linear interpolation kernel for scalar field
+ * @parm[in] yi_tex 3D texture used for interpolation
+ * @parm[in] xq,yq,zq query coordinates
+ * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[out] yo memory for storing interpolated values
+ *******************************************************************/
+__global__ void interp3D_kernel_linear(
+        cudaTextureObject_t  yi_tex,
+        const PetscScalar* xq,
+        const PetscScalar* yq,
+        const PetscScalar* zq, 
+        PetscScalar* yo,
+        const float3 inv_nx, int nq) {
+    // Get thread index 
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    if (tid < nq) {
+      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
+      yo[tid] = linTex3D(yi_tex, qcoord, inv_nx);
     }
 }
 
@@ -509,6 +538,7 @@ void gpuInterp3D(
            PetscScalar* yo,
            int*  nx,
            cudaTextureObject_t yi_tex,
+           int iporder,
            float* interp_time)
 {
    
@@ -549,7 +579,16 @@ void gpuInterp3D(
     cudaEventRecord(startEvent,0); 
     
     // launch the interpolation kernel
-    interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+    switch (iporder) {
+    case 1:
+      interp3D_kernel_linear<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+      break;
+    case 3:
+      interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+      break;
+    //default:
+      // Not implemented
+    };
     cudaCheckKernelError();
 
     cudaEventRecord(stopEvent,0);
