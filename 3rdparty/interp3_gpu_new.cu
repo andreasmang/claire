@@ -62,11 +62,29 @@ following papers:
 #include "interp3_gpu_new.hpp"
 
 #include "cuda_helper.hpp"
+#include "cuda_profiler_api.h"
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
 #define KERNEL_DIM 4
 #define MAX_BLOCKS 1024
+#define HALO 7
+#define spencil 4
+#define lpencil 32
+#define sharedrows 64
+#define perthreadcomp 8
+
+const int sx = spencil;
+const int sy = sharedrows;
+const int sxx = lpencil;
+const int syy = sharedrows;
+
+// device constants
+__constant__ float d_c[HALO+1];
+__constant__ int d_nx, d_ny, d_nz;
+__constant__ float d_invnx, d_invny, d_invnz;
+__constant__ float d_invhx, d_invhy, d_invhz;
+
 
 template <typename T>
 __host__ __device__
@@ -97,6 +115,149 @@ void interp0(float* m, float* q1, float* q2, float* q3, float* q, int nx[3]) {
 }
 
 
+__global__ void printVector(float *m, int n) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i<n) printf("m[%d] = %f\n", i , m[i]);
+}
+
+/********************************************************************
+ * @brief device function for computing the linear index from given 3D indices
+ *******************************************************************/
+__device__ inline int getLinearIdx(int i, int j, int k) {
+    return i*d_ny*d_nz + j*d_nz + k;
+}
+
+
+
+/********************************************************************
+ * @brief prefilte for z-direction
+ *******************************************************************/
+__global__ void prefilter_z(float* dfz, float* f) {
+  __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
+    
+  // note i and k have been exchanged to ac3ount for k being the fastest changing index
+  int i   = blockIdx.z;
+  int j   = blockIdx.y*blockDim.y + threadIdx.y;
+  int k  = blockIdx.x*blockDim.x + threadIdx.x;
+  int sk = threadIdx.x + HALO;       // local k for shared memory ac3ess + halo offset
+  int sj = threadIdx.y; // local j for shared memory ac3ess
+
+  int globalIdx = getLinearIdx(i,j,k);
+
+  s_f[sj][sk] = f[globalIdx];
+
+  __syncthreads();
+    
+  int lid,rid;
+  // fill in periodic images in shared memory array 
+  if (threadIdx.x < HALO) {
+    lid = k%d_nz-HALO;
+    if (lid<0) lid+=d_nz;
+    s_f[sj][sk-HALO] = f[i*d_ny*d_nz + j*d_nz + lid];
+    rid = (k+sy)%d_nz;
+    s_f[sj][sy+sk] = f[i*d_ny*d_nz + j*d_nz + rid];
+  }
+
+  __syncthreads();
+    
+    dfz[globalIdx] = d_c[0]*s_f[sj][sk];
+    for(int l=0; l<HALO; l++) {
+        dfz[globalIdx] += d_c[l+1] * (s_f[sj][sk+1+l] + s_f[sj][sk-1-l]);
+    }
+}
+
+
+/********************************************************************
+ * @brief prefilter for y-direction
+ *******************************************************************/
+__global__ void prefilter_y(float* dfy, float* f) {
+  __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
+    
+  // note i and k have been exchanged to ac3ount for k being the fastest changing index
+  int i  = blockIdx.z;
+  int k  = blockIdx.x*blockDim.x + threadIdx.x;
+  int sk = threadIdx.x;       // local k for shared memory ac3ess, fixed
+    
+    
+  for(int j = threadIdx.y; j < syy; j += blockDim.y) {
+    int globalIdx = getLinearIdx(i, blockIdx.y*syy + j ,k);
+    int sj = j + HALO;
+    s_f[sj][sk] = f[globalIdx];
+  }
+
+  __syncthreads();
+
+  
+  int lid,rid, sj = threadIdx.y + HALO;
+  int y = syy*blockIdx.y + threadIdx.y;
+  // fill in periodic images in shared memory array 
+  if (threadIdx.y < HALO) {
+    lid = y%d_ny-HALO;
+    if (lid<0) lid+=d_ny;
+    s_f[sj-HALO][sk] = f[i*d_ny*d_nz + lid*d_nz + k];
+    rid = (y+syy)%d_ny;
+    s_f[sj+syy][sk] = f[i*d_ny*d_nz + rid*d_nz + k];
+  }
+
+  __syncthreads();
+  
+  for(int j = threadIdx.y; j < syy; j += blockDim.y) {
+    int globalIdx = getLinearIdx(i, blockIdx.y*syy + j ,k);
+    int sj = j + HALO;
+    dfy[globalIdx] = d_c[0]*s_f[sj][sk];
+    for( int l=0; l<HALO; l++) {
+        dfy[globalIdx] += d_c[l+1] * ( s_f[sj+1+l][sk] + s_f[sj-1-l][sk]);
+    }
+  }
+
+}
+
+
+/********************************************************************
+ * @brief prefilter for x-direction
+ *******************************************************************/
+__global__ void prefilter_x(float* dfx, float* f) {
+  __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
+    
+  // note i and k have been exchanged to ac3ount for k being the fastest changing index
+  int j  = blockIdx.z;
+  int k  = blockIdx.x*blockDim.x + threadIdx.x;
+  int sk = threadIdx.x;       // local k for shared memory ac3ess, fixed
+    
+    
+  for(int i = threadIdx.y; i < syy; i += blockDim.y) {
+    int globalIdx = getLinearIdx(blockIdx.y*syy + i, j ,k);
+    int si = i + HALO;
+    s_f[si][sk] = f[globalIdx];
+  }
+
+  __syncthreads();
+
+  
+  int lid,rid, si = threadIdx.y + HALO;
+  int x = syy*blockIdx.y + threadIdx.y;
+  // fill in periodic images in shared memory array 
+  if (threadIdx.y < HALO) {
+    lid = x%d_nx-HALO;
+    if (lid<0) lid+=d_nx;
+    s_f[si-HALO][sk] = f[lid*d_ny*d_nz + j*d_nz + k];
+    rid = (x+syy)%d_nx;
+    s_f[si+syy][sk] = f[rid*d_ny*d_nz + j*d_nz + k];
+  }
+
+  __syncthreads();
+  
+  for(int i = threadIdx.y; i < syy; i += blockDim.y) {
+    int globalIdx = getLinearIdx(blockIdx.y*syy + i , j, k);
+    int si = i + HALO;
+    dfx[globalIdx] = d_c[0]*s_f[si][sk];
+    for( int l=0; l<HALO; l++) {
+        dfx[globalIdx] += d_c[l+1] * ( s_f[si+1+l][sk] + s_f[si-1-l][sk]);
+    }
+  }
+
+
+}
 /********************************************************************
  * @brief device function to do the interpolation of a single point using the Fast Lagrange Method
  * @parm[in] tex input data texture used for interpolation
@@ -329,6 +490,86 @@ __device__ float cubicTex3D_splineFast(cudaTextureObject_t tex, const float3 coo
     return lerp( tex001, tex000, g0.z);
 }
 
+// Fast prefilter for B-Splines
+void CubicBSplinePrefilter3D_fast(float *m, int* nx) {
+    
+    float time=0, dummy_time=0;
+    int repcount = 1;
+    cudaEvent_t startEvent, stopEvent;
+    cudaEventCreate(&startEvent);
+    cudaEventCreate(&stopEvent);
+
+    float h_c[HALO+1];
+    h_c[0] = sqrt(3);
+    float sum = h_c[0];
+    for(int l=1; l<HALO+1; l++) {
+        h_c[l] = h_c[l-1]*(sqrt(3) - 2);
+        sum += h_c[l]*2;
+    }
+    for(int l=0; l<HALO; l++) h_c[l] /= sum;
+    cudaMemcpyToSymbol(d_c, h_c, sizeof(float)*(HALO+1), 0, cudaMemcpyHostToDevice);
+    
+    // temporary storage for intermediate results
+    float* mtemp;
+    cudaMalloc((void**) &mtemp, sizeof(float)*nx[0]*nx[1]*nx[2]);
+
+    // Z-Prefilter - WARM UP
+    dim3 threadsPerBlock_z(sy, sx, 1);
+    dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
+    prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp,m);
+    if ( cudaSuccess != cudaGetLastError())
+                printf("Error in running warmup gradz kernel\n");
+    cudaCheckKernelError();
+    
+    // Y-Gradient
+    dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
+    dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
+    
+    // X-Gradient
+    dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
+    dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
+
+    // start recording the interpolation kernel
+    cudaEventRecord(startEvent,0); 
+    
+
+    for (int rep=0; rep<repcount; rep++) { 
+        // X
+        prefilter_x<<<numBlocks_x, threadsPerBlock_x>>>(mtemp, m);
+        if ( cudaSuccess != cudaGetLastError())
+            printf("Error in running gradx kernel\n");
+        cudaCheckKernelError();
+        // Y 
+        prefilter_y<<<numBlocks_y, threadsPerBlock_y>>>(m, mtemp);
+        if ( cudaSuccess != cudaGetLastError())
+            printf("Error in running gradx kernel\n");
+        cudaCheckKernelError();
+        // Z
+        prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp, m);
+        if ( cudaSuccess != cudaGetLastError())
+            printf("Error in running gradx kernel\n");
+        cudaCheckKernelError();
+    }
+
+    cudaEventRecord(stopEvent,0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
+    time+=dummy_time;
+    cudaDeviceSynchronize();
+    cudaEventDestroy(startEvent);
+    cudaEventDestroy(stopEvent);
+    
+    cudaMemcpy((void*)m, (void*)mtemp, sizeof(float)*nx[0]*nx[1]*nx[2], cudaMemcpyDeviceToDevice);
+    if ( cudaSuccess != cudaGetLastError())
+                printf("Error in copying data\n");
+    
+    if ( mtemp != NULL) cudaFree(mtemp);
+    
+    // print interpolation time and number of interpolations in Mvoxels/sec
+    printf("> prefilter avg eval time = %fmsec\n", time/repcount);
+}
+
+
 
 
 /********************************************************************
@@ -444,15 +685,6 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
 
 }
 
-/********************************************************************
- * @brief device function for computing the linear index from given 3D indices
- *******************************************************************/
-__device__ int getLinearIdxfrom3DCoord(int x, int y, int z, int width, int height) {
-    
-    // width will be the pitch in case of pitched memory
-    return  x +  width*y + width*height*z;
-    
-}
 
 /********************************************************************
  * @brief interpolation kernel for scalar field
@@ -473,9 +705,9 @@ __global__ void interp3D_kernel(
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
     
-    //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+    yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-    yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+    //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
     //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
 /*    const float h = 2*PI*inv_nx.x;
@@ -517,38 +749,55 @@ void gpuInterp3D(
     cudaEventCreate(&stopEvent);
 
     // define inv of nx for normalizing in texture interpolation
-    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
+    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[0]),
                                         1.0f/static_cast<float>(nx[1]), 
-                                        1.0f/static_cast<float>(nx[0]));
+                                        1.0f/static_cast<float>(nx[2]));
+    long int nq = nx[0]*nx[1]*nx[2]; 
+
+    
+    cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
+
+    cudaMemcpyToSymbol(d_invnx, &inv_nx.x, sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_invny, &inv_nx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_invnz, &inv_nx.z, sizeof(float), 0, cudaMemcpyHostToDevice);
+
     // define nxq, the dimensions of the grid
     const float3 nxq = make_float3( nx[0], nx[1], nx[2]);
-    long int nq = nx[0]*nx[1]*nx[2]; 
 
     // create a common cudaResourceDesc objects
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
    
-
+    int threads = 256;
+    int blocks = nq/threads;
+    
+    // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
+    CubicBSplinePrefilter3D_fast(yi, nx);
+    
     // make input image a cudaPitchedPtr for fi
     cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
-    // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
     //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+    
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
     
     // update texture object
     updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
 
-    int threads = 256;
-    int blocks = nq/threads;
     
     // start recording the interpolation kernel
     time = 0; dummy_time = 0; 
-    cudaEventRecord(startEvent,0); 
-    
-    // launch the interpolation kernel
     interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx);
-    cudaCheckKernelError();
+    
+    cudaEventRecord(startEvent,0); 
+    int maxrep = 10;
+    for (int rep = 0; rep < maxrep; ++rep) {
+    // launch the interpolation kernel
+        interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx);
+        cudaCheckKernelError();
+    }
 
     cudaEventRecord(stopEvent,0);
     cudaEventSynchronize(stopEvent);
@@ -560,7 +809,7 @@ void gpuInterp3D(
     cudaEventDestroy(stopEvent);
     
     // print interpolation time and number of interpolations in Mvoxels/sec
-    //printf("> interp time = %fmsec ==> %f MVoxels/sec\n", time, (nq/1E6)/(time/1000));
+    printf("> interp time = %fmsec ==> %f MVoxels/sec\n", time/maxrep, (nq/1E6)/(time/1000));
     *interp_time += time;
     
 }

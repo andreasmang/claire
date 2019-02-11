@@ -30,7 +30,7 @@
 #endif
 
 void TestFunction(ScalarType &val, const ScalarType x1, const ScalarType x2, const ScalarType x3) {
-  val = ( PetscSinReal(x1)*PetscSinReal(x1)
+  val =  ( PetscSinReal(x1)*PetscSinReal(x1)
         + PetscSinReal(x2)*PetscSinReal(x2)
         + PetscSinReal(x3)*PetscSinReal(x3) )/3.0;
 }
@@ -100,7 +100,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
     }  // i2
   }  // i3
 
-/*
+
 #ifdef REG_HAS_CUDA
   ScalarType *pg, *pq1, *pq2, *pq3, *pe;
   
@@ -135,7 +135,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
 #else
   std::cout << "unit test not implemented" << std::endl;
 #endif
-*/
+
   
   double error = 0;
   double max = 0;
