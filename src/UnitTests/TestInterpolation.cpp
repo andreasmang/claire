@@ -30,7 +30,7 @@
 #endif
 
 void TestFunction(ScalarType &val, const ScalarType x1, const ScalarType x2, const ScalarType x3) {
-  val = ( PetscSinReal(x1)*PetscSinReal(x1)
+  val =  ( PetscSinReal(x1)*PetscSinReal(x1)
         + PetscSinReal(x2)*PetscSinReal(x2)
         + PetscSinReal(x3)*PetscSinReal(x3) )/3.0;
 }
