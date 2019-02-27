@@ -221,7 +221,8 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
+    DebugGPUNotImplemented();
+    //accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
     this->m_Opt->IncreaseFFTTimers(timer);
@@ -287,13 +288,13 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    //ierr = this->ComputeForwardFFT(v1, v2, v3); CHKERRQ(ierr);
-    //ierr = this->m_SpectralKernel.Divergence(); CHKERRQ(ierr);
-    //ierr = this->ComputeInverseFFT(l);
-    accfft_divergence_t(l, 
+    ierr = this->ComputeForwardFFT(v1, v2, v3); CHKERRQ(ierr);
+    ierr = this->m_SpectralKernel.Divergence(); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(l);
+    /*accfft_divergence_t(l, 
       const_cast<ScalarType*>(v1), 
       const_cast<ScalarType*>(v2), 
-      const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);
+      const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);*/
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
     

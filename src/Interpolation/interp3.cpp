@@ -1,10 +1,10 @@
 // This function performs a 3D cubic interpolation.
 
-
 #define _mm256_set_m128(va, vb) \
           _mm256_insertf128_ps(_mm256_castps128_ps256(vb), va, 1)
 #define _mm512_set_m256(va, vb) \
           _mm512_insertf32x8(_mm512_castps256_ps512(vb), va, 1)
+
 #include <cmath>
 #include <mpi.h>
 #include <stdlib.h>
@@ -13,7 +13,9 @@
 #include <vector>
 
 #include <interp3.hpp>
+#ifdef FAST_INTERPV
 #include <immintrin.h>
+#endif
 #define COORD_DIM 3
 //#define VERBOSE2
 #define sleep(x) ;
@@ -118,6 +120,8 @@ void rescale_xyzgrid(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 } // end of rescale_xyz
 // acknowledgemet to http://stackoverflow.com/questions/13219146/how-to-sum-m256-horizontally
 // x = ( x7, x6, x5, x4, x3, x2, x1, x0 )
+#ifdef FAST_INTERPV
+
 float sum8(__m256 x) {
     // hiQuad = ( x7, x6, x5, x4 )
     const __m128 hiQuad = _mm256_extractf128_ps(x, 1);
@@ -180,6 +184,7 @@ void print512(__m512 &x, const char* name) {
             << "\n [15] = " << ptr[15] << std::endl;
 }
 
+#endif
 
 
 

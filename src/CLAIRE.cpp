@@ -97,6 +97,18 @@ PetscErrorCode CLAIRE::ClearVariables(void) {
     PetscFunctionBegin;
 
     // delete all variables
+    if (this->m_Opt->m_Verbosity > 2) {
+      std::stringstream ss;
+      size_t total = 0;
+      if (this->m_StateVariable) total += this->m_StateVariable->GetSize();
+      if (this->m_AdjointVariable) total += this->m_AdjointVariable->GetSize();
+      if (this->m_IncStateVariable) total += this->m_IncStateVariable->GetSize();
+      if (this->m_IncAdjointVariable) total += this->m_IncAdjointVariable->GetSize();
+      ss << "memory allocated: "<< std::scientific << total;
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.clear(); ss.str(std::string());
+    }
+    
     Free(this->m_StateVariable);
     Free(this->m_AdjointVariable);
     Free(this->m_IncStateVariable);
@@ -385,7 +397,8 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     }
 
     // allocate pointer if not done so already
-    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, true); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, true); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
 
     // copy l1 to lambda(t=1)
     ierr = this->m_AdjointVariable->GetFrame(l1, nt); CHKERRQ(ierr);

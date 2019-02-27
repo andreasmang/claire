@@ -163,6 +163,10 @@ PetscErrorCode ScaField::Allocate(IntType ng, IntType nl) {
     PetscFunctionReturn(ierr);
 }
 
+size_t ScaField::GetSize() const {
+  return this->m_Allocated*sizeof(ScalarType);
+}
+
 /********************************************************************
  * @brief set the vector
  *******************************************************************/

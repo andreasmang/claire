@@ -21,6 +21,7 @@
 #define _DEFORMATIONFIELDS_CPP_
 
 #include "DeformationFields.hpp"
+#include "DeformationKernel.hpp"
 
 
 
@@ -397,7 +398,7 @@ PetscErrorCode DeformationFields::ComputeDetDefGrad() {
     this->m_Opt->m_Monitor.detdgradmax  = maxddg;
     this->m_Opt->m_Monitor.detdgradmean = meanddg;
 
-    if (this->m_Opt->m_Verbosity > 1 || this->m_Opt->m_Monitor.detdgradenabled) {
+    if (this->m_Opt->m_Verbosity > 1 && this->m_Opt->m_Monitor.detdgradenabled) {
         ss  << std::scientific << detstr << " : (min, mean, max)="
             << "(" << minddg << ", " << meanddg << ", " << maxddg << ")";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
@@ -638,15 +639,13 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
  *******************************************************************/
 PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     PetscErrorCode ierr;
-    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL,
-                *p_divv = NULL, *p_divvX = NULL, *p_jac = NULL, *p_jacX=NULL;
-    ScalarType ht, hthalf, alpha;
-    IntType nl, ng, nt;
+    ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL;
+    IntType nt;
     std::stringstream ss;
     std::string ext;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     double timer[7] = {0};
     bool inverse;
+    DetDefGradKernel kernel;
 
     PetscFunctionBegin;
 
@@ -655,10 +654,8 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     ext = this->m_Opt->m_FileNames.extension;
 
     nt = this->m_Opt->m_Domain.nt;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
+    kernel.nl = this->m_Opt->m_Domain.nl;
+    kernel.ht = this->m_Opt->GetTimeStepSize();
 
     ierr = Assert(this->m_SemiLagrangianMethod != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -679,28 +676,31 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     }
 
     // get pointers
-    ierr = GetRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
 
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     inverse = this->m_Opt->m_RegFlags.invdefgrad;
-    alpha = inverse ? -1.0 : 1.0;
+    kernel.alpha = inverse ? -1.0 : 1.0;
 
     // compute div(v)
-    this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);
+    this->m_Differentiation->Divergence(kernel.pDivV, p_vx1, p_vx2, p_vx3);
+    
+    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     // compute div(v) at X
-    ierr = this->m_SemiLagrangianMethod->Interpolate(p_divvX, p_divv, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pDivVx, kernel.pDivV, "state"); CHKERRQ(ierr);
 
 
     for (IntType j = 0; j < nt; ++j) {  // for all time points
         // compute J(X,t^j)
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_jacX, p_jac, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pJx, kernel.pJ, "state"); CHKERRQ(ierr);
 
-#pragma omp parallel
+        ierr = kernel.IntegrateSL();
+/*#pragma omp parallel
 {
         ScalarType jacX, rhs0, rhs1;
 #pragma omp  for
@@ -711,23 +711,21 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
             p_jac[i] = jacX + hthalf*(rhs0 + rhs1);
         }
 }  // pragma omp
-
+*/
         // store time series
         if (this->m_Opt->m_ReadWriteFlags.timeseries) {
-            ierr = RestoreRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+            ierr = RestoreRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ss << "det-deformation-grad-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
             ierr = this->m_ReadWrite->Write(this->m_WorkScaField1, ss.str()); CHKERRQ(ierr);
-            ierr = GetRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+            ierr = GetRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
         }
     }  // for all time points
 
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-
-    ierr = RestoreRawPointer(this->m_WorkScaField4, &p_divvX); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_divv); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_jacX); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

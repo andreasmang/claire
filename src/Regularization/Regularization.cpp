@@ -76,6 +76,8 @@ PetscErrorCode Regularization::Initialize(void) {
     this->m_v1hat = nullptr;
     this->m_v2hat = nullptr;
     this->m_v3hat = nullptr;
+    
+    this->m_DiffAllocated = false;
 
     PetscFunctionReturn(0);
 }
@@ -112,6 +114,24 @@ PetscErrorCode Regularization::SetWorkVecField(VecField* v) {
     PetscFunctionReturn(ierr);
 }
 
+
+/********************************************************************
+ * @brief set Differentiation interface
+ *******************************************************************/
+PetscErrorCode Regularization::SetDifferentiation(Differentiation *diff) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    if (this->m_Differentiation != nullptr && this->m_DiffAllocated) {
+      delete this->m_Differentiation;
+      this->m_Differentiation = nullptr;
+      this->m_DiffAllocated = false;
+    }
+    
+    this->m_Differentiation = diff;
+
+    PetscFunctionReturn(ierr);
+}
 /********************************************************************
  * @brief set Differentiation interface
  *******************************************************************/
@@ -128,9 +148,11 @@ PetscErrorCode Regularization::SetDifferentiation(Differentiation::Type type) {
       switch (type) {
       case Differentiation::Type::Spectral:
         ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+        this->m_DiffAllocated = true;
         break;
       case Differentiation::Type::Finite:
         ierr = AllocateOnce<DifferentiationFD>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+        this->m_DiffAllocated = true;
         break;
       default:
         ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
@@ -150,7 +172,9 @@ PetscErrorCode Regularization::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ierr = Free(this->m_Differentiation); CHKERRQ(ierr);
+    if (this->m_DiffAllocated) {
+      ierr = Free(this->m_Differentiation); CHKERRQ(ierr);
+    }
     
     PetscFunctionReturn(ierr);
 }

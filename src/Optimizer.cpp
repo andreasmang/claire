@@ -589,10 +589,27 @@ PetscErrorCode Optimizer::Finalize() {
         std::cout << " convergence criteria" << std::endl;
         std::cout << std::endl;
         std::cout << this->m_OptimizationProblem->GetConvergenceMessage();
+        
     }
 
     linelength = this->m_Opt->m_LineLength;
     line = std::string(linelength, '-');
+    
+    ss  << std::scientific << "det(grad(y)) : (min, mean, max) = "
+        << "(" << this->m_Opt->m_Monitor.detdgradmin 
+        << ", " << this->m_Opt->m_Monitor.detdgradmean 
+        << ", " << this->m_Opt->m_Monitor.detdgradmax << ")";
+    if (!rank) {
+       std::cout << line << std::endl;
+    }
+    ierr = Msg(ss.str()); CHKERRQ(ierr);
+    ss.str(std::string()); ss.clear();
+    if (this->m_OptimizationProblem->Converged()) {
+      ierr = Msg("solver converged"); CHKERRQ(ierr);
+    } else {
+      ierr = Msg("solver not converged"); CHKERRQ(ierr);
+    }
+    
     indent = 35; numindent = 5;
     if (this->m_Opt->m_Verbosity > 1) {
         if (this->m_OptimizationProblem->Converged() && !rank) {

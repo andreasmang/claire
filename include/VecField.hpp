@@ -104,6 +104,8 @@ class VecField {
     
     PetscErrorCode IsZero(bool&);
 
+    size_t GetSize() const;
+
     // individual components
     Vec m_X1;
     Vec m_X2;
@@ -112,6 +114,7 @@ class VecField {
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;
     AccessType m_Type;
+    IntType m_Allocated;
     
     union {
       ScalarType *m_Ptr[3];

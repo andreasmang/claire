@@ -27,11 +27,11 @@
 using KernelUtils::real3;
 using KernelUtils::array3_t;
 
-template<typename T> typedef T* Tp;
-template<typename T> typedef const T* cTp;
-template<typename T> typedef array3_t<T> T3;
-template<typename T> typedef array3_t<T*> T3p;
-template<typename T> typedef array3_t<const T*> cT3p;
+template<typename T> using Tp = T*;
+template<typename T> using cTp = const T*;
+template<typename T> using T3 = array3_t<T>;
+template<typename T> using T3p = array3_t<T*>;
+template<typename T> using cT3p = array3_t<const T*>;
 
 template<typename FnRHS> struct Euler {
   template<typename T, typename ... Args>
@@ -89,7 +89,7 @@ struct DetDefGrad_RHS {
 
 struct DetDefGradA_RHS {
   template<typename T> 
-      KernelFunction(T) (int i, cTp pPhi, cTp pDivV, cTp pDivPhi, cT3p pV, cT3p pGPhi, T alpha) {
+      KernelFunction(T) (int i, cTp<T> pPhi, cTp<T> pDivV, cTp<T> pDivPhi, cT3p<T> pV, cT3p<T> pGPhi, T alpha) {
     return -0.5*VecDotFunc::call(i, pV, pGPhi) + 
       alpha*pPhi[i]*pDivV[i] - 0.5*pDivPhi[i] + 0.5*pPhi[i]*pDivV[i];
   }
@@ -107,7 +107,7 @@ struct DetDefGradSLKernel {
       cTp<T> pJx, cTp<T> pDivV, cTp<T> pDivVx,
       T alpha, T ht) {
     T jX = pJx[i];
-    T rhs0 = alpha*jX*pDivVx[i]:
+    T rhs0 = alpha*jX*pDivVx[i];
     T rhs1 = alpha*(jX + ht*rhs0)*pDivV[i];
     pJ[i] = jX + 0.5*ht*(rhs0 + rhs1);
   }

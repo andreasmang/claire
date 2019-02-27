@@ -1036,6 +1036,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ss.clear(); ss.str(std::string());
     }
 
+#ifndef REG_HAS_CUDA
     // set up the fft
     if (this->m_Verbosity > 2) {
         ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
@@ -1082,6 +1083,17 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     // set the fft setup time
     this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
+    
+        // clean up
+#ifdef REG_HAS_CUDA
+    if (u != NULL) {cudaFree(u); u = NULL;}
+    if (uk != NULL) {cudaFree(uk); uk = NULL;}
+#else
+    if (u != NULL) {accfft_free(u); u = NULL;}
+    if (uk != NULL) {accfft_free(uk); uk = NULL;}
+#endif
+
+#endif
 
     if (this->m_Verbosity > 2) {
         ierr = DbgMsg("setting up sizes"); CHKERRQ(ierr);
@@ -1097,16 +1109,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
     }
-
-
-    // clean up
-#ifdef REG_HAS_CUDA
-    if (u != NULL) {cudaFree(u); u = NULL;}
-    if (uk != NULL) {cudaFree(uk); uk = NULL;}
-#else
-    if (u != NULL) {accfft_free(u); u = NULL;}
-    if (uk != NULL) {accfft_free(uk); uk = NULL;}
-#endif
 
     this->Exit(__func__);
 

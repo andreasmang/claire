@@ -21,6 +21,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Solver/TransportKernel.cpp \
 		$(SRCDIR)/Solver/ContinuityEquation.cpp \
 		$(SRCDIR)/DeformationFields/DeformationFields.cpp \
+		$(SRCDIR)/DeformationFields/DeformationKernel.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasure.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cpp \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureNCC.cpp \
@@ -55,6 +56,7 @@ EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
 
 CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/CLAIREUtilsKernel.cu \
+		$(SRCDIR)/DeformationFields/DeformationKernel.cu \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
 		$(SRCDIR)/Differentiation/DifferentiationKernel.cu \
 		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu
@@ -64,8 +66,6 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
-		$(SRCDIR)/Interpolation/interp3.cpp \
-		$(SRCDIR)/Interpolation/Interp3_Plan.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationSM.cpp \

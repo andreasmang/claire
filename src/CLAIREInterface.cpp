@@ -607,6 +607,9 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
         ierr = VecDuplicate(this->m_ReferenceImage, &mR); CHKERRQ(ierr);
 
         if (this->m_Opt->m_RegFlags.applysmoothing) {
+            if (this->m_Opt->m_Verbosity > 2) {
+              ierr = DbgMsg("start smoothing"); CHKERRQ(ierr);
+            }
             if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new Preprocessing(this->m_Opt);}
                 catch (std::bad_alloc& err) {
@@ -615,6 +618,9 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
             }
             ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
             ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
+            if (this->m_Opt->m_Verbosity > 2) {
+              ierr = DbgMsg("finished smoothing"); CHKERRQ(ierr);
+            }
         } else {
             ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
             ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);

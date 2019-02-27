@@ -12,8 +12,9 @@
 #define PCOUT if(procid==0) std::cerr
 #define FAST_INTERP
 
-#if defined(PETSC_USE_REAL_SINGLE)
-#define FAST_INTERPV // enable ONLY for single precision
+#ifdef PETSC_USE_REAL_SINGLE
+// enable ONLY for single precision
+#define FAST_INTERPV
 #endif
 
 #define FAST_INTERP_BINNING
@@ -40,7 +41,8 @@
 #endif
 
 #ifndef __INTEL_COMPILER
-#undef FAST_INTERPV
+#define  _mm256_loadu2_m128(HIADDR, LOADDR) _mm256_set_m128(_mm_loadu_ps(HIADDR),_mm_loadu_ps(LOADDR))
+//#undef FAST_INTERPV
 #endif
 
 #define COORD_DIM 3

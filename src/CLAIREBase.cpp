@@ -131,6 +131,40 @@ PetscErrorCode CLAIREBase::ClearMemory() {
 //        this->m_Mask = NULL;
 //    }
 
+    if (this->m_Opt->m_Verbosity > 2) {
+      std::stringstream ss;
+      size_t total = 0;
+      if (this->m_WorkScaField1) total += this->m_WorkScaField1->GetSize();
+      if (this->m_WorkScaField2) total += this->m_WorkScaField2->GetSize();
+      if (this->m_WorkScaField3) total += this->m_WorkScaField3->GetSize();
+      if (this->m_WorkScaField4) total += this->m_WorkScaField4->GetSize();
+      if (this->m_WorkScaField5) total += this->m_WorkScaField5->GetSize();
+      if (this->m_WorkVecField1) total += this->m_WorkVecField1->GetSize();
+      if (this->m_WorkVecField2) total += this->m_WorkVecField2->GetSize();
+      if (this->m_WorkVecField3) total += this->m_WorkVecField3->GetSize();
+      if (this->m_WorkVecField4) total += this->m_WorkVecField4->GetSize();
+      if (this->m_WorkVecField5) total += this->m_WorkVecField5->GetSize();
+      
+      if (this->m_WorkScaFieldMC) total += this->m_WorkScaFieldMC->GetSize();
+      
+      if (this->m_TemplateImage) total += this->m_TemplateImage->GetSize();
+      if (this->m_ReferenceImage) total += this->m_ReferenceImage->GetSize();
+      if (this->m_AuxVariable) total += this->m_AuxVariable->GetSize();
+      if (this->m_CellDensity) total += this->m_CellDensity->GetSize();
+      if (this->m_Mask) total += this->m_Mask->GetSize();
+      
+      if (this->m_DeleteControlVariable && this->m_VelocityField) {
+        total += this->m_VelocityField->GetSize();
+      }
+      if (this->m_DeleteIncControlVariable && this->m_IncVelocityField) {
+        total += this->m_IncVelocityField->GetSize();
+      }
+      
+      ss << "memory allocated: "<< std::scientific << total;
+      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ss.clear(); ss.str(std::string());
+    }
+
     if (this->m_DeleteControlVariable) {
         Free(this->m_VelocityField);
     }
@@ -767,7 +801,11 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         }
     }
 
-    ierr = this->m_Regularization->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+    if (!this->m_Differentiation) {
+      ierr = this->m_Regularization->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
+    }
     
     //ierr = this->m_Regularization->SetSpectralData(); CHKERRQ(ierr);
 

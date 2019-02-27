@@ -73,4 +73,14 @@ using ScalarType = PetscReal;
   using FFTPlanType = accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>;
 #endif
 
+/*
+#include <cuda_runtime.h>
+#undef PetscFunctionBegin
+#define PetscFunctionBegin { \
+  size_t free_mem; \
+  size_t total_mem; \
+  cudaMemGetInfo(&free_mem, &total_mem); \
+  printf("\t\x1b[34m%10lf MiB \x1b[33m%s:\x1b[32m%i\x1b[0m\n", static_cast<double>(total_mem - free_mem)/1048576.0,  __FILE__, __LINE__); \
+}*/
+
 #endif // __TYPEDEF_HPP__

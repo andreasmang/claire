@@ -98,6 +98,8 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_X2 = NULL;
     this->m_X3 = NULL;
     
+    this->m_Allocated = 0;
+    
     this->m_Type = AccessType::None;
     this->m_Ptr[0] = nullptr;
     this->m_Ptr[1] = nullptr;
@@ -153,6 +155,9 @@ PetscErrorCode VecField::SetOpt(RegOpt* opt) {
     PetscFunctionReturn(ierr);
 }
 
+size_t VecField::GetSize() const {
+  return this->m_Allocated*sizeof(ScalarType);
+}
 
 
 
@@ -256,6 +261,8 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     #else
         ierr = VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
     #endif
+    
+    this->m_Allocated = 3*nl;
 
     PetscFunctionReturn(ierr);
 }
