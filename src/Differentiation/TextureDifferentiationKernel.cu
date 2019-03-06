@@ -47,6 +47,7 @@ __device__ inline int getLinearIdx(int i, int j, int k) {
     return i*d_ny*d_nz + j*d_nz + k;
 }
 
+
 __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
@@ -365,6 +366,7 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.z;
     cudaMemcpyToSymbol(d_cz, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
 
+/*
     // create a common cudaResourceDesc objects
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
@@ -387,42 +389,40 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     if ( cudaSuccess != cudaGetLastError())
                 printf("Error in running warmup gradz kernel\n");
     cudaCheckKernelError();
-/*
+*/
     // Z-Gradient
     dim3 threadsPerBlock_z(sy, sx, 1);
     dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-    gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz,m);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup gradz kernel\n");
-    cudaCheckKernelError();
-    
     // Y-Gradient 
     dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-    gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup grady kernel\n");
-    cudaCheckKernelError();
-    
     // X-Gradient
     dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
-    gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup gradx kernel\n");
-    cudaCheckKernelError();
-*/    
+    
     // start recording the interpolation kernel
     time = 0; dummy_time = 0; 
     cudaEventRecord(startEvent,0); 
     
 
     for (int rep=0; rep<repcount; rep++) { 
-        TextureGradientComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, gx, gy, gz);  
-/*        gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz, m);
+//        TextureGradientComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, gx, gy, gz);  
+
+        // Z-Gradient
+        gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz, m);
+        if ( cudaSuccess != cudaGetLastError())
+                    printf("Error in running gradx kernel\n");
+        cudaCheckKernelError();
+        
+        // Y-Gradient
         gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
+        if ( cudaSuccess != cudaGetLastError())
+                    printf("Error in running gradx kernel\n");
+        cudaCheckKernelError();
+        
+        // X-Gradient
         gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
-*/        if ( cudaSuccess != cudaGetLastError())
+        if ( cudaSuccess != cudaGetLastError())
                     printf("Error in running gradx kernel\n");
         cudaCheckKernelError();
     }
@@ -437,7 +437,6 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     
     // print interpolation time and number of interpolations in Mvoxels/sec
     printf("> gradient avg eval time = %fmsec\n", time/repcount);
-    //*interp_time += time;
     
     PetscFunctionReturn(ierr);
 
