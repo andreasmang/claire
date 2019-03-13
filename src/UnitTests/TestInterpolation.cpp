@@ -67,6 +67,8 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   ScalarType *ref  = new ScalarType[nl];
   ScalarType *eval = new ScalarType[nl];
   
+  int iq = 10;
+
   for (int i1 = 0; i1 < isize[0]; ++i1) {  // x1
     for (int i2 = 0; i2 < isize[1]; ++i2) {  // x2
       for (int i3 = 0; i3 < isize[2]; ++i3) {  // x3
@@ -79,10 +81,10 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
         int i = reg::GetLinearIndex(i1, i2, i3, m_Opt->m_Domain.isize);
         
         TestFunction(grid[i], x1, x2, x3);
-    
-        //x1 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
-        //x2 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
-        //x3 = static_cast<double>(rand())*2.*M_PI/static_cast<double>(RAND_MAX);
+        
+        x1 = hx[0]*(static_cast<double>(iq + istart[0]) + static_cast<double>(rand())/static_cast<double>(RAND_MAX));
+        x2 = hx[1]*(static_cast<double>(iq + istart[1]) + static_cast<double>(rand())/static_cast<double>(RAND_MAX));
+        x3 = hx[2]*(static_cast<double>(iq + istart[2]) + static_cast<double>(rand())/static_cast<double>(RAND_MAX));
         
         TestFunction(ref[i], x1, x2, x3);
         eval[i] = 0.;
@@ -141,6 +143,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   double max = 0;
   for (int i = 0; i < nl; ++i) {
     double local = static_cast<double>(ref[i]) - static_cast<double>(eval[i]);
+    //std::cout<<i<<"\tref = "<<ref[i]<<"\t"<<"eval = "<<eval[i]<<std::endl;
     double lmax = std::abs(eval[i]);
     if (lmax > max) max = lmax;
     error += local*local;
