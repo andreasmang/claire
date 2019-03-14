@@ -1,5 +1,3 @@
-[![DOI](1808.04487)](https://arxiv.org/abs/1808.04487)
-
 # CLAIRE
 
 **CLAIRE** implements a parallel solver for *Constrained Large Deformation Diffeomorphic Image Registration*. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
