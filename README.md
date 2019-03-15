@@ -12,9 +12,7 @@ If there are any issues, you have questions, you would like to give us feedback 
 
 If you plan on using CLAIRE in your research please cite the following manuscript:
 
-```bash
-A. Mang, A. Gholami, C. Davatzikos & G. Biros, CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration, 2018.
-```
+A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. arXiv.1808.0448. 2018.
 
 ## Installation
 
