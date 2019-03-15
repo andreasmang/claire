@@ -17,9 +17,9 @@ If there are issues with compiling the code, take a look at [doc/README-INSTALL.
 
 ### Installation Instructions
 
-#### Build Dependencies
+#### Installing Dependencies
 
-The following explains how to get the libraries, build them, and set the environmental variables.
+The following explains how to download the libraries, build them, and set the appropriate environmental variables.
 
 ```bash
 cd external
@@ -29,7 +29,7 @@ source libs/environment_vars.sh
 cd ..
 ```
 
-#### Build CLAIRE
+#### Installing CLAIRE
 
 
 In the *top level directory* of the code, do
@@ -40,27 +40,26 @@ make -j
 
 To user can change some options in the makefile:
 
-* Are you going to run the code in single precision? Set `USESINGLE` in the [makefile](makefile) to `yes` or `no`.
-* Are you going to use the toolbox (e.g., compute jacobians)? Set `BUILDTOOLS` in the [makefile](makefile) to `yes` or `no`.
-* Are your input files netcdf files (.nc)? Set `USEPNETCDF` in the [makefile](makefile) to `yes` or `no`.
 * Are your input files nifti files (.nii)? Set `USENIFTI` in the [makefile](makefile) to `yes` or `no`.
 * Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
 * Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
+* Are you going to run the code in single precision? Set `USESINGLE` in the [makefile](makefile) to `yes` or `no`.
+* Are you going to use the toolbox (e.g., compute jacobians)? Set `BUILDTOOLS` in the [makefile](makefile) to `yes` or `no`.
+* Are your input files netcdf files (.nc)? Set `USEPNETCDF` in the [makefile](makefile) to `yes` or `no`.
 
-## Run CLAIRE
+## Executing CLAIRE
 
 
-### Test Problem
+### Simple Synthetic Test Problem
 
 To run an image registration test example do:
 
 ```bash
 mpirun -n 20 ./bin/claire -synthetic 0
 ```
-
 To run the code with different grid sizes use the `-nx` option (i.e., for a 128x128x128 problem, use `-nx 128x128x128`).
 
-### Using Input Images
+### Run CLAIRE with Images
 
 To run an image registration problem with input images do:
 
@@ -79,15 +78,6 @@ To see the basic options do:
 ```bash
 ./bin/claire -help
 ```
-
-For more advanced options do:
-
-```bash
-./bin/claire -advanced
-```
-
-You can also find a list of the available options for the binary in [doc/help.txt](doc/help.txt) and [doc/advanced-help.txt](doc/advanced-help.txt).
-
 
 ## Advanced Instructions
 
