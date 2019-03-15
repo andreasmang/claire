@@ -1,6 +1,10 @@
 # CLAIRE
 
-**CLAIRE** implements a parallel solver for *Constrained Large Deformation Diffeomorphic Image Registration*. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
+**CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three-dimensions. Its performance is optimized for multi-core systems. It uses MPI for parallelism and has been demonstrated to scale on supercomputing platforms.
+
+<img src="https://github.com/andreasmang/claire/blob/master/docs/figs/claire4brains.jpg" alt="CLAIRE4Brains"  width="200"/>
+
+Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
 
 ## Installation
 
