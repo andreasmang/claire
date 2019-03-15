@@ -102,8 +102,8 @@ void RegOpt::Copy(const RegOpt& opt) {
     this->m_Distance.type = opt.m_Distance.type;
     this->m_Distance.reset = opt.m_Distance.reset;
     this->m_Distance.scale = opt.m_Distance.scale;
-    
-this->m_RegNorm.type = opt.m_RegNorm.type;
+
+    this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_RegNorm.beta[0] = opt.m_RegNorm.beta[0];  // weight for regularization operator A[v]
     this->m_RegNorm.beta[1] = opt.m_RegNorm.beta[1];  // weight for identity operator in regularization norms (constant)
     this->m_RegNorm.beta[2] = opt.m_RegNorm.beta[2];  // weight for regularization operator A[div(v)] (incompressibility)
@@ -1251,7 +1251,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Monitor.detdgradmin = 0.0;
     this->m_Monitor.detdgradmax = 0.0;
     this->m_Monitor.detdgradmean = 0.0;
-    this->m_Monitor.detdgradbound = 2E-1;
+    this->m_Monitor.detdgradbound = 2.5e-1;
     this->m_Monitor.detdgradenabled = false;
     this->m_Monitor.jval = 0.0;
     this->m_Monitor.jval0 = 0.0;
