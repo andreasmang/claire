@@ -6,8 +6,6 @@
 <img src="https://github.com/andreasmang/claire/blob/master/doc/figs/claire4brains.jpg" alt="CLAIRE4Brains"  width="800"/>
 </p>
 
-If you are interested in the foundations of CLAIRE we encourage you to read our past work [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
-
 If there are any issues, you have questions, you would like to give us feedback or you have feature requests, do not hesitate to send an email to <andreas@math.uh.edu>.
 
 If you plan on using CLAIRE in your research please cite the following manuscript:
