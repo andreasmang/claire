@@ -20,12 +20,7 @@ If you plan on using CLAIRE in your research please cite the following manuscrip
 * [News](doc/README-NEWS.md)
 * [Publications](doc/README-REFERENCES.md)
 
-## Requirements
-* **cmake** (at least version 2.8; [https://cmake.org](https://cmake.org))
-* **python** (version 2.7)
-* **mpicc** and **mpicxx**, and the MPI libraries, should be in the path
-
-If there are issues with compiling the code, take a look at [Installation Guide](doc/README-INSTALL.md) or contact us.
+The links above point to individual markdown files. These files can be found in the [doc](doc) subfolder. Examples for executing CLAIRE can be found in the [doc/examples](doc/examples) folder.
 
 ## License
 Read the [LICENSE](LICENSE) file for more details.
