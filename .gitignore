@@ -1,12 +1,12 @@
 *.swp
+*.log
+*.txt
 *.tar.gz
 *.nii.gz
 *.nii
-*.log
-*.txt
+*.nc
 *.e
 *.o
-*.nc
 *.err
 *.out
 *.exrc
