@@ -1,6 +1,6 @@
 # CLAIRE: Quick Install
 
-Here, we only provide a minimal installation guide. We provide scripts to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](doc/README-INSTALL.md) found in [doc/README-INSTALL.md](doc/README-INSTALL.md).
+Here, we only provide a minimal installation guide. We provide scripts to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](README-INSTALL.md) found in [README-INSTALL.md](README-INSTALL.md).
 
 ## Contents
 1. [One Shot](#oneshot) 
@@ -58,5 +58,5 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 
 ### Troubleshooting
 
-* If you have trouble **installing** CLAIRE consult the [detailed installation guide](doc/README-INSTALL.md) found in [doc/README-INSTALL.md](doc/README-INSTALL.md).
-* If you have trouble executing CLAIRE take a look at the [examples](doc/README-RUNME.md) described in [doc/README-RUNME.md](doc/README-RUNME.md). 
+* If you have trouble **installing** CLAIRE consult the [detailed installation guide](README-INSTALL.md) found in [README-INSTALL.md](README-INSTALL.md).
+* If you have trouble executing CLAIRE take a look at the [examples](README-RUNME.md) described in [README-RUNME.md](README-RUNME.md). 
