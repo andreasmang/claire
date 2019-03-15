@@ -85,7 +85,7 @@ endif
 CLAIRE_INC += -I$(ACCFFT_DIR)/include
 CLAIRE_INC += -I$(FFTW_DIR)/include
 CLAIRE_INC += -I$(MORTON_DIR)
-CLAIRE_INC += -I./3rdparty
+CLAIRE_INC += -I./deps/3rdparty
 
 
 ifeq ($(USENIFTI),yes)
@@ -125,7 +125,7 @@ endif
 
 
 ifeq ($(USEINTELMPI),yes)
-	LDFLAGS += -lmpi_mt
+#	LDFLAGS += -lmpi_mt
 endif
 LDFLAGS += -lm
 

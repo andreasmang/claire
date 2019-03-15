@@ -5,6 +5,8 @@
 *.log
 *.txt
 *.e
+*.o
+*.nc
 *.err
 *.out
 *.exrc
@@ -12,9 +14,7 @@
 bin/
 obj/
 test/
-external/libs/
-external/libs-intel/
+deps/libs/
+deps/libs-intel/
 results/
 environment_vars.sh
-*.o
-*.nc
