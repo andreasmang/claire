@@ -1,8 +1,12 @@
 # CLAIRE: Quick Install
 
-Here, we only provide a minimal installation guide. We provide scripts to download and install the dependencies using generic settings that have worked on our systems. If this installation guide does not work for you, please consult the
+Here, we only provide a minimal installation guide. We provide scripts to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](doc/README-INSTALL.md) found in [doc/README-INSTALL.md](doc/README-INSTALL.md).
 
-## Installation Guide: One Shot
+## Contents
+1. [One Shot](#oneshot) 
+2. [Step by Step](#stepbystep) 
+
+## One Shot <a name="oneshot"></a>
 
 
 ```bash
@@ -14,8 +18,7 @@ make -j
 ./bin/claire -synthetic 0
 ```
 
-## Step by Step 
-
+## Step by Step  <a name="stepbystep"></a>
 
 
 ### Step 1) Installing Dependencies
