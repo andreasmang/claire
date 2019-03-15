@@ -1,8 +1,22 @@
-# CLAIRE
-
-## Installation Guide
+# CLAIRE: Quick Install
 
 Here, we only provide a minimal installation guide. We provide scripts to download and install the dependencies using generic settings that have worked on our systems. If this installation guide does not work for you, please consult the
+
+## Installation Guide: One Shot
+
+
+```bash
+cd deps
+./get_libs.sh
+./build_libs.sh --build
+cd ..
+make -j
+./bin/claire -synthetic 0
+```
+
+## Step by Step 
+
+
 
 ### Step 1) Installing Dependencies
 
