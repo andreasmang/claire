@@ -10,17 +10,17 @@
 
 If there are any issues, you have questions, you would like to give us feedback or you have feature requests, do not hesitate to send an email to <andreas@math.uh.edu>.
 
-If you plan on using CLAIRE in your research please cite the following manuscript: A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. arXiv.1808.0448. 2018.
+If you plan on using CLAIRE in your research please cite the following manuscript: A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. arXiv:1808.0448. 2018.
 
 ## Documentation
-* [Installation Guide](doc/README-INSTALL-QUICK.md)
+* [Quick Installation Guide](doc/README-INSTALL-QUICK.md)
 * [Detailed Installation Guide](doc/README-INSTALL.md)
 * [Examples](doc/README-RUNME.md)
 * [Executables](doc/README-EXEC.md)
 * [News](doc/README-NEWS.md)
 * [Publications](doc/README-REFERENCES.md)
 
-The links above point to individual markdown files. These files can be found in the [doc](doc) subfolder. Examples for executing CLAIRE can be found in the [doc/examples](doc/examples) folder.
+The links above point to individual markdown files. These files can be found in the [doc](doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](doc/examples) folder.
 
 ## License
 Read the [LICENSE](LICENSE) file for more details.
