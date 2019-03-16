@@ -1,16 +1,7 @@
 # CLAIRE: The Binaries
 
-CLAIRE has two binaries: `claire` and `clairetools`.
-
-* `claire`: perform registrations
-* `clairetools`: post and pre-processing
-
-We provide **several examples** for executing these binaries in the [doc/examples](https://github.com/andreasmang/claire/tree/master/examples) subfolder. We briefly explain these examples below.
-
-These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our [quick installation guide](README-INSTALL-QUICK.md) ([doc/README-INSTALL-QUICK.md](README-INSTALL-QUICK.md)) or our [detailed installation guide](README-INSTALL.md) [doc/README-INSTALL.md](README-INSTALL.md).
-
-
 ## Content
+* [Overview](#clairebins)
 * [Get Help](#clairehelp)
 * [Simple Examples: `claire`](#claireexmp)
   * [Synthetic Problem](#clairexmp1)
@@ -21,6 +12,21 @@ These binaries can be found in the `bin` folder after CLAIRE has been built succ
   * [Output Velocities](#clairexmp6)
 * [Simple Examples: `clairetools`](#toolsxmp)
   * [Transporting Images](#toolsxmp1)
+  * [Computing Jacobians](#toolsxmp2)
+
+
+## Overview <a name="clairebins"></a>
+
+CLAIRE has two binaries: `claire` and `clairetools`.
+
+  * `claire`: perform registrations
+  * `clairetools`: post and pre-processing
+
+We provide **several examples** for executing these binaries in the [doc/examples](https://github.com/andreasmang/claire/tree/master/examples) subfolder. We briefly explain these examples below.
+
+These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our [quick installation guide](README-INSTALL-QUICK.md) ([doc/README-INSTALL-QUICK.md](README-INSTALL-QUICK.md)) or our [detailed installation guide](README-INSTALL.md) [doc/README-INSTALL.md](README-INSTALL.md).
+
+
 
 ## Get Help <a name="clairehelp"></a>
 
@@ -126,4 +132,7 @@ mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
                                   -xfile brain01-transported.nii.gz -deformimage
 ```
 
-The input are the three components of the computed velocity (`-v$i$ velocity-field-x$i$.nii.gz `) and the image to be transported (`-ifile $datdir/brain01.nii.gz`; `$datdir` points to the folder the data is located at). The output is the transported brain image (`-xfile brain01-transported.nii.gz`). The user can add a path as prefix if desired. The command to tell `clairetools` that we are interested in solving the forward problem (i.e., transporting/deforming an image) is `-deformimage`. The line breaks (backslashes `\`) are only added for readability.
+The input are the three components of the computed velocity (`-v$i$ velocity-field-x$i$.nii.gz `) and the image to be transported (`-ifile $datdir/brain01.nii.gz`; `$datdir` points to the folder the data is located in, i.e., [doc/data](https://github.com/andreasmang/claire/tree/master/doc/data)). The output is the transported brain image (`-xfile brain01-transported.nii.gz`). The user can add a path as prefix if desired. The command to tell `clairetools` that we are interested in solving the forward problem (i.e., transporting/deforming an image) is `-deformimage`. The line breaks (backslashes `\`) are only added for readability.
+
+
+### Example 02: Computing Jacobians <a name="toolsxmp1"></a>
