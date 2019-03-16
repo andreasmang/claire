@@ -46,7 +46,7 @@ cd debs
 ./get_libs.sh
 ```
 
-The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). If the download failed, delete the tarball file and run `get_libs.sh` again. To view the urls for the libraries you can take a look at [deps/get_libs.sh](../deps/get_libs.sh). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used with CLAIRE before.
+The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). If the download failed, delete the tarball file and run `get_libs.sh` again. To view the urls for the libraries you can take a look at [deps/get_libs.sh](https://github.com/andreasmang/claire/tree/master/deps/get_libs.sh). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used with CLAIRE before.
 
 
 ### Step 2: Installing Dependencies
@@ -65,7 +65,7 @@ This will decompress the *tarball* files and compile them with standard settings
 #### Detailed Instructions
 We build all libraries as **static** by default.
 
-The libraries can be compiled by running the [build_libs.sh](../external/build_libs.sh) script in the [external](../external) subdirectory. To see all the options do
+The libraries can be compiled by running the [build_libs.sh](https://github.com/andreasmang/claire/tree/master/deps/build_libs.sh) script in the [external](https://github.com/andreasmang/claire/tree/master/deps) subdirectory. To see all the options do
 
 ```bash
 ./build_libs.sh --help
@@ -77,7 +77,7 @@ Please check the `cmake`, `make` and `automake` outputs for errors. To check if 
 
 
 ### Step 3: Setting Environment Variables
-Before you are able to compile and run CLAIRE you need to add *environment variables* to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in the [debs/libs](../debs/libs) subfolder. To add the environment variables temporarily (for the current session) to your system, do
+Before you are able to compile and run CLAIRE you need to add *environment variables* to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in the [debs/libs](https://github.com/andreasmang/claire/tree/master/deps) subfolder. To add the environment variables temporarily (for the current session) to your system, do
 
 ```bash
 source environment_vars.sh
@@ -91,7 +91,7 @@ To add them permanently, copy the content of `environment_vars.sh` to your `~/.b
 Before you can build CLAIRE you need to
 
 * Make sure that you have installed all *dependencies*.
-* Check the [makefile](../makefile) before building the code:
+* Check the [makefile](https://github.com/andreasmang/claire/tree/master/makefile) before building the code:
 	* If you use an *intel compiler* set the `USEINTEL` flag to `yes`.
 	* If you use a *GNU compiler* set the `USEINTEL` flag to `no`.
 	* If you use *Intel MPI* (impi) set the `USEINTELMPI` flag to `yes` (if not, set it to `no`).
