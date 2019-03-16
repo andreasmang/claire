@@ -93,7 +93,7 @@ To add them permanently, copy the content of `environment_vars.sh` to your `~/.b
 Before you can build CLAIRE you need to
 
 * Make sure that you have installed all *dependencies*.
-* Check the [../makefile](makefile) before building the code:
+* Check the [makefile](../makefile) before building the code:
 	* If you use an *intel compiler* set the `USEINTEL` flag to `yes`.
 	* If you use a *GNU compiler* set the `USEINTEL` flag to `no`.
 	* If you use *Intel MPI* (impi) set the `USEINTELMPI` flag to `yes` (if not, set it to `no`).
