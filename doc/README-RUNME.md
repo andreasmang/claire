@@ -61,12 +61,13 @@ The options used with `claire` are explained in [example 1](#clairexmp1). The ke
 In [runclaire03.sh](https://github.com/andreasmang/claire/tree/master/doc/examples/runclaire03.sh) we execute CLAIRE for real medical images (in NIfTI format) of size 128x150x128. We use 20 MPI tasks. The data can be found in the [docs/data](data) subdirectory. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz -mt $datdir/brain02.nii.gz
+mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+                             -mt $datdir/brain02.nii.gz
 ```
 
 **<span style="color:red">Important:</span>** The images have to be **affinely preregistered** (i.e., have the same grid size).
 
-`$datdir` points to the location where the data is located. The `-mr` flag identifies the image to be used as a **reference image** (alas, *fixed* or *target* image) and the `-mt` flag identifies the image to be used as a **template image** (i.e., the image to be registered; alas *floating* or *moving* image).
+`$datdir` points to the location where the data is located. The `-mr` flag identifies the image to be used as a **reference image** (alas, *fixed* or *target* image) and the `-mt` flag identifies the image to be used as a **template image** (i.e., the image to be registered; alas *floating* or *moving* image).  The line break (backslash `\`) is only added for readability.
 
 
 ### Example 04: Regularization Parameter Estimation <a name="clairexmp4"></a>
@@ -85,10 +86,12 @@ Running `claire` on real image data is explained in [example 3](#clairexmp3). We
 In [runclaire05.sh](https://github.com/andreasmang/claire/tree/master/doc/examples/runclaire05.sh) we show how to execute CLAIRE using a parameter continuation scheme with a target regularization parameter for the velocity. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz -mt $datdir/brain02.nii.gz -betacont 7.75e-04
+mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+                             -mt $datdir/brain02.nii.gz \
+                             -betacont 7.75e-04
 ```
 
-We have observed that a parameter continuation scheme speeds up the rate of convergence of our solver. We recommend using it in practical settings. We show how to estimate an adequate regularization parameter in  [example 4](#clairexmp4).
+We have observed that a parameter continuation scheme speeds up the rate of convergence of our solver. We recommend using it in practical settings. We show how to estimate an adequate regularization parameter in  [example 4](#clairexmp4). The line breaks (backslashes `\`) are only added for readability.
 
 
 ### Example 06: Output Velocities <a name="clairexmp6"></a>
@@ -96,15 +99,17 @@ We have observed that a parameter continuation scheme speeds up the rate of conv
 In [runclaire06.sh](https://github.com/andreasmang/claire/tree/master/doc/examples/runclaire06.sh) we show how to store the computed velocity field on file. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz -mt $datdir/brain02.nii.gz -betacont 7.75e-04  -x ./ -velocity
+mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+                             -mt $datdir/brain02.nii.gz \
+                             -betacont 7.75e-04  -x ./ -velocity
 ```
 
-This example is a direct extension of [example 4](#clairexmp4). The only difference is that we added an output. We need to provide an output folder. This is done with the `-x <folder>` option. We write the output to the current directory. The outputs in CLAIRE will have default names. If you prefer to store all files for multiple runs in a single folder, we recommend to use a prefix:
+This example is a direct extension of [example 4](#clairexmp4). The only difference is that we added an output. We need to provide an output folder. This is done with the `-x <folder>` option. We write the output to the current directory (`./`). **The outputs in CLAIRE will have default names**. If you prefer to store all files for multiple runs in a single folder, we recommend to use a prefix:
 ```bash
 -x /my/output/folder/name/PREFIX_
 ```
 
-The `-velocity` option tells CLAIRE to write out the velocity field. There are multiple other outputs available, most of which can be computed from the velocity field. This can be done using `clairetools`. To learn more about how to use `clairetools` continue reading.
+The `-velocity` option tells CLAIRE to write out the velocity field. There are multiple other outputs available, most of which can be computed from the velocity field. This can be done using `clairetools`. To learn more about how to use `clairetools` continue reading. The line breaks (backslashes `\`) are only added for readability.
 
 
 ## Simple Examples: `clairetools` <a name="toolsxmp"></a>
@@ -121,4 +126,4 @@ mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
                                   -xfile brain01-transported.nii.gz -deformimage
 ```
 
-The input are the three components of the computed velocity (`-v$i$ velocity-field-x$i$.nii.gz `) and the image to be transported (`-ifile $datdir/brain01.nii.gz`; `$datdir` points to the folder the data is located at). The output is the transported brain image (`-xfile brain01-transported.nii.gz`). The user can add a path as prefix if desired. The command to tell `clairetools` that we are interested in solving the forward problem (i.e., transporting/deforming an image) is `-deformimage`. The backslashes `\` are only added to break the line (for readability).
+The input are the three components of the computed velocity (`-v$i$ velocity-field-x$i$.nii.gz `) and the image to be transported (`-ifile $datdir/brain01.nii.gz`; `$datdir` points to the folder the data is located at). The output is the transported brain image (`-xfile brain01-transported.nii.gz`). The user can add a path as prefix if desired. The command to tell `clairetools` that we are interested in solving the forward problem (i.e., transporting/deforming an image) is `-deformimage`. The line breaks (backslashes `\`) are only added for readability.
