@@ -1,12 +1,11 @@
 #!/bin/bash
+set -x
 
 # In this script we showcase how to run CLAIRE in parallel.
 # We use a neuroimaging dataset. We perform a parameter 
 # continuation until we reach a target regularization 
 # parameter. We store the velocity field as output.
-
-
-# the datasets are two brain images of size 128x150x128
+# The datasets are two brain images of size 128x150x128.
 
 # define directory for binary (relative path)
 bindir=../../bin
