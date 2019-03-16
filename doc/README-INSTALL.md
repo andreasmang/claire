@@ -6,13 +6,14 @@
 * [Requirements](#requirements)
 * [Dependencies](#dependencies)
 	* Required Dependencies
-  * Downloading Dependencies
-  * Installing Dependencies: Quick Shot
-  * Installing Dependencies: Details
-  * Environment Variables
+  * Step 1: Downloading Dependencies
+  * Step 2: Installing Dependencies
+  	* Quick Shot
+  	* Detailed Instructions
+  * Step 3: Setting Environment Variables
 * [Building CLAIRE](#buildclaire)
 * [Additional Info for Dependencies](#depsinf)
-* [Troubleshooting](#fag)
+* [Troubleshooting](#faq)
 
 
 ## Requirements <a name="requirements"></a>
@@ -37,21 +38,20 @@ CLAIRE requires the following libraries to be installed on your system:
 * `libmorton` [https://github.com/Forceflow/libmorton](https://github.com/Forceflow/libmorton)
 
 
-### Downloading Dependencies
-To download the libraries we provide a script called `get_libs.sh` (see [deps/get_libs.sh](../deps/get_libs.sh)). Run this script in your command window to download the libraries:
+### Step 1: Downloading Dependencies
+To download the libraries we provide a script called `get_libs.sh` (see [deps/get_libs.sh](../deps/get_libs.sh)). Simply run this script in your command window to download *tarball* files of the libraries identified above.
+
 ```bash
 cd debs
 ./get_libs.sh
 ```
 
-The *tarball* files will be downloaded to this very folder. The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). Occasionally, this is not the case. Just delete the corresponding tarball file and run `get_libs.sh` again. For the second execution it will work.
-
-These libraries have to be installed and made available on your system before compiling the code.
-
-To view the urls for the libraries take a look at [deps/get_libs.sh](../deps/get_libs.sh). We provide additional information and links also below.
+The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). If the download failed, delete the tarball file and run `get_libs.sh` again. To view the urls for the libraries you can take a look at [deps/get_libs.sh](../deps/get_libs.sh). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used with CLAIRE before.
 
 
-### Installing Dependencies: Quick Shot
+### Step 2: Installing Dependencies
+
+#### Quick Shot
 To build all libraries at once, execute the build script in your command window as follows:
 
 ```bash
@@ -59,10 +59,10 @@ cd deps
 ./build_libs.sh --build
 ```
 
-This will decompress the libraries and compile them with standard settings. The compiled libraries will be installed in your `deps` folder in a subfolder called `libs`.
+This will decompress the *tarball* files and compile them with standard settings. The compiled libraries will be installed in in a subfolder of your `deps` folder called `libs`.
 
 
-### Installing Dependencies: Details
+#### Detailed Instructions
 We build all libraries as **static** by default.
 
 The libraries can be compiled by running the [build_libs.sh](../external/build_libs.sh) script in the [external](../external) subdirectory. To see all the options do
@@ -71,13 +71,13 @@ The libraries can be compiled by running the [build_libs.sh](../external/build_l
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters you can parse. Ideally it should be sufficient to do `./build_libs.sh --build`. You can also build the individual libraries one after another, via the `--bLIBNAME` option, where `LIBNAME` is the name of the library. For precise instructions, do `./build_libs.sh --help`. If you want to clean up the libraries folder, you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries.
+This will provide information on what parameters you can parse. Ideally, it is sufficient to do `./build_libs.sh --build`. You can also build the individual libraries one after another, via the `--bLIBNAME` option, where `LIBNAME` is the name of the library. For precise instructions, do `./build_libs.sh --help`. If you want to clean up the libraries folder, you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries.
 
-Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also take a look at the "build" subdirectories of the individual libraries in the "lib" folder (subdirectories of [external](../external)). See if folders in "build" were created and the library and include files exist.
+Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also take a look at the "build" subdirectories of the individual libraries in the "lib" folder (subdirectories of [deps](../deps)). See if folders in "build" were created and the library and include files exist. If not, something went wrong during the build.
 
 
-### Environment Variables
-Before you are able to compile and run CLAIRE you will have to add *environment variables* to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in the [debs/libs](../debs/libs) subfolder. To add the environment variables temporarily (for the current session) to your system, do
+### Step 3: Setting Environment Variables
+Before you are able to compile and run CLAIRE you need to add *environment variables* to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in the [debs/libs](../debs/libs) subfolder. To add the environment variables temporarily (for the current session) to your system, do
 
 ```bash
 source environment_vars.sh
@@ -86,9 +86,7 @@ source environment_vars.sh
 To add them permanently, copy the content of `environment_vars.sh` to your `~/.bashrc`. Notice that `environment_vars.sh` defines *absolute paths*.
 
 
-
-
-## Build CLAIRE <a name="buildclaire"></a>
+## Building CLAIRE <a name="buildclaire"></a>
 
 Before you can build CLAIRE you need to
 
@@ -118,7 +116,7 @@ If you build in parallel using `make -j`, on certain systems to many threads wil
 * older versions that have been used successfully:
 	* [fftw-3.3.4.tar.gz](http://www.fftw.org/fftw-3.3.4.tar.gz)
 
-### ACCFFT
+### AccFFT
 
 * file: accfft.tar.gz
 * source code also available on gitub: [https://github.com/amirgholami/accfft](https://github.com/amirgholami/accfft)
@@ -137,7 +135,7 @@ If you build in parallel using `make -j`, on certain systems to many threads wil
 	* [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
 
 
-### NIFTICLIB
+### nifticlib
 
 * file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0/)
 * description: library to read and write NIFTI images
