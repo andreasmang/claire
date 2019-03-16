@@ -1,5 +1,37 @@
-# Running CLAIRE
+# CLAIRE: The Binaries
 
+CLAIRE has two binaries: `claire` and `clairetools`.
+
+* `claire`: perform registrations
+* `clairetools`: post and pre-processing
+
+We provide several examples for executing these binaries in the [doc/examples](examples) subfolder. We briefly explain these examples below.
+
+These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our **quick installation guide** [doc/README-INSTALL-QUICK.md](README-INSTALL-QUICK.md) or our **detailed installation guide** [doc/README-INSTALL.md](README-INSTALL.md).
+
+
+## Content
+* [Simple Examples: `claire`](#claireexamples)
+* [Simple Examples: `clairetools`](#toolsexamples)
+
+
+## Simple Examples: `claire` <a name="claireexamples"></a>
+
+To learn more about the options of
+
+### Example 01: Synthetic Problem
+
+In [runclaire01.sh](examples/runclaire01.sh) we execute CLAIRE for a synthetic test problem of size 32x32. We use default settings for our solver.
+```bash
+$bindir/claire -synthetic 0
+```
+
+The flag `-synthetic` allows one to select several smooth test problems. To change the problem size simply add the `-nx <n1xn2xn3>` flag, where `<n$i$>` represents the problem size in each spatial direction (i.e., -nx <128x128x128> executes CLAIRE with a problem size of `$128^3$`.)
+
+
+
+
+## Simple Examples: `clairetools` <a name="claireexamples"></a>
 
 
 
