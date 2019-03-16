@@ -1,6 +1,10 @@
 # CLAIRE
 
-## About
+* Are you looking for **examples**? Check the [doc/examples](doc/examples) folder.
+* Are in interested in **how CLAIRE works**? Check the [documentation](#clairedoc).
+* Are you interested in **what CLAIRE is**? Read the [about](#claireabout) section.
+
+## About <a name="claireabout"></a>
 
 **CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core systems. It uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
 
@@ -12,7 +16,7 @@ If there are any issues, you have questions, you would like to give us feedback 
 
 If you plan on using CLAIRE in your research please cite the following manuscript: A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. arXiv:1808.0448. 2018.
 
-## Documentation
+## Documentation <a name="clairedoc"></a>
 * [Quick Installation Guide](doc/README-INSTALL-QUICK.md)
 * [Detailed Installation Guide](doc/README-INSTALL.md)
 * [Examples](doc/README-RUNME.md)
