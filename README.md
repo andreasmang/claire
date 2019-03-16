@@ -24,7 +24,7 @@ If you plan on using CLAIRE in your research please cite the following manuscrip
 * [News](doc/README-NEWS.md)
 * [Publications](doc/README-REFERENCES.md)
 
-The links above point to individual markdown files. These files can be found in the [doc](doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
+The links above point to individual markdown files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
 
 ## License
-Read the [LICENSE](LICENSE) file for more details.
+Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
