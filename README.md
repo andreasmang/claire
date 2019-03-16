@@ -1,6 +1,6 @@
 # CLAIRE
 
-* Are you looking for **examples**? Check the [doc/examples](doc/examples) folder.
+* Are you looking for **examples**? Check the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
 * Are in interested in **how CLAIRE works**? Check the [documentation](#clairedoc).
 * Are you interested in **what CLAIRE is**? Read the [about](#claireabout) section.
 
@@ -24,7 +24,7 @@ If you plan on using CLAIRE in your research please cite the following manuscrip
 * [News](doc/README-NEWS.md)
 * [Publications](doc/README-REFERENCES.md)
 
-The links above point to individual markdown files. These files can be found in the [doc](doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](doc/examples) folder.
+The links above point to individual markdown files. These files can be found in the [doc](doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
 
 ## License
 Read the [LICENSE](LICENSE) file for more details.
