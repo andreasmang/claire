@@ -263,6 +263,7 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
     // no rescaling
     regopt->m_RegFlags.applyrescaling = false;
     regopt->m_RegFlags.applysmoothing = false;
+
     // solve forward problem
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
 
