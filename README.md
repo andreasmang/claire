@@ -20,7 +20,6 @@ If you plan on using CLAIRE in your research please cite the following manuscrip
 * [Quick Installation Guide](doc/README-INSTALL-QUICK.md)
 * [Detailed Installation Guide](doc/README-INSTALL.md)
 * [Examples](doc/README-RUNME.md)
-* [Executables](doc/README-EXEC.md)
 * [News](doc/README-NEWS.md)
 * [Publications](doc/README-REFERENCES.md)
 

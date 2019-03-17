@@ -73,7 +73,7 @@ mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
 
 **<span style="color:red">Important:</span>** The images have to be **affinely preregistered** (i.e., have the same grid size).
 
-`$datdir` points to the location where the data is located. The `-mr` flag identifies the image to be used as a **reference image** (alas, *fixed* or *target* image) and the `-mt` flag identifies the image to be used as a **template image** (i.e., the image to be registered; alas *floating* or *moving* image).  The line break (backslash `\`) is only added for readability.
+`$datdir` points to the location where the data is located. The `-mr` flag identifies the image to be used as a **reference image** (alas, *fixed* or *target* image) and the `-mt` flag identifies the image to be used as a **template image** (i.e., the image to be registered; alas *floating* or *moving* image). The line break (backslash `\`) is only added for readability.
 
 
 ### Example 04: Regularization Parameter Estimation <a name="clairexmp4"></a>
@@ -81,10 +81,11 @@ mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
 In [runclaire04.sh](https://github.com/andreasmang/claire/tree/master/doc/examples/runclaire04.sh) we execute CLAIRE to automatically identify an adequate regularization parameter for a given set of images. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz -mt $datdir/brain02.nii.gz -train binary
+mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+                             -mt $datdir/brain02.nii.gz -train binary
 ```
 
-Running `claire` on real image data is explained in [example 3](#clairexmp3). We use a method based on parameter continuation to identify an adequate regularization parameter. The search uses the determinant of the deformation gradient as a "metric". The user can define a lower bound for the Jacobian via the `-jbound <dbl>` option (the upper bound is `1/<dbl>`). To perform the search specify the `-train <type>` option. There are two strategies implemented: A simple reduction of the regularization parameter until the bound is hit (use `-train reduce`) and a binary search (use `-train binary`).
+Running `claire` on real image data is explained in [example 3](#clairexmp3). We use a method based on parameter continuation to identify an adequate regularization parameter. The search uses the determinant of the deformation gradient as a "metric". The user can define a lower bound for the Jacobian via the `-jbound <dbl>` option (the upper bound is `1/<dbl>`). To perform the search specify the `-train <type>` option. There are two strategies implemented: A simple reduction of the regularization parameter until the bound is hit (use `-train reduce`) and a binary search (use `-train binary`). The line break (backslash `\`) is only added for readability.
 
 
 ### Example 05: Parameter Continuation <a name="clairexmp5"></a>
@@ -135,4 +136,13 @@ mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
 The input are the three components of the computed velocity (`-v$i$ velocity-field-x$i$.nii.gz `) and the image to be transported (`-ifile $datdir/brain01.nii.gz`; `$datdir` points to the folder the data is located in, i.e., [doc/data](https://github.com/andreasmang/claire/tree/master/doc/data)). The output is the transported brain image (`-xfile brain01-transported.nii.gz`). The user can add a path as prefix if desired. The command to tell `clairetools` that we are interested in solving the forward problem (i.e., transporting/deforming an image) is `-deformimage`. The line breaks (backslashes `\`) are only added for readability.
 
 
-### Example 02: Computing Jacobians <a name="toolsxmp1"></a>
+### Example 02: Computing Jacobians <a name="toolsxmp2"></a>
+
+In [runtools02.sh](https://github.com/andreasmang/claire/tree/master/doc/examples/runtools02.sh) we show how to compute the determinant of the deformation gradient (alas Jacobian) from a velocity field that has been computed using `claire`.
+
+```bash
+mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
+                                  -v2 velocity-field-x2.nii.gz       \
+                                  -v3 velocity-field-x3.nii.gz       \
+                                  -x ./ -detdefgrad
+```
