@@ -71,20 +71,22 @@ PetscErrorCode CLAIRE::Initialize() {
 PetscErrorCode CLAIRE::ClearMemory(void) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+#ifdef ZEITGEIST
+    if (this->m_Opt->m_Domain.level == 0) {
+      Msg("-----------------------------------------------------------------------------------------------------");
+      Msg("ZeitGeist:");
+      for (auto zg : ZeitGeist::zgMap()) {
+        char txt[120];
+        sprintf(txt, "  %16s: %5lix, %10lf",zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
+        Msg(txt);
+      }
+      Msg("-----------------------------------------------------------------------------------------------------");
+    }
+#endif
 
     // delete all variables
     ierr = this->ClearVariables(); CHKERRQ(ierr);
-    
-#ifdef ZEITGEIST
-    Msg("-----------------------------------------------------------------------------------------------------");
-    Msg("ZeitGeist:");
-    for (auto zg : ZeitGeist::zgMap()) {
-      char txt[120];
-      sprintf(txt, "  %16s: %5lix, %10lf",zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
-      Msg(txt);
-    }
-    Msg("-----------------------------------------------------------------------------------------------------");
-#endif
 
     PetscFunctionReturn(ierr);
 }

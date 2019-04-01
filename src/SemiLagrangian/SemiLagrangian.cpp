@@ -655,7 +655,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 
     // deal with ghost points
     nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.plan, nghost, isize_g, istart_g);
-
+    
     // if scalar field with ghost points has not been allocated
     if (this->m_ScaFieldGhost == NULL) {
         this->m_ScaFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
@@ -663,17 +663,20 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
 
     // assign ghost points based on input scalar field
     accfft_get_ghost_xyz(this->m_Opt->m_FFT.plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
-
+    
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
+        ierr = Assert(this->m_StatePlan != NULL, "null pointer"); CHKERRQ(ierr);
         this->m_StatePlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
                                        neval, nghost, xo, c_dims, this->m_Opt->m_FFT.mpicomm, timers, 0);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+        ierr = Assert(this->m_AdjointPlan != NULL, "null pointer"); CHKERRQ(ierr);
         this->m_AdjointPlan->interpolate(this->m_ScaFieldGhost, nx, isize, istart,
                                        neval, nghost, xo, c_dims, this->m_Opt->m_FFT.mpicomm, timers, 0);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
+    
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IP);

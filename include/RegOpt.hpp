@@ -281,6 +281,7 @@ struct Domain {
     IntType nt;                 ///< number of time points
     IntType nc;                 ///< number of components/images to be registered
     ScalarType timehorizon[2];  ///< time horizon
+    IntType level;              ///< level for multi-grid schemes, 0 for single grid
 };
 
 

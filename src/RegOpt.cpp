@@ -1162,6 +1162,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.nx[2] = 32;
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
+    this->m_Domain.level = 0;
 
     this->m_RegModel = RELAXEDSTOKES;               ///< default registration model
     //this->m_RegModel = RELAXEDSTOKES;

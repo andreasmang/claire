@@ -377,6 +377,7 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
     catch (std::bad_alloc&) {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
+    this->m_CoarseGrid->m_Opt->m_Domain.level = this->m_Opt->m_Domain.level + 1;
 
     // get grid scale and compute number of grid points
     scale = this->m_Opt->m_KrylovMethod.pcgridscale;
