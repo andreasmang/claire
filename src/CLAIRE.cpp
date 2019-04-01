@@ -1723,6 +1723,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
+      ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     }
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
@@ -1821,15 +1822,12 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
-    
     ierr = this->m_TransportProblem->SolveIncAdjointProblem(); CHKERRQ(ierr);
     
     // apply K[\tilde{b}]
     ierr = this->ApplyProjection(); CHKERRQ(ierr);
-
     // scale result by hd
     ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
-
     if (this->m_Opt->m_Verbosity > 2) {
         ScalarType maxval, minval;
         ierr = VecMax(*this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);

@@ -407,7 +407,11 @@ PetscErrorCode CLAIREBase::GetMask(Vec& mask) {
 
     // mask can be a null pointer
 //    ierr = Assert(this->m_Mask != NULL, "null pointer"); CHKERRQ(ierr);
-    mask = *this->m_Mask;
+    if (this->m_Mask) {
+      mask = *this->m_Mask;
+    } else {
+      mask = nullptr;
+    }
 
     this->m_Opt->Exit(__func__);
 

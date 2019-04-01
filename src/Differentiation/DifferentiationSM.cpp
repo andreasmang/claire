@@ -287,6 +287,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     
     for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
+    
     this->m_Opt->StartTimer(FFTSELFEXEC);
     ierr = this->ComputeForwardFFT(v1, v2, v3); CHKERRQ(ierr);
     ierr = this->m_SpectralKernel.Divergence(); CHKERRQ(ierr);

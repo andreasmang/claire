@@ -192,6 +192,15 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     beta[0] = this->m_Opt->m_RegNorm.beta[0];
     beta[2] = this->m_Opt->m_RegNorm.beta[2];
     
+    ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("starting Leray projection"); CHKERRQ(ierr);
+        ierr = Assert(this->m_Differentiation != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_WorkVecField2 != NULL, "null pointer"); CHKERRQ(ierr);
+    }
+    
     ierr = this->m_Differentiation->LerayOperator(this->m_WorkVecField1, this->m_WorkVecField2, beta[0], beta[2]); CHKERRQ(ierr);
     
     ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
