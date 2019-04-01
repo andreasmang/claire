@@ -35,6 +35,7 @@ struct ResamplingPara {
 
 
 struct RegToolFlags {
+    bool computedice;           ///< compute DICE
     bool computesynprob;        ///< compute synthetic test problem
     bool readvecfield;          ///< read vector field
     bool resample;              ///< resample scalar / vector field
@@ -45,6 +46,7 @@ struct RegToolFlags {
     bool computeerror;          ///< compute difference / error between two scalar fields
     bool deformimage;           ///< transport scalar field (forward problem)
     bool tlabelmap;             ///< transport label map (solve forward problem)
+    bool tprobmaps;             ///< transport probability map (solve forward problem)
     bool saveprob;              ///< store transported probability maps
     bool convert;               ///< convert image data
     bool computeanalytics;      ///< compute analytics of scalar field

@@ -27,6 +27,12 @@
 #include "ReadWriteReg.hpp"
 #include "SynProbRegistration.hpp"
 #include "CLAIREInterface.hpp"
+#include <algorithm>
+
+template<typename T, typename E>
+bool ElementInVec(const std::vector<T> &vec, E elem) {
+  return std::find(vec.begin(), vec.end(), static_cast<T>(elem)) != vec.end();
+}
 
 PetscErrorCode Resample(reg::RegToolsOpt*);
 PetscErrorCode ComputeDefFields(reg::RegToolsOpt*);
@@ -35,6 +41,7 @@ PetscErrorCode ComputeError(reg::RegToolsOpt*);
 PetscErrorCode ComputeSynVel(reg::RegToolsOpt*);
 
 PetscErrorCode TransportImage(reg::RegToolsOpt*);
+PetscErrorCode TransportProbabilityMaps(reg::RegToolsOpt*);
 PetscErrorCode TransportLabelMap(reg::RegToolsOpt*);
 PetscErrorCode ComputeRavenMap(reg::RegToolsOpt*);
 
@@ -75,6 +82,8 @@ int main(int argc, char **argv) {
         ierr = Resample(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.deformimage) {
         ierr = TransportImage(regopt); CHKERRQ(ierr);
+    } else if (regopt->m_RegToolFlags.tprobmaps) {
+        ierr = TransportProbabilityMaps(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.tlabelmap) {
         ierr = TransportLabelMap(regopt); CHKERRQ(ierr);
     } else if (regopt->m_RegToolFlags.computeravensmap) {
@@ -109,6 +118,7 @@ int main(int argc, char **argv) {
  *******************************************************************/
 PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m) {
     PetscErrorCode ierr = 0;
+    IntType nc;
     std::stringstream ss;
     std::vector <std::string> filename;
 
@@ -126,7 +136,13 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m)
         ss << "reading " << filename[0];
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     }
-
+    if (!regopt->m_FileNames.ivec.empty()) {
+        nc = regopt->m_Domain.nc;
+        ierr = rw->ReadT(&m, regopt->m_FileNames.ivec); CHKERRQ(ierr);
+        if (!regopt->m_SetupDone) {
+            ierr = regopt->DoSetup(); CHKERRQ(ierr);
+        }
+    }
     PetscFunctionReturn(ierr);
 }
 
@@ -140,6 +156,7 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m)
 PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::VecField*&v) {
     PetscErrorCode ierr = 0;
     std::vector <std::string> filename;
+    IntType nc;
     Vec vxi = NULL;
 
     PetscFunctionBegin;
@@ -147,10 +164,11 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::Ve
     if (   !regopt->m_FileNames.iv1.empty()
         && !regopt->m_FileNames.iv2.empty()
         && !regopt->m_FileNames.iv3.empty() ) {
-
+        
+        nc = regopt->m_Domain.nc;
         // read velocity components
         filename.push_back(regopt->m_FileNames.iv1);
-        ierr = rw->ReadR(&vxi, filename); CHKERRQ(ierr);
+        ierr = rw->Read(&vxi, regopt->m_FileNames.iv1); CHKERRQ(ierr);
         filename.clear();
         if (!regopt->m_SetupDone) {ierr = regopt->DoSetup(); CHKERRQ(ierr);}
 
@@ -163,16 +181,17 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::Ve
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
         filename.push_back(regopt->m_FileNames.iv2);
-        ierr = rw->Read(&vxi, filename); CHKERRQ(ierr);
+        ierr = rw->Read(&vxi, regopt->m_FileNames.iv2); CHKERRQ(ierr);
         filename.clear();
         ierr = VecCopy(vxi, v->m_X2); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
 
         filename.push_back(regopt->m_FileNames.iv3);
-        ierr = rw->Read(&vxi, filename); CHKERRQ(ierr);
+        ierr = rw->Read(&vxi, regopt->m_FileNames.iv3); CHKERRQ(ierr);
         filename.clear();
         ierr = VecCopy(vxi, v->m_X3); CHKERRQ(ierr);
         if (vxi != NULL) {ierr = VecDestroy(&vxi); CHKERRQ(ierr); vxi = NULL;}
+        
     }
 
     PetscFunctionReturn(ierr);
@@ -291,6 +310,81 @@ PetscErrorCode TransportImage(reg::RegToolsOpt* regopt) {
 }
 
 
+/********************************************************************
+ * @brief solve forward problem (for label images)
+ * @param[in] regopt container for user defined options
+ *******************************************************************/
+PetscErrorCode TransportProbabilityMaps(reg::RegToolsOpt* regopt) {
+    PetscErrorCode ierr = 0;
+    std::vector <std::string> filename;
+    reg::VecField* v = NULL;
+    Vec m1 = NULL, probmap = NULL;
+    reg::ReadWriteReg* readwrite = NULL;
+    reg::CLAIREInterface* registration = NULL;
+    reg::Preprocessing* preproc = NULL;
+    IntType nl, ng, nc;
+    PetscFunctionBegin;
+
+    regopt->Enter(__func__);
+
+    // allocate class for io
+    try {readwrite = new reg::ReadWriteReg(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    regopt->m_RegFlags.applyrescaling = false;
+    ierr = ReadData(regopt, readwrite, probmap); CHKERRQ(ierr);
+    ierr = reg::Assert(probmap != NULL, "set input probability maps"); CHKERRQ(ierr);
+    ierr = ReadData(regopt, readwrite, v); CHKERRQ(ierr);
+    ierr = reg::Assert(v != NULL, "set input velocity field"); CHKERRQ(ierr);
+
+    // allocate class for registration interface
+    try {registration = new reg::CLAIREInterface(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+    try {preproc = new reg::Preprocessing(regopt);}
+    catch (std::bad_alloc&) {
+        ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+    }
+
+    // get number of grid points and components
+    nl = regopt->m_Domain.nl;
+    ng = regopt->m_Domain.ng;
+    nc = regopt->m_Domain.nc;
+
+    // allocate images for  solution of transport problem
+    ierr = VecDuplicate(probmap, &m1); CHKERRQ(ierr);
+
+    // solve forward problem
+    ierr = reg::DbgMsg("computing solution of transport problem"); CHKERRQ(ierr);
+    ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+
+    // map from template space to reference space (i.e., compute inverse
+    // deformation)
+    if (regopt->m_RegToolFlags.reference2template) {
+        ierr = v->Scale(-1.0); CHKERRQ(ierr);
+    }
+
+    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+    ierr = registration->SolveForwardProblem(m1, probmap); CHKERRQ(ierr);
+
+    // write transported multi-component scalar field to file
+    ierr = readwrite->WriteT(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
+
+    // clean up
+    if (v != NULL) {delete v; v = NULL;}
+    if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
+    if (probmap != NULL) {ierr = VecDestroy(&probmap); CHKERRQ(ierr); probmap = NULL;}
+    if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (registration != NULL) {delete registration; registration = NULL;}
+    if (preproc != NULL) {delete preproc; preproc = NULL;}
+
+    regopt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -301,7 +395,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     PetscErrorCode ierr = 0;
     std::vector <std::string> filename;
     reg::VecField* v = NULL;
-    Vec m0 = NULL, m1 = NULL, labelmap = NULL;
+    Vec m0 = NULL, m1 = NULL, labelmap = NULL, labelref = NULL;
     reg::ReadWriteReg* readwrite = NULL;
     reg::CLAIREInterface* registration = NULL;
     reg::Preprocessing* preproc = NULL;
@@ -343,6 +437,42 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     nl = regopt->m_Domain.nl;
     ng = regopt->m_Domain.ng;
     nc = regopt->m_Domain.nc;
+    
+    if (regopt->m_RegToolFlags.computedice) {
+      std::string tmp = regopt->m_FileNames.isc;
+      regopt->m_FileNames.isc = regopt->m_FileNames.iref;
+      regopt->m_Domain.nc = 1;
+      ierr = ReadData(regopt, readwrite, labelref); CHKERRQ(ierr);
+      regopt->m_Domain.nc = nc;
+      regopt->m_FileNames.isc = tmp;
+      
+      IntType cnt_common = 0;
+      ScalarType *p_mr = nullptr, *p_mt = nullptr;
+      
+      ierr = VecGetArray(labelref, &p_mr); CHKERRQ(ierr);
+      ierr = VecGetArray(labelmap, &p_mt); CHKERRQ(ierr);
+      
+      IntType cntmr = 0;
+      IntType cntmt = 0;
+
+      for (IntType i = 0; i < nl; ++i) {  // for all grid points
+        bool mrInLabels = ElementInVec(regopt->m_LabelIDs, p_mr[i]);
+        bool mtInLabels = ElementInVec(regopt->m_LabelIDs, p_mt[i]);
+        if (mrInLabels) cntmr++;
+        if (mtInLabels) cntmt++;
+        if (mrInLabels && mtInLabels) {
+            cnt_common += 1;
+        }
+      }
+      
+      std::stringstream ss;
+      ss << "DICE pre: "<<static_cast<double>(2*cnt_common)/static_cast<double>(cntmr+cntmt);
+      ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+
+      ierr = VecRestoreArray(labelref, &p_mr); CHKERRQ(ierr);
+      ierr = VecRestoreArray(labelmap, &p_mt); CHKERRQ(ierr);
+    }
 
     // allocate images for individual labels
     ierr = reg::VecCreate(m0, nl*nc, ng*nc); CHKERRQ(ierr);
@@ -369,18 +499,50 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
 
     // write probability maps
     if (regopt->m_RegToolFlags.saveprob) {
+        ierr = preproc->EnsurePatitionOfUnity(m1);
         ierr = readwrite->Write(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
     }
     // map transported "probability maps" (smooth classes)
     // to a hard segmentation
     ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
     ierr = preproc->MultiCompImage2Labels(labelmap, m1); CHKERRQ(ierr);
+    
+    if (regopt->m_RegToolFlags.computedice) {
+      IntType cnt_common = 0;
+      ScalarType *p_mr = nullptr, *p_mt = nullptr;
+      
+      ierr = VecGetArray(labelref, &p_mr); CHKERRQ(ierr);
+      ierr = VecGetArray(labelmap, &p_mt); CHKERRQ(ierr);
 
-    // write transported scalar field to file
-    ierr = readwrite->WriteT(labelmap, regopt->m_FileNames.xsc); CHKERRQ(ierr);
+      IntType cntmr = 0;
+      IntType cntmt = 0;
+
+      for (IntType i = 0; i < nl; ++i) {  // for all grid points
+        bool mrInLabels = ElementInVec(regopt->m_LabelIDs, p_mr[i]);
+        bool mtInLabels = ElementInVec(regopt->m_LabelIDs, p_mt[i]);
+        if (mrInLabels) cntmr++;
+        if (mtInLabels) cntmt++;
+        if (mrInLabels && mtInLabels) {
+            cnt_common += 1;
+        }
+      }
+      
+      std::stringstream ss;
+      ss << "DICE post: "<<static_cast<double>(2*cnt_common)/static_cast<double>(cntmr+cntmt);
+      ierr = reg::Msg(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+
+      ierr = VecRestoreArray(labelref, &p_mr); CHKERRQ(ierr);
+      ierr = VecRestoreArray(labelmap, &p_mt); CHKERRQ(ierr);
+    } else {
+      // write transported scalar field to file
+      ierr = readwrite->WriteT(labelmap, regopt->m_FileNames.xsc); CHKERRQ(ierr);
+    }
 
     // clean up
     if (v != NULL) {delete v; v = NULL;}
+    if (labelmap != NULL) {VecDestroy(&labelmap); labelmap = NULL;}
+    if (labelref != NULL) {VecDestroy(&labelref); labelref = NULL;}
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}

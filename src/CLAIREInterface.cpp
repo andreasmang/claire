@@ -594,9 +594,11 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
 PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    IntType nc;
 
     this->m_Opt->Enter(__func__);
-
+    
+    nc = m_Opt->m_Domain.nc;
     // presmoothing, if necessary
     if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
         ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
@@ -616,11 +618,8 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
                     ierr = reg::ThrowError(err); CHKERRQ(ierr);
                 }
             }
-            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage); CHKERRQ(ierr);
-            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage); CHKERRQ(ierr);
-            if (this->m_Opt->m_Verbosity > 2) {
-              ierr = DbgMsg("finished smoothing"); CHKERRQ(ierr);
-            }
+            ierr = this->m_PreProc->Smooth(mR, this->m_ReferenceImage, nc); CHKERRQ(ierr);
+            ierr = this->m_PreProc->Smooth(mT, this->m_TemplateImage, nc); CHKERRQ(ierr);
         } else {
             ierr = VecCopy(this->m_ReferenceImage, mR); CHKERRQ(ierr);
             ierr = VecCopy(this->m_TemplateImage, mT); CHKERRQ(ierr);

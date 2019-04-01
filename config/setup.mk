@@ -66,8 +66,13 @@ ifeq ($(USECUDA),yes)
 	BINDIR = ./bingpu
 	OBJDIR = ./objgpu
 else
+ifeq ($(USESINGLE),no)
+	BINDIR = ./bindbl
+	OBJDIR = ./objdbl
+else
 	BINDIR = ./bin
 	OBJDIR = ./obj
+endif
 endif
 SRCDIR = ./src
 INCDIR = ./include
