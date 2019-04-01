@@ -67,6 +67,8 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   ScalarType *ref  = new ScalarType[nl];
   ScalarType *eval = new ScalarType[nl];
   
+  int iq = 10;
+
   for (int i1 = 0; i1 < isize[0]; ++i1) {  // x1
     for (int i2 = 0; i2 < isize[1]; ++i2) {  // x2
       for (int i3 = 0; i3 < isize[2]; ++i3) {  // x3
@@ -141,6 +143,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   double max = 0;
   for (int i = 0; i < nl; ++i) {
     double local = static_cast<double>(ref[i]) - static_cast<double>(eval[i]);
+    //std::cout<<i<<"\tref = "<<ref[i]<<"\t"<<"eval = "<<eval[i]<<std::endl;
     double lmax = std::abs(eval[i]);
     if (lmax > max) max = lmax;
     error += local*local;

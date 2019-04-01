@@ -129,6 +129,16 @@ __device__ inline int getLinearIdx(int i, int j, int k) {
 
 
 /********************************************************************
+ * @brief function to add 1 to a an array
+ *******************************************************************/
+__global__ void load_store(float* f1, float* f2) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    f2[i] = f1[i] + 1;
+}
+
+
+
+/********************************************************************
  * @brief prefilte for z-direction
  *******************************************************************/
 __global__ void prefilter_z(float* dfz, float* f) {
@@ -345,6 +355,58 @@ __device__ float cubicTex3D_lagrangeFast( cudaTextureObject_t tex, const float3 
     
 }
 
+/********************************************************************
+ * Fixed departure point
+ * @brief device function to do the interpolation of a single point using the Vanilla Lagrange Method
+ * @parm[in] tex input data texture used for interpolation
+ * @parm[in] coord_grid query coordinate
+ * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
+ * @parm[out] interpolated value
+ *******************************************************************/
+__global__ void fixedpointLagrange(PetscScalar* f, 
+                                   const PetscScalar* xq, 
+                                   const PetscScalar* yq, 
+                                   const PetscScalar* zq,
+                                   PetscScalar* fq, 
+                                   const float3 inv_ext) {
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
+	__shared__ float fs[64];
+	const float3 index = floor(qcoord);
+	const float3 fraction = qcoord - index;
+	float3 w0, w1, w2, w3;
+	lagrange_weights(fraction, w0, w1, w2, w3);
+    
+    float wx[KERNEL_DIM] = {w0.x, w1.x, w2.x, w3.x};
+    float wy[KERNEL_DIM] = {w0.y, w1.y, w2.y, w3.y};
+    float wz[KERNEL_DIM] = {w0.z, w1.z, w2.z, w3.z};
+    
+    if (threadIdx.x == 0) {
+        PetscScalar *fp = &f[9 + d_nz*9 + d_ny*d_nz*9];
+    // indices for the source points to be loaded in Shared Memory
+        for (int k=0; k<KERNEL_DIM; k++) 
+            for (int j=0; j<KERNEL_DIM; j++) 
+                for (int i=0; i<KERNEL_DIM; i++) 
+                    fs[k + j*4 + i*16] = fp[k + j*4 + i*16];
+    }
+
+    __syncthreads();
+    
+    float sk,sj,temp=0;
+    // computation begins
+    for (int k=0; k<KERNEL_DIM; k++) {
+        sk = 0;
+        for (int j=0; j<KERNEL_DIM; j++)  {
+           sj = wx[0]*fs[k + j*4 + 0] +
+                wx[1]*fs[k + j*4 + 1*16] + 
+                wx[2]*fs[k + j*4 + 2*16] + 
+                wx[3]*fs[k + j*4 + 3*16];
+           sk = fmaf(wy[j], sj, sk);
+        }
+        temp = fmaf(wz[k], sk, temp);
+    }
+   fq[tid] = temp; 
+}
 
 /********************************************************************
  * @brief device function to do the interpolation of a single point using the Vanilla Lagrange Method
@@ -525,6 +587,21 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx) {
     if ( cudaSuccess != cudaGetLastError())
                 printf("Error in running warmup gradz kernel\n");
     cudaCheckKernelError();
+    
+    // check 1-load, 1-add, 1-store time
+    int threads = 256;
+    int blocks = nx[2]*nx[1]*nx[0]/threads;
+    cudaEventRecord(startEvent,0); 
+    load_store<<<blocks, threads>>>(m, mtemp);
+    cudaEventRecord(stopEvent,0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
+    time+=dummy_time;
+    cudaDeviceSynchronize();
+    printf("> laod-store avg time = %fmsec\n", time);
+    time = 0;
+
+
     
     // Y-Gradient
     dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
@@ -717,7 +794,7 @@ __global__ void interp3D_kernel(
       //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
       yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
-  /*    const float h = 2*PI*inv_nx.x;
+/*    const float h = 2*PI*inv_nx.x;
       const float3 q = qcoord*h;
       float votrue = computeVx(q.z, q.y, q.x);
       if (tid>=60 && tid<70) {
@@ -803,7 +880,7 @@ void gpuInterp3D(
 
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
     //if (iporder == 3) {
-    //    CubicBSplinePrefilter3D_fast(yi, nx);
+    //  CubicBSplinePrefilter3D_fast(yi, nx);
     //}
     
     // make input image a cudaPitchedPtr for fi

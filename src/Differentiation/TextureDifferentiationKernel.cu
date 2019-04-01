@@ -51,6 +51,7 @@ __device__ inline int getLinearIdx(int i, int j, int k) {
     return i*d_ny*d_nz + j*d_nz + k;
 }
 
+
 __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
@@ -193,7 +194,7 @@ __global__ void TextureDivXComputeKernel(cudaTextureObject_t tex, ScalarType* di
     const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
     const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
-    
+
     if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
       // global index
       const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
@@ -206,11 +207,12 @@ __global__ void TextureDivXComputeKernel(cudaTextureObject_t tex, ScalarType* di
       div[gid] = dfx;
     }
 }
+
 __global__ void TextureDivYComputeKernel(cudaTextureObject_t tex, ScalarType* div) {
     const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
     const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
-    
+
     if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
       // global index
       const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
@@ -223,11 +225,12 @@ __global__ void TextureDivYComputeKernel(cudaTextureObject_t tex, ScalarType* di
       div[gid] += dfy;
     }
 }
+
 __global__ void TextureDivZComputeKernel(cudaTextureObject_t tex, ScalarType* div) {
     const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
     const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
-    
+
     if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
       // global index
       const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
@@ -247,11 +250,11 @@ __global__ void TextureGradientComputeKernel(cudaTextureObject_t tex, ScalarType
     const int tidy = blockDim.y * blockIdx.y + threadIdx.y;
     const int tidz = blockDim.z * blockIdx.z + threadIdx.z;
     
-    if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {    
+    if (tidx < d_nx && tidy < d_ny && tidz < d_nz) {
       // global index
       const int gid = tidz + tidy*d_nz + tidx*d_ny*d_nz;
       float3 id = make_float3( tidz*d_invnz, tidy*d_invny, tidx*d_invnx);
-      
+    
       float dfx=0,dfy=0,dfz=0;
       for(int l=1; l<HALO+1; l++) {
           dfz += (tex3D<float>(tex, id.x + l*d_invnz, id.y, id.z) - tex3D<float>(tex, id.x - l*d_invnz, id.y, id.z))*d_cz[l-1];
@@ -499,6 +502,7 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx.z;
     cudaMemcpyToSymbol(d_cz, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);*/
 
+
     // create a common cudaResourceDesc objects
     //struct cudaResourceDesc resDesc;
     //memset(&resDesc, 0, sizeof(resDesc));
@@ -544,7 +548,7 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     if ( cudaSuccess != cudaGetLastError())
                 printf("Error in running warmup gradx kernel\n");
     cudaCheckKernelError();
-*/    
+*/
     // start recording the interpolation kernel
     /*time = 0; dummy_time = 0; 
     cudaEventRecord(startEvent,0); 
