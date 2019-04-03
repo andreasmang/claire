@@ -67,6 +67,7 @@ class Preprocessing {
     Preprocessing(RegOpt*);
     virtual ~Preprocessing();
 
+    PetscErrorCode SetOptCoarse(RegOpt*);
     PetscErrorCode SetReadWrite(ReadWriteType*);
     PetscErrorCode Smooth(Vec, Vec, IntType nc = 1);
     PetscErrorCode ApplyRectFreqFilter(Vec, Vec, ScalarType, bool flag = true);
@@ -98,6 +99,7 @@ class Preprocessing {
     PetscErrorCode SetupGridChangeOps(IntType*, IntType*);
 
     RegOpt* m_Opt;
+    RegOpt* m_OptCoarse;
     ReadWriteType* m_ReadWrite;
 
     std::vector< std::vector<IntType> > m_IndicesF;

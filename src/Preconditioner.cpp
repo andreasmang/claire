@@ -260,6 +260,9 @@ PetscErrorCode Preconditioner::SetPreProc(Preprocessing* preproc) {
 
     ierr = Assert(preproc != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_PreProc = preproc;
+    if (this->m_CoarseGrid) {
+      ierr = this->m_PreProc->SetOptCoarse(this->m_CoarseGrid->m_Opt); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -386,6 +389,9 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
         this->m_CoarseGrid->m_Opt->m_Domain.nx[i] = static_cast<IntType>(std::ceil(value));
     }
     ierr = this->m_CoarseGrid->m_Opt->DoSetup(false); CHKERRQ(ierr);
+    if (this->m_PreProc) {
+      ierr = this->m_PreProc->SetOptCoarse(this->m_CoarseGrid->m_Opt); CHKERRQ(ierr);
+    }
 
     if (this->m_Opt->m_Verbosity > 2) {
         ss  << "setup of preconditioner (data allocation) "
@@ -585,6 +591,10 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     ScalarType pct, value;
     IntType nxc[3], nx[3];
     this->m_Opt->Enter(__func__);
+
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("Apply 2-level precond"); CHKERRQ(ierr);
+    }
 
     // do allocation of coarse grid
     if (!this->m_CoarseGrid->setupdone) {
@@ -950,7 +960,7 @@ PetscErrorCode Preconditioner::SetupKrylovMethod(IntType nl, IntType ng) {
     // finish setup
     ierr = KSPSetFromOptions(this->m_KrylovMethod); CHKERRQ(ierr);
     ierr = KSPSetUp(this->m_KrylovMethod); CHKERRQ(ierr);
-
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(0);

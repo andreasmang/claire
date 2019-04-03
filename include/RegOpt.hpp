@@ -22,6 +22,7 @@
 
 // local includes
 #include "CLAIREUtils.hpp"
+#include "Spectral.hpp"
 //#include "ARGVParser.hpp"
 
 namespace reg {
@@ -416,7 +417,8 @@ struct Distance {
 };
 
 struct FourierTransform {
-    FFTPlanType* plan;  ///< accfft plan
+    Spectral* fft;      ///< spectral operator
+    //FFTPlanType* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft
     bool mpicommexists; ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain

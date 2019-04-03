@@ -452,7 +452,8 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
 //#else
     lowerbound = 1E-16;
 //#endif
-    maxits = 1E3;
+    //maxits = 1E3;
+    maxits = precond->GetOptions()->m_KrylovMethod.pcmaxit;
     reltol = precond->GetOptions()->m_KrylovMethod.pctol[0];
     abstol = precond->GetOptions()->m_KrylovMethod.pctol[1];
     divtol = precond->GetOptions()->m_KrylovMethod.pctol[2];

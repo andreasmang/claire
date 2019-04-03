@@ -654,7 +654,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     c_dims[1] = this->m_Opt->m_CartGridDims[1];
 
     // deal with ghost points
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, istart_g);
     
     // if scalar field with ghost points has not been allocated
     if (this->m_ScaFieldGhost == NULL) {
@@ -662,7 +662,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     }
 
     // assign ghost points based on input scalar field
-    accfft_get_ghost_xyz(this->m_Opt->m_FFT.plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
+    accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
     
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -804,7 +804,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     // get ghost sizes
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, istart_g);
 
     // get nl for ghosts
     nlghost = 1;
@@ -820,7 +820,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     // do the communication for the ghost points
     for (int i = 0; i < 3; i++) {
-        accfft_get_ghost_xyz(this->m_Opt->m_FFT.plan, nghost, isize_g, &this->m_X[i*nl],
+        accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, &this->m_X[i*nl],
                              &this->m_VecFieldGhost[i*nlghost]);
     }
 

@@ -48,7 +48,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIRE.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
-		$(SRCDIR)/Preprocessing.cpp
+		$(SRCDIR)/Preprocessing.cpp \
+		$(SRCDIR)/Spectral/Spectral.cpp
 
 EXCPPFILES=
 
@@ -103,7 +104,8 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
-		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp
+		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp \
+		$(SRCDIR)/Spectral/Spectral.cpp
 
 TESTFILES=$(SRCDIR)/UnitTestOpt.cpp \
 		$(SRCDIR)/UnitTests/TestInterpolation.cpp \

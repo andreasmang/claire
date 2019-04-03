@@ -318,9 +318,12 @@ PetscErrorCode CLAIREStokes::ApplyProjection() {
 
     // compute forward fft
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x1, this->m_x1hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x2, this->m_x2hat, timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x3, this->m_x3hat, timer);
+    ierr = this->m_Opt->m_FFT.fft->FFT_R2C(p_x1, this->m_x1hat); CHKERRQ(ierr);
+    ierr = this->m_Opt->m_FFT.fft->FFT_R2C(p_x2, this->m_x2hat); CHKERRQ(ierr);
+    ierr = this->m_Opt->m_FFT.fft->FFT_R2C(p_x3, this->m_x3hat); CHKERRQ(ierr);
+    //accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x1, this->m_x1hat, timer);
+    //accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x2, this->m_x2hat, timer);
+    //accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, p_x3, this->m_x3hat, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 
@@ -405,9 +408,12 @@ PetscErrorCode CLAIREStokes::ApplyProjection() {
 
     // compute inverse fft
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x1hat, p_x1, timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x2hat, p_x2, timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x3hat, p_x3, timer);
+    ierr = this->m_Opt->m_FFT.fft->FFT_C2R(this->m_x1hat, p_x1); CHKERRQ(ierr);
+    ierr = this->m_Opt->m_FFT.fft->FFT_C2R(this->m_x2hat, p_x2); CHKERRQ(ierr);
+    ierr = this->m_Opt->m_FFT.fft->FFT_C2R(this->m_x3hat, p_x3); CHKERRQ(ierr);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x1hat, p_x1, timer);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x2hat, p_x2, timer);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, this->m_x3hat, p_x3, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, 3);
 

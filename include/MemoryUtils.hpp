@@ -187,6 +187,7 @@ template<class T> const T* ManagedMemory<T>::ReadHost() {
 }
 template<class T> T* ManagedMemory<T>::WriteHost() {
   this->AllocateHost();
+  this->m_HostValid = true;
   this->m_DeviceValid = false;
   
   this->m_CurrentPtr = this->m_HostPtr;
@@ -196,9 +197,10 @@ template<class T> T* ManagedMemory<T>::WriteHost() {
 template<class T> T* ManagedMemory<T>::ReadWriteHost() {
   this->AllocateHost();
   this->CopyDeviceToHost();
+  this->m_HostValid = true;
   this->m_DeviceValid = false;
   
-  return this->m_HostPtr();
+  return this->m_HostPtr;
 }
 
 template<class T> const T* ManagedMemory<T>::ReadDevice() {
@@ -210,6 +212,7 @@ template<class T> const T* ManagedMemory<T>::ReadDevice() {
 template<class T> T* ManagedMemory<T>::WriteDevice() {
   this->AllocateDevice();
   this->m_HostValid = false;
+  this->m_DeviceValid = true;
 
   this->m_CurrentPtr = this->m_DevicePtr;
   
@@ -219,6 +222,7 @@ template<class T> T* ManagedMemory<T>::ReadWriteDevice() {
   this->AllocateDevice();
   this->CopyHostToDevice();
   this->m_HostValid = false;
+  this->m_DeviceValid = true;
   
   return this->m_DevicePtr;
 }

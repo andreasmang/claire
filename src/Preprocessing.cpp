@@ -54,6 +54,7 @@ Preprocessing::~Preprocessing() {
 PetscErrorCode Preprocessing::Initialize() {
     PetscErrorCode ierr = 0;
     this->m_Opt = nullptr;
+    this->m_OptCoarse = nullptr;
 
     this->m_GridChangeOpsSet = false;
     this->m_ResetGridChangeOps = false;
@@ -157,6 +158,18 @@ PetscErrorCode Preprocessing::ClearMemory() {
 */
     PetscFunctionReturn(ierr);
 
+}
+
+/********************************************************************
+ * @brief set coarse option object
+ *******************************************************************/
+PetscErrorCode Preprocessing::SetOptCoarse(RegOpt* opt) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_OptCoarse = opt;
+
+    PetscFunctionReturn(ierr);
 }
 
 /********************************************************************
@@ -743,6 +756,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
            << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]"
            << " -> [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DebugInfo(x_f, "fine data", __LINE__, __FILE__); CHKERRQ(ierr);
     }
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -784,6 +798,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     
     ierr = this->m_XHatCoarse.AllocateHost(); CHKERRQ(ierr);
 
+    this->m_XHatCoarse.WriteHost();
 #pragma omp parallel
 {
 #pragma omp for
@@ -796,9 +811,11 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 
     // compute fft of data on fine grid
     ierr = GetRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_FFTFinePlan, const_cast<ScalarType*>(p_xf), this->m_XHatFine.WriteDevice(), timer);
+    ierr = this->m_Opt->m_FFT.fft->FFT_R2C(p_xf, this->m_XHatFine.WriteDevice()); CHKERRQ(ierr);
+    //accfft_execute_r2c_t(this->m_FFTFinePlan, const_cast<ScalarType*>(p_xf), this->m_XHatFine.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
-    ierr = this->m_XHatFine.CopyDeviceToHost(); CHKERRQ(ierr);
+    //ierr = this->m_XHatFine.CopyDeviceToHost(); CHKERRQ(ierr);
+    this->m_XHatFine.ReadWriteHost();
 
     // compute indices
     if (!this->m_GridChangeIndicesComputed) {
@@ -861,9 +878,14 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     }
 
     ierr = GetRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_FFTCoarsePlan, const_cast<ComplexType*>(this->m_XHatCoarse.ReadDevice()), p_xc, timer);
+    ierr = this->m_OptCoarse->m_FFT.fft->FFT_C2R(this->m_XHatCoarse.ReadDevice(), p_xc); CHKERRQ(ierr);
+    //accfft_execute_c2r_t(this->m_FFTCoarsePlan, const_cast<ComplexType*>(this->m_XHatCoarse.ReadDevice()), p_xc, timer);
     ierr = RestoreRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
 
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DebugInfo(*x_c, "coarse data", __LINE__, __FILE__); CHKERRQ(ierr);
+    }
+    
     // set fft timers
     this->m_Opt->IncreaseFFTTimers(timer);
 
@@ -1486,6 +1508,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
         ss << "applying prolongation operator [" << nx_c[0] << "," << nx_c[1] << "," << nx_c[2] << "]"
            << " -> [" << nx_f[0] << "," << nx_f[1] << "," << nx_f[2] << "]";
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DebugInfo(x_c, "coarse data", __LINE__, __FILE__); CHKERRQ(ierr);
     }
 
     if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ) {
@@ -1516,6 +1539,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     
     ierr = this->m_XHatFine.AllocateHost(); CHKERRQ(ierr);
 
+    this->m_XHatFine.WriteHost();
 #pragma omp parallel
 {
     IntType l;
@@ -1529,9 +1553,11 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 
     // compute fft of data on fine grid
     ierr = GetRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_FFTCoarsePlan, const_cast<ScalarType*>(p_xc), this->m_XHatCoarse.WriteDevice(), timer);
+    ierr = this->m_OptCoarse->m_FFT.fft->FFT_R2C(p_xc, this->m_XHatCoarse.WriteDevice()); CHKERRQ(ierr);
+    //accfft_execute_r2c_t(this->m_FFTCoarsePlan, const_cast<ScalarType*>(p_xc), this->m_XHatCoarse.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
-    ierr = this->m_XHatCoarse.CopyDeviceToHost(); CHKERRQ(ierr);
+    //ierr = this->m_XHatCoarse.CopyDeviceToHost(); CHKERRQ(ierr);
+    this->m_XHatCoarse.ReadWriteHost();
 
     // compute indices for mapping from coarse grid to fine grid
     if (!this->m_GridChangeIndicesComputed) {
@@ -1592,7 +1618,8 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     }
 
     ierr = GetRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_FFTFinePlan, const_cast<ComplexType*>(this->m_XHatFine.ReadDevice()), p_xf, timer);
+    ierr = this->m_Opt->m_FFT.fft->FFT_C2R(this->m_XHatFine.ReadDevice(), p_xf); CHKERRQ(ierr);
+    //accfft_execute_c2r_t(this->m_FFTFinePlan, const_cast<ComplexType*>(this->m_XHatFine.ReadDevice()), p_xf, timer);
     ierr = RestoreRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
 
     // set fft timeri
@@ -1600,6 +1627,10 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 
     // increment counter
     this->m_Opt->IncrementCounter(FFT, 2);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DebugInfo(*x_f, "fine data", __LINE__, __FILE__); CHKERRQ(ierr);
+    }
 
     this->m_Opt->Exit(__func__);
 
@@ -1688,9 +1719,11 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute fft
     ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(p_x), this->m_XHat.WriteDevice(), timer);
+    ierr = this->m_Opt->m_FFT.fft->FFT_R2C(p_x, this->m_XHat.WriteDevice()); CHKERRQ(ierr);
+    //accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(p_x), this->m_XHat.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x, &p_x); CHKERRQ(ierr);
-    ierr = this->m_XHat.CopyDeviceToHost(); CHKERRQ(ierr);
+    //ierr = this->m_XHat.CopyDeviceToHost(); CHKERRQ(ierr);
+    this->m_XHat.ReadWriteHost();
 
     // compute cutoff frequency
     cfreq[0][0] = pct*(nxhalf[0]-1);
@@ -1739,7 +1772,8 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
 
     // compute inverse fft
     ierr = GetRawPointerWrite(xflt, &p_xflt); CHKERRQ(ierr);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, const_cast<ComplexType*>(this->m_XHat.ReadDevice()), p_xflt, timer);
+    ierr = this->m_Opt->m_FFT.fft->FFT_C2R(this->m_XHat.ReadDevice(), p_xflt); CHKERRQ(ierr);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, const_cast<ComplexType*>(this->m_XHat.ReadDevice()), p_xflt, timer);
     ierr = RestoreRawPointerWrite(xflt, &p_xflt); CHKERRQ(ierr);
 
     // increment fft timer

@@ -57,6 +57,7 @@ VecField::VecField(RegOpt* opt) {
     this->Initialize();
     this->SetOpt(opt);
     this->Allocate();
+    this->SetValue(0.);
 }
 
 
@@ -330,7 +331,7 @@ PetscErrorCode VecField::DebugInfo(std::string str, int line, const char *file) 
       ierr = this->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
       ss  << str << " norm: (" << std::scientific
           << nvx1 << "," << nvx2 << "," << nvx3 <<")";
-      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
       
       ierr = VecMax(this->m_X1, NULL, &maxval); CHKERRQ(ierr);

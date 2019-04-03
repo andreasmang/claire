@@ -67,7 +67,7 @@ RegOpt::RegOpt(const RegOpt& opt) {
  *******************************************************************/
 void RegOpt::Copy(const RegOpt& opt) {
     this->m_SetupDone = false;
-    this->m_FFT.plan = NULL;
+    //this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = 0;
     this->m_FFT.mpicommexists = false;
     this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
@@ -960,11 +960,12 @@ PetscErrorCode RegOpt::DestroyFFT() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    if (this->m_FFT.plan != NULL) {
-        accfft_destroy_plan(this->m_FFT.plan);
-        accfft_cleanup();
-        this->m_FFT.plan = NULL;
-    }
+//    if (this->m_FFT.plan != NULL) {
+//        accfft_destroy_plan(this->m_FFT.plan);
+//        accfft_cleanup();
+//        this->m_FFT.plan = NULL;
+//    }
+    ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
 
 //    if (this->m_FFT.mpicommexists) {
         MPI_Comm_free(&this->m_FFT.mpicomm);
@@ -1036,7 +1037,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ss.clear(); ss.str(std::string());
     }
 
-#ifndef REG_HAS_CUDA
+/*#ifndef REG_HAS_CUDA
     // set up the fft
     if (this->m_Verbosity > 2) {
         ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
@@ -1093,7 +1094,12 @@ PetscErrorCode RegOpt::InitializeFFT() {
     if (uk != NULL) {accfft_free(uk); uk = NULL;}
 #endif
 
-#endif
+#endif*/
+    fftsetuptime = -MPI_Wtime();
+    ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_FFT.fft, this); CHKERRQ(ierr);
+    fftsetuptime += MPI_Wtime();
+    this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
 
     if (this->m_Verbosity > 2) {
         ierr = DbgMsg("setting up sizes"); CHKERRQ(ierr);
@@ -1128,7 +1134,8 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_SetupDone = false;
 
     this->m_FFT = {};
-    this->m_FFT.plan = NULL;
+    this->m_FFT.fft = nullptr;
+//    this->m_FFT.plan = NULL;
     this->m_FFT.mpicomm = 0;
     this->m_FFT.mpicommexists = false;
     this->m_FFT.osize[0] = 0;

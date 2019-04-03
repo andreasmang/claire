@@ -789,10 +789,10 @@ __global__ void interp3D_kernel(
     if (tid < nq) {
       float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
 
-      //yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-      //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-      //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-      yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
 
 /*    const float h = 2*PI*inv_nx.x;
       const float3 q = qcoord*h;
@@ -861,11 +861,6 @@ void gpuInterp3D(
                                         1.0f/static_cast<float>(nx[0]));
     long int nq = nx[0]*nx[1]*nx[2]; 
 
-    // only for Spline
-    //cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
-    //cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
-    //cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
-
     /*cudaMemcpyToSymbol(d_invnx, &inv_nx.x, sizeof(float), 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(d_invny, &inv_nx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(d_invnz, &inv_nx.z, sizeof(float), 0, cudaMemcpyHostToDevice);*/
@@ -880,6 +875,9 @@ void gpuInterp3D(
 
     // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
     //if (iporder == 3) {
+    //  cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
+    //  cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
+    //  cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
     //  CubicBSplinePrefilter3D_fast(yi, nx);
     //}
     

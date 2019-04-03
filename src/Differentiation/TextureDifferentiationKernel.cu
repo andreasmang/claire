@@ -507,7 +507,8 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     //struct cudaResourceDesc resDesc;
     //memset(&resDesc, 0, sizeof(resDesc));
    
-
+#if 0
+    // Texture Kernel
     // make input image a cudaPitchedPtr for m
     cudaPitchedPtr m_cudaPitchedPtr = make_cudaPitchedPtr((void*)(m), nx[2]*sizeof(ScalarType), nx[2], nx[1]);
     
@@ -524,31 +525,27 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
     TextureGradientComputeKernel<<<numBlocks, threadsPerBlock>>>(mtex, gx, gy, gz);
     cudaCheckKernelError();
     cudaDeviceSynchronize();
-/*
+#else
+    // Shared Texture Kernel
     // Z-Gradient
     dim3 threadsPerBlock_z(sy, sx, 1);
     dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
     gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz,m);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup gradz kernel\n");
     cudaCheckKernelError();
     
     // Y-Gradient 
     dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
     gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup grady kernel\n");
     cudaCheckKernelError();
     
     // X-Gradient
     dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
     gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in running warmup gradx kernel\n");
     cudaCheckKernelError();
-*/
+    cudaDeviceSynchronize();
+#endif
     // start recording the interpolation kernel
     /*time = 0; dummy_time = 0; 
     cudaEventRecord(startEvent,0); 

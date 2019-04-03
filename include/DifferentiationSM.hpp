@@ -25,9 +25,9 @@
 #include "Differentiation.hpp"
 #include "DifferentiationKernel.hpp"
 
-#ifdef REG_HAS_CUDA
-#include <cufft.h>
-#endif
+//#ifdef REG_HAS_CUDA
+//#include <cufft.h>
+//#endif
 
 namespace reg {
 
@@ -81,14 +81,14 @@ class DifferentiationSM : public Differentiation {
         
     DifferentiationKernel m_SpectralKernel;
     std::bitset<3> xyz;
-    double timer[NFFTTIMERS];
+//    double timer[NFFTTIMERS];
     int c_grad;
     int c_div;
     
-#ifdef REG_HAS_CUDA
-    cufftHandle *m_planR2C;
-    cufftHandle *m_planC2R;
-#endif
+//#ifdef REG_HAS_CUDA
+//    cufftHandle *m_planR2C;
+//    cufftHandle *m_planC2R;
+//#endif
     
     ComplexType *m_XHat[3];
 };

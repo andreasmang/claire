@@ -161,20 +161,20 @@ inline PetscErrorCode DebugInfo(Vec vec, std::string str, int line, const char* 
       ierr = VecRestoreArray(vec, &p_x1); CHKERRQ(ierr);
       
       ss  << str << " hash: " << std::hex << fingerprint;
-      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
 
       ierr = VecNorm(vec, NORM_2, &nvx1); CHKERRQ(ierr);
       ss  << str << " 2-norm: " << std::scientific
           << nvx1;
-      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
       
       ierr = VecMax(vec, NULL, &maxval); CHKERRQ(ierr);
       ierr = VecMin(vec, NULL, &minval); CHKERRQ(ierr);
       ss  << str << " min/max: [" << std::scientific
           << minval << "," << maxval << "]";
-      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
   PetscFunctionReturn(ierr);
 }
