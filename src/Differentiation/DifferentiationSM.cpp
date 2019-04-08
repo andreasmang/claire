@@ -222,6 +222,7 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
     DebugGPUNotImplemented();
+    WrngMsg("Not Implemented");
     //accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
