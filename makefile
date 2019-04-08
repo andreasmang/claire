@@ -11,7 +11,7 @@ USEHASWELL=no
 BUILDTOOLS=yes
 BUILDTEST=yes
 
-include config/setup.mk
+include config/setup.mk.power9v100
 include config/files.mk
 
 

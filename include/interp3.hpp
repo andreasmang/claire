@@ -13,8 +13,10 @@
 #define FAST_INTERP
 
 #ifdef PETSC_USE_REAL_SINGLE
+#ifndef POWER9
 // enable ONLY for single precision
 #define FAST_INTERPV
+#endif
 #endif
 
 #define FAST_INTERP_BINNING

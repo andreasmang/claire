@@ -47,6 +47,17 @@ Spectral::Spectral(RegOpt *opt) {
 PetscErrorCode Spectral::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    this->m_kernel.nx[0] = 0;
+    this->m_kernel.nx[1] = 0;
+    this->m_kernel.nx[2] = 0;
+    this->m_kernel.nl[0] = 0;
+    this->m_kernel.nl[1] = 0;
+    this->m_kernel.nl[2] = 0;
+    this->m_kernel.nstart[0] = 0;
+    this->m_kernel.nstart[1] = 0;
+    this->m_kernel.nstart[2] = 0;
+    this->m_kernel.scale = 0;
 
 #ifdef REG_HAS_CUDA
     this->m_planC2R = nullptr;
@@ -56,6 +67,27 @@ PetscErrorCode Spectral::Initialize() {
 
     this->m_Opt = nullptr;
 
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief init variables
+ *******************************************************************/
+PetscErrorCode Spectral::InitFFT() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    this->m_kernel.nx[0] = this->m_Opt->m_Domain.nx[0];
+    this->m_kernel.nx[1] = this->m_Opt->m_Domain.nx[1];
+    this->m_kernel.nx[2] = this->m_Opt->m_Domain.nx[2];
+    this->m_kernel.nl[0] = this->m_Opt->m_FFT.osize[0];
+    this->m_kernel.nl[1] = this->m_Opt->m_FFT.osize[1];
+    this->m_kernel.nl[2] = this->m_Opt->m_FFT.osize[2];
+    this->m_kernel.nstart[0] = this->m_Opt->m_FFT.ostart[0];
+    this->m_kernel.nstart[1] = this->m_Opt->m_FFT.ostart[1];
+    this->m_kernel.nstart[2] = this->m_Opt->m_FFT.ostart[2];
+    this->m_kernel.scale = this->m_Opt->ComputeFFTScale();
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -179,6 +211,73 @@ PetscErrorCode Spectral::FFT_C2R(const ComplexType *complex, ScalarType *real) {
 
     PetscFunctionReturn(ierr);
 }
+
+/********************************************************************
+ * @brief Low pass filter
+ *******************************************************************/
+PetscErrorCode Spectral::LowPassFilter(ComplexType *xHat, ScalarType pct) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    ierr = this->m_kernel.LowPassFilter(xHat, pct); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Low pass filter
+ *******************************************************************/
+PetscErrorCode Spectral::HighPassFilter(ComplexType *xHat, ScalarType pct) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    ierr = this->m_kernel.LowPassFilter(xHat, pct); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Restrict to lower Grid
+ *******************************************************************/
+PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, const IntType nxc[3]) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    IntType nx_c[3];
+    nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
+    
+    ierr = this->m_kernel.Restrict(xc, xf, nx_c); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Prolong from lower Grid
+ *******************************************************************/
+PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    IntType nx_c[3];
+    nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
+    
+    ierr = this->m_kernel.Prolong(xf, xc, nx_c); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Prolong from lower Grid
+ *******************************************************************/
+PetscErrorCode Spectral::Scale(ComplexType *x, ScalarType scale) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    ierr = this->m_kernel.Scale(x, scale); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 }  // end of namespace
 

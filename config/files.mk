@@ -49,7 +49,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREStokes.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
-		$(SRCDIR)/Spectral/Spectral.cpp
+		$(SRCDIR)/Spectral/Spectral.cpp \
+		$(SRCDIR)/Spectral/SpectralKernel.cpp
 
 EXCPPFILES=
 
@@ -60,7 +61,8 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/DeformationFields/DeformationKernel.cu \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
 		$(SRCDIR)/Differentiation/DifferentiationKernel.cu \
-		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu
+		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu \
+		$(SRCDIR)/Spectral/SpectralKernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \

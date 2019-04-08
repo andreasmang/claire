@@ -12,6 +12,11 @@
 void gpuInterp3D(PetscScalar* yi, const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, PetscScalar* yo, int* nx,
 cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 
+void gpuInterpVec3D(PetscScalar* yi1, PetscScalar* yi2, PetscScalar* yi3, 
+    const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
+    PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3, 
+    int* nx, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
+
 extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx);
 
 void interp0(float* m, float* q1, float *q2, float *q3, float *q, int nx[3]);

@@ -252,6 +252,8 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
 
     this->m_Verbosity = opt.m_Verbosity;
     this->m_Indent = opt.m_Indent;
+    
+    this->m_GPUtime = 0;
 }
 
 
@@ -1115,6 +1117,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
     }
+    
+    this->m_FFT.fft->InitFFT();
 
     this->Exit(__func__);
 

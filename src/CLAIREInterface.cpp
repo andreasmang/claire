@@ -242,6 +242,9 @@ PetscErrorCode CLAIREInterface::SetReadWrite(ReadWriteReg* readwrite) {
 
     ierr = Assert(readwrite != NULL, "null pointer"); CHKERRQ(ierr);
     this->m_ReadWrite = readwrite;
+    if (this->m_PreProc) {
+        ierr = this->m_PreProc->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -539,6 +542,9 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
     try {this->m_PreProc = new Preprocessing(this->m_Opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
+    if (this->m_ReadWrite) {
+        ierr = this->m_PreProc->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {

@@ -17,7 +17,7 @@ ifeq ($(USEINTEL),yes)
 	#CXXFLAGS += -openmp
 	CXXFLAGS += -qopenmp
 else
-	CXXFLAGS += -fopenmp
+	CXXFLAGS += -fopenmp -DPOWER9
 	#CXXFLAGS += -march=native
 endif
 CXXFLAGS += -std=c++11

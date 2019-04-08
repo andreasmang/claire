@@ -21,6 +21,7 @@
 #define _SPECTRAL_HPP_
 
 #include "CLAIREUtils.hpp"
+#include "SpectralKernel.hpp"
 
 #ifdef REG_HAS_CUDA
 #include <cufft.h>
@@ -37,8 +38,18 @@ class Spectral {
     Spectral(RegOpt *opt);
     virtual ~Spectral();
     
+    PetscErrorCode InitFFT();
+    
     PetscErrorCode FFT_R2C(const ScalarType *real, ComplexType *complex);
     PetscErrorCode FFT_C2R(const ComplexType *complex, ScalarType *real);
+    
+    PetscErrorCode LowPassFilter(ComplexType *xHat, ScalarType pct);
+    PetscErrorCode HighPassFilter(ComplexType *xHat, ScalarType pct);
+    
+    PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, const IntType nxc[3]);
+    PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]);
+    
+    PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     
     FFTPlanType *m_plan;
  protected:
@@ -46,6 +57,8 @@ class Spectral {
     PetscErrorCode ClearMemory();
     
     PetscErrorCode SetupFFT();
+    
+    SpectralKernel m_kernel;
 
 #ifdef REG_HAS_CUDA
     cufftHandle *m_planR2C;
