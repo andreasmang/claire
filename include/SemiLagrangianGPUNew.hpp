@@ -85,6 +85,9 @@ class SemiLagrangianGPUNew {
     int m_Dofs[2];
     
     cudaTextureObject_t m_texture;
+    
+    float *m_tmpInterpol1;
+    float *m_tmpInterpol2;
 
     struct GhostPoints {
         int isize[3];

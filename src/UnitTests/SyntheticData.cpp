@@ -281,6 +281,68 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief compute synthetic image
+ *******************************************************************/
+PetscErrorCode ComputeGradSpectral(ScalarType w, VecField *v, VecField *dv, reg::RegOpt* opt) {
+    PetscErrorCode ierr = 0;
+    ScalarType *pv[3];
+    ScalarType *pdv[3];
+    ScalarType hx[3], x1, x2, x3;
+    IntType i;
+    PetscFunctionBegin;
+    
+    using std::exp;
+    using std::sin;
+    using std::cos;
+
+    opt->Enter(__func__);
+
+    // get grid size
+    hx[0] = opt->m_Domain.hx[0];
+    hx[1] = opt->m_Domain.hx[1];
+    hx[2] = opt->m_Domain.hx[2];
+    
+    ierr = VecGetArray(v->m_X1, &pv[0]); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X2, &pv[1]); CHKERRQ(ierr);
+    ierr = VecGetArray(v->m_X3, &pv[2]); CHKERRQ(ierr);
+    
+    ierr = VecGetArray(dv->m_X1, &pdv[0]); CHKERRQ(ierr);
+    ierr = VecGetArray(dv->m_X2, &pdv[1]); CHKERRQ(ierr);
+    ierr = VecGetArray(dv->m_X3, &pdv[2]); CHKERRQ(ierr);
+    
+    for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
+        for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
+            for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
+                // compute coordinates (nodal grid)
+                x1 = hx[0]*static_cast<ScalarType>(i1 + opt->m_Domain.istart[0]) - M_PI;
+                x2 = hx[1]*static_cast<ScalarType>(i2 + opt->m_Domain.istart[1]) - M_PI;
+                x3 = hx[2]*static_cast<ScalarType>(i3 + opt->m_Domain.istart[2]) - M_PI;
+
+                // compute linear / flat index
+                i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
+                
+                pv[0][i]  = sin(w*x3) + cos(w*x3);
+                pdv[0][i] = 0;
+                pdv[1][i] = 0;
+                pdv[2][i] = w*cos(w*x3) - w*sin(w*x3);
+            }  // i1
+        }  // i2
+    }  // i3
+    
+    ierr = VecRestoreArray(v->m_X1, &pv[0]); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X2, &pv[1]); CHKERRQ(ierr);
+    ierr = VecRestoreArray(v->m_X3, &pv[2]); CHKERRQ(ierr);
+    
+    ierr = VecRestoreArray(dv->m_X1, &pdv[0]); CHKERRQ(ierr);
+    ierr = VecRestoreArray(dv->m_X2, &pdv[1]); CHKERRQ(ierr);
+    ierr = VecRestoreArray(dv->m_X3, &pdv[2]); CHKERRQ(ierr);
+
+    opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 }} // namespace reg
 
 #endif // _TESTINTERPOLATION_CPP_

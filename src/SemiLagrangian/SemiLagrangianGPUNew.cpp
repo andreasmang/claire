@@ -79,6 +79,9 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     this->m_Opt = NULL;
     this->m_Dofs[0] = 1;
     this->m_Dofs[1] = 3;
+    
+    this->m_tmpInterpol1 = nullptr;
+    this->m_tmpInterpol2 = nullptr;
 
 
     PetscFunctionReturn(ierr);
@@ -97,6 +100,12 @@ PetscErrorCode SemiLagrangianGPUNew::InitializeInterpolationTexture() {
     }
 
     this->m_texture = gpuInitEmptyTexture(nx);
+    
+    if (this->m_Opt->m_PDESolver.iporder == 3) {
+      cudaMalloc((void**) &this->m_tmpInterpol1, sizeof(float)*nx[0]*nx[1]*nx[2]);
+      cudaMalloc((void**) &this->m_tmpInterpol2, sizeof(float)*nx[0]*nx[1]*nx[2]);
+    }
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -126,6 +135,15 @@ PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
 
     if (this->m_texture != 0) {
         cudaDestroyTextureObject(this->m_texture);
+    }
+    
+    if (this->m_tmpInterpol1) {
+      cudaFree(this->m_tmpInterpol1);
+      this->m_tmpInterpol1 = nullptr;
+    }
+    if (this->m_tmpInterpol2) {
+      cudaFree(this->m_tmpInterpol2);
+      this->m_tmpInterpol2 = nullptr;
     }
 
     PetscFunctionReturn(ierr);
@@ -585,12 +603,12 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     if (strcmp(flag.c_str(), "state") == 0) {
         ierr = Assert(this->m_Xstate != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
-        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
         ierr = Assert(this->m_Xadjoint != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
-        gpuInterp3D(xi, xq1, xq2, xq3, xo, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+        gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -679,13 +697,13 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
 
     if (strcmp(flag.c_str(),"state") == 0) {
         ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
-        gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+        gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         //gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         //gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
     } else if (strcmp(flag.c_str(),"adjoint") == 0) {
         ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
-        gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+        gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         //gpuInterp3D(vx2, xq1, xq2, xq3, wx2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         //gpuInterp3D(vx3, xq1, xq2, xq3, wx3, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);

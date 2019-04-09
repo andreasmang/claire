@@ -191,6 +191,25 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   
+#ifdef SPECTRAL_ANALYSIS
+  for (int w=0; w<m_Opt->m_Domain.nx[2]/2; ++w) {
+    printf("%3i",w);
+    ierr = ComputeGradSpectral(w, v, ref, m_Opt); CHKERRQ(ierr);
+#ifdef REG_HAS_CUDA
+    ierr = m_fd->Gradient(dv, v->m_X1); CHKERRQ(ierr);
+    ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
+    ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+    ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+    printf(", %.5e", value/(vnorm==0.0?1.:vnorm));
+#endif
+    ierr = m_dif->Gradient(dv, v->m_X1); CHKERRQ(ierr);
+    ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
+    ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+    ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+    printf(", %.5e", value/(vnorm==0.0?1.:vnorm));
+  }
+#endif
+  
   ierr = Free(v); CHKERRQ(ierr);
   ierr = Free(dv); CHKERRQ(ierr);
   ierr = Free(m_dif); CHKERRQ(ierr);

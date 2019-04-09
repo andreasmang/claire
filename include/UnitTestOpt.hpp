@@ -29,6 +29,7 @@ namespace UnitTest {
   PetscErrorCode ComputeSyntheticData(Vec& m, RegOpt* opt);
   PetscErrorCode ComputeSyntheticData(VecField*&, RegOpt*, IntType=1);
   PetscErrorCode ComputeDiffFunction(VecField *, VecField *, int, RegOpt*);
+  PetscErrorCode ComputeGradSpectral(ScalarType, VecField *, VecField *, RegOpt*);
   
   PetscErrorCode TestInterpolation(RegOpt *m_Opt);
   PetscErrorCode TestForwardSolver(RegOpt *m_Opt);

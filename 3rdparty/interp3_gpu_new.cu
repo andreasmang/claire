@@ -560,7 +560,7 @@ __device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, cons
 }
 
 // Fast prefilter for B-Splines
-void CubicBSplinePrefilter3D_fast(float *m, int* nx) {
+void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp2) {
     
     float time=0, dummy_time=0;
     int repcount = 1;
@@ -579,13 +579,13 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx) {
     cudaMemcpyToSymbol(d_c, h_c, sizeof(float)*(HALO+1), 0, cudaMemcpyHostToDevice);
     
     // temporary storage for intermediate results
-    float* mtemp;
-    cudaMalloc((void**) &mtemp, sizeof(float)*nx[0]*nx[1]*nx[2]);
+    //float* mtemp;
+    //cudaMalloc((void**) &mtemp, sizeof(float)*nx[0]*nx[1]*nx[2]);
 
     // Z-Prefilter - WARM UP
     dim3 threadsPerBlock_z(sy, sx, 1);
     dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-    prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp,m);
+    /*prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp,m);
     if ( cudaSuccess != cudaGetLastError())
                 printf("Error in running warmup gradz kernel\n");
     cudaCheckKernelError();
@@ -601,7 +601,7 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx) {
     time+=dummy_time;
     cudaDeviceSynchronize();
     printf("> laod-store avg time = %fmsec\n", time);
-    time = 0;
+    time = 0;*/
 
 
     
@@ -614,43 +614,43 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx) {
     dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
 
     // start recording the interpolation kernel
-    cudaEventRecord(startEvent,0); 
+    //cudaEventRecord(startEvent,0); 
     
 
-    for (int rep=0; rep<repcount; rep++) { 
+    //for (int rep=0; rep<repcount; rep++) { 
         // X
-        prefilter_x<<<numBlocks_x, threadsPerBlock_x>>>(mtemp, m);
+        prefilter_x<<<numBlocks_x, threadsPerBlock_x>>>(mtemp1, m);
         if ( cudaSuccess != cudaGetLastError())
             printf("Error in running gradx kernel\n");
         cudaCheckKernelError();
         // Y 
-        prefilter_y<<<numBlocks_y, threadsPerBlock_y>>>(m, mtemp);
+        prefilter_y<<<numBlocks_y, threadsPerBlock_y>>>(mtemp2, mtemp1);
         if ( cudaSuccess != cudaGetLastError())
             printf("Error in running gradx kernel\n");
         cudaCheckKernelError();
         // Z
-        prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp, m);
+        prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp1, mtemp2);
         if ( cudaSuccess != cudaGetLastError())
             printf("Error in running gradx kernel\n");
         cudaCheckKernelError();
-    }
+    //}
 
-    cudaEventRecord(stopEvent,0);
+    /*cudaEventRecord(stopEvent,0);
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
     time+=dummy_time;
     cudaDeviceSynchronize();
     cudaEventDestroy(startEvent);
-    cudaEventDestroy(stopEvent);
+    cudaEventDestroy(stopEvent);*/
     
-    cudaMemcpy((void*)m, (void*)mtemp, sizeof(float)*nx[0]*nx[1]*nx[2], cudaMemcpyDeviceToDevice);
-    if ( cudaSuccess != cudaGetLastError())
-                printf("Error in copying data\n");
+    //cudaMemcpy((void*)m, (void*)mtemp, sizeof(float)*nx[0]*nx[1]*nx[2], cudaMemcpyDeviceToDevice);
+    //if ( cudaSuccess != cudaGetLastError())
+    //            printf("Error in copying data\n");
     
-    if ( mtemp != NULL) cudaFree(mtemp);
+    //if ( mtemp != NULL) cudaFree(mtemp);
     
     // print interpolation time and number of interpolations in Mvoxels/sec
-    printf("> prefilter avg eval time = %fmsec\n", time/repcount);
+    //printf("> prefilter avg eval time = %fmsec\n", time/repcount);
 }
 
 
@@ -828,6 +828,8 @@ __global__ void interp3D_kernel_linear(
     }
 }
 
+float *tmp2 = nullptr;
+float *tmp1 = nullptr;
 
 /********************************************************************
  * @brief host function to do interpolation of a scalar field
@@ -844,6 +846,7 @@ void gpuInterp3Dkernel(
            const PetscScalar* xq2,
            const PetscScalar* xq3,
            PetscScalar* yo,
+           float *tmp1, float* tmp2,
            int*  nx,
            cudaTextureObject_t yi_tex,
            int iporder,
@@ -851,13 +854,21 @@ void gpuInterp3Dkernel(
            const float3 inv_nx,
            long int nq)
 {
-    // make input image a cudaPitchedPtr for fi
-    cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
-    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
-    
-    // update texture object
-    updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
-
+    if (iporder == 3) {
+      cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
+      cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
+      cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
+      CubicBSplinePrefilter3D_fast(yi, nx, tmp1, tmp2);
+      cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(tmp1), nx[2]*sizeof(float), nx[2], nx[1]);
+      updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
+    } else {
+      // make input image a cudaPitchedPtr for fi
+      cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+      //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+      // update texture object
+      updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
+    }
+  
     int threads = 256;
     int blocks = (nq+255)/threads;
     
@@ -890,6 +901,7 @@ void gpuInterp3D(
            const PetscScalar* xq2,
            const PetscScalar* xq3,
            PetscScalar* yo,
+           float *tmp1, float* tmp2,
            int*  nx,
            cudaTextureObject_t yi_tex,
            int iporder,
@@ -936,7 +948,7 @@ void gpuInterp3D(
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
   
   
-    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     cudaDeviceSynchronize();
     // update texture object
 /*    updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
@@ -990,6 +1002,7 @@ void gpuInterpVec3D(
            PetscScalar* yi1, PetscScalar* yi2, PetscScalar* yi3,
            const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
            PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3,
+           float *tmp1, float* tmp2,
            int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
 {
     // define inv of nx for normalizing in texture interpolation
@@ -1001,9 +1014,9 @@ void gpuInterpVec3D(
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
   
-    gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
-    gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
-    gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     
     cudaDeviceSynchronize();
 }
