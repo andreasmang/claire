@@ -27,6 +27,10 @@
 // local includes
 #include "CLAIRE.hpp"
 
+#ifdef REG_HAS_CUDA
+#include "cuda_helper.hpp"
+#endif
+
 namespace reg {
 
 /********************************************************************
@@ -83,6 +87,9 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
       }
       Msg("-----------------------------------------------------------------------------------------------------");
     }
+#endif
+#ifdef REG_HAS_CUDA
+    cudaPrintDeviceMemory();
 #endif
 
     // delete all variables

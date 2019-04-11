@@ -190,9 +190,10 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
-  
+#define SPECTRAL_ANALYSIS
 #ifdef SPECTRAL_ANALYSIS
-  for (int w=0; w<m_Opt->m_Domain.nx[2]/2; ++w) {
+  printf("  w, FD8, FFT\n");
+  for (int w=1; w<m_Opt->m_Domain.nx[2]/2; ++w) {
     printf("%3i",w);
     ierr = ComputeGradSpectral(w, v, ref, m_Opt); CHKERRQ(ierr);
 #ifdef REG_HAS_CUDA
@@ -206,7 +207,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
     ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
     ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
     ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
-    printf(", %.5e", value/(vnorm==0.0?1.:vnorm));
+    printf(", %.5e\n", value/(vnorm==0.0?1.:vnorm));
   }
 #endif
   

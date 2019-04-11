@@ -828,9 +828,6 @@ __global__ void interp3D_kernel_linear(
     }
 }
 
-float *tmp2 = nullptr;
-float *tmp1 = nullptr;
-
 /********************************************************************
  * @brief host function to do interpolation of a scalar field
  * @parm[in] yi input data values 
