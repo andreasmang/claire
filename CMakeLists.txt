@@ -4,6 +4,11 @@ project(claire)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+# Set default install path to build
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "default install path" FORCE )
+endif()
+
 if(POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
@@ -14,6 +19,7 @@ endif()
 
 # find_package packages
 include(basicFind)
+include(CopyTargetProperty)
 include(FindMPI)
 find_package(MPI REQUIRED)
 find_package(PETSc 3.6 REQUIRED)
@@ -28,6 +34,10 @@ find_package(ACCFFT REQUIRED)
 find_package(NIFTI REQUIRED)
 find_package(PNETCDF REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(MKL REQUIRED)
+
+# print libraries found
+message("${NIFTI_LIBRARIES}")
 
 # add sources
 file(GLOB_RECURSE CLAIRE_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
@@ -47,8 +57,20 @@ set(CMAKE_CXX_FLAGS "-O3 -ansi -xhost -parallel -qopenmp -std=c++11 -Warray-boun
 target_compile_definitions(claireobj PUBLIC REG_HAS_NIFTI REG_HAS_PNETCDF)
 #set_target_properties(claireobj PROPERTIES CXX_STANDARD 11)
 
-# install all targets
-install(TARGETS claireobj)
+# make bin directory in source code folder
+#file( MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+#set( BINDIR "${PROJECT_SOURCE_DIR}/bin" )
 
-
+# add app executables and install
+file( GLOB APP_SOURCES "${PROJECT_SOURCE_DIR}/apps/*.cpp" )
+foreach( appsourcefile ${APP_SOURCES} )
+    get_filename_component( app ${appsourcefile} NAME_WE "${PROJECT_SOURCE_DIR}/apps")
+    add_executable( ${app} $<TARGET_OBJECTS:claireobj> ${appsourcefile} )
+    target_link_libraries (${app} PRIVATE ${PETSC_LIBRARIES} ${FFTW_LIBRARIES} ${ACCFFT_LIBRARIES} ${NIFTI_LIBRARIES} ${ZLIB_LIBRARIES}  ${PNETCDF_LIBRARIES} ${MKL_LIBRARIES})
+    copy_target_property(claireobj ${app} INCLUDE_DIRECTORIES)
+    copy_target_property(claireobj ${app} COMPILE_DEFINITIONS)
+    copy_target_property(claireobj ${app} COMPILE_OPTIONS)
+    install( TARGETS ${app} claireobj
+             RUNTIME DESTINATION bin )
+endforeach( appsourcefile ${APP_SOURCES} )
 

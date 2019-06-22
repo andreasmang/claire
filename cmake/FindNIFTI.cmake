@@ -123,6 +123,15 @@ if (NIFTI_DIR)
       DOC           "Path of niftiio library"
       NO_DEFAULT_PATH
   )
+  
+  find_library (
+    NIFTI_CDF_LIBRARY
+      NAMES         nifticdf
+      HINTS         ${NIFTI_DIR}
+      PATH_SUFFIXES lib
+      DOC           "Path of nifticdf library"
+      NO_DEFAULT_PATH
+  )
 
   find_library (
     NIFTI_znz_LIBRARY
@@ -146,6 +155,13 @@ else ()
       HINTS ENV LD_LIBRARY_PATH
       DOC   "Path of niftiio library"
   )
+  
+  find_library (
+    NIFTI_CDF_LIBRARY
+      NAMES nifticdf
+      HINTS ENV LD_LIBRARY_PATH
+      DOC   "Path of nifticdf library"
+  )
 
   find_library (
     NIFTI_znz_LIBRARY
@@ -156,8 +172,11 @@ else ()
 
 endif ()
 
+#set( NIFTI_LIBRARY ${NIFTI_CDF_LIBRARY} ${NIFTI_LIBRARY})
+
 mark_as_advanced (NIFTI_INCLUDE_DIR)
 mark_as_advanced (NIFTI_LIBRARY)
+mark_as_advanced (NIFTI_CDF_LIBRARY)
 mark_as_advanced (NIFTI_znz_LIBRARY)
 
 # ----------------------------------------------------------------------------
@@ -169,11 +188,14 @@ endif ()
 set(ZLIB_LIBRARIES "")
 
 set (NIFTI_LIBRARIES "${ZLIB_LIBRARIES}")
-if (NIFTI_znz_LIBRARY)
-  list (APPEND NIFTI_LIBRARIES "${NIFTI_znz_LIBRARY}")
+if (NIFTI_CDF_LIBRARY)
+    list (APPEND NIFTI_LIBRARIES "${NIFTI_CDF_LIBRARY}")
 endif ()
 if (NIFTI_LIBRARY)
   list (APPEND NIFTI_LIBRARIES "${NIFTI_LIBRARY}")
+endif ()
+if (NIFTI_znz_LIBRARY)
+  list (APPEND NIFTI_LIBRARIES "${NIFTI_znz_LIBRARY}")
 endif ()
 
 # ----------------------------------------------------------------------------
