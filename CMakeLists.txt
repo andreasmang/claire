@@ -9,12 +9,6 @@ include(basicFind)
 include(CopyTargetProperty)
 include(FindMPI)
 
-
-# Set default install path to build
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "default install path" FORCE )
-endif()
-
 if(POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
@@ -92,12 +86,8 @@ if (USE_HASWELL AND USE_SINGLE_PRECISION)
 endif()
 set_target_properties(claireobj PROPERTIES CXX_STANDARD 11)
 
-
-
-
-# make bin directory in source code folder
-#file( MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
-#set( BINDIR "${PROJECT_SOURCE_DIR}/bin" )
+set( CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}")
+message("${CMAKE_BINARY_DIR}")
 
 # add app executables and install
 file( GLOB APP_SOURCES "${PROJECT_SOURCE_DIR}/apps/*.cpp" )
@@ -113,8 +103,7 @@ foreach( appsourcefile ${APP_SOURCES} )
     copy_target_property(claireobj ${app} INCLUDE_DIRECTORIES)
     copy_target_property(claireobj ${app} COMPILE_OPTIONS)
     copy_target_property(claireobj ${app} COMPILE_DEFINITIONS)
-    #target_compile_definitions(${app} PUBLIC REG_HAS_NIFTI REG_HAS_PNETCDF)
-    install( TARGETS ${app} claireobj
-             RUNTIME DESTINATION bin )
+    install( TARGETS ${app} 
+             DESTINATION bin )
 endforeach( appsourcefile ${APP_SOURCES} )
 

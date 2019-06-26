@@ -136,7 +136,8 @@ if (NIFTI_DIR)
   find_library (
     NIFTI_znz_LIBRARY
       NAMES znz
-      HINTS ENV LD_LIBRARY_PATH
+      HINTS ENV LD_LIBRARY_PATH ${NIFTI_DIR}
+      PATH_SUFFIXES lib
       DOC   "Path of znz library"
   )
 
