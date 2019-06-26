@@ -182,7 +182,7 @@ mark_as_advanced (NIFTI_znz_LIBRARY)
 # ----------------------------------------------------------------------------
 # prerequisites
 if (NIFTI_USE_STATIC_LIB OR NIFTI_znz_LIBRARY MATCHES "\\.a$")
-  find_package (ZLIB REQUIRED)
+#  find_package (ZLIB REQUIRED)
 endif ()
 
 set(ZLIB_LIBRARIES "")

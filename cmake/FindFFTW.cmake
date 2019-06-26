@@ -17,8 +17,8 @@
 #
 
 #If environment variable FFTW_ROOT_DIR is specified, it has same effect as FFTW_ROOT
-if( NOT FFTW_ROOT AND ENV{FFTW_ROOT_DIR} )
-  set( FFTW_ROOT $ENV{FFTW_ROOT_DIR} )
+if( NOT FFTW_ROOT AND DEFINED ENV{FFTW_DIR} )
+  set( FFTW_ROOT $ENV{FFTW_DIR} )
 endif()
 
 # Check if we can use PkgConfig
@@ -32,11 +32,11 @@ endif()
 #Check whether to search static or dynamic libs
 set( CMAKE_FIND_LIBRARY_SUFFIXES_SAV ${CMAKE_FIND_LIBRARY_SUFFIXES} )
 
-if( ${FFTW_USE_STATIC_LIBS} )
+#if( ${FFTW_USE_STATIC_LIBS} )
   set( CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} )
-else()
-  set( CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX} )
-endif()
+#else()
+#  set( CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX} )
+#endif()
 
 if( FFTW_ROOT )
 

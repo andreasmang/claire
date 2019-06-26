@@ -81,7 +81,7 @@ endforeach()
 
 # If we made it this far, then we call the package "FOUND"
 if(${PCKG}_FOUND)
-  message (STATUS "All required include files and libraries found.")
+  message (STATUS "All required include files and libraries for ${PCKG} found.")
 else()
   if(!${PCKG}_FIND_QUIETLY)
     message ("WARNING! ${PCKG} not found.")

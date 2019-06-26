@@ -17,8 +17,8 @@
 #
 
 #If environment variable ACCFFT_ROOT_DIR is specified, it has same effect as ACCFFT_ROOT
-if( NOT ACCFFT_ROOT AND ENV{ACCFFT_ROOT_DIR} )
-  set( ACCFFT_ROOT $ENV{ACCFFT_ROOT_DIR} )
+if( NOT ACCFFT_ROOT AND DEFINED ENV{ACCFFT_DIR} )
+  set( ACCFFT_ROOT $ENV{ACCFFT_DIR} )
 endif()
 
 # Check if we can use PkgConfig

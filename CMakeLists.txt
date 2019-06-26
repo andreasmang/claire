@@ -1,8 +1,14 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.0)
 
 project(claire)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
+# includes
+include(basicFind)
+include(CopyTargetProperty)
+include(FindMPI)
+
 
 # Set default install path to build
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -18,10 +24,26 @@ if(POLICY CMP0075)
 endif()
 
 # find_package packages
-include(basicFind)
-include(CopyTargetProperty)
-include(FindMPI)
 find_package(MPI REQUIRED)
+find_package(OpenMP REQUIRED)
+
+# use the MPI Compiler
+#set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+
+# set optimization level
+set(CMAKE_CXX_FLAGS "-O3 -ansi ${OpenMP_CXX_FLAGS}")
+
+# check for intel compiler
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+    set(USE_INTEL "yes")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xhost -parallel")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
+
+# set PEDANTIC flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wwrite-strings")
+
 find_package(PETSc 3.6 REQUIRED)
 set(PETSC_VERSIONS "")
 set(PETSC_VERSION_MAJOR "")
@@ -29,15 +51,25 @@ set(PETSC_VERSION_MINOR "")
 string(REGEX MATCHALL "[0-9]+" PETSC_VERSIONS ${PETSC_VERSION})
 list(GET PETSC_VERSIONS 0 PETSC_VERSION_MAJOR)
 list(GET PETSC_VERSIONS 1 PETSC_VERSION_MINOR)
+if (${PETSC_VERSION_MINOR} GREATER "9")
+    message(FATAL_ERROR "Claire does not support PETSc version >= 3.10. Use PETSc version < 3.10")
+endif()
+
 find_package(FFTW REQUIRED)
+# for FFTW, if not using single precision, exclude the coressponding libraries
+if (NOT USE_SINGLE_PRECISION)
+    list(FILTER FFTW_LIBRARIES EXCLUDE REGEX "fftw3f+")
+endif()
+
 find_package(ACCFFT REQUIRED)
 find_package(NIFTI REQUIRED)
-find_package(PNETCDF REQUIRED)
+if (USE_PNETCDF)
+    find_package(PNETCDF REQUIRED)
+endif()
 find_package(ZLIB REQUIRED)
-find_package(MKL REQUIRED)
 
-# print libraries found
-message("${NIFTI_LIBRARIES}")
+
+
 
 # add sources
 file(GLOB_RECURSE CLAIRE_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
@@ -51,11 +83,17 @@ add_library(claireobj OBJECT ${CLAIRE_SOURCES})
 target_include_directories(claireobj PUBLIC "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/deps/3rdparty" "${PROJECT_SOURCE_DIR}/deps/3rdparty/libmorton")
 target_include_directories(claireobj PUBLIC ${PETSC_INCLUDES} ${FFTW_INCLUDES} ${ACCFFT_INCLUDES} ${NIFTI_INCLUDES} ${PNETCDF_INCLUDE_DIRS})
 
-# set compiler stuff
-set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
-set(CMAKE_CXX_FLAGS "-O3 -ansi -xhost -parallel -qopenmp -std=c++11 -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wwrite-strings")
-target_compile_definitions(claireobj PUBLIC REG_HAS_NIFTI REG_HAS_PNETCDF)
-#set_target_properties(claireobj PROPERTIES CXX_STANDARD 11)
+target_compile_definitions(claireobj PUBLIC REG_HAS_NIFTI)
+if (${USE_PNETCDF})
+    target_compile_definitions(claireobj PUBLIC  REG_HAS_PNETCDF)
+endif()
+if (USE_HASWELL AND USE_SINGLE_PRECISION)
+    target_compile_definitions(claireobj PUBLIC HASWELL)
+endif()
+set_target_properties(claireobj PROPERTIES CXX_STANDARD 11)
+
+
+
 
 # make bin directory in source code folder
 #file( MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
@@ -66,10 +104,16 @@ file( GLOB APP_SOURCES "${PROJECT_SOURCE_DIR}/apps/*.cpp" )
 foreach( appsourcefile ${APP_SOURCES} )
     get_filename_component( app ${appsourcefile} NAME_WE "${PROJECT_SOURCE_DIR}/apps")
     add_executable( ${app} $<TARGET_OBJECTS:claireobj> ${appsourcefile} )
-    target_link_libraries (${app} PRIVATE ${PETSC_LIBRARIES} ${FFTW_LIBRARIES} ${ACCFFT_LIBRARIES} ${NIFTI_LIBRARIES} ${ZLIB_LIBRARIES}  ${PNETCDF_LIBRARIES} ${MKL_LIBRARIES})
+    target_link_libraries (${app} ${PETSC_LIBRARIES} ${NIFTI_LIBRARIES} ${ZLIB_LIBRARIES} ${ACCFFT_LIBRARIES} ${PNETCDF_LIBRARIES} ${FFTW_LIBRARIES})
+    if (${USE_INTEL})
+        target_link_libraries (${app} "imf")
+        target_link_libraries (${app} "m")
+    endif()
+    set_target_properties(${app} PROPERTIES CXX_STANDARD 11)
     copy_target_property(claireobj ${app} INCLUDE_DIRECTORIES)
-    copy_target_property(claireobj ${app} COMPILE_DEFINITIONS)
     copy_target_property(claireobj ${app} COMPILE_OPTIONS)
+    copy_target_property(claireobj ${app} COMPILE_DEFINITIONS)
+    #target_compile_definitions(${app} PUBLIC REG_HAS_NIFTI REG_HAS_PNETCDF)
     install( TARGETS ${app} claireobj
              RUNTIME DESTINATION bin )
 endforeach( appsourcefile ${APP_SOURCES} )
