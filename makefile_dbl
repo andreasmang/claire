@@ -1,9 +1,9 @@
 CXX=mpicxx
-USECUDA=yes
+USECUDA=no
 USECUDADBG=no
 USEINTEL=no
 USEINTELMPI=no
-USESINGLE=yes
+USESINGLE=no
 USEPNETCDF=yes
 USENIFTI=yes
 USEKNL=no
@@ -11,9 +11,7 @@ USEHASWELL=no
 BUILDTOOLS=yes
 BUILDTEST=yes
 
-
-#include config/setup.mk.power9v100
-include config/setup.mk
+include config/setup.mk.power9v100
 include config/files.mk
 
 

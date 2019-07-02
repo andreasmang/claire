@@ -31,9 +31,9 @@
 #include "zeitgeist.hpp"
 
 void TestFunction(ScalarType &val, const ScalarType x1, const ScalarType x2, const ScalarType x3) {
-  val =  ( PetscSinReal(x1)*PetscSinReal(x1)
-        + PetscSinReal(x2)*PetscSinReal(x2)
-        + PetscSinReal(x3)*PetscSinReal(x3) )/3.0;
+  val =  ( PetscSinReal(8*x1)*PetscSinReal(8*x1)
+        + PetscSinReal(2*x2)*PetscSinReal(2*x2)
+        + PetscSinReal(4*x3)*PetscSinReal(4*x3) )/3.0;
 }
 
 void TestError(ScalarType *ref, ScalarType *eval, IntType nl, double *err, double *maxval) {
