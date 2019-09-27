@@ -266,18 +266,30 @@ PetscErrorCode Optimizer::SetupTao() {
     if (this->m_KrylovMethod != NULL) {
         // switch of the standard preconditioner
         if (strcmp(method.c_str(), "nls") == 0) {
-#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7) && (PETSC_VERSION_MINOR < 9)
             ierr = PetscOptionsSetValue(NULL, "-tao_nls_pc_type", "petsc"); CHKERRQ(ierr);
             ierr = PetscOptionsSetValue(NULL, "-tao_nls_ksp_type", "petsc"); CHKERRQ(ierr);
+#elif (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 9)
+            ierr = PetscOptionsSetValue(NULL, "-tao_nls_pc_type", "none"); CHKERRQ(ierr);
+            // TODO: CHECK IF WE CAN USE OTHER TYPES
+            if (this->m_Opt->m_KrylovMethod.solver == PCG) {
+                ierr = PetscOptionsSetValue(NULL, "-tao_nls_ksp_type", "cg"); CHKERRQ(ierr);
+            } else if (this->m_Opt->m_KrylovMethod.solver == GMRES) {
+                ierr = PetscOptionsSetValue(NULL, "-tao_nls_ksp_type", "gmres"); CHKERRQ(ierr);
+            }
 #else
             ierr = PetscOptionsSetValue("-tao_nls_pc_type", "petsc"); CHKERRQ(ierr);
             ierr = PetscOptionsSetValue("-tao_nls_ksp_type", "petsc"); CHKERRQ(ierr);
 #endif
             ierr = TaoSetFromOptions(this->m_Tao); CHKERRQ(ierr);
         } else if (strcmp(method.c_str(), "ntr") == 0) {
-#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7)
+#if (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 7) && (PETSC_VERSION_MINOR < 9)
             ierr = PetscOptionsSetValue(NULL, "-tao_ntr_pc_type", "petsc"); CHKERRQ(ierr);
             ierr = PetscOptionsSetValue(NULL, "-tao_ntr_ksp_type", "petsc"); CHKERRQ(ierr);
+#elif (PETSC_VERSION_MAJOR >= 3) && (PETSC_VERSION_MINOR >= 9)
+            // TODO: CHECK IF WE CAN USE OTHER TYPES
+            ierr = PetscOptionsSetValue(NULL, "-tao_ntr_pc_type", "none"); CHKERRQ(ierr);
+            ierr = PetscOptionsSetValue(NULL, "-tao_ntr_ksp_type", "stcg"); CHKERRQ(ierr); // TODO: TEST ME
 #else
             ierr = PetscOptionsSetValue("-tao_ntr_pc_type", "petsc"); CHKERRQ(ierr);
             ierr = PetscOptionsSetValue("-tao_ntr_ksp_type", "petsc"); CHKERRQ(ierr);
