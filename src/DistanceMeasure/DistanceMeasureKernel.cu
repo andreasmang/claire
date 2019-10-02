@@ -140,7 +140,8 @@ __global__ void DistanceMeasureFunctionalGPU(ScalarType *res,
 
 namespace reg {
 namespace DistanceMeasureKernel {
-  
+
+/* Compute Masked Registration Functional */
 PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
@@ -164,7 +165,8 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   
   PetscFunctionReturn(ierr);
 }
-  
+
+/* Compute the Registration Functional */
 PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
@@ -189,6 +191,7 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   PetscFunctionReturn(ierr);
 }
 
+/* Final Condition for Adjoint Equation */
 PetscErrorCode FinalConditionSL2::ComputeFinalConditionAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
@@ -202,6 +205,7 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionAE() {
   PetscFunctionReturn(ierr);
 }
 
+/* Final Condition for Masked Adjoint Equation */
 PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
@@ -215,6 +219,7 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskAE() {
   PetscFunctionReturn(ierr);
 }
 
+/* Final Condition for Incremental Adjoint Equation */
 PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
@@ -228,13 +233,14 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   PetscFunctionReturn(ierr);
 }
 
+/* Final Condition for Masked Incremental Adjoint Equation */
 PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
   PetscFunctionBegin;
-  
-  VecSubGPU<<<grid, block>>>(pL, pW, pM, nl);
+ 
+  VecMulGPU<<<grid, block>>>(pL, pW, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
