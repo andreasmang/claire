@@ -767,6 +767,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-betainit") == 0) {
             argc--; argv++;
             this->m_ParaCont.beta0 = atof(argv[1]);
+        } else if (strcmp(argv[1], "-betamin") == 0) {
+            argc--; argv++;
+            this->m_ParaCont.betamin = atof(argv[1]);
         } else if (strcmp(argv[1], "-scalecont") == 0) {
             this->m_ScaleCont.enabled = true;
         } else if (strcmp(argv[1], "-gridcont") == 0) {
@@ -1225,6 +1228,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_ParaCont.strategy = PCONTOFF;     ///< no continuation
     this->m_ParaCont.enabled = false;         ///< flag for parameter continuation
     this->m_ParaCont.targetbeta = 0.0;        ///< has to be set by user
+    this->m_ParaCont.betamin = 1e-3;        ///< has to be set by user
     this->m_ParaCont.beta0 = 1.0;             ///< default initial parameter for parameter continuation
 
     // grid continuation
