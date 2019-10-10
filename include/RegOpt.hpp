@@ -608,6 +608,7 @@ class RegOpt {
     unsigned int m_Indent;
     int m_Verbosity;
     std::vector<int> m_LabelIDs;       ///< label ids
+    std::vector<ScalarType> m_ObjWts;  ///< Objective function component weights
     std::string m_PostFix;
 
 

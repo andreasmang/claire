@@ -711,6 +711,13 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
     }
 
+    if (this->m_Opt->m_ObjWts.data() != NULL) {
+        if (this->m_Opt->m_Verbosity > 1) {
+            ierr = DbgMsg("distance measure: objective function weights enabled"); CHKERRQ(ierr);
+        }
+        ierr = this->m_DistanceMeasure->SetObjectiveFunctionalWeights();
+    }
+
     // Setup scale for distance measure
     // TODO: Do we need to rescale this for the 2level preconditioner? 
     // Currently Temp and Ref image not in scope for restricted problem, so we use old scale value

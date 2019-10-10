@@ -76,6 +76,9 @@ class DistanceMeasure {
     /*! set the mask */
     PetscErrorCode SetMask(ScaField*);
 
+    /* set objective function weights */
+    PetscErrorCode SetObjectiveFunctionalWeights();
+
     /*! set the scale */
     virtual PetscErrorCode SetupScale();
 
@@ -83,6 +86,7 @@ class DistanceMeasure {
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
 
+    Vec m_ObjWts;
     ScaField *m_Mask;
     ScaField *m_ReferenceImage;
     ScaField *m_TemplateImage;

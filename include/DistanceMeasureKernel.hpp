@@ -30,6 +30,7 @@ struct EvaluateFunctionalSL2 {
   const ScalarType *pW;
   const ScalarType *pM;
   const ScalarType *pMr;
+  const ScalarType *pWts;
   
   IntType nl;
   IntType nc;
@@ -45,6 +46,7 @@ struct FinalConditionSL2 {
   const ScalarType *pM;
   const ScalarType *pMr;
   const ScalarType *pW;
+  const ScalarType *pWts;
   
   IntType nl;
   IntType nc;

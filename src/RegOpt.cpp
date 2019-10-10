@@ -437,6 +437,12 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-mask") == 0) {
             argc--; argv++;
             this->m_FileNames.mask = argv[1];
+        } else if (strcmp(argv[1], "-objwts") == 0) {
+            argc--; argv++;
+            const std::string objwts = argv[1];
+            const std::string sep = ",";
+            // strip the "," in the string to get the numbers
+            this->m_ObjWts = String2VecScalarType(objwts, sep);
         } else if (strcmp(argv[1], "-v1") == 0) {
             argc--; argv++;
             this->m_FileNames.iv1 = argv[1];
@@ -1534,6 +1540,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -mask <file>                file that contains an indicator function to mask the evaluation" << std::endl;
         std::cout << "                             of the distance measure; the mask should be smooth" << std::endl;
         std::cout << "                             (*.nii, *.nii.gz, *.hdr, *.nc)" << std::endl;
+        std::cout << " -objwts <w1,w2,...>         weights of the components in the objective function if using -mrc and -mtc" << std::endl;
+        std::cout << "                             ;should be partition of unity" << std::endl;
         std::cout << " -sigma <int>x<int>x<int>    size of gaussian smoothing kernel applied to input images" << std::endl;
         std::cout << "                             (e.g., 1x2x1; units: voxel size; if only one value is set" << std::endl;
         std::cout << "                             (i.e., -sigma 2) uniform smoothing is assumed; default: 1x1x1)" << std::endl;
@@ -1849,7 +1857,27 @@ PetscErrorCode RegOpt::CheckArguments() {
             ierr = this->Usage(true); CHKERRQ(ierr);
         }
     }
+    
+    std::cout << "number of weights = " << this->m_ObjWts.size() << std::endl;
+    std::cout << "number of components = " << this->m_Domain.nc << std::endl;
 
+    if (((int)(this->m_ObjWts.size()) != (int)(this->m_Domain.nc)) && !this->m_ObjWts.empty()) {
+        msg = "\n\x1b[31m number of component weights should be equal to the number of image components\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
+    }
+    
+    if (this->m_ObjWts.size() == 1) {
+        msg = "\n\x1b[31m can only use weights in a vector/multi-component registration\n overriding and setting weight to unity\x1b[0m\n";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        this->m_ObjWts[0] = 1;
+    }
+    
+    // If user does not provide Objective Function weights, default it to unity
+    if (this->m_ObjWts.empty()) {
+        for (int i=0; i<this->m_Domain.nc; ++i) this->m_ObjWts.push_back(1); 
+    }
+    
     if (this->m_ParaCont.strategy == PCONTINUATION) {
         betav = this->m_ParaCont.targetbeta;
         if (betav <= 0.0 || betav > 1.0) {
@@ -2279,6 +2307,11 @@ PetscErrorCode RegOpt::DisplayOptions() {
             }
         }
 
+        //std::stringstream objwts;
+        //std::copy(this->m_ObjWts.begin(), this->m_ObjWts.end(), std::ostream_iterator<ScalarType>(objwts, ","));
+        //std::cout << std::left << std::setw(indent) << " objective function weights"
+        //          << objwts.str().c_str() << std::endl;
+        
         // display distance measure
         std::cout << std::left << std::setw(indent) <<" regularization model v";
         if ((this->m_ParaCont.strategy == PCONTBINSEARCH) || (this->m_ParaCont.strategy == PCONTREDUCESEARCH)) {

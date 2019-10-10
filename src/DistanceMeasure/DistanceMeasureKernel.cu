@@ -20,43 +20,46 @@
 #include "DistanceMeasureKernel.hpp"
 #include "cuda_helper.hpp"
 
-__global__ void VecSubMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pMr, 
+__global__ void VecSubMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pWts,
+    const ScalarType *pMr, const ScalarType *pM, int nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  int k = blockIdx.y*nl + i;
+  
+  if (i < nl) {
+    pL[k] = pW[i] * pWts[blockIdx.y] * (pMr[k] - pM[k]);
+  }
+}
+
+__global__ void VecSubGPU(ScalarType *pL, const ScalarType *pWts, const ScalarType *pMr, 
     const ScalarType *pM, int nl) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int k = blockIdx.y*nl + i;
   
   if (i < nl) {
-    pL[k] = pW[i] * (pMr[k] - pM[k]);
+    pL[k] = pWts[blockIdx.y] * (pMr[k] - pM[k]);
   }
 }
 
-__global__ void VecSubGPU(ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, int nl) {
+__global__ void VecMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pWts,
+    const ScalarType *pM, int nl) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int k = blockIdx.y*nl + i;
   
   if (i < nl) {
-    pL[k] = pMr[k] - pM[k];
+    pL[k] = - pW[i] * pWts[blockIdx.y] * pM[k];
   }
 }
 
-__global__ void VecMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pM, int nl) {
+__global__ void VecNegGPU(ScalarType *pL, const ScalarType *pWts, const ScalarType *pM, int nl) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int k = blockIdx.y*nl + i;
   
   if (i < nl) {
-    pL[k] = - pW[i] * pM[k];
+    pL[k] = - pWts[blockIdx.y] * pM[k];
   }
 }
 
-__global__ void VecNegGPU(ScalarType *pL, const ScalarType *pM, int nl) {
-  int i = threadIdx.x + blockIdx.x*blockDim.x;
-  int k = blockIdx.y*nl + i;
-  
-  if (i < nl) {
-    pL[k] = - pM[k];
-  }
-}
-
+// TODO I would rather use cuBlas functions for reduction for performace reasons
 template<int N> inline __device__ void LocalReductionSum(ScalarType *shared) {
   if (threadIdx.x < N) {
     shared[threadIdx.x] += shared[threadIdx.x + N];
@@ -64,12 +67,14 @@ template<int N> inline __device__ void LocalReductionSum(ScalarType *shared) {
   __syncthreads();
   LocalReductionSum<N/2>(shared);
 }
+
 template<> inline __device__ void LocalReductionSum<1>(ScalarType *shared) {
   if (threadIdx.x == 0) {
     shared[0] += shared[1];
   }
   __syncthreads();
 }
+
 template<int N> __global__ void ReductionSum(ScalarType *res, int n) {
   __shared__ ScalarType value[N];
   
@@ -89,8 +94,9 @@ template<int N> __global__ void ReductionSum(ScalarType *res, int n) {
 
 template<int N>
 __global__ void DistanceMeasureFunctionalGPU(ScalarType *res, 
-    const ScalarType *pW, const ScalarType *pMr, 
-    const ScalarType *pM, int nl) {
+    const ScalarType *pW, const ScalarType *pWts, 
+    const ScalarType *pMr,const ScalarType *pM, 
+    int nl) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int k = blockIdx.y*nl + i;
   
@@ -101,8 +107,8 @@ __global__ void DistanceMeasureFunctionalGPU(ScalarType *res,
   value[threadIdx.x] = 0.0;
   
   if (i < nl) {
-    tmp = (pMr[k] - pM[k]);
-    value[threadIdx.x] = tmp*tmp*pW[i];
+    tmp = pMr[k] - pM[k];
+    value[threadIdx.x] = tmp*tmp*pW[i]*pWts[blockIdx.y];
   }
   
   __syncthreads();
@@ -116,7 +122,7 @@ __global__ void DistanceMeasureFunctionalGPU(ScalarType *res,
 
 template<int N>
 __global__ void DistanceMeasureFunctionalGPU(ScalarType *res, 
-    const ScalarType *pMr, const ScalarType *pM, int nl) {
+    const ScalarType *pWts, const ScalarType *pMr, const ScalarType *pM, int nl) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int k = blockIdx.y*nl + i;
   
@@ -126,7 +132,7 @@ __global__ void DistanceMeasureFunctionalGPU(ScalarType *res,
   value[threadIdx.x] = 0.0;  
   if (i < nl) {
     tmp = (pMr[k] - pM[k]);
-    value[threadIdx.x] = tmp*tmp;
+    value[threadIdx.x] = tmp*tmp*pWts[blockIdx.y];
   }
   
   __syncthreads();
@@ -151,7 +157,7 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   
   ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
-  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pW, pMr, pM, nl);
+  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pW, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
@@ -176,7 +182,7 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   
   ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
-  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pMr, pM, nl);
+  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
@@ -198,7 +204,7 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionAE() {
   dim3 grid((nl + 255)/256, nc, 1);
   PetscFunctionBegin;
   
-  VecSubGPU<<<grid, block>>>(pL, pMr, pM, nl);
+  VecSubGPU<<<grid, block>>>(pL, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
@@ -212,7 +218,7 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskAE() {
   dim3 grid((nl + 255)/256, nc, 1);
   PetscFunctionBegin;
   
-  VecSubMulGPU<<<grid, block>>>(pL, pW, pMr, pM, nl);
+  VecSubMulGPU<<<grid, block>>>(pL, pW, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
@@ -226,7 +232,7 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   dim3 grid((nl + 255)/256, nc, 1);
   PetscFunctionBegin;
   
-  VecNegGPU<<<grid, block>>>(pL, pM, nl);
+  VecNegGPU<<<grid, block>>>(pL, pWts, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
@@ -240,7 +246,7 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
   dim3 grid((nl + 255)/256, nc, 1);
   PetscFunctionBegin;
  
-  VecMulGPU<<<grid, block>>>(pL, pW, pM, nl);
+  VecMulGPU<<<grid, block>>>(pL, pW, pWts, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   

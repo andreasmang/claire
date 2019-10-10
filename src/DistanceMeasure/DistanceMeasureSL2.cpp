@@ -111,6 +111,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
     ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
     if (this->m_Mask != NULL) {
         // mask objective functional
@@ -128,6 +129,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
     ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
     // objective value
     *D = 0.5*hd*l2distance/static_cast<ScalarType>(kernel.nc);
@@ -168,6 +170,7 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
       ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL); CHKERRQ(ierr);
     }
     ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
     
     // compute terminal condition \lambda_1 = -(m_1 - m_R) = m_R - m_1
     if (this->m_Mask != NULL) {
@@ -204,6 +207,7 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionAE() {
 #endif*/
     }
         
+    ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
     ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
@@ -243,6 +247,8 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
       ierr = this->m_IncStateVariable->GetArrayRead(kernel.pM); CHKERRQ(ierr);
     }
     
+    ierr = GetRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
+    
     // compute terminal condition \tilde{\lambda}_1 = -\tilde{m}_1
     if (this->m_Mask != NULL) {
         // mask objective functional
@@ -271,6 +277,8 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
         }
 }  // omp*/
     }
+    
+    ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_IncStateVariable->RestoreArray(); CHKERRQ(ierr);
 

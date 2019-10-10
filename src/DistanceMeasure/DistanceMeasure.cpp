@@ -81,6 +81,7 @@ PetscErrorCode DistanceMeasure::Initialize() {
     this->m_WorkVecField1 = nullptr;
     this->m_WorkVecField2 = nullptr;
     this->m_WorkVecField3 = nullptr;
+    this->m_ObjWts = nullptr;
 
     PetscFunctionReturn(0);
 }
@@ -94,6 +95,10 @@ PetscErrorCode DistanceMeasure::Initialize() {
 PetscErrorCode DistanceMeasure::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+
+    if (this->m_ObjWts != nullptr) {
+        ierr = VecDestroy(&this->m_ObjWts); CHKERRQ(ierr); 
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -186,7 +191,6 @@ PetscErrorCode DistanceMeasure::SetWorkVecField(VecField* v, int id) {
 }
 
 
-
 /********************************************************************
  * @brief set mask
  *******************************************************************/
@@ -205,7 +209,36 @@ PetscErrorCode DistanceMeasure::SetMask(ScaField* mask) {
 }
 
 
+/********************************************************************
+ * @brief set objective function weights
+ *******************************************************************/
+PetscErrorCode DistanceMeasure::SetObjectiveFunctionalWeights() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    IntType nc;
+    ScalarType *p_ObjWts = nullptr;
 
+    this->m_Opt->Enter(__func__);
+    
+    nc = this->m_Opt->m_Domain.nc;
+    if (this->m_ObjWts == nullptr) {
+        ierr = VecCreate(this->m_ObjWts, nc, nc);
+    }
+    
+    ierr = VecGetArray(this->m_ObjWts, &p_ObjWts); CHKERRQ(ierr);
+    
+    for (int k=0; k<nc; ++k) {
+        p_ObjWts[k] = this->m_Opt->m_ObjWts[k];
+    }
+    
+    ierr = VecRestoreArray(this->m_ObjWts, &p_ObjWts); CHKERRQ(ierr);
+
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+        
 
 /********************************************************************
  * @brief set state variable
