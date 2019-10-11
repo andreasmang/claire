@@ -106,6 +106,9 @@ PetscErrorCode Rescale(Vec, ScalarType, ScalarType, IntType nc = 1);
 /*! normalize field to [0,1] */
 PetscErrorCode Normalize(Vec, IntType nc = 1);
 
+/*! compte pointwise norm of vector field */
+PetscErrorCode VecFieldPointWiseNorm(Vec, Vec, Vec, Vec);
+
 /*! clip field to [0,1] */
 PetscErrorCode Clip(Vec, IntType nc = 1);
 

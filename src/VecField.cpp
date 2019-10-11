@@ -98,7 +98,7 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_X1 = NULL;
     this->m_X2 = NULL;
     this->m_X3 = NULL;
-    
+
     this->m_Allocated = 0;
     
     this->m_Type = AccessType::None;
@@ -1013,20 +1013,20 @@ PetscErrorCode VecField::WAXPY(ScalarType s, VecField* v, VecField* w) {
 PetscErrorCode VecField::Norm(Vec xnorm) {
     PetscErrorCode ierr = 0;
     IntType i, nl;
-    ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL, *p_x = NULL;
+    const ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
+    ScalarType *p_x = NULL;
 
     PetscFunctionBegin;
 
     // get local size of vector field
     ierr = VecGetLocalSize(xnorm, &nl); CHKERRQ(ierr);
 
-    ierr = this->GetArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = this->GetArraysRead(p_x1, p_x2, p_x3); CHKERRQ(ierr);
     ierr = GetRawPointer(xnorm, &p_x); CHKERRQ(ierr);
     
 #ifdef REG_HAS_CUDA
     ierr = WrngMsg("Not implemented for CUDA"); CHKERRQ(ierr);
-#endif
-
+#else
 #pragma omp parallel
 {
 #pragma omp for
@@ -1036,9 +1036,10 @@ PetscErrorCode VecField::Norm(Vec xnorm) {
                              + p_x3[i]*p_x3[i]);
     }
 }  // pragma omp parallel
+#endif
 
     ierr = RestoreRawPointer(xnorm, &p_x); CHKERRQ(ierr);
-    ierr = this->RestoreArrays(p_x1, p_x2, p_x3); CHKERRQ(ierr);
+    ierr = this->RestoreArraysRead(p_x1, p_x2, p_x3); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

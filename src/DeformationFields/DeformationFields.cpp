@@ -1778,6 +1778,7 @@ PetscErrorCode DeformationFields::ComputeDisplacementField(bool write2file) {
     if (write2file) {
         ext = this->m_Opt->m_FileNames.extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "displacement-field"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField2->m_X1, "displacement-field-norm"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -1883,6 +1884,8 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
         ierr = VecAXPY(this->m_WorkVecField1->m_X3, hthalf, this->m_VelocityField->m_X3); 
 
     }  // for all time points
+    
+    ierr = VecFieldPointWiseNorm(this->m_WorkVecField2->m_X1, this->m_WorkVecField1->m_X1, this->m_WorkVecField1->m_X2, this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

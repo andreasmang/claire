@@ -21,9 +21,15 @@
 #define _CLAIREUTILSKERNEL_CU_
 
 #include "CLAIREUtils.hpp"
+#include "cuda_helper.hpp"
 
-
-
+// CUDA kernel to evaluate point-wise norm of a vector field
+__global__ void VecFieldPointWiseNormGPU(ScalarType *p_m, const ScalarType *p_X1, const ScalarType *p_X2, const ScalarType *p_X3, IntType nl) {
+    int i = threadIdx.x + blockIdx.x*blockDim.x;
+    if (i < nl) {
+        p_m[i] = sqrtf(p_X1[i]*p_X1[i] + p_X2[i]*p_X2[i] + p_X3[i]*p_X3[i]);
+    }
+}
 
 namespace reg {
   
@@ -45,6 +51,39 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
     PetscFunctionReturn(ierr);
 }
 
+/********************************************************************
+ * @brief compute pointwise norm of vector field
+ *******************************************************************/
+PetscErrorCode VecFieldPointWiseNorm(Vec norm, Vec m_X1, Vec m_X2, Vec m_X3) {
+    PetscErrorCode ierr = 0;
+    ScalarType *p_m = NULL;
+    const ScalarType *p_X1 = NULL, *p_X2 = NULL, *p_X3 = NULL;
+    IntType nl;
+    
+    PetscFunctionBegin;
+    
+    ierr = GetRawPointer(norm, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(m_X1, &p_X1); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(m_X2, &p_X2); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(m_X3, &p_X3); CHKERRQ(ierr);
+    
+    ierr = VecGetLocalSize(norm, &nl); CHKERRQ(ierr);
+    dim3 block(256, 1, 1);
+    dim3 grid((nl + 255)/256, 1, 1);
+    
+    VecFieldPointWiseNormGPU<<<grid, block>>>(p_m, p_X1, p_X2, p_X3, nl);
+    cudaDeviceSynchronize();
+    cudaCheckKernelError();
+
+    ierr = RestoreRawPointer(norm, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(m_X1, &p_X1); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(m_X2, &p_X2); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(m_X3, &p_X3); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+
+}
+    
 /********************************************************************
  * @brief clip image to be in [0,1]
  *******************************************************************/
