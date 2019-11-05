@@ -6,7 +6,7 @@ A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory sol
 
 
 ## Parallel Implementation
-* A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. arXiv:1808.04487. 2018 [[arxiv](https://arxiv.org/abs/1808.04487)].
+* A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41 (5), C548--C584, 2019. [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
 * A. Mang, A. Gholami & G. Biros. *Distributed-memory large-deformation diffeomorphic 3D image registration*. Proc ACM/IEEE Conference on SuperComputing, #72, 2016 [[arxiv](https://arxiv.org/abs/1608.03630), [ieee](http://dx.doi.org/10.1109/SC.2016.71)].
 
 ## Algorithmic Developments
