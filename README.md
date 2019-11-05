@@ -14,7 +14,8 @@
 
 If there are any issues, you have questions, you would like to give us feedback or you have feature requests, do not hesitate to send an email to <andreas@math.uh.edu>.
 
-If you plan on using CLAIRE in your research please cite the following manuscript: A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41 (5), C548--C584, 2019 (arXiv:1808.0448).
+If you plan on using CLAIRE in your research please cite the following manuscript:
+A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
 
 ## Documentation <a name="clairedoc"></a>
 * [Quick Installation Guide](doc/README-INSTALL-QUICK.md)
