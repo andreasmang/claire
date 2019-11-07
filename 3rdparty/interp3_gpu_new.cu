@@ -87,6 +87,14 @@ __constant__ int d_nx, d_ny, d_nz;
 //__constant__ float d_invnx, d_invny, d_invnz;
 //__constant__ float d_invhx, d_invhy, d_invhz;
 
+enum CUBIC_INTERP_TYPE {
+    FAST_SPLINE = 0,
+    FAST_LAGRANGE = 1,
+    SLOW_LAGRANGE = 2,
+    SLOW_SPLINE = 3
+};
+
+
 template <typename T>
 __host__ __device__
 inline T rec3_fmaf(T a, T b, T c, T d, T e, T f) {
@@ -276,85 +284,94 @@ __global__ void prefilter_x(float* dfx, float* f) {
  * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
  * @parm[out] interpolated value
  *******************************************************************/
-__device__ float cubicTex3D_lagrangeFast( cudaTextureObject_t tex, const float3 coord_grid, const float3 inv_ext)
+__global__ void cubicTex3DFastLagrange(cudaTextureObject_t tex,
+                                        const PetscScalar* xq,
+                                        const PetscScalar* yq,
+                                        const PetscScalar* zq, 
+                                        PetscScalar* yo,
+                                        const float3 inv_ext, int nq)
 {
-	const float3 index = floor(coord_grid);
-	float3 w0, w1, w2, w3;
-	lagrange_weights(coord_grid - index, w0, w1, w2, w3);
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     
-    // compute the locations for the trilinear, bilinear and linear interps
-    const float3 g0 = w1 + w2;
-    const float3 h0 = (w2/g0 + index + 0.5f)*inv_ext;
-    const float idx[2] = { (index.x-0.5f)*inv_ext.x, (index.x+2.5f)*inv_ext.x};
-    const float idy[2] = { (index.y-0.5f)*inv_ext.y, (index.y+2.5f)*inv_ext.y};
-    const float idz[2] = { (index.z-0.5f)*inv_ext.z, (index.z+2.5f)*inv_ext.z};
+    if (tid < nq) {
+        float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
+        const float3 index = floor(coord_grid);
+        float3 w0, w1, w2, w3;
+        lagrange_weights(coord_grid - index, w0, w1, w2, w3);
+        
+        // compute the locations for the trilinear, bilinear and linear interps
+        const float3 g0 = w1 + w2;
+        const float3 h0 = (w2/g0 + index + 0.5f)*inv_ext;
+        const float idx[2] = { (index.x-0.5f)*inv_ext.x, (index.x+2.5f)*inv_ext.x};
+        const float idy[2] = { (index.y-0.5f)*inv_ext.y, (index.y+2.5f)*inv_ext.y};
+        const float idz[2] = { (index.z-0.5f)*inv_ext.z, (index.z+2.5f)*inv_ext.z};
 
-    
-    /////////////////////// slice 1 ////////////////////////////////////////
-    // x weighting
-    float Z0,Z2;
-    //float row0,row1,row2;
-    float point0 = tex3D<float>( tex, idx[0], idy[0], idz[0]); // tex000
-    float point1 = tex3D<float>( tex, idx[1], idy[0], idz[0]); // tex100
-    float lin0 = tex3D<float>( tex, h0.x, idy[0], idz[0]); // y0z0
-    // (w0.x * tex000) + (g0.x * y0z0) + (w3.x * tex100)
-    Z0 = w0.y*rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1);
-    
-    point0 = tex3D<float>( tex, idx[0], idy[1], idz[0]); // tex010
-    point1 = tex3D<float>( tex, idx[1], idy[1], idz[0]); // tex110
-    lin0 = tex3D<float>( tex, h0.x, idy[1], idz[0]); // y1z0
-    // (w0.x * tex010) + (g0.x * y1z0) + (w3.x * tex110)
-    Z0 = fmaf(w3.y, rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1), Z0);
+        
+        /////////////////////// slice 1 ////////////////////////////////////////
+        // x weighting
+        float Z0,Z2;
+        //float row0,row1,row2;
+        float point0 = tex3D<float>( tex, idx[0], idy[0], idz[0]); // tex000
+        float point1 = tex3D<float>( tex, idx[1], idy[0], idz[0]); // tex100
+        float lin0 = tex3D<float>( tex, h0.x, idy[0], idz[0]); // y0z0
+        // (w0.x * tex000) + (g0.x * y0z0) + (w3.x * tex100)
+        Z0 = w0.y*rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1);
+        
+        point0 = tex3D<float>( tex, idx[0], idy[1], idz[0]); // tex010
+        point1 = tex3D<float>( tex, idx[1], idy[1], idz[0]); // tex110
+        lin0 = tex3D<float>( tex, h0.x, idy[1], idz[0]); // y1z0
+        // (w0.x * tex010) + (g0.x * y1z0) + (w3.x * tex110)
+        Z0 = fmaf(w3.y, rec3_fmaf( w0.x,  point0,  g0.x,  lin0,  w3.x,  point1), Z0);
 
-    lin0 = tex3D<float>( tex, idx[0], h0.y, idz[0]); // x0z0
-    float lin1 = tex3D<float>( tex, idx[1], h0.y, idz[0]); // x1z0
-    float bi0 = tex3D<float>( tex, h0.x, h0.y, idz[0]); // z0
-    // (w0.x * x0z0) + (g0.x * z0) + (w3.x * x1z0)
-    Z0 = fmaf(g0.y, rec3_fmaf( w0.x,  lin0,    g0.x,  bi0,    w3.x,  lin1), Z0); 
-    
-    ////////////////////////////////////////// slice 3 //////////////////////////////////////////////////////////
-    // x weighting
-    point0 = tex3D<float>( tex, idx[0], idy[0], idz[1]); // tex001
-    point1 = tex3D<float>( tex, idx[1], idy[0], idz[1]); // tex101
-    lin0 = tex3D<float>( tex, h0.x, idy[0], idz[1]); // y0z1
-    // (w0.x * tex001) + (g0.x * y0z1) + (w3.x * tex101)
-    Z2 = w0.y * rec3_fmaf( w0.x, point0, g0.x, lin0, w3.x, point1);
+        lin0 = tex3D<float>( tex, idx[0], h0.y, idz[0]); // x0z0
+        float lin1 = tex3D<float>( tex, idx[1], h0.y, idz[0]); // x1z0
+        float bi0 = tex3D<float>( tex, h0.x, h0.y, idz[0]); // z0
+        // (w0.x * x0z0) + (g0.x * z0) + (w3.x * x1z0)
+        Z0 = fmaf(g0.y, rec3_fmaf( w0.x,  lin0,    g0.x,  bi0,    w3.x,  lin1), Z0); 
+        
+        ////////////////////////////////////////// slice 3 //////////////////////////////////////////////////////////
+        // x weighting
+        point0 = tex3D<float>( tex, idx[0], idy[0], idz[1]); // tex001
+        point1 = tex3D<float>( tex, idx[1], idy[0], idz[1]); // tex101
+        lin0 = tex3D<float>( tex, h0.x, idy[0], idz[1]); // y0z1
+        // (w0.x * tex001) + (g0.x * y0z1) + (w3.x * tex101)
+        Z2 = w0.y * rec3_fmaf( w0.x, point0, g0.x, lin0, w3.x, point1);
 
-    point0 = tex3D<float>( tex, idx[0], idy[1], idz[1]); // tex011
-    point1 = tex3D<float>( tex, idx[1], idy[1], idz[1]); // tex111
-    lin0 = tex3D<float>( tex, h0.x, idy[1], idz[1]); // y1z1
-    // (w0.x * tex011) + (g0.x * y1z1) + (w3.x * tex111)
-    Z2 = fmaf(w3.y, rec3_fmaf( w0.x, point0, g0.x, lin0,  w3.x, point1), Z2);
+        point0 = tex3D<float>( tex, idx[0], idy[1], idz[1]); // tex011
+        point1 = tex3D<float>( tex, idx[1], idy[1], idz[1]); // tex111
+        lin0 = tex3D<float>( tex, h0.x, idy[1], idz[1]); // y1z1
+        // (w0.x * tex011) + (g0.x * y1z1) + (w3.x * tex111)
+        Z2 = fmaf(w3.y, rec3_fmaf( w0.x, point0, g0.x, lin0,  w3.x, point1), Z2);
 
-    lin0 = tex3D<float>( tex, idx[0], h0.y, idz[1]); // x0z1
-    lin1 = tex3D<float>( tex, idx[1], h0.y, idz[1]); // x1z1
-    bi0 = tex3D<float>( tex, h0.x, h0.y, idz[1]); // z1
-    // (w0.x * x0z1) + (g0.x * z1) + (w3.x * x1z1);
-    Z2 = fmaf(g0.y, rec3_fmaf( w0.x, lin0,   g0.x, bi0,   w3.x, lin1), Z2);
-    Z2 = fmaf(w0.z, Z0, w3.z*Z2);
+        lin0 = tex3D<float>( tex, idx[0], h0.y, idz[1]); // x0z1
+        lin1 = tex3D<float>( tex, idx[1], h0.y, idz[1]); // x1z1
+        bi0 = tex3D<float>( tex, h0.x, h0.y, idz[1]); // z1
+        // (w0.x * x0z1) + (g0.x * z1) + (w3.x * x1z1);
+        Z2 = fmaf(g0.y, rec3_fmaf( w0.x, lin0,   g0.x, bi0,   w3.x, lin1), Z2);
+        Z2 = fmaf(w0.z, Z0, w3.z*Z2);
 
-    //////////////////////////////////////////////////// slice 2 ////////////////////////////////////////////////
-    // single trilinear lookup
-    lin0 = tex3D<float>( tex, idx[0], idy[0], h0.z); // x0y0
-    lin1 = tex3D<float>( tex, idx[1], idy[0], h0.z); // x1y0
-    bi0 = tex3D<float>( tex, h0.x, idy[0], h0.z); // y0
-    // (w0.x * x0y0) + (g0.x * y0) + (w3.x * x1y0)
-    Z0 = w0.y* rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1);
+        //////////////////////////////////////////////////// slice 2 ////////////////////////////////////////////////
+        // single trilinear lookup
+        lin0 = tex3D<float>( tex, idx[0], idy[0], h0.z); // x0y0
+        lin1 = tex3D<float>( tex, idx[1], idy[0], h0.z); // x1y0
+        bi0 = tex3D<float>( tex, h0.x, idy[0], h0.z); // y0
+        // (w0.x * x0y0) + (g0.x * y0) + (w3.x * x1y0)
+        Z0 = w0.y* rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1);
 
-    bi0 = tex3D<float>( tex, idx[0], h0.y, h0.z); // x0
-    float bi1 = tex3D<float>( tex, idx[1], h0.y, h0.z); // x1
-    float core = tex3D<float>( tex, h0.x, h0.y, h0.z); // core
-    // (w0.x * x0) + (g0.x * core) + (w3.x * x1)
-    Z0 = fmaf(g0.y, rec3_fmaf( w0.x, bi0, g0.x, core, w3.x, bi1), Z0);
+        bi0 = tex3D<float>( tex, idx[0], h0.y, h0.z); // x0
+        float bi1 = tex3D<float>( tex, idx[1], h0.y, h0.z); // x1
+        float core = tex3D<float>( tex, h0.x, h0.y, h0.z); // core
+        // (w0.x * x0) + (g0.x * core) + (w3.x * x1)
+        Z0 = fmaf(g0.y, rec3_fmaf( w0.x, bi0, g0.x, core, w3.x, bi1), Z0);
 
 
-    lin0 = tex3D<float>( tex, idx[0], idy[1], h0.z); // x0y1
-    lin1 = tex3D<float>( tex, idx[1], idy[1], h0.z); // x1y1
-    bi0 = tex3D<float>( tex, h0.x, idy[1], h0.z); // y1
-    // (w0.x * x0y1) + (g0.x * y1) + (w3.x * x1y1)
-    Z0 = fmaf(w3.y, rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1), Z0);
-    return fmaf(g0.z, Z0, Z2);
-    
+        lin0 = tex3D<float>( tex, idx[0], idy[1], h0.z); // x0y1
+        lin1 = tex3D<float>( tex, idx[1], idy[1], h0.z); // x1y1
+        bi0 = tex3D<float>( tex, h0.x, idy[1], h0.z); // y1
+        // (w0.x * x0y1) + (g0.x * y1) + (w3.x * x1y1)
+        Z0 = fmaf(w3.y, rec3_fmaf( w0.x, lin0, g0.x, bi0, w3.x, lin1), Z0);
+        yo[tid] = fmaf(g0.z, Z0, Z2);
+    }
 }
 
 /********************************************************************
@@ -417,51 +434,60 @@ __global__ void fixedpointLagrange(PetscScalar* f,
  * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
  * @parm[out] interpolated value
  *******************************************************************/
-__device__ float cubicTex3D_lagrangeSimple(cudaTextureObject_t tex, float3 coord, const float3 inv_ext)
+__global__ void cubicTex3DSlowLagrange(cudaTextureObject_t tex,
+                                        const PetscScalar* xq,
+                                        const PetscScalar* yq,
+                                        const PetscScalar* zq, 
+                                        PetscScalar* yo,
+                                        const float3 inv_ext, int nq)
 {
-	const float3 coord_grid = coord;
-	const float3 index = floor(coord_grid);
-	const float3 fraction = coord_grid - index;
-	float3 w0, w1, w2, w3;
-	lagrange_weights(fraction, w0, w1, w2, w3);
-
-    float idx[KERNEL_DIM] = { (index.x-0.5f)*inv_ext.x, 
-                     (index.x+0.5f)*inv_ext.x,
-                     (index.x+1.5f)*inv_ext.x,
-                     (index.x+2.5f)*inv_ext.x};
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     
-    float wx[KERNEL_DIM] = {w0.x, w1.x, w2.x, w3.x};
+    if (tid < nq) {
+        float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
+        const float3 index = floor(coord_grid);
+        const float3 fraction = coord_grid - index;
+        float3 w0, w1, w2, w3;
+        lagrange_weights(fraction, w0, w1, w2, w3);
 
-    float idy[KERNEL_DIM] = { (index.y-0.5f)*inv_ext.y, 
-                     (index.y+0.5f)*inv_ext.y,
-                     (index.y+1.5f)*inv_ext.y,
-                     (index.y+2.5f)*inv_ext.y};
-    float wy[KERNEL_DIM] = {w0.y, w1.y, w2.y, w3.y};
+        float idx[KERNEL_DIM] = { (index.x-0.5f)*inv_ext.x, 
+                        (index.x+0.5f)*inv_ext.x,
+                        (index.x+1.5f)*inv_ext.x,
+                        (index.x+2.5f)*inv_ext.x};
+        
+        float wx[KERNEL_DIM] = {w0.x, w1.x, w2.x, w3.x};
 
-    float idz[KERNEL_DIM] = { (index.z-0.5f)*inv_ext.z, 
-                     (index.z+0.5f)*inv_ext.z,
-                     (index.z+1.5f)*inv_ext.z,
-                     (index.z+2.5f)*inv_ext.z};
-    float wz[KERNEL_DIM] = {w0.z, w1.z, w2.z, w3.z};
-    
-    float yq = 0;
-    int j,k;
-    float sj,sk;
-    
-    for(k=0; k<KERNEL_DIM; k++){
-        sk = 0;
+        float idy[KERNEL_DIM] = { (index.y-0.5f)*inv_ext.y, 
+                        (index.y+0.5f)*inv_ext.y,
+                        (index.y+1.5f)*inv_ext.y,
+                        (index.y+2.5f)*inv_ext.y};
+        float wy[KERNEL_DIM] = {w0.y, w1.y, w2.y, w3.y};
+
+        float idz[KERNEL_DIM] = { (index.z-0.5f)*inv_ext.z, 
+                        (index.z+0.5f)*inv_ext.z,
+                        (index.z+1.5f)*inv_ext.z,
+                        (index.z+2.5f)*inv_ext.z};
+        float wz[KERNEL_DIM] = {w0.z, w1.z, w2.z, w3.z};
+        
+        float res = 0;
+        int j,k;
+        float sj,sk;
+        
+        for(k=0; k<KERNEL_DIM; k++){
+            sk = 0;
 #pragma unroll
-        for(j=0; j<KERNEL_DIM; j++){
-            sj = rec4_fmaf( wx[0],  tex3D<float>(tex, idx[0], idy[j], idz[k]), 
-                            wx[1],  tex3D<float>(tex, idx[1], idy[j], idz[k]),
-                            wx[2],  tex3D<float>(tex, idx[2], idy[j], idz[k]),
-                            wx[3],  tex3D<float>(tex, idx[3], idy[j], idz[k]));
-    
-            sk = fmaf(wy[j], sj, sk);
+            for(j=0; j<KERNEL_DIM; j++){
+                sj = rec4_fmaf( wx[0],  tex3D<float>(tex, idx[0], idy[j], idz[k]), 
+                                wx[1],  tex3D<float>(tex, idx[1], idy[j], idz[k]),
+                                wx[2],  tex3D<float>(tex, idx[2], idy[j], idz[k]),
+                                wx[3],  tex3D<float>(tex, idx[3], idy[j], idz[k]));
+        
+                sk = fmaf(wy[j], sj, sk);
+            }
+            res = fmaf(wz[k], sk, res);
         }
-        yq = fmaf(wz[k], sk, yq);
+        yo[tid] = res;
     }
-    return yq;
 }
 
 
@@ -472,32 +498,41 @@ __device__ float cubicTex3D_lagrangeSimple(cudaTextureObject_t tex, float3 coord
  * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
  * @parm[out] interpolated value
  *******************************************************************/
-__device__ float cubicTex3D_splineSimple(cudaTextureObject_t tex, float3 coord, const float3 inv_extent)
+__global__ void cubicTex3DSlowSpline(cudaTextureObject_t tex,
+                                        const PetscScalar* xq,
+                                        const PetscScalar* yq,
+                                        const PetscScalar* zq, 
+                                        PetscScalar* yo,
+                                        const float3 inv_ext, int nq)
 {
-	// transform the coordinate from [0,extent] to [-0.5, extent-0.5]
-	const float3 coord_grid = coord;
-	float3 index = floor(coord_grid);
-	const float3 fraction = coord_grid - index;
-	index = index + 0.5f;  //move from [-0.5, extent-0.5] to [0, extent]
-
-	float result = 0.0f;
-	for (float z=-1; z < 2.5f; z++)  //range [-1, 2]
-	{
-		float bsplineZ = bspline(z-fraction.z);
-		float w = (index.z + z)*inv_extent.z;
-		for (float y=-1; y < 2.5f; y++)
-		{
-			float bsplineYZ = bspline(y-fraction.y) * bsplineZ;
-			float v = (index.y + y)*inv_extent.y;
-			for (float x=-1; x < 2.5f; x++)
-			{
-				float bsplineXYZ = bspline(x-fraction.x) * bsplineYZ;
-				float u = (index.x + x)*inv_extent.z;
-				result = fmaf(bsplineXYZ , tex3D<float>(tex, u, v, w), result);
-			}
-		}
-	}
-	return result;
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    if (tid < nq) {
+        float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
+        // transform the coordinate from [0,extent] to [-0.5, extent-0.5]
+        float3 index = floor(coord_grid);
+        const float3 fraction = coord_grid - index;
+        index = index + 0.5f;  //move from [-0.5, extent-0.5] to [0, extent]
+    
+        float res = 0;
+        for (float z=-1; z < 2.5f; z++)  //range [-1, 2]
+        {
+            float bsplineZ = bspline(z-fraction.z);
+            float w = (index.z + z)*inv_ext.z;
+            for (float y=-1; y < 2.5f; y++)
+            {
+                float bsplineYZ = bspline(y-fraction.y) * bsplineZ;
+                float v = (index.y + y)*inv_ext.y;
+                for (float x=-1; x < 2.5f; x++)
+                {
+                    float bsplineXYZ = bspline(x-fraction.x) * bsplineYZ;
+                    float u = (index.x + x)*inv_ext.z;
+                    res = fmaf(bsplineXYZ , tex3D<float>(tex, u, v, w), res);
+                }
+            }
+        }
+        yo[tid] = res;
+    } 
 }
 
 
@@ -509,49 +544,60 @@ __device__ float cubicTex3D_splineSimple(cudaTextureObject_t tex, float3 coord, 
  * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
  * @parm[out] interpolated value
  *******************************************************************/
-__device__ float cubicTex3D_splineFast(cudaTextureObject_t tex, const float3 coord_grid, const float3 inv_reg_extent)
+__global__ void cubicTex3DFastSpline(cudaTextureObject_t tex,
+                                        const PetscScalar* xq,
+                                        const PetscScalar* yq,
+                                        const PetscScalar* zq, 
+                                        PetscScalar* yo,
+                                        const float3 inv_ext, int nq)
 {
-	// shift the coordinate from [0,extent] to [-0.5, extent-0.5]
-	const float3 index = floor(coord_grid);
-	const float3 fraction = coord_grid - index;
-	float3 w0, w1, w2, w3;
-	bspline_weights(fraction, w0, w1, w2, w3);
-
-	const float3 g0 = w0 + w1;
-	const float3 g1 = 1.0f - g0;
-	const float3 h0 = ((w1 / g0) - 0.5f + index)*inv_reg_extent;
-	const float3 h1 = ((w3 / g1) + 1.5f + index)*inv_reg_extent;
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     
+    if (tid < nq) {
+        float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
+        // shift the coordinate from [0,extent] to [-0.5, extent-0.5]
+        const float3 index = floor(coord_grid);
+        const float3 fraction = coord_grid - index;
+        float3 w0, w1, w2, w3;
+        bspline_weights(fraction, w0, w1, w2, w3);
 
-	// fetch the eight linear interpolations
-	// weighting and fetching is interleaved for performance and stability reasons
-	float tex000 = tex3D<float>(tex, h0.x, h0.y, h0.z);
-	float tex100 = tex3D<float>(tex, h1.x, h0.y, h0.z);
-	//tex000 = g0.x * tex000 + g1.x * tex100;  //weigh along the x-direction
-	tex000 = lerp(tex100, tex000, g0.x);
-	
-	float tex010 = tex3D<float>(tex, h0.x, h1.y, h0.z);
-	float tex110 = tex3D<float>(tex, h1.x, h1.y, h0.z);
-	//tex010 = g0.x * tex010 + g1.x * tex110;  //weigh along the x-direction
-	tex010 = lerp( tex110, tex010, g0.x);
-	//tex000 = g0.y * tex000 + g1.y * tex010;  //weigh along the y-direction
-	tex000 = lerp( tex010, tex000, g0.y);
-	
-	float tex001 = tex3D<float>(tex, h0.x, h0.y, h1.z);
-	float tex101 = tex3D<float>(tex, h1.x, h0.y, h1.z);
-	//tex001 = g0.x * tex001 + g1.x * tex101;  //weigh along the x-direction
-	tex001 = lerp( tex101, tex001, g0.x);
-	
-	float tex011 = tex3D<float>(tex, h0.x, h1.y, h1.z);
-	float tex111 = tex3D<float>(tex, h1.x, h1.y, h1.z);
-	//tex011 = g0.x * tex011 + g1.x * tex111;  //weigh along the x-direction
-	tex011 = lerp( tex111, tex011, g0.x);
-	//tex001 = g0.y * tex001 + g1.y * tex011;  //weigh along the y-direction
-    tex001 = lerp( tex011, tex001, g0.y);
+        const float3 g0 = w0 + w1;
+        const float3 g1 = 1.0f - g0;
+        const float3 h0 = ((w1 / g0) - 0.5f + index)*inv_ext;
+        const float3 h1 = ((w3 / g1) + 1.5f + index)*inv_ext;
+        
 
-	//return (g0.z * tex000 + g1.z * tex001);  //weigh along the z-direction
-    return lerp( tex001, tex000, g0.z);
+        // fetch the eight linear interpolations
+        // weighting and fetching is interleaved for performance and stability reasons
+        float tex000 = tex3D<float>(tex, h0.x, h0.y, h0.z);
+        float tex100 = tex3D<float>(tex, h1.x, h0.y, h0.z);
+        //tex000 = g0.x * tex000 + g1.x * tex100;  //weigh along the x-direction
+        tex000 = lerp(tex100, tex000, g0.x);
+        
+        float tex010 = tex3D<float>(tex, h0.x, h1.y, h0.z);
+        float tex110 = tex3D<float>(tex, h1.x, h1.y, h0.z);
+        //tex010 = g0.x * tex010 + g1.x * tex110;  //weigh along the x-direction
+        tex010 = lerp( tex110, tex010, g0.x);
+        //tex000 = g0.y * tex000 + g1.y * tex010;  //weigh along the y-direction
+        tex000 = lerp( tex010, tex000, g0.y);
+        
+        float tex001 = tex3D<float>(tex, h0.x, h0.y, h1.z);
+        float tex101 = tex3D<float>(tex, h1.x, h0.y, h1.z);
+        //tex001 = g0.x * tex001 + g1.x * tex101;  //weigh along the x-direction
+        tex001 = lerp( tex101, tex001, g0.x);
+        
+        float tex011 = tex3D<float>(tex, h0.x, h1.y, h1.z);
+        float tex111 = tex3D<float>(tex, h1.x, h1.y, h1.z);
+        //tex011 = g0.x * tex011 + g1.x * tex111;  //weigh along the x-direction
+        tex011 = lerp( tex111, tex011, g0.x);
+        //tex001 = g0.y * tex001 + g1.y * tex011;  //weigh along the y-direction
+        tex001 = lerp( tex011, tex001, g0.y);
+
+        //return (g0.z * tex000 + g1.z * tex001);  //weigh along the z-direction
+        yo[tid] = lerp( tex001, tex000, g0.z);
+    }
 }
+
 
 __device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, const float3 inv_reg_extent)
 {
@@ -777,7 +823,7 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
  * @parm[in] nx array denoting number of query coordinates in each dimension 
  * @parm[out] yo memory for storing interpolated values
  *******************************************************************/
-__global__ void interp3D_kernel(
+/*__global__ void interp3D_kernel(
         cudaTextureObject_t  yi_tex,
         const PetscScalar* xq,
         const PetscScalar* yq,
@@ -795,16 +841,93 @@ __global__ void interp3D_kernel(
         //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
         //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
       //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
-
-/*    const float h = 2*PI*inv_nx.x;
-      const float3 q = qcoord*h;
-      float votrue = computeVx(q.z, q.y, q.x);
-      if (tid>=60 && tid<70) {
-        printf("tidz = %d  x = %f  y = %f  z = %f  vi = %f  vo = %f  votrue  = %f\n",tid, qcoord.x, qcoord.y, qcoord.z, *((float*)(yi.ptr)+tid), yo[tid], votrue);
-      }
-*/
     }
 }
+*/
+/********************************************************************
+ * @brief interpolation kernel for scalar field
+ * @parm[in] yi_tex 3D texture used for interpolation
+ * @parm[in] xq,yq,zq query coordinates
+ * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[out] yo memory for storing interpolated values
+ *******************************************************************/
+/*__global__ void interp3D_kernel(
+        cudaTextureObject_t  yi_tex,
+        const PetscScalar* xq,
+        const PetscScalar* yq,
+        const PetscScalar* zq, 
+        PetscScalar* yo,
+        const float3 inv_nx, int nq)
+{
+    // Get thread index 
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    if (tid < nq) {
+      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
+
+      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    }
+}
+*/
+/********************************************************************
+ * @brief interpolation kernel for scalar field
+ * @parm[in] yi_tex 3D texture used for interpolation
+ * @parm[in] xq,yq,zq query coordinates
+ * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[out] yo memory for storing interpolated values
+ *******************************************************************/
+/*__global__ void interp3D_kernel(
+        cudaTextureObject_t  yi_tex,
+        const PetscScalar* xq,
+        const PetscScalar* yq,
+        const PetscScalar* zq, 
+        PetscScalar* yo,
+        const float3 inv_nx, int nq)
+{
+    // Get thread index 
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    if (tid < nq) {
+      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
+
+      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    }
+}
+*/
+/********************************************************************
+ * @brief interpolation kernel for scalar field
+ * @parm[in] yi_tex 3D texture used for interpolation
+ * @parm[in] xq,yq,zq query coordinates
+ * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[out] yo memory for storing interpolated values
+ *******************************************************************/
+/*__global__ void interp3D_kernel(
+        cudaTextureObject_t  yi_tex,
+        const PetscScalar* xq,
+        const PetscScalar* yq,
+        const PetscScalar* zq, 
+        PetscScalar* yo,
+        const float3 inv_nx, int nq)
+{
+    // Get thread index 
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    if (tid < nq) {
+      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
+
+      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
+        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
+      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
+    }
+}
+*/
 
 /********************************************************************
  * @brief linear interpolation kernel for scalar field
@@ -827,7 +950,7 @@ __global__ void interp3D_kernel_linear(
       yo[tid] = linTex3D(yi_tex, qcoord, inv_nx);
     }
 }
-
+    
 /********************************************************************
  * @brief host function to do interpolation of a scalar field
  * @parm[in] yi input data values 
@@ -851,16 +974,35 @@ void gpuInterp3Dkernel(
            const float3 inv_nx,
            long int nq)
 {
+    // SET cubic interpolation type here
+    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;
+    cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
       cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
       cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
-      CubicBSplinePrefilter3D_fast(yi, nx, tmp1, tmp2);
-      cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(tmp1), nx[2]*sizeof(float), nx[2], nx[1]);
+      switch (interp_type) {
+        case FAST_SPLINE:
+            CubicBSplinePrefilter3D_fast(yi, nx, tmp1, tmp2);
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(tmp1), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+        case SLOW_SPLINE:
+            CubicBSplinePrefilter3D_fast(yi, nx, tmp1, tmp2);
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(tmp1), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+        case FAST_LAGRANGE:
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+        case SLOW_LAGRANGE:
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+      };
+            
+            
       updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
     } else {
       // make input image a cudaPitchedPtr for fi
-      cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+      yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
       //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
       // update texture object
       updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
@@ -875,7 +1017,20 @@ void gpuInterp3Dkernel(
       interp3D_kernel_linear<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
       break;
     case 3:
-      interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+      switch (interp_type) {
+        case FAST_SPLINE:
+            cubicTex3DFastSpline<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+        case SLOW_SPLINE:
+            cubicTex3DSlowSpline<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+        case FAST_LAGRANGE:
+            cubicTex3DFastLagrange<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+        case SLOW_LAGRANGE:
+            cubicTex3DSlowLagrange<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+      };
       break;
     //default:
       // Not implemented

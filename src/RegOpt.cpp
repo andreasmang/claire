@@ -1858,8 +1858,8 @@ PetscErrorCode RegOpt::CheckArguments() {
         }
     }
     
-    std::cout << "number of weights = " << this->m_ObjWts.size() << std::endl;
-    std::cout << "number of components = " << this->m_Domain.nc << std::endl;
+    //std::cout << "number of weights = " << this->m_ObjWts.size() << std::endl;
+    //std::cout << "number of components = " << this->m_Domain.nc << std::endl;
 
     if (((int)(this->m_ObjWts.size()) != (int)(this->m_Domain.nc)) && !this->m_ObjWts.empty()) {
         msg = "\n\x1b[31m number of component weights should be equal to the number of image components\x1b[0m\n";

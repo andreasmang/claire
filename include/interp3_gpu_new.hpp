@@ -8,7 +8,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-
 void gpuInterp3D(PetscScalar* yi, 
   const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
   PetscScalar* yo, 
