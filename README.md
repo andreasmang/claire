@@ -28,3 +28,7 @@ The links above point to individual markdown files. These files can be found in 
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
+
+
+## Contributors
+George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, Andreas Mang, Miriam Mehl
