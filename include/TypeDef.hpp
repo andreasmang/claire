@@ -37,6 +37,10 @@
 #define WrngMsg(str) WrngMsgCall(str, __LINE__, __FILE__);
 #define ThrowError(str) ThrowErrorMsg(str, __LINE__, __FILE__)
 #define DbgMsg(str) DbgMsgCall(str, __LINE__, __FILE__)
+#define DbgMsg1(str) DbgMsgCall(str, __LINE__, __FILE__, 1)
+#define DbgMsg2(str) DbgMsgCall(str, __LINE__, __FILE__, 2)
+#define DbgMsg3(str) DbgMsgCall(str, __LINE__, __FILE__, 3)
+#define DbgMsg4(str) DbgMsgCall(str, __LINE__, __FILE__, 4)
 
 
 using IntType = PetscInt;

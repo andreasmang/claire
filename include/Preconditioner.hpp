@@ -91,6 +91,9 @@ class Preconditioner {
 
     /*! apply 2Level PC as preconditioner */
     PetscErrorCode Apply2LevelPrecond(Vec, Vec);
+    
+    /*! apply inverse of H(v=0) as preconditioner */
+    PetscErrorCode ApplyH0Precond(Vec, Vec);
 
     struct CoarseGrid {
         RegOpt* m_Opt;                        ///< registration options (on coarse grid)

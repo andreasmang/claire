@@ -532,21 +532,21 @@ PetscErrorCode ScaField::DebugInfo(std::string str, int line, const char *file) 
       ierr = VecRestoreArray(this->m_X, &p_x1); CHKERRQ(ierr);
       
       ss  << str << " hash: " << std::hex << fingerprint;
-      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(), line, file, 3); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
     }
 
       ierr = VecNorm(this->m_X, NORM_2, &nvx1); CHKERRQ(ierr);
       ss  << str << " 2-norm: " << std::scientific
           << nvx1;
-      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(), line, file, 2); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
       
       ierr = VecMax(this->m_X, NULL, &maxval); CHKERRQ(ierr);
       ierr = VecMin(this->m_X, NULL, &minval); CHKERRQ(ierr);
       ss  << str << " min/max: [" << std::scientific
           << minval << "," << maxval << "]";
-      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(), 0, 0, 2); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
   }
   

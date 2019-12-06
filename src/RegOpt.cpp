@@ -21,8 +21,26 @@
 #define _REGOPT_CPP_
 
 #include "RegOpt.hpp"
+#include <algorithm>
 
+// trim from start
+static inline std::string &ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
 
+// trim from end
+static inline std::string &rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    return ltrim(rtrim(s));
+}
 
 
 namespace reg {
@@ -131,6 +149,7 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_KrylovMethod.tol[1] = opt.m_KrylovMethod.tol[1];
     this->m_KrylovMethod.tol[2] = opt.m_KrylovMethod.tol[2];
     this->m_KrylovMethod.pcmaxit = opt.m_KrylovMethod.pcmaxit;
+    this->m_KrylovMethod.pctolint = opt.m_KrylovMethod.pctolint;
     this->m_KrylovMethod.reesteigvals = opt.m_KrylovMethod.reesteigvals;
     this->m_KrylovMethod.usepetsceigest = opt.m_KrylovMethod.usepetsceigest;
     this->m_KrylovMethod.pctol[0] = opt.m_KrylovMethod.pctol[0];
@@ -160,7 +179,7 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
 
     this->m_SolveType = opt.m_SolveType;
 
-    // flags
+    // flags    
     this->m_ReadWriteFlags.readfiles = opt.m_ReadWriteFlags.readfiles;
     this->m_ReadWriteFlags.readvelocity = opt.m_ReadWriteFlags.readvelocity;
 
@@ -199,6 +218,10 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_RegFlags.invdefgrad = opt.m_RegFlags.invdefgrad;
     this->m_RegFlags.checkdefmapsolve = opt.m_RegFlags.checkdefmapsolve;
     this->m_RegFlags.registerprobmaps = opt.m_RegFlags.registerprobmaps;
+    
+    // memory options
+    this->m_Mem.savestategrad = opt.m_Mem.savestategrad;
+    this->m_Mem.savestategradx = opt.m_Mem.savestategradx;
 
     // parameter continuation
     this->m_ParaCont.strategy = opt.m_ParaCont.strategy;
@@ -262,17 +285,21 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
-PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
+PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
     PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<int> values;
+    std::vector<char*> av_list(av, av+argc);
+    std::vector<char*> config_args;
     int flag;
     PetscFunctionBegin;
 
     if (argc == 1) {
         ierr = this->Usage(true); CHKERRQ(ierr);
     }
-
+    
+    std::vector<char*>::iterator argv = av_list.begin();
+  
     while (argc > 1) {
         if (   (strcmp(argv[1], "-h")    == 0)
             || (strcmp(argv[1], "-help") == 0)
@@ -280,6 +307,27 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             ierr = this->Usage(true); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-advanced") == 0) {
             ierr = this->Usage(true); CHKERRQ(ierr);
+        } else if (strcmp(argv[1], "-config") == 0) {
+          size_t pos = argv - av_list.begin();
+          std::ifstream handle(argv[2]);
+          std::string line;
+          while (std::getline(handle, line)) {
+            std::istringstream lines(line);
+            std::string token;
+            while(std::getline(lines, token, ' ')) {
+              trim(token);
+              if (token.size() > 0) {
+                config_args.push_back(nullptr);
+                config_args.back() = new char[token.size()+1];
+                strcpy(config_args.back(), token.c_str());
+                av_list.push_back(config_args.back());
+                argc++;
+              }
+            }
+          }
+          handle.close();
+          argv = av_list.begin() + pos;
+          argc-=1; argv+=1;
         } else if (strcmp(argv[1], "-nx") == 0) {
             argc--; argv++;
             std::string nxinput(argv[1]);
@@ -328,7 +376,11 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 ierr = this->Usage(true); CHKERRQ(ierr);
             }
             values.clear();
-        } else if (strcmp(argv[1], "-disablesmoothing") == 0) {
+        } else if (strcmp(argv[1], "-savestategrad") == 0) {
+            this->m_Mem.savestategrad = true;
+        } else if (strcmp(argv[1], "-savestategradx") == 0) {
+            this->m_Mem.savestategradx = true;
+        }else if (strcmp(argv[1], "-disablesmoothing") == 0) {
             this->m_RegFlags.applysmoothing = false;
         } else if (strcmp(argv[1], "-disablerescaling") == 0) {
             this->m_RegFlags.applyrescaling = false;
@@ -680,11 +732,17 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
                 this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
                 this->m_GridCont.nxmin = 64;
 //                 this->m_KrylovMethod.matvectype = PRECONDMATVEC;
+            } else if (strcmp(argv[1], "h0") == 0) {
+                this->m_KrylovMethod.pctype = H0;
+                this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
                 ierr = this->Usage(); CHKERRQ(ierr);
             }
+        } else if (strcmp(argv[1], "-pctolint") == 0) {
+            argc--; argv++;
+            this->m_KrylovMethod.pctolint = atof(argv[1]);
         } else if (strcmp(argv[1], "-gridscale") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.pcgridscale = atof(argv[1]);
@@ -862,6 +920,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
             argc--; argv++;
             this->m_RegFlags.synprobid = atoi(argv[1]);
             this->m_RegFlags.runsynprob = true;
+        } else if (strcmp(argv[1], "-nozeroinit") == 0) {
+            this->m_RegFlags.zeroinit = false;
         } else {
             msg = "\n\x1b[31m argument not valid: %s\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -871,6 +931,10 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** argv) {
     }
     // check the arguments/parameters set by the user
     ierr = this->CheckArguments(); CHKERRQ(ierr);
+    
+    for (size_t i = 0; i < config_args.size(); ++i) {
+      delete[] config_args[i];
+    }
 
     if (this->m_SolveType !=  NOTSET) {
         ierr = this->SetPresetParameters(); CHKERRQ(ierr);
@@ -1034,7 +1098,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ss << "data distribution: nx=("
            << nx[0] << "," << nx[1] << "," << nx[2]
            << "); isize=(" << isize[0] << "," << isize[1]
-           << "," << isize[2] << ")";
+           << "," << isize[2] << "); nalloc=" << this->m_FFT.nalloc;
         ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
@@ -1204,6 +1268,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Sigma[0] = 1.0;
     this->m_Sigma[1] = 1.0;
     this->m_Sigma[2] = 1.0;
+    
+    this->m_Mem.savestategrad = false;             ///< don't save gradient of state variable
+    this->m_Mem.savestategradx = false;             ///< don't save interpolated gradient of state variable
 
 #if defined(PETSC_USE_REAL_SINGLE)
     this->m_KrylovMethod = {};  
@@ -1239,6 +1306,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.g0normset = false;
     this->m_KrylovMethod.iter = 0;
     this->m_KrylovMethod.pcsolver = PCG;
+    this->m_KrylovMethod.pctolint = 1E-5;
     this->m_KrylovMethod.pctolscale = 1E-1;
     //this->m_KrylovMethod.pcmaxit = 1000;
     this->m_KrylovMethod.pcmaxit = 10;
@@ -1347,6 +1415,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegFlags.registerprobmaps = false;          ///< flag indicating that we run the registration on probabilty maps (allows us to ensure partition of unity when writing results to file)
     this->m_RegFlags.synprobid = 0;                     ///< id to select synthetic problem to be performed
     this->m_RegFlags.runsynprob = false;
+    this->m_RegFlags.zeroinit = true;
 
     // parameter continuation
     this->m_ParaCont = {};
@@ -1540,6 +1609,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -nc <int>                   number of image components" << std::endl;
         std::cout << " -disablesmoothing           flag: switch off smoothing of image data" << std::endl;
         std::cout << " -disablerescaling           flag: switch off rescaling of intensities of image data to [0,1]" << std::endl;
+        std::cout << " -savestategrad              flag: switch on precomputation of state variable gradient (memory: nc*nx*nt*3)" << std::endl;
+        std::cout << " -savestategradx              flag: switch on precomputation of interpolated state variable gradient (memory: nc*nx*nt*3)" << std::endl;
         }
         // ####################### advanced options #######################
 
@@ -1604,6 +1675,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 none         no preconditioner (not recommended)" << std::endl;
         std::cout << "                                 invreg       inverse regularization operator (default)" << std::endl;
         std::cout << "                                 2level       2-level preconditioner" << std::endl;
+        std::cout << "                                 h0           H(v=0)^-1 preconditioner" << std::endl;
         std::cout << " -gridscale <dbl>            grid scale for 2-level preconditioner (default: 2)" << std::endl;
         std::cout << " -pcsolver <type>            solver for inversion of preconditioner (in case" << std::endl;
         std::cout << "                             the 2-level preconditioner is used)" << std::endl;
@@ -1737,6 +1809,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 netcdf       NETCDF format (*.nc; common in simulations/parallel computing)" << std::endl;
 //        std::cout << "                                 hdf5         HDF5 format (*.hdf5)" << std::endl;
         std::cout << " -synthetic <int>            solve synthetic test problem; <int> ranges from 0 to 3 and defines" << std::endl;
+        std::cout << " -nozeroinit                 don't use zero initial guess for synthetic problems" << std::endl;
         std::cout << "                             the type of synthetic test problem (use 3 for incompressible velocity)" << std::endl;
         std::cout << " -verbosity <int>            verbosity level (ranges from 0 to 2; default: 0)" << std::endl;
         }
@@ -2587,6 +2660,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 case TWOLEVEL:
                 {
                     std::cout << "2-level multigrid" << std::endl;
+                    twolevel = true;
+                    break;
+                }
+                case H0:
+                {
+                    std::cout << "H(v=0)^-1" << std::endl;
                     twolevel = true;
                     break;
                 }

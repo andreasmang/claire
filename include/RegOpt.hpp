@@ -123,6 +123,7 @@ enum PrecondMeth {
     INVREG,    ///< inverse regularization operator
     TWOLEVEL,  ///< 2 level preconditioner
     NOPC,      ///< no preconditioner
+    H0,        ///< H(v=0)^-1 preconditioner
 };
 
 
@@ -323,6 +324,7 @@ struct KrylovMethod {
 
     ScalarType pctol[3];            ///< tolerances for krylov method (preconditioner)
     IntType pcmaxit;                ///< tolerances for krylov method (preconditioner)
+    ScalarType pctolint;                ///< tolerances for krylov method (preconditioner)
     PrecondMeth pctype;             ///< flag for type of preconditioner
     HessianMatVecType matvectype;   ///< flag for the type of hessian matvec
     std::string pcname;             ///< name of preconditioner
@@ -442,6 +444,7 @@ struct RegFlags {
     bool runinversion;           ///< flag to identify if we are running an inversion or not (lower memory footprint for fwd solve if not)
     bool runsynprob;             ///< true if we run a synthetic test problem
     int synprobid;               ///< flag/id for synthetic problem to be solved
+    bool zeroinit;               ///< use zero initial guess for synthetic problems
 };
 
 
@@ -479,6 +482,10 @@ struct Logger {
 };
 
 
+struct MemoryFlags {
+    bool savestategrad;       ///< save gradient of state variable for all timesteps
+    bool savestategradx;       ///< save interpolated gradient of state variable for all timesteps
+};
 
 
 class RegOpt {
@@ -596,6 +603,7 @@ class RegOpt {
     SolveType m_SolveType {};            ///< solver
     FileNames m_FileNames {};            ///< file names for input/output
     Logger m_Log {};                     ///< log
+    MemoryFlags m_Mem {};                ///< memory options
     ScalarType m_Sigma[3];               ///< standard deviation for gaussian smoothing
 
     bool m_SetupDone;

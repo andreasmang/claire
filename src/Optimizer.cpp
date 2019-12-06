@@ -146,7 +146,7 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     if (this->m_Opt->m_Verbosity > 1) {
         ierr = VecNorm(this->m_Solution, NORM_2, &value); CHKERRQ(ierr);
         ss << "norm of initial guess " << std::scientific << value;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -445,6 +445,12 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+     if (this->m_Opt->m_Verbosity > 3) {
+            ss << "start optimizer";
+            ierr = DbgMsg3(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
 
     // check if optimization problem has been set
     ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
@@ -461,7 +467,7 @@ PetscErrorCode Optimizer::Run(bool presolve) {
         maxit = this->m_Opt->m_OptPara.presolvemaxit;
         if (this->m_Opt->m_Verbosity > 1) {
             ss << "presolve: relative gradient tolerance: " << std::scientific << gtol;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
     } else {
@@ -481,6 +487,12 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     // set initial guess
     ierr = this->SetInitialGuess(); CHKERRQ(ierr);
     ierr = TaoSetUp(this->m_Tao); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+            ss << "Tao setup done";
+            ierr = DbgMsg3(ss.str()); CHKERRQ(ierr);
+            ss.str(std::string()); ss.clear();
+        }
 
     if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {
         // in case we call the optimizer/solver several times
@@ -618,25 +630,25 @@ PetscErrorCode Optimizer::Finalize() {
         ss << std::left << std::setw(indent)
            << "newton iterations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(ITERATIONS) - 1;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
            << "objective evaluations" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(OBJEVAL);
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
            << "hessian matrix vector products" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(HESSMATVEC);
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ss << std::left << std::setw(indent)
            << "pde solves" << std::right << std::setw(numindent)
            << this->m_Opt->GetCounter(PDESOLVE);
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 

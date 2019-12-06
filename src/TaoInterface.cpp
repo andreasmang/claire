@@ -441,7 +441,7 @@ PetscErrorCode CheckConvergenceGrad(Tao tao, void* ptr) {
     if (iter >= miniter) {
         if (verbosity > 1) {
             ss << "step size in linesearch: " << std::scientific << step;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
         if (step < minstep) {

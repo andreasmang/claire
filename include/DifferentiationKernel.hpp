@@ -36,6 +36,8 @@ struct DifferentiationKernel {
   
   ScalarType tol;
   
+  PetscErrorCode ScalarLaplacian(ScalarType);
+  PetscErrorCode LaplacianMod(ScalarType);
   PetscErrorCode Laplacian(ScalarType, ScalarType=0.0);
   PetscErrorCode LaplacianTol(ScalarType, ScalarType=0.0);
   PetscErrorCode Bilaplacian(ScalarType, ScalarType=0.0);

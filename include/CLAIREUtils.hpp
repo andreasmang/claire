@@ -84,8 +84,8 @@ PetscErrorCode Msg(std::string);
 PetscErrorCode WrngMsgCall(std::string, int, const char*);
 
 /*! display dgb message (PETSc interface) */
-PetscErrorCode DbgMsgCall(std::string);
-PetscErrorCode DbgMsgCall(std::string, int, const char*);
+//PetscErrorCode DbgMsgCall(std::string);
+PetscErrorCode DbgMsgCall(std::string, int=0, const char(*)=0, int=0);
 
 /*! interface to create a vector (essentially simplifies
  * the petsc vector creation) */

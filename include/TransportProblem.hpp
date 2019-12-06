@@ -55,6 +55,9 @@ class TransportProblem {
     PetscErrorCode SetWorkScaField(ScaField*, IntType);
     PetscErrorCode SetWorkVecField(VecField*, IntType);
     
+    PetscErrorCode SetGradientState(VecField**);
+    PetscErrorCode SetGradientXState(VecField**);
+    
     virtual PetscErrorCode InitializeControlVariable(VecField*);
 
     virtual PetscErrorCode SolveForwardProblem();
@@ -77,6 +80,9 @@ class TransportProblem {
     
     VecField* m_VelocityField;
     VecField* m_IncVelocityField;
+    
+    VecField** m_GradientState;
+    VecField** m_GradientXState;
     
     ScaField* m_WorkScaField[5];  ///< work scalar field
     VecField* m_WorkVecField[5];  ///< data container for vector field (temporary variable)

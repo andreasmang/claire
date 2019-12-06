@@ -85,7 +85,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     }
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("evaluating objective functional"); CHKERRQ(ierr);
+        ierr = DbgMsg2("evaluating objective functional"); CHKERRQ(ierr);
     }
 
     ZeitGeist_define(EVAL_OBJ);
@@ -121,7 +121,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     if (this->m_Opt->m_Verbosity > 1) {
         ss << "J(v) = D(v) + R1(v) + R2(div(v)) = " << std::scientific
            << D << " + " << Rv << " + " << Rw;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
     }
 
     ierr = this->m_Opt->StopTimer(OBJEXEC); CHKERRQ(ierr);
@@ -195,7 +195,7 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("starting Leray projection"); CHKERRQ(ierr);
+        ierr = DbgMsg2("starting Leray projection"); CHKERRQ(ierr);
         ierr = Assert(this->m_Differentiation != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_WorkVecField2 != NULL, "null pointer"); CHKERRQ(ierr);

@@ -190,6 +190,14 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode DifferentiationFD::RegLapModOp(VecField* bv, VecField* v, ScalarType b0) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
 PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;

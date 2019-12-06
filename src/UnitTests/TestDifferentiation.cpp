@@ -190,9 +190,36 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  
+  std::cout << std::endl;
+  ierr = ComputeDiffFunction(ref, v, 2, m_Opt); CHKERRQ(ierr); // Lap
+  ref->Copy(v);
+  ierr = m_dif->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
+  ierr = m_dif->RegLapOp(v, dv, -1.); CHKERRQ(ierr);
+  ierr = VecAXPY(v->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(v->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
+  ierr = VecAXPY(v->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(v->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "lap inv lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(v->m_X2, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "lap inv lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(v->m_X3, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "lap inv lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(v->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "lap inv lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(v->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "lap inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(v->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "lap inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 #define SPECTRAL_ANALYSIS
 #ifdef SPECTRAL_ANALYSIS
-  printf("  w, FD8, FFT\n");
+  printf("\nSpectral Analysis 1st derivative\n  w, FD8, FFT\n");
   for (int w=1; w<m_Opt->m_Domain.nx[2]/2; ++w) {
     printf("%3i",w);
     ierr = ComputeGradSpectral(w, v, ref, m_Opt); CHKERRQ(ierr);

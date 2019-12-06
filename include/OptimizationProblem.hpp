@@ -77,6 +77,9 @@ class OptimizationProblem {
 
     /*! apply inverse regularization operator */
     virtual PetscErrorCode ApplyInvRegularizationOperator(Vec, Vec, bool flag = false) = 0;
+    
+    /*! apply inverse H(v=0) */
+    virtual PetscErrorCode ApplyInvHessian(Vec, Vec) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;

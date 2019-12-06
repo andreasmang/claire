@@ -65,6 +65,19 @@ __global__ void TransformKernelIncStateSLGPU(ScalarType *pM,
     pM[i] -= ht*(pG1[i]*pV1[i] + pG2[i]*pV2[i] + pG3[i]*pV3[i]);
   }
 }
+__global__ void TransformKernelIncStateSLGPU(ScalarType *pM,
+    const ScalarType *pV1,  const ScalarType *pV2,  const ScalarType *pV3,
+    const ScalarType *pVx1, const ScalarType *pVx2, const ScalarType *pVx3,
+    const ScalarType *pG1,  const ScalarType *pG2,  const ScalarType *pG3, 
+    const ScalarType *pGx1, const ScalarType *pGx2, const ScalarType *pGx3, 
+    ScalarType ht, IntType nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  if (i < nl) {
+    pM[i] -= ht*(pGx1[i]*pVx1[i] + pGx2[i]*pVx2[i] + pGx3[i]*pVx3[i]);
+    pM[i] -= ht*(pG1[i]*pV1[i] + pG2[i]*pV2[i] + pG3[i]*pV3[i]);
+  }
+}
+
 #define TransformKernelIncAdjointGPU TransformKernelAdjointSLGPU
 
 __global__ void TransformKernelEulerGPU(const ScalarType *pM,
@@ -286,7 +299,7 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart1() {
   
   TransformKernelIncStateSLGPU<<<grid, block>>>(pMtilde, 
     pVtildex[0], pVtildex[1], pVtildex[2], 
-    pGm[0], pGm[1], pGm[2], 
+    pGmx[0], pGmx[1], pGmx[2], 
     hthalf, nl);
   //cudaDeviceSynchronize();
   cudaCheckKernelError();
@@ -303,6 +316,24 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart2() {
   TransformKernelIncStateSLGPU<<<grid, block>>>(pMtilde, 
     pVtilde[0], pVtilde[1], pVtilde[2], 
     pGm[0], pGm[1], pGm[2], 
+    hthalf, nl);
+  //cudaDeviceSynchronize();
+  cudaCheckKernelError();
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelIncStateSL::TimeIntegrationAll() {
+  PetscErrorCode ierr = 0;
+  dim3 block = dim3(256);
+  dim3 grid  = dim3((nl + 255)/256);
+  PetscFunctionBegin;
+  
+  TransformKernelIncStateSLGPU<<<grid, block>>>(pMtilde, 
+    pVtilde[0], pVtilde[1], pVtilde[2], 
+    pVtildex[0], pVtildex[1], pVtildex[2], 
+    pGm[0], pGm[1], pGm[2], 
+    pGmx[0], pGmx[1], pGmx[2], 
     hthalf, nl);
   //cudaDeviceSynchronize();
   cudaCheckKernelError();

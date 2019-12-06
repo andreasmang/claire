@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
     // read reference and template image
     if (regopt->m_ReadWriteFlags.readfiles) {
         if (regopt->m_Verbosity > 1) {
-            ierr = reg::DbgMsg("reading reference image"); CHKERRQ(ierr);
+            ierr = reg::DbgMsg1("reading reference image"); CHKERRQ(ierr);
         }
         ierr = readwrite->ReadR(&mR, regopt->m_FileNames.mr); CHKERRQ(ierr);
         ierr = reg::Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
         if (regopt->m_Verbosity > 1) {
-            ierr = reg::DbgMsg("reading template image"); CHKERRQ(ierr);
+            ierr = reg::DbgMsg1("reading template image"); CHKERRQ(ierr);
         }
         ierr = readwrite->ReadT(&mT, regopt->m_FileNames.mt); CHKERRQ(ierr);
         ierr = reg::Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
         }
 
         if (regopt->m_Verbosity > 1) {
-            ierr = reg::DbgMsg("reading velocity field"); CHKERRQ(ierr);
+            ierr = reg::DbgMsg1("reading velocity field"); CHKERRQ(ierr);
         }
         ierr = readwrite->Read(&vxi, regopt->m_FileNames.iv1); CHKERRQ(ierr);
         ierr = reg::Assert(vxi != NULL, "null pointer"); CHKERRQ(ierr);
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 
     if (!regopt->m_FileNames.mask.empty()) {
         if (regopt->m_Verbosity > 1) {
-            ierr = reg::DbgMsg("reading mask image"); CHKERRQ(ierr);
+            ierr = reg::DbgMsg1("reading mask image"); CHKERRQ(ierr);
         }
         ierr = readwrite->Read(&mask, regopt->m_FileNames.mask); CHKERRQ(ierr);
         ierr = registration->SetMask(mask); CHKERRQ(ierr);
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     if (registration != NULL) {delete registration; registration = NULL;}
 
     ierr = reg::Finalize(); CHKERRQ(ierr);
-
+    
     return 0;
 }
 

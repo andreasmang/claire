@@ -324,33 +324,33 @@ PetscErrorCode VecField::DebugInfo(std::string str, int line, const char *file) 
       ierr = VecRestoreArray(this->m_X3, &p_x3); CHKERRQ(ierr);
       
       ss  << str << " hash: " << std::hex << fingerprint;
-      ierr = DbgMsgCall(ss.str(), line, file); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(), line, file, 3); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
     }
 
       ierr = this->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
       ss  << str << " norm: (" << std::scientific
           << nvx1 << "," << nvx2 << "," << nvx3 <<")";
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(),line,file,2); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
       
       ierr = VecMax(this->m_X1, NULL, &maxval); CHKERRQ(ierr);
       ierr = VecMin(this->m_X1, NULL, &minval); CHKERRQ(ierr);
       ss  << str << " min/max: [" << std::scientific
           << minval << "," << maxval << "]";
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(),0,0,2); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
       ierr = VecMax(this->m_X2, NULL, &maxval); CHKERRQ(ierr);
       ierr = VecMin(this->m_X2, NULL, &minval); CHKERRQ(ierr);
       ss  << std::string(str.size(),' ') << "          [" << std::scientific
           << minval << "," << maxval << "] ";
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(),0,0,2); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
       ierr = VecMax(this->m_X3, NULL, &maxval); CHKERRQ(ierr);
       ierr = VecMin(this->m_X3, NULL, &minval); CHKERRQ(ierr);
       ss  << std::string(str.size(), ' ') << "          [" << std::scientific
           << minval << "," << maxval << "]";
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsgCall(ss.str(),0,0,2); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
   }
   
@@ -1064,6 +1064,25 @@ PetscErrorCode VecField::Norm(ScalarType& value) {
     PetscFunctionReturn(ierr);
 }
 
+
+/********************************************************************
+ * @brief compute pointwise squared norm of vector field
+ *******************************************************************/
+PetscErrorCode VecField::Norm2(ScalarType& value) {
+    PetscErrorCode ierr = 0;
+    ScalarType nvx1, nvx2, nvx3;
+
+    PetscFunctionBegin;
+
+    ierr = VecNorm(this->m_X1, NORM_2, &nvx1); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X2, NORM_2, &nvx2); CHKERRQ(ierr);
+    ierr = VecNorm(this->m_X3, NORM_2, &nvx3); CHKERRQ(ierr);
+
+    //value = nvx1 + nvx2 + nvx3;
+    value = nvx1*nvx1 + nvx2*nvx2 + nvx3*nvx3;
+
+    PetscFunctionReturn(ierr);
+}
 
 
 

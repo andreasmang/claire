@@ -45,6 +45,7 @@ struct TransportKernelAdjointSL {
 
 struct TransportKernelIncStateSL {
   ScalarType *pGm[3];
+  ScalarType *pGmx[3];
   ScalarType *pMtilde;
   const ScalarType *pVtilde[3];
   const ScalarType *pVtildex[3];
@@ -55,6 +56,7 @@ struct TransportKernelIncStateSL {
   
   PetscErrorCode TimeIntegrationPart1();
   PetscErrorCode TimeIntegrationPart2();
+  PetscErrorCode TimeIntegrationAll();
 };
 
 struct TransportKernelAdjoint {

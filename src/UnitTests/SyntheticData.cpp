@@ -236,11 +236,12 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
                             + M_PI*cos(x3)*cos(M_PI*sin(x3)) * sin(x1) * cos(x2);
                   break;
                 case 2: // lap : vec -> vec
-                  pv[0][i]  = sin(M_PI*sin(x1)) * sin(x2) * cos(x3);
+                  pv[0][i]  = sin(M_PI*sin(x1)) * sin(10*x2) * cos(4*x3);
                   pv[1][i]  = pv[0][i];
                   pv[2][i]  = pv[0][i];
-                  pdv[0][i] = (-M_PI*M_PI*cos(x1)*cos(x1)*sin(M_PI*sin(x1))-M_PI*sin(x1)*cos(M_PI*sin(x1)))*sin(x2)*cos(x3)
-                            - 2.*sin(M_PI*sin(x1))*sin(x2)*cos(x3);
+                  pdv[0][i] = (-M_PI*M_PI*cos(x1)*cos(x1)*sin(M_PI*sin(x1))-M_PI*sin(x1)*cos(M_PI*sin(x1)))*sin(10*x2)*cos(4*x3)
+                            - 100*sin(M_PI*sin(x1))*sin(10*x2)*cos(4*x3)
+                            - 16*sin(M_PI*sin(x1))*sin(10*x2)*cos(4*x3);
                   pdv[1][i] = pdv[0][i];
                   pdv[2][i] = pdv[0][i];
                   break;

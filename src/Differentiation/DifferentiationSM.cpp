@@ -221,8 +221,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
 //    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    DebugGPUNotImplemented();
-    WrngMsg("Not Implemented");
+    ierr = this->ComputeForwardFFT(m); CHKERRQ(ierr);
+    ierr = this->m_SpectralKernel.ScalarLaplacian(-1.); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(l); CHKERRQ(ierr);
     //accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
@@ -309,6 +310,29 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode DifferentiationSM::RegLapModOp(VecField* bv, VecField* v, ScalarType b0) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FFT modified laplacian regularization operator");
+    
+    ZeitGeist_define(FFT_REG);
+    ZeitGeist_tick(FFT_REG);
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_SpectralKernel.LaplacianMod(b0); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    ZeitGeist_tock(FFT_REG);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
 PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;

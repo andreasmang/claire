@@ -23,6 +23,7 @@
 namespace KernelUtils {
 
 #if defined(__CUDACC__) && defined(REG_HAS_CUDA) // for CUDA compiler
+  #include "cuda_helper.hpp"
   #define __hostdevice__ __host__ __device__
 #else // for regular compiler
   #define __hostdevice__

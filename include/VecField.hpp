@@ -100,6 +100,7 @@ class VecField {
     /*! compute norm of vector field */
     PetscErrorCode Norm(Vec);
     PetscErrorCode Norm(ScalarType&);
+    PetscErrorCode Norm2(ScalarType&);
     PetscErrorCode Norm(ScalarType&, ScalarType&, ScalarType&);
     
     PetscErrorCode IsZero(bool&);

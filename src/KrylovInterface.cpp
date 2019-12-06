@@ -127,7 +127,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
                 ss << std::fixed << std::scientific << gnorm;
                 msg = optprob->GetOptions()->m_KrylovMethod.name +
                     ": setting initial ||g|| in krylov method (" + ss.str() + ")";
-                ierr = DbgMsg(msg); CHKERRQ(ierr);
+                ierr = DbgMsg1(msg); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
             optprob->GetOptions()->m_KrylovMethod.g0norm = gnorm;
@@ -535,7 +535,7 @@ PetscErrorCode InvertPrecondPreKrylovSolve(KSP krylovmethod, Vec b,
         msg = precond->GetOptions()->m_KrylovMethod.pcname
             + ": inverting preconditioner (tol=" + rnss.str()
             + ", maxit=" + itss.str() + ")";
-        ierr = DbgMsg(msg); CHKERRQ(ierr);
+        ierr = DbgMsg1(msg); CHKERRQ(ierr);
     }
 
     PetscFunctionReturn(ierr);

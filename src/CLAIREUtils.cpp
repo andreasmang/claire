@@ -22,10 +22,19 @@
 
 #include "CLAIREUtils.hpp"
 
-
-
+//#include "cuda_helper.hpp"
 
 namespace reg {
+  
+const char * basename(const char* path) {
+  const char *pos = path;
+  const char *ptr = path;
+  while (*ptr) {
+    if (*ptr == '/') pos = ptr+1;
+    ptr++;
+  }
+  return pos;
+}
 
 
 /********************************************************************
@@ -328,7 +337,7 @@ PetscErrorCode Msg(std::string msg) {
  * @brief print msg (interfaces petsc)
  * Author: Andreas Mang
  *******************************************************************/
-PetscErrorCode DbgMsgCall(std::string msg) {
+/*PetscErrorCode DbgMsgCall(std::string msg) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
 
@@ -339,24 +348,55 @@ PetscErrorCode DbgMsgCall(std::string msg) {
 
     // display message
     ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-
+    
     PetscFunctionReturn(ierr);
-}
-PetscErrorCode DbgMsgCall(std::string msg, int line, const char *file) {
+}*/
+PetscErrorCode DbgMsgCall(std::string msg, int line, const char *file, int level) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     std::stringstream ss2;
 
     PetscFunctionBegin;
+    
+    std::string color = "\x001b[90m"; // dark grey
+    switch (level) {
+    case 0:
+      if (file)
+        color = "\x1b[35m"; // magenta
+      else
+        color = "\x1b[90m"; // darkgray
+      break;
+    case 1:
+      if (file)
+        color = "\x1b[34m"; // blue
+      else
+        color = "\x1b[90m"; // darkgray
+      break;
+    case 2:
+      if (file)
+        color = "\x1b[36m"; // cyan
+      else
+        color = "\x1b[90m"; // darkgray
+      break;
+    case 3:
+      if (file)
+        color = "\x1b[32m"; // green
+      else
+        color = "\x1b[90m"; // darkgray
+      break;
+    };
 
-    ss2 << file << ":" << line;
+    if (file)
+      ss2 << basename(file) << ":" << line;
     ss << std::setw(98-ss2.str().size()) << std::left << msg << std::right << ss2.str();
     //ss << std::left << msg;
-    msg = "\x1b[34m[ "  + ss.str() + "]\x1b[0m\n";
+    msg = color + "[ "  + ss.str() + "]\x1b[0m\n";
 
     // display message
     ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-
+    
+    //cudaPrintDeviceMemory();
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -373,7 +413,7 @@ PetscErrorCode WrngMsgCall(std::string msg, int line, const char* file) {
 
     PetscFunctionBegin;
 
-    ss2 << file << ":" << line;
+    ss2 << basename(file) << ":" << line;
     ss << std::setw(98-ss2.str().size()) << std::left << msg << std::right << ss2.str();
     msg = "\x1b[33m[ " + ss.str() + "]\x1b[0m\n";
 
@@ -431,7 +471,7 @@ PetscErrorCode ThrowErrorMsg(std::string msg, int line, const char *file) {
 
     PetscFunctionBegin;
 
-    ss2 << file << ":" << line;
+    ss2 << basename(file) << ":" << line;
     ss << std::setw(98-ss2.str().size()) << std::left << msg << std::right << ss2.str();
     std::string errmsg = "\x1b[31mERROR: " + ss.str() + "\x1b[0m";
     ierr = PetscError(PETSC_COMM_WORLD, __LINE__, PETSC_FUNCTION_NAME, __FILE__, 1, PETSC_ERROR_INITIAL, errmsg.c_str()); CHKERRQ(ierr);

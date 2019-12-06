@@ -65,6 +65,9 @@ PetscErrorCode TransportProblem::Initialize() {
     this->m_VelocityField = nullptr;
     this->m_IncVelocityField = nullptr;
     
+    this->m_GradientState = nullptr;
+    this->m_GradientXState = nullptr;
+    
     for (int i = 0;i < 5;++i) {
       this->m_WorkScaField[i] = nullptr;
       this->m_WorkVecField[i] = nullptr;
@@ -132,6 +135,38 @@ PetscErrorCode TransportProblem::SetStateVariable(ScaField* m) {
 
     ierr = Assert(m != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_StateVariable = m;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief set gradient state variable
+ *******************************************************************/
+PetscErrorCode TransportProblem::SetGradientState(VecField** g) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    this->m_GradientState = g;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief set interpolated gradient state variable
+ *******************************************************************/
+PetscErrorCode TransportProblem::SetGradientXState(VecField** g) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    this->m_GradientXState = g;
 
     this->m_Opt->Exit(__func__);
 

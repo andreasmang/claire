@@ -60,6 +60,18 @@ template<int N> struct NLaplacianFilterKernel {
   }
 };
 
+template<int N> struct NLaplacianModKernel {
+  KernelOperator (int i, real3 w, 
+      ComplexType *v1, ComplexType *v2, ComplexType *v3, 
+      ScalarType scale, ScalarType b0) {
+    ScalarType regop = scale*b0*pow<N>(-LaplaceNumber(w));
+    if (regop == 0.0) regop = scale*b0;
+
+    v1[i][0] *= regop; v1[i][1] *= regop;
+    v2[i][0] *= regop; v2[i][1] *= regop;
+    v3[i][0] *= regop; v3[i][1] *= regop;
+  }
+};
 template<int N> struct NLaplacianKernel {
   template<typename T> KernelFunction(T) (array3_t<T> w, T b0) {
     return b0*pow<N>(-LaplaceNumber(w));
@@ -72,6 +84,12 @@ template<int N> struct NLaplacianKernel {
     v1[i][0] *= regop; v1[i][1] *= regop;
     v2[i][0] *= regop; v2[i][1] *= regop;
     v3[i][0] *= regop; v3[i][1] *= regop;
+  }
+  KernelOperator (int i, real3 w, 
+      ComplexType *v, ScalarType b0) {
+    ScalarType regop = b0*pow<N>(-LaplaceNumber(w));
+
+    v[i][0] *= regop; v[i][1] *= regop;
   }
 };
 template<int N> struct RelaxedNLaplacianKernel {

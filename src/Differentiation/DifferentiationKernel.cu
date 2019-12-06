@@ -28,7 +28,28 @@
 using KernelUtils::SpectralKernelCallGPU;
 
 namespace reg {
+
+PetscErrorCode DifferentiationKernel::ScalarLaplacian(ScalarType b0) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
   
+  ierr = SpectralKernelCallGPU<NLaplacianKernel<1> >(nstart, nx, nl, 
+    pXHat[0], b0*scale); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
+
+
+PetscErrorCode DifferentiationKernel::LaplacianMod(ScalarType b0) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCallGPU<NLaplacianModKernel<1> >(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], 
+    scale, b0); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
 PetscErrorCode DifferentiationKernel::Laplacian(ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;

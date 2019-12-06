@@ -34,6 +34,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREInterface.cpp \
 		$(SRCDIR)/MultiLevelPyramid.cpp \
 		$(SRCDIR)/Preconditioner.cpp \
+		$(SRCDIR)/PreconditionerKernel.cpp \
 		$(SRCDIR)/Regularization/Regularization.cpp \
 		$(SRCDIR)/Regularization/RegularizationL2.cpp \
 		$(SRCDIR)/Regularization/RegularizationH1.cpp \
@@ -62,7 +63,8 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/DistanceMeasure/DistanceMeasureKernel.cu \
 		$(SRCDIR)/Differentiation/DifferentiationKernel.cu \
 		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu \
-		$(SRCDIR)/Spectral/SpectralKernel.cu
+		$(SRCDIR)/Spectral/SpectralKernel.cu \
+		$(SRCDIR)/PreconditionerKernel.cu \
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \

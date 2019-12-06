@@ -58,6 +58,8 @@ class TransportEquationSL : public TransportProblem {
     PetscErrorCode SolveIncAdjointEquationGN();
     PetscErrorCode SolveAdjointEquation();
     PetscErrorCode SolveStateEquation(VecField*);
+    
+    PetscErrorCode ComputeGradientState(bool);
 };
 
 

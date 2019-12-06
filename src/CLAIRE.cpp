@@ -114,7 +114,7 @@ PetscErrorCode CLAIRE::ClearVariables(void) {
       if (this->m_IncStateVariable) total += this->m_IncStateVariable->GetSize();
       if (this->m_IncAdjointVariable) total += this->m_IncAdjointVariable->GetSize();
       ss << "memory allocated: "<< std::scientific << total;
-      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
       ss.clear(); ss.str(std::string());
     }
     
@@ -208,7 +208,7 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
     // any initial guess
     if (this->m_VelocityField == NULL) {
         if (this->m_Opt->m_Verbosity > 2) {
-            ierr = DbgMsg("allocating velocity field"); CHKERRQ(ierr);
+            ierr = DbgMsg2("allocating velocity field"); CHKERRQ(ierr);
         }
         ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
     } else { // user might have provided initial guess
@@ -261,14 +261,14 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
             if (lssuccess) {
                 if (this->m_Opt->m_Verbosity > 1) {
                     ss << "line search successful (initialization; alpha=" << std::scientific << alpha << ")";
-                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
                     ss.clear(); ss.str(std::string());
                 }
                 ierr = VecCopy(vtilde, v); CHKERRQ(ierr);
             } else {
                 if (this->m_Opt->m_Verbosity > 1) {
                     ss << "line search failed (initialization; alpha=" << std::scientific << alpha << ")";
-                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
                     ss.clear(); ss.str(std::string());
                 }
                 break;
@@ -509,6 +509,10 @@ PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(m != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg2("setting state variable"); CHKERRQ(ierr);
+    }
 
     // get sizes
     nt = this->m_Opt->m_Domain.nt;
@@ -665,7 +669,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
     this->m_Opt->Enter(__func__);
     
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("evaluating objective"); CHKERRQ(ierr);
+        ierr = DbgMsg2("evaluating objective"); CHKERRQ(ierr);
     }
 
     // allocate
@@ -705,7 +709,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
         ss << "J(v) = D(v) + R(v) = " << std::scientific
            << this->m_Opt->m_Monitor.dval << " + "
            << this->m_Opt->m_Monitor.rval;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
     }
 
     // stop timer
@@ -732,7 +736,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("evaluating gradient"); CHKERRQ(ierr);
+        ierr = DbgMsg2("evaluating gradient"); CHKERRQ(ierr);
     }
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -755,7 +759,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
         ss  << "||v||_2 = (" << std::scientific
             << nvx1 << "," << nvx2 << "," << nvx3 << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
 
@@ -813,28 +817,28 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = VecNorm(g, NORM_2, &value); CHKERRQ(ierr);
             ss << "||g||_2 = " << std::scientific << value;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
             ss.clear(); ss.str(std::string());
         }
     }
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
-      else DbgMsg("state            : nullptr");
+      else DbgMsg3("state            : nullptr");
       if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
-      else DbgMsg("adjoint          : nullptr");
+      else DbgMsg3("adjoint          : nullptr");
       if(this->m_IncStateVariable) this->m_IncStateVariable->DebugInfo("inc state   ",__LINE__,__FILE__);
-      else DbgMsg("inc state        : nullptr");
+      else DbgMsg3("inc state        : nullptr");
       if(this->m_IncAdjointVariable) this->m_IncAdjointVariable->DebugInfo("inc adjoint ",__LINE__,__FILE__);
-      else DbgMsg("inc adjoint      : nullptr");
+      else DbgMsg3("inc adjoint      : nullptr");
       if(this->m_ReferenceImage) this->m_ReferenceImage->DebugInfo("reference   ",__LINE__,__FILE__);
-      else DbgMsg("reference        : nullptr");
+      else DbgMsg3("reference        : nullptr");
       if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
-      else DbgMsg("template         : nullptr");
+      else DbgMsg3("template         : nullptr");
       if(this->m_VelocityField) this->m_VelocityField->DebugInfo("velocity    ",__LINE__,__FILE__);
-      else DbgMsg("velocity         : nullptr");
+      else DbgMsg3("velocity         : nullptr");
       if(this->m_IncVelocityField) this->m_IncVelocityField->DebugInfo("inc velocity",__LINE__,__FILE__);
-      else DbgMsg("inc velocity     : nullptr");
+      else DbgMsg3("inc velocity     : nullptr");
     }
 
     // stop timer
@@ -965,26 +969,26 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("computing hessian matvec"); CHKERRQ(ierr);
+        ierr = DbgMsg2("computing hessian matvec"); CHKERRQ(ierr);
     }
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
-      else DbgMsg("state            : nullptr");
+      else DbgMsg3("state            : nullptr");
       if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
-      else DbgMsg("adjoint          : nullptr");
+      else DbgMsg3("adjoint          : nullptr");
       if(this->m_IncStateVariable) this->m_IncStateVariable->DebugInfo("inc state   ",__LINE__,__FILE__);
-      else DbgMsg("inc state        : nullptr");
+      else DbgMsg3("inc state        : nullptr");
       if(this->m_IncAdjointVariable) this->m_IncAdjointVariable->DebugInfo("inc adjoint ",__LINE__,__FILE__);
-      else DbgMsg("inc adjoint      : nullptr");
+      else DbgMsg3("inc adjoint      : nullptr");
       if(this->m_ReferenceImage) this->m_ReferenceImage->DebugInfo("reference   ",__LINE__,__FILE__);
-      else DbgMsg("reference        : nullptr");
+      else DbgMsg3("reference        : nullptr");
       if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
-      else DbgMsg("template         : nullptr");
+      else DbgMsg3("template         : nullptr");
       if(this->m_VelocityField) this->m_VelocityField->DebugInfo("velocity    ",__LINE__,__FILE__);
-      else DbgMsg("velocity         : nullptr");
+      else DbgMsg3("velocity         : nullptr");
       if(this->m_IncVelocityField) this->m_IncVelocityField->DebugInfo("inc velocity",__LINE__,__FILE__);
-      else DbgMsg("inc velocity     : nullptr");
+      else DbgMsg3("inc velocity     : nullptr");
     }
 
     ZeitGeist_define(EVAL_HESS);
@@ -1054,7 +1058,7 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscFunctionBegin;
     
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("regular hessian matvec"); CHKERRQ(ierr);
+        ierr = DbgMsg2("regular hessian matvec"); CHKERRQ(ierr);
     }
 
     this->m_Opt->Enter(__func__);
@@ -1092,7 +1096,7 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_WorkVecField1) this->m_WorkVecField1->DebugInfo("hessian     ",__LINE__,__FILE__);
-      else DbgMsg("hessian          : nullptr");
+      else DbgMsg3("hessian          : nullptr");
     }
 
     // pass to output
@@ -1122,7 +1126,7 @@ PetscErrorCode CLAIRE::PrecondHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscFunctionBegin;
     
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("preconditioned hessian matvec"); CHKERRQ(ierr);
+        ierr = DbgMsg2("preconditioned hessian matvec"); CHKERRQ(ierr);
     }
 
     this->m_Opt->Enter(__func__);
@@ -1179,7 +1183,7 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     PetscFunctionBegin;
     
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("symmetric preconditioned hessian matvec"); CHKERRQ(ierr);
+        ierr = DbgMsg2("symmetric preconditioned hessian matvec"); CHKERRQ(ierr);
     }
 
     this->m_Opt->Enter(__func__);
@@ -1274,7 +1278,7 @@ PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("piccard iteration"); CHKERRQ(ierr);
+        ierr = DbgMsg2("piccard iteration"); CHKERRQ(ierr);
     }
 
     // copy input state and adjoint variable to class variables
@@ -1412,7 +1416,7 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
            << "," << this->m_Opt->m_Domain.nx[1]
            << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1421,13 +1425,34 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
-      else DbgMsg("state            : nullptr");
+      else DbgMsg3("state            : nullptr");
       if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
-      else DbgMsg("template         : nullptr");
+      else DbgMsg3("template         : nullptr");
+    }
+    
+    if (this->m_Opt->m_Mem.savestategrad) {
+      if (!this->m_GradientState) {
+        ierr = AllocateArrayOnce(this->m_GradientState, nc*(this->m_Opt->m_RegFlags.runinversion?nt+1:1)); CHKERRQ(ierr);
+        for (int i=0;i<nc*(this->m_Opt->m_RegFlags.runinversion?nt+1:1);++i) {
+          this->m_GradientState[i] = nullptr;
+          ierr = AllocateOnce(this->m_GradientState[i], this->m_Opt); CHKERRQ(ierr);
+        }
+      }
+    }
+    if (this->m_Opt->m_Mem.savestategradx) {
+      if (!this->m_GradientXState) {
+        ierr = AllocateArrayOnce(this->m_GradientXState, nc*(this->m_Opt->m_RegFlags.runinversion?nt:1)); CHKERRQ(ierr);
+        for (int i=0;i<nc*(this->m_Opt->m_RegFlags.runinversion?nt:1);++i) {
+          this->m_GradientXState[i] = nullptr;
+          ierr = AllocateOnce(this->m_GradientXState[i], this->m_Opt); CHKERRQ(ierr);
+        }
+      }
     }
 
     ierr = this->m_TransportProblem->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetControlVariable(this->m_VelocityField); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetGradientState(this->m_GradientState); CHKERRQ(ierr);
+    ierr = this->m_TransportProblem->SetGradientXState(this->m_GradientXState); CHKERRQ(ierr);
 
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
     
@@ -1441,32 +1466,32 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
         ierr = VecMin(*this->m_StateVariable, NULL, &minval); CHKERRQ(ierr);
         ss  << "state variable: [" << std::scientific
             << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
         ss  << "velocity norm: (" << std::scientific
             << nvx1 << "," << nvx2 << "," << nvx3 <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         
         ierr = VecMax(this->m_VelocityField->m_X1, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_VelocityField->m_X1, NULL, &minval); CHKERRQ(ierr);
         ss  << "velocity min/max: [" << std::scientific
             << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         ierr = VecMax(this->m_VelocityField->m_X2, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_VelocityField->m_X2, NULL, &minval); CHKERRQ(ierr);
         ss  << "                  [" << std::scientific
             << minval << "," << maxval << "] ";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
         ierr = VecMax(this->m_VelocityField->m_X3, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(this->m_VelocityField->m_X3, NULL, &minval); CHKERRQ(ierr);
         ss  << "                  [" << std::scientific
             << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1477,7 +1502,7 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
-      else DbgMsg("state            : nullptr");
+      else DbgMsg3("state            : nullptr");
     }
 
     // increment counter
@@ -1527,7 +1552,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
            << "," << this->m_Opt->m_Domain.nx[1]
            << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1544,13 +1569,13 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);
-      else DbgMsg("state            : nullptr");
+      else DbgMsg3("state            : nullptr");
       if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
-      else DbgMsg("adjoint          : nullptr");
+      else DbgMsg3("adjoint          : nullptr");
       if(this->m_ReferenceImage) this->m_ReferenceImage->DebugInfo("reference   ",__LINE__,__FILE__);
-      else DbgMsg("reference        : nullptr");
+      else DbgMsg3("reference        : nullptr");
       if(this->m_TemplateImage) this->m_TemplateImage->DebugInfo("template    ",__LINE__,__FILE__);
-      else DbgMsg("template         : nullptr");
+      else DbgMsg3("template         : nullptr");
     }
     
     if (this->m_TransportProblem == nullptr) {
@@ -1573,7 +1598,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_AdjointVariable) this->m_AdjointVariable->DebugInfo("adjoint     ",__LINE__,__FILE__);
-      else DbgMsg("adjoint          : nullptr");
+      else DbgMsg3("adjoint          : nullptr");
     }
 
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
@@ -1723,7 +1748,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
            << "," << this->m_Opt->m_Domain.nx[1]
            << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1751,7 +1776,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
         ierr = VecMax(*this->m_IncStateVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(*this->m_IncStateVariable, NULL, &minval); CHKERRQ(ierr);
         ss << "incremental state variable: [" << std::scientific << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1807,7 +1832,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
            << "," << this->m_Opt->m_Domain.nx[1]
            << "," << this->m_Opt->m_Domain.nx[2]
            << "," << nc << "," << nt << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1842,7 +1867,7 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
         ierr = VecMax(*this->m_IncAdjointVariable, NULL, &maxval); CHKERRQ(ierr);
         ierr = VecMin(*this->m_IncAdjointVariable, NULL, &minval); CHKERRQ(ierr);
         ss << "incremental adjoint variable: [" << std::scientific << minval << "," << maxval << "]";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -2032,8 +2057,8 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
 
-    if (this->m_Opt->m_Verbosity >= 2) {
-        ierr = DbgMsg("finalizing registration"); CHKERRQ(ierr);
+    if (this->m_Opt->m_Verbosity > 1) {
+        ierr = DbgMsg1("finalizing registration"); CHKERRQ(ierr);
     }
 
     // if not yet allocted, do so and copy input

@@ -516,11 +516,11 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("setting up solver"); CHKERRQ(ierr);
+        ierr = DbgMsg2("setting up solver"); CHKERRQ(ierr);
     }
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg(" >> allocation of optimizer"); CHKERRQ(ierr);
+        ierr = DbgMsg2(" >> allocation of optimizer"); CHKERRQ(ierr);
     }
     // reset optimizer
     if (this->m_Optimizer != NULL) {
@@ -567,7 +567,7 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
     // set up initial condition
     if (this->m_Solution == NULL) {
         if (this->m_Opt->m_Verbosity > 2) {
-            ierr = DbgMsg("allocating solution vector"); CHKERRQ(ierr);
+            ierr = DbgMsg2("allocating solution vector"); CHKERRQ(ierr);
         }
         try {this->m_Solution = new VecField(this->m_Opt);}
         catch (std::bad_alloc& err) {
@@ -582,7 +582,7 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
         ierr = VecNorm(this->m_Solution->m_X3, NORM_2, &vn3); CHKERRQ(ierr);
         ss  << "norm of initial guess: "
             << std::scientific << "(" << vn1 << " " << vn2 << " " << vn3 << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
 
@@ -616,7 +616,7 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
 
         if (this->m_Opt->m_RegFlags.applysmoothing) {
             if (this->m_Opt->m_Verbosity > 2) {
-              ierr = DbgMsg("start smoothing"); CHKERRQ(ierr);
+              ierr = DbgMsg2("start smoothing"); CHKERRQ(ierr);
             }
             if (this->m_PreProc == NULL) {
                 try{this->m_PreProc = new Preprocessing(this->m_Opt);}
@@ -646,7 +646,7 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
 
     } else {
         // set up synthetic test problem
-        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage); CHKERRQ(ierr);
+        ierr = this->m_RegProblem->SetupSyntheticProb(this->m_ReferenceImage, this->m_TemplateImage, this->m_Solution); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
         ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
@@ -737,19 +737,19 @@ PetscErrorCode CLAIREInterface::Run() {
     // switch between solvers we have to solve optimization problem
     if (this->m_Opt->m_ParaCont.enabled) {
         if (this->m_Opt->m_Verbosity > 2) {
-          ierr = DbgMsg("run regularization parameter continuation (for betav)"); CHKERRQ(ierr);
+          ierr = DbgMsg2("run regularization parameter continuation (for betav)"); CHKERRQ(ierr);
         }
         // run regularization parameter continuation (for betav)
         ierr = this->RunSolverRegParaCont(); CHKERRQ(ierr);
     } else if (this->m_Opt->m_ScaleCont.enabled) {
         if (this->m_Opt->m_Verbosity > 2) {
-          ierr = DbgMsg("run scale-continuation (smoothing)"); CHKERRQ(ierr);
+          ierr = DbgMsg2("run scale-continuation (smoothing)"); CHKERRQ(ierr);
         }
         // run scale-continuation (smoothing)
         ierr = this->RunSolverScaleCont(); CHKERRQ(ierr);
     } else if (this->m_Opt->m_GridCont.enabled) {
         if (this->m_Opt->m_Verbosity > 2) {
-          ierr = DbgMsg("run grid-continuation"); CHKERRQ(ierr);
+          ierr = DbgMsg2("run grid-continuation"); CHKERRQ(ierr);
         }
         // run grid-continuation
         nxmax = PETSC_MIN_INT;
@@ -769,7 +769,7 @@ PetscErrorCode CLAIREInterface::Run() {
         }
     } else {
         if (this->m_Opt->m_Verbosity > 2) {
-          ierr = DbgMsg("run solver"); CHKERRQ(ierr);
+          ierr = DbgMsg2("run solver"); CHKERRQ(ierr);
         }
         ierr = this->RunSolver(); CHKERRQ(ierr);
     }
@@ -1571,7 +1571,7 @@ PetscErrorCode CLAIREInterface::RunSolverGridCont() {
 
     // allocate multilevel pyramid for reference image
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("setup: reference image multilevel pyramid"); CHKERRQ(ierr);
+        ierr = DbgMsg2("setup: reference image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_ReferencePyramid == NULL) {
         try {this->m_ReferencePyramid = new MultiLevelPyramid(this->m_Opt);}
@@ -1585,7 +1585,7 @@ PetscErrorCode CLAIREInterface::RunSolverGridCont() {
 
     // allocate multilevel pyramid for template image
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("setup: template image multilevel pyramid"); CHKERRQ(ierr);
+        ierr = DbgMsg2("setup: template image multilevel pyramid"); CHKERRQ(ierr);
     }
     if (this->m_TemplatePyramid == NULL) {
         try {this->m_TemplatePyramid = new MultiLevelPyramid(this->m_Opt);}
@@ -1618,7 +1618,7 @@ PetscErrorCode CLAIREInterface::RunSolverGridCont() {
         if (this->m_Opt->m_Verbosity > 1) {
             ss  << std::scientific << "increasing tolerance for gradient: "
                 << greltol << " >> " << tolscale*greltol;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
         this->m_Opt->m_OptPara.tol[2] = tolscale*greltol;
@@ -1689,7 +1689,7 @@ PetscErrorCode CLAIREInterface::RunSolverGridCont() {
                 int maxit = this->m_Opt->m_GridCont.maxit[l];
                 if (this->m_Opt->m_Verbosity > 1) {
                     ss  <<"setting max number of iterations to " << maxit;
-                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
                     ss.str(std::string()); ss.clear();
                 }
                 this->m_Opt->m_OptPara.maxiter = maxit;
@@ -1715,7 +1715,7 @@ PetscErrorCode CLAIREInterface::RunSolverGridCont() {
                 if (this->m_Opt->m_Verbosity > 1) {
                     ss  << std::scientific << "reseting tolerance for gradient: "
                         << tolscale*greltol << " >> " << greltol;
-                    ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                    ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
                     ss.str(std::string()); ss.clear();
                 }
                 this->m_Opt->m_OptPara.tol[2] = greltol;
@@ -1771,7 +1771,7 @@ PetscErrorCode CLAIREInterface::ProlongVelocityField(VecField*& v, int level) {
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("prolonging velocity field"); CHKERRQ(ierr);
+        ierr = DbgMsg2("prolonging velocity field"); CHKERRQ(ierr);
     }
 
     // set up preprocessing

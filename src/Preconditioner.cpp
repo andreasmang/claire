@@ -296,6 +296,11 @@ PetscErrorCode Preconditioner::Reset() {
             // no need to do anything
             break;
         }
+        case H0:
+        {
+            // no need to do anything
+            break;
+        }
         case TWOLEVEL:
         {
             // in case we call the solver multiple times (for
@@ -535,6 +540,11 @@ PetscErrorCode Preconditioner::MatVec(Vec Px, Vec x) {
             ierr = this->Apply2LevelPrecond(Px, x); CHKERRQ(ierr);
             break;
         }
+        case H0:
+        {
+            ierr = this->ApplyH0Precond(Px, x); CHKERRQ(ierr);
+            break;
+        }
         default:
         {
             ierr = ThrowError("preconditioner not defined"); CHKERRQ(ierr);
@@ -686,6 +696,34 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
 }
 
 
+/********************************************************************
+ * @brief apply inverse of H(v=0) as preconditioner
+ *******************************************************************/
+PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    // check if optimization problem is set up
+    ierr = Assert(this->m_OptimizationProblem != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // start timer
+    ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
+
+    // apply inverse regularization operator
+    ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x); CHKERRQ(ierr);
+
+    // stop timer
+    ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);
+
+    // increment counter
+    this->m_Opt->IncrementCounter(PCMATVEC);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

@@ -312,7 +312,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     if (this->m_Opt->m_Verbosity > 2) {
         std::string str = "update trajectory: ";
         str += flag;
-        ierr = DbgMsg(str); CHKERRQ(ierr);
+        ierr = DbgMsg2(str); CHKERRQ(ierr);
         ierr = v->DebugInfo("SL v", __LINE__, __FILE__); CHKERRQ(ierr);
     }
 

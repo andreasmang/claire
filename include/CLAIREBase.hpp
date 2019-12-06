@@ -125,7 +125,7 @@ class CLAIREBase : public OptimizationProblem {
     PetscErrorCode ComputeDeformationMaps(bool write2file = false);
 
     /*! compute synthetic test problem */
-    PetscErrorCode SetupSyntheticProb(Vec&, Vec&);
+    PetscErrorCode SetupSyntheticProb(Vec&, Vec&, VecField(*)=nullptr);
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;
@@ -156,6 +156,9 @@ class CLAIREBase : public OptimizationProblem {
 
     /*! apply inverse regularization operator */
     PetscErrorCode ApplyInvRegularizationOperator(Vec, Vec, bool flag = false);
+    
+    /*! apply inverse H(v=0) */
+    PetscErrorCode ApplyInvHessian(Vec, Vec);
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;
@@ -208,6 +211,9 @@ class CLAIREBase : public OptimizationProblem {
 
     VecField* m_VelocityField;      ///< data container for velocity field (control variable)
     VecField* m_IncVelocityField;   ///< data container for incremental velocity field (incremental control variable)
+    
+    VecField** m_GradientState;   ///< Gradients of the state variable
+    VecField** m_GradientXState;   ///< Gradients of the interpolated state variable
 
     ScaField* m_WorkScaField1;  ///< work scalar field
     ScaField* m_WorkScaField2;  ///< work scalar field

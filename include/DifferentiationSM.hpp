@@ -54,6 +54,7 @@ class DifferentiationSM : public Differentiation {
     
     virtual PetscErrorCode Divergence(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*);
     
+    virtual PetscErrorCode RegLapModOp(VecField*, VecField*, ScalarType);
     virtual PetscErrorCode RegLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegBiLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);
     virtual PetscErrorCode RegTriLapOp(VecField*, VecField*, ScalarType, ScalarType=0.0);

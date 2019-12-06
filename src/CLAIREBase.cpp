@@ -21,8 +21,7 @@
 #define _CLAIREBASE_CPP_
 
 #include "CLAIREBase.hpp"
-
-
+#include "PreconditionerKernel.hpp"
 
 
 namespace reg {
@@ -97,6 +96,9 @@ PetscErrorCode CLAIREBase::Initialize() {
     this->m_x1hat = NULL;
     this->m_x2hat = NULL;
     this->m_x3hat = NULL;
+    
+    this->m_GradientState = nullptr;
+    this->m_GradientXState = nullptr;
 
     // objects
     this->m_ReadWrite = NULL;               ///< read / write object
@@ -153,6 +155,16 @@ PetscErrorCode CLAIREBase::ClearMemory() {
       if (this->m_CellDensity) total += this->m_CellDensity->GetSize();
       if (this->m_Mask) total += this->m_Mask->GetSize();
       
+      if (this->m_GradientState) {
+        for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
+          total += this->m_GradientState[i]->GetSize();
+      }
+      
+      if (this->m_GradientXState) {
+        for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
+          total += this->m_GradientXState[i]->GetSize();
+      }
+      
       if (this->m_DeleteControlVariable && this->m_VelocityField) {
         total += this->m_VelocityField->GetSize();
       }
@@ -161,7 +173,7 @@ PetscErrorCode CLAIREBase::ClearMemory() {
       }
       
       ss << "memory allocated: "<< std::scientific << total;
-      ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+      ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
       ss.clear(); ss.str(std::string());
     }
 
@@ -185,6 +197,17 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     Free(this->m_AuxVariable);
     Free(this->m_CellDensity);
     Free(this->m_Mask);
+    
+    if (this->m_GradientState) {
+      for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
+        Free(this->m_GradientState[i]);
+    }
+    FreeArray(this->m_GradientState);
+    if (this->m_GradientXState) {
+      for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
+        Free(this->m_GradientXState[i]);
+    }
+    FreeArray(this->m_GradientXState);
     
     Free(this->m_WorkScaField1);
     Free(this->m_WorkScaField2);
@@ -583,7 +606,7 @@ PetscErrorCode CLAIREBase::ComputeInitialGuess() {
 
     if (!this->m_Opt->m_OptPara.usezeroinitialguess) {
         if (this->m_Opt->m_Verbosity > 2) {
-          ierr = DbgMsg("compute nonzero initial guess"); CHKERRQ(ierr);
+          ierr = DbgMsg2("compute nonzero initial guess"); CHKERRQ(ierr);
         }
       
         nl = this->m_Opt->m_Domain.nl;
@@ -632,7 +655,7 @@ PetscErrorCode CLAIREBase::IsVelocityZero() {
 
     if (this->m_Opt->m_Verbosity > 2) {
         if (this->m_VelocityIsZero) {
-            ierr = DbgMsg("zero velocity field"); CHKERRQ(ierr);
+            ierr = DbgMsg2("zero velocity field"); CHKERRQ(ierr);
         }
     }
     this->m_Opt->Exit(__func__);
@@ -694,19 +717,19 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
     // for a pure evaluation of hessian operator, images may not have been set
     if (this->m_TemplateImage != NULL) {
         if (this->m_Opt->m_Verbosity > 2) {
-            ierr = DbgMsg("distance measure: parsing template image"); CHKERRQ(ierr);
+            ierr = DbgMsg2("distance measure: parsing template image"); CHKERRQ(ierr);
         }
         ierr = this->m_DistanceMeasure->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
     }
     if (this->m_ReferenceImage != NULL) {
         if (this->m_Opt->m_Verbosity > 2) {
-            ierr = DbgMsg("distance measure: parsing reference image"); CHKERRQ(ierr);
+            ierr = DbgMsg2("distance measure: parsing reference image"); CHKERRQ(ierr);
         }
        ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
     }
     if (this->m_Mask != NULL) {
         if (this->m_Opt->m_Verbosity > 1) {
-            ierr = DbgMsg("distance measure: mask enabled"); CHKERRQ(ierr);
+            ierr = DbgMsg1("distance measure: mask enabled"); CHKERRQ(ierr);
         }
         ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
     }
@@ -746,7 +769,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case L2:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate L2 regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate L2 regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationL2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -754,7 +777,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case H1:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate H1 regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate H1 regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationH1>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -762,7 +785,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case H2:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate H2 regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate H2 regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationH2>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -770,7 +793,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case H3:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate H3 regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate H3 regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationH3>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -778,7 +801,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case H1SN:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate H1SN regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate H1SN regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationH1SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -786,7 +809,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case H2SN:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate H2SN regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate H2SN regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationH2SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -794,7 +817,7 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
         case H3SN:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate H3SN regularization"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate H3SN regularization"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<RegularizationH3SN>(this->m_Regularization, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -850,7 +873,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
         case SL:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate SL transport problem"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate SL transport problem"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<TransportEquationSL>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -858,7 +881,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
         case RK2:
         {
             if (this->m_Opt->m_Verbosity > 1) {
-              ierr = DbgMsg("allocate RK2 transport problem"); CHKERRQ(ierr);
+              ierr = DbgMsg1("allocate RK2 transport problem"); CHKERRQ(ierr);
             }
             ierr = AllocateOnce<TransportEquationRK2>(this->m_TransportProblem, this->m_Opt); CHKERRQ(ierr);
             break;
@@ -1087,6 +1110,7 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
     ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
     
     ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField2, this->m_WorkVecField1, flag); CHKERRQ(ierr);
+    
     ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
   
     this->m_Opt->Exit(__func__);
@@ -1095,12 +1119,193 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
 }
 
 
+/********************************************************************
+ * @brief applies inverse of H(v=0) (used as preconditioner for our problem)
+ *******************************************************************/
+PetscErrorCode CLAIREBase::ApplyInvHessian(Vec precx, Vec x) {
+    PetscErrorCode ierr = 0;
+    H0PrecondKernel kernel;
+    const ScalarType *ptr = nullptr;
+    
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(PC_H0);
+    ZeitGeist_tick(PC_H0);
+
+    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
+    
+    IntType *nx = this->m_Opt->m_Domain.nx;
+    
+    IntType nx2 = (nx[0]-2)*(nx[0]-1) + (nx[1]-2)*(nx[1]-1) + (nx[2]-2)*(nx[2]-1);
+    
+    ScalarType hd = this->m_Opt->GetLebesgueMeasure();
+    
+    ScalarType beta = sqrt(this->m_Opt->m_RegNorm.beta[0]);
+    
+    //if (beta < 0.05) beta = 0.05;
+    
+    kernel.nl = this->m_Opt->m_Domain.nl;
+    //kernel.omg  = 0.01*this->m_Opt->m_RegNorm.beta[0];
+    //kernel.omg  = 12./((nx[0]-2)*(nx[0]-1) + (nx[1]-2)*(nx[1]-1) + (nx[2]-2)*(nx[2]-1));
+    //kernel.beta = beta;//this->m_Opt->m_RegNorm.beta[0];
+    
+    if (this->m_Regularization == NULL) {
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
+    }
+    
+    ScalarType normref, cg_a, cg_b, cg_r, cg_p, tmp, norm_p;
+    
+    ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
+    //ScalarType avg1, avg2, avg3;
+    //ierr = VecSum(this->m_WorkVecField3->m_X1, &avg1); CHKERRQ(ierr);
+    //ierr = VecSum(this->m_WorkVecField3->m_X2, &avg2); CHKERRQ(ierr);
+    //ierr = VecSum(this->m_WorkVecField3->m_X3, &avg3); CHKERRQ(ierr);
+    //ScalarType hl = 1.0/(ScalarType)(kernel.nl);
+    
+    IntType mt_idx = 0;//this->m_Opt->m_Domain.nt;
+    
+    if (this->m_GradientState) {
+      ierr = this->m_GradientState[mt_idx]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_Differentiation->Gradient(this->m_WorkVecField3, *this->m_ReferenceImage); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField3->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+    }
+    
+    /*{
+      std::stringstream ss;
+      ss << "PC avg: " << avg1 << "," << avg2 << "," << avg3;
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+    }*/
+    
+    //ierr = this->m_WorkVecField1->SetValue(0); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+    ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
+    normref = 1.;
+    
+    IntType outerloop = 50;
+    IntType innerloop = 500;
+    ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint;
+        
+    for (int j=0;j<outerloop;++j) {
+      //ierr = this->m_Differentiation->RegLapModOp(this->m_WorkVecField2, this->m_WorkVecField1, beta); CHKERRQ(ierr);
+      //ierr = this->m_WorkVecField2->SetValue(0); CHKERRQ(ierr);
+      
+      ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+      ierr = kernel.IterationPart1(); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+      
+      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField2->AXPY(beta, this->m_WorkVecField1);
+      
+      ierr = this->m_WorkVecField4->SetComponents(x); CHKERRQ(ierr);
+       ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField4, this->m_WorkVecField4, false, 1.); CHKERRQ(ierr);
+      
+      ierr = this->m_WorkVecField4->AXPY(-1., this->m_WorkVecField2);
+      ierr = this->m_WorkVecField5->Copy(this->m_WorkVecField4); CHKERRQ(ierr);
+      // WVF1 = v0, WVF2 = H0*v0, WVF4 = r = x - H0*v0, WVF5 = p = r
+      //ierr = this->m_WorkVecField4->Norm2(cg_r); CHKERRQ(ierr);
+      ierr = VecDot(this->m_WorkVecField4->m_X1, this->m_WorkVecField4->m_X1, &cg_r); CHKERRQ(ierr);
+      ierr = VecDot(this->m_WorkVecField4->m_X2, this->m_WorkVecField4->m_X2, &tmp); CHKERRQ(ierr);
+      cg_r += tmp;
+      ierr = VecDot(this->m_WorkVecField4->m_X3, this->m_WorkVecField4->m_X3, &tmp); CHKERRQ(ierr);
+      cg_r += tmp;
+      
+      if (this->m_Opt->m_Verbosity > 1 && j%500 == 0) {
+        std::stringstream ss;
+        ss << "PC res: " << sqrt(cg_r);
+        if (j == 0) { 
+          normref = sqrt(cg_r);
+          //if (normref*cg_eps < 5e-6) cg_eps = 5e-6/normref;
+        }
+        else ss << ", " << sqrt(cg_r)/normref;
+        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      }
+        int i;
+        for (i = 0; i<innerloop; ++i) {
+          //ierr = this->m_Differentiation->RegLapModOp(this->m_WorkVecField2, this->m_WorkVecField5, beta); CHKERRQ(ierr);
+          //ierr = this->m_WorkVecField2->SetValue(0); CHKERRQ(ierr);
+          
+          ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+          ierr = kernel.IterationPart1(); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+          
+          ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField2->AXPY(beta, this->m_WorkVecField5);
+          
+          ierr = VecDot(this->m_WorkVecField2->m_X1, this->m_WorkVecField5->m_X1, &cg_p); CHKERRQ(ierr);
+          ierr = VecDot(this->m_WorkVecField2->m_X2, this->m_WorkVecField5->m_X2, &tmp); CHKERRQ(ierr);
+          cg_p += tmp;
+          ierr = VecDot(this->m_WorkVecField2->m_X3, this->m_WorkVecField5->m_X3, &tmp); CHKERRQ(ierr);
+          cg_p += tmp;
+          
+          cg_a = cg_r/cg_p;
+          ierr = this->m_WorkVecField1->AXPY(cg_a, this->m_WorkVecField5);
+          ierr = this->m_WorkVecField4->AXPY(-cg_a, this->m_WorkVecField2);
+          ierr = this->m_WorkVecField4->Norm2(cg_a); CHKERRQ(ierr);
+          if (sqrt(cg_a) < cg_eps*normref) {
+            cg_r = cg_a;
+            ++i;
+            break;
+          }
+          cg_b = cg_a/cg_r;
+          cg_r = cg_a;
+          ierr = this->m_WorkVecField5->Scale(cg_b); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField5->AXPY(1.,this->m_WorkVecField4); CHKERRQ(ierr);
+        }
+      
+      if (j + 1 >= outerloop && this->m_Opt->m_Verbosity > 1) {
+        std::stringstream ss;
+        ss << "PC itermax";
+        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      }
+      if (sqrt(cg_r) < cg_eps*normref)  {
+        std::stringstream ss;
+        ss << "PC converged: " << (j*innerloop)  + i;
+        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+        break;
+      }
+    }
+    
+    if (this->m_Opt->m_Verbosity > 1) {
+      std::stringstream ss;
+      ss << "PC res: " << sqrt(cg_r) << ", " << sqrt(cg_r)/normref;
+      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      ss.str(std::string()); ss.clear();
+    }
+    
+    if (this->m_GradientState) {
+      ierr = this->m_GradientState[mt_idx]->RestoreArrays(); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+    }
+        
+    ierr = this->m_WorkVecField1->GetComponents(precx); CHKERRQ(ierr);
+    
+    ZeitGeist_tock(PC_H0);
+  
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
 
 
 /********************************************************************
  * @brief compute a synthetic test problem
  *******************************************************************/
-PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
+PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT, VecField* v) {
     PetscErrorCode ierr = 0;
     IntType nl, ng, nc, nx[3], i;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_mt = NULL;
@@ -1115,7 +1320,7 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     this->m_Opt->Enter(__func__);
 
     if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg("setting up synthetic problem"); CHKERRQ(ierr);
+        ierr = DbgMsg2("setting up synthetic problem"); CHKERRQ(ierr);
     }
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
@@ -1168,6 +1373,9 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
             break;
         case 4:
             vcase = 0; icase = 0; v0 = 1.0;
+            break;
+        case 5:
+            vcase = 4; icase = 0; v0 = 1.0;
             break;
         default:
             vcase = 0; icase = 0;
@@ -1239,30 +1447,38 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
     ierr = VecRestoreArray(this->m_VelocityField->m_X1, &p_vx1); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_VelocityField->m_X2, &p_vx2); CHKERRQ(ierr);
     ierr = VecRestoreArray(this->m_VelocityField->m_X3, &p_vx3); CHKERRQ(ierr);
+    
+    if (v && !this->m_Opt->m_RegFlags.zeroinit) {
+      ierr = v->Copy(this->m_VelocityField); CHKERRQ(ierr);
+    }
 
     if (this->m_Opt->m_Verbosity > 2) {
+        ss  << "synthetic case mt: " <<  icase << ", v: " << vcase;
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
+        ss.str(std::string()); ss.clear();
+        
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
         ss  << "velocity norm: (" << std::scientific
             << nvx1 << "," << nvx2 << "," << nvx3 <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ierr = VecMin(this->m_VelocityField->m_X1, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(this->m_VelocityField->m_X1, NULL, &maxval); CHKERRQ(ierr);
         ss << "velocity x1: (" << minval << "," << maxval <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ierr = VecMin(this->m_VelocityField->m_X2, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(this->m_VelocityField->m_X2, NULL, &maxval); CHKERRQ(ierr);
         ss << "velocity x2: (" << minval << "," << maxval <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
         ierr = VecMin(this->m_VelocityField->m_X3, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(this->m_VelocityField->m_X3, NULL, &maxval); CHKERRQ(ierr);
         ss << "velocity x3: (" << minval << "," << maxval <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1291,7 +1507,7 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
         ierr = VecMin(mT, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(mT, NULL, &maxval); CHKERRQ(ierr);
         ss << "template image: (" << minval << "," << maxval <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1306,7 +1522,7 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT) {
         ierr = VecMin(mR, NULL, &minval); CHKERRQ(ierr);
         ierr = VecMax(mR, NULL, &maxval); CHKERRQ(ierr);
         ss << "reference image: (" << minval << "," << maxval <<")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
 
@@ -1440,7 +1656,7 @@ PetscErrorCode CLAIREBase::ComputeCFLCondition() {
         if (ntcfl > nt) {
             if (this->m_Opt->m_Verbosity > 1) {
                 ss << "changing time step: " << nt << " -> " << ntcfl;
-                ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+                ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
                 ss.str(std::string()); ss.clear();
             }
             // reset variables
@@ -1499,14 +1715,14 @@ PetscErrorCode CLAIREBase::CheckBounds(Vec v, bool& boundreached) {
         if (minboundreached) {
             ss << std::scientific
             << "min(det(grad(y^{-1}))) = " << detdgradmin << " <= " << bound;
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
         if (maxboundreached) {
             ss << std::scientific
             << "max(det(grad(y^{-1}))) = " << detdgradmax << " >= " << 1.0/bound
             << " ( = 1/bound )";
-            ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+            ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
         }
     }

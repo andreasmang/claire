@@ -25,6 +25,7 @@
 
 #ifdef REG_HAS_CUDA
 #include <cufft.h>
+#include "cuda_helper.hpp"
 #endif
 
 namespace reg {
