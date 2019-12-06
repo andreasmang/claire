@@ -24,12 +24,11 @@
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 #include "TenField.hpp"
-#include "SemiLagrangian.hpp"
 #include "Differentiation.hpp"
 #include "ReadWriteReg.hpp"
-//#ifdef REG_HAS_CUDA
-//#include "SemiLagrangianGPUNew.hpp"
-//#endif
+#ifdef REG_HAS_CUDA
+#include "SemiLagrangianGPUNew.hpp"
+#endif
 #include "SemiLagrangian.hpp"
 
 
@@ -43,11 +42,11 @@ namespace reg {
 class DeformationFields {
  public:
     typedef DeformationFields Self;
-//#ifdef REG_HAS_CUDA
-//    typedef SemiLagrangianGPUNew SemiLagrangianType;
-//#else
+#ifdef REG_HAS_CUDA
+    typedef SemiLagrangianGPUNew SemiLagrangianType;
+#else
     typedef SemiLagrangian SemiLagrangianType;
-//#endif
+#endif
 
     DeformationFields();
     DeformationFields(RegOpt*);

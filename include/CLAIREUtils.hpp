@@ -106,6 +106,9 @@ PetscErrorCode Rescale(Vec, ScalarType, ScalarType, IntType nc = 1);
 /*! normalize field to [0,1] */
 PetscErrorCode Normalize(Vec, IntType nc = 1);
 
+/*! compte pointwise norm of vector field */
+PetscErrorCode VecFieldPointWiseNorm(Vec, Vec, Vec, Vec);
+
 /*! clip field to [0,1] */
 PetscErrorCode Clip(Vec, IntType nc = 1);
 
@@ -121,6 +124,7 @@ PetscErrorCode GetFileName(std::string&, std::string&, std::string&, std::string
 
 std::vector<int> String2Vec(const std::string&);
 std::vector<int> String2Vec(const std::string&, std::string);
+std::vector<ScalarType> String2VecScalarType(const std::string&, std::string);
 
 PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
 

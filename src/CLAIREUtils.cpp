@@ -792,6 +792,18 @@ PetscErrorCode VecNorm(Vec x, IntType nc) {
 }
 
 
+/********************************************************************
+ * @brief parse string of NUMxNUMxNUM into a vector
+ *******************************************************************/
+std::vector<ScalarType> String2VecScalarType(const std::string & str, std::string sep) {
+    std::vector<ScalarType> vec;
+    std::stringstream ss(str);
+    std::string num;
+
+    while (std::getline(ss, num, ','))
+        vec.push_back(std::stod(num));
+    return vec;
+}
 
 
 /********************************************************************

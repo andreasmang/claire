@@ -1513,6 +1513,7 @@ PetscErrorCode DeformationFields::ComputeDeformationMapSLRK2() {
         // evaluate v(y)
         ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_y1, p_y2, p_y3, "state"); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
+        //ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField3, this->m_VelocityField, "state"); CHKERRQ(ierr);
 
         // compute intermediate variable (fist stage of RK2)
 #pragma omp parallel
@@ -1777,6 +1778,7 @@ PetscErrorCode DeformationFields::ComputeDisplacementField(bool write2file) {
     if (write2file) {
         ext = this->m_Opt->m_FileNames.extension;
         ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, "displacement-field"+ext); CHKERRQ(ierr);
+        ierr = this->m_ReadWrite->Write(this->m_WorkVecField2->m_X1, "displacement-field-norm"+ext); CHKERRQ(ierr);
     }
 
     this->m_Opt->Exit(__func__);
@@ -1847,9 +1849,10 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
             ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
+    
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_WorkVecField1, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
     nl = this->m_Opt->m_Domain.nl;
@@ -1862,31 +1865,27 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
     // evaluate v(y)
     ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_VelocityField, "state"); CHKERRQ(ierr);
 
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
+        
         // interpolate u^j at X
         ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField3, this->m_WorkVecField1, "state"); CHKERRQ(ierr);
 
-        ierr = this->m_WorkVecField1->GetArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->GetArrays(p_uX1, p_uX2, p_uX3); CHKERRQ(ierr);
         // update deformation field (RK2)
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nl; ++i) {
-            p_u1[i] = p_uX1[i] + hthalf*(p_vX1[i] + p_v1[i]);
-            p_u2[i] = p_uX2[i] + hthalf*(p_vX2[i] + p_v2[i]);
-            p_u3[i] = p_uX3[i] + hthalf*(p_vX3[i] + p_v3[i]);
-        }
-}  // end of pragma omp parallel
-        ierr = this->m_WorkVecField3->RestoreArrays(p_uX1, p_uX2, p_uX3); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
-    }  // for all time points
+        // p_u = p_uX1 + 0.5*ht*(p_vX1 + p_v) broken into 2 steps
 
-    ierr = this->m_WorkVecField2->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        // Step 1: p_u = p_uX1 + 0.5*ht*p_vX1
+        ierr = VecWAXPY(this->m_WorkVecField1->m_X1, hthalf, this->m_WorkVecField2->m_X1, this->m_WorkVecField3->m_X1);
+        ierr = VecWAXPY(this->m_WorkVecField1->m_X2, hthalf, this->m_WorkVecField2->m_X2, this->m_WorkVecField3->m_X2);
+        ierr = VecWAXPY(this->m_WorkVecField1->m_X3, hthalf, this->m_WorkVecField2->m_X3, this->m_WorkVecField3->m_X3);
+        // Step 2: p_u = p_u   + 0.5*ht*p_v
+        ierr = VecAXPY(this->m_WorkVecField1->m_X1, hthalf, this->m_VelocityField->m_X1); 
+        ierr = VecAXPY(this->m_WorkVecField1->m_X2, hthalf, this->m_VelocityField->m_X2); 
+        ierr = VecAXPY(this->m_WorkVecField1->m_X3, hthalf, this->m_VelocityField->m_X3); 
+
+    }  // for all time points
+    
+    ierr = VecFieldPointWiseNorm(this->m_WorkVecField2->m_X1, this->m_WorkVecField1->m_X1, this->m_WorkVecField1->m_X2, this->m_WorkVecField1->m_X3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
