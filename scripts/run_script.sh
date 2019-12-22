@@ -59,12 +59,16 @@ case $i in
     PARAM_CONT="${i#*=}"
     shift # past argument=value
     ;;
+    --parameter=*)
+    PARAM="${i#*=}"
+    shift # past argument=value
+    ;;
     --scale_factor=*)
     SCALE_FACTOR="${i#*=}"
     shift # past argument=value
     ;;
-    --high_res_reg=*)
-    HIGHER_RES="${i#*=}"
+    --res_scale_factor=*)
+    RES_SCALE_FACTOR="${i#*=}"
     shift # past argument=value
     ;;
     --help)
@@ -74,22 +78,28 @@ case $i in
     echo ${myline}
     echo "     --help                           print this message"
     echo ${myline}
-    echo "     --subject=*.nii.gz               absolute path to subject image before affine registration"
-    echo "     --subject_label=*.nii.gz         absolute path to subject segmentation before affine registration"
-    echo "     --template=*.nii.gz              absolute path to the template image"
-    echo "     --N=mxnxo                        size of template image. eg. 182x218x218 (needed)"
-    echo "     --affine=*.txt                   absolute path to the Affine.txt file genereated by ANTS"
+    echo "     --subject=*.nii.gz               absolute path to subject image before affine registration(moving image)"
+    echo "     --subject_label=*.nii.gz         absolute path to subject segmentation before affine registration(moving image segmentation)"
+    echo "     --labels=                        comma separated label ids in the subject(moving) image segmentation. e.g. 10,50,150,250 (needed)"
+    echo "     --template=*.nii.gz              absolute path to the template image(fixed image)"
+    echo "     --N=lxmxn                        size of template image. eg. 182x218x218 (needed)"
+    echo "     --affine=*.txt                   absolute path to the Affine.txt file genereated from ANTS affine registration of subject(moving) to"
+    echo "                                      template(fixed)"
     echo "     --x=/path/to/output              path to the output directory"
     echo "     --mode=<1,2>                     run mode. 1: warp subject image to template image (default)"
     echo "                                                2: apply claire velocities to a new image"
     echo "                                                   (need to provide --i with this mode)"
     echo "     --i=/path/to/claire/results      path to directory where claire velocity fields are stored."
-    echo "     --labels=                        comma separated label ids in the segmentation. e.g. 10,50,150,250 (needed)"
     echo "     --distance_metric=<sl2,ncc>      distance metric for claire. options: 1. sl2 - sum of squared differences"
     echo "                                                                           2. ncc - normalized cross correlation (default)"    
-    echo "     --parameter_cont=<0,1>           whether to perform parameter continuation for claire(suggested). default: 1"
-    echo "     --scalefactor=                   scaling factor for ravens. default: 1"
-    echo "     --high_res_reg=<0,1>                whether to do registration in higher resolution. default: 0"
+    echo "     --parameter_cont=<0,1>           whether to perform parameter continuation for diffeomorphic registration (suggested). default: 1"
+    echo "     --parameter=<float>              parameter(regularization) value for diffeomorhic registration if --parameter_cont=0 is given"
+    echo "                                      default: 1e-2"
+    echo "     --scale_factor=                  scaling factor for RAVENS (i.e Jacobian Determinant in Template space). default: 1"
+    echo "     --res_scale_factor=axbxc         scaling factor to do registration in high resolution. e.g. if --res_scaling_factor=2x2x2, then"
+    echo "                                      the diffeomorphic registration will be performed in 2*l x 2*m x 2*n resolution where lxmxn are"
+    echo "                                      original image dimensions given via --N option. a,b,c have to be such that a*l, b*m and c*n"
+    echo "                                      are integers. default: 1x1x1"
     echo ${myline}
     echo ""
     exit;
@@ -169,15 +179,21 @@ if [ -z "$PARAM_CONT" ]; then
 fi
 
 ###########################################
+if [ -z "$PARAM" ]; then
+    echo "--parameter not provided, setting to 1e-2"
+    PARAM=1e-2
+fi
+
+###########################################
 if [ -z "$SCALE_FACTOR" ]; then
     echo "--scale_factor not provided, setting to 1"
     SCALE_FACTOR=1
 fi
 
 ###########################################
-if [ -z "$HIGHER_RES" ]; then
-    echo "--high_res_reg not provided, setting to 0"
-    HIGHER_RES=0
+if [ -z "$RES_SCALE_FACTOR" ]; then
+    echo "--res_scale_factor not provided, setting to 1x1x1"
+    RES_SCALE_FACTOR=1x1x1
 fi
 ###########################################
 if [ -z "$N" ]; then
@@ -228,34 +244,13 @@ CreateJacobianDeterminantImage \
     ${OUTPUT_DIR}/affine.nii.gz \
     ${OUTPUT_DIR}/affine_detdefgrad.nii.gz
 
-
-# echo "
-# mpirun --prefix $OPENMPI -np $NSLOTS \
-# $CLAIRE_BDIR/claire \
-# -x $OUTPUT_DIR/ \
-# -mt ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
-# -mr ${TEMPLATE} \
-# -regnorm h1s-div \
-# -maxit 25 \
-# -krylovmaxit 50 \
-# -beta-div 1.000000e-04 \
-# -opttol 1.000000e-02 \
-# -train binary \
-# -jbound 0.2 \
-# -format nifti \
-# -velocity \
-# -verbosity 2 \
-# -sigma 1 \
-# -distance ncc \
-# > $OUTPUT_DIR/solver_log.txt"
-
-if [ $HIGHER_RES == 1 ]; then
-    # resample the input images (template and affine warped image to 256^3)
+if [ ! $RES_SCALE_FACTOR == "1x1x1" ]; then
+    # resample the input images (template and affine warped image to required resolution)
     ResampleImage \
     3 \
     ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
     ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
-    256x256x256 \
+    ${RES_SCALE_FACTOR} \
     1,0 \
     0 \
     7
@@ -264,7 +259,7 @@ if [ $HIGHER_RES == 1 ]; then
     3 \
     $TEMPLATE \
     $OUTPUT_DIR/${TEMPLATE_FNAME%.nii.gz}_upsampled.nii.gz \
-    256x256x256 \
+    ${RES_SCALE_FACTOR} \
     1,0 \
     0 \
     7
@@ -297,6 +292,7 @@ if [ ! -f ${OUTPUT_DIR}/velocity-field-x1.nii.gz ]; then
         -mt ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
         -mr $OUTPUT_DIR/${TEMPLATE_FNAME%.nii.gz}_upsampled.nii.gz \
         -regnorm h1s-div \
+        -beta ${PARAM} \
         -format nifti \
         -velocity \
         -verbosity 2 \
@@ -307,7 +303,7 @@ fi
 
 
 # if resampling was done then downsample the velocity field
-if [ $HIGHER_RES == 1 ]; then
+if [ ! $RES_SCALE_FACTOR == "1x1x1" ]; then
     ResampleImage \
     3 \
     $OUTPUT_DIR/velocity-field-x1.nii.gz \
