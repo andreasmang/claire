@@ -105,8 +105,10 @@ PetscErrorCode Preconditioner::Initialize() {
     this->m_CoarseGrid->m_WorkScaField1 = NULL;         ///< temporary scalar field (coarse level)
     this->m_CoarseGrid->m_WorkScaField2 = NULL;         ///< temporary scalar field (coarse level)
     this->m_CoarseGrid->setupdone = false;
-
-
+    
+    this->m_GradState = nullptr;
+    
+    this->firstrun = true;
 
     PetscFunctionReturn(ierr);
 }
@@ -216,6 +218,13 @@ PetscErrorCode Preconditioner::ClearMemory() {
         ierr = PetscRandomDestroy(&this->m_RandomNumGen); CHKERRQ(ierr);
         this->m_RandomNumGen = NULL;
     }
+    
+    if (this->m_GradState) {
+      for (IntType i=0;i<(this->m_Opt->m_KrylovMethod.pctype==H0MG?2:1);++i) {
+        ierr = Free(this->m_GradState[i]); CHKERRQ(ierr);
+      }
+    }
+    ierr = FreeArray(this->m_GradState); CHKERRQ(ierr);
 
     delete this->m_CoarseGrid;
 
@@ -283,6 +292,10 @@ PetscErrorCode Preconditioner::Reset() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      ierr = DbgMsg2("reset preconditioner"); CHKERRQ(ierr);
+    }
 
     // switch case for choice of preconditioner
     switch(this->m_Opt->m_KrylovMethod.pctype) {
@@ -297,6 +310,11 @@ PetscErrorCode Preconditioner::Reset() {
             break;
         }
         case H0:
+        {
+            // no need to do anything
+            break;
+        }
+        case H0MG:
         {
             // no need to do anything
             break;
@@ -316,6 +334,8 @@ PetscErrorCode Preconditioner::Reset() {
             break;
         }
     }
+    
+    this->firstrun = true;
 
     this->m_Opt->Exit(__func__);
 
@@ -542,7 +562,20 @@ PetscErrorCode Preconditioner::MatVec(Vec Px, Vec x) {
         }
         case H0:
         {
-            ierr = this->ApplyH0Precond(Px, x); CHKERRQ(ierr);
+            //if (this->m_Opt->m_RegNorm.beta[0] > 5e-3) {
+            //  ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
+            //} else {
+              ierr = this->ApplyH0Precond(Px, x, false); CHKERRQ(ierr);
+            //}
+            break;
+        }
+        case H0MG:
+        {
+            //if (this->m_Opt->m_RegNorm.beta[0] < 5e-3) {
+            //  ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
+            //} else {
+              ierr = this->ApplyH0Precond(Px, x, true); CHKERRQ(ierr);
+            //}
             break;
         }
         default:
@@ -551,6 +584,8 @@ PetscErrorCode Preconditioner::MatVec(Vec Px, Vec x) {
             break;
         }
     }
+    
+    this->firstrun = false;
 
     this->m_Opt->Exit(__func__);
 
@@ -699,7 +734,7 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
 /********************************************************************
  * @brief apply inverse of H(v=0) as preconditioner
  *******************************************************************/
-PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x) {
+PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x, bool twolevel) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -710,9 +745,17 @@ PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x) {
 
     // start timer
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
+    
+    if (!this->m_GradState) {
+      ierr = AllocateArrayOnce(this->m_GradState, 2); CHKERRQ(ierr);
+      for (IntType i=0; i<(twolevel?2:1); ++i) {
+        this->m_GradState[i] = nullptr;
+        ierr = AllocateOnce(this->m_GradState[i], this->m_Opt); CHKERRQ(ierr);
+      }
+    }
 
     // apply inverse regularization operator
-    ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x, this->m_GradState, this->firstrun, twolevel); CHKERRQ(ierr);
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);

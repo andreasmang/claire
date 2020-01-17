@@ -78,6 +78,8 @@ PetscErrorCode DifferentiationSM::Initialize() {
 //    this->m_planC2R = nullptr;
 //    this->m_planR2C = nullptr;
 //#endif
+
+    this->m_FFT = nullptr;
     
     ierr = this->SetupData(); CHKERRQ(ierr);
         
@@ -114,7 +116,9 @@ PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, Co
     IntType nalloc;
     PetscFunctionBegin;
     
-    nalloc = this->m_Opt->m_FFT.nalloc;
+    this->m_FFT = &this->m_Opt->m_FFT;
+    
+    nalloc = this->m_FFT->nalloc;
         
     if (!x1) {
       ierr = AllocateMemoryOnce(this->m_XHat[0], nalloc); CHKERRQ(ierr);
@@ -134,16 +138,16 @@ PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, Co
     } else {
       this->m_SpectralKernel.pXHat[2] = x3;
     }
-    this->m_SpectralKernel.nx[0] = this->m_Opt->m_Domain.nx[0];
-    this->m_SpectralKernel.nx[1] = this->m_Opt->m_Domain.nx[1];
-    this->m_SpectralKernel.nx[2] = this->m_Opt->m_Domain.nx[2];
-    this->m_SpectralKernel.nl[0] = this->m_Opt->m_FFT.osize[0];
-    this->m_SpectralKernel.nl[1] = this->m_Opt->m_FFT.osize[1];
-    this->m_SpectralKernel.nl[2] = this->m_Opt->m_FFT.osize[2];
-    this->m_SpectralKernel.nstart[0] = this->m_Opt->m_FFT.ostart[0];
-    this->m_SpectralKernel.nstart[1] = this->m_Opt->m_FFT.ostart[1];
-    this->m_SpectralKernel.nstart[2] = this->m_Opt->m_FFT.ostart[2];
-    this->m_SpectralKernel.scale = this->m_Opt->ComputeFFTScale();
+    this->m_SpectralKernel.nx[0] = this->m_FFT->nx[0];
+    this->m_SpectralKernel.nx[1] = this->m_FFT->nx[1];
+    this->m_SpectralKernel.nx[2] = this->m_FFT->nx[2];
+    this->m_SpectralKernel.nl[0] = this->m_FFT->osize[0];
+    this->m_SpectralKernel.nl[1] = this->m_FFT->osize[1];
+    this->m_SpectralKernel.nl[2] = this->m_FFT->osize[2];
+    this->m_SpectralKernel.nstart[0] = this->m_FFT->ostart[0];
+    this->m_SpectralKernel.nstart[1] = this->m_FFT->ostart[1];
+    this->m_SpectralKernel.nstart[2] = this->m_FFT->ostart[2];
+    this->m_SpectralKernel.scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
         
 /*#ifdef REG_HAS_CUDA
     if (this->m_planR2C == nullptr) {
@@ -161,6 +165,23 @@ PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, Co
 #endif*/
         
     PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationSM::SetFFT(FourierTransform* fft) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  this->m_FFT = fft;
+  this->m_SpectralKernel.nx[0] = this->m_FFT->nx[0];
+  this->m_SpectralKernel.nx[1] = this->m_FFT->nx[1];
+  this->m_SpectralKernel.nx[2] = this->m_FFT->nx[2];
+  this->m_SpectralKernel.nl[0] = this->m_FFT->osize[0];
+  this->m_SpectralKernel.nl[1] = this->m_FFT->osize[1];
+  this->m_SpectralKernel.nl[2] = this->m_FFT->osize[2];
+  this->m_SpectralKernel.nstart[0] = this->m_FFT->ostart[0];
+  this->m_SpectralKernel.nstart[1] = this->m_FFT->ostart[1];
+  this->m_SpectralKernel.nstart[2] = this->m_FFT->ostart[2];
+  this->m_SpectralKernel.scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
+  PetscFunctionReturn(ierr);
 }
 
 /********************************************************************
@@ -183,15 +204,15 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
 //    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
-    //accfft_grad_t(g1, g2, g3, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, &xyz, timer);
+    //accfft_grad_t(g1, g2, g3, const_cast<ScalarType*>(m), this->m_Opt->m_FFT->plan, &xyz, timer);
     
-    //accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(m), pXHat[0], timer);    
+    //accfft_execute_r2c_t(this->m_Opt->m_FFT->plan, const_cast<ScalarType*>(m), pXHat[0], timer);    
     ierr = this->ComputeForwardFFT(m);
     ierr = this->m_SpectralKernel.Gradient(); CHKERRQ(ierr);
     ierr = this->ComputeInverseFFT(g1, g2, g3);
-    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], g1, timer);
-    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], g2, timer);
-    //accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], g3, timer);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT->plan, pXHat[0], g1, timer);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT->plan, pXHat[1], g2, timer);
+    //accfft_execute_c2r_t(this->m_Opt->m_FFT->plan, pXHat[2], g3, timer);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTGRAD);
@@ -224,7 +245,7 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l,
     ierr = this->ComputeForwardFFT(m); CHKERRQ(ierr);
     ierr = this->m_SpectralKernel.ScalarLaplacian(-1.); CHKERRQ(ierr);
     ierr = this->ComputeInverseFFT(l); CHKERRQ(ierr);
-    //accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT.plan, timer);
+    //accfft_laplace_t(l, const_cast<ScalarType*>(m), this->m_Opt->m_FFT->plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
 
 //    this->m_Opt->IncreaseFFTTimers(timer);
@@ -259,9 +280,9 @@ PetscErrorCode DifferentiationSM::Laplacian(ScalarType *l1,
     ierr = this->ComputeForwardFFT(v1, v2, v3); CHKERRQ(ierr);
     ierr = this->m_SpectralKernel.Laplacian(-1.); CHKERRQ(ierr);
     ierr = this->ComputeInverseFFT(l1, l2, l3); CHKERRQ(ierr);
-    //accfft_laplace_t(l1, const_cast<ScalarType*>(v1), this->m_Opt->m_FFT.plan, timer);
-    //accfft_laplace_t(l2, const_cast<ScalarType*>(v2), this->m_Opt->m_FFT.plan, timer);
-    //accfft_laplace_t(l3, const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);
+    //accfft_laplace_t(l1, const_cast<ScalarType*>(v1), this->m_Opt->m_FFT->plan, timer);
+    //accfft_laplace_t(l2, const_cast<ScalarType*>(v2), this->m_Opt->m_FFT->plan, timer);
+    //accfft_laplace_t(l3, const_cast<ScalarType*>(v3), this->m_Opt->m_FFT->plan, timer);
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
 //    this->m_Opt->IncreaseFFTTimers(timer);
@@ -297,7 +318,7 @@ PetscErrorCode DifferentiationSM::Divergence(ScalarType *l,
     /*accfft_divergence_t(l, 
       const_cast<ScalarType*>(v1), 
       const_cast<ScalarType*>(v2), 
-      const_cast<ScalarType*>(v3), this->m_Opt->m_FFT.plan, timer);*/
+      const_cast<ScalarType*>(v3), this->m_Opt->m_FFT->plan, timer);*/
     this->m_Opt->StopTimer(FFTSELFEXEC);
     this->m_Opt->IncrementCounter(FFT, FFTDIV);
     
@@ -345,7 +366,7 @@ PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
-    if (this->m_Opt->m_FFT.threshold > 0.) {
+    if (this->m_FFT->threshold > 0.) {
       ierr = this->m_SpectralKernel.LaplacianTol(b0, b1); CHKERRQ(ierr);
     } else {
       ierr = this->m_SpectralKernel.Laplacian(b0, b1); CHKERRQ(ierr);
@@ -427,8 +448,8 @@ PetscErrorCode DifferentiationSM::InvRegLapOp(VecField* bv, VecField* v, bool us
     
     DebugGPUStartEvent("FFT inverse laplacian regularization operator");
     
-    ZeitGeist_define(FFT_REG);
-    ZeitGeist_tick(FFT_REG);
+    ZeitGeist_define(FFT_INVREG);
+    ZeitGeist_tick(FFT_INVREG);
     
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
@@ -438,7 +459,7 @@ PetscErrorCode DifferentiationSM::InvRegLapOp(VecField* bv, VecField* v, bool us
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
     
-    ZeitGeist_tock(FFT_REG);
+    ZeitGeist_tock(FFT_INVREG);
     
     DebugGPUStopEvent();
 
@@ -537,7 +558,7 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
         
 //    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
-    if (this->m_Opt->m_FFT.threshold > 0) {
+    if (this->m_FFT->threshold > 0) {
       ScalarType value;
       VecNorm(v->m_X1, NORM_INFINITY, &value);
       this->m_SpectralKernel.tol = value;
@@ -545,7 +566,7 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
       this->m_SpectralKernel.tol = std::max(this->m_SpectralKernel.tol, std::abs(value));
       VecNorm(v->m_X3, NORM_INFINITY, &value);
       this->m_SpectralKernel.tol = std::max(this->m_SpectralKernel.tol, std::abs(value));
-      this->m_SpectralKernel.tol *= this->m_Opt->m_FFT.threshold;
+      this->m_SpectralKernel.tol *= this->m_FFT->threshold;
     }
         
     ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
@@ -558,26 +579,10 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(const ScalarType* pV1, const
     PetscErrorCode ierr = 0;
     ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     PetscFunctionBegin;
-        
-/*    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
-        
-#ifdef REG_HAS_CUDA
-    cufftExecR2C(*this->m_planR2C, const_cast<cufftReal*>(pV1), reinterpret_cast<cufftComplex*>(pXHat[0]));
-    cufftExecR2C(*this->m_planR2C, const_cast<cufftReal*>(pV2), reinterpret_cast<cufftComplex*>(pXHat[1]));
-    cufftExecR2C(*this->m_planR2C, const_cast<cufftReal*>(pV3), reinterpret_cast<cufftComplex*>(pXHat[2]));
-    cudaDeviceSynchronize();
-#else
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV1), pXHat[0], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV2), pXHat[1], timer);
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(pV3), pXHat[2], timer);
-#endif
-    
-    this->m_Opt->IncrementCounter(FFT, 3);
-    this->m_Opt->IncreaseFFTTimers(timer);
-*/
-    this->m_Opt->m_FFT.fft->FFT_R2C(pV1, pXHat[0]);
-    this->m_Opt->m_FFT.fft->FFT_R2C(pV2, pXHat[1]);
-    this->m_Opt->m_FFT.fft->FFT_R2C(pV3, pXHat[2]);
+
+    this->m_FFT->fft->FFT_R2C(pV1, pXHat[0]);
+    this->m_FFT->fft->FFT_R2C(pV2, pXHat[1]);
+    this->m_FFT->fft->FFT_R2C(pV3, pXHat[2]);
     
     DebugGPUStopEvent();
 
@@ -599,26 +604,10 @@ PetscErrorCode DifferentiationSM::ComputeInverseFFT(ScalarType* pV1, ScalarType 
     PetscErrorCode ierr = 0;
     ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     PetscFunctionBegin;
-        
-/*    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
 
-#ifdef REG_HAS_CUDA
-    cufftExecC2R(*this->m_planC2R, reinterpret_cast<cufftComplex*>(pXHat[0]), static_cast<cufftReal*>(pV1));
-    cufftExecC2R(*this->m_planC2R, reinterpret_cast<cufftComplex*>(pXHat[1]), static_cast<cufftReal*>(pV2));
-    cufftExecC2R(*this->m_planC2R, reinterpret_cast<cufftComplex*>(pXHat[2]), static_cast<cufftReal*>(pV3));
-    cudaDeviceSynchronize();
-#else
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], pV1, timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[1], pV2, timer);
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[2], pV3, timer);
-#endif
-    
-    this->m_Opt->IncrementCounter(FFT, 3);
-    this->m_Opt->IncreaseFFTTimers(timer);
-*/  
-    this->m_Opt->m_FFT.fft->FFT_C2R(pXHat[0], pV1);
-    this->m_Opt->m_FFT.fft->FFT_C2R(pXHat[1], pV2);
-    this->m_Opt->m_FFT.fft->FFT_C2R(pXHat[2], pV3);
+    this->m_FFT->fft->FFT_C2R(pXHat[0], pV1);
+    this->m_FFT->fft->FFT_C2R(pXHat[1], pV2);
+    this->m_FFT->fft->FFT_C2R(pXHat[2], pV3);
     
     DebugGPUStopEvent();
 
@@ -630,19 +619,7 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(const ScalarType* v) {
     ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     PetscFunctionBegin;
         
-/*    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
-    
-#ifdef REG_HAS_CUDA
-    cufftExecR2C(*this->m_planR2C, const_cast<cufftReal*>(v), reinterpret_cast<cufftComplex*>(pXHat[0]));
-    cudaDeviceSynchronize();
-#else
-    accfft_execute_r2c_t(this->m_Opt->m_FFT.plan, const_cast<ScalarType*>(v), pXHat[0], timer);
-#endif
-
-    this->m_Opt->IncrementCounter(FFT, 1);
-    this->m_Opt->IncreaseFFTTimers(timer);
-*/
-    this->m_Opt->m_FFT.fft->FFT_R2C(v, pXHat[0]);
+    this->m_FFT->fft->FFT_R2C(v, pXHat[0]);
     
     DebugGPUStopEvent();
 
@@ -653,27 +630,44 @@ PetscErrorCode DifferentiationSM::ComputeInverseFFT(ScalarType* v) {
     PetscErrorCode ierr = 0;
     ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     PetscFunctionBegin;
-        
-/*    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
 
-#ifdef REG_HAS_CUDA
-    cufftExecC2R(*this->m_planC2R, reinterpret_cast<cufftComplex*>(pXHat[0]), static_cast<cufftReal*>(v));
-    cudaDeviceSynchronize();
-#else
-    accfft_execute_c2r_t(this->m_Opt->m_FFT.plan, pXHat[0], v, timer);
-#endif
-
-    this->m_Opt->IncrementCounter(FFT, 1);
-    this->m_Opt->IncreaseFFTTimers(timer);
-*/
-
-    this->m_Opt->m_FFT.fft->FFT_C2R(pXHat[0], v);
+    this->m_FFT->fft->FFT_C2R(pXHat[0], v);
 
     DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode DifferentiationSM::Restrict(ScalarType* vc, const ScalarType* vf, FourierTransform* coarse) {
+  PetscErrorCode ierr = 0;
+  ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+  PetscFunctionBegin;
+  
+  ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
+  
+  this->m_FFT->fft->FFT_R2C(vf, pXHat[0]);
+  this->m_FFT->fft->Restrict(pXHat[1], pXHat[0], coarse->osize);
+  coarse->fft->Scale(pXHat[1], scale);
+  coarse->fft->FFT_C2R(pXHat[1], vc);
+  
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode DifferentiationSM::Prolong(ScalarType* vf, const ScalarType* vc, FourierTransform* coarse) {
+  PetscErrorCode ierr = 0;
+  ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+  PetscFunctionBegin;
+  
+  ScalarType scale = 1./(coarse->nx[0]*coarse->nx[1]*coarse->nx[2]);
+  
+  coarse->fft->FFT_R2C(vc, pXHat[0]);
+  this->m_FFT->fft->FFT_R2C(vf, pXHat[1]);
+  coarse->fft->Scale(pXHat[0], scale);
+  this->m_FFT->fft->Scale(pXHat[1], 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]));
+  this->m_FFT->fft->ProlongNonZero(pXHat[1], pXHat[0], coarse->osize);
+  this->m_FFT->fft->FFT_C2R(pXHat[1], vf);
+  
+  PetscFunctionReturn(ierr);
+}
 
 }  // end of name space
 

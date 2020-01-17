@@ -140,6 +140,16 @@ PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc,
   PetscFunctionBegin;
   
   cudaMemset(pXf, 0, sizeof(ComplexType)*nl[0]*nl[1]*nl[2]);
+  ierr = ProlongNonZero(pXf, pXc, nxc); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+  
+  
+PetscErrorCode SpectralKernel::ProlongNonZero(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
   /*cudaMemcpy3DParms params = {0};
   params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(static_cast<const void*>(pXc)), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
   params.dstPtr = make_cudaPitchedPtr(static_cast<void*>(pXf), nx[2]*sizeof(ComplexType), nx[2], nx[1]);

@@ -741,6 +741,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
             } else if (strcmp(argv[1], "h0") == 0) {
                 this->m_KrylovMethod.pctype = H0;
                 this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
+            } else if (strcmp(argv[1], "h0mg") == 0) {
+                this->m_KrylovMethod.pctype = H0MG;
+                this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -866,6 +869,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
             argc--; argv++;
             this->m_RegNorm.beta[0] = atof(argv[1]);
 //            this->m_RegNorm.beta[1] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-pcbeta") == 0) {
+            argc--; argv++;
+            this->m_RegNorm.beta[3] = atof(argv[1]);
         } else if (strcmp(argv[1], "-beta-div") == 0) {
             argc--; argv++;
             this->m_RegNorm.beta[2] = atof(argv[1]);
@@ -1037,6 +1043,8 @@ PetscErrorCode RegOpt::DestroyFFT() {
 //        accfft_cleanup();
 //        this->m_FFT.plan = NULL;
 //    }
+    ierr = Free(this->m_FFT_coarse.fft); CHKERRQ(ierr);
+    
     ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
 
 //    if (this->m_FFT.mpicommexists) {
@@ -1080,6 +1088,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
+        this->m_FFT.nx[i]    = this->m_Domain.nx[i];
         nx[i]                = static_cast<int>(this->m_Domain.nx[i]);
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
     }
@@ -1169,7 +1178,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
 #endif*/
     fftsetuptime = -MPI_Wtime();
     ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_FFT.fft, this); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_FFT.fft, this, &this->m_FFT); CHKERRQ(ierr);
     fftsetuptime += MPI_Wtime();
     this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
 
@@ -1189,6 +1198,27 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
     
     this->m_FFT.fft->InitFFT();
+    
+    
+    nx[0] = nx[0]/2; nx[1] = nx[1]/2; nx[2] = nx[2]/2;
+    this->m_FFT_coarse.mpicommexists = this->m_FFT.mpicommexists;
+    this->m_FFT_coarse.mpicomm = this->m_FFT.mpicomm;
+    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    this->m_FFT_coarse.nalloc = static_cast<IntType>(nalloc);
+    for (int i = 0; i < 3; ++i) {
+        this->m_FFT_coarse.nx[i]     = static_cast<IntType>(nx[i]);
+        this->m_FFT_coarse.osize[i]  = static_cast<IntType>(osize[i]);
+        this->m_FFT_coarse.ostart[i] = static_cast<IntType>(ostart[i]);
+    }
+    
+    fftsetuptime = -MPI_Wtime();
+    ierr = Free(this->m_FFT_coarse.fft); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_FFT_coarse.fft, this, &this->m_FFT_coarse); CHKERRQ(ierr);
+    fftsetuptime += MPI_Wtime();
+    this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
+    
+    this->m_FFT_coarse.fft->InitFFT();
+    
 
     this->Exit(__func__);
 
@@ -1223,6 +1253,8 @@ PetscErrorCode RegOpt::Initialize() {
 #else
     this->m_FFT.threshold = 0.;
 #endif
+
+  this->m_FFT_coarse = this->m_FFT;
 
     this->m_Diff.diffPDE = SPECTRAL;
     this->m_Diff.diffReg = SPECTRAL;
@@ -1684,6 +1716,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << "                                 invreg       inverse regularization operator (default)" << std::endl;
         std::cout << "                                 2level       2-level preconditioner" << std::endl;
         std::cout << "                                 h0           H(v=0)^-1 preconditioner" << std::endl;
+        std::cout << "                                 h0mg         H(v=0)^-1 preconditioner with multi grid" << std::endl;
         std::cout << " -gridscale <dbl>            grid scale for 2-level preconditioner (default: 2)" << std::endl;
         std::cout << " -pcsolver <type>            solver for inversion of preconditioner (in case" << std::endl;
         std::cout << "                             the 2-level preconditioner is used)" << std::endl;
@@ -2699,6 +2732,12 @@ PetscErrorCode RegOpt::DisplayOptions() {
                 case H0:
                 {
                     std::cout << "H(v=0)^-1" << std::endl;
+                    twolevel = true;
+                    break;
+                }
+                case H0MG:
+                {
+                    std::cout << "H(v=0)^-1 (multi-grid)" << std::endl;
                     twolevel = true;
                     break;
                 }

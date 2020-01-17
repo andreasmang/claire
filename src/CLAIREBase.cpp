@@ -21,8 +21,6 @@
 #define _CLAIREBASE_CPP_
 
 #include "CLAIREBase.hpp"
-#include "PreconditionerKernel.hpp"
-
 
 namespace reg {
 
@@ -455,6 +453,10 @@ PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      ierr = DbgMsg2("Setting control variable"); CHKERRQ(ierr);
+    }
 
     ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
 //    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
@@ -1119,188 +1121,6 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
     ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField2, this->m_WorkVecField1, flag); CHKERRQ(ierr);
     
     ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
-  
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
- * @brief applies inverse of H(v=0) (used as preconditioner for our problem)
- *******************************************************************/
-PetscErrorCode CLAIREBase::ApplyInvHessian(Vec precx, Vec x) {
-    PetscErrorCode ierr = 0;
-    H0PrecondKernel kernel;
-    const ScalarType *ptr = nullptr;
-    
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-    
-    ZeitGeist_define(PC_H0);
-    ZeitGeist_tick(PC_H0);
-
-    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
-
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
-    
-    IntType *nx = this->m_Opt->m_Domain.nx;
-    
-    IntType nx2 = (nx[0]-2)*(nx[0]-1) + (nx[1]-2)*(nx[1]-1) + (nx[2]-2)*(nx[2]-1);
-    
-    ScalarType hd = this->m_Opt->GetLebesgueMeasure();
-    
-    ScalarType beta = sqrt(this->m_Opt->m_RegNorm.beta[0]);
-    
-    //if (beta < 0.05) beta = 0.05;
-    
-    kernel.nl = this->m_Opt->m_Domain.nl;
-    //kernel.omg  = 0.01*this->m_Opt->m_RegNorm.beta[0];
-    //kernel.omg  = 12./((nx[0]-2)*(nx[0]-1) + (nx[1]-2)*(nx[1]-1) + (nx[2]-2)*(nx[2]-1));
-    //kernel.beta = beta;//this->m_Opt->m_RegNorm.beta[0];
-    
-    if (this->m_Regularization == NULL) {
-        ierr = this->SetupRegularization(); CHKERRQ(ierr);
-    }
-    
-    ScalarType normref, cg_a, cg_b, cg_r, cg_p, tmp, norm_p;
-    
-    ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
-    //ScalarType avg1, avg2, avg3;
-    //ierr = VecSum(this->m_WorkVecField3->m_X1, &avg1); CHKERRQ(ierr);
-    //ierr = VecSum(this->m_WorkVecField3->m_X2, &avg2); CHKERRQ(ierr);
-    //ierr = VecSum(this->m_WorkVecField3->m_X3, &avg3); CHKERRQ(ierr);
-    //ScalarType hl = 1.0/(ScalarType)(kernel.nl);
-    
-    IntType mt_idx = 0;//this->m_Opt->m_Domain.nt;
-    
-    if (this->m_GradientState) {
-      ierr = this->m_GradientState[mt_idx]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_Differentiation->Gradient(this->m_WorkVecField3, *this->m_ReferenceImage); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField3->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
-    }
-    
-    /*{
-      std::stringstream ss;
-      ss << "PC avg: " << avg1 << "," << avg2 << "," << avg3;
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
-    }*/
-    
-    //ierr = this->m_WorkVecField1->SetValue(0); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-    ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
-    normref = 1.;
-    
-    IntType outerloop = 50;
-    IntType innerloop = 500;
-    ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint;
-        
-    for (int j=0;j<outerloop;++j) {
-      //ierr = this->m_Differentiation->RegLapModOp(this->m_WorkVecField2, this->m_WorkVecField1, beta); CHKERRQ(ierr);
-      //ierr = this->m_WorkVecField2->SetValue(0); CHKERRQ(ierr);
-      
-      ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
-      ierr = kernel.IterationPart1(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
-      
-      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->AXPY(beta, this->m_WorkVecField1);
-      
-      ierr = this->m_WorkVecField4->SetComponents(x); CHKERRQ(ierr);
-       ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField4, this->m_WorkVecField4, false, 1.); CHKERRQ(ierr);
-      
-      ierr = this->m_WorkVecField4->AXPY(-1., this->m_WorkVecField2);
-      ierr = this->m_WorkVecField5->Copy(this->m_WorkVecField4); CHKERRQ(ierr);
-      // WVF1 = v0, WVF2 = H0*v0, WVF4 = r = x - H0*v0, WVF5 = p = r
-      //ierr = this->m_WorkVecField4->Norm2(cg_r); CHKERRQ(ierr);
-      ierr = VecDot(this->m_WorkVecField4->m_X1, this->m_WorkVecField4->m_X1, &cg_r); CHKERRQ(ierr);
-      ierr = VecDot(this->m_WorkVecField4->m_X2, this->m_WorkVecField4->m_X2, &tmp); CHKERRQ(ierr);
-      cg_r += tmp;
-      ierr = VecDot(this->m_WorkVecField4->m_X3, this->m_WorkVecField4->m_X3, &tmp); CHKERRQ(ierr);
-      cg_r += tmp;
-      
-      if (this->m_Opt->m_Verbosity > 1 && j%500 == 0) {
-        std::stringstream ss;
-        ss << "PC res: " << sqrt(cg_r);
-        if (j == 0) { 
-          normref = sqrt(cg_r);
-          //if (normref*cg_eps < 5e-6) cg_eps = 5e-6/normref;
-        }
-        else ss << ", " << sqrt(cg_r)/normref;
-        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
-      }
-        int i;
-        for (i = 0; i<innerloop; ++i) {
-          //ierr = this->m_Differentiation->RegLapModOp(this->m_WorkVecField2, this->m_WorkVecField5, beta); CHKERRQ(ierr);
-          //ierr = this->m_WorkVecField2->SetValue(0); CHKERRQ(ierr);
-          
-          ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
-          ierr = kernel.IterationPart1(); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
-          
-          ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField2->AXPY(beta, this->m_WorkVecField5);
-          
-          ierr = VecDot(this->m_WorkVecField2->m_X1, this->m_WorkVecField5->m_X1, &cg_p); CHKERRQ(ierr);
-          ierr = VecDot(this->m_WorkVecField2->m_X2, this->m_WorkVecField5->m_X2, &tmp); CHKERRQ(ierr);
-          cg_p += tmp;
-          ierr = VecDot(this->m_WorkVecField2->m_X3, this->m_WorkVecField5->m_X3, &tmp); CHKERRQ(ierr);
-          cg_p += tmp;
-          
-          cg_a = cg_r/cg_p;
-          ierr = this->m_WorkVecField1->AXPY(cg_a, this->m_WorkVecField5);
-          ierr = this->m_WorkVecField4->AXPY(-cg_a, this->m_WorkVecField2);
-          ierr = this->m_WorkVecField4->Norm2(cg_a); CHKERRQ(ierr);
-          if (sqrt(cg_a) < cg_eps*normref) {
-            cg_r = cg_a;
-            ++i;
-            break;
-          }
-          cg_b = cg_a/cg_r;
-          cg_r = cg_a;
-          ierr = this->m_WorkVecField5->Scale(cg_b); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField5->AXPY(1.,this->m_WorkVecField4); CHKERRQ(ierr);
-        }
-      
-      if (j + 1 >= outerloop && this->m_Opt->m_Verbosity > 1) {
-        std::stringstream ss;
-        ss << "PC itermax";
-        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
-      }
-      if (sqrt(cg_r) < cg_eps*normref)  {
-        std::stringstream ss;
-        ss << "PC converged: " << (j*innerloop)  + i;
-        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
-        break;
-      }
-    }
-    
-    if (this->m_Opt->m_Verbosity > 1) {
-      std::stringstream ss;
-      ss << "PC res: " << sqrt(cg_r) << ", " << sqrt(cg_r)/normref;
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
-      ss.str(std::string()); ss.clear();
-    }
-    
-    if (this->m_GradientState) {
-      ierr = this->m_GradientState[mt_idx]->RestoreArrays(); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
-    }
-        
-    ierr = this->m_WorkVecField1->GetComponents(precx); CHKERRQ(ierr);
-    
-    ZeitGeist_tock(PC_H0);
   
     this->m_Opt->Exit(__func__);
 

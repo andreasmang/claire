@@ -130,6 +130,7 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
     ZeitGeist_tock(FD_GRAD);
+    DebugGPUStopEvent();
     
     PetscFunctionReturn(ierr);
 }
@@ -142,8 +143,18 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
                                             const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    
+
+    DebugGPUStartEvent("FD Laplacian");
+
+    ZeitGeist_define(FD_LAP);
+    ZeitGeist_tick(FD_LAP);
+#ifdef REG_HAS_CUDA
+    ierr = computeTextureLaplacian(l, m, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
+#endif
+    ZeitGeist_tock(FD_LAP);
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -161,7 +172,19 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    DebugGPUStartEvent("FD Laplacian");
+
+    ZeitGeist_define(FD_LAP);
+    ZeitGeist_tick(FD_LAP);
+#ifdef REG_HAS_CUDA
+    ierr = computeTextureLaplacian(l1, v1, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(l2, v2, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(l3, v3, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
+#endif
+    ZeitGeist_tock(FD_LAP);
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }
@@ -186,6 +209,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
     ZeitGeist_tock(FD_DIV);
+    DebugGPUStopEvent();
 
     PetscFunctionReturn(ierr);
 }

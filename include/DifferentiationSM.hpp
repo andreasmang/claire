@@ -67,6 +67,11 @@ class DifferentiationSM : public Differentiation {
     
     virtual PetscErrorCode GaussianFilter(ScalarType*, const ScalarType*, const ScalarType*);
     
+    virtual PetscErrorCode SetFFT(FourierTransform* fft);
+    
+    virtual PetscErrorCode Restrict(ScalarType*, const ScalarType*, FourierTransform* coarse);
+    virtual PetscErrorCode Prolong(ScalarType*, const ScalarType*, FourierTransform* coarse);
+    
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
@@ -92,6 +97,8 @@ class DifferentiationSM : public Differentiation {
 //#endif
     
     ComplexType *m_XHat[3];
+    
+    FourierTransform *m_FFT;
 };
 
 

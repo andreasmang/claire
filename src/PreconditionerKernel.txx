@@ -25,38 +25,7 @@
 using KernelUtils::array3_t;
 
 struct H0Kernel {
-  template<typename T>
-  KernelOperator (int i, T* vhat[3], const T* gmt[3], const T* rhs[3], const T* reg[3], T omg) {
-    array3_t<T> res;
-    T gmt00 = gmt[0][i]*gmt[0][i];
-    T gmt01 = gmt[0][i]*gmt[1][i];
-    T gmt02 = gmt[0][i]*gmt[2][i];
-    T gmt11 = gmt[1][i]*gmt[1][i];
-    T gmt12 = gmt[1][i]*gmt[2][i];
-    T gmt22 = gmt[2][i]*gmt[2][i];
-    res.x = rhs[0][i] - reg[0][i] - gmt00*vhat[0][i] - gmt01*vhat[1][i] - gmt02*vhat[2][i];
-    res.y = rhs[1][i] - reg[1][i] - gmt01*vhat[0][i] - gmt11*vhat[1][i] - gmt12*vhat[2][i];
-    res.z = rhs[2][i] - reg[2][i] - gmt02*vhat[0][i] - gmt12*vhat[1][i] - gmt22*vhat[2][i];
-    
-    vhat[0][i] += omg*res.x;
-    vhat[1][i] += omg*res.y;
-    vhat[2][i] += omg*res.z;
-  }
-  template<typename T> KernelOperator (int i, T* diag[3], const T* gmt[3], T diag_reg) {
-    array3_t<T> d;
-    d.x = gmt[0][i]*gmt[0][i] + diag_reg;
-    //d.x = diag_reg;
-    d.y = gmt[1][i]*gmt[1][i] + diag_reg;
-    //d.y = diag_reg;
-    d.z = gmt[2][i]*gmt[2][i] + diag_reg;
-    //d.z = diag_reg;
-    if (d.x == 0.) d.x = 1.;
-    if (d.y == 0.) d.y = 1.;
-    if (d.z == 0.) d.z = 1.;
-    diag[0][i] = 1./d.x;
-    diag[1][i] = 1./d.y;
-    diag[2][i] = 1./d.z;
-  }
+  // computes: grad M \otimes grad M
   template<typename T> KernelOperator (int i, T* mvx, T* mvy, T* mvz, 
                                        const T* rx, const T* ry, const T* rz,
                                        const T* gmtx, const T* gmty, const T* gmtz) {
@@ -70,11 +39,48 @@ struct H0Kernel {
     mvy[i] =  gmt01*rx[i] + gmt11*ry[i] + gmt12*rz[i];
     mvz[i] =  gmt02*rx[i] + gmt12*ry[i] + gmt22*rz[i];
   }
-  template<typename T> KernelOperator (int i, T* vhat[3], T* rmv[3], T omg, T beta) {
-	  //vhat[0][i] += omg*(rhs[0][i] - (vhat[0][i] + beta*rmv[0][i]));
-	  vhat[0][i] += omg*(beta*rmv[0][i] - vhat[0][i]);
-	  vhat[1][i] += omg*(beta*rmv[1][i] - vhat[1][i]);
-	  vhat[2][i] += omg*(beta*rmv[2][i] - vhat[2][i]);
+  // computes residual
+  template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
+                                            T* px, T* py, T* pz,
+                                            T* rx, T* ry, T* rz,
+                                            const T* vx, const T* vy, const T* vz,
+                                            const T beta) {
+    T H0x, H0y, H0z;
+    H0x = mx[i] + beta*vx[i]; H0y = my[i] + beta*vy[i]; H0z = mz[i] + beta*vz[i];
+    rx[i] -= H0x; ry[i] -= H0y; rz[i] -= H0z;
+    px[i] = rx[i]; py[i] = ry[i]; pz[i] = rz[i];
+    
+    return rx[i]*rx[i] + ry[i]*ry[i] + rz[i]*rz[i];
+  }
+  // computes p^T A p
+  template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
+                                            T* px, T* py, T* pz,
+                                            const T beta) {
+    mx[i] += beta*px[i]; my[i] += beta*py[i]; mz[i] += beta*pz[i];
+    
+    return mx[i]*px[i] + my[i]*py[i] + mz[i]*pz[i];
+  }
+};
+struct H0KernelCG {
+  // computes update for x and res
+  template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
+                                            T* px, T* py, T* pz,
+                                            T* rx, T* ry, T* rz,
+                                            T* vx, T* vy, T* vz,
+                                            const T alpha) {
+    vx[i] += alpha*px[i]; vy[i] += alpha*py[i]; vz[i] += alpha*pz[i];
+    rx[i] -= alpha*mx[i]; ry[i] -= alpha*my[i]; rz[i] -= alpha*mz[i];
+    
+    return rx[i]*rx[i] + ry[i]*ry[i] + rz[i]*rz[i];
+  }
+  // computes update for p
+  template<typename T> KernelOperator (int i,
+                                       T* px, T* py, T* pz,
+                                       T* rx, T* ry, T* rz,
+                                       const T alpha) {
+    px[i] = alpha*px[i] + rx[i];
+    py[i] = alpha*py[i] + ry[i];
+    pz[i] = alpha*pz[i] + rz[i];
   }
 };
 

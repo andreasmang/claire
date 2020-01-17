@@ -26,21 +26,21 @@
 namespace reg {
 
 struct H0PrecondKernel {
-  const ScalarType *pRHS[3];
   ScalarType *pVhat[3];
   ScalarType *pM[3];
   const ScalarType *pGmt[3];
-  const ScalarType *pReg[3];
+  ScalarType *pP[3];
+  ScalarType *pRes[3];
   
-  ScalarType omg;
   ScalarType beta;
   
   IntType nl;
   
-  PetscErrorCode Iteration();
-  PetscErrorCode IterationPart1();
-  PetscErrorCode IterationPart2();
-  PetscErrorCode Diagonal();
+  PetscErrorCode gMgMT();
+  PetscErrorCode res(ScalarType &res);
+  PetscErrorCode pTAp(ScalarType &res);
+  PetscErrorCode CGres(ScalarType &res);
+  PetscErrorCode CGp(ScalarType alpha);
 };
 
 } // namepsace reg

@@ -111,8 +111,11 @@ template<int N> struct InverseNLaplacianKernel {
       ComplexType *v1, ComplexType *v2, ComplexType *v3, 
       ScalarType scale, ScalarType b0) {
     ScalarType lapik = pow<N>(-LaplaceNumber(w));
+    ScalarType regop;
     if (lapik == 0.0) lapik = 1.0;
-    ScalarType regop = scale/(b0*lapik);
+    regop = scale/(b0*lapik);
+    //if (lapik == 0.0) regop = 0.0;
+    //else regop = scale/(b0*lapik);
 
     v1[i][0] *= regop; v1[i][1] *= regop;
     v2[i][0] *= regop; v2[i][1] *= regop;

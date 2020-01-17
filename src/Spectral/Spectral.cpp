@@ -35,9 +35,10 @@ Spectral::~Spectral() {
 /********************************************************************
  * @brief constructor
  *******************************************************************/
-Spectral::Spectral(RegOpt *opt) {
+Spectral::Spectral(RegOpt *opt, FourierTransform *fft) {
     this->Initialize();
     this->m_Opt = opt;
+    this->m_FFT = fft;
     this->SetupFFT();
 }
 
@@ -66,6 +67,7 @@ PetscErrorCode Spectral::Initialize() {
     this->m_plan = nullptr;
 
     this->m_Opt = nullptr;
+    this->m_FFT = nullptr;
 
     PetscFunctionReturn(ierr);
 }
@@ -77,16 +79,16 @@ PetscErrorCode Spectral::InitFFT() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    this->m_kernel.nx[0] = this->m_Opt->m_Domain.nx[0];
-    this->m_kernel.nx[1] = this->m_Opt->m_Domain.nx[1];
-    this->m_kernel.nx[2] = this->m_Opt->m_Domain.nx[2];
-    this->m_kernel.nl[0] = this->m_Opt->m_FFT.osize[0];
-    this->m_kernel.nl[1] = this->m_Opt->m_FFT.osize[1];
-    this->m_kernel.nl[2] = this->m_Opt->m_FFT.osize[2];
-    this->m_kernel.nstart[0] = this->m_Opt->m_FFT.ostart[0];
-    this->m_kernel.nstart[1] = this->m_Opt->m_FFT.ostart[1];
-    this->m_kernel.nstart[2] = this->m_Opt->m_FFT.ostart[2];
-    this->m_kernel.scale = this->m_Opt->ComputeFFTScale();
+    this->m_kernel.nx[0] = this->m_FFT->nx[0];
+    this->m_kernel.nx[1] = this->m_FFT->nx[1];
+    this->m_kernel.nx[2] = this->m_FFT->nx[2];
+    this->m_kernel.nl[0] = this->m_FFT->osize[0];
+    this->m_kernel.nl[1] = this->m_FFT->osize[1];
+    this->m_kernel.nl[2] = this->m_FFT->osize[2];
+    this->m_kernel.nstart[0] = this->m_FFT->ostart[0];
+    this->m_kernel.nstart[1] = this->m_FFT->ostart[1];
+    this->m_kernel.nstart[2] = this->m_FFT->ostart[2];
+    this->m_kernel.scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
     
     PetscFunctionReturn(ierr);
 }
@@ -99,10 +101,10 @@ PetscErrorCode Spectral::SetupFFT() {
     PetscFunctionBegin;
     
     int nx[3], nalloc;
-    nx[0] = this->m_Opt->m_Domain.nx[0];
-    nx[1] = this->m_Opt->m_Domain.nx[1];
-    nx[2] = this->m_Opt->m_Domain.nx[2];
-    nalloc = this->m_Opt->m_FFT.nalloc;
+    nx[0] = this->m_FFT->nx[0];
+    nx[1] = this->m_FFT->nx[1];
+    nx[2] = this->m_FFT->nx[2];
+    nalloc = this->m_FFT->nalloc;
     
 #ifdef REG_HAS_CUDA
     if (this->m_planR2C == nullptr) {
@@ -140,7 +142,7 @@ PetscErrorCode Spectral::SetupFFT() {
     }
     
     this->m_plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<ScalarType*>(uk),
-                                              this->m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
+                                              this->m_FFT->mpicomm, ACCFFT_MEASURE);
     ierr = Assert(this->m_plan != nullptr, "allocation failed"); CHKERRQ(ierr);
     
         // clean up
@@ -262,6 +264,21 @@ PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, const I
     nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
     
     ierr = this->m_kernel.Prolong(xf, xc, nx_c); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Prolong from lower Grid without resetting xf to 0
+ *******************************************************************/
+PetscErrorCode Spectral::ProlongNonZero(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    IntType nx_c[3];
+    nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
+    
+    ierr = this->m_kernel.ProlongNonZero(xf, xc, nx_c); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

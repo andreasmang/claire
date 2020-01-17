@@ -32,6 +32,7 @@ namespace reg {
     PetscErrorCode initConstants(IntType*);
     PetscErrorCode computeTextureGradient(ScalarType* , ScalarType* , ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
     PetscErrorCode computeTextureDivergence(ScalarType* , const ScalarType* , const ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
+    PetscErrorCode computeTextureLaplacian(ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
 }
 
 #endif

@@ -78,6 +78,13 @@ PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc,
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode SpectralKernel::ProlongNonZero(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  PetscFunctionReturn(ierr);
+}
+
 } // namepsace reg
 
 #endif

@@ -31,12 +31,13 @@
 namespace reg {
   
 class RegOpt;
+class FourierTransform;
 
 class Spectral {
  public:
     typedef Spectral Self;
     
-    Spectral(RegOpt *opt);
+    Spectral(RegOpt *opt, FourierTransform* fft);
     virtual ~Spectral();
     
     PetscErrorCode InitFFT();
@@ -49,6 +50,7 @@ class Spectral {
     
     PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, const IntType nxc[3]);
     PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]);
+    PetscErrorCode ProlongNonZero(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]);
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     
@@ -67,6 +69,7 @@ class Spectral {
 #endif
 
     RegOpt *m_Opt;
+    FourierTransform *m_FFT;
 };
 
 

@@ -93,7 +93,7 @@ class Preconditioner {
     PetscErrorCode Apply2LevelPrecond(Vec, Vec);
     
     /*! apply inverse of H(v=0) as preconditioner */
-    PetscErrorCode ApplyH0Precond(Vec, Vec);
+    PetscErrorCode ApplyH0Precond(Vec, Vec, bool);
 
     struct CoarseGrid {
         RegOpt* m_Opt;                        ///< registration options (on coarse grid)
@@ -113,6 +113,8 @@ class Preconditioner {
         inline IntType ng(){return this->m_Opt->m_Domain.ng;};
         bool setupdone;
     };
+    
+    bool firstrun;                          ///< flag to indicate first run of preconditioner
 
     CoarseGrid* m_CoarseGrid;
 
@@ -127,6 +129,8 @@ class Preconditioner {
     Vec m_WorkScaField1;                    ///< temporary scalar field
     Vec m_WorkScaField2;                    ///< temprary scalar field
     VecField* m_WorkVecField;               ///< temporary vector field
+    
+    VecField** m_GradState;                  ///< gradient of state Variable
 
     Mat m_MatVec;                           ///< mat vec object (PETSc)
     Mat m_MatVecEigEst;                     ///< mat vec object (PETSc)

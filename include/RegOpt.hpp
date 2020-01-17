@@ -124,6 +124,7 @@ enum PrecondMeth {
     TWOLEVEL,  ///< 2 level preconditioner
     NOPC,      ///< no preconditioner
     H0,        ///< H(v=0)^-1 preconditioner
+    H0MG,      ///< H(v=0)^-1 preconditioner with multi grid
 };
 
 
@@ -424,6 +425,7 @@ struct FourierTransform {
     MPI_Comm mpicomm;   ///< communicator for accfft
     bool mpicommexists; ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain
+    IntType nx[3];      ///< spatial grid cell size
     IntType osize[3];   ///< size of grid in fourier domain for mpi proc
     IntType ostart[3];  ///< start index in fourier domain for mpi proc
     ScalarType threshold; ///< threshold to cut of frequencies to zero
@@ -598,6 +600,7 @@ class RegOpt {
     RegNorm m_RegNorm {};                ///< parameters for regularization model
     Distance m_Distance {};              ///< parameters for distance measure
     FourierTransform m_FFT {};           ///< parameters for FFT/accfft
+    FourierTransform m_FFT_coarse {};    ///< parameters for FFT/accfft
     DifferentiationScheme m_Diff {};     ///< differentiation schemes
     ParCont m_ParaCont {};               ///< flags for parameter continuation
     SolveType m_SolveType {};            ///< solver

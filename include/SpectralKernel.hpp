@@ -36,6 +36,7 @@ struct SpectralKernel {
   
   PetscErrorCode Restrict(ComplexType *pXc, const ComplexType *pXf, const IntType nxc[3]);
   PetscErrorCode Prolong(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]);
+  PetscErrorCode ProlongNonZero(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]);
   
   PetscErrorCode Scale(ComplexType *pX, ScalarType val);
 };

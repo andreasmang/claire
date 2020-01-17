@@ -119,8 +119,6 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
   std::cout << "FD div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 #endif
-
-  std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); // Div
   ierr = m_dif->Divergence(dv->m_X1, v); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
@@ -132,6 +130,18 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   std::cout << "div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   
   std::cout << std::endl;
+#ifdef REG_HAS_CUDA
+  std::cout << std::endl;
+  ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
+  ierr = m_fd->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  std::cout << "FD lap error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  std::cout << "FD lap error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+#endif
   ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
   ierr = m_dif->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);

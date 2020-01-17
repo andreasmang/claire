@@ -59,6 +59,9 @@ class CLAIRE : public CLAIREBase {
     /*! compute Hessian matvec (second variation
         of lagrangian with respect to control variable(s) */
     PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true);
+    
+    /*! apply inverse H(v=0) */
+    PetscErrorCode ApplyInvHessian(Vec, Vec, VecField**, bool first=false, bool twolevel=false);
 
     /*! get state variable */
     PetscErrorCode GetStateVariable(Vec&);

@@ -1342,7 +1342,7 @@ PetscErrorCode CLAIREInterface::RunSolverRegParaContReduction() {
     ierr = this->m_Optimizer->SetInitialGuess(this->m_Solution); CHKERRQ(ierr);
 
     // reduce regularization parameter
-    level = 0; beta = 1.0;
+    level = 0; beta = this->m_Opt->m_ParaCont.beta0;
 
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
