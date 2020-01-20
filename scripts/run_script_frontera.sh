@@ -6,7 +6,9 @@
 
 
 # fixed arguments
-CLAIRE_BDIR=/cbica/home/himthann/apps/claire/bin
+CLAIRE_DIR=${HOME}/claire
+CLAIRE_SCRIPT_DIR=$CLAIRE_DIR/scripts
+CLAIRE_BDIR=$CLAIRE_DIR/bin
 
 
 myline="----------------------------------------------------------------------------------"
@@ -215,6 +217,7 @@ mkdir -p $OUTPUT_DIR
 
 if [ $MODE == 1 ]; then
 
+
 # apply AFFINE transform to subject T1
 antsApplyTransforms \
     -d 3 \
@@ -232,6 +235,12 @@ antsApplyTransforms \
     -o ${OUTPUT_DIR}/${SUBJECT_LAB_FNAME%.nii.gz}_affine_warped.nii.gz \
     -n GenericLabel[Linear] \
     -t ${AFFINE}
+
+# make the input image periodic
+python ${CLAIRE_SCRIPT_DIR}/utils.py -mode 1 -input_image ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz -output_image ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz -nz 5
+
+python ${CLAIRE_SCRIPT_DIR}/utils.py -mode 1 -input_image ${OUTPUT_DIR}/${SUBJECT_LAB_FNAME%.nii.gz}_affine_warped.nii.gz -output_image ${OUTPUT_DIR}/${SUBJECT_LAB_FNAME%.nii.gz}_affine_warped.nii.gz -nz 5
+
 
 # get jacobian determinant of affine transformation
 # first compose affine transform
@@ -274,7 +283,7 @@ fi
 # run claire on the AFFINE warped T1 image
 if [ ! -f ${OUTPUT_DIR}/velocity-field-x1.nii.gz ]; then
     if [ "$PARAM_CONT" == binary ]; then
-    	mpirun --prefix $OPENMPI -np $NSLOTS \
+    	ibrun \
         $CLAIRE_BDIR/claire \
         -x $OUTPUT_DIR/ \
         -mt ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
@@ -288,7 +297,7 @@ if [ ! -f ${OUTPUT_DIR}/velocity-field-x1.nii.gz ]; then
         -distance ${DISTANCE} \
         > $OUTPUT_DIR/solver_log.txt
     else
-        mpirun --prefix $OPENMPI -np $NSLOTS \
+        ibrun \ 
         $CLAIRE_BDIR/claire \
         -x $OUTPUT_DIR/ \
         -mt ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
@@ -304,11 +313,15 @@ fi
 fi
 
 
+# filter the velocity field to get rid of aliasing (remove the 5 highest frequencies)
+python $CLAIRE_SCRIPT_DIR/utils.py -mode 2 -input_image $OUTPUT_DIR/ -output_image $OUTPUT_DIR/ 
+
+
 # if resampling was done then downsample the velocity field
 if [ ! $REG_RES == ${N} ]; then
     ResampleImage \
     3 \
-    $OUTPUT_DIR/velocity-field-x1.nii.gz \
+    $OUTPUT_DIR/filtered_velocity-field-x1.nii.gz \
     $OUTPUT_DIR/downsampled_velocity-field-x1.nii.gz \
     $N \
     1,0 \
@@ -317,7 +330,7 @@ if [ ! $REG_RES == ${N} ]; then
 
     ResampleImage \
     3 \
-    $OUTPUT_DIR/velocity-field-x2.nii.gz \
+    $OUTPUT_DIR/filtered_velocity-field-x2.nii.gz \
     $OUTPUT_DIR/downsampled_velocity-field-x2.nii.gz \
     $N \
     1,0 \
@@ -326,7 +339,7 @@ if [ ! $REG_RES == ${N} ]; then
 
     ResampleImage \
     3 \
-    $OUTPUT_DIR/velocity-field-x3.nii.gz \
+    $OUTPUT_DIR/filtered_velocity-field-x3.nii.gz \
     $OUTPUT_DIR/downsampled_velocity-field-x3.nii.gz \
     $N \
     1,0 \
@@ -334,14 +347,14 @@ if [ ! $REG_RES == ${N} ]; then
     7
 else
     # simple sylink to the original velocity if no upsampling was done
-    ln -sf $OUTPUT_DIR/velocity-field-x1.nii.gz $OUTPUT_DIR/downsampled_velocity-field-x1.nii.gz
-    ln -sf $OUTPUT_DIR/velocity-field-x2.nii.gz $OUTPUT_DIR/downsampled_velocity-field-x2.nii.gz
-    ln -sf $OUTPUT_DIR/velocity-field-x3.nii.gz $OUTPUT_DIR/downsampled_velocity-field-x3.nii.gz
+    ln -sf $OUTPUT_DIR/filtered_velocity-field-x1.nii.gz $OUTPUT_DIR/downsampled_velocity-field-x1.nii.gz
+    ln -sf $OUTPUT_DIR/filtered_velocity-field-x2.nii.gz $OUTPUT_DIR/downsampled_velocity-field-x2.nii.gz
+    ln -sf $OUTPUT_DIR/filtered_velocity-field-x3.nii.gz $OUTPUT_DIR/downsampled_velocity-field-x3.nii.gz
 fi
 
 # run apply the claire warp field on the affine registered subject image
 if [ -f ${OUTPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
-	mpirun --prefix $OPENMPI -np $NSLOTS \
+	ibrun \
     $CLAIRE_BDIR/clairetools \
     -deformimage \
     -ifile ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
@@ -351,7 +364,7 @@ if [ -f ${OUTPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
     -v3 $OUTPUT_DIR/downsampled_velocity-field-x3.nii.gz \
     > $OUTPUT_DIR/transport_log.txt
 
-	mpirun --prefix $OPENMPI -np $NSLOTS \
+	ibrun \
     $CLAIRE_BDIR/clairetools \
     -tlabelmap \
     -labels ${LABELS} \
@@ -362,7 +375,7 @@ if [ -f ${OUTPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
     -v3 $OUTPUT_DIR/downsampled_velocity-field-x3.nii.gz \
     >> $OUTPUT_DIR/transport_log.txt
 
-	mpirun --prefix $OPENMPI -np $NSLOTS \
+	ibrun \
     $CLAIRE_BDIR/clairetools \
     -invdetdefgrad \
     -x ${OUTPUT_DIR}/ \
@@ -446,7 +459,7 @@ if [ $MODE == 2 ]; then
     # run apply the claire warp field on the affine registered subject image
     # use the velocity field from the input directory of claire results
     if [ -f ${INPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
-        mpirun --prefix $OPENMPI -np $NSLOTS \
+        ibrun \
             $CLAIRE_BDIR/clairetools \
             -deformimage \
             -ifile ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
@@ -456,7 +469,7 @@ if [ $MODE == 2 ]; then
             -v3 $INPUT_DIR/downsampled_velocity-field-x3.nii.gz \
             > $OUTPUT_DIR/transport_log.txt
 
-        mpirun --prefix $OPENMPI -np $NSLOTS \
+        ibrun \
             $CLAIRE_BDIR/clairetools \
             -tlabelmap \
             -labels ${LABELS} \
@@ -467,7 +480,7 @@ if [ $MODE == 2 ]; then
             -v3 $INPUT_DIR/downsampled_velocity-field-x3.nii.gz \
             >> $OUTPUT_DIR/transport_log.txt
 
-        mpirun --prefix $OPENMPI -np $NSLOTS \
+        ibrun \
             $CLAIRE_BDIR/clairetools \
             -invdetdefgrad \
             -x ${OUTPUT_DIR}/ \
