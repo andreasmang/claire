@@ -67,8 +67,8 @@ case $i in
     SCALE_FACTOR="${i#*=}"
     shift # past argument=value
     ;;
-    --res_scale_factor=*)
-    RES_SCALE_FACTOR="${i#*=}"
+    --reg_res=*)
+    REG_RES="${i#*=}"
     shift # past argument=value
     ;;
     --help)
@@ -83,6 +83,11 @@ case $i in
     echo "     --labels=                        comma separated label ids in the subject(moving) image segmentation. e.g. 10,50,150,250 (needed)"
     echo "     --template=*.nii.gz              absolute path to the template image(fixed image)"
     echo "     --N=lxmxn                        size of template image. eg. 182x218x218 (needed)"
+    echo "     --reg_res=lxmxn                  resolution in which to run claire. This should typically be higher or the same resolution"
+    echo "                                      as the input image. If the input image resolution (--N) is smaller than 256x256x256, consider giving"
+    echo "                                      --reg_res=256x256x256 as the input, otherwise if the input image resolution is higher than"
+    echo "                                      256x256x256, then try giving the input image dimensions as the input to --reg_res. Upsampling"
+    echo "                                      in claire is usually required to avoid unwanted aliasing effects"
     echo "     --affine=*.txt                   absolute path to the Affine.txt file genereated from ANTS affine registration of subject(moving) to"
     echo "                                      template(fixed)"
     echo "     --x=/path/to/output              path to the output directory"
@@ -96,10 +101,6 @@ case $i in
     echo "     --parameter=<float>              parameter(regularization) value for diffeomorhic registration if --parameter_cont=0 is given"
     echo "                                      default: 1e-2"
     echo "     --scale_factor=                  scaling factor for RAVENS (i.e Jacobian Determinant in Template space). default: 1"
-    echo "     --res_scale_factor=axbxc         scaling factor to do registration in high resolution. e.g. if --res_scaling_factor=2x2x2, then"
-    echo "                                      the diffeomorphic registration will be performed in 2*l x 2*m x 2*n resolution where lxmxn are"
-    echo "                                      original image dimensions given via --N option. a,b,c have to be such that a*l, b*m and c*n"
-    echo "                                      are integers. default: 1x1x1"
     echo ${myline}
     echo ""
     exit;
@@ -191,10 +192,11 @@ if [ -z "$SCALE_FACTOR" ]; then
 fi
 
 ###########################################
-if [ -z "$RES_SCALE_FACTOR" ]; then
-    echo "--res_scale_factor not provided, setting to 1x1x1"
-    RES_SCALE_FACTOR=1x1x1
+if [ -z "$REG_RES" ]; then
+    echo "--reg_res is needed"
+    exit;
 fi
+
 ###########################################
 if [ -z "$N" ]; then
     echo "--N needs to be provided"
@@ -244,13 +246,13 @@ CreateJacobianDeterminantImage \
     ${OUTPUT_DIR}/affine.nii.gz \
     ${OUTPUT_DIR}/affine_detdefgrad.nii.gz
 
-if [ ! $RES_SCALE_FACTOR == "1x1x1" ]; then
+if [ ! $REG_RES == ${N} ]; then
     # resample the input images (template and affine warped image to required resolution)
     ResampleImage \
     3 \
     ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
     ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
-    ${RES_SCALE_FACTOR} \
+    ${REG_RES} \
     1,0 \
     0 \
     7
@@ -259,7 +261,7 @@ if [ ! $RES_SCALE_FACTOR == "1x1x1" ]; then
     3 \
     $TEMPLATE \
     $OUTPUT_DIR/${TEMPLATE_FNAME%.nii.gz}_upsampled.nii.gz \
-    ${RES_SCALE_FACTOR} \
+    ${REG_RES} \
     1,0 \
     0 \
     7
@@ -303,7 +305,7 @@ fi
 
 
 # if resampling was done then downsample the velocity field
-if [ ! $RES_SCALE_FACTOR == "1x1x1" ]; then
+if [ ! $REG_RES == ${N} ]; then
     ResampleImage \
     3 \
     $OUTPUT_DIR/velocity-field-x1.nii.gz \
