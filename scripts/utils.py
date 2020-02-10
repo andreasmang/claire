@@ -50,8 +50,8 @@ def FilterImage(args):
     filtered_v3 = FilterSingleImage(v3, nf)
 
     fio.writeNII(filtered_v1, os.path.join(input_path, 'filtered_velocity-field-x1.nii.gz'), ref_image=ref)
-    fio.writeNII(filtered_v3, os.path.join(input_path, 'filtered_velocity-field-x2.nii.gz'), ref_image=ref)
-    fio.writeNII(filtered_v2, os.path.join(input_path, 'filtered_velocity-field-x3.nii.gz'), ref_image=ref)
+    fio.writeNII(filtered_v2, os.path.join(input_path, 'filtered_velocity-field-x2.nii.gz'), ref_image=ref)
+    fio.writeNII(filtered_v3, os.path.join(input_path, 'filtered_velocity-field-x3.nii.gz'), ref_image=ref)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='process input images')
