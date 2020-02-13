@@ -39,7 +39,7 @@ ifeq ($(PEDANTIC),yes)
 	endif
 	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
 	CXXFLAGS += -Wenum-compare -Wformat -Wuninitialized
-	CXXFLAGS += -Wmaybe-uninitialized -Wmain -Wnarrowing
+	CXXFLAGS += -Wmain -Wnarrowing #-Wmaybe-uninitialized
 	CXXFLAGS += -Wnonnull -Wparentheses #-Wpointer-sign
 	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
 	CXXFLAGS += -Wsequence-point -Wtrigraphs -Wunused-function
@@ -60,6 +60,10 @@ ifeq ($(USECUDA),yes)
 	ifeq ($(USECUDADBG),yes)
 		CXXFLAGS += -DREG_DBG_CUDA
 	endif
+endif
+
+ifeq ($(USEMPICUDA), yes)
+    CXXFLAGS += -DREG_HAS_MPICUDA
 endif
 
 ifeq ($(USECUDA),yes)

@@ -44,7 +44,7 @@ following papers:
 #include <stdio.h>
 #include "petsc.h"
 #include "petscconf.h"
-#include "petsccuda.h"
+//#include "petsccuda.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -950,7 +950,96 @@ __global__ void interp3D_kernel_linear(
       yo[tid] = linTex3D(yi_tex, qcoord, inv_nx);
     }
 }
+
+
+/********************************************************************
+ * @brief host function to do interpolation of a scalar field
+ * @parm[in] yi input data values 
+ * @parm[in] xq1,yq1,zq1 query coordinates
+ * @parm[in] yi_tex texture object
+ * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[out] yo interpolated values
+ * @parm[out] interp_time time for computing the interpolation
+ *******************************************************************/
+/*
+void gpuInterp3Dkernel(
+           PetscScalar* yi,
+           const PetscScalar* xq,
+           PetscScalar* yo,
+           float *tmp1, float* tmp2,
+           int*  nx,
+           cudaTextureObject_t yi_tex,
+           int iporder,
+           cudaExtent yi_extent,
+           const float3 inv_nx,
+           long int nq)
+{
+    // SET cubic interpolation type here
+    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;
+    cudaPitchedPtr yi_cudaPitchedPtr;
+    if (iporder == 3) {
+      cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
+      cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
+      cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
+      switch (interp_type) {
+        case FAST_SPLINE:
+            CubicBSplinePrefilter3D_fast(yi, nx, tmp1, tmp2);
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(tmp1), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+        case SLOW_SPLINE:
+            CubicBSplinePrefilter3D_fast(yi, nx, tmp1, tmp2);
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(tmp1), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+        case FAST_LAGRANGE:
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+        case SLOW_LAGRANGE:
+            yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+            break;
+      };
+            
+            
+      updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
+    } else {
+      // make input image a cudaPitchedPtr for fi
+      yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
+      //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
+      // update texture object
+      updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
+    }
+  
+    int threads = 256;
+    int blocks = (nq+255)/threads;
     
+    // launch the interpolation kernel
+    switch (iporder) {
+    case 1:
+      interp3D_kernel_linear<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+      break;
+    case 3:
+      switch (interp_type) {
+        case FAST_SPLINE:
+            cubicTex3DFastSpline<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+        case SLOW_SPLINE:
+            cubicTex3DSlowSpline<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+        case FAST_LAGRANGE:
+            cubicTex3DFastLagrange<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+        case SLOW_LAGRANGE:
+            cubicTex3DSlowLagrange<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            break;
+      };
+      break;
+    //default:
+      // Not implemented
+    };
+    cudaCheckKernelError();
+}
+*/
+
+
 /********************************************************************
  * @brief host function to do interpolation of a scalar field
  * @parm[in] yi input data values 
@@ -1146,7 +1235,7 @@ void gpuInterp3D(
  * @parm[in] yi input data values 
  * @parm[in] xq1,yq1,zq1 query coordinates
  * @parm[in] yi_tex texture object
- * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[in] nx array denoting number of query coordinates in each dimension  (this will be isize when using multi-GPU)
  * @parm[out] yo interpolated values
  * @parm[out] interp_time time for computing the interpolation
  *******************************************************************/
@@ -1172,3 +1261,35 @@ void gpuInterpVec3D(
     
     cudaDeviceSynchronize();
 }
+
+/********************************************************************
+ * @brief host function to do interpolation of a scalar field
+ * @parm[in] yi regular grid values [yix0,yix1,yix2,....,yiy0,yiy1,yiy2,....,yiz0,yiz1,yiz2....]
+ * @parm[in] xq query coordinates   [x0,y0,z0,x1,y1,z1,.....]
+ * @parm[in] yi_tex texture object 
+ * @parm[in] nx array denoting number of query coordinates in each dimension  (this will be isize when using multi-GPU)
+ * @parm[out] yo interpolated values (same format at yi)
+ *******************************************************************/
+/*void gpuInterpVec3D(
+           PetscScalar* yi, 
+           const PetscScalar* xq,
+           PetscScalar* yo,
+           float *tmp1, float* tmp2,
+           int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
+{
+    // define inv of nx for normalizing in texture interpolation
+    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
+                                        1.0f/static_cast<float>(nx[1]), 
+                                        1.0f/static_cast<float>(nx[0]));
+    long int nq = nx[0]*nx[1]*nx[2]; 
+    
+    // create a cudaExtent for input resolution
+    cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
+    
+    gpuInterp3Dkernel(&yi[0*nq], xq, &yo[0*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
+    gpuInterp3Dkernel(&yi[1*nq], xq, &yo[1*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
+    gpuInterp3Dkernel(&yi[2*nq], xq, &yo[2*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
+    
+    cudaDeviceSynchronize();
+}
+*/

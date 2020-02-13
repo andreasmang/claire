@@ -4,7 +4,8 @@
 #define COORD_DIM 3
 
 #include "petsc.h"
-#include "petsccuda.h"
+//#include "petsccuda.h"
+#include "TypeDef.hpp"
 #include <cuda.h>
 #include <cuda_runtime.h>
 

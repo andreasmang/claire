@@ -1,8 +1,8 @@
 
 #ifndef _INTERP3_GPU_HPP_
 #define _INTERP3_GPU_HPP_
-typedef double Real;
-#define MPI_T MPI_DOUBLE
+typedef float Real;
+//#define MPI_T MPI_DOUBLE
 
 #define COORD_DIM 3
 

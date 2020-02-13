@@ -380,7 +380,7 @@ PetscErrorCode ReductionKernelCall(ScalarType &value, IntType nl, Args ... args)
   
   value = 0.;
   
-#pragma omp parallel for reduction(+:value)
+//#pragma omp parallel for reduction(+:value)
   for (int i = 0; i < nl; ++i) {
     value += KernelFn::func(i, args...);
   }

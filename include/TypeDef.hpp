@@ -6,7 +6,8 @@
 #include "petscsys.h"
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
-  #include "petsccuda.h"
+  //#include "petsccuda.h"
+#define CHKERRCUDA(err)   do {if (PetscUnlikely(err)) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_LIB,"CUDA error %d",err);} while(0)
   #include "cuda.h"
   #include <petsc/private/vecimpl.h>
 #endif

@@ -24,8 +24,8 @@
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
-#include "interp3_gpu_new.hpp"
 #include "interp3.hpp"
+#include "interp3_gpu_mpi.hpp"
 
 
 
@@ -73,13 +73,16 @@ class SemiLagrangianGPUNew {
     virtual PetscErrorCode CommunicateCoord(std::string);
     PetscErrorCode ComputeTrajectoryRK2(VecField*, std::string);
     PetscErrorCode ComputeTrajectoryRK4(VecField*, std::string);
+    PetscErrorCode MapCoordinateVector(std::string);
 
     RegOpt* m_Opt;
 
     VecField* m_WorkVecField1;
 
     VecField* m_Xstate;
+    ScalarType* m_XS;
     VecField* m_Xadjoint;
+    ScalarType* m_XA;
     VecField* m_InitialTrajectory;
 
     int m_Dofs[2];
@@ -88,6 +91,17 @@ class SemiLagrangianGPUNew {
     
     float *m_tmpInterpol1;
     float *m_tmpInterpol2;
+    
+    Interp3_Plan_GPU* m_AdjointPlan;
+    Interp3_Plan_GPU* m_StatePlan;
+    Interp3_Plan_GPU* m_AdjointPlanVec;
+    Interp3_Plan_GPU* m_StatePlanVec;
+    
+    ScalarType* m_ScaFieldGhost;
+    ScalarType* m_VecFieldGhost;
+    
+    ScalarType* m_iVecField;
+    ScalarType* m_xVecField;
 
     struct GhostPoints {
         int isize[3];

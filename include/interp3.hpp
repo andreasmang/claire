@@ -66,7 +66,13 @@ void interp3_p(Real* reg_grid_vals, int data_dof, int N_reg, const int N_pts,
 void interp3_p(Real* reg_grid_vals, int data_dof, int* N_reg, const int N_pts,
 		Real* query_points, Real* query_values);
 
+/*
 void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
+		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
+		bool query_values_already_scaled = false);
+*/
+void vectorized_interp3_ghost_xyz_p(Real* __restrict reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled = false);
@@ -112,13 +118,18 @@ public:
 	// void interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 	// 		int * isize, int* istart, const int N_pts, const int g_size,
 	// 		Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings);
+/*
   void interpolate(Real* __restrict ghost_reg_grid_vals,
 		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
 		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings, int version =0);
+  */
+void interpolate(Real* __restrict ghost_reg_grid_vals,
+		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
+		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings, int version =0);
+
 	void high_order_interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order);
-
 	int N_reg_g[3];
 	int isize_g[3];
 	int total_query_points;
