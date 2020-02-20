@@ -59,6 +59,8 @@ class SemiLagrangianGPUNew {
                                        ScalarType*, ScalarType*, ScalarType*,
                                        std::string);
 
+    virtual PetscErrorCode Interpolate(std::string);
+
     PetscErrorCode SetReadWrite(ReadWriteReg*);
     PetscErrorCode SetWorkVecField(VecField*);
     PetscErrorCode SetQueryPoints(ScalarType*, ScalarType*, ScalarType*, std::string);
@@ -80,17 +82,17 @@ class SemiLagrangianGPUNew {
     VecField* m_WorkVecField1;
 
     VecField* m_Xstate;
-    ScalarType* m_XS;
+    Vec m_X;
+    Vec m_WorkVec;
     VecField* m_Xadjoint;
-    ScalarType* m_XA;
     VecField* m_InitialTrajectory;
 
     int m_Dofs[2];
     
     cudaTextureObject_t m_texture;
     
-    float *m_tmpInterpol1;
-    float *m_tmpInterpol2;
+    ScalarType* m_tmpInterpol1;
+    ScalarType* m_tmpInterpol2;
     
     Interp3_Plan_GPU* m_AdjointPlan;
     Interp3_Plan_GPU* m_StatePlan;
@@ -100,14 +102,20 @@ class SemiLagrangianGPUNew {
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
     
-    ScalarType* m_iVecField;
-    ScalarType* m_xVecField;
-
-    struct GhostPoints {
+    Vec m_iVecField;
+    Vec m_xVecField;
+    
+    struct Ghost_Point_MetaData {
         int isize[3];
         int istart[3];
         int nghost;
+        int nlghost;
+        size_t g_alloc_max; 
     };
+    
+
+    Ghost_Point_MetaData* ghost_metadata;
+
 };
 
 typedef SemiLagrangianGPUNew SemiLagrangian;

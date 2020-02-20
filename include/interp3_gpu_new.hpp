@@ -25,6 +25,6 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx);
 
 void interp0(float* m, float* q1, float *q2, float *q3, float *q, int nx[3]);
 
-
+void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost);
 
 #endif

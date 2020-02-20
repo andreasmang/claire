@@ -144,15 +144,15 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::RegOpt* opt, IntType
                     p_v2[i] = PetscSinReal(x3)*PetscSinReal(x1);
                     p_v3[i] = PetscCosReal(x1)*PetscCosReal(x2);
                 } else if (vcase == 3) {
-                    p_v1[i] = 0.5;
-                    p_v2[i] = 1;
-                    p_v3[i] = 0.5;
+                    p_v1[i] = 1;
+                    p_v2[i] = 0;
+                    p_v3[i] = 0;
                 } else if (vcase == 4) {
                     p_v1[i] = 0.0;
                     p_v2[i] = 0.0;
                     p_v3[i] = 0.0;
                 } else if (vcase == 5) {
-                    p_v1[i] = 1.0;
+                    p_v1[i] = i1+i2+i3;
                     p_v2[i] = 1.0;
                     p_v3[i] = 1.0;
                 }

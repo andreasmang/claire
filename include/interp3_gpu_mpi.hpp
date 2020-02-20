@@ -8,6 +8,7 @@
 #include <interp3_gpu_new.hpp>
 #include <mpi.h>
 #include <vector>
+#include "CLAIREUtils.hpp"
 
 //#if defined(PETSC_USE_REAL_SINGLE)
   typedef float Real;
@@ -21,7 +22,7 @@
 //  #define PL fftw_plan
 //#endif
 
-#define INTERP_PINNED // if defined will use pinned memory for GPU
+//#define INTERP_PINNED // if defined will use pinned memory for GPU
 struct Interp3_Plan_GPU{
   public:
   Interp3_Plan_GPU(size_t g_alloc_max);

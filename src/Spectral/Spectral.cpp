@@ -104,7 +104,7 @@ PetscErrorCode Spectral::SetupFFT() {
     nx[2] = this->m_Opt->m_Domain.nx[2];
     nalloc = this->m_Opt->m_FFT.nalloc;
     
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     if (this->m_planR2C == nullptr) {
       ierr = AllocateOnce(this->m_planR2C); CHKERRQ(ierr);
       cufftPlan3d(this->m_planR2C, nx[0],  nx[1], nx[2], CUFFT_R2C);
@@ -158,17 +158,17 @@ PetscErrorCode Spectral::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     cufftDestroy(*this->m_planC2R);
     cufftDestroy(*this->m_planR2C);
     ierr = Free(this->m_planC2R); CHKERRQ(ierr);
     ierr = Free(this->m_planR2C); CHKERRQ(ierr);
-#endif
+#else
     if(this->m_plan) {
       accfft_destroy_plan(this->m_plan);
     }
     this->m_plan = nullptr;
-
+#endif
     PetscFunctionReturn(ierr);
 }
 

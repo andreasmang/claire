@@ -42,44 +42,82 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
 //#else
   reg::SemiLagrangian *sl = nullptr;
 //#endif
-  ScalarType *X1 = nullptr;
-  ScalarType *X2 = nullptr;
-  ScalarType *X3 = nullptr;
-  ScalarType *X = nullptr;
+  //ScalarType *X1 = nullptr;
+  //ScalarType *X2 = nullptr;
+  //ScalarType *X3 = nullptr;
+  //ScalarType *X = nullptr;
+  Vec X = NULL;
+  ScalarType* pX = nullptr;
+
+
   
+  IntType nl,ng;
+  nl = m_Opt->m_Domain.nl;
+  ng = m_Opt->m_Domain.ng;
+
   ierr = AllocateOnce(v, m_Opt); CHKERRQ(ierr);
   ierr = AllocateOnce(t, m_Opt); CHKERRQ(ierr);
   ierr = AllocateOnce(sl, m_Opt); CHKERRQ(ierr);
-  ierr = AllocateArrayOnce(X1, m_Opt->m_Domain.nl); CHKERRQ(ierr);
-  ierr = AllocateArrayOnce(X2, m_Opt->m_Domain.nl); CHKERRQ(ierr);
-  ierr = AllocateArrayOnce(X3, m_Opt->m_Domain.nl); CHKERRQ(ierr);
-  ierr = AllocateArrayOnce(X, m_Opt->m_Domain.nl*3); CHKERRQ(ierr);
+
+  //ierr = AllocateArrayOnce(X1, m_Opt->m_Domain.nl); CHKERRQ(ierr);
+  //ierr = AllocateArrayOnce(X2, m_Opt->m_Domain.nl); CHKERRQ(ierr);
+  //ierr = AllocateArrayOnce(X3, m_Opt->m_Domain.nl); CHKERRQ(ierr);
+  //ierr = AllocateArrayOnce(X, m_Opt->m_Domain.nl*3); CHKERRQ(ierr);
+  ierr = VecCreate(X, 3*nl, 3*ng); CHKERRQ(ierr);
   
-  ierr = ComputeSyntheticData(v, m_Opt); CHKERRQ(ierr);
+  ierr = ComputeSyntheticData(v, m_Opt, 3); CHKERRQ(ierr);
   
   ierr = sl->SetWorkVecField(t); CHKERRQ(ierr);
-  
+   
+  // set X on the CPU
+  ierr = VecGetArray(X, &pX); CHKERRQ(ierr);
   for (IntType i1 = 0; i1 < m_Opt->m_Domain.isize[0]; ++i1) {  // x1
     for (IntType i2 = 0; i2 < m_Opt->m_Domain.isize[1]; ++i2) {  // x2
       for (IntType i3 = 0; i3 < m_Opt->m_Domain.isize[2]; ++i3) {  // x3
         ScalarType x1, x2, x3;
         IntType l = GetLinearIndex(i1, i2, i3, m_Opt->m_Domain.isize);
-        X[l*3+0] = m_Opt->m_Domain.hx[0]*static_cast<ScalarType>(i1 + m_Opt->m_Domain.istart[0]);
-        X[l*3+1] = m_Opt->m_Domain.hx[1]*static_cast<ScalarType>(i2 + m_Opt->m_Domain.istart[1]);
-        X[l*3+2] = m_Opt->m_Domain.hx[2]*static_cast<ScalarType>(i3 + m_Opt->m_Domain.istart[2]);
+        pX[l*3+0] = m_Opt->m_Domain.hx[0]*static_cast<ScalarType>(i1 + m_Opt->m_Domain.istart[0]);
+        pX[l*3+1] = m_Opt->m_Domain.hx[1]*static_cast<ScalarType>(i2 + m_Opt->m_Domain.istart[1]);
+        pX[l*3+2] = m_Opt->m_Domain.hx[2]*static_cast<ScalarType>(i3 + m_Opt->m_Domain.istart[2]);
       }  // i1
     }  // i2
   }  // i3
+ 
+ ierr = VecRestoreArray(X, &pX);
+ 
+
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
+
+  ierr = VecCUDAGetArray(X, &pX); CHKERRQ(ierr);
+  ierr = sl->SetInitialTrajectory(pX); CHKERRQ(ierr);
+  ierr = VecCUDARestoreArray(X, &pX); CHKERRQ(ierr);
+  //std::cout << "Initial Trajectory Set" << std::endl;
+
+  ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
+  //std::cout << "Trajectory Computed" << std::endl;
   
-#ifdef REG_HAS_CUDA
-  ierr = sl->SetInitialTrajectory(X); CHKERRQ(ierr);
-  ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
   ierr = sl->Interpolate(t, v, "state"); CHKERRQ(ierr);
+  //std::cout << "Velocity interpolated" << std::endl;
+  
   ierr = v->Copy(t); CHKERRQ(ierr);
-  ierr = sl->GetQueryPoints(X);
+  //std::cout << "copied t -> v" << std::endl;
+
+  ierr = VecCUDAGetArray(X, &pX); CHKERRQ(ierr);
+  ierr = sl->GetQueryPoints(pX);
+  ierr = VecCUDARestoreArray(X, &pX); CHKERRQ(ierr);
+  //std::cout << "Got query points" << std::endl;
+
   ierr = v->Scale(-1.); CHKERRQ(ierr);
-  ierr = sl->SetInitialTrajectory(X); CHKERRQ(ierr);
+  //std::cout << "v scaled by -1" << std::endl;
+
+  ierr = VecCUDAGetArray(X, &pX); CHKERRQ(ierr);
+  ierr = sl->SetInitialTrajectory(pX); CHKERRQ(ierr);
+  ierr = VecCUDARestoreArray(X, &pX); CHKERRQ(ierr);
+  //std::cout << "Initial trajectory reset" << std::endl;
+
   ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
+  //std::cout << "trajectory computed again with -v" << std::endl;
+
 #else
   ierr = sl->ComputeTrajectory(v, "state", X); CHKERRQ(ierr);
   ierr = sl->Interpolate(t, v, "state"); CHKERRQ(ierr);
@@ -88,8 +126,13 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
   ierr = v->Scale(-1.); CHKERRQ(ierr);
   ierr = sl->ComputeTrajectory(v, "state", X); CHKERRQ(ierr);
 #endif
-  
-  ierr = sl->GetQueryPoints(X1, X2, X3);
+    
+  ierr = VecCUDAGetArray(X, &pX); CHKERRQ(ierr);
+  ierr = sl->GetQueryPoints(pX);
+  ierr = VecCUDARestoreArray(X, &pX); CHKERRQ(ierr);
+
+  ierr = VecGetArray(X, &pX); CHKERRQ(ierr);
+
   double ex = 0.0;
   double ey = 0.0;
   double ez = 0.0;
@@ -105,24 +148,27 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
         // compute linear / flat index
         IntType l = GetLinearIndex(i1, i2, i3, m_Opt->m_Domain.isize);
 
-        ex = std::max(ex,std::abs(static_cast<double>(X1[l] - x1)));
-        ey = std::max(ey,std::abs(static_cast<double>(X2[l] - x2)));
-        ez = std::max(ez,std::abs(static_cast<double>(X3[l] - x3)));
+        ex = std::max(ex,std::abs(static_cast<double>(pX[l*3+0] - x1)));
+        ey = std::max(ey,std::abs(static_cast<double>(pX[l*3+1] - x2)));
+        ez = std::max(ez,std::abs(static_cast<double>(pX[l*3+2] - x3)));
 
       }  // i1
     }  // i2
   }  // i3
-  
+    
+  ierr = VecRestoreArray(X, &pX); CHKERRQ(ierr);
   std::cout << "Inf-norm on trajectory: " << std::max(ex,std::max(ey,ez)) << std::endl;
   
   
   ierr = Free(sl); CHKERRQ(ierr);
   ierr = Free(t); CHKERRQ(ierr);
   ierr = Free(v); CHKERRQ(ierr);
-  ierr = FreeArray(X1); CHKERRQ(ierr);
-  ierr = FreeArray(X2); CHKERRQ(ierr);
-  ierr = FreeArray(X3); CHKERRQ(ierr);
-  ierr = FreeArray(X); CHKERRQ(ierr);
+  //ierr = FreeArray(X1); CHKERRQ(ierr);
+  //ierr = FreeArray(X2); CHKERRQ(ierr);
+  //ierr = FreeArray(X3); CHKERRQ(ierr);
+  //ierr = FreeArray(X); CHKERRQ(ierr);
+  ierr = VecDestroy(&X); CHKERRQ(ierr);
+  pX = nullptr;
     
   PetscFunctionReturn(ierr);
 }

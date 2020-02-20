@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <iostream>
 
+//#define VERBOSE1
+
 #ifndef ACCFFT_CHECKCUDA_H
 #define ACCFFT_CHECKCUDA_H
 inline cudaError_t checkCuda_accfft(cudaError_t result)
@@ -182,9 +184,15 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
 
 #ifdef INTERP_PINNED
     cudaFreeHost(all_f_cubic_d);
+    cudaFreeHost(xq1);
+    cudaFreeHost(xq2);
+    cudaFreeHost(xq3);
     cudaFreeHost(all_query_points_d);
 #else
     cudaFree(all_f_cubic_d);
+    cudaFree(xq1);
+    cudaFree(xq2);
+    cudaFree(xq3);
     cudaFree(all_query_points_d);
 #endif
 
@@ -216,15 +224,15 @@ void rescale_xyz(const int g_size,  int* N_reg, int* N_reg_g, int* istart, const
  * just call this function once, and instead repeatedly call Interp3_Plan::interpolate function.
  */
 void Interp3_Plan_GPU::scatter( int data_dof,
-                                int* N_reg, 
-                                int * isize, 
-                                int* istart, 
-                                const int N_pts, 
-                                const int g_size, 
-                                Real* query_points_in,
-                                int* c_dims, 
-                                MPI_Comm c_comm, 
-                                double * timings)
+                                int* N_reg,  // global grid dimensions
+                                int * isize, // local grid dimensions
+                                int* istart, // local grid start indices
+                                const int N_pts, // local grid point count
+                                const int g_size, // ghost layer width
+                                Real* query_points_in, // input query points
+                                int* c_dims,  // process cartesian grid dimensions
+                                MPI_Comm c_comm,  // MPI Comm
+                                double * timings) 
 {
   int nprocs, procid;
   MPI_Comm_rank(c_comm, &procid);
@@ -263,6 +271,10 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     // query_points is a temporary pointer which will be freed at the end of this routine
     Real* query_points=(Real*) malloc(N_pts*COORD_DIM*sizeof(Real));
     memcpy(query_points,query_points_in,N_pts*COORD_DIM*sizeof(Real));
+  
+  //for (int i=0; i < N_pts; i++) {
+  //      printf("%d,%0.2f,%0.2f,%0.2f\n", i, query_points[i*3+0], query_points[i*3+1], query_points[i*3+2]);
+  //}
 
     // Enforce periodicity
     for(int i=0;i<N_pts;i++){
@@ -442,14 +454,26 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   if(this->scatter_baked==true){
 #ifdef INTERP_PINNED
     cudaFreeHost(this->all_query_points_d);
+    cudaFreeHost(this->xq1);
+    cudaFreeHost(this->xq2);
+    cudaFreeHost(this->xq3);
     cudaFreeHost(this->all_f_cubic_d);
     cudaMallocHost((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
+    cudaMallocHost((void**)&xq1, total_query_points*sizeof(Real));
+    cudaMallocHost((void**)&xq2, total_query_points*sizeof(Real));
+    cudaMallocHost((void**)&xq3, total_query_points*sizeof(Real));
     cudaMallocHost((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
 #else
     // freeing the cuda memory is required everytime scatter is called because the distribution of query points might not be uniform across all GPUs
     cudaFree(this->all_query_points_d);
+    cudaFree(this->xq1);
+    cudaFree(this->xq2);
+    cudaFree(this->xq3);
     cudaFree(this->all_f_cubic_d);
     cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
+    cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
+    cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
+    cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
     cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
 #endif
   }
@@ -457,18 +481,38 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     // if this the first time scatter is being called (scatter_baked = False) then, only allocate the memory on GPU
 #ifdef INTERP_PINNED
     cudaMallocHost((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
+    cudaMallocHost((void**)&xq1, total_query_points*sizeof(Real));
+    cudaMallocHost((void**)&xq2, total_query_points*sizeof(Real));
+    cudaMallocHost((void**)&xq3, total_query_points*sizeof(Real));
     cudaMallocHost((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
 #else
     cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
+    cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
+    cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
+    cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
     cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
 #endif
   }
+  
+  //for (int i=0; i < total_query_points; i++) {
+  //      printf("%d,%0.2f,%0.2f,%0.2f\n", i, all_query_points[i*3+0], all_query_points[i*3+1], all_query_points[i*3+2]);
+  //}
+
+  int proc_coord[2];
+  proc_coord[0] = static_cast<int>(procid/c_dims[1]);
+  proc_coord[1] = static_cast<int>(procid%c_dims[0]);
+
 
   // transfer query points "all_query_points" from host to device
   timings[2]+=-MPI_Wtime();
   cudaMemcpy(all_query_points_d,all_query_points,all_query_points_allocation*sizeof(Real),cudaMemcpyHostToDevice);
+  
+  //reg::CopyStridedFromFlatVec(xq1, xq2, xq3, static_cast<const Real*>(all_query_points_d), static_cast<IntType>(all_query_points_allocation/3));
+  
+  normalizeQueryPoints(xq1, xq2, xq3, all_query_points_d, total_query_points, isize, N_reg, proc_coord, g_size);
   timings[2]+=+MPI_Wtime();
-
+    
+  
 
   this->scatter_baked=true;
   return;
@@ -519,12 +563,22 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
 
   // copy the ghost padded regular grid values from Host to Device
   timings[2]+=-MPI_Wtime();
-  cudaMemcpy(ghost_reg_grid_vals_d,ghost_reg_grid_vals,g_alloc_max*data_dof,cudaMemcpyHostToDevice);
+  cudaMemcpy(ghost_reg_grid_vals_d, ghost_reg_grid_vals, nlghost*data_dof*sizeof(Real), cudaMemcpyHostToDevice);
   timings[2]+=+MPI_Wtime();
+
+#if defined(VERBOSE1) 
+  printf("\ng_alloc_max = %zu", g_alloc_max);
+  printf("\ndata_dof = %d", data_dof);
+  printf("\nisize_g[0] = %d", isize_g[0]);
+  printf("\nisize_g[1] = %d", isize_g[1]);
+  printf("\nisize_g[2] = %d", isize_g[2]);
+  printf("\nipoder = %d", iporder);
+  printf("\ntotal_query_points = %d", total_query_points);
+  printf("\nnlghost = %d", nlghost);
+#endif
     
   // compute the interpolation on the GPU
   timings[1]+=-MPI_Wtime();
-  
   if (data_dof == 3)
     gpuInterpVec3D(&ghost_reg_grid_vals_d[0*nlghost], 
                    &ghost_reg_grid_vals_d[1*nlghost], 
@@ -540,9 +594,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                 all_f_cubic_d, 
                 tmp1, tmp2, isize_g, yi_tex, 
                 iporder, interp_time);
-
-
-
+    
   //gpu_interp3_ghost_xyz_p(ghost_reg_grid_vals_d, data_dof, N_reg, isize,istart,total_query_points, g_size, all_query_points_d, all_f_cubic_d,true);
   timings[1]+=+MPI_Wtime();
     

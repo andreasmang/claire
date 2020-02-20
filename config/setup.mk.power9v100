@@ -1,5 +1,5 @@
 # developer flags (ignore)
-DBGCODE=no
+DBGCODE=yes
 PEDANTIC=yes
 
 RM = rm -f

@@ -31,25 +31,29 @@ __global__ void VecFieldPointWiseNormGPU(ScalarType *p_m, const ScalarType *p_X1
     }
 }
 
-namespace reg {
-  
-/********************************************************************
- * @brief interface to create vector
- *******************************************************************/
-PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
-    PetscErrorCode ierr = 0;
+__global__ void CopyStridedToFlatVecKernel(ScalarType *pX, const ScalarType *p_x1, const ScalarType *p_x2, const ScalarType *p_x3, IntType nl) {
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
 
-    if (x != NULL) {
-        ierr = VecDestroy(&x); CHKERRQ(ierr);
-        x = NULL;
+    if (i < nl) {
+        pX[3*i + 0] = p_x1[i];
+        pX[3*i + 1] = p_x2[i];
+        pX[3*i + 2] = p_x3[i];
     }
 
-    ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
-    ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetType(x, VECCUDA); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
 }
+
+__global__ void CopyStridedFromFlatVecKernel(ScalarType *p_x1, ScalarType *p_x2, ScalarType *p_x3, const ScalarType* pX, IntType nl) {
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (i < nl) {
+        p_x1[i] = pX[3*i + 0];
+        p_x2[i] = pX[3*i + 1];
+        p_x3[i] = pX[3*i + 2];
+    }
+}
+
+namespace reg {
+  
 
 /********************************************************************
  * @brief compute pointwise norm of vector field
@@ -83,71 +87,38 @@ PetscErrorCode VecFieldPointWiseNorm(Vec norm, Vec m_X1, Vec m_X2, Vec m_X3) {
     PetscFunctionReturn(ierr);
 
 }
-    
+
+
 /********************************************************************
- * @brief clip image to be in [0,1]
+ * @brief Copy vector field to a flat array in strided fashion
  *******************************************************************/
-PetscErrorCode Clip(Vec x, IntType nc) {
-    PetscErrorCode ierr = 0;
-    ScalarType *p_x = NULL;
-    IntType nl;
-
+PetscErrorCode CopyStridedToFlatVec(ScalarType* pX, const ScalarType* p_x1, const ScalarType* p_x2, const ScalarType* p_x3, IntType nl) {
     PetscFunctionBegin;
+    PetscErrorCode ierr = 0;
     
-    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
+    int threads = 256;
+    int blocks = (nl + 255)/threads;
 
-    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
-    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-    for (IntType i = 0; i < nl; ++i) {
-        if (p_x[i] < 0.0) p_x[i] = 0.0;
-        if (p_x[i] > 1.0) p_x[i] = 1.0;
-    }  // for all components
-    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    CopyStridedToFlatVecKernel<<<blocks,threads>>>(pX, p_x1, p_x2, p_x3, nl);
+    cudaDeviceSynchronize();
+    cudaCheckKernelError();
 
     PetscFunctionReturn(ierr);
 }
 
-
 /********************************************************************
- * @brief ensure that sum accross all image components is in [0,1]
- * for a particular location x
+ * @brief Copy vector field to a flat array in strided fashion
  *******************************************************************/
-PetscErrorCode EnsurePartitionOfUnity(Vec x, IntType nc) {
-    PetscErrorCode ierr = 0;
-    ScalarType *p_x = NULL, sum, background;
-    IntType nl, l;
-
+PetscErrorCode CopyStridedFromFlatVec(ScalarType* p_x1, ScalarType* p_x2, ScalarType* p_x3, const ScalarType* pX, IntType nl) {
     PetscFunctionBegin;
+    PetscErrorCode ierr = 0;
     
-    ierr = WrngMsg("method not implemented for GPUs"); CHKERRQ(ierr);
+    int threads = 256;
+    int blocks = (nl + 255)/threads;
 
-    ierr = VecGetLocalSize(x, &nl); CHKERRQ(ierr);
-    nl /= nc;
-
-    ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
-    for (IntType i = 0; i < nl; ++i) {
-        sum = 0.0;
-        for (IntType k = 0; k < nc; ++k) {
-            l = k*nl + i;
-
-            if (p_x[l] < 0.0) p_x[l] = 0.0;
-            if (p_x[l] > 1.0) p_x[l] = 1.0;
-
-            sum += p_x[l];
-        }
-        background = 1.0 - sum;
-        if (background <= 0.0) background = 0.0;
-        if (background >= 1.0) background = 1.0;
-
-        sum += background;
-
-        for (IntType k = 0; k < nc; ++k) {
-            p_x[k*nl + i] /= sum;
-        }
-
-    }  // for all components
-
-    ierr = VecRestoreArray(x, &p_x); CHKERRQ(ierr);
+    CopyStridedFromFlatVecKernel<<<blocks,threads>>>(p_x1, p_x2, p_x3, pX, nl);
+    cudaDeviceSynchronize();
+    cudaCheckKernelError();
 
     PetscFunctionReturn(ierr);
 }
