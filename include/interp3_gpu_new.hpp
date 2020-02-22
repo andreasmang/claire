@@ -8,18 +8,20 @@
 #include "TypeDef.hpp"
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cuda_helper.hpp>
+
 
 void gpuInterp3D(PetscScalar* yi, 
   const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
   PetscScalar* yo, 
   float *tmp1, float* tmp2,
-  int* nx, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
+  int* nx, long int nq, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 
 void gpuInterpVec3D(PetscScalar* yi1, PetscScalar* yi2, PetscScalar* yi3, 
     const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
     PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3, 
     float *tmp1, float* tmp2,
-    int* nx, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
+    int* nx, long int nq, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 
 extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx);
 

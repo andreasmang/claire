@@ -32,6 +32,7 @@ namespace UnitTest {
   PetscErrorCode ComputeGradSpectral(ScalarType, VecField *, VecField *, RegOpt*);
   
   PetscErrorCode TestInterpolation(RegOpt *m_Opt);
+  PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt);
   PetscErrorCode TestForwardSolver(RegOpt *m_Opt);
   PetscErrorCode TestTrajectory(RegOpt *m_Opt);
   PetscErrorCode TestGradient(RegOpt *m_Opt);

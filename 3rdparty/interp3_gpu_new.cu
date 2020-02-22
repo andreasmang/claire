@@ -748,7 +748,6 @@ extern "C" cudaTextureObject_t initTextureFromVolume(cudaPitchedPtr volume, cuda
         exit(EXIT_FAILURE);
     }
     return texObj;
-
 }
 
 /********************************************************************
@@ -788,8 +787,6 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
         exit(EXIT_FAILURE);
     }
     return texObj;
-    
-
 }
 
 /********************************************************************************
@@ -814,7 +811,6 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
         fprintf(stderr, "Failed to copy 3D memory to cudaArray (error name %s = %s)!\n", cudaGetErrorName(err), cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
 }
 
 
@@ -865,7 +861,7 @@ void gpuInterp3Dkernel(
            long int nq)
 {
     // SET cubic interpolation type here
-    enum CUBIC_INTERP_TYPE interp_type = FAST_LAGRANGE;
+    enum CUBIC_INTERP_TYPE interp_type = SLOW_LAGRANGE;
     cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
@@ -923,7 +919,7 @@ void gpuInterp3Dkernel(
     //default:
       // Not implemented
     };
-    cudaCheckKernelError();
+    //cudaCheckKernelError();
 }
 
 /********************************************************************
@@ -943,6 +939,7 @@ void gpuInterp3D(
            PetscScalar* yo,
            float *tmp1, float* tmp2,
            int*  nx,
+           long int nq,
            cudaTextureObject_t yi_tex,
            int iporder,
            float* interp_time)
@@ -952,8 +949,6 @@ void gpuInterp3D(
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 
                                         1.0f/static_cast<float>(nx[0]));
-    long int nq = nx[0]*nx[1]*nx[2]; 
-
     
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
@@ -977,15 +972,12 @@ void gpuInterpVec3D(
            const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
            PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3,
            float *tmp1, float* tmp2,
-           int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
+           int*  nx, long int nq, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
 {
     // define inv of nx for normalizing in texture interpolation
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 
                                         1.0f/static_cast<float>(nx[0]));
-    long int nq = nx[0]*nx[1]*nx[2]; 
-    //printf("\nnq = %d", nq);
-    //printf("\ninv_nx[0] = %f", inv_nx.x);
 
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
@@ -1038,9 +1030,13 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
     int tid = threadIdx.x + blockIdx.x * blockDim.x; 
 
     if (tid<nq) {
-        xq1[tid] = (all_query_points[tid*3 + 0]*ng.x - offset.x)*scale.x;
-        xq2[tid] = (all_query_points[tid*3 + 1]*ng.y - offset.y)*scale.y;
-        xq3[tid] = (all_query_points[tid*3 + 2]*ng.z - offset.z)*scale.z;
+        //xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x)*scale.x;
+        //xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y)*scale.y;
+        //xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z)*scale.z;
+        xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x);
+        xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y);
+        xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z);
+        //printf("tid = %d \t xq = %0.4f \t yq = %0.4f \t zq = %f\n", tid, xq1[tid], xq2[tid], xq3[tid]);
     }
 
 }
@@ -1059,7 +1055,7 @@ void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, Sca
     const float3 ng = make_float3( nx[0], nx[1], nx[2] );
 
     int threads = 256;
-    int blocks = (nq+255)/threads;
+    int blocks = (nq+threads-1)/threads;
     normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, scale, offset);
 
     cudaDeviceSynchronize();

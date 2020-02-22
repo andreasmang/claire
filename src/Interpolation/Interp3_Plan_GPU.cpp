@@ -494,14 +494,13 @@ void Interp3_Plan_GPU::scatter( int data_dof,
 #endif
   }
   
-  //for (int i=0; i < total_query_points; i++) {
-  //      printf("%d,%0.2f,%0.2f,%0.2f\n", i, all_query_points[i*3+0], all_query_points[i*3+1], all_query_points[i*3+2]);
-  //}
+//  for (int i=0; i < total_query_points; i++) {
+//        printf("%d,%0.4f,%0.4f,%0.4f\n", i, all_query_points[i*3+0], all_query_points[i*3+1], all_query_points[i*3+2]);
+//  }
 
   int proc_coord[2];
-  proc_coord[0] = static_cast<int>(procid/c_dims[1]);
-  proc_coord[1] = static_cast<int>(procid%c_dims[0]);
-
+  proc_coord[0] = static_cast<int>(istart[0]/isize[0]);
+  proc_coord[1] = static_cast<int>(istart[1]/isize[1]);
 
   // transfer query points "all_query_points" from host to device
   timings[2]+=-MPI_Wtime();
@@ -509,6 +508,9 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   
   //reg::CopyStridedFromFlatVec(xq1, xq2, xq3, static_cast<const Real*>(all_query_points_d), static_cast<IntType>(all_query_points_allocation/3));
   
+  PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] total_query_points = %d, proc_i = %d, proc_j = %d\n", procid, total_query_points, proc_coord[0], proc_coord[1]);
+  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
   normalizeQueryPoints(xq1, xq2, xq3, all_query_points_d, total_query_points, isize, N_reg, proc_coord, g_size);
   timings[2]+=+MPI_Wtime();
     
@@ -548,7 +550,6 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                                     int iporder,               // interpolation order
                                     ScalarType* interp_time)  // interpolation time
 {
-
   int nprocs, procid;
   MPI_Comm_rank(c_comm, &procid);
   MPI_Comm_size(c_comm, &nprocs);
@@ -564,6 +565,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
   // copy the ghost padded regular grid values from Host to Device
   timings[2]+=-MPI_Wtime();
   cudaMemcpy(ghost_reg_grid_vals_d, ghost_reg_grid_vals, nlghost*data_dof*sizeof(Real), cudaMemcpyHostToDevice);
+  //cudaCheckLastError();
   timings[2]+=+MPI_Wtime();
 
 #if defined(VERBOSE1) 
@@ -587,12 +589,12 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                    &all_f_cubic_d[0*total_query_points], 
                    &all_f_cubic_d[1*total_query_points], 
                    &all_f_cubic_d[2*total_query_points], 
-                   tmp1, tmp2, isize_g, yi_tex, iporder, interp_time);
+                   tmp1, tmp2, isize_g, static_cast<long int>(total_query_points), yi_tex, iporder, interp_time);
   else 
     gpuInterp3D(ghost_reg_grid_vals_d, 
                 xq1, xq2, xq3, 
                 all_f_cubic_d, 
-                tmp1, tmp2, isize_g, yi_tex, 
+                tmp1, tmp2, isize_g, static_cast<long int>(total_query_points), yi_tex, 
                 iporder, interp_time);
     
   //gpu_interp3_ghost_xyz_p(ghost_reg_grid_vals_d, data_dof, N_reg, isize,istart,total_query_points, g_size, all_query_points_d, all_f_cubic_d,true);
@@ -601,8 +603,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
   // copy the interpolated results from the device to the host
   timings[2]+=-MPI_Wtime();
   cudaMemcpy(all_f_cubic,all_f_cubic_d, total_query_points*sizeof(Real)*data_dof ,cudaMemcpyDeviceToHost);
+  //cudaCheckLastError();
   timings[2]+=+MPI_Wtime();
-
 
   // Now we have to do an alltoall to distribute the interpolated data from all_f_cubic to
   // f_cubic_unordered.
@@ -645,7 +647,6 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
         }
     }
   }
-
   return;
 }
 
