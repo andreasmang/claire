@@ -114,23 +114,28 @@ void Interp3_Plan_GPU::allocate (int N_pts, int data_dof)
 
   s_request= new MPI_Request[nprocs];
   request= new MPI_Request[nprocs];
-
+    
   f_index = new std::vector<int> [nprocs];
+//  f_index = new thrust::host_vector<int> [nprocs];
+  f_index_d = new thrust::device_vector<int> [nprocs];
   query_outside=new std::vector<Real> [nprocs];
     
   // on CPU, N_pts = nl (number of local points), data_dof = 1 (Scalar field) / 3 (vector field)
-  f_cubic_unordered=(Real*) malloc(N_pts*sizeof(Real)*data_dof); // The reshuffled semi-final interpolated values are stored here
+  // The reshuffled semi-final interpolated values are stored here
+  //f_cubic_unordered=(Real*) malloc(N_pts*sizeof(Real)*data_dof); 
+  cudaMalloc((void**)&f_cubic_unordered_d, N_pts*sizeof(Real)*data_dof);
+
 
   //double time=0;
   //time=-MPI_Wtime();
 
 // Allocate memory for the ghost padded regular grid values
-#ifdef INTERP_PINNED
-  //cudaMallocHost((void**)&this->ghost_reg_grid_vals_d,g_alloc_max*data_dof);
-  cudaMalloc((void**)&this->ghost_reg_grid_vals_d, g_alloc_max*data_dof);
-#else
-  cudaMalloc((void**)&this->ghost_reg_grid_vals_d, g_alloc_max*data_dof);
-#endif
+//#ifdef INTERP_PINNED
+//  //cudaMallocHost((void**)&this->ghost_reg_grid_vals_d,g_alloc_max*data_dof);
+//  cudaMalloc((void**)&this->ghost_reg_grid_vals_d, g_alloc_max*data_dof);
+//#else
+//  cudaMalloc((void**)&this->ghost_reg_grid_vals_d, g_alloc_max*data_dof);
+//#endif
 
   //time+=MPI_Wtime();
   //if(procid==0)
@@ -164,20 +169,23 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
       std::vector<int>().swap(f_index[proc]);
       std::vector<Real>().swap(query_outside[proc]);
     }
-    free(f_cubic_unordered);
+
+    //free(f_cubic_unordered);
+    cudaFree(f_cubic_unordered_d);
 
   }
 
-  if(this->scatter_baked){
+  if(this->scatter_baked) {
     free(all_query_points);
-    free(all_f_cubic);
+    //free(all_f_cubic);
+    
 
-#ifdef INTERP_PINNED
-    //cudaFreeHost(ghost_reg_grid_vals_d);
-    cudaFree(ghost_reg_grid_vals_d);
-#else
-    cudaFree(ghost_reg_grid_vals_d);
-#endif
+//#ifdef INTERP_PINNED
+//    //cudaFreeHost(ghost_reg_grid_vals_d);
+//    cudaFree(ghost_reg_grid_vals_d);
+//#else
+//    cudaFree(ghost_reg_grid_vals_d);
+//#endif
 
 
 
@@ -397,14 +405,10 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     // without having to create a new plan
     if(this->scatter_baked==true){
       free(this->all_query_points);
-      free(this->all_f_cubic);
-      all_query_points=(Real*) malloc(all_query_points_allocation*sizeof(Real));
-      all_f_cubic=(Real*)malloc(total_query_points*sizeof(Real)*data_dof);
+      //free(this->all_f_cubic);
     }
-    else{
-      all_query_points=(Real*) malloc(all_query_points_allocation*sizeof(Real));
-      all_f_cubic=(Real*)malloc(total_query_points*sizeof(Real)*data_dof);
-    }
+    all_query_points=(Real*) malloc(all_query_points_allocation*sizeof(Real));
+    //all_f_cubic=(Real*)malloc(total_query_points*sizeof(Real)*data_dof);
 
     // Now perform the allotall to send/recv query_points
     timings[0]+=-MPI_Wtime();
@@ -540,7 +544,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                                     const int nlghost,         // number of local grid points (including ghost points) owned by process
                                     const int N_pts,           // number of local points owned by the process
                                     const int g_size,          // ghost layer width
-                                    Real* query_values,        // interpolation result on CPU
+                                    Real* query_values_d,      // interpolation result on GPU
                                     int* c_dims,               // dimensions of the communicator plan
                                     MPI_Comm c_comm,           // MPI communicator
                                     double * timings,          // time variable to store interpolation time
@@ -548,7 +552,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                                     float* tmp2,               // temporary memory for interpolation prefilter
                                     cudaTextureObject_t yi_tex,// texture object for interpolation
                                     int iporder,               // interpolation order
-                                    ScalarType* interp_time)  // interpolation time
+                                    ScalarType* interp_time)   // interpolation time
 {
   int nprocs, procid;
   MPI_Comm_rank(c_comm, &procid);
@@ -603,7 +607,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
     
   // copy the interpolated results from the device to the host
   timings[2]+=-MPI_Wtime();
-  cudaMemcpy(all_f_cubic,all_f_cubic_d, total_query_points*sizeof(Real)*data_dof ,cudaMemcpyDeviceToHost); // no need to do with cuda-aware mpi
+  //cudaMemcpy(all_f_cubic,all_f_cubic_d, total_query_points*sizeof(Real)*data_dof ,cudaMemcpyDeviceToHost); // no need to do with cuda-aware mpi
   //cudaCheckLastError();
   timings[2]+=+MPI_Wtime();
 
@@ -622,10 +626,10 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
       int soffset=f_index_procs_others_offset[dst_r];
       int roffset=f_index_procs_self_offset[dst_s];
       if(f_index_procs_self_sizes[dst_r]!=0)
-        MPI_Irecv(&f_cubic_unordered[roffset],1,rtype[i], dst_r,
+        MPI_Irecv(&f_cubic_unordered_d[roffset],1,rtype[i], dst_r,
             0, c_comm, &request[dst_r]); // f_cubic_unordered needs to be device pointer
       if(f_index_procs_others_sizes[dst_s]!=0)
-        MPI_Isend(&all_f_cubic[soffset],1,stype[i],dst_s,
+        MPI_Isend(&all_f_cubic_d[soffset],1,stype[i],dst_s,
             0, c_comm, &s_request[dst_s]);
     }
     MPI_Status ierr;
@@ -637,15 +641,23 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
     }
   }
   timings[0]+=+MPI_Wtime();
-
-  // Now copy back f_cubic_unordered to f_cubic in the correct f_index
-  for(int dof=0;dof<data_dof;++dof){
-    for(int proc=0;proc<nprocs;++proc){
-      if(!f_index[proc].empty())
-        for(unsigned long i=0;i<f_index[proc].size();++i){
-          int ind=f_index[proc][i];
-          query_values[ind+dof*N_pts]=f_cubic_unordered[f_index_procs_self_offset[proc]+i+dof*N_pts];
-        }
+  
+  int* f_index_d_ptr;
+// write kernel for this task
+  // Now copy back f_cubic_unordered_d to query_values_d in the correct f_index
+  for(int dof=0;dof<data_dof;++dof) {
+    for(int proc=0;proc<nprocs;++proc) {
+      if(!f_index[proc].empty()) {
+        //for(unsigned long i=0;i<f_index[proc].size();++i){
+          PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] proc = %d, f_index[proc].size()=%d\n", procid, proc, f_index[proc].size());
+          PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+          f_index_d[proc] = f_index[proc];
+          f_index_d_ptr = thrust::raw_pointer_cast( &f_index_d[proc][0] );
+          copyQueryValues(&query_values_d[dof*N_pts], &f_cubic_unordered_d[f_index_procs_self_offset[proc]+dof*N_pts], f_index_d_ptr, f_index_d[proc].size());
+          //int ind=f_index[proc][i];
+          //query_values_d[ind+dof*N_pts]=f_cubic_unordered_d[f_index_procs_self_offset[proc]+i+dof*N_pts];
+       // }
+      }
     }
   }
   return;

@@ -68,8 +68,6 @@ struct Interp3_Plan_GPU{
     
   // CPU memory pointers
   Real * all_query_points;
-  Real* all_f_cubic;
-  Real * f_cubic_unordered;
   int* f_index_procs_others_offset; // offset in the all_query_points array
   int* f_index_procs_self_offset  ; // offset in the query_outside array
   int* f_index_procs_self_sizes   ; // sizes of the number of interpolations that need to be sent to procs
@@ -79,6 +77,8 @@ struct Interp3_Plan_GPU{
   MPI_Request * request;
 
   std::vector <int> *f_index;
+  thrust::device_vector<int> *f_index_d;
+//  thrust::host_vector<int> *f_index;
   std::vector <Real> *query_outside;
 
   bool allocate_baked;
@@ -87,7 +87,8 @@ struct Interp3_Plan_GPU{
   // GPU memory pointers
   Real* all_f_cubic_d;
   Real* all_query_points_d;
-  Real* ghost_reg_grid_vals_d;
+  Real * f_cubic_unordered_d;
+  //Real* ghost_reg_grid_vals_d;
   Real *xq1, *xq2, *xq3; 
 
   ~Interp3_Plan_GPU();

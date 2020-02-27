@@ -468,7 +468,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ScalarType* m_tmpInterpol1 = NULL, *m_tmpInterpol2 = NULL;
 
 
-  ierr = VecGetArray(fout, &p_fout); CHKERRQ(ierr);
+  ierr = VecCUDAGetArray(fout, &p_fout); CHKERRQ(ierr);
     
   
   interp_plan->interpolate( p_fghost, 
@@ -491,10 +491,13 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
                             &m_GPUtime);
   printGPUMemory();
     
+  ierr = VecCUDARestoreArray(fout, &p_fout); CHKERRQ(ierr);
   //printVector(p_fout, nl, "fout");
+  //
+  ierr = VecGetArray(fout, &p_fout);  CHKERRQ(ierr);
   TestError(ref, p_fout, nl, &error, &max);
-
   ierr = VecRestoreArray(fout, &p_fout); CHKERRQ(ierr);
+
   
   double global_error;
   double global_max;

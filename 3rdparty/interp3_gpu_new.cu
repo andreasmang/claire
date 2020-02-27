@@ -48,13 +48,7 @@ following papers:
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/extrema.h>
-#include <thrust/pair.h>
 #include <algorithm>
-#include <thrust/device_ptr.h>
-
 #include <memcpy.cu>
 #include <cubicPrefilter3D.cu>
 #include <bspline_kernel.cu>
@@ -1065,4 +1059,22 @@ void printGPUVector(ScalarType* arr, int nq) {
     int threads = 256;
     int blocks = (nq+255)/threads;
     printVectorKernel<<<blocks, threads>>>(arr, nq);
+}
+
+__global__ void copyQueryValuesKernel(ScalarType* dst, ScalarType* src, int* index, int len) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    
+    int ind;
+    if (tid < len) {
+        ind = index[tid];
+        dst[ind] = src[tid];
+    }
+}
+    
+
+void copyQueryValues(ScalarType* dst, ScalarType* src, int* index, int len) {
+    int threads = 256;
+    int blocks = (len+threads-1)/threads;
+
+    copyQueryValuesKernel<<<blocks, threads>>>(dst, src, index, len);
 }

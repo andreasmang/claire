@@ -9,6 +9,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_helper.hpp>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 
 
 void gpuInterp3D(PetscScalar* yi, 
@@ -30,5 +32,7 @@ void interp0(float* m, float* q1, float *q2, float *q3, float *q, int nx[3]);
 void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost);
 
 void printGPUVector(ScalarType* arr, int nq);
+
+void copyQueryValues(ScalarType* dst, ScalarType* src, int* index, int len);
 
 #endif
