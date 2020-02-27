@@ -531,7 +531,7 @@ void Interp3_Plan_GPU::scatter( int data_dof,
  *
  */
 
-void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded regular grid values on CPU
+void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded regular grid values on GPU
                                     int data_dof,              // degree of freedom for data (vector field=3, scalarfield=1)
                                     int* N_reg,                // size of global grid points 
                                     int* isize,                // size of the local grid owned by the process
@@ -564,7 +564,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
 
   // copy the ghost padded regular grid values from Host to Device
   timings[2]+=-MPI_Wtime();
-  cudaMemcpy(ghost_reg_grid_vals_d, ghost_reg_grid_vals, nlghost*data_dof*sizeof(Real), cudaMemcpyHostToDevice);
+  //cudaMemcpy(ghost_reg_grid_vals_d, ghost_reg_grid_vals, nlghost*data_dof*sizeof(Real), cudaMemcpyHostToDevice);
+  //cudaMemcpy(ghost_reg_grid_vals_d, ghost_reg_grid_vals, nlghost*data_dof*sizeof(Real), cudaMemcpyDeviceToDevice);
   //cudaCheckLastError();
   timings[2]+=+MPI_Wtime();
 
@@ -582,16 +583,16 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
   // compute the interpolation on the GPU
   timings[1]+=-MPI_Wtime();
   if (data_dof == 3)
-    gpuInterpVec3D(&ghost_reg_grid_vals_d[0*nlghost], 
-                   &ghost_reg_grid_vals_d[1*nlghost], 
-                   &ghost_reg_grid_vals_d[2*nlghost], 
+    gpuInterpVec3D(&ghost_reg_grid_vals[0*nlghost], 
+                   &ghost_reg_grid_vals[1*nlghost], 
+                   &ghost_reg_grid_vals[2*nlghost], 
                    xq1, xq2, xq3, 
                    &all_f_cubic_d[0*total_query_points], 
                    &all_f_cubic_d[1*total_query_points], 
                    &all_f_cubic_d[2*total_query_points], 
                    tmp1, tmp2, isize_g, static_cast<long int>(total_query_points), yi_tex, iporder, interp_time);
   else 
-    gpuInterp3D(ghost_reg_grid_vals_d, 
+    gpuInterp3D(ghost_reg_grid_vals, 
                 xq1, xq2, xq3, 
                 all_f_cubic_d, 
                 tmp1, tmp2, isize_g, static_cast<long int>(total_query_points), yi_tex, 
@@ -602,7 +603,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
     
   // copy the interpolated results from the device to the host
   timings[2]+=-MPI_Wtime();
-  cudaMemcpy(all_f_cubic,all_f_cubic_d, total_query_points*sizeof(Real)*data_dof ,cudaMemcpyDeviceToHost);
+  cudaMemcpy(all_f_cubic,all_f_cubic_d, total_query_points*sizeof(Real)*data_dof ,cudaMemcpyDeviceToHost); // no need to do with cuda-aware mpi
   //cudaCheckLastError();
   timings[2]+=+MPI_Wtime();
 
@@ -622,7 +623,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
       int roffset=f_index_procs_self_offset[dst_s];
       if(f_index_procs_self_sizes[dst_r]!=0)
         MPI_Irecv(&f_cubic_unordered[roffset],1,rtype[i], dst_r,
-            0, c_comm, &request[dst_r]);
+            0, c_comm, &request[dst_r]); // f_cubic_unordered needs to be device pointer
       if(f_index_procs_others_sizes[dst_s]!=0)
         MPI_Isend(&all_f_cubic[soffset],1,stype[i],dst_s,
             0, c_comm, &s_request[dst_s]);

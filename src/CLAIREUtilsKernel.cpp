@@ -26,7 +26,7 @@
 
 
 namespace reg {
-  
+
 
 /********************************************************************
  * @brief interface to create vector

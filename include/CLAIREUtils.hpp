@@ -121,6 +121,9 @@ PetscErrorCode CopyStridedFromFlatVec(ScalarType*, ScalarType*, ScalarType*, con
 /*! ensure partition of unity */
 PetscErrorCode EnsurePartitionOfUnity(Vec, IntType);
 
+/*! generic copy function based CPU or GPU implementation */
+PetscErrorCode gencpy(ScalarType*, ScalarType*, size_t);
+
 /*! ensure partition of unity */
 PetscErrorCode ComputeBackGround(Vec, Vec, IntType);
 

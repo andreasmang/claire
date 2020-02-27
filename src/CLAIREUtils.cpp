@@ -542,6 +542,20 @@ void isleep(unsigned int nanosec) {
 }
 
 
+/********************************************************************
+ * @brief function to copy memory
+ ********************************************************************/
+PetscErrorCode gencpy(ScalarType* dst, ScalarType* src, size_t size) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+#if defined(REG_HAS_MPICUDA)
+    cudaMemcpy((void*)dst , (const void*)src, size, cudaMemcpyDeviceToDevice);
+#else
+    memcpy((void*)dst, (void*)src, size);
+#endif
+    PetscFunctionReturn(ierr);
+}
+
 
 
 /********************************************************************

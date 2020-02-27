@@ -125,7 +125,7 @@ void interp0(float* m, float* q1, float* q2, float* q3, float* q, int nx[3]) {
 }
 
 
-__global__ void printVector(float *m, int n) {
+__global__ void printVectorKernel(float *m, int n) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     if (i<n) printf("m[%d] = %f\n", i , m[i]);
 }
@@ -984,7 +984,7 @@ void gpuInterpVec3D(
 
     //int threads = 256;
     //int blocks = (nq+255)/threads;
-    //printVector<<<blocks, threads>>>(yi1, nq);
+    //printVectorKernel<<<blocks, threads>>>(yi1, nq);
 
     gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
@@ -1061,3 +1061,8 @@ void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, Sca
     cudaDeviceSynchronize();
 }
 
+void printGPUVector(ScalarType* arr, int nq) {
+    int threads = 256;
+    int blocks = (nq+255)/threads;
+    printVectorKernel<<<blocks, threads>>>(arr, nq);
+}

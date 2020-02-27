@@ -376,15 +376,19 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
         // compute linear / flat index
         int i = reg::GetLinearIndex(i1, i2, i3, m_Opt->m_Domain.isize);
         
+        //TestFunction(p_f[i], x1, x2, x3);
         TestFunction(p_f[i], x1, x2, x3);
         
-        x1 += hx[0]*0.5;
-        x2 += hx[1]*0.5;
-        x3 += hx[2]*0.5;
+        //x1 += hx[0]*0.5;
+        //x2 += hx[1]*0.5;
+        //x3 += hx[2]*0.5;
         
-       // x1 += hx[0]*static_cast<double>(rand()-RAND_MAX/2)/static_cast<double>(RAND_MAX/2);
-       // x2 += hx[1]*static_cast<double>(rand()-RAND_MAX/2)/static_cast<double>(RAND_MAX/2);
-       // x3 += hx[2]*static_cast<double>(rand()-RAND_MAX/2)/static_cast<double>(RAND_MAX/2);
+        //x1 += hx[0]*0;
+        //x2 += hx[1]*0;
+        //x3 += hx[2]*0;
+        x1 += hx[0]*static_cast<double>(rand()-RAND_MAX/2)/static_cast<double>(RAND_MAX/2);
+        x2 += hx[1]*static_cast<double>(rand()-RAND_MAX/2)/static_cast<double>(RAND_MAX/2);
+        x3 += hx[2]*static_cast<double>(rand()-RAND_MAX/2)/static_cast<double>(RAND_MAX/2);
         
         if (x1 > 2.*M_PI) x1 -= 2.*M_PI;
         if (x2 > 2.*M_PI) x2 -= 2.*M_PI;
@@ -443,11 +447,20 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   printGPUMemory();
 
   // allocate ghost padded memory first
+#if defined(REG_HAS_MPICUDA)
+  cudaMalloc((void**)&p_fghost, g_alloc_max);
+#else
   p_fghost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
+#endif
   // ghost pad the input volume
-  ierr = VecGetArray(f, &p_f);  CHKERRQ(ierr);
+  ierr = VecCUDAGetArray(f, &p_f);  CHKERRQ(ierr);
   accfft_get_ghost_xyz(m_Opt->m_FFT.fft->m_plan, nghost, isize_g, p_f, p_fghost); 
-  ierr = VecRestoreArray(f, &p_f); CHKERRQ(ierr);
+    
+//  printGPUVector(p_f, nl);
+//  printGPUVector(p_fghost, nlghost);
+
+  ierr = VecCUDARestoreArray(f, &p_f); CHKERRQ(ierr);
+  
 
   //printVector(p_fghost, nlghost, "fghost");
   printGPUMemory();
@@ -508,7 +521,11 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   printGPUMemory();
 
   if (p_fghost != NULL) {
+#if defined(REG_HAS_MPICUDA)
+    cudaFree(p_fghost);
+#else
     accfft_free(p_fghost); 
+#endif
     p_fghost = NULL;
   }
 
