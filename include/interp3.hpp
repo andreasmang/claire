@@ -212,7 +212,7 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 //		int * isize_g, int* istart_g);
 
 void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
-		Real* data, Real* ghost_data);
+		Real* data, Real* ghost_data, double* timers);
 //void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 //		Real* data, Real* ghost_data);
 

@@ -662,7 +662,8 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     }
 
     // assign ghost points based on input scalar field
-    accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
+    double timers[4];
+    accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, xi, this->m_ScaFieldGhost, timers);
     
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -817,11 +818,11 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*nalloc));
     }
 
-
+    double timers[4];
     // do the communication for the ghost points
     for (int i = 0; i < 3; i++) {
         accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, &this->m_X[i*nl],
-                             &this->m_VecFieldGhost[i*nlghost]);
+                             &this->m_VecFieldGhost[i*nlghost], timers);
     }
 
     if (strcmp(flag.c_str(),"state") == 0) {

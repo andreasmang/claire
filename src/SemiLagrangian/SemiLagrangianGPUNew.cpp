@@ -786,10 +786,10 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
     }
 
     ierr = VecGetArray(this->m_WorkVec, &p_WorkVec);
-
+  
     // do the communication for the ghost points one by one for each component x,y,z
     for (unsigned int i = 0; i < 3; i++){
-        accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, this->ghost_metadata->nghost, this->ghost_metadata->isize, &p_WorkVec[ i*nl ], &this->m_VecFieldGhost[ i*this->ghost_metadata->nlghost ]); 
+        accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, this->ghost_metadata->nghost, this->ghost_metadata->isize, &p_WorkVec[ i*nl ], &this->m_VecFieldGhost[ i*this->ghost_metadata->nlghost ], timers); 
     }
    
     
@@ -1159,10 +1159,10 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
         }
         
         // scatter
-        this->m_StatePlan->scatter(1, nx, this->m_Opt->m_Domain.isize,
-                                   this->m_Opt->m_Domain.istart, nl,
-                                   this->ghost_metadata->nghost, p_X, 
-                                   c_dims, this->m_Opt->m_FFT.mpicomm, timers);
+        //this->m_StatePlan->scatter(1, nx, this->m_Opt->m_Domain.isize,
+        //                           this->m_Opt->m_Domain.istart, nl,
+        //                           this->ghost_metadata->nghost, p_X, 
+        //                           c_dims, this->m_Opt->m_FFT.mpicomm, timers);
 
 
         // create planer
@@ -1175,15 +1175,15 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
             this->m_StatePlanVec->allocate(nl,3);
         }
         // scatter
-        this->m_StatePlanVec->scatter( 3,
-                                       nx,
-                                       this->m_Opt->m_Domain.isize,
-                                       this->m_Opt->m_Domain.istart, 
-                                       nl,
-                                       this->ghost_metadata->nghost, 
-                                       p_X,
-                                       c_dims,
-                                       this->m_Opt->m_FFT.mpicomm,timers);
+        //this->m_StatePlanVec->scatter( 3,
+        //                               nx,
+        //                               this->m_Opt->m_Domain.isize,
+        //                               this->m_Opt->m_Domain.istart, 
+        //                               nl,
+        //                               this->ghost_metadata->nghost, 
+        //                               p_X,
+        //                               c_dims,
+        //                               this->m_Opt->m_FFT.mpicomm,timers);
 
     } else if (strcmp(flag.c_str(),"adjoint")==0) {
 
@@ -1198,10 +1198,10 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
         }
 
         // scatter
-        this->m_AdjointPlan->scatter(1,nx,this->m_Opt->m_Domain.isize,
-                                    this->m_Opt->m_Domain.istart, nl,
-                                    this->ghost_metadata->nghost, p_X,
-                                    c_dims,this->m_Opt->m_FFT.mpicomm,timers);
+        //this->m_AdjointPlan->scatter(1,nx,this->m_Opt->m_Domain.isize,
+        //                            this->m_Opt->m_Domain.istart, nl,
+        //                            this->ghost_metadata->nghost, p_X,
+        //                            c_dims,this->m_Opt->m_FFT.mpicomm,timers);
 
         // create planer
         if (this->m_AdjointPlanVec == NULL){
@@ -1214,10 +1214,10 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
         }
 
         // scatter
-        this->m_AdjointPlanVec->scatter(3,nx,this->m_Opt->m_Domain.isize,
-                                    this->m_Opt->m_Domain.istart, nl,
-                                    this->ghost_metadata->nghost, p_X,
-                                    c_dims,this->m_Opt->m_FFT.mpicomm,timers);
+        //this->m_AdjointPlanVec->scatter(3,nx,this->m_Opt->m_Domain.isize,
+        //                            this->m_Opt->m_Domain.istart, nl,
+        //                            this->ghost_metadata->nghost, p_X,
+        //                            c_dims,this->m_Opt->m_FFT.mpicomm,timers);
 
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);

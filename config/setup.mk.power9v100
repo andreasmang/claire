@@ -8,7 +8,7 @@ MKDIRS = mkdir -p
 ifeq ($(DBGCODE),yes)
     CXXFLAGS = -g
 else
-	CXXFLAGS = -O3 -ansi -g
+	CXXFLAGS = -O3 -ansi
 endif
 
 
@@ -57,6 +57,7 @@ endif
 ifeq ($(USECUDA),yes)
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
+	CXXFLAGS += -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA
 	ifeq ($(USECUDADBG),yes)
 		CXXFLAGS += -DREG_DBG_CUDA
 	endif
@@ -136,11 +137,12 @@ ifeq ($(USECUDA),yes)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -G -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
+#=--compiler-options -Xcompiler "$(CXXFLAGS)" -O3 -XCompiler -fPIC -Wno-deprecated-gpu-targets
+CUDA_FLAGS=-Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
-CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
+#CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50
-
+CUDA_FLAGS+=-arch=sm_70
 
 ifeq ($(USENIFTI),yes)
 	CLAIRE_INC += -I$(NIFTI_DIR)/include/nifti

@@ -23,7 +23,7 @@
  */
 template <class T>
 void ghost_left_right(T padded_data, Real* data, int g_size,
-		FFTPlanType* plan) {
+		FFTPlanType* plan, double* timers) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -88,12 +88,12 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 	//MPI_Recv(recv, 10, MPI_FLOAT, dst_r, 0, row_comm, &ierr);
 	//cudaFree(send);
 	//cudaFree(recv);
+  timers[0]+=-MPI_Wtime();
 	MPI_Isend(RS, rs_buf_size, MPI_T, dst_s, 0, row_comm, &rs_s_request);
 	MPI_Irecv(GL, rs_buf_size, MPI_T, dst_r, 0, row_comm, &rs_r_request);
 	MPI_Wait(&rs_s_request, &ierr);
 	MPI_Wait(&rs_r_request, &ierr);
-	//MPI_Send(RS, rs_buf_size, MPI_T, dst_s, 0, row_comm);
-	//MPI_Recv(GL, rs_buf_size, MPI_T, dst_r, 0, row_comm, &ierr);
+	timers[0]+=+MPI_Wtime();
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -147,10 +147,13 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 	dst_r = (procid_r + 1) % nprocs_r;
 	if (procid_r == 0)
 		dst_s = nprocs_r - 1;
+
+	timers[0]+=-MPI_Wtime();
 	MPI_Isend(LS, ls_buf_size, MPI_T, dst_s, 0, row_comm, &rs_s_request);
 	MPI_Irecv(GR, ls_buf_size, MPI_T, dst_r, 0, row_comm, &rs_r_request);
 	MPI_Wait(&rs_s_request, &ierr);
 	MPI_Wait(&rs_r_request, &ierr);
+	timers[0]+=+MPI_Wtime();
 
 #ifdef VERBOSE2
 	if(procid==1) {
@@ -230,7 +233,7 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
  */
 template <class T>
 void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_size,
-		FFTPlanType* plan) {
+		FFTPlanType* plan, double* timers) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -280,10 +283,13 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 		dst_r = nprocs_c - 1;
 	MPI_Request bs_s_request, bs_r_request;
 	MPI_Status ierr;
+
+	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&BS[0], bs_buf_size, MPI_T, dst_s, 0, col_comm, &bs_s_request);
 	MPI_Irecv(&GT[0], bs_buf_size, MPI_T, dst_r, 0, col_comm, &bs_r_request);
 	MPI_Wait(&bs_s_request, &ierr);
 	MPI_Wait(&bs_r_request, &ierr);
+	timers[0]+=+MPI_Wtime();
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -337,10 +343,13 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 	dst_r = (procid_c + 1) % nprocs_c;
 	if (procid_c == 0)
 		dst_s = nprocs_c - 1;
+
+	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&TS[0], ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
 	MPI_Irecv(&GB[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
 	MPI_Wait(&ts_s_request, &ierr);
 	MPI_Wait(&ts_r_request, &ierr);
+	timers[0]+=+MPI_Wtime();
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -511,6 +520,7 @@ void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
 	int nprocs, procid;
 	MPI_Comm_rank(plan->c_comm, &procid);
 	MPI_Comm_size(plan->c_comm, &nprocs);
+  double timers[4] = {0, 0, 0, 0};
 
 	if (plan->inplace == true) {
 		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
@@ -535,8 +545,8 @@ void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
 
   pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real>
     (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
-	ghost_left_right(padded_data, data, g_size, plan);
-	ghost_top_bottom(ghost_data, padded_data, g_size, plan);
+	ghost_left_right(padded_data, data, g_size, plan, timers);
+	ghost_top_bottom(ghost_data, padded_data, g_size, plan, timers);
   pvfmm::aligned_delete<Real>(padded_data);
 	return;
 
@@ -632,7 +642,7 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
 void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
-		Real* data, Real* ghost_data) {
+		Real* data, Real* ghost_data, double* timers) {
 	int nprocs, procid;
 	MPI_Comm_rank(plan->c_comm, &procid);
 	MPI_Comm_size(plan->c_comm, &nprocs);
@@ -658,17 +668,17 @@ void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 	}
 
 #if defined(REG_HAS_MPICUDA)
-    Real *padded_data, *ghost_data_xy;
-    cudaMalloc((void**)&padded_data, sizeof(Real)*( plan->alloc_max+ 2*g_size*isize[2]*isize[0] ));
-    cudaMalloc((void**)&ghost_data_xy, sizeof(Real)*(plan->alloc_max+ 2*g_size*isize[2]*isize[0] + 2*g_size*isize[2]*isize_g[1] ));
-	ghost_left_right<Real*>(padded_data, data, g_size, plan);
-	ghost_top_bottom<Real*>(ghost_data_xy, padded_data, g_size, plan);
+  Real *padded_data, *ghost_data_xy;
+  cudaMalloc((void**)&padded_data, sizeof(Real)*( plan->alloc_max+ 2*g_size*isize[2]*isize[0] ));
+  cudaMalloc((void**)&ghost_data_xy, sizeof(Real)*(plan->alloc_max+ 2*g_size*isize[2]*isize[0] + 2*g_size*isize[2]*isize_g[1] ));
+	ghost_left_right<Real*>(padded_data, data, g_size, plan, timers);
+	ghost_top_bottom<Real*>(ghost_data_xy, padded_data, g_size, plan, timers);
 	ghost_z<Real*>(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
 #else
-    pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
-    pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0] + 2 * g_size * isize[2] * isize_g[1]);
-	ghost_left_right<pvfmm::Iterator<Real>>(padded_data, data, g_size, plan);
-	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan);
+  pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
+  pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0] + 2 * g_size * isize[2] * isize_g[1]);
+	ghost_left_right<pvfmm::Iterator<Real>>(padded_data, data, g_size, plan, timers);
+	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan, timers);
 	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
 #endif
 

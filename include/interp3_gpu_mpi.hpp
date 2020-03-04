@@ -8,6 +8,7 @@
 #include <interp3_gpu_new.hpp>
 #include <mpi.h>
 #include <vector>
+#include <iostream>
 #include "CLAIREUtils.hpp"
 
 //#if defined(PETSC_USE_REAL_SINGLE)
@@ -32,7 +33,7 @@ struct Interp3_Plan_GPU{
   //            int* N_reg, int * isize, int* istart, const int N_pts, const int g_size, Real* query_points_in,
   //            Real* query_values,int* c_dims, MPI_Comm c_comm);
   void scatter(int data_dof,
-              int* N_reg, int * isize, int* istart, const int N_pts, const int g_size, Real* query_points_in,
+              int* N_reg, int * isize, int* istart, const int N_pts, const int g_size, Real* query_points_in_x, Real* query_points_in_y, Real* query_points_in_z,
               int* c_dims, MPI_Comm c_comm, double * timings);
   //void interpolate( Real* ghost_reg_grid_vals, int data_dof,
   //            int* N_reg, int * isize, int* istart, const int N_pts, const int g_size,
@@ -67,7 +68,7 @@ struct Interp3_Plan_GPU{
   MPI_Datatype *stype,*rtype;
     
   // CPU memory pointers
-  Real * all_query_points;
+  //Real * all_query_points;
   int* f_index_procs_others_offset; // offset in the all_query_points array
   int* f_index_procs_self_offset  ; // offset in the query_outside array
   int* f_index_procs_self_sizes   ; // sizes of the number of interpolations that need to be sent to procs
@@ -76,10 +77,8 @@ struct Interp3_Plan_GPU{
   MPI_Request * s_request;
   MPI_Request * request;
 
-  std::vector <int> *f_index;
-  thrust::device_vector<int> *f_index_d;
-//  thrust::host_vector<int> *f_index;
-  std::vector <Real> *query_outside;
+  thrust::device_vector<int> *f_index;
+  thrust::device_vector<Real> *query_outside;
 
   bool allocate_baked;
   bool scatter_baked;
@@ -98,5 +97,9 @@ struct Interp3_Plan_GPU{
 void gpu_par_interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
               int* N_reg, int * isize, int* istart, const int N_pts,int g_size, Real* query_points,
               Real* query_values,int* c_dims,MPI_Comm c_comm);
+
+void get_count(int* arr, int size, int val, int* count);
+
+void test_count();
 
 #endif

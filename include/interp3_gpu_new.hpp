@@ -10,7 +10,13 @@
 #include <cuda_runtime.h>
 #include <cuda_helper.hpp>
 #include <thrust/device_vector.h>
+#include <thrust/device_ptr.h>
 #include <thrust/host_vector.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/execution_policy.h>
+#include <thrust/device_malloc.h>
+#include <thrust/device_free.h>
 
 
 void gpuInterp3D(PetscScalar* yi, 
@@ -34,5 +40,13 @@ void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, Sca
 void printGPUVector(ScalarType* arr, int nq);
 
 void copyQueryValues(ScalarType* dst, ScalarType* src, int* index, int len);
+
+void enforcePeriodicity(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* h, int len);
+
+void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1);
+
+void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int nq);
+
+void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart);
 
 #endif

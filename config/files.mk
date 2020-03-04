@@ -65,13 +65,14 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu \
 		$(SRCDIR)/Spectral/SpectralKernel.cu \
 		$(SRCDIR)/PreconditionerKernel.cu \
+		$(SRCDIR)/Interpolation/Interp3_Plan_GPU.cu \
+		$(SRCDIR)/Interpolation/Interp3_Plan_GPU_kernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
-		$(SRCDIR)/Interpolation/Interp3_Plan_GPU.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \
