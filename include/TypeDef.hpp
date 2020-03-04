@@ -6,7 +6,7 @@
 #include "petscsys.h"
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
-  #include "petsccuda.h"
+  #include "petscvec.h"
   #include "cuda.h"
   #include <petsc/private/vecimpl.h>
 #endif

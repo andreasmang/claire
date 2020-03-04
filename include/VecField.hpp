@@ -62,6 +62,9 @@ class VecField {
     /*! pointwise scaling of individual components of
         vector field by scalar */
     PetscErrorCode Scale(ScalarType);
+    /*! pointwise scaling of individual components of
+        vector field by individual scalars */
+    PetscErrorCode Scale(ScalarType*);
 
     /*! pointwise scaling of individual components of
         vector field by scalar field; overwrites vector field */

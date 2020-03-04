@@ -324,7 +324,7 @@ PetscErrorCode DeformationFields
     ierr = VecRestoreArray(x->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecRestoreArray(x->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecRestoreArray(x->m_X3, &p_x3); CHKERRQ(ierr);
-
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1502,20 +1502,32 @@ PetscErrorCode DeformationFields::ComputeDeformationMapSLRK2() {
     // if we request the inverse deformation map
     if (this->m_ComputeInverseDefMap) {ht *= -1.0; hthalf *= -1.0;}
 
-    ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->GetArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField3->GetArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
-
+    // p_v  = m_VelocityField
+    // p_y  = m_WorkVecField1
+    // p_vt = m_WorkVecField2
+    // p_vy = m_WorkVecField3
+    
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         // evaluate v(y)
+        ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_y1, p_y2, p_y3, "state"); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
-        //ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField3, this->m_VelocityField, "state"); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
 
+        ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->GetArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->RestoreArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
+        ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+
+    
         // compute intermediate variable (fist stage of RK2)
+        // compute new coordinate
+        ierr = this->m_WorkVecField2->WAXPY(-ht, this->m_WorkVecField3, this->m_WorkVecField1); CHKERRQ(ierr);    
+        
+        // compute first part of second stage of RK2
+        ierr = this->m_WorkVecField1->AXPY(-hthalf, this->m_WorkVecField3);                     CHKERRQ(ierr);
+/*
 #pragma omp parallel
 {
 #pragma omp for
@@ -1531,11 +1543,24 @@ PetscErrorCode DeformationFields::ComputeDeformationMapSLRK2() {
             p_y3[i] -= hthalf*p_vy3[i];
         }
 }// end of pragma omp parallel
+*/
 
         // evaluate v(ytilde)
+        ierr = this->m_WorkVecField2->GetArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetQueryPoints(p_yt1, p_yt2, p_yt3, "state"); CHKERRQ(ierr);
-        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField2->RestoreArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
 
+
+        ierr = this->m_VelocityField->GetArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->GetArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(p_vy1, p_vy2, p_vy3, p_v1, p_v2, p_v3, "state"); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->RestoreArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
+        ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+    
+        
+        // update deformation map (second stage of RK2)
+        ierr = this->m_WorkVecField1->AXPY(-hthalf, this->m_WorkVecField3); CHKERRQ(ierr);
+/*
         // update deformation map (second stage of RK2)
 #pragma omp parallel
 {
@@ -1546,23 +1571,24 @@ PetscErrorCode DeformationFields::ComputeDeformationMapSLRK2() {
             p_y3[i] -= hthalf*p_vy3[i];
         }
 }// end of pragma omp parallel
+*/
 
         // store time series
         if (this->m_Opt->m_ReadWriteFlags.timeseries ) {
             ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-            ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
+//            ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
             ss.str(std::string()); ss.clear();
             ss << "deformation-map-j=" << std::setw(3) << std::setfill('0') << j+1 << ext;
             ierr = this->m_ReadWrite->Write(this->m_WorkVecField1, ss.str()); CHKERRQ(ierr);
-            ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
+//            ierr = this->m_WorkVecField1->GetArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
         }
     } // for all time points
 
-    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField3->RestoreArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
+//    ierr = this->m_VelocityField->RestoreArrays(p_v1, p_v2, p_v3); CHKERRQ(ierr);
+//
+//    ierr = this->m_WorkVecField3->RestoreArrays(p_vy1, p_vy2, p_vy3); CHKERRQ(ierr);
+//    ierr = this->m_WorkVecField2->RestoreArrays(p_yt1, p_yt2, p_yt3); CHKERRQ(ierr);
+//    ierr = this->m_WorkVecField1->RestoreArrays(p_y1, p_y2, p_y3); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 

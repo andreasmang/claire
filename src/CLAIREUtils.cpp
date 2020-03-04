@@ -882,7 +882,7 @@ PetscErrorCode GetRawPointer(Vec v, ScalarType** a) {
     PetscFunctionBegin;
 
     #ifdef REG_HAS_CUDA
-        ierr = VecCUDAGetArrayReadWrite(v, a); CHKERRQ(ierr);
+        ierr = VecCUDAGetArray(v, a); CHKERRQ(ierr);
     #else
         ierr = VecGetArray(v, a); CHKERRQ(ierr);
     #endif
@@ -896,7 +896,7 @@ PetscErrorCode RestoreRawPointer(Vec v, ScalarType** a) {
     PetscFunctionBegin;
 
     #ifdef REG_HAS_CUDA
-        ierr = VecCUDARestoreArrayReadWrite(v, a); CHKERRQ(ierr);
+        ierr = VecCUDARestoreArray(v, a); CHKERRQ(ierr);
     #else
         ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
     #endif
@@ -939,7 +939,7 @@ PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a) {
     PetscFunctionBegin;
 
     #ifdef REG_HAS_CUDA
-        ierr = VecCUDAGetArrayReadWrite(v, a); CHKERRQ(ierr);
+        ierr = VecCUDAGetArray(v, a); CHKERRQ(ierr);
     #else
         ierr = VecGetArray(v, a); CHKERRQ(ierr);
     #endif
@@ -953,7 +953,7 @@ PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
     PetscFunctionBegin;
 
     #ifdef REG_HAS_CUDA
-        ierr = VecCUDARestoreArrayReadWrite(v, a); CHKERRQ(ierr);
+        ierr = VecCUDARestoreArray(v, a); CHKERRQ(ierr);
     #else
         ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
     #endif
@@ -998,24 +998,6 @@ PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
     std::stringstream ss;
     ss << std::left << msg;
 
-#ifdef REG_HAS_CUDA
-    if (v->valid_GPU_array == PETSC_OFFLOAD_UNALLOCATED) {
-        msg = ss.str() + " UNALLOCATED\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-    else if (v->valid_GPU_array == PETSC_OFFLOAD_CPU) {
-        msg = ss.str() + " on CPU\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-    else if (v->valid_GPU_array == PETSC_OFFLOAD_GPU) {
-        msg = ss.str() + " on GPU\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-    else {
-        msg = ss.str() + " on BOTH\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-#endif
     PetscFunctionReturn(ierr);
 }
 

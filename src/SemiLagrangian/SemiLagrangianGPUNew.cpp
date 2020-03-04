@@ -731,35 +731,33 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
 PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3, std::string flag) {
     PetscErrorCode ierr = 0;
     IntType nl;
+    VecField* X;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     nl = this->m_Opt->m_Domain.nl;
 
-    // if query points have not yet been allocated
-    /*
-    if (this->m_X == NULL) {
-        try {this->m_X = new ScalarType[3*nl];}
-        catch (std::bad_alloc& err) {
-            ierr = reg::ThrowError(err); CHKERRQ(ierr);
-        }
+    if (strcmp(flag.c_str(), "state") == 0) {
+        X = this->m_Xstate;
+    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
+        X = this->m_Xadjoint;
+    } else {
+        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-
-    // copy data to a flat vector
-    for (IntType i = 0; i < nl; ++i) {
-        this->m_X[0*nl+i] = y1[i];
-        this->m_X[1*nl+i] = y2[i];
-        this->m_X[2*nl+i] = y3[i];
-    }
-
-    // evaluate right hand side
-    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
-    */
+    
+    ierr = X->SetComponents(y1, y2, y3); 
+    
+    ScalarType invhx[3];
+    for (int i=0; i<3; i++) invhx[i] = 1./this->m_Opt->m_Domain.hx[i];
+    ierr = X->Scale(invhx);
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
+
+
 PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
