@@ -563,7 +563,7 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
         ierr = this->m_Precond->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
         ierr = this->m_Optimizer->SetPreconditioner(this->m_Precond); CHKERRQ(ierr);
     }
-
+    
     // set up initial condition
     if (this->m_Solution == NULL) {
         if (this->m_Opt->m_Verbosity > 2) {

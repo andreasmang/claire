@@ -29,6 +29,11 @@
 #include "DifferentiationFD.hpp"
 #include "VecField.hpp"
 
+#ifdef REG_HAS_CUDA
+//#define TEST_FD
+#endif
+//#define SPECTRAL_ANALYSIS
+
 namespace reg {
 namespace UnitTest {
   
@@ -36,7 +41,14 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  std::cout << "starting differentiation unit test" << std::endl;
+  int rank;
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  
+  if (rank == 0) std::cout << "starting differentiation unit test" << std::endl;
+  
+#ifdef REG_HAS_CUDA
+  printf("rank %2i uses GPU %2i\n", rank, m_Opt->m_gpu_id);
+#endif
   
   DifferentiationSM *m_dif = nullptr;
   DifferentiationFD *m_fd = nullptr;
@@ -56,152 +68,196 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = AllocateOnce(m_fd, m_Opt); CHKERRQ(ierr);
   //m_dif->SetupSpectralData();
   //m_fd->SetupData();
-
-#ifdef REG_HAS_CUDA  
-  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // FD Grad
+  
+  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // Grad
+#ifdef TEST_FD  
   ierr = m_fd->Gradient(dv, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "FD grad_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD grad_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "FD grad_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD grad_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "FD grad_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD grad_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "FD grad_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD grad_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "FD grad_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD grad_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "FD grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 #endif
- 
-  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); // FFT grad 
   ierr = m_dif->Gradient(dv, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "grad_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "grad_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << " ref: " << vnorm << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "grad_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "grad_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "grad_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "grad_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "grad_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "grad_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "grad_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "grad_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 
-#ifdef REG_HAS_CUDA
-  std::cout << std::endl;
+  if (rank == 0) std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); // Div
+#ifdef TEST_FD
   ierr = m_fd->Divergence(dv->m_X1, v); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "FD div error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD div error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "FD div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 #endif
-  ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); // Div
   ierr = m_dif->Divergence(dv->m_X1, v); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "div error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "div error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   
-  std::cout << std::endl;
-#ifdef REG_HAS_CUDA
-  std::cout << std::endl;
+  if (rank == 0) std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
+#ifdef TEST_FD
   ierr = m_fd->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "FD lap error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD lap error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "FD lap error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD lap error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
 #endif
-  ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
   ierr = m_dif->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap scalar error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap scalar error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap scalar linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap scalar linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   
-  std::cout << std::endl;
-  ierr = m_dif->Laplacian(dv, v); CHKERRQ(ierr);
+  if (rank == 0)std::cout << std::endl;
+  ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
+#ifdef TEST_FD
+  ierr = m_fd->RegLapOp(dv, v, 1.); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X1, 1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X2, 1., ref->m_X2); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X3, 1., ref->m_X3); CHKERRQ(ierr);
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "FD lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "FD lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "FD lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "FD lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "FD lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "FD lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+#endif
+  ierr = m_dif->RegLapOp(dv, v, 1.); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X1, 1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X2, 1., ref->m_X2); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X3, 1., ref->m_X3); CHKERRQ(ierr);
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
+  if (rank == 0) std::cout << "lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  
+  if (rank == 0)std::cout << std::endl;
+  ierr = ComputeDiffFunction(ref, v, 2, m_Opt); CHKERRQ(ierr); // Lap
+#ifdef TEST_FD
+  ierr = m_fd->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD inv lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD inv lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD inv lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD inv lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
-  
-  std::cout << std::endl;
-  ierr = ComputeDiffFunction(ref, v, 2, m_Opt); CHKERRQ(ierr); // Lap
+  if (rank == 0) std::cout << "FD inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+#endif
   ierr = m_dif->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "inv lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "inv lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "inv lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "inv lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "inv lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "inv lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "inv lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "inv lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   
-  std::cout << std::endl;
+  if (rank == 0)std::cout << std::endl;
   ierr = ComputeDiffFunction(ref, v, 2, m_Opt); CHKERRQ(ierr); // Lap
   ref->Copy(v);
   ierr = m_dif->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
@@ -211,29 +267,29 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   ierr = VecAXPY(v->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(v->m_X1, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap inv lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap inv lap vector_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(v->m_X2, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap inv lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap inv lap vector_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(v->m_X3, NORM_2, &value); CHKERRQ(ierr);
-  std::cout << "lap inv lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap inv lap vector_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(v->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap inv lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap inv lap vector_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(v->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "lap inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(v->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  std::cout << "lap inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
-#define SPECTRAL_ANALYSIS
+  if (rank == 0) std::cout << "lap inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  
 #ifdef SPECTRAL_ANALYSIS
-  printf("\nSpectral Analysis 1st derivative\n  w, FD8, FFT\n");
+  printf("\nSpectral Analysis 1st and 2nd derivative\n  w, FD8, FFT\n");
   for (int w=1; w<m_Opt->m_Domain.nx[2]/2; ++w) {
     printf("%3i",w);
     ierr = ComputeGradSpectral(w, v, ref, m_Opt); CHKERRQ(ierr);
-#ifdef REG_HAS_CUDA
+#ifdef TEST_FD
     ierr = m_fd->Gradient(dv, v->m_X1); CHKERRQ(ierr);
     ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
     ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
@@ -244,6 +300,18 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
     ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
     ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
     ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+    printf(", %.5e", value/(vnorm==0.0?1.:vnorm));
+#ifdef TEST_FD
+    ierr = m_fd->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
+    ierr = VecAXPY(dv->m_X1, -1, ref->m_X1); CHKERRQ(ierr);
+    ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+    ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+    printf(", %.5e", value/(vnorm==0.0?1.:vnorm));
+#endif
+    ierr = m_dif->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
+    ierr = VecAXPY(dv->m_X1, -1, ref->m_X1); CHKERRQ(ierr);
+    ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+    ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
     printf(", %.5e\n", value/(vnorm==0.0?1.:vnorm));
   }
 #endif

@@ -6,6 +6,7 @@
 //#include <accfft.h>
 #include <interp3.hpp>
 //#define VERBOSE2
+#include "RegOpt.hpp"
 
 /*
  * Get the left right ghost cells.
@@ -18,7 +19,7 @@
  * @param[in] plan: AccFFT R2C plan
  */
 void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
-		FFTPlanType* plan) {
+		reg::RegOpt* m_Opt) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -26,13 +27,13 @@ void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
 
 	/* Get the local pencil size and the allocation size */
 	//int isize[3],osize[3],istart[3],ostart[3];
-	int * isize = plan->isize;
+	IntType * isize = m_Opt->m_Domain.isize;
 //	int * osize = plan->isize;
 //	int * istart = plan->istart;
 //	int * ostart = plan->ostart;
 //	int alloc_max = plan->alloc_max;
 
-	MPI_Comm row_comm = plan->row_comm;
+	MPI_Comm row_comm = m_Opt->m_FFT.rowcomm;
 	int nprocs_r, procid_r;
 	MPI_Comm_rank(row_comm, &procid_r);
 	MPI_Comm_size(row_comm, &nprocs_r);
@@ -185,7 +186,7 @@ void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
  * @param[in] plan: AccFFT R2C plan
  */
 void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> padded_data, int g_size,
-		FFTPlanType* plan) {
+		reg::RegOpt* m_Opt) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -194,13 +195,13 @@ void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> pa
 
 	/* Get the local pencil size and the allocation size */
 	//int isize[3],osize[3],istart[3],ostart[3];
-	int * isize = plan->isize;
+	IntType * isize = m_Opt->m_Domain.isize;
 //	int * osize = plan->isize;
 //	int * istart = plan->istart;
 //	int * ostart = plan->ostart;
 //	int alloc_max = plan->alloc_max;
 
-	MPI_Comm col_comm = plan->col_comm;
+	MPI_Comm col_comm = m_Opt->m_FFT.colcomm;
 	int nprocs_c, procid_c;
 	MPI_Comm_rank(col_comm, &procid_c);
 	MPI_Comm_size(col_comm, &nprocs_c);
@@ -351,9 +352,9 @@ void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> pa
  * @param[in] plan: AccFFT R2C plan
  */
 void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, int* isize_g,
-		FFTPlanType* plan) {
+		reg::RegOpt* m_Opt) {
 
-	int * isize = plan->isize;
+	IntType * isize = m_Opt->m_Domain.isize;
 	for (int i = 0; i < isize_g[0]; ++i)
 		for (int j = 0; j < isize_g[1]; ++j) {
 			memcpy(&ghost_data_z[(i * isize_g[1] + j) * isize_g[2]],
@@ -386,13 +387,13 @@ void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, i
  * (that originally resided in the last processor).
  */
 
-size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
+size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 		int * isize_g, int* istart_g) {
 
-	size_t alloc_max = plan->alloc_max;
-	int *isize = plan->isize;
-	int *istart = plan->istart;
-	int* n = plan->N;
+	size_t alloc_max = m_Opt->m_FFT.nalloc;
+	IntType *isize = m_Opt->m_Domain.isize;
+	IntType *istart = m_Opt->m_Domain.istart;
+	IntType* n = m_Opt->m_Domain.nx;
 	istart_g[2] = istart[2];
 	isize_g[2] = isize[2];
 
@@ -437,24 +438,24 @@ size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
  * @param[in] data: The local data whose ghost cells from other processors are sought.
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
-void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
+void accfft_get_ghost(reg::RegOpt* m_Opt, int g_size, int* isize_g, Real* data,
 		Real* ghost_data) {
 	int nprocs, procid;
-	MPI_Comm_rank(plan->c_comm, &procid);
-	MPI_Comm_size(plan->c_comm, &nprocs);
+	MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
+	MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
 
-	if (plan->inplace == true) {
+	/*if (plan->inplace == true) {
 		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
 				<< std::endl;
 		return;
-	}
+	}*/
 
 	if (g_size == 0) {
-		memcpy(ghost_data, data, plan->alloc_max);
+		memcpy(ghost_data, data, m_Opt->m_FFT.nalloc);
 		return;
 	}
 
-	int *isize = plan->isize;
+	IntType *isize = m_Opt->m_Domain.isize;
 	//int *istart = plan->istart;
 	//int *n = plan->N;
 	if (g_size > isize[0] || g_size > isize[1]) {
@@ -465,9 +466,9 @@ void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
 	}
 
   pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real>
-    (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
-	ghost_left_right(padded_data, data, g_size, plan);
-	ghost_top_bottom(ghost_data, padded_data, g_size, plan);
+    (m_Opt->m_FFT.nalloc + 2 * g_size * isize[2] * isize[0]);
+	ghost_left_right(padded_data, data, g_size, m_Opt);
+	ghost_top_bottom(ghost_data, padded_data, g_size, m_Opt);
   pvfmm::aligned_delete<Real>(padded_data);
 	return;
 
@@ -491,13 +492,13 @@ void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
  * (that originally resided in the last processor).
  */
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(FFTPlanType* plan, int g_size,
+size_t accfft_ghost_xyz_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 		int * isize_g, int* istart_g) {
 
-	size_t alloc_max = plan->alloc_max;
-	int *isize = plan->isize;
-	int *istart = plan->istart;
-	int* n = plan->N;
+	size_t alloc_max = m_Opt->m_FFT.nalloc;
+	IntType *isize = m_Opt->m_Domain.isize;
+	IntType *istart = m_Opt->m_Domain.istart;
+	IntType* n = m_Opt->m_Domain.nx;
 
 	istart_g[0] = istart[0] - g_size;
 	istart_g[1] = istart[1] - g_size;
@@ -552,24 +553,24 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
  * @param[in] data: The local data whose ghost cells from other processors are sought.
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
-void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
+void accfft_get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data) {
 	int nprocs, procid;
-	MPI_Comm_rank(plan->c_comm, &procid);
-	MPI_Comm_size(plan->c_comm, &nprocs);
+	MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
+	MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
 
-	if (plan->inplace == true) {
+	/*if (plan->inplace == true) {
 		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
 				<< std::endl;
 		return;
-	}
+	}*/
 
 	if (g_size == 0) {
-		memcpy(ghost_data, data, plan->alloc_max);
+		memcpy(ghost_data, data, m_Opt->m_FFT.nalloc);
 		return;
 	}
 
-	int *isize = plan->isize;
+	IntType *isize = m_Opt->m_Domain.isize;
 //	int *istart = plan->istart;
 //	int *n = plan->N;
 	if (g_size > isize[0] || g_size > isize[1]) {
@@ -580,14 +581,14 @@ void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 	}
 
   pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real>
-    (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
+    (m_Opt->m_FFT.nalloc + 2 * g_size * isize[2] * isize[0]);
   pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real>(
-			plan->alloc_max + 2 * g_size * isize[2] * isize[0]
+			m_Opt->m_FFT.nalloc + 2 * g_size * isize[2] * isize[0]
 					+ 2 * g_size * isize[2] * isize_g[1]);
 
-	ghost_left_right(padded_data, data, g_size, plan);
-	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan);
-	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
+	ghost_left_right(padded_data, data, g_size, m_Opt);
+	ghost_top_bottom(ghost_data_xy, padded_data, g_size, m_Opt);
+	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, m_Opt);
 
 #ifdef VERBOSE2
 	if(procid==0) {

@@ -165,6 +165,7 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }*/
 
+    ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     if (this->m_DeformationFields != NULL) {
       this->m_DeformationFields->SetDifferentiation(this->m_Differentiation);
@@ -697,7 +698,9 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
         // evaluate the regularization model
         ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+        //ierr = this->m_Regularization->SetDifferentiation(this->m_DifferentiationFD); CHKERRQ(ierr);
         ierr = this->m_Regularization->EvaluateFunctional(&R, this->m_VelocityField); CHKERRQ(ierr);
+        //ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
     }
 
     // add up the contributions
@@ -1095,6 +1098,11 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     kernel.nl = this->m_Opt->m_Domain.nl;
     //kernel.nl = this->m_Opt->m_FFT.nx[0]*this->m_Opt->m_FFT.nx[1]*this->m_Opt->m_FFT.nx[2];
+    
+    IntType *nx = this->m_Opt->m_FFT.nx;
+    
+    kernel.diag = beta*((nx[0]-2)*(nx[0]-1) + (nx[1]-2)*(nx[1]-1) + (nx[2]-2)*(nx[2]-1))/12.;
+    
     if (twolevel) {
       kernel.nl = this->m_Opt->m_FFT_coarse.nx[0]*this->m_Opt->m_FFT_coarse.nx[1]*this->m_Opt->m_FFT_coarse.nx[2];
     }
@@ -1171,8 +1179,15 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     IntType innerloop = 500;
     ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint;
     
+    VecField *vecR, *vecP, *vecM, *vecX;
+    vecR = this->m_WorkVecField4;
+    vecP = this->m_WorkVecField5;
+    vecM = this->m_WorkVecField2;
+    vecX = this->m_WorkVecField1;
+    
+    int rval;
+    
     for (int t=0;t<2;++t) {
-      
       ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
       ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
       ierr = kernel.gMgMT(); CHKERRQ(ierr);
@@ -1190,12 +1205,9 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
-      //ierr = this->m_WorkVecField2->AXPY(beta, this->m_WorkVecField1);
       
-      //ierr = this->m_WorkVecField4->AXPY(-1., this->m_WorkVecField2);
-      //ierr = this->m_WorkVecField5->Copy(this->m_WorkVecField4); CHKERRQ(ierr);
-      // WVF1 = v0, WVF2 = H0*v0, WVF4 = r = x - H0*v0, WVF5 = p = r
-      //ierr = this->m_WorkVecField4->Norm2(cg_r); CHKERRQ(ierr);
+      rval = MPI_Allreduce(MPI_IN_PLACE, &cg_r, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+      ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
   
       normref = sqrt(cg_r);
       
@@ -1220,13 +1232,9 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = kernel.pTAp(cg_p);
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
-        //ierr = this->m_WorkVecField2->AXPY(beta, this->m_WorkVecField5);
         
-        //ierr = VecDot(this->m_WorkVecField2->m_X1, this->m_WorkVecField5->m_X1, &cg_p); CHKERRQ(ierr);
-        //ierr = VecDot(this->m_WorkVecField2->m_X2, this->m_WorkVecField5->m_X2, &tmp); CHKERRQ(ierr);
-        //cg_p += tmp;
-        //ierr = VecDot(this->m_WorkVecField2->m_X3, this->m_WorkVecField5->m_X3, &tmp); CHKERRQ(ierr);
-        //cg_p += tmp;
+        rval = MPI_Allreduce(MPI_IN_PLACE, &cg_p, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
         
         cg_a = cg_r/cg_p;
         //ierr = this->m_WorkVecField1->AXPY(cg_a, this->m_WorkVecField5);
@@ -1241,6 +1249,10 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+        
+        rval = MPI_Allreduce(MPI_IN_PLACE, &cg_a, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+        
         if (sqrt(cg_a) < cg_eps*normref) {
           cg_r = cg_a;
           ++i;
@@ -1253,6 +1265,9 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = kernel.CGp(cg_b);
         ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+        
+        rval = MPI_Allreduce(MPI_IN_PLACE, &cg_b, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
         //ierr = this->m_WorkVecField5->Scale(cg_b); CHKERRQ(ierr);
         //ierr = this->m_WorkVecField5->AXPY(1.,this->m_WorkVecField4); CHKERRQ(ierr);
       }
@@ -1722,7 +1737,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     ierr = this->m_Opt->StartTimer(PDEEXEC); CHKERRQ(ierr);
     
     ierr = this->m_TransportProblem->SolveForwardProblem(); CHKERRQ(ierr);
-
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {

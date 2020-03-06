@@ -69,6 +69,8 @@ DifferentiationFD::~DifferentiationFD() {
 PetscErrorCode DifferentiationFD::Initialize() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    this->m_tmp = nullptr;
 
     ierr = this->SetupData(); CHKERRQ(ierr);
     
@@ -88,6 +90,8 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
     ierr = initConstants(this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
 #endif
+
+    ierr = AllocateOnce(this->m_tmp, this->m_Opt); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -105,6 +109,8 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
         cudaDestroyTextureObject(this->mtex);
     }
 #endif
+
+    ierr = Free(this->m_tmp); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -149,7 +155,7 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
     ZeitGeist_define(FD_LAP);
     ZeitGeist_tick(FD_LAP);
 #ifdef REG_HAS_CUDA
-    ierr = computeTextureLaplacian(l, m, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(l, m, this->mtex, this->m_Opt->m_Domain.nx, 1.); CHKERRQ(ierr);
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
@@ -177,9 +183,9 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
     ZeitGeist_define(FD_LAP);
     ZeitGeist_tick(FD_LAP);
 #ifdef REG_HAS_CUDA
-    ierr = computeTextureLaplacian(l1, v1, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
-    ierr = computeTextureLaplacian(l2, v2, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
-    ierr = computeTextureLaplacian(l3, v3, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(l1, v1, this->mtex, this->m_Opt->m_Domain.nx, 1.); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(l2, v2, this->mtex, this->m_Opt->m_Domain.nx, 1.); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(l3, v3, this->mtex, this->m_Opt->m_Domain.nx, 1.); CHKERRQ(ierr);
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
@@ -224,10 +230,28 @@ PetscErrorCode DifferentiationFD::RegLapModOp(VecField* bv, VecField* v, ScalarT
 }
 PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
+  const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
+  ScalarType *pBV[3] = {nullptr, nullptr, nullptr};
   PetscFunctionBegin;
   
-  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+  DebugGPUStartEvent("FD Regularization");
 
+  ZeitGeist_define(FD_LAP);
+  ZeitGeist_tick(FD_LAP);
+#ifdef REG_HAS_CUDA
+  ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
+  ierr = bv->GetArraysWrite(pBV); CHKERRQ(ierr);
+  ierr = computeTextureLaplacian(pBV[0], pV[0], this->mtex, this->m_Opt->m_Domain.nx, -b0); CHKERRQ(ierr);
+  ierr = computeTextureLaplacian(pBV[1], pV[1], this->mtex, this->m_Opt->m_Domain.nx, -b0); CHKERRQ(ierr);
+  ierr = computeTextureLaplacian(pBV[2], pV[2], this->mtex, this->m_Opt->m_Domain.nx, -b0); CHKERRQ(ierr);
+  ierr = v->RestoreArrays(); CHKERRQ(ierr);
+  ierr = bv->RestoreArrays(); CHKERRQ(ierr);
+#else
+  ierr = DebugNotImplemented(); CHKERRQ(ierr);
+#endif
+  ZeitGeist_tock(FD_LAP);
+  DebugGPUStopEvent();
+  
   PetscFunctionReturn(ierr);
 }
 PetscErrorCode DifferentiationFD::RegBiLapOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1) {
@@ -257,9 +281,34 @@ PetscErrorCode DifferentiationFD::RegTriLapFunc(VecField* bv, VecField* v, Scala
 
 PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool usesqrt, ScalarType b0, ScalarType b1) {
   PetscErrorCode ierr = 0;
+  const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
+  ScalarType *pBV[3] = {nullptr, nullptr, nullptr};
   PetscFunctionBegin;
 
+  ZeitGeist_define(FD_INVREG);
+  ZeitGeist_tick(FD_INVREG);
+  
+  ScalarType *hx = this->m_Opt->m_Domain.hx;
+  ScalarType aii = b0*205./75. * (1./(hx[0]*hx[0]) + 1./(hx[1]*hx[1]) + 1./(hx[2]*hx[2]));
+  
+#ifdef REG_HAS_CUDA
+  ierr = bv->SetValue(0); CHKERRQ(ierr);
+  for (IntType iter=0; iter<2000; ++iter) {
+    ierr = bv->GetArraysRead(pV); CHKERRQ(ierr);
+    ierr = this->m_tmp->GetArraysWrite(pBV); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(pBV[0], pV[0], this->mtex, this->m_Opt->m_Domain.nx, b0); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(pBV[1], pV[1], this->mtex, this->m_Opt->m_Domain.nx, b0); CHKERRQ(ierr);
+    ierr = computeTextureLaplacian(pBV[2], pV[2], this->mtex, this->m_Opt->m_Domain.nx, b0); CHKERRQ(ierr);
+    ierr = bv->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_tmp->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_tmp->AXPY(1., v);
+    
+    ierr = bv->AXPY(0.1/aii, this->m_tmp);
+  } 
+#else
   ierr = DebugNotImplemented(); CHKERRQ(ierr);
+#endif
+  ZeitGeist_tock(FD_INVREG);
 
   PetscFunctionReturn(ierr);
 }

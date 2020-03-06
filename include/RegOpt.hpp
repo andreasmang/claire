@@ -423,6 +423,8 @@ struct FourierTransform {
     Spectral* fft;      ///< spectral operator
     //FFTPlanType* plan;  ///< accfft plan
     MPI_Comm mpicomm;   ///< communicator for accfft
+    MPI_Comm rowcomm;   ///< row communicator for accfft
+    MPI_Comm colcomm;   ///< column communicator for accfft
     bool mpicommexists; ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain
     IntType nx[3];      ///< spatial grid cell size
@@ -621,6 +623,10 @@ class RegOpt {
     std::vector<int> m_LabelIDs;       ///< label ids
     std::vector<ScalarType> m_ObjWts;  ///< Objective function component weights
     std::string m_PostFix;
+    
+#ifdef REG_HAS_CUDA
+    int m_gpu_id;
+#endif
 
 
  protected:

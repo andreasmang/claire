@@ -94,7 +94,7 @@ __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
     }
     dfz[globalIdx] = lval;
 }
-__global__ void d_zz(ScalarType* dfz, const ScalarType* f) {
+__global__ void d_zz(ScalarType* dfz, const ScalarType* f, const ScalarType beta) {
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -178,7 +178,7 @@ __global__ void gradient_y(ScalarType* dfy, const ScalarType* f) {
   }
 
 }
-__global__ void d_yy(ScalarType* dfy, const ScalarType* f) {
+__global__ void d_yy(ScalarType* dfy, const ScalarType* f, const ScalarType beta) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -321,7 +321,7 @@ __global__ void gradient_x(ScalarType* dfx, const ScalarType* f) {
 
 }
 
-__global__ void d_xx(ScalarType* dfx, const ScalarType* f) {
+__global__ void d_xx(ScalarType* dfx, const ScalarType* f, const ScalarType beta) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -360,6 +360,7 @@ __global__ void d_xx(ScalarType* dfx, const ScalarType* f) {
         lval += d_cxx[l] * ( s_f[si+l][sk] + s_f[si-l][sk]);
     }
     dfx[globalIdx] += lval;
+    dfx[globalIdx] *= beta;
   }
 }
 
@@ -830,7 +831,7 @@ PetscErrorCode computeTextureGradient(ScalarType* gx, ScalarType* gy, ScalarType
 }
 
 
-PetscErrorCode computeTextureLaplacian(ScalarType* l, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx) {
+PetscErrorCode computeTextureLaplacian(ScalarType* l, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx, ScalarType beta) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
@@ -838,19 +839,19 @@ PetscErrorCode computeTextureLaplacian(ScalarType* l, const ScalarType* m, cudaT
     // Z-Gradient
     dim3 threadsPerBlock_z(sy, sx, 1);
     dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-    d_zz<<<numBlocks_z, threadsPerBlock_z>>>(l,m);
+    d_zz<<<numBlocks_z, threadsPerBlock_z>>>(l,m,beta);
     cudaCheckKernelError();
     
     // Y-Gradient 
     dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-    d_yy<<<numBlocks_y, threadsPerBlock_y>>>(l, m);
+    d_yy<<<numBlocks_y, threadsPerBlock_y>>>(l, m,beta);
     cudaCheckKernelError();
     
     // X-Gradient
     dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
-    d_xx<<<numBlocks_x, threadsPerBlock_x>>>(l, m);
+    d_xx<<<numBlocks_x, threadsPerBlock_x>>>(l, m, beta);
     cudaCheckKernelError();
     cudaDeviceSynchronize();
     

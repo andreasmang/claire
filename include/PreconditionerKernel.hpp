@@ -33,12 +33,16 @@ struct H0PrecondKernel {
   ScalarType *pRes[3];
   
   ScalarType beta;
+  ScalarType diag;
   
   IntType nl;
   
   PetscErrorCode gMgMT();
+  PetscErrorCode gMgMT2();
   PetscErrorCode res(ScalarType &res);
+  PetscErrorCode res2(ScalarType &res);
   PetscErrorCode pTAp(ScalarType &res);
+  PetscErrorCode pTAp2(ScalarType &res);
   PetscErrorCode CGres(ScalarType &res);
   PetscErrorCode CGp(ScalarType alpha);
 };

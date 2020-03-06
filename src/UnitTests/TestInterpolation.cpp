@@ -125,7 +125,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
     }  // i2
   }  // i3
 
-
+#if 0 // CUDA interpolation deactivated for multigpu (using cpu interpolation for multi gpu)
 #ifdef REG_HAS_CUDA
   ScalarType *pg, *pq1, *pq2, *pq3, *pe;
   float *tmp1, *tmp2;
@@ -250,6 +250,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   cudaFree(tmp1);
   cudaFree(tmp2);
   cudaDestroyTextureObject(tex);
+#endif
 #else
   std::cout << "unit test not implemented" << std::endl;
 #endif

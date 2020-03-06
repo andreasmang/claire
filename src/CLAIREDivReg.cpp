@@ -104,7 +104,13 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
         // evaluate the regularization model for v
         ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+        if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+          ierr = this->m_Regularization->SetDifferentiation(this->m_DifferentiationFD); CHKERRQ(ierr);
+        }
         ierr = this->m_Regularization->EvaluateFunctional(&Rv, this->m_VelocityField); CHKERRQ(ierr);
+        if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+          ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
+        }
 
         // evaluate the regularization model for w = div(v)
         ierr = this->EvaluteRegularizationDIV(&Rw); CHKERRQ(ierr); CHKERRQ(ierr);
@@ -154,11 +160,17 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     // get regularization weight
     betaw = this->m_Opt->m_RegNorm.beta[2];
 
+    //ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
+    Differentiation* diff = this->m_Differentiation;
+    if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+      diff = this->m_DifferentiationFD;
+    }
+    
     // compute \div(\vect{v})
-    ierr = this->m_Differentiation->Divergence(*this->m_WorkScaField1, this->m_VelocityField); CHKERRQ(ierr);
+    ierr = diff->Divergence(*this->m_WorkScaField1, this->m_VelocityField); CHKERRQ(ierr);
 
     // compute gradient of div(v)
-    ierr = this->m_Differentiation->Gradient(this->m_WorkVecField1, *this->m_WorkScaField1); CHKERRQ(ierr);
+    ierr = diff->Gradient(this->m_WorkVecField1, *this->m_WorkScaField1); CHKERRQ(ierr);
 
     // compute inner products ||\igrad w||_L2 + ||w||_L2
     regvalue = 0.0;
@@ -192,6 +204,7 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     beta[0] = this->m_Opt->m_RegNorm.beta[0];
     beta[2] = this->m_Opt->m_RegNorm.beta[2];
     
+    ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     
     if (this->m_Opt->m_Verbosity > 2) {

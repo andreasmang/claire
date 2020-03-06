@@ -68,7 +68,7 @@ PetscErrorCode DifferentiationKernel::LaplacianMod(ScalarType b0) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = SpectralKernelCall<NLaplacianKernel<1> >(nstart, nx, nl, 
+  ierr = SpectralKernelCall<NLaplacianModKernel<1> >(nstart, nx, nl, 
     pXHat[0], pXHat[1], pXHat[2], scale, b0); CHKERRQ(ierr);
 
   PetscFunctionReturn(ierr);

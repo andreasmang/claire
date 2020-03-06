@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
 
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
 
+
     ierr = registration->Run(); CHKERRQ(ierr);
 
     if (regopt->m_Log.memoryusage) {

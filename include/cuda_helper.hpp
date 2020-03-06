@@ -18,11 +18,13 @@ inline int cudaAssert(cudaError_t code, const char *file, int line, bool abort=t
   return 0;
 }
 
-inline void cudaPrintDeviceMemory(int dev=0) {
+inline void cudaPrintDeviceMemory() {
   size_t free_mem;
   size_t total_mem;
+  
+  int dev;
 
-  cudaSetDevice(dev);
+  cudaGetDevice(&dev);
   cudaMemGetInfo(&free_mem, &total_mem);
 
   printf("GPU %i memory usage: used = %lf MiB, free = %lf MiB, total = %lf MiB\n",

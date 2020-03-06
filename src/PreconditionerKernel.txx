@@ -24,6 +24,52 @@
 
 using KernelUtils::array3_t;
 
+
+struct H0Kernel2 {
+  // computes: grad M \otimes grad M
+  template<typename T> KernelOperator (int i, T* mvx, T* mvy, T* mvz, 
+                                       const T* rx, const T* ry, const T* rz,
+                                       const T* gmtx, const T* gmty, const T* gmtz) {
+    T gmt00 = gmtx[i]*gmtx[i];
+    T gmt01 = gmtx[i]*gmty[i];
+    T gmt02 = gmtx[i]*gmtz[i];
+    T gmt11 = gmty[i]*gmty[i];
+    T gmt12 = gmty[i]*gmtz[i];
+    T gmt22 = gmtz[i]*gmtz[i];
+    mvx[i] +=  gmt00*rx[i] + gmt01*ry[i] + gmt02*rz[i];
+    mvy[i] +=  gmt01*rx[i] + gmt11*ry[i] + gmt12*rz[i];
+    mvz[i] +=  gmt02*rx[i] + gmt12*ry[i] + gmt22*rz[i];
+  }
+  // computes residual
+  template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
+                                            T* px, T* py, T* pz,
+                                            T* rx, T* ry, T* rz,
+                                            const T* gmtx, const T* gmty, const T* gmtz,
+                                            const T diag) {
+    T d0 = gmtx[i]*gmtx[i] + diag;
+    T d1 = gmty[i]*gmty[i] + diag;
+    T d2 = gmtz[i]*gmtz[i] + diag;
+    rx[i] -= mx[i]; ry[i] -= my[i]; rz[i] -= mz[i];
+    rx[i] /= d0; ry[i] /= d1; rz[i] /= d2;
+    px[i] = rx[i]; py[i] = ry[i]; pz[i] = rz[i];
+    
+    return rx[i]*rx[i] + ry[i]*ry[i] + rz[i]*rz[i];
+  }
+  // computes p^T A p
+  template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
+                                            T* px, T* py, T* pz,
+                                            const T* gmtx, const T* gmty, const T* gmtz,
+                                            const T diag) {
+    T d0 = gmtx[i]*gmtx[i] + diag;
+    T d1 = gmty[i]*gmty[i] + diag;
+    T d2 = gmtz[i]*gmtz[i] + diag;
+    mx[i] /= d0;
+    my[i] /= d1;
+    mz[i] /= d2;
+    return mx[i]*px[i] + my[i]*py[i] + mz[i]*pz[i];
+  }
+};
+
 struct H0Kernel {
   // computes: grad M \otimes grad M
   template<typename T> KernelOperator (int i, T* mvx, T* mvy, T* mvz, 

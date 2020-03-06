@@ -103,6 +103,22 @@ PetscErrorCode TransportKernelIncStateSL::TimeIntegrationPart2() {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode TransportKernelIncStateSL::TimeIntegrationAll() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+#pragma omp parallel
+{
+#pragma omp for
+  for (IntType i = 0; i < nl; ++i) {
+    pMtilde[i] -= hthalf*(pGmx[0][i]*pVtildex[0][i] + pGmx[1][i]*pVtildex[1][i] + pGmx[2][i]*pVtildex[1][i]);
+    pMtilde[i] -= hthalf*(pGm[0][i]*pVtilde[0][i] + pGm[1][i]*pVtilde[1][i] + pGm[2][i]*pVtilde[2][i]);
+  }
+}  // omp
+
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode TransportKernelAdjoint::ComputeBodyForce() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
@@ -341,7 +357,7 @@ PetscErrorCode TransportKernelIncStateRK2::TimeIntegrationEuler() {
   for (IntType i = 0; i < nl; ++i) {
        pMtnext[i] = pMt[i] - ht*(pGmx[0][i]*pVtx[0][i]
                                + pGmx[1][i]*pVtx[1][i]
-                               + pGmx[3][i]*pVtx[2][i]);
+                               + pGmx[2][i]*pVtx[2][i]);
   }
 }  // omp
 

@@ -235,6 +235,7 @@ class CLAIREBase : public OptimizationProblem {
     SemiLagrangianType* m_SemiLagrangianMethod;  ///< semi-lagrangian method
     DeformationFields* m_DeformationFields;      ///< interface to compute deformation fields from velocity
     Differentiation* m_Differentiation;          ///< interface to evaluate / apply differential operators
+    DifferentiationFD* m_DifferentiationFD;          ///< interface to evaluate / apply differential operators
     TransportProblem* m_TransportProblem;        ///< interface to compute the transport equation
 
     bool m_VelocityIsZero;

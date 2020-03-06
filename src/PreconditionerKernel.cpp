@@ -23,12 +23,107 @@
 namespace reg {
   
 using KernelUtils::KernelCall;
+using KernelUtils::ReductionKernelCall;
 
-PetscErrorCode H0PrecondKernel::Iteration () {
+PetscErrorCode H0PrecondKernel::gMgMT2 () {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = KernelCall<H0Kernel>(nl, pVhat, pGmt, pRHS, pReg, omg); CHKERRQ(ierr);
+  ierr = KernelCall<H0Kernel2>(nl, 
+                                 pM[0], pM[1], pM[2], 
+                                 pVhat[0], pVhat[1], pVhat[2], 
+                                 pGmt[0], pGmt[1], pGmt[2]); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode H0PrecondKernel::res2 (ScalarType &res) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = ReductionKernelCall<H0Kernel2>(res, nl, 
+                                          pM[0], pM[1], pM[2],
+                                          pP[0], pP[1], pP[2],
+                                          pRes[0], pRes[1], pRes[2],
+                                          pGmt[0], pGmt[1], pGmt[2],
+                                          diag); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode H0PrecondKernel::pTAp2 (ScalarType &res) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = ReductionKernelCall<H0Kernel2>(res, nl, 
+                                          pM[0], pM[1], pM[2],
+                                          pP[0], pP[1], pP[2],
+                                          pGmt[0], pGmt[1], pGmt[2],
+                                          diag); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode H0PrecondKernel::gMgMT () {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = KernelCall<H0Kernel>(nl, 
+                                 pM[0], pM[1], pM[2], 
+                                 pVhat[0], pVhat[1], pVhat[2], 
+                                 pGmt[0], pGmt[1], pGmt[2]); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode H0PrecondKernel::res (ScalarType &res) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = ReductionKernelCall<H0Kernel>(res, nl, 
+                                          pM[0], pM[1], pM[2],
+                                          pP[0], pP[1], pP[2],
+                                          pRes[0], pRes[1], pRes[2],
+                                          pVhat[0], pVhat[1], pVhat[2],
+                                          beta); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode H0PrecondKernel::pTAp (ScalarType &res) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = ReductionKernelCall<H0Kernel>(res, nl, 
+                                          pM[0], pM[1], pM[2],
+                                          pP[0], pP[1], pP[2],
+                                          beta); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode H0PrecondKernel::CGres (ScalarType &res) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType alpha = res;
+  
+  ierr = ReductionKernelCall<H0KernelCG>(res, nl, 
+                                            pM[0], pM[1], pM[2],
+                                            pP[0], pP[1], pP[2],
+                                            pRes[0], pRes[1], pRes[2],
+                                            pVhat[0], pVhat[1], pVhat[2],
+                                            alpha); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode H0PrecondKernel::CGp (ScalarType alpha) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+    
+  ierr = KernelCall<H0KernelCG>(nl, 
+                                   pP[0], pP[1], pP[2],
+                                   pRes[0], pRes[1], pRes[2],
+                                   alpha); CHKERRQ(ierr);
     
   PetscFunctionReturn(ierr);
 }

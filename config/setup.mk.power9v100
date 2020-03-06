@@ -207,10 +207,10 @@ LDFLAGS += -lm
 
 
 # FFT LIBRARIES
-LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 ifeq ($(USECUDA),yes)
     LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
 endif
+LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif

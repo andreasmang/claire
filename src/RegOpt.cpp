@@ -1071,7 +1071,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     PetscFunctionBegin;
 
     this->Enter(__func__);
-
+    
     if (this->m_Verbosity > 2) {
         ierr = DbgMsg("initializing data distribution"); CHKERRQ(ierr);
     }
@@ -1085,7 +1085,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
 
     //PETSC_COMM_WORLD = this->m_FFT.mpicomm;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
+    
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
         this->m_FFT.nx[i]    = this->m_Domain.nx[i];
@@ -1197,8 +1197,18 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
     }
     
+    
     this->m_FFT.fft->InitFFT();
     
+    if (this->m_FFT.fft->m_plan) {
+      this->m_FFT.rowcomm = this->m_FFT.fft->m_plan->row_comm;
+      this->m_FFT.colcomm = this->m_FFT.fft->m_plan->col_comm;
+    } else {
+      int np[2], periods[2], coord[2];
+      MPI_Cart_get(this->m_FFT.mpicomm, 2, np, periods, coord);
+      MPI_Comm_split(this->m_FFT.mpicomm, coord[0], coord[1], &this->m_FFT.rowcomm);
+      MPI_Comm_split(this->m_FFT.mpicomm, coord[1], coord[0], &this->m_FFT.colcomm);
+    }
     
     nx[0] = nx[0]/2; nx[1] = nx[1]/2; nx[2] = nx[2]/2;
     this->m_FFT_coarse.mpicommexists = this->m_FFT.mpicommexists;
@@ -1517,6 +1527,24 @@ PetscErrorCode RegOpt::Initialize() {
     ierr = this->ResetCounters(); CHKERRQ(ierr);
     
     // ierr = this->SetupParser(); CHKERRQ(ierr);
+    
+#ifdef REG_HAS_CUDA
+    {
+      int rank, nrank;
+      int dev, ndevs;
+      MPI_Comm_size(PETSC_COMM_WORLD, &nrank);
+      MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+      cudaGetDevice(&dev);
+      //printf("PetscCudaDevice rank %i dev %i\n",rank, dev);
+      //cudaGetDeviceCount(&ndevs);
+      //dev = rank%ndevs;
+      //cudaDeviceProp prop;
+      //cudaGetDeviceProperties(&prop, dev);
+      this->m_gpu_id = dev;
+      cudaSetDevice(this->m_gpu_id);
+      cudaCheckKernelError();
+    }
+#endif
 
     PetscFunctionReturn(ierr);
 }

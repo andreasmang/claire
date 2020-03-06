@@ -324,7 +324,9 @@ PetscErrorCode ComputeGradSpectral(ScalarType w, VecField *v, VecField *dv, reg:
                 i = reg::GetLinearIndex(i1, i2, i3, opt->m_Domain.isize);
                 
                 pv[0][i]  = sin(w*x3) + cos(w*x3);
-                pdv[0][i] = 0;
+                pv[1][i] = 0;
+                pv[2][i] = 0;
+                pdv[0][i] = -w*w*sin(w*x3) - w*w*cos(w*x3);
                 pdv[1][i] = 0;
                 pdv[2][i] = w*cos(w*x3) - w*sin(w*x3);
             }  // i1

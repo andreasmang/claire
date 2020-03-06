@@ -105,6 +105,7 @@ PetscErrorCode CLAIREBase::Initialize() {
     this->m_SemiLagrangianMethod = NULL;    ///< semi lagranigan
     this->m_DeformationFields = NULL;       ///< interface for computing deformation field (jacobian; mapping; ...)
     this->m_Differentiation = NULL;         ///< interface for differentiation
+    this->m_DifferentiationFD = NULL;         ///< interface for differentiation
     this->m_TransportProblem = NULL;        ///< interface for transport equation
 
     this->m_VelocityIsZero = false;          ///< flag: is velocity zero
@@ -188,6 +189,7 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     Free(this->m_SemiLagrangianMethod);
     Free(this->m_DeformationFields);
     Free(this->m_Differentiation);
+    Free(this->m_DifferentiationFD);
     Free(this->m_TransportProblem);
     
     Free(this->m_TemplateImage);
@@ -268,8 +270,8 @@ PetscErrorCode CLAIREBase::SetupSpectralData() {
     //ierr = AllocateMemoryOnce(this->m_x3hat, nalloc); CHKERRQ(ierr);
     
     // TODO: possible to allocate spectral data twice (once here and once in Regularization)
-    ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_Differentiation->m_Type == Differentiation::Spectral, "no spectral differentiation"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_Differentiation->m_Type == Differentiation::Spectral, "no spectral differentiation"); CHKERRQ(ierr);
     //ierr = this->m_Differentiation->SetupData(); CHKERRQ(ierr);
     
     /*if (this->m_x1hat == NULL) {
@@ -1152,7 +1154,7 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT, VecField* v) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
-
+    
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->m_Domain.hx[i];
         nx[i] = this->m_Opt->m_Domain.nx[i];
@@ -1362,7 +1364,7 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT, VecField* v) {
     // reset all the clocks we have used so far
     ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);
-
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

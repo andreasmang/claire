@@ -96,7 +96,7 @@ PetscErrorCode SemiLagrangian::ClearMemory() {
     PetscFunctionBegin;
 
     if (this->m_X != NULL) {
-        delete [] this->m_X;
+        accfft_free(this->m_X);
         this->m_X = NULL;
     }
 
@@ -156,12 +156,13 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag, 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
 
     nl = this->m_Opt->m_Domain.nl;
 
     // if trajectory has not yet been allocated, allocate
     if (this->m_X == NULL) {
-        try {this->m_X = new ScalarType[3*nl];}
+        try {this->m_X = reinterpret_cast<ScalarType*>(accfft_alloc(3*nl*sizeof(ScalarType)));}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
@@ -182,6 +183,19 @@ PetscErrorCode SemiLagrangian::ComputeTrajectory(VecField* v, std::string flag, 
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode SemiLagrangian::SetInitialTrajectory(const ScalarType* pX) {
+    PetscErrorCode ierr;
+    PetscFunctionBegin;
+    
+    /*ierr = AllocateOnce(this->m_InitialTrajectory, this->m_Opt); CHKERRQ(ierr);
+    
+    ierr = this->m_InitialTrajectory->SetComponents(pX, "stride"); CHKERRQ(ierr);
+    ierr = VecScale(this->m_InitialTrajectory->m_X1, 1./this->m_Opt->m_Domain.hx[0]); CHKERRQ(ierr);
+    ierr = VecScale(this->m_InitialTrajectory->m_X2, 1./this->m_Opt->m_Domain.hx[1]); CHKERRQ(ierr);
+    ierr = VecScale(this->m_InitialTrajectory->m_X3, 1./this->m_Opt->m_Domain.hx[2]); CHKERRQ(ierr);*/
+
+    PetscFunctionReturn(0);
+}
 
 
 
@@ -267,8 +281,10 @@ PetscErrorCode SemiLagrangian::ComputeTrajectoryRK2(VecField* v, std::string fla
     // communicate the characteristic
     ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
 
+    
     // interpolate velocity field v(X)
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
+    
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     //ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
@@ -616,6 +632,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     IntType nl, nalloc;
     std::stringstream ss;
     double timers[4] = {0, 0, 0, 0};
+    
 
     PetscFunctionBegin;
 
@@ -638,8 +655,15 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     ScalarType *xi_d = xi;
     ScalarType *xo_d = xo;
     
-    xi = new ScalarType[nl];
-    xo = new ScalarType[nl];
+    if (this->m_X == NULL) {
+      try {this->m_X = reinterpret_cast<ScalarType*>(accfft_alloc(3*nl*sizeof(ScalarType)));}
+      catch (std::bad_alloc& err) {
+          ierr = reg::ThrowError(err); CHKERRQ(ierr);
+      }
+    }
+    
+    xi = &m_X[0*nl];
+    xo = &m_X[1*nl];
     
     cudaMemcpy(xi, xi_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
 #endif
@@ -654,7 +678,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     c_dims[1] = this->m_Opt->m_CartGridDims[1];
 
     // deal with ghost points
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt, nghost, isize_g, istart_g);
     
     // if scalar field with ghost points has not been allocated
     if (this->m_ScaFieldGhost == NULL) {
@@ -662,7 +686,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     }
 
     // assign ghost points based on input scalar field
-    accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, xi, this->m_ScaFieldGhost);
+    accfft_get_ghost_xyz(this->m_Opt, nghost, isize_g, xi, this->m_ScaFieldGhost);
     
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
@@ -685,9 +709,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* xo, ScalarType* xi, std::
     
 #ifdef REG_HAS_CUDA
     cudaMemcpy(xo_d, xo, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
-    
-    delete[] xo;
-    delete[] xi;
 #endif
 
     this->m_Opt->Exit(__func__);
@@ -740,6 +761,7 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     IntType nl, nlghost, nalloc;
 
     PetscFunctionBegin;
+    
 
     this->m_Opt->Enter(__func__);
     
@@ -757,25 +779,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     order = this->m_Opt->m_PDESolver.iporder;
     nghost = order;
 
-#ifdef REG_HAS_CUDA
-    ScalarType *xi1_d = vx1;
-    ScalarType *xi2_d = vx2;
-    ScalarType *xi3_d = vx3;
-    ScalarType *xo1_d = wx1;
-    ScalarType *xo2_d = wx2;
-    ScalarType *xo3_d = wx3;
-    
-    vx1 = new ScalarType[nl];
-    vx2 = new ScalarType[nl];
-    vx3 = new ScalarType[nl];
-    wx1 = new ScalarType[nl];
-    wx2 = new ScalarType[nl];
-    wx3 = new ScalarType[nl];
-    
-    cudaMemcpy(vx1, xi1_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
-    cudaMemcpy(vx2, xi2_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
-    cudaMemcpy(vx3, xi3_d, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
-#endif
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
@@ -786,25 +789,36 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     // get network dimensions
     c_dims[0] = this->m_Opt->m_CartGridDims[0];
     c_dims[1] = this->m_Opt->m_CartGridDims[1];
+    
 
     if (this->m_X == NULL) {
-        try {this->m_X = new ScalarType [3*nl];}
+        try {this->m_X = reinterpret_cast<ScalarType*>(accfft_alloc(3*nl*sizeof(ScalarType)));}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
         }
     }
-
+    
+    
+#ifdef REG_HAS_CUDA
+    cudaMemcpy(&this->m_X[0*nl], vx1, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&this->m_X[1*nl], vx2, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&this->m_X[2*nl], vx3, nl*sizeof(ScalarType), cudaMemcpyDeviceToHost);
+    cudaCheckLastError();
+#else
     // copy data to a flat vector
     for (IntType i = 0; i < nl; ++i) {
         this->m_X[0*nl+i] = vx1[i];
         this->m_X[1*nl+i] = vx2[i];
         this->m_X[2*nl+i] = vx3[i];
     }
+#endif
+    
 
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
-
+    
+      
     // get ghost sizes
-    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, istart_g);
+    nalloc = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt, nghost, isize_g, istart_g);
 
     // get nl for ghosts
     nlghost = 1;
@@ -817,12 +831,13 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
         this->m_VecFieldGhost = reinterpret_cast<ScalarType*>(accfft_alloc(3*nalloc));
     }
 
-
+      
     // do the communication for the ghost points
     for (int i = 0; i < 3; i++) {
-        accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, nghost, isize_g, &this->m_X[i*nl],
+        accfft_get_ghost_xyz(this->m_Opt, nghost, isize_g, &this->m_X[i*nl],
                              &this->m_VecFieldGhost[i*nlghost]);
     }
+    
 
     if (strcmp(flag.c_str(),"state") == 0) {
         ierr = Assert(this->m_StatePlan != NULL, "null pointer"); CHKERRQ(ierr);
@@ -838,11 +853,18 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
 
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
 
+#ifdef REG_HAS_CUDA
+    cudaMemcpy(wx1, &this->m_X[0*nl], nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+    cudaMemcpy(wx2, &this->m_X[1*nl], nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+    cudaMemcpy(wx3, &this->m_X[2*nl], nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
+#else
     for (IntType i = 0; i < nl; ++i) {
         wx1[i] = this->m_X[0*nl+i];
         wx2[i] = this->m_X[1*nl+i];
         wx3[i] = this->m_X[2*nl+i];
     }
+#endif
+    
 
     this->m_Opt->IncreaseInterpTimers(timers);
     this->m_Opt->IncrementCounter(IPVEC);
@@ -850,20 +872,6 @@ PetscErrorCode SemiLagrangian::Interpolate(ScalarType* wx1, ScalarType* wx2, Sca
     ZeitGeist_tock(SL_INTERPOL);
     ZeitGeist_inc(SL_INTERPOL);
     ZeitGeist_inc(SL_INTERPOL);
-    
-    
-#ifdef REG_HAS_CUDA
-    cudaMemcpy(xo1_d, wx1, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
-    cudaMemcpy(xo2_d, wx2, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
-    cudaMemcpy(xo3_d, wx3, nl*sizeof(ScalarType), cudaMemcpyHostToDevice);
-    
-    delete[] vx1;
-    delete[] vx2;
-    delete[] vx3;
-    delete[] wx1;
-    delete[] wx2;
-    delete[] wx3;
-#endif
 
     this->m_Opt->Exit(__func__);
 
@@ -884,6 +892,7 @@ PetscErrorCode SemiLagrangian::CommunicateCoord(std::string flag) {
     double timers[4] = {0, 0, 0, 0};
     std::stringstream ss;
     PetscFunctionBegin;
+  
 
     this->m_Opt->Enter(__func__);
 
