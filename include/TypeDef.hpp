@@ -7,6 +7,7 @@
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
   #include "petscvec.h"
+  #include "petsccuda.h"
   #include "cuda.h"
   #include <petsc/private/vecimpl.h>
 #endif
@@ -45,6 +46,13 @@
 
 using IntType = PetscInt;
 using ScalarType = PetscReal;
+
+#ifndef VecCUDAGetArray
+#define VecCUDAGetArray VecCUDAGetArrayReadWrite
+#endif
+#ifndef VecCUDARestoreArray
+#define VecCUDARestoreArray VecCUDARestoreArrayReadWrite
+#endif
 
 #if defined(PETSC_USE_REAL_SINGLE)
   using ComplexType = Complexf;
