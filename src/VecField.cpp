@@ -668,6 +668,8 @@ PetscErrorCode VecField::SetComponents(Vec w, std::string format) {
 
     PetscFunctionReturn(ierr);
 }
+
+
 PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -881,6 +883,19 @@ PetscErrorCode VecField::Scale(ScalarType value) {
 }
 
 
+/********************************************************************
+ * @brief scale vector by scalar value
+ *******************************************************************/
+PetscErrorCode VecField::Scale(ScalarType* value) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = VecScale(this->m_X1, value[0]); CHKERRQ(ierr);
+    ierr = VecScale(this->m_X2, value[1]); CHKERRQ(ierr);
+    ierr = VecScale(this->m_X3, value[2]); CHKERRQ(ierr);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

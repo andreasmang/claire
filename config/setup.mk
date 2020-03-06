@@ -93,19 +93,19 @@ endif
 ifeq ($(USECUDA),yes)
 	ifeq ($(USESINGLE),yes)
 		ifeq ($(DBGCODE),yes)
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_INC)
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_INC)
 		else
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_INC)
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_INC)
 		endif
 	else
 		ifeq ($(DBGCODE),yes)
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include -I$(MPI_INC)
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include -I$(MPI_INC)
 		else
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include -I$(MPI_INC)
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include -I$(MPI_INC)
 		endif
 	endif
 else
@@ -183,7 +183,7 @@ else
 	endif
 endif
 endif
-LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
+LDFLAGS += -lpetsc# -lf2clapack -lf2cblas 
 
 #CUDA LINKERS
 ifeq ($(USECUDA),yes)
@@ -228,7 +228,7 @@ LDFLAGS += -L$(FFTW_DIR)/lib
 ifeq ($(USESINGLE),yes)
 	LDFLAGS += -lfftw3f_threads -lfftw3f
 endif
-LDFLAGS += -lfftw3_threads -lfftw3
+LDFLAGS += -lfftw3_threads -lfftw3 -lfftw3f_threads -lfftw3f
 
 
 BIN += $(BINDIR)/claire

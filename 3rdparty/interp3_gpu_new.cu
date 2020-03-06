@@ -44,7 +44,6 @@ following papers:
 #include <stdio.h>
 #include "petsc.h"
 #include "petscconf.h"
-#include "petsccuda.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -1172,3 +1171,13 @@ void gpuInterpVec3D(
     
     cudaDeviceSynchronize();
 }
+
+void getMax(ScalarType* x, int nl, ScalarType* max) {
+    thrust::device_ptr<ScalarType> x_thrust;
+    x_thrust = thrust::device_pointer_cast (x);
+    // find the max itr
+    thrust::device_vector<ScalarType>::iterator it = thrust::max_element(x_thrust, x_thrust + nl);
+    *max = *it;
+}
+    
+

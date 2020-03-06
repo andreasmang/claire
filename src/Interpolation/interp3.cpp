@@ -190,7 +190,7 @@ void print512(__m512 &x, const char* name) {
 
 #ifdef FAST_INTERPV
 #if defined(KNL)
-void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+void vectorized_interp3_ghost_xyz_p(Real* __restrict reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
@@ -389,7 +389,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 
 }  // end of interp3_ghost_xyz_p
 
-void ectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+void ectorized_interp3_ghost_xyz_p(Real* __restrict reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
@@ -650,7 +650,7 @@ void ectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof,
 }  // end of interp3_ghost_xyz_p
 
 #elif defined(__AVX2__) || defined(HASWELL)
-void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+void vectorized_interp3_ghost_xyz_p(Real* __restrict reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
@@ -807,7 +807,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 }  // end of interp3_ghost_xyz_p
 
 #else
-void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+void vectorized_interp3_ghost_xyz_p(Real* __restrict reg_grid_vals, int data_dof, const int* __restrict N_reg,
 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
@@ -1013,7 +1013,7 @@ void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof
 
 
 
-// void vectorized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* __restrict N_reg,
+// void vectorized_interp3_ghost_xyz_p(Real* __restrict reg_grid_vals, int data_dof, const int* __restrict N_reg,
 // 		const int* __restrict N_reg_g, const int * __restrict isize_g, const int* __restrict istart, const int N_pts,
 // 		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 // 		bool query_values_already_scaled) {
@@ -1195,9 +1195,9 @@ void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 #ifdef FAST_INTERPV
 
 //#include "v1.cpp" // corresponding optimized version
-void vec_torized_interp3_ghost_xyz_p(__restrict Real* reg_grid_vals, int data_dof, const int* N_reg,
+void vec_torized_interp3_ghost_xyz_p( Real* __restrict reg_grid_vals, int data_dof, const int* N_reg,
 		const int* N_reg_g, const int * isize_g, const int* istart, const int N_pts,
-		const int g_size, __restrict Real* query_points, __restrict Real* query_values,
+		const int g_size, Real* __restrict query_points, Real* __restrict query_values,
 		bool query_values_already_scaled) {
 
   const __m128  c1000 = _mm_set_ps(-1.0,-0.0,-0.0,-0.0);
