@@ -13,6 +13,7 @@
 * [Simple Examples: `clairetools`](#toolsxmp)
   * [Transporting Images](#toolsxmp1)
   * [Computing Jacobians](#toolsxmp2)
+* [NIREP Data](#nirep)
 
 
 ## Overview <a name="clairebins"></a>
@@ -146,3 +147,8 @@ mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
                                   -v3 velocity-field-x3.nii.gz       \
                                   -x ./ -detdefgrad
 ```
+
+
+### NIREP Data <a name="nirep"></a>
+
+For reproducabiltiy we have added the NIREP data to one of our repositories. You can find it here: [nirep data](https://github.com/andreasmang/nirep).
