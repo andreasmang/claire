@@ -1838,6 +1838,7 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
     IntType nl, nt;
     ScalarType ht, hthalf;
     std::stringstream ss;
+    std::string flag;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL,
                 *p_u1 = NULL, *p_u2 = NULL, *p_u3 = NULL,
@@ -1876,10 +1877,16 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
         }
     }
     
+    if (this->m_Opt->m_ReadWriteFlags.invdeffield) {
+        flag = "adjoint";
+    } else {
+        flag = "state";
+    }
+
     ierr = this->m_WorkVecField1->Copy(this->m_VelocityField); CHKERRQ(ierr);
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-
+    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, flag); CHKERRQ(ierr);
+    
     nt = this->m_Opt->m_Domain.nt;
     nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
@@ -1889,13 +1896,13 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
     ierr = this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);
 
     // evaluate v(y)
-    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_VelocityField, "state"); CHKERRQ(ierr);
+    ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField2, this->m_VelocityField, flag); CHKERRQ(ierr);
 
     // compute numerical time integration
     for (IntType j = 0; j < nt; ++j) {
         
         // interpolate u^j at X
-        ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField3, this->m_WorkVecField1, "state"); CHKERRQ(ierr);
+        ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_WorkVecField3, this->m_WorkVecField1, flag); CHKERRQ(ierr);
 
         // update deformation field (RK2)
         // p_u = p_uX1 + 0.5*ht*(p_vX1 + p_v) broken into 2 steps
