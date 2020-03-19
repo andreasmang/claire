@@ -54,6 +54,9 @@ following papers:
 #include "cuda_helper.hpp"
 #include "cuda_profiler_api.h"
 #include "zeitgeist.hpp"
+#include <math.h>
+#include <curand.h>
+#include <curand_kernel.h>
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
@@ -1170,15 +1173,36 @@ void TestFunction(ScalarType *val, const ScalarType x, const ScalarType y, const
     *val = ( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
 }
 
+__global__ void setup_kernel(curandState *state, const int3 size, const int3 start, const int3 n) {
 
-__global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, const float3 h, const int3 size, const int3 start) {
+    int ix = threadIdx.x + blockDim.x * blockIdx.x;
+    int iy = threadIdx.y + blockDim.y * blockIdx.y;
+    int iz = threadIdx.z + blockDim.z * blockIdx.z;
+    
+
+    int idx = ix*size.y*size.z + iy*size.z + iz; // global index local to GPU
+    if (idx < size.x*size.y*size.z) {
+      int i = ( (ix+start.x) * n.y * n.z ) + ( (iy+start.y) * n.z ) + iz+start.z; // global index to the grid
+      curand_init(1234, i*3, 0, &state[idx]);
+    }
+}
+
+__global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, const float3 h, const int3 size, const int3 start, const int3 n, ScalarType* dhx) {
     int ix = threadIdx.x + blockDim.x * blockIdx.x;
     int iy = threadIdx.y + blockDim.y * blockIdx.y;
     int iz = threadIdx.z + blockDim.z * blockIdx.z;
 
     int i = (ix*size.y*size.z) + (iy*size.z) + iz;
+    //curandState_t state;
     
     ScalarType x,y,z;
+
+    /* we have to initialize the state */
+    //curand_init(0, /* the seed controls the sequence of random values that are produced */
+    //            i*3, /* the sequence number is only important with multiple cores */
+    //            0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
+    //            &state);
+
     if (i < size.x*size.y*size.z) {
         x = h.x*(float)(ix+start.x);
         y = h.y*(float)(iy+start.y);
@@ -1186,9 +1210,30 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
         
         TestFunction(&f[i], x, y, z);
 
-        x += h.x*0;
-        y += h.y*0;
-        z += h.z*0;
+        //x += h.x*0.5;
+        //y += h.y*1.2;
+        //z += h.z*1.5;
+        
+        //float perturb=sinf(x)*sinf(y)*sinf(z); 
+        //x += h.x*perturb;
+        //y += h.y*perturb;
+        //z += h.z*perturb;
+        
+        x += h.x*sinf(x);
+        y += h.y*sinf(y);
+        z += h.z*sinf(z);
+        
+        //x += h.x*(dhx[i*3]*2-1);
+        //y += h.y*(dhx[i*3+1]*2-1);
+        //z += h.z*(dhx[i*3+2]*2-1);
+
+        //x += h.x*(curand_uniform(&state[i])*2.0-1.0);
+        //y += h.y*(curand_uniform(&state[i])*2.0-1.0);
+        //z += h.z*(curand_uniform(&state[i])*2.0-1.0);
+        
+        //x = curand_uniform(&state)*2*PI;
+        //y = curand_uniform(&state)*2*PI;
+        //z = curand_uniform(&state)*2*PI;
 
 
         if (x > 2.*PI) x -= 2.*PI;
@@ -1204,15 +1249,24 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
     }
 }
 
-void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart) {
+void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart, int* nx, ScalarType* dhx) {
     dim3 threads(1,32,32);
     dim3 blocks((isize[0]+threads.x-1)/threads.x, (isize[1]+threads.y-1)/threads.y, (isize[2]+threads.z-1)/threads.z);
-    
+
+
     const float3 hx = make_float3(h[0], h[1], h[2]);
     const int3 size = make_int3(isize[0], isize[1], isize[2]);
     const int3 start = make_int3(istart[0], istart[1], istart[2]);
+    const int3 n = make_int3(nx[0], nx[1], nx[2]);
     
-    initializeGridKernel<<<blocks, threads>>>(xq, yq, zq, f, ref, hx, size, start);
+    //curandState *d_state;
+    //cudaMalloc(&d_state, isize[0]*isize[1]*isize[2]*sizeof(curandState));
+    //setup_kernel<<<blocks, threads>>>(d_state, size, start, n);
+
+
+    initializeGridKernel<<<blocks, threads>>>(xq, yq, zq, f, ref, hx, size, start, n, dhx);
     cudaDeviceSynchronize();
+
+    //cudaFree(d_state);
 }
 

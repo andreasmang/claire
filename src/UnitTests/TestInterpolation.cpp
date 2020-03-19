@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 #include <sstream>
+#include <fstream>
 #include <math.h>
 #include <time.h>
 #include "UnitTestOpt.hpp"
@@ -74,7 +75,6 @@ void TestError(ScalarType *ref, ScalarType *eval, IntType nl, double *err, doubl
   double max = 0;
   for (int i = 0; i < nl; ++i) {
     double local = static_cast<double>(ref[i]) - static_cast<double>(eval[i]);
-    //std::cout<<i<<"\tref = "<<ref[i]<<"\t"<<"eval = "<<eval[i]<<std::endl;
     double lmax = std::abs(eval[i]);
     if (lmax > max) max = lmax;
     error += local*local;
@@ -328,6 +328,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ScalarType* m_tmpInterpol1 = NULL, *m_tmpInterpol2 = NULL;
   double global_timers[4] = {0, 0, 0, 0};
   int nprocs, procid;
+  PetscRandom rctx;
     
   MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
   MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
@@ -339,8 +340,16 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   Vec f = NULL; ScalarType* p_f; // on grid function
   Vec ref = NULL; ScalarType* p_ref; // on grid function
   Vec fout = NULL; ScalarType *p_fout;  // output function values 
+  Vec dhx = NULL; ScalarType *p_dhx;  // output function values 
   Interp3_Plan_GPU* interp_plan = NULL;
   ScalarType* p_fghost = NULL;  // ghost padded data
+  
+  int device;
+  char pciBusId[512];
+  cudaGetDevice ( &device );
+  cudaDeviceGetPCIBusId ( pciBusId, 512, device );
+  PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d][%d] has PCI-id = %s\n", procid, device, pciBusId);
+  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
   for (int i = 0; i < 3; ++i) {
     nx[i]     = m_Opt->m_Domain.nx[i];
@@ -361,6 +370,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   }
   
   ierr = VecCreate(q, 3*nl, 3*ng); CHKERRQ(ierr);
+  //ierr = VecCreate(dhx, nl/nl, ng/ng); CHKERRQ(ierr);
   ierr = VecCreate(xq, nl, ng); CHKERRQ(ierr);
   ierr = VecCreate(yq, nl, ng); CHKERRQ(ierr);
   ierr = VecCreate(zq, nl, ng); CHKERRQ(ierr);
@@ -368,18 +378,30 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecCreate(ref, nl, ng);     CHKERRQ(ierr);
   ierr = VecCreate(fout, nl, ng);  CHKERRQ(ierr);
 
+  //PetscRandomCreate(PETSC_COMM_WORLD,&rctx);
+  //VecSetRandom(dhx,rctx);
+  //PetscRandomDestroy(&rctx);
+  
   // initialize the grid points
+  //ierr = VecCUDAGetArray(dhx, &p_dhx); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(xq, &p_xq); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(zq, &p_zq); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(f, &p_f); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(ref, &p_ref); CHKERRQ(ierr);
-  initializeGrid(p_xq, p_yq, p_zq, p_f, p_ref, hx, isize, istart);
+  initializeGrid(p_xq, p_yq, p_zq, p_f, p_ref, hx, isize, istart, nx, p_dhx);
   ierr = VecCUDARestoreArray(ref, &p_ref); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(f,  &p_f); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(zq, &p_zq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
+  //ierr = VecCUDARestoreArray(dhx, &p_dhx); CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD, "grid initialized\n");
+
+  
+  // no need of dhx now
+  //if (dhx != NULL) { ierr = VecDestroy(&dhx); CHKERRQ(ierr); dhx = NULL; }
+ 
     
   // get ghost dimensions
   size_t g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(m_Opt->m_FFT.fft->m_plan, nghost, isize_g, istart_g);
@@ -413,7 +435,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecCUDARestoreArray(zq, &p_zq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
-  
+  PetscPrintf(PETSC_COMM_WORLD, "scatter done\n");
 
 #if defined(REG_HAS_MPICUDA)
   cudaMalloc((void**)&p_fghost, g_alloc_max);
@@ -454,17 +476,24 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   TestError(p_ref, p_fout, nl, &error, &max);
   ierr = VecRestoreArray(ref, &p_ref); CHKERRQ(ierr);
   ierr = VecRestoreArray(fout, &p_fout); CHKERRQ(ierr);
-
+  
   // get global runtimes and errors
   std::ostringstream ss;
+  
   MPI_Reduce(timers, global_timers, 4, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
-  ss << "MAX COMM = " << global_timers[0] << "s, INTERP = " << global_timers[1] << "s, MEMCPY = " << global_timers[2] << "s, MISC = " << global_timers[3] << "s\n"; 
-  printOnMaster(ss.str());
+  ss << "MAX COMM = " << std::scientific << global_timers[0] << std::scientific << "s, INTERP = " << global_timers[1] << std::scientific << "s, MEMCPY = " << global_timers[2] << std::scientific << "s, MISC = " << global_timers[3] << std::scientific << "s\n"; 
+  std::string s = ss.str();
+  if (procid==0) {
+    std::cout << s << std::scientific << std::endl;
+  }
+  printOnMaster(s);
   ss.str("");
+  
   MPI_Reduce(timers, global_timers, 4, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
   ss << "MIN COMM = " << global_timers[0] << "s, INTERP = " << global_timers[1] << "s, MEMCPY = " << global_timers[2] << "s, MISC = " << global_timers[3] << "s\n"; 
   printOnMaster(ss.str());
   ss.str("");
+  
   MPI_Reduce(timers, global_timers, 4, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD);
   for (int i=0; i<4; i++) global_timers[i] /= nprocs;
   ss << "AVG COMM = " << global_timers[0] << "s, INTERP = " << global_timers[1] << "s, MEMCPY = " << global_timers[2] << "s, MISC = " << global_timers[3] << "s\n"; 

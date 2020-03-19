@@ -553,6 +553,8 @@ void Interp3_Plan_GPU::scatter( int data_dof,
 
 
     // Now perform the allotall to send/recv query_points
+    double scatter_query = 0;
+    scatter_query += -MPI_Wtime();
     timings[0]+=-MPI_Wtime();
     {
       int dst_r,dst_s;
@@ -583,6 +585,10 @@ void Interp3_Plan_GPU::scatter( int data_dof,
       }
     }
     timings[0]+=+MPI_Wtime();
+    scatter_query += MPI_Wtime();
+  
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] scatter_query_time = %g\n", procid, scatter_query);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
     // Now perform the interpolation on all query points including those that need to
     // be sent to other processors and store them into all_f_cubic
@@ -701,6 +707,9 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
                 iporder, interp_time);
     
   timings[1]+=+MPI_Wtime();
+  
+  PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] query points = %d\n", procid, total_query_points);
+  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
   //gpu_interp3_ghost_xyz_p(ghost_reg_grid_vals_d, data_dof, N_reg, isize,istart,total_query_points, g_size, all_query_points_d, all_f_cubic_d,true);
     
@@ -711,6 +720,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   //timings[2]+=+MPI_Wtime();
 
   // Now we have to do an alltoall to distribute the interpolated data from all_f_cubic_d to f_cubic_unordered_d
+  double scatter_query = 0;
+  scatter_query += -MPI_Wtime();
   timings[0]+=-MPI_Wtime();
   {
     int dst_r,dst_s;
@@ -739,6 +750,10 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
     }
   }
   timings[0]+=+MPI_Wtime();
+  scatter_query += MPI_Wtime();
+
+  PetscSynchronizedPrintf(PETSC_COMM_WORLD,"[%d] scatter_query_val = %g\n", procid, scatter_query);
+  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
   
   timings[3]+=-MPI_Wtime();
   int* f_index_ptr;

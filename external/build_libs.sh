@@ -264,10 +264,10 @@ NIFTICLIB_OPTIONS="
 ##############################################################
 ##############################################################
 
-LIB_DIR=${PWD}
+LIB_DIR=${HOME}/apps
 
 # go up one level
-BUILD_DIR=${LIB_DIR}/libs
+BUILD_DIR=${LIB_DIR}/
 
 if [ ! -d ${BUILD_DIR} ]; then
 	mkdir ${BUILD_DIR}

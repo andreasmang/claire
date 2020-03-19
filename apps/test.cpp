@@ -26,7 +26,7 @@
 int main(int argc, char **argv) {
     PetscErrorCode ierr = 0;
     reg::UnitTestOpt* opt = nullptr;
-
+    
     ierr = PetscOptionsSetValue(NULL,"-cuda_view","true"); CHKERRQ(ierr);
     // initialize petsc (user is not allowed to set petsc options)
     ierr = PetscInitialize(0, reinterpret_cast<char***>(NULL),

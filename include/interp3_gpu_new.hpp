@@ -47,6 +47,6 @@ void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq
 
 void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int nq);
 
-void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart);
+void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart, int* nx, ScalarType* dhx);
 
 #endif
