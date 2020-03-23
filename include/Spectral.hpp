@@ -61,11 +61,13 @@ class Spectral {
     
     SpectralKernel m_kernel;
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     cufftHandle *m_planR2C;
     cufftHandle *m_planC2R;
 #endif
-
+    
+    ScalarType* u;
+    ComplexType* uk;
     RegOpt *m_Opt;
 };
 

@@ -23,6 +23,7 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
+#include "interp3.hpp"
 
 
 namespace reg {

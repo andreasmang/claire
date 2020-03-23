@@ -213,6 +213,9 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 
 void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 		Real* data, Real* ghost_data);
+
+void share_ghost_layer(FFTPlanType* plan, int g_size, int* isize_g,
+		Real* data, Real* ghost_data, pvfmm::Iterator<Real> padded_data, pvfmm::Iterator<Real> ghost_data_xy);
 //void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 //		Real* data, Real* ghost_data);
 

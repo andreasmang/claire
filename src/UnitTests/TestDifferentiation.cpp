@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <sstream>
 #include "UnitTestOpt.hpp"
 #include "Differentiation.hpp"
 #include "DifferentiationSM.hpp"
@@ -32,6 +33,99 @@
 namespace reg {
 namespace UnitTest {
   
+PetscErrorCode TestDifferentiationMultiGPU(RegOpt *m_Opt) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  std::ostringstream ss;
+  ss << "starting differentiation unit test" << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  DifferentiationFD *m_fd = nullptr;
+  VecField *v = nullptr;
+  VecField *dv = nullptr;
+  VecField *ref = nullptr;
+  VecField *t = nullptr;
+  ScalarType value = 0;
+  ScalarType vnorm = 0;
+  
+  ierr = AllocateOnce(v, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(dv, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(ref, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(t, m_Opt); CHKERRQ(ierr);
+  
+  ierr = AllocateOnce(m_fd, m_Opt); CHKERRQ(ierr);
+  
+  // Finite Difference Gradient
+  ierr = ComputeDiffFunction(v, ref, 0, m_Opt); CHKERRQ(ierr); 
+  ierr = m_fd->Gradient(dv, v->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
+  
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  ss << "FD grad_1 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  ierr = VecNorm(ref->m_X2, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_2, &value); CHKERRQ(ierr);
+  ss << "FD grad_2 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+
+  
+  ierr = VecNorm(ref->m_X3, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_2, &value); CHKERRQ(ierr);
+  ss << "FD grad_3 error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  ss << "FD grad_1 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  ierr = VecNorm(ref->m_X2, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X2, NORM_INFINITY, &value); CHKERRQ(ierr);
+  ss << "FD grad_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
+  ss << "FD grad_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  // Finite Difference Divergence
+  ierr = ComputeDiffFunction(v, ref, 1, m_Opt); CHKERRQ(ierr); 
+  ierr = m_fd->Divergence(dv->m_X1, v); CHKERRQ(ierr);
+  ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
+  ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
+  ss << "FD div error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
+  ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
+  ss << "FD div error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  ierr = Msg(ss.str()); CHKERRQ(ierr);
+  ss.str("");
+  
+  ierr = Free(v); CHKERRQ(ierr);
+  ierr = Free(dv); CHKERRQ(ierr);
+  ierr = Free(m_fd); CHKERRQ(ierr);
+  ierr = Free(t); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
@@ -237,7 +331,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
     printf(", %.5e\n", value/(vnorm==0.0?1.:vnorm));
   }
 #endif
-  
+
   ierr = Free(v); CHKERRQ(ierr);
   ierr = Free(dv); CHKERRQ(ierr);
   ierr = Free(m_dif); CHKERRQ(ierr);

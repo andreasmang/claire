@@ -415,17 +415,14 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
         nlghost *= isize_g[i];
     }
     
-    printScalar(g_alloc_max, "g_alloc_max");
-    printVector(isize_g, 3, "isize_g");
-    printVector(istart_g, 3, "istart_g");
-    printScalar(nlghost, "nlghost");
-
+  //printScalar(g_alloc_max, "g_alloc_max");
+  //printVector(isize_g, 3, "isize_g");
+  //printVector(istart_g, 3, "istart_g");
+  //printScalar(nlghost, "nlghost");
 
     
   cudaTextureObject_t tex = gpuInitEmptyTexture(isize_g);   
   
-  printGPUMemory();
-
   if (interp_plan == NULL){
       
       try{ interp_plan = new Interp3_Plan_GPU(g_alloc_max); }
@@ -448,9 +445,6 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecGetArray(f, &p_f);  CHKERRQ(ierr);
   accfft_get_ghost_xyz(m_Opt->m_FFT.fft->m_plan, nghost, isize_g, p_f, p_fghost); 
   ierr = VecRestoreArray(f, &p_f); CHKERRQ(ierr);
-
-  //printVector(p_fghost, nlghost, "fghost");
-  printGPUMemory();
 
   ScalarType* m_tmpInterpol1 = NULL, *m_tmpInterpol2 = NULL;
 
@@ -476,9 +470,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
                             tex, 
                             3, 
                             &m_GPUtime);
-  printGPUMemory();
     
-  //printVector(p_fout, nl, "fout");
   TestError(ref, p_fout, nl, &error, &max);
 
   ierr = VecRestoreArray(fout, &p_fout); CHKERRQ(ierr);

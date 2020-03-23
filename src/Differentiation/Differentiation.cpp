@@ -97,6 +97,11 @@ PetscErrorCode Differentiation::Gradient(VecField *g, const ScalarType *m) {
     
     ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
     
+    // Make sure m is a CPU pointer if using MPI_CUDA
+    // Better not to call this function from outside the class because location of m is not known
+    // else make sure m is pointed to correct mem location.
+    // if REG_HAS_CUDA only then m is a GPU pointer
+    // if REG_HAS_MPICUDA then m is a CPU pointer
     ierr = this->Gradient(g1, g2, g3, m); CHKERRQ(ierr);
     
     ierr = g->RestoreArrays(); CHKERRQ(ierr);
@@ -111,6 +116,11 @@ PetscErrorCode Differentiation::Gradient(ScalarType **g, const ScalarType *m) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
+    // Make sure m is a CPU pointer if using MPI_CUDA
+    // Better not to call this function from outside the class because location of m is not known
+    // else make sure m is pointed to correct mem location.
+    // if REG_HAS_CUDA only then m is a GPU pointer
+    // if REG_HAS_MPICUDA then m is a CPU pointer
     ierr = this->Gradient(g[0], g[1], g[2], m); CHKERRQ(ierr);
             
     PetscFunctionReturn(ierr);
@@ -127,11 +137,18 @@ PetscErrorCode Differentiation::Gradient(VecField *g, const Vec m) {
     PetscFunctionBegin;
     
     ierr = g->GetArraysWrite(g1, g2, g3); CHKERRQ(ierr);
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     ierr = GetRawPointerRead(m, &pm); CHKERRQ(ierr);
+#else
+    ierr = VecGetArrayRead(m, &pm); CHKERRQ(ierr);
+#endif
     
     ierr = this->Gradient(g1, g2, g3, pm); CHKERRQ(ierr);
-    
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)    
     ierr = RestoreRawPointerRead(m, &pm); CHKERRQ(ierr);
+#else
+    ierr = VecRestoreArrayRead(m, &pm); CHKERRQ(ierr);
+#endif
     ierr = g->RestoreArrays(); CHKERRQ(ierr);
             
     PetscFunctionReturn(ierr);
@@ -185,12 +202,24 @@ PetscErrorCode Differentiation::Divergence(ScalarType *l, VecField *v) {
     PetscErrorCode ierr = 0;
     const ScalarType *v1 = nullptr, *v2 = nullptr, *v3 = nullptr;
     PetscFunctionBegin;
-    
+
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
+#else
+    ierr = VecGetArrayRead(v->m_X1, &v1); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X2, &v2); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X3, &v3); CHKERRQ(ierr);
+#endif
     
     ierr = this->Divergence(l, v1, v2, v3); CHKERRQ(ierr);
     
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
+#else 
+    ierr = VecRestoreArrayRead(v->m_X1, &v1); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X2, &v2); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X3, &v3); CHKERRQ(ierr);
+#endif
 
     PetscFunctionReturn(ierr);
 }
@@ -204,14 +233,26 @@ PetscErrorCode Differentiation::Divergence(Vec l, VecField *v) {
     ScalarType *pl;
     PetscFunctionBegin;
     
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     ierr = v->GetArraysRead(v1, v2, v3); CHKERRQ(ierr);
+#else 
+    ierr = VecGetArrayRead(v->m_X1, &v1); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X2, &v2); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(v->m_X3, &v3); CHKERRQ(ierr);
+#endif
     ierr = GetRawPointerWrite(l, &pl); CHKERRQ(ierr);
     
     ierr = this->Divergence(pl, v1, v2, v3); CHKERRQ(ierr);
     
     ierr = RestoreRawPointerWrite(l, &pl); CHKERRQ(ierr);
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
-
+#else 
+    ierr = VecRestoreArrayRead(v->m_X1, &v1); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X2, &v2); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(v->m_X3, &v3); CHKERRQ(ierr);
+#endif
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -223,6 +264,10 @@ PetscErrorCode Differentiation::Divergence(ScalarType *l, const ScalarType *cons
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
         
+    // Better not to call this function from outside the class
+    // else make sure v is pointed to correct mem location.
+    // if REG_HAS_CUDA only then v is a GPU pointer
+    // if REG_HAS_MPICUDA then v is a CPU pointer
     ierr = this->Divergence(l, v[0], v[1], v[2]); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);

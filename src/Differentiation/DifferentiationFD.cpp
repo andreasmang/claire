@@ -82,13 +82,34 @@ PetscErrorCode DifferentiationFD::Initialize() {
 PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, ScalarType *x3) {
     PetscErrorCode ierr = 0;
     IntType nalloc;
+    int isize[3];
+    ScalarType hx[3];
     PetscFunctionBegin;
+  
+    for (int i=0; i<3; i++) {
+      isize[i] = this->m_Opt->m_Domain.isize[i];
+      hx[i] = this->m_Opt->m_Domain.hx[i];
+    }
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
-    ierr = initConstants(this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+    ierr = initConstants(isize, isize, hx); CHKERRQ(ierr);
+#elif defined(REG_HAS_MPICUDA) 
+    FFTPlanType *m_plan = this->m_Opt->m_FFT.fft->m_plan;
+    this->g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(m_plan, this->nghost, this->isize_g, this->istart_g);
+    this->nlghost = isize_g[0]*isize_g[1]*isize_g[2];
+    // work memory allocation for ghost point sharing
+    this->m_GhostWork1 = pvfmm::aligned_new<Real> (m_plan->alloc_max + 2 * this->nghost * isize[2] * isize[0]);
+    this->m_GhostWork2 = pvfmm::aligned_new<Real> (m_plan->alloc_max + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);
+    // ghost data mem alloc on CPU
+    this->m_Ghost = reinterpret_cast<ScalarType*>(accfft_alloc(this->g_alloc_max));
+    // ghost data mem alloc on GPU
+    cudaMalloc((void**)&this->d_Ghost, this->nlghost*sizeof(ScalarType));
+    this->mtex = gpuInitEmptyGradientTexture(this->isize_g); CHKERRQ(ierr);
+    ierr = initConstants(isize, this->isize_g, hx); CHKERRQ(ierr);
+#else
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
-    
     PetscFunctionReturn(ierr);
 }
 
@@ -100,10 +121,18 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     if (this->mtex != 0) {
         cudaDestroyTextureObject(this->mtex);
     }
+#elif defined(REG_HAS_MPICUDA)
+    if (this->mtex != 0) {
+        cudaDestroyTextureObject(this->mtex);
+    }
+    accfft_free(this->m_Ghost);
+    cudaFree(this->d_Ghost);
+    pvfmm::aligned_delete<Real>(this->m_GhostWork1);
+    pvfmm::aligned_delete<Real>(this->m_GhostWork2);
 #endif
     
     PetscFunctionReturn(ierr);
@@ -124,8 +153,14 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
 
     ZeitGeist_define(FD_GRAD);
     ZeitGeist_tick(FD_GRAD);
-#ifdef REG_HAS_CUDA
-    ierr = computeTextureGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
+    ierr = computeGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+#elif defined(REG_HAS_MPICUDA)
+    if (this->m_Opt->m_FFT.fft->m_plan != nullptr) {
+      share_ghost_layer(this->m_Opt->m_FFT.fft->m_plan, this->nghost, this->isize_g, (ScalarType*)m, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+    }
+    ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+    ierr  = computeGradient(g1, g2, g3, this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
@@ -180,8 +215,24 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     
     ZeitGeist_define(FD_DIV);
     ZeitGeist_tick(FD_DIV);
-#ifdef REG_HAS_CUDA
-    ierr = computeTextureDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.nx); CHKERRQ(ierr);
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
+    ierr = computeDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+#elif defined(REG_HAS_MPICUDA)
+    // Compute divergence in 3 separate function calls to save memory
+    // First set the divergence to zero
+    cudaMemset((void*)l, 0, this->m_Opt->m_Domain.nl*sizeof(ScalarType));
+
+    share_ghost_layer(this->m_Opt->m_FFT.fft->m_plan, this->nghost, this->isize_g, (ScalarType*)v3, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+    ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+    ierr  = computeDivergenceZ(l, this->d_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+  
+    share_ghost_layer(this->m_Opt->m_FFT.fft->m_plan, this->nghost, this->isize_g, (ScalarType*)v2, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+    ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+    ierr  = computeDivergenceY(l, this->d_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+    
+    share_ghost_layer(this->m_Opt->m_FFT.fft->m_plan, this->nghost, this->isize_g, (ScalarType*)v1, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+    ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+    ierr  = computeDivergenceX(l, this->d_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif

@@ -391,12 +391,10 @@ void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, i
 size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g) {
     
-    PetscPrintf(PETSC_COMM_WORLD, "\ninside accfft_ghost");
 	size_t alloc_max = plan->alloc_max;
 	int *isize = plan->isize;
 	int *istart = plan->istart;
 	int* n = plan->N;
-    PetscPrintf(PETSC_COMM_WORLD, "\nnx[0] = %d", n[0]);
 	istart_g[2] = istart[2];
 	isize_g[2] = isize[2];
     
@@ -593,10 +591,9 @@ void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 		return;
 	}
 
-    pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
-
-    pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0] + 2 * g_size * isize[2] * isize_g[1]);
-
+  pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
+  pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0] + 2 * g_size * isize[2] * isize_g[1]);
+  
 	ghost_left_right(padded_data, data, g_size, plan);
 	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan);
 	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
@@ -629,6 +626,56 @@ void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 
   pvfmm::aligned_delete<Real>(padded_data);
   pvfmm::aligned_delete<Real>(ghost_data_xy);
+	return;
+}
+
+void share_ghost_layer(FFTPlanType* plan, int g_size, int* isize_g,
+		Real* data, Real* ghost_data, pvfmm::Iterator<Real> padded_data, pvfmm::Iterator<Real> ghost_data_xy) {
+	int nprocs, procid;
+	MPI_Comm_rank(plan->c_comm, &procid);
+	MPI_Comm_size(plan->c_comm, &nprocs);
+
+	if (plan->inplace == true) {
+		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
+				<< std::endl;
+		return;
+	}
+
+	if (g_size == 0) {
+		memcpy(ghost_data, data, plan->alloc_max);
+		return;
+	}
+
+	int *isize = plan->isize;
+	if (g_size > isize[0] || g_size > isize[1]) {
+		std::cout
+				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
+				<< std::endl;
+		return;
+	}
+
+	ghost_left_right(padded_data, data, g_size, plan);
+	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan);
+	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
+
+//#ifdef VERBOSE2
+#ifdef VERBOSE3
+	if(procid==0) {
+		std::cout<<"\n final ghost data\n";
+		for (int i=0;i<isize_g[0];++i) {
+			for (int j=0;j<isize_g[1];++j) {
+			    for (int k=0;k<isize_g[2];++k) {
+			        int idx = reg::GetLinearIndex(i,j,k,isize_g);
+                    //std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]]<<" ";
+                    std::cout<<ghost_data[idx]<<" ";
+                }
+                std::cout<<"\n";
+            }
+            std::cout<<"\n\n";
+        }
+	}
+#endif
+
 	return;
 }
 

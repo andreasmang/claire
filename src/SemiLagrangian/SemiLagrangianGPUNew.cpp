@@ -46,8 +46,6 @@ SemiLagrangianGPUNew::SemiLagrangianGPUNew() {
 SemiLagrangianGPUNew::SemiLagrangianGPUNew(RegOpt* opt) {
     this->m_Opt = opt;
     this->Initialize();
-    this->InitializeInterpolationTexture();
-    this->ComputeInitialTrajectory();
 }
 
 
@@ -68,14 +66,17 @@ SemiLagrangianGPUNew::~SemiLagrangianGPUNew() {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Initialize() { 
     PetscErrorCode ierr = 0;
+    int isize[3];
     PetscFunctionBegin;
     
-    this->m_Xstate = NULL;
-    this->m_Xadjoint = NULL;
-    this->m_X = NULL;
-    this->m_WorkVec = NULL;
-    this->m_WorkVecField1 = NULL;
-    this->m_InitialTrajectory = NULL;
+    this->m_Xstate = nullptr;
+    this->m_Xadjoint = nullptr;
+    this->m_X = nullptr;
+    this->m_WorkVec = nullptr;
+    this->m_ScaFieldGhost = nullptr;
+    this->m_VecFieldGhost = nullptr;
+    this->m_WorkVecField1 = nullptr;
+    this->m_InitialTrajectory = nullptr;
     this->m_texture = 0;
 
     this->m_Dofs[0] = 1;
@@ -83,23 +84,51 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     
     this->m_tmpInterpol1 = nullptr;
     this->m_tmpInterpol2 = nullptr;
-    this->ghost_metadata = nullptr;
     
-    this->ghost_metadata = new Ghost_Point_MetaData;
-    // initialize the ghost metadata structure
-    this->ghost_metadata->nghost = this->m_Opt->m_PDESolver.iporder;
-    this->ghost_metadata->g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.fft->m_plan, this->ghost_metadata->nghost, this->ghost_metadata->isize, this->ghost_metadata->istart);
-    this->ghost_metadata->nlghost = 1;
-    //printf("isize_g[0] = %d\n", this->ghost_metadata->isize[0]);
-    //printf("isize_g[1] = %d\n", this->ghost_metadata->isize[1]);
-    //printf("isize_g[2] = %d\n", this->ghost_metadata->isize[2]);
 
-    for (int i=0; i<3; ++i) {
-        this->ghost_metadata->nlghost *= this->ghost_metadata->isize[i];
+    this->m_GhostWork1 = nullptr;
+    this->m_GhostWork2 = nullptr;
+  
+    this->m_StatePlan = nullptr;
+    this->m_StatePlanVec = nullptr;
+    this->m_AdjointPlan = nullptr;
+    this->m_AdjointPlanVec = nullptr;
+  
+    ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
+
+#if defined(REG_HAS_MPICUDA)
+    int nl = this->m_Opt->m_Domain.nl;
+    int ng = this->m_Opt->m_Domain.ng;
+    for (int i=0; i<3; i++) {
+      isize[i] = this->m_Opt->m_Domain.isize[i];
     }
-    //printf("nlghost = %d\n", this->ghost_metadata->nlghost);
     
+    this->nghost = this->m_Opt->m_PDESolver.iporder;
+    this->g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt->m_FFT.fft->m_plan, this->nghost, this->isize_g, this->istart_g);
+    this->nlghost = this->isize_g[0]*this->isize_g[1]*this->isize_g[2];
+    this->m_GhostWork1 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.fft->m_plan->alloc_max + 2 * this->nghost * isize[2] * isize[0]);
+    this->m_GhostWork2 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.fft->m_plan->alloc_max + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);
+    this->m_VecFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(3*this->g_alloc_max));
     
+    ierr = AllocateOnce(this->m_StatePlan, this->m_Dofs[0]*this->g_alloc_max);
+    this->m_StatePlan->allocate(nl, this->m_Dofs[0]);
+
+    ierr = AllocateOnce(this->m_StatePlanVec, this->m_Dofs[1]*this->g_alloc_max);
+    this->m_StatePlanVec->allocate(nl, this->m_Dofs[1]); 
+
+    ierr = AllocateOnce(this->m_AdjointPlan, this->m_Dofs[0]*this->g_alloc_max);
+    this->m_AdjointPlan->allocate(nl, this->m_Dofs[0]);
+
+    ierr = AllocateOnce(this->m_AdjointPlanVec, this->m_Dofs[1]*this->g_alloc_max);
+    this->m_AdjointPlanVec->allocate(nl, this->m_Dofs[1]);
+    
+    ierr = VecCreate(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
+    ierr = VecCreate(this->m_WorkVec, 3*nl, 3*ng); CHKERRQ(ierr);
+#endif
+    ierr = AllocateOnce(this->m_InitialTrajectory, m_Opt); CHKERRQ(ierr);
+    ierr = this->ComputeInitialTrajectory(); CHKERRQ(ierr);
+    ierr = this->InitializeInterpolationTexture(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -109,22 +138,18 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::InitializeInterpolationTexture() {
     PetscErrorCode ierr = 0;
-    int nx[3];
     PetscFunctionBegin;
 
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
-    for (unsigned int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-    }
-
-    this->m_texture = gpuInitEmptyTexture(nx);
-    
+    this->m_texture = gpuInitEmptyTexture(this->m_Opt->m_Domain.isize);
     if (this->m_Opt->m_PDESolver.iporder == 3) {
-      cudaMalloc((void**) &this->m_tmpInterpol1, sizeof(float)*nx[0]*nx[1]*nx[2]);
-      cudaMalloc((void**) &this->m_tmpInterpol2, sizeof(float)*nx[0]*nx[1]*nx[2]);
+      cudaMalloc((void**) &this->m_tmpInterpol1, sizeof(float)*this->m_Opt->m_Domain.nl);
+      cudaMalloc((void**) &this->m_tmpInterpol2, sizeof(float)*this->m_Opt->m_Domain.nl);
     }
-#else // REG_HAS_MPICUDA
-    this->m_texture = gpuInitEmptyTexture(this->ghost_metadata->isize);
+#elif defined(REG_HAS_MPICUDA) 
+    this->m_texture = gpuInitEmptyTexture(this->isize_g);
+#else
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
     
     PetscFunctionReturn(ierr);
@@ -132,64 +157,91 @@ PetscErrorCode SemiLagrangianGPUNew::InitializeInterpolationTexture() {
 
 
 /********************************************************************
- * @brief clears memory //TODO this function will become obsolete in the case we
+ * @brief clears memory
  * perform everything on the GPU
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
 
-    if (this->m_Xstate != NULL) {
+    if (this->m_Xstate != nullptr) {
         delete this->m_Xstate;
-        this->m_Xstate = NULL;
+        this->m_Xstate = nullptr;
     }
     
-    if (this->m_Xadjoint != NULL) {
+    if (this->m_Xadjoint != nullptr) {
         delete this->m_Xadjoint;
-        this->m_Xadjoint = NULL;
+        this->m_Xadjoint = nullptr;
     }
 
-    if (this->m_InitialTrajectory != NULL) {
+    if (this->m_InitialTrajectory != nullptr) {
         delete this->m_InitialTrajectory;
-        this->m_InitialTrajectory = NULL;
+        this->m_InitialTrajectory = nullptr;
     }
 
-    if (this->m_X != NULL) {
+    if (this->m_X != nullptr) {
         ierr = VecDestroy(&this->m_X); CHKERRQ(ierr);
-        this->m_X = NULL;
+        this->m_X = nullptr;
     }
     
-    if (this->m_WorkVec != NULL) {
+    if (this->m_WorkVec != nullptr) {
         ierr = VecDestroy(&this->m_WorkVec); CHKERRQ(ierr); 
-        this->m_WorkVec = NULL;
+        this->m_WorkVec = nullptr;
     }
-    
-    if (this->m_ScaFieldGhost != NULL) {
+  
+    if (this->m_ScaFieldGhost != nullptr) {
         accfft_free(this->m_ScaFieldGhost);
-        this->m_ScaFieldGhost = NULL;
+        this->m_ScaFieldGhost = nullptr;
     }
 
-    if (this->m_VecFieldGhost != NULL) {
+    if (this->m_VecFieldGhost != nullptr) {
         accfft_free(this->m_VecFieldGhost);
-        this->m_VecFieldGhost = NULL;
+        this->m_VecFieldGhost = nullptr;
     }
 
     if (this->m_texture != 0) {
         cudaDestroyTextureObject(this->m_texture);
     }
-    
-    if (this->m_tmpInterpol1) {
+  
+    if (this->m_tmpInterpol1 != nullptr) {
       cudaFree(this->m_tmpInterpol1);
       this->m_tmpInterpol1 = nullptr;
     }
-    if (this->m_tmpInterpol2) {
+    
+    if (this->m_tmpInterpol2 != nullptr) {
       cudaFree(this->m_tmpInterpol2);
       this->m_tmpInterpol2 = nullptr;
     }
 
-    if (this->ghost_metadata != nullptr) {
-        delete this->ghost_metadata;
-        this->ghost_metadata = nullptr;
+    if (this->m_GhostWork1 != nullptr) {
+      pvfmm::aligned_delete<ScalarType>(this->m_GhostWork1);
+      this->m_GhostWork1 = nullptr;
+    }
+
+    if (this->m_GhostWork2 != nullptr) {
+      pvfmm::aligned_delete<ScalarType>(this->m_GhostWork2);
+      this->m_GhostWork2 = nullptr;
+    }
+
+    if (this->m_StatePlan != nullptr) {
+      Free(this->m_StatePlan);
+      this->m_StatePlan = nullptr;
+    }
+
+    if (this->m_StatePlanVec != nullptr) {
+      Free(this->m_StatePlanVec);
+      this->m_StatePlanVec = nullptr;
+    }
+
+    if (this->m_AdjointPlan != nullptr) {
+      Free(this->m_AdjointPlan);
+      this->m_AdjointPlan = nullptr;
+    }
+
+    if (this->m_AdjointPlanVec != nullptr) {
+      Free(this->m_AdjointPlanVec);
+      this->m_AdjointPlanVec = nullptr;
     }
 
     PetscFunctionReturn(ierr);
@@ -205,7 +257,7 @@ PetscErrorCode SemiLagrangianGPUNew::SetWorkVecField(VecField* x) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(x != nullptr, "null pointer"); CHKERRQ(ierr);
     this->m_WorkVecField1 = x;
 
     PetscFunctionReturn(ierr);
@@ -246,7 +298,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectory(VecField* v, std::string 
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     PetscErrorCode ierr;
-    ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
+    ScalarType *p_x1=nullptr,*p_x2=nullptr,*p_x3=nullptr;
     IntType isize[3],istart[3];
     int nx[3];
     
@@ -254,12 +306,6 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     IntType l,i1,i2,i3;
     PetscFunctionBegin;
 
-    if(this->m_InitialTrajectory==NULL){
-        try{this->m_InitialTrajectory = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&){
-            ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
 
     for (unsigned int i = 0; i < 3; ++i){
         hx[i]     = this->m_Opt->m_Domain.hx[i];
@@ -267,13 +313,10 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
         isize[i]  = this->m_Opt->m_Domain.isize[i];
         istart[i] = this->m_Opt->m_Domain.istart[i];
     }
-    
-    // allocate 1 time 3D Cuda Array for texture interpolation
-    
+
     ierr = VecGetArray(this->m_InitialTrajectory->m_X1, &p_x1); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_InitialTrajectory->m_X2, &p_x2); CHKERRQ(ierr);
     ierr = VecGetArray(this->m_InitialTrajectory->m_X3, &p_x3); CHKERRQ(ierr);
-
 
 #pragma omp parallel
 {
@@ -283,9 +326,9 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
             for (int i3 = 0; i3 < isize[2]; ++i3){ // x3
 
                 // compute coordinates (nodal grid)
-                ScalarType x1 = static_cast<ScalarType>(i1 + istart[0]);
-                ScalarType x2 = static_cast<ScalarType>(i2 + istart[1]);
-                ScalarType x3 = static_cast<ScalarType>(i3 + istart[2]);
+                ScalarType x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
+                ScalarType x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
+                ScalarType x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
 
                 // compute linear / flat index
                 IntType linidx = GetLinearIndex(i1,i2,i3,isize);
@@ -303,16 +346,17 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X1,&p_x1); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X2,&p_x2); CHKERRQ(ierr);
     ierr=VecRestoreArray(this->m_InitialTrajectory->m_X3,&p_x3); CHKERRQ(ierr);
-
-
+    
     PetscFunctionReturn(0);
 }
 
+/********************************************************************
+ * @brief set the initial trajectory from outside the class
+ *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::SetInitialTrajectory(const ScalarType* pX) {
     PetscErrorCode ierr;
     PetscFunctionBegin;
     
-    ierr = AllocateOnce(this->m_InitialTrajectory, this->m_Opt); CHKERRQ(ierr);
     ierr = this->m_InitialTrajectory->SetComponents(pX, "stride"); CHKERRQ(ierr);
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA) 
     ierr = VecScale(this->m_InitialTrajectory->m_X1, 1./this->m_Opt->m_Domain.hx[0]); CHKERRQ(ierr);
@@ -331,7 +375,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ScalarType ht, hthalf, hx[3], invhx[3], scale = 0.0;
     IntType isize[3], istart[3], nx[3];
     std::stringstream ss;
-    ScalarType* xq = NULL;
+    ScalarType* xq = nullptr;
     IntType nl=1, ng=1;
     const ScalarType *vx, *vy, *vz;
     double runtime=0;
@@ -343,7 +387,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField1 != nullptr, "null pointer"); CHKERRQ(ierr);
     
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
@@ -355,18 +399,11 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
         ierr = v->DebugInfo("SL v", __LINE__, __FILE__); CHKERRQ(ierr);
     }
 
-    if (this->m_InitialTrajectory == NULL){
-        ierr=this->ComputeInitialTrajectory(); CHKERRQ(ierr);
-    }
-    
-    X = this->m_Xstate;
     // switch between state and adjoint variable
     if (strcmp(flag.c_str(), "state") == 0) {
-        ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
         X = this->m_Xstate;
         scale =  1.0;
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
         X = this->m_Xadjoint;
         scale = -1.0;
     } else {
@@ -385,18 +422,13 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     }
     
 
-    if ( this->m_X == NULL )
-        ierr = VecCreate(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
-
-    if (this->m_WorkVec == NULL ) 
-        ierr = VecCreate(this->m_WorkVec, 3*nl, 3*ng); CHKERRQ(ierr);
-
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
-    // X = x - ht v
+    // X = x - (ht/hx) v
     ierr = VecWAXPY(X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(X->m_X2, -scale*ht*invhx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(X->m_X3, -scale*ht*invhx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr); 
 #else
+    // X = x - ht*v
     // do not use invhx when scattering (will mess up with Amir's scattering function)
     ierr = VecWAXPY(X->m_X1, -scale*ht, v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(X->m_X2, -scale*ht, v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
@@ -410,21 +442,38 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
    // ierr = VecRestoreArrayRead(this->m_InitialTrajectory->m_X1, &p);
    // ierr = VecRestoreArrayRead(v->m_X1, &vx); 
 
-    ierr = VecScale(X->m_X1, 1.0f/(2.0f*PETSC_PI));                                CHKERRQ(ierr);
-    ierr = VecScale(X->m_X2, 1.0f/(2.0f*PETSC_PI));                                CHKERRQ(ierr);
-    ierr = VecScale(X->m_X3, 1.0f/(2.0f*PETSC_PI));                                CHKERRQ(ierr);
+    ierr = X->Scale(1.0f/(2.0f*PETSC_PI)); CHKERRQ(ierr);
     
     // flatten out the coordinate array
     ierr = X->GetComponents(this->m_X, "stride"); CHKERRQ(ierr); 
+    
+    //const ScalarType* p_mX;
+    //ierr = VecGetArrayRead(this->m_X, &p_mX); CHKERRQ(ierr);
+    //for (int i=0; i<3*nl; i+=3) { 
+    //    PetscPrintf(PETSC_COMM_WORLD, "[%d]  X*[0] = %f, X*[1] = %f, X*[2] = %f\n", i/3, p_mX[i], p_mX[i+1], p_mX[i+2]);
+    //}
+    //ierr = VecRestoreArrayRead(this->m_X, &p_mX); CHKERRQ(ierr);
+
     // need to communicate the coordinates here before interpolation
     ierr = this->MapCoordinateVector(flag);
 #endif
     // interpolate velocity field v(X)
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
     
+    //const ScalarType *p_mw, *p_v;
+    //ierr = VecGetArrayRead(v->m_X1, &p_v); CHKERRQ(ierr);
+    //ierr = VecGetArrayRead(this->m_WorkVecField1->m_X1, &p_mw); CHKERRQ(ierr);
+    //for (int i=0; i<nl; i++) { 
+    //    PetscPrintf(PETSC_COMM_WORLD, "[%d]  v = %f, mw = %f\n", i, p_v[i], p_mw[i]);
+    //}
+    //ierr = VecRestoreArrayRead(v->m_X1, &p_v); CHKERRQ(ierr);
+    //ierr = VecRestoreArrayRead(this->m_WorkVecField1->m_X1, &p_mw); CHKERRQ(ierr);
+
+    //ierr = VecNorm(this->m_WorkVecField1->m_X1, NORM_2, &norm); CHKERRQ(ierr);
+    //PetscPrintf(PETSC_COMM_WORLD, "norm of interpolated work field = %f\n", norm);
+
     //ierr = VecNorm(this->m_WorkVecField1->m_X1, NORM_1, &norm); CHKERRQ(ierr);
     //std::cout << "v norm at euler point = " << norm << std::endl;
-
 
     // X = x - 0.5*ht*(v + v(x - ht v))
     // F = F0 + F1 = v + v(x-ht*v)
@@ -443,6 +492,8 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ierr = VecWAXPY(X->m_X2, -scale*hthalf, this->m_WorkVecField1->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(X->m_X3, -scale*hthalf, this->m_WorkVecField1->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
     
+    ierr = X->Scale(1.0f/(2.0f*PETSC_PI)); CHKERRQ(ierr);
+    
     // flatten out the coordinate array
     ierr = X->GetComponents(this->m_X, "stride"); CHKERRQ(ierr); 
     // need to communicate the coordinates here before interpolation for the state or adjoint PDE
@@ -454,189 +505,26 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
 }
 
 
-
-/********************************************************************
- * @brief compute the trajectory from the velocity field based
- * on an rk2 scheme (todo: make the velocity field a const vector)
- *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK4(VecField* v, std::string flag) {
-    PetscErrorCode ierr = 0;
-    ScalarType ht, hthalf, hx[3], x1, x2, x3, scale = 0.0;
-    const ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL;
-    ScalarType *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL,
-               *p_f1 = NULL, *p_f2 = NULL, *p_f3 = NULL;
-    IntType isize[3], istart[3], l, i1, i2, i3;
-    std::stringstream ss;
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
 
-    PetscFunctionBegin;
-
-    this->m_Opt->Enter(__func__);
-    /*
-    ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
-    if (this->m_WorkVecField2 == NULL) {
-        try{this->m_WorkVecField2 = new VecField(this->m_Opt);}
-        catch (std::bad_alloc&) {
-            ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-        }
-    }
-
-    ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-
-    // switch between state and adjoint variable
-    if (strcmp(flag.c_str(), "state") == 0) {
-        scale =  1.0;
-    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        scale = -1.0;
-    } else {
-        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-    }
-
-
-    for (int i = 0; i < 3; ++i) {
-        hx[i] = this->m_Opt->m_Domain.hx[i];
-        isize[i] = this->m_Opt->m_Domain.isize[i];
-        istart[i] = this->m_Opt->m_Domain.istart[i];
-    }
-
-    ierr = this->m_WorkVecField2->GetArrays(p_f1, p_f2, p_f3); CHKERRQ(ierr);
-
-    // first stage of rk4
-    ierr = v->GetArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-    for (i1 = 0; i1 < isize[0]; ++i1) {   // x1
-        for (i2 = 0; i2 < isize[1]; ++i2) {   // x2
-            for (i3 = 0; i3 < isize[2]; ++i3) {   // x3
-                // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
-
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, isize);
-
-                p_f1[l] = p_v1[l];
-                p_f2[l] = p_v2[l];
-                p_f3[l] = p_v3[l];
-
-                this->m_X[l*3+0] = (x1 - scale*hthalf*p_v1[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+1] = (x2 - scale*hthalf*p_v2[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+2] = (x3 - scale*hthalf*p_v3[l])/(2.0*PETSC_PI); // normalized to [0,1]
-            }  // i1
-        }  // i2
-    }  // i3
-    ierr = v->RestoreArraysRead(p_v1, p_v2, p_v3); CHKERRQ(ierr);
-
-    // evaluate right hand side
-    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
-    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-
-    // second stage of rk4
-    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-    for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
-                // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
-
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, isize);
-
-                p_f1[l] += 2.0*p_vX1[l];
-                p_f2[l] += 2.0*p_vX2[l];
-                p_f3[l] += 2.0*p_vX3[l];
-
-                this->m_X[l*3+0] = (x1 - scale*hthalf*p_vX1[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+1] = (x2 - scale*hthalf*p_vX2[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+2] = (x3 - scale*hthalf*p_vX3[l])/(2.0*PETSC_PI); // normalized to [0,1]
-            }  // i1
-        }  // i2
-    }  // i3
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-
-    // evaluate right hand side
-    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
-    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-
-    // third stage of rk4
-    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-    for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
-                // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
-
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, isize);
-
-                p_f1[l] += 2.0*p_vX1[l];
-                p_f2[l] += 2.0*p_vX2[l];
-                p_f3[l] += 2.0*p_vX3[l];
-
-                this->m_X[l*3+0] = (x1 - scale*ht*p_vX1[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+1] = (x2 - scale*ht*p_vX2[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+2] = (x3 - scale*ht*p_vX3[l])/(2.0*PETSC_PI); // normalized to [0,1]
-            }  // i1
-        }  // i2
-    }  // i3
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-
-    // evaluate right hand side
-    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
-    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-
-    // fourth stage of rk4
-    ierr = this->m_WorkVecField1->GetArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-    for (i1 = 0; i1 < isize[0]; ++i1) {  // x1
-        for (i2 = 0; i2 < isize[1]; ++i2) {  // x2
-            for (i3 = 0; i3 < isize[2]; ++i3) {  // x3
-                // compute coordinates (nodal grid)
-                x1 = hx[0]*static_cast<ScalarType>(i1 + istart[0]);
-                x2 = hx[1]*static_cast<ScalarType>(i2 + istart[1]);
-                x3 = hx[2]*static_cast<ScalarType>(i3 + istart[2]);
-
-                // compute linear / flat index
-                l = GetLinearIndex(i1, i2, i3, isize);
-
-                p_f1[l] += p_vX1[l];
-                p_f2[l] += p_vX2[l];
-                p_f3[l] += p_vX3[l];
-
-                this->m_X[l*3+0] = (x1 - scale*(ht/6.0)*p_f1[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+1] = (x2 - scale*(ht/6.0)*p_f2[l])/(2.0*PETSC_PI); // normalized to [0,1]
-                this->m_X[l*3+2] = (x3 - scale*(ht/6.0)*p_f3[l])/(2.0*PETSC_PI); // normalized to [0,1]
-            }  // i1
-        }  // i2
-    }  // i3
-    ierr = this->m_WorkVecField1->RestoreArrays(p_vX1, p_vX2, p_vX3); CHKERRQ(ierr);
-
-    ierr = this->m_WorkVecField2->RestoreArrays(p_f1, p_f2, p_f3); CHKERRQ(ierr);
-
-    // communicate the final characteristic
-    ierr = this->CommunicateCoord(flag); CHKERRQ(ierr);
-    */
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(ierr);
+  PetscFunctionReturn(ierr);
 }
-
 
 /********************************************************************
  * @brief interpolate scalar field
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Interpolate(Vec* xo, Vec xi, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_xo = NULL, *p_xi = NULL;
+    ScalarType *p_xo = nullptr, *p_xi = nullptr;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(*xo != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert( xi != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(*xo != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert( xi != nullptr, "null pointer"); CHKERRQ(ierr);
 
     ierr = GetRawPointerReadWrite( xi, &p_xi); CHKERRQ(ierr);
     ierr = GetRawPointerReadWrite(*xo, &p_xo); CHKERRQ(ierr);
@@ -669,8 +557,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(xi != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(xo != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xi != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(xo != nullptr, "null pointer"); CHKERRQ(ierr);
 
     ZeitGeist_define(SL_INTERPOL);
     ZeitGeist_tick(SL_INTERPOL);
@@ -689,12 +577,12 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
      
     // compute interpolation for all components of the input scalar field
     if (strcmp(flag.c_str(), "state") == 0) {
-        ierr = Assert(this->m_Xstate != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
         ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
         //gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
     } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        ierr = Assert(this->m_Xadjoint != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_Xadjoint != nullptr, "null pointer"); CHKERRQ(ierr);
         ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
         //gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
         ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
@@ -721,20 +609,19 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Interpolate(VecField* vo, VecField* vi, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_vix1 = NULL, *p_vix2 = NULL, *p_vix3 = NULL;
-    ScalarType *p_vox1 = NULL, *p_vox2 = NULL, *p_vox3 = NULL;
+    ScalarType *p_vix1 = nullptr, *p_vix2 = nullptr, *p_vix3 = nullptr;
+    ScalarType *p_vox1 = nullptr, *p_vox2 = nullptr, *p_vox3 = nullptr;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(vi != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vo != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vi != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vo != nullptr, "null pointer"); CHKERRQ(ierr);
     
 #ifdef REG_HAS_MPICUDA
     ierr = vi->GetComponents(this->m_WorkVec, "block"); CHKERRQ(ierr);
     ierr = this->Interpolate(flag); CHKERRQ(ierr);
     ierr = vo->SetComponents(this->m_WorkVec, "block"); CHKERRQ(ierr);
-
 #else
     ierr = vi->GetArraysReadWrite(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
     ierr = vo->GetArraysReadWrite(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
@@ -759,15 +646,15 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
     double timers[4] = {0, 0, 0, 0};
     std::stringstream ss;
     IntType nl, nlghost, g_alloc_max;
-    Interp3_Plan_GPU* interp_plan = NULL;
-    ScalarType* p_WorkVec = NULL;
+    Interp3_Plan_GPU* interp_plan = nullptr;
+    ScalarType* p_WorkVec = nullptr;
     IntType i;
 
     this->m_Opt->Enter(__func__);
     
     nl = this->m_Opt->m_Domain.nl;
     order = this->m_Opt->m_PDESolver.iporder;
-    nghost = 3;
+    
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
@@ -775,25 +662,17 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
         istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
 
-    // get network dimensions
     c_dims[0] = this->m_Opt->m_CartGridDims[0];
     c_dims[1] = this->m_Opt->m_CartGridDims[1];
-    
-    
-    // deal with ghost points, this allocates memory for the ghost padded regular grid values only for the first time on the CPU
-    if(this->m_VecFieldGhost==NULL) {
-        this->m_VecFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(3*this->ghost_metadata->g_alloc_max));
-    }
 
-    ierr = VecGetArray(this->m_WorkVec, &p_WorkVec);
-
-    // do the communication for the ghost points one by one for each component x,y,z
-    for (unsigned int i = 0; i < 3; i++){
-        accfft_get_ghost_xyz(this->m_Opt->m_FFT.fft->m_plan, this->ghost_metadata->nghost, this->ghost_metadata->isize, &p_WorkVec[ i*nl ], &this->m_VecFieldGhost[ i*this->ghost_metadata->nlghost ]); 
+    ierr = VecGetArray(this->m_WorkVec, &p_WorkVec); CHKERRQ(ierr);
+    for (unsigned int i = 0; i < 3; i++) {
+      share_ghost_layer(this->m_Opt->m_FFT.fft->m_plan, this->nghost, this->isize_g, &p_WorkVec[i*nl], &this->m_VecFieldGhost[i*this->nlghost], this->m_GhostWork1, this->m_GhostWork2); 
     }
-   
+    ierr = VecRestoreArray(this->m_WorkVec, &p_WorkVec); CHKERRQ(ierr);
     
-    // Small check for correctness of ghost vecfield
+    //ierr = VecGetArray(this->m_WorkVec, &p_WorkVec);
+    //// Small check for correctness of ghost vecfield
     //for (IntType k=0; k<3; k++) {
     //for (IntType i1 = 0; i1 < isize[0]; i1++) {
     //    //printf("\n\n");
@@ -801,24 +680,27 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
     //        //printf("\n");
     //        for (IntType i3 = 0; i3 < isize[2]; i3++) {
     //            i = reg::GetLinearIndex(i1, i2, i3, isize);
-    //            //printf("%f,", this->m_VecFieldGhost[nlghost+i]);
-    //            printf("%d, %f\n", k*nl+i,p_WorkVec[k*nl+i]);
+    //            printf("%f,", k*nl+i,p_WorkVec[k*nl+i]);
     //        }
+    //        printf("\n");
     //    }
+    //    printf("\n\n");
     //}
-    //printf("\n\n");
+    //printf("\n\n\n");
     //}
+    //ierr = VecRestoreArray(this->m_WorkVec, &p_WorkVec);
 
     
-    // Small check for correctness of ghost vecfield
-    //for (IntType k=0; k<3; k++) {
-    //    for (IntType i1 = 0; i1 < isize_g[0]; i1++) {
+    // Small check for correctness of ghost vecfield - THIS WORKS
+    //std::cout << "=================================================================================================" << std::endl;
+    //for (IntType k=2; k<3; k++) {
+    //    for (IntType i1 = 0; i1 < this->isize_g[0]; i1++) {
     //        //printf("\n\n");
-    //        for (IntType i2 = 0; i2 < isize_g[1]; i2++) {
+    //        for (IntType i2 = 0; i2 < this->isize_g[1]; i2++) {
     //            //printf("\n");
-    //            for (IntType i3 = 0; i3 < isize_g[2]; i3++) {
-    //                int idx = reg::GetLinearIndex(i1, i2, i3, isize_g);
-    //                printf("%f,", this->m_VecFieldGhost[k*nlghost+idx]);
+    //            for (IntType i3 = 0; i3 < this->isize_g[2]; i3++) {
+    //                int idx = reg::GetLinearIndex(i1, i2, i3, this->isize_g);
+    //                printf("%f,", this->m_VecFieldGhost[k*this->nlghost+idx]);
     //            }
     //            printf("\n");
     //        }
@@ -827,18 +709,9 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
     //    printf("\n\n\n\n");
     //}
     
-    //printf("%f\n", this->m_VecFieldGhost[999]);
-    //printf("%f\n", this->m_VecFieldGhost[1000]);
-    //printf("%f\n", this->m_VecFieldGhost[1999]);
-    //printf("%f\n", this->m_VecFieldGhost[2000]);
-    //printf("%f\n", this->m_VecFieldGhost[2999]);
-
-    
-
     ZeitGeist_define(SL_INTERPOL);
     ZeitGeist_tick(SL_INTERPOL);
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
-
 
     if (strcmp(flag.c_str(),"state") == 0) {
         interp_plan = this->m_StatePlanVec;
@@ -847,16 +720,17 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-
+    
+    ierr = VecGetArray(this->m_WorkVec, &p_WorkVec); CHKERRQ(ierr);
     interp_plan->interpolate( this->m_VecFieldGhost, 
                               3, 
                               nx,
-                              this->m_Opt->m_Domain.isize,
-                              this->m_Opt->m_Domain.istart,
-                              this->ghost_metadata->isize, 
-                              this->ghost_metadata->nlghost,
+                              isize,
+                              istart,
+                              this->isize_g, 
+                              this->nlghost,
                               nl, 
-                              this->ghost_metadata->nghost, 
+                              this->nghost, 
                               p_WorkVec,
                               c_dims,
                               this->m_Opt->m_FFT.mpicomm, 
@@ -866,8 +740,20 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(std::string flag) {
                               this->m_texture, 
                               this->m_Opt->m_PDESolver.iporder, 
                               &(this->m_Opt->m_GPUtime));
-
     ierr = VecRestoreArray(this->m_WorkVec, &p_WorkVec);
+    
+    //std::cout << "================================ interpolated velocity field ====================================" << std::endl;
+    //ierr = VecGetArray(this->m_WorkVec, &p_WorkVec);
+    //// Small check for correctness of ghost vecfield
+    //for (IntType i1 = 0; i1 < isize[0]; i1++) {
+    //    for (IntType i2 = 0; i2 < isize[1]; i2++) {
+    //        for (IntType i3 = 0; i3 < isize[2]; i3++) {
+    //            i = reg::GetLinearIndex(i1, i2, i3, isize);
+    //            printf("[%d], %f, %f, %f\n", i, p_WorkVec[0*nl+i], p_WorkVec[1*nl+i], p_WorkVec[2*nl+i]);
+    //        }
+    //    }
+    //}
+    //ierr = VecRestoreArray(this->m_WorkVec, &p_WorkVec);
     
     ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
     ZeitGeist_tock(SL_INTERPOL);
@@ -892,19 +778,19 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     double timers[4] = {0, 0, 0, 0};
     std::stringstream ss;
     IntType nl, nlghost, g_alloc_max;
-    Interp3_Plan_GPU* interp_plan = NULL;
+    Interp3_Plan_GPU* interp_plan = nullptr;
     const ScalarType *xq1, *xq2, *xq3;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(vx1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vx2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(vx3 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(wx1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(wx2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(wx3 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vx1 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vx2 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vx3 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(wx1 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(wx2 != nullptr, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(wx3 != nullptr, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->m_Domain.nl;
     order = this->m_Opt->m_PDESolver.iporder;
@@ -965,7 +851,7 @@ PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* 
 
     // if query points have not yet been allocated
     /*
-    if (this->m_X == NULL) {
+    if (this->m_X == nullptr) {
         try {this->m_X = new ScalarType[3*nl];}
         catch (std::bad_alloc& err) {
             ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -986,13 +872,14 @@ PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* 
 
     PetscFunctionReturn(ierr);
 }
+
 PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_Xstate != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
     
     ierr = this->m_Xstate->GetComponents(y1, y2, y3); CHKERRQ(ierr);
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
@@ -1009,13 +896,18 @@ PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y1, ScalarType* 
     PetscFunctionReturn(ierr);
 }
 
+
+/********************************************************************
+ * Name: GetQueryPoints
+ * Description: get the query points in the pointer y
+ *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    ierr = Assert(this->m_Xstate != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->m_Xstate->GetComponents(y, "stride"); CHKERRQ(ierr);
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
@@ -1032,85 +924,11 @@ PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y) {
 }
 
 
-/********************************************************************
- * @brief communicate the coordinate vector (query points)
- * @param flag to switch between forward and adjoint solves
- *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::CommunicateCoord(std::string flag) {
-    PetscErrorCode ierr;
-    int nx[3], nl, isize[3], istart[3], nghost;
-    int c_dims[2];
-    double timers[4] = {0, 0, 0, 0};
-    std::stringstream ss;
-    PetscFunctionBegin;
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
 
-    this->m_Opt->Enter(__func__);
-    
-    /*
-    ierr = Assert(this->m_Opt->m_FFT.mpicomm != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // get sizes
-    nl     = static_cast<int>(this->m_Opt->m_Domain.nl);
-    nghost = this->m_Opt->m_PDESolver.iporder;
-    for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-        isize[i] = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
-    }
-
-    // get network dimensions
-    c_dims[0] = this->m_Opt->m_CartGridDims[0];
-    c_dims[1] = this->m_Opt->m_CartGridDims[1];
-
-    ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
-
-    if (strcmp(flag.c_str(), "state") == 0) {
-        // characteristic for state equation should have been computed already
-        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
-        // create planer
-        if (this->m_StatePlan == NULL) {
-            if (this->m_Opt->m_Verbosity > 2) {
-                ierr = DbgMsg("allocating state plan"); CHKERRQ(ierr);
-            }
-            try {this->m_StatePlan = new Interp3_Plan();}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-            this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
-        }
-
-        // scatter
-        this->m_StatePlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
-                                   c_dims, this->m_Opt->m_FFT.mpicomm, timers);
-    } else if (strcmp(flag.c_str(), "adjoint") == 0) {
-        // characteristic for adjoint equation should have been computed already
-        ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
-        // create planer
-        if (this->m_AdjointPlan == NULL) {
-            if (this->m_Opt->m_Verbosity > 2) {
-                ierr = DbgMsg("allocating adjoint plan"); CHKERRQ(ierr);
-            }
-            try {this->m_AdjointPlan = new Interp3_Plan();}
-            catch (std::bad_alloc& err) {
-                ierr = reg::ThrowError(err); CHKERRQ(ierr);
-            }
-            this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
-        }
-
-        // communicate coordinates
-        this->m_AdjointPlan->scatter(nx, isize, istart, nl, nghost, this->m_X,
-                                     c_dims, this->m_Opt->m_FFT.mpicomm, timers);
-    } else {
-        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-    }
-
-    ierr = this->m_Opt->StopTimer(IPSELFEXEC); CHKERRQ(ierr);
-
-    this->m_Opt->IncreaseInterpTimers(timers);
-    */
-    this->m_Opt->Exit(__func__);
-
-    PetscFunctionReturn(0);
+  PetscFunctionReturn(ierr);
 }
 
 /********************************************************************
@@ -1119,14 +937,19 @@ PetscErrorCode SemiLagrangianGPUNew::CommunicateCoord(std::string flag) {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
-    const ScalarType *p_x1=NULL,*p_x2=NULL,*p_x3=NULL;
+    const ScalarType *p_x1=nullptr,*p_x2=nullptr,*p_x3=nullptr;
     int nx[3], isize_g[3], istart_g[3], c_dims[2], isize[3], istart[3], order;
     IntType nl;
-    VecField *X=NULL;
     double timers[4] = {0,0,0,0};
     ScalarType* p_X;
 
     PetscFunctionBegin;
+    
+    if (this->m_Opt->m_Verbosity > 1) {
+      std::string str = "Mapping query points\n";
+      ierr = DbgMsgCall(str); CHKERRQ(ierr);
+    }
+
     
     order  = this->m_Opt->m_PDESolver.iporder;
 
@@ -1141,83 +964,21 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
 
     nl = this->m_Opt->m_Domain.nl;
 
-    // characteristic for state equation should have been computed already
-    ierr = Assert(this->m_X != NULL, "null pointer"); CHKERRQ(ierr);
-
+    ierr = Assert(this->m_X != nullptr, "null pointer"); CHKERRQ(ierr);
+     
     ierr = VecGetArray(this->m_X, &p_X); CHKERRQ(ierr);
+    
+    if (strcmp(flag.c_str(),"state")==0) {
 
-    if (strcmp(flag.c_str(),"state")==0){
+        //this->m_StatePlan->scatter(this->m_Dofs[0], nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers);
 
-        // create planner
-        if (this->m_StatePlan == NULL){
-            
-            try{ this->m_StatePlan = new Interp3_Plan_GPU(this->ghost_metadata->g_alloc_max); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            this->m_StatePlan->allocate(nl,1);
-        }
-        
-        // scatter
-        this->m_StatePlan->scatter(1, nx, this->m_Opt->m_Domain.isize,
-                                   this->m_Opt->m_Domain.istart, nl,
-                                   this->ghost_metadata->nghost, p_X, 
-                                   c_dims, this->m_Opt->m_FFT.mpicomm, timers);
-
-
-        // create planer
-        if (this->m_StatePlanVec == NULL){
-
-            try{ this->m_StatePlanVec = new Interp3_Plan_GPU(this->ghost_metadata->g_alloc_max); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            this->m_StatePlanVec->allocate(nl,3);
-        }
-        // scatter
-        this->m_StatePlanVec->scatter( 3,
-                                       nx,
-                                       this->m_Opt->m_Domain.isize,
-                                       this->m_Opt->m_Domain.istart, 
-                                       nl,
-                                       this->ghost_metadata->nghost, 
-                                       p_X,
-                                       c_dims,
-                                       this->m_Opt->m_FFT.mpicomm,timers);
+        this->m_StatePlanVec->scatter(this->m_Dofs[1], nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers);
 
     } else if (strcmp(flag.c_str(),"adjoint")==0) {
 
-        // create planer
-        if (this->m_AdjointPlan == NULL){
+        //this->m_AdjointPlanscatter(this->m_Dofs[0], nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers);
 
-            try{ this->m_AdjointPlan = new Interp3_Plan_GPU(this->ghost_metadata->g_alloc_max); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            this->m_AdjointPlan->allocate(nl,1);
-        }
-
-        // scatter
-        this->m_AdjointPlan->scatter(1,nx,this->m_Opt->m_Domain.isize,
-                                    this->m_Opt->m_Domain.istart, nl,
-                                    this->ghost_metadata->nghost, p_X,
-                                    c_dims,this->m_Opt->m_FFT.mpicomm,timers);
-
-        // create planer
-        if (this->m_AdjointPlanVec == NULL){
-
-            try{ this->m_AdjointPlanVec = new Interp3_Plan_GPU(this->ghost_metadata->g_alloc_max); }
-            catch (std::bad_alloc&){
-                ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
-            }
-            this->m_AdjointPlanVec->allocate(nl,3);
-        }
-
-        // scatter
-        this->m_AdjointPlanVec->scatter(3,nx,this->m_Opt->m_Domain.isize,
-                                    this->m_Opt->m_Domain.istart, nl,
-                                    this->ghost_metadata->nghost, p_X,
-                                    c_dims,this->m_Opt->m_FFT.mpicomm,timers);
+        this->m_AdjointPlanVec->scatter(this->m_Dofs[1], nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers);
 
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -1227,7 +988,7 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
 
     this->m_Opt->IncreaseInterpTimers(timers);
 
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(ierr);
 }
 
 }  // namespace reg

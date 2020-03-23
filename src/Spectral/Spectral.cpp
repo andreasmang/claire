@@ -59,13 +59,16 @@ PetscErrorCode Spectral::Initialize() {
     this->m_kernel.nstart[2] = 0;
     this->m_kernel.scale = 0;
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     this->m_planC2R = nullptr;
     this->m_planR2C = nullptr;
-#endif
+#else
     this->m_plan = nullptr;
+#endif
 
     this->m_Opt = nullptr;
+    this->u = nullptr;
+    this->uk = nullptr;
 
     PetscFunctionReturn(ierr);
 }
@@ -113,6 +116,36 @@ PetscErrorCode Spectral::SetupFFT() {
       ierr = AllocateOnce(this->m_planC2R); CHKERRQ(ierr);
       cufftPlan3d(this->m_planC2R, nx[0], nx[1], nx[2],  CUFFT_C2R);
     }
+#elif defined(REG_HAS_MPICUDA)
+    std::stringstream ss;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+//    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
+    cudaMalloc((void**)&this->u, nalloc);
+    ierr = Assert(this->u != nullptr, "allocation failed"); CHKERRQ(ierr);
+
+    // set up the fft
+    if (this->m_Opt->m_Verbosity > 2) {
+        ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+//    uk = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
+    cudaMalloc((void**)&this->uk, nalloc);
+    ierr = Assert(this->uk != nullptr, "allocation failed"); CHKERRQ(ierr);
+
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg("allocating fft plan"); CHKERRQ(ierr);
+    }
+    
+    this->m_plan = accfft_plan_dft_3d_r2c(nx, this->u, (ScalarType*)(this->uk),
+                                              this->m_Opt->m_FFT.mpicomm, ACCFFT_MEASURE);
+    ierr = Assert(this->m_plan != nullptr, "allocation failed"); CHKERRQ(ierr);
+    
 #else
     std::stringstream ss;
     ScalarType *u = nullptr;
@@ -163,11 +196,16 @@ PetscErrorCode Spectral::ClearMemory() {
     cufftDestroy(*this->m_planR2C);
     ierr = Free(this->m_planC2R); CHKERRQ(ierr);
     ierr = Free(this->m_planR2C); CHKERRQ(ierr);
-#else
-    if(this->m_plan) {
-      accfft_destroy_plan(this->m_plan);
-    }
+#elif defined(REG_HAS_MPICUDA)
+    if (this->m_plan != nullptr) accfft_destroy_plan(this->m_plan); 
     this->m_plan = nullptr;
+    if (this->u != nullptr) cudaFree(this->u); 
+    if (this->uk != nullptr) cudaFree(this->uk); 
+    accfft_cleanup();
+#else
+    if (this->m_plan != nullptr) accfft_destroy_plan(this->m_plan); 
+    this->m_plan = nullptr;
+    accfft_cleanup();
 #endif
     PetscFunctionReturn(ierr);
 }
@@ -179,7 +217,7 @@ PetscErrorCode Spectral::FFT_R2C(const ScalarType *real, ComplexType *complex) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     cufftExecR2C(*this->m_planR2C, const_cast<cufftReal*>(real), reinterpret_cast<cufftComplex*>(complex));
     cudaDeviceSynchronize();
 #else
@@ -199,7 +237,7 @@ PetscErrorCode Spectral::FFT_C2R(const ComplexType *complex, ScalarType *real) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
     cufftExecC2R(*this->m_planC2R, const_cast<cufftComplex*>(reinterpret_cast<const cufftComplex*>(complex)), reinterpret_cast<cufftReal*>(real));
     cudaDeviceSynchronize();
 #else

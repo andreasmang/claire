@@ -29,7 +29,107 @@
 
 namespace reg {
 namespace UnitTest {
+
+PetscErrorCode ComputeTrajectoryError(Vec &X, RegOpt* m_Opt, int vcase) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  const ScalarType *p_cX;
+  double e1=0,e2=0,e3=0;
+  ScalarType x[3], xstar[3], Xtrue[3], v[3], vstar[3];
+  ScalarType ht = 1.0/m_Opt->m_Domain.nt;
+  ScalarType hthalf = ht/2.0;
+
+  ierr = VecGetArrayRead(X, &p_cX); CHKERRQ(ierr);
   
+  for (int i1=0; i1<m_Opt->m_Domain.isize[0]; i1++) {
+    for (int i2=0; i2<m_Opt->m_Domain.isize[1]; i2++) {
+      for (int i3=0; i3<m_Opt->m_Domain.isize[2]; i3++) {
+        int i = GetLinearIndex(i1,i2,i3,m_Opt->m_Domain.isize);
+        x[0] = m_Opt->m_Domain.hx[0]*static_cast<ScalarType>(i1 + m_Opt->m_Domain.istart[0]);
+        x[1] = m_Opt->m_Domain.hx[1]*static_cast<ScalarType>(i2 + m_Opt->m_Domain.istart[1]);
+        x[2] = m_Opt->m_Domain.hx[2]*static_cast<ScalarType>(i3 + m_Opt->m_Domain.istart[2]);
+        ierr = ComputeSyntheticVelocity(v, x, vcase); CHKERRQ(ierr);
+        xstar[0] = x[0] - ht*v[0];
+        xstar[1] = x[1] - ht*v[1];
+        xstar[2] = x[2] - ht*v[2];
+        ierr = ComputeSyntheticVelocity(vstar, xstar, vcase); CHKERRQ(ierr);
+        Xtrue[0] = x[0] - hthalf*(v[0] + vstar[0]);
+        Xtrue[1] = x[1] - hthalf*(v[1] + vstar[1]);
+        Xtrue[2] = x[2] - hthalf*(v[2] + vstar[2]);
+        e1 = std::max(e1, std::abs(static_cast<double>(Xtrue[0] - p_cX[3*i])));
+        e2 = std::max(e2, std::abs(static_cast<double>(Xtrue[1] - p_cX[3*i+1])));
+        e3 = std::max(e3, std::abs(static_cast<double>(Xtrue[2] - p_cX[3*i+2])));
+      }
+    }
+  }
+  
+  ierr = VecRestoreArrayRead(X, &p_cX); CHKERRQ(ierr);
+  
+  e1 = std::max(e1, std::max(e2, e3));
+  double error = 0;
+  MPI_Reduce(&e1, &error, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+  std::ostringstream ss;
+  ss << "Linf error for trajectory computation is " << e1 << std::endl;
+  Msg(ss.str());
+  ss.str("");
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TestTrajectoryMultiGPU(RegOpt *m_Opt) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  std::ostringstream ss;
+  ss << "starting trajectory test " << std::endl;
+  Msg(ss.str());
+  ss.str("");
+
+  reg::VecField* v = nullptr;
+  reg::VecField* vwork = nullptr;
+  reg::VecField* vinterp = nullptr;
+  reg::SemiLagrangian* sl = nullptr;
+  Vec X = nullptr;
+  ScalarType norm, vnorm;
+  ScalarType *p_X;
+  const ScalarType *p_cX;
+  int vcase = 0;
+  
+  ierr = VecCreate(X, 3*m_Opt->m_Domain.nl, 3*m_Opt->m_Domain.ng); CHKERRQ(ierr);
+  ierr = AllocateOnce(v, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(vinterp, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(vwork, m_Opt); CHKERRQ(ierr);
+  try { sl = new SemiLagrangian(m_Opt);}
+  catch (std::bad_alloc& err) {
+    ierr = reg::ThrowError(err); CHKERRQ(ierr);
+  }
+
+  ierr = ComputeSyntheticData(v, m_Opt, vcase); CHKERRQ(ierr);
+  ierr = sl->SetWorkVecField(vwork); CHKERRQ(ierr);
+  
+  // first compute trajectory using given velocity field
+  ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
+  ierr = sl->Interpolate(vinterp, v, "state"); CHKERRQ(ierr);
+
+  // extract the trajectory
+  ierr = GetRawPointer(X, &p_X); CHKERRQ(ierr);
+  ierr = sl->GetQueryPoints(p_X); CHKERRQ(ierr);
+  ierr = RestoreRawPointer(X, &p_X); CHKERRQ(ierr);
+  // rescale it back to 2*pi cordinates
+  ierr = VecScale(X, 2.0*PETSC_PI); CHKERRQ(ierr);
+  // everything until here is fine  
+  
+  ierr = ComputeTrajectoryError(X, m_Opt, vcase);
+
+  ierr = Free(v);  CHKERRQ(ierr);
+  ierr = Free(vinterp); CHKERRQ(ierr);
+  ierr = Free(vwork); CHKERRQ(ierr);
+  ierr = VecDestroy(&X); CHKERRQ(ierr);
+  if (sl != nullptr) { delete sl; sl = nullptr; }
+
+  PetscFunctionReturn(ierr);
+}
+
+
 PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
@@ -172,7 +272,7 @@ PetscErrorCode TestTrajectory(RegOpt *m_Opt) {
     
   PetscFunctionReturn(ierr);
 }
-  
+
 PetscErrorCode TestForwardSolver(RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;

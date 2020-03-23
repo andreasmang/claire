@@ -80,42 +80,31 @@ class SemiLagrangianGPUNew {
     RegOpt* m_Opt;
 
     VecField* m_WorkVecField1;
-
     VecField* m_Xstate;
-    Vec m_X;
-    Vec m_WorkVec;
     VecField* m_Xadjoint;
     VecField* m_InitialTrajectory;
-
-    int m_Dofs[2];
     
     cudaTextureObject_t m_texture;
     
     ScalarType* m_tmpInterpol1;
     ScalarType* m_tmpInterpol2;
     
-    Interp3_Plan_GPU* m_AdjointPlan;
     Interp3_Plan_GPU* m_StatePlan;
-    Interp3_Plan_GPU* m_AdjointPlanVec;
     Interp3_Plan_GPU* m_StatePlanVec;
+    Interp3_Plan_GPU* m_AdjointPlan;
+    Interp3_Plan_GPU* m_AdjointPlanVec;
     
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;
     
-    Vec m_iVecField;
-    Vec m_xVecField;
+    Vec m_X;
+    Vec m_WorkVec;
     
-    struct Ghost_Point_MetaData {
-        int isize[3];
-        int istart[3];
-        int nghost;
-        int nlghost;
-        size_t g_alloc_max; 
-    };
+    pvfmm::Iterator<ScalarType> m_GhostWork1, m_GhostWork2;
     
-
-    Ghost_Point_MetaData* ghost_metadata;
-
+    int nghost, nlghost, m_Dofs[2], istart_g[3], isize_g[3];
+    size_t g_alloc_max; 
+    
 };
 
 typedef SemiLagrangianGPUNew SemiLagrangian;

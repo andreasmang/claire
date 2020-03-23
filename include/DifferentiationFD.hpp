@@ -68,8 +68,15 @@ class DifferentiationFD : public Differentiation {
     PetscErrorCode SetupData(ScalarType* =nullptr, ScalarType* =nullptr, ScalarType* =nullptr);
     
 #ifdef REG_HAS_CUDA
-    cudaTextureObject_t mtex;
+  cudaTextureObject_t mtex;
 #endif    
+#ifdef REG_HAS_MPICUDA
+  int nghost = 4;
+  size_t g_alloc_max;
+  int nlghost, isize_g[3], istart_g[3];
+  ScalarType* m_Ghost, *d_Ghost;
+  pvfmm::Iterator<Real> m_GhostWork1, m_GhostWork2;
+#endif
 };
 
 }  // end of namespace
