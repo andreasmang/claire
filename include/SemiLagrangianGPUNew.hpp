@@ -98,7 +98,7 @@ class SemiLagrangianGPUNew {
     ScalarType* m_VecFieldGhost;
     
     Vec m_X;
-    Vec m_WorkVec;
+    Vec m_WorkVec1;
     
     pvfmm::Iterator<ScalarType> m_GhostWork1, m_GhostWork2;
     

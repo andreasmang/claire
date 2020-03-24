@@ -41,12 +41,12 @@ class ScaField {
     
     PetscErrorCode Set(ScalarType);
 
-    PetscErrorCode GetArray(ScalarType*&, IntType=0, IntType=0, IntType=0);
-    PetscErrorCode GetArrayRead(const ScalarType*&, IntType=0, IntType=0, IntType=0);
-    PetscErrorCode GetArrayWrite(ScalarType*&, IntType=0, IntType=0, IntType=0);
-    PetscErrorCode GetArrayReadWrite(ScalarType*&, IntType=0, IntType=0, IntType=0);
+    PetscErrorCode GetArray(ScalarType*&, IntType=0, IntType=0, IntType=0, std::string memloc="gpu");
+    PetscErrorCode GetArrayRead(const ScalarType*&, IntType=0, IntType=0, IntType=0, std::string memloc="gpu");
+    PetscErrorCode GetArrayWrite(ScalarType*&, IntType=0, IntType=0, IntType=0, std::string memloc="gpu");
+    PetscErrorCode GetArrayReadWrite(ScalarType*&, IntType=0, IntType=0, IntType=0, std::string memloc="gpu");
     
-    PetscErrorCode RestoreArray();
+    PetscErrorCode RestoreArray(std::string memloc="gpu");
     
     PetscErrorCode DebugInfo(std::string, int, const char*);
     

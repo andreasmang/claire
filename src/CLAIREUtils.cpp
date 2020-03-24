@@ -876,12 +876,15 @@ std::vector<int> String2Vec(const std::string & str, std::string sep) {
 /********************************************************************
  * @brief return/restore raw pointers for vector for write/read purpose
  *******************************************************************/
-PetscErrorCode GetRawPointer(Vec v, ScalarType** a) {
+PetscErrorCode GetRawPointer(Vec v, ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
+    #ifdef REG_HAS_MPICUDA
+        if (!memloc.compare("gpu")) ierr = VecCUDAGetArray(v, a); 
+        else ierr = VecGetArray(v, a);
+        CHKERRQ(ierr);
+    #elif defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
         ierr = VecCUDAGetArray(v, a); CHKERRQ(ierr);
     #else
         ierr = VecGetArray(v, a); CHKERRQ(ierr);
@@ -890,12 +893,16 @@ PetscErrorCode GetRawPointer(Vec v, ScalarType** a) {
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode RestoreRawPointer(Vec v, ScalarType** a) {
+PetscErrorCode RestoreRawPointer(Vec v, ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
 
-    #ifdef REG_HAS_CUDA
+    #ifdef REG_HAS_MPICUDA
+        if (!memloc.compare("gpu")) ierr = VecCUDARestoreArray(v, a); 
+        else ierr = VecRestoreArray(v, a);
+        CHKERRQ(ierr);
+    #elif defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
         ierr = VecCUDARestoreArray(v, a); CHKERRQ(ierr);
     #else
         ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
@@ -904,12 +911,16 @@ PetscErrorCode RestoreRawPointer(Vec v, ScalarType** a) {
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode GetRawPointerRead(Vec v, const ScalarType** a) {
+PetscErrorCode GetRawPointerRead(Vec v, const ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
+    
+    #ifdef REG_HAS_MPICUDA
+        if (!memloc.compare("gpu")) ierr = VecCUDAGetArrayRead(v, a); 
+        else ierr = VecGetArrayRead(v, a);
+        CHKERRQ(ierr);
+    #elif defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
         ierr = VecCUDAGetArrayRead(v, a); CHKERRQ(ierr);
     #else
         ierr = VecGetArrayRead(v, a); CHKERRQ(ierr);
@@ -919,12 +930,16 @@ PetscErrorCode GetRawPointerRead(Vec v, const ScalarType** a) {
 }
 
 
-PetscErrorCode RestoreRawPointerRead(Vec v, const ScalarType** a) {
+PetscErrorCode RestoreRawPointerRead(Vec v, const ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
+    
+    #ifdef REG_HAS_MPICUDA
+        if (!memloc.compare("gpu")) ierr = VecCUDARestoreArrayRead(v, a); 
+        else ierr = VecRestoreArrayRead(v, a);
+        CHKERRQ(ierr);
+    #elif defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
         ierr = VecCUDARestoreArrayRead(v, a); CHKERRQ(ierr);
     #else
         ierr = VecRestoreArrayRead(v, a); CHKERRQ(ierr);
@@ -933,59 +948,43 @@ PetscErrorCode RestoreRawPointerRead(Vec v, const ScalarType** a) {
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a) {
+PetscErrorCode GetRawPointerReadWrite(Vec v, ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
-        ierr = VecCUDAGetArray(v, a); CHKERRQ(ierr);
-    #else
-        ierr = VecGetArray(v, a); CHKERRQ(ierr);
-    #endif
+    
+    ierr = GetRawPointer(v, a, memloc); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a) {
+PetscErrorCode RestoreRawPointerReadWrite(Vec v, ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
-        ierr = VecCUDARestoreArray(v, a); CHKERRQ(ierr);
-    #else
-        ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
-    #endif
+    
+    ierr = RestoreRawPointer(v, a, memloc); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode GetRawPointerWrite(Vec v, ScalarType** a) {
+PetscErrorCode GetRawPointerWrite(Vec v, ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
-        ierr = VecCUDAGetArrayWrite(v, a); CHKERRQ(ierr);
-    #else
-        ierr = VecGetArray(v, a); CHKERRQ(ierr);
-    #endif
+    
+    ierr = GetRawPointer(v, a, memloc); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode RestoreRawPointerWrite(Vec v, ScalarType** a) {
+PetscErrorCode RestoreRawPointerWrite(Vec v, ScalarType** a, std::string memloc) {
     PetscErrorCode ierr = 0;
 
     PetscFunctionBegin;
-
-    #ifdef REG_HAS_CUDA
-        ierr = VecCUDARestoreArrayWrite(v, a); CHKERRQ(ierr);
-    #else
-        ierr = VecRestoreArray(v, a); CHKERRQ(ierr);
-    #endif
-
+  
+    ierr = RestoreRawPointer(v, a, memloc); CHKERRQ(ierr);
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -998,26 +997,6 @@ PetscErrorCode PrintVectorMemoryLocation(Vec v, std::string msg) {
     std::stringstream ss;
     ss << std::left << msg;
 
-/*
-#ifdef REG_HAS_CUDA
-    if (v->valid_GPU_array == PETSC_OFFLOAD_UNALLOCATED) {
-        msg = ss.str() + " UNALLOCATED\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-    else if (v->valid_GPU_array == PETSC_OFFLOAD_CPU) {
-        msg = ss.str() + " on CPU\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-    else if (v->valid_GPU_array == PETSC_OFFLOAD_GPU) {
-        msg = ss.str() + " on GPU\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-    else {
-        msg = ss.str() + " on BOTH\n";
-        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-    }
-#endif
-*/
     PetscFunctionReturn(ierr);
 }
 

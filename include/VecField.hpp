@@ -74,23 +74,23 @@ class VecField {
 
     PetscErrorCode GetSize(IntType&, IntType&);
 
-    PetscErrorCode GetArrays(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode GetArrays(ScalarType**);
-    PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
-    PetscErrorCode GetArraysRead(const ScalarType**);
-    PetscErrorCode GetArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode GetArraysReadWrite(ScalarType**);
-    PetscErrorCode GetArraysWrite(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode GetArraysWrite(ScalarType**);
+    PetscErrorCode GetArrays(ScalarType*&, ScalarType*&, ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode GetArrays(ScalarType**, std::string memloc ="gpu");
+    PetscErrorCode GetArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode GetArraysRead(const ScalarType**, std::string memloc ="gpu");
+    PetscErrorCode GetArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode GetArraysReadWrite(ScalarType**, std::string memloc ="gpu");
+    PetscErrorCode GetArraysWrite(ScalarType*&, ScalarType*&, ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode GetArraysWrite(ScalarType**, std::string memloc ="gpu");
     
-    PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode RestoreArrays(ScalarType**);
-    PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&);
-    PetscErrorCode RestoreArraysRead(const ScalarType**);
-    PetscErrorCode RestoreArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&);
-    PetscErrorCode RestoreArraysReadWrite(ScalarType**);
+    PetscErrorCode RestoreArrays(ScalarType*&, ScalarType*&, ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode RestoreArrays(ScalarType**, std::string memloc ="gpu");
+    PetscErrorCode RestoreArraysRead(const ScalarType*&, const ScalarType*&, const ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode RestoreArraysRead(const ScalarType**, std::string memloc ="gpu");
+    PetscErrorCode RestoreArraysReadWrite(ScalarType*&, ScalarType*&, ScalarType*&, std::string memloc ="gpu");
+    PetscErrorCode RestoreArraysReadWrite(ScalarType**, std::string memloc ="gpu");
     
-    PetscErrorCode RestoreArrays();
+    PetscErrorCode RestoreArrays(std::string memloc ="gpu");
     
     PetscErrorCode DebugInfo(std::string, int, const char*);
 

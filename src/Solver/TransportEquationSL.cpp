@@ -258,7 +258,11 @@ PetscErrorCode TransportEquationSL::SolveStateEquation(VecField *v) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
 
-    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce<SemiLagrangian>(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+    try { this->m_SemiLagrangianMethod = new SemiLagrangian(this->m_Opt);}
+    catch (std::bad_alloc& err) {
+      ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
 
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
@@ -272,13 +276,13 @@ PetscErrorCode TransportEquationSL::SolveStateEquation(VecField *v) {
             l = 0; lnext = 0;
         }
         for (IntType k = 0; k < nc; ++k) {  // for all image components
-            ierr = this->m_StateVariable->GetArrayReadWrite(pM, k, l); CHKERRQ(ierr);
-            ierr = this->m_StateVariable->GetArrayReadWrite(pMnext, k, lnext); CHKERRQ(ierr);
+            ierr = this->m_StateVariable->GetArrayReadWrite(pM, k, l, 0, "cpu"); CHKERRQ(ierr);
+            ierr = this->m_StateVariable->GetArrayReadWrite(pMnext, k, lnext, 0, "cpu"); CHKERRQ(ierr);
             // compute m(X,t^{j+1}) (interpolate state variable)
             ierr = this->m_SemiLagrangianMethod->Interpolate(pMnext, pM, "state"); CHKERRQ(ierr);
         }
     }
-    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray("cpu"); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);
 

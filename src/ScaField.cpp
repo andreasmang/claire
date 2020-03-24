@@ -227,7 +227,7 @@ ScaField::operator Vec& () {
 /********************************************************************
  * @brief get raw read/write access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType j, IntType k, IntType i) {
+PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType j, IntType k, IntType i, std::string memloc) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -236,7 +236,7 @@ PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType j, IntType k, IntTyp
     ierr = Assert(j >= 0 && j < this->m_Dim[1], "index out of range"); CHKERRQ(ierr);
     ierr = Assert(k >= 0 && k < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
   
-    ierr = GetRawPointerReadWrite(this->m_X, &this->m_Ptr); CHKERRQ(ierr);
+    ierr = GetRawPointerReadWrite(this->m_X, &this->m_Ptr, memloc); CHKERRQ(ierr);
     this->m_Type = AccessType::ReadWrite;
   } else {
     ierr = Assert(this->m_Type == AccessType::ReadWrite, "can't access with different types"); CHKERRQ(ierr);
@@ -250,7 +250,7 @@ PetscErrorCode ScaField::GetArray(ScalarType*& ptr, IntType j, IntType k, IntTyp
 /********************************************************************
  * @brief get raw read access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType j, IntType k, IntType i) {
+PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType j, IntType k, IntType i, std::string memloc) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -259,7 +259,7 @@ PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType j, IntType
     ierr = Assert(j >= 0 && j < this->m_Dim[1], "index out of range"); CHKERRQ(ierr);
     ierr = Assert(k >= 0 && k < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
     
-    GetRawPointerRead(this->m_X, &this->m_ConstPtr); CHKERRQ(ierr);
+    GetRawPointerRead(this->m_X, &this->m_ConstPtr, memloc); CHKERRQ(ierr);
     this->m_Type = AccessType::Read;
   } else {
     ierr = Assert(this->m_Type == AccessType::Read, "can't access with different types"); CHKERRQ(ierr);
@@ -273,7 +273,7 @@ PetscErrorCode ScaField::GetArrayRead(const ScalarType*& ptr, IntType j, IntType
 /********************************************************************
  * @brief get raw write access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType j, IntType k, IntType i) {
+PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType j, IntType k, IntType i, std::string memloc) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -282,7 +282,7 @@ PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType j, IntType k, I
     ierr = Assert(j >= 0 && j < this->m_Dim[1], "index out of range"); CHKERRQ(ierr);
     ierr = Assert(k >= 0 && k < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
     
-    ierr = GetRawPointerWrite(this->m_X, &this->m_Ptr); CHKERRQ(ierr);
+    ierr = GetRawPointerWrite(this->m_X, &this->m_Ptr, memloc); CHKERRQ(ierr);
     this->m_Type = AccessType::Write;
   } else {
     ierr = Assert(this->m_Type == AccessType::Write, "can't access with different types"); CHKERRQ(ierr);
@@ -296,7 +296,7 @@ PetscErrorCode ScaField::GetArrayWrite(ScalarType*& ptr, IntType j, IntType k, I
 /********************************************************************
  * @brief get raw read/write access to array
  *******************************************************************/
-PetscErrorCode ScaField::GetArrayReadWrite(ScalarType*& ptr, IntType j, IntType k, IntType i) {
+PetscErrorCode ScaField::GetArrayReadWrite(ScalarType*& ptr, IntType j, IntType k, IntType i, std::string memloc) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -305,7 +305,7 @@ PetscErrorCode ScaField::GetArrayReadWrite(ScalarType*& ptr, IntType j, IntType 
     ierr = Assert(j >= 0 && j < this->m_Dim[1], "index out of range"); CHKERRQ(ierr);
     ierr = Assert(k >= 0 && k < this->m_Dim[2], "index out of range"); CHKERRQ(ierr);
     
-    ierr = GetRawPointerReadWrite(this->m_X, &this->m_Ptr); CHKERRQ(ierr);
+    ierr = GetRawPointerReadWrite(this->m_X, &this->m_Ptr, memloc); CHKERRQ(ierr);
     this->m_Type = AccessType::ReadWrite;
   } else {
     ierr = Assert(this->m_Type == AccessType::ReadWrite, "can't access with different types"); CHKERRQ(ierr);
@@ -319,7 +319,7 @@ PetscErrorCode ScaField::GetArrayReadWrite(ScalarType*& ptr, IntType j, IntType 
 /********************************************************************
  * @brief restore raw access
  *******************************************************************/
-PetscErrorCode ScaField::RestoreArray() {
+PetscErrorCode ScaField::RestoreArray(std::string memloc) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -327,17 +327,17 @@ PetscErrorCode ScaField::RestoreArray() {
   
   switch (this->m_Type) {
   case AccessType::Read:
-    ierr = RestoreRawPointerRead(this->m_X, &this->m_ConstPtr); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_X, &this->m_ConstPtr, memloc); CHKERRQ(ierr);
     this->m_Ptr = nullptr;
     this->m_Type = AccessType::None;
     break;
   case AccessType::Write:
-    ierr = RestoreRawPointerWrite(this->m_X, &this->m_Ptr); CHKERRQ(ierr);
+    ierr = RestoreRawPointerWrite(this->m_X, &this->m_Ptr, memloc); CHKERRQ(ierr);
     this->m_Ptr = nullptr;
     this->m_Type = AccessType::None;
     break;
   case AccessType::ReadWrite:
-    ierr = RestoreRawPointerReadWrite(this->m_X, &this->m_Ptr); CHKERRQ(ierr);
+    ierr = RestoreRawPointerReadWrite(this->m_X, &this->m_Ptr, memloc); CHKERRQ(ierr);
     this->m_Ptr = nullptr;
     this->m_Type = AccessType::None;
     break;

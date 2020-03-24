@@ -137,14 +137,14 @@ PetscErrorCode InitializeDataDistribution(int, int*, MPI_Comm&, bool);
 PetscErrorCode Finalize();
 
 /* get raw pointer to write, read and read,write */
-PetscErrorCode GetRawPointer(Vec, ScalarType**);
-PetscErrorCode RestoreRawPointer(Vec, ScalarType**);
-PetscErrorCode GetRawPointerRead(Vec, const ScalarType**);
-PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**);
-PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**);
-PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**);
-PetscErrorCode GetRawPointerWrite(Vec, ScalarType**);
-PetscErrorCode RestoreRawPointerWrite(Vec, ScalarType**);
+PetscErrorCode GetRawPointer(Vec, ScalarType**, std::string memloc ="gpu");
+PetscErrorCode RestoreRawPointer(Vec, ScalarType**, std::string memloc ="gpu");
+PetscErrorCode GetRawPointerRead(Vec, const ScalarType**, std::string memloc ="gpu");
+PetscErrorCode RestoreRawPointerRead(Vec, const ScalarType**, std::string memloc ="gpu");
+PetscErrorCode GetRawPointerReadWrite(Vec, ScalarType**, std::string memloc ="gpu");
+PetscErrorCode RestoreRawPointerReadWrite(Vec, ScalarType**, std::string memloc ="gpu");
+PetscErrorCode GetRawPointerWrite(Vec, ScalarType**, std::string memloc ="gpu");
+PetscErrorCode RestoreRawPointerWrite(Vec, ScalarType**, std::string memloc ="gpu");
 PetscErrorCode PrintVectorMemoryLocation(Vec, std::string);
 
 

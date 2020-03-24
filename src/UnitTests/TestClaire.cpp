@@ -277,7 +277,7 @@ PetscErrorCode TestForwardSolver(RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  std::cout << "starting forward solver unit test" << std::endl;
+  ierr = reg::DbgMsg("starting forward solver unit test"); CHKERRQ(ierr);
   
   reg::ScaField *m0 = NULL, *m0true = NULL;
   reg::VecField* v = NULL;
@@ -285,6 +285,7 @@ PetscErrorCode TestForwardSolver(RegOpt *m_Opt) {
   reg::VecField* t2 = NULL;
   reg::TransportProblem* solver = NULL;
   ScalarType val, val0, relval;
+  ScalarType global_val, global_val0, global_relval;
 
   // make sure we do not store time history
   m_Opt->m_RegFlags.runinversion = false;
@@ -309,7 +310,9 @@ PetscErrorCode TestForwardSolver(RegOpt *m_Opt) {
   ierr = reg::DbgMsg("computing error for forward solver"); CHKERRQ(ierr);
 
   ierr = solver->SolveForwardProblem(); CHKERRQ(ierr);
-  ierr = solver->SolveInverseProblem(); CHKERRQ(ierr);
+  ierr = v->Scale(-1.);                 CHKERRQ(ierr);
+  ierr = solver->SetControlVariable(v); CHKERRQ(ierr);
+  ierr = solver->SolveForwardProblem(); CHKERRQ(ierr);
 
   ierr = VecAXPY(*m0, -1.0, *m0true); CHKERRQ(ierr);
   ierr = VecNorm(*m0, NORM_2, &val); CHKERRQ(ierr);
@@ -317,9 +320,15 @@ PetscErrorCode TestForwardSolver(RegOpt *m_Opt) {
   
   relval = val;
   relval /= (val0 > 0.0 ? val0 : 1.0);
-
-  std::cout << "numerical error: "<< std::scientific << relval
+  
+  MPI_Reduce(&relval, &global_relval, 1, MPI_FLOAT, MPI_MAX, 0, PETSC_COMM_WORLD);
+  MPI_Reduce(&val, &global_val, 1, MPI_FLOAT, MPI_MAX, 0, PETSC_COMM_WORLD);
+  MPI_Reduce(&val0, &global_val0, 1, MPI_FLOAT, MPI_MAX, 0, PETSC_COMM_WORLD);
+  
+  std::ostringstream ss;
+  ss << "numerical error: "<< std::scientific << relval
          << " (absolute " << val << ",ref: " << val0 << ")" << std::endl;
+  Msg(ss.str());
 
   ierr = Free(v); CHKERRQ(ierr);
   ierr = Free(t); CHKERRQ(ierr);
