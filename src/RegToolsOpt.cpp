@@ -248,6 +248,9 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             this->m_ReadWriteFlags.defmap = true;
         } else if (strcmp(argv[1], "-deffield") == 0) {
             this->m_ReadWriteFlags.deffield = true;
+        } else if (strcmp(argv[1], "-invdeffield") == 0) {
+            this->m_ReadWriteFlags.invdeffield = true;
+            this->m_ReadWriteFlags.deffield = true;
         } else if (strcmp(argv[1], "-timeseries") == 0) {
             this->m_ReadWriteFlags.timeseries = true;
         } else if (strcmp(argv[1], "-detdefgradfromdeffield") == 0) {
@@ -460,6 +463,7 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -detdefgrad                 compute determinant of deformation gradient (input: velocity field)" << std::endl;
         std::cout << " -invdetdefgrad              compute inverse of determinant of deformation gradient (input: velocity field)" << std::endl;
         std::cout << " -deffield                   compute displacement field u (input: velocity field)" << std::endl;
+        std::cout << " -invdeffield                compute displacement field u in template image space (input: velocity field)" << std::endl;
         std::cout << " -defmap                     compute deformation map y (input: velocity field)" << std::endl;
         std::cout << " -residual                   compute residual between scalar fields ('-mr' and '-mt' options)" << std::endl;
         std::cout << " -error                      compute error between scalar fields ('-mr' and '-mt' options)" << std::endl;

@@ -192,6 +192,7 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_ReadWriteFlags.defgrad = opt.m_ReadWriteFlags.defgrad;
     this->m_ReadWriteFlags.detdefgrad = opt.m_ReadWriteFlags.detdefgrad;
     this->m_ReadWriteFlags.deffield = opt.m_ReadWriteFlags.deffield;
+    this->m_ReadWriteFlags.invdeffield = opt.m_ReadWriteFlags.invdeffield;
     this->m_ReadWriteFlags.residual = opt.m_ReadWriteFlags.residual;
     this->m_ReadWriteFlags.invresidual = opt.m_ReadWriteFlags.invresidual;
     this->m_ReadWriteFlags.velnorm = opt.m_ReadWriteFlags.velnorm;
@@ -544,6 +545,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
         } else if (strcmp(argv[1], "-detdefgrad") == 0) {
             this->m_ReadWriteFlags.detdefgrad = true;
         } else if (strcmp(argv[1], "-deffield") == 0) {
+            this->m_ReadWriteFlags.deffield = true;
+        } else if (strcmp(argv[1], "-invdeffield") == 0) {
+            this->m_ReadWriteFlags.invdeffield = true;
             this->m_ReadWriteFlags.deffield = true;
         } else if (strcmp(argv[1], "-defmap") == 0) {
             this->m_ReadWriteFlags.defmap = true;

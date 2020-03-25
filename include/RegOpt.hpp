@@ -248,6 +248,7 @@ struct ReadWriteFlags {
     bool referenceim;         ///< write reference image (original dataset)
     bool deftemplate;         ///< write deformed/transported template
     bool deffield;            ///< write deformation field (displacement field)
+    bool invdeffield;            ///< write deformation field (displacement field)
     bool velocity;            ///< write velocity field
 };
 
