@@ -55,8 +55,8 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 
 EXCPPFILES=
 
-EXCUFILES=
-#EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
+#EXCUFILES=
+EXCUFILES=$(EXSRCDIR)/interp3_gpu_new.cu
 
 CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/CLAIREUtilsKernel.cu \
@@ -110,9 +110,10 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
 		$(SRCDIR)/Spectral/Spectral.cpp \
-		$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp \
-		$(SRCDIR)/Interpolation/interp3.cpp \
-		$(SRCDIR)/Interpolation/Interp3_Plan.cpp
+		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp
+		#$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp \
+		#$(SRCDIR)/Interpolation/interp3.cpp \
+		#$(SRCDIR)/Interpolation/Interp3_Plan.cpp
 
 TESTFILES=$(SRCDIR)/UnitTestOpt.cpp \
 		$(SRCDIR)/UnitTests/TestRegularization.cpp \

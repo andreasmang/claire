@@ -7,8 +7,10 @@
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
   #include "petscvec.h"
+#if PETSC_VERSION_LE(3,9,1)
   #include "petsccuda.h"
-  #include "cuda.h"
+#endif
+  #include <cuda.h>
   #include <petsc/private/vecimpl.h>
 #endif
 
@@ -47,10 +49,8 @@
 using IntType = PetscInt;
 using ScalarType = PetscReal;
 
-#ifndef VecCUDAGetArray
+#if PETSC_VERSION_LE(3,9,1)
 #define VecCUDAGetArray VecCUDAGetArrayReadWrite
-#endif
-#ifndef VecCUDARestoreArray
 #define VecCUDARestoreArray VecCUDARestoreArrayReadWrite
 #endif
 

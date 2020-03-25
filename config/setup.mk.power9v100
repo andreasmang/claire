@@ -178,15 +178,16 @@ else
 	endif
 endif
 endif
-LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
 
 #CUDA LINKERS
 ifeq ($(USECUDA),yes)
-    LDFLAGS += -L$(CUDA_DIR)/lib64 -lcusparse -lcufft -lcublas -lcudart
+    LDFLAGS += -L$(CUDA_DIR)/lib64 -lcusparse -lcufft -lcublas -lcudart  -lcusolver
     ifeq ($(USECUDADBG),yes)
 			LDFLAGS += -lnvToolsExt
 		endif
 endif
+
+LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
 
 ifeq ($(USENIFTI),yes)
 	LDFLAGS += -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz

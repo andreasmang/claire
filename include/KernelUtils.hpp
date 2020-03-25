@@ -378,12 +378,18 @@ PetscErrorCode ReductionKernelCall(ScalarType &value, IntType nl, Args ... args)
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  value = 0.;
+#if PETSC_USE_REAL_SINGLE
+  float ivalue = 0.;
+#else
+  double ivalue = 0.;
+#endif
   
-#pragma omp parallel for reduction(+:value)
+#pragma omp parallel for reduction(+:ivalue)
   for (int i = 0; i < nl; ++i) {
-    value += KernelFn::func(i, args...);
+    ivalue += KernelFn::func(i, args...);
   }
+  
+  value = ivalue;
 
   PetscFunctionReturn(ierr);
 }
