@@ -337,11 +337,14 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   //for (int i=0; i < N_pts; i++) {
   //      printf("%d,%0.2f,%0.2f,%0.2f\n", i, query_points[i*3+0], query_points[i*3+1], query_points[i*3+2]);
   //}
-
+    
+    ZeitGeist_define(scatter_enforce_periodicity_kernel);
+    ZeitGeist_tick(scatter_enforce_periodicity_kernel);
     // Enforce periodicity // write kernel for this
     timings[3]+=-MPI_Wtime();
     enforcePeriodicity(query_points_x, query_points_y, query_points_z, h, N_pts);
     timings[3]+=+MPI_Wtime();
+    ZeitGeist_tock(scatter_enforce_periodicity_kernel);
     
     //for(int i=0;i<N_pts;i++){
     //  while(query_points[i*COORD_DIM+0]<=-h[0]) {query_points[i*COORD_DIM+0]=query_points[i*COORD_DIM+0]+1;}
@@ -421,44 +424,67 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     // which_proc is an array denoting which point each processor belongs to
     int* which_proc;
     cudaMalloc((void**)&which_proc, sizeof(int)*N_pts);
-
+    
+    ZeitGeist_define(scatter_check_domain_kernel);
+    ZeitGeist_tick(scatter_check_domain_kernel);
     timings[3]+=-MPI_Wtime();
     checkDomain(which_proc, query_points_x, query_points_y, query_points_z, iX0, iX1, h, N_pts, procid, isize0, isize1, c_dims[1]);
+    ZeitGeist_tock(scatter_check_domain_kernel);
 
     thrust::device_ptr<int> which_proc_ptr = thrust::device_pointer_cast<int>(which_proc);
-  
+    
+    ZeitGeist_define(query_memalloc);
+    ZeitGeist_define(query_copy_if);
+    ZeitGeist_define(query_get_count);
+
+
+    ZeitGeist_define(scatter_create_mpi_buffer);
+    ZeitGeist_tick(scatter_create_mpi_buffer);
     // loop over all procs
     for (int proc=0; proc<nprocs; ++proc) {
         // count how many points belong to proc, will be useful in memory allocation
+        ZeitGeist_tick(query_get_count);
         get_count(which_proc, N_pts, proc, &coords_in_proc);
+        ZeitGeist_tock(query_get_count);
         
         if (coords_in_proc > 0) {
             // allocate the required memory for f_index[proc]
+            ZeitGeist_tick(query_memalloc);
             f_index[proc].reserve(coords_in_proc);
             f_index[proc].resize(coords_in_proc);
+            ZeitGeist_tock(query_memalloc);
             // get indices of coordinates which belong to this proc and store in f_index[proc]
-            thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index[proc].begin(), is_equal(proc));
 
+            ZeitGeist_tick(query_copy_if);
+            thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index[proc].begin(), is_equal(proc));
+            ZeitGeist_tock(query_copy_if);
+          
+            ZeitGeist_tick(query_memalloc);
             query_outside[proc].reserve(3*coords_in_proc);
             query_outside[proc].resize(3*coords_in_proc);
+            ZeitGeist_tock(query_memalloc);
+
+            ZeitGeist_tick(query_copy_if);
             strided_range<Iterator> strided_x(query_outside[proc].begin(),   query_outside[proc].end() + coords_in_proc+1-COORD_DIM,   COORD_DIM);
             strided_range<Iterator> strided_y(query_outside[proc].begin()+1, query_outside[proc].end() + coords_in_proc+1-COORD_DIM+1, COORD_DIM);
             strided_range<Iterator> strided_z(query_outside[proc].begin()+2, query_outside[proc].end() + coords_in_proc+1-COORD_DIM+2, COORD_DIM);
             thrust::copy_if(thrust::device, query_points_x_ptr, query_points_x_ptr+N_pts, which_proc_ptr, strided_x.begin(), is_equal(proc));
             thrust::copy_if(thrust::device, query_points_y_ptr, query_points_y_ptr+N_pts, which_proc_ptr, strided_y.begin(), is_equal(proc));
             thrust::copy_if(thrust::device, query_points_z_ptr, query_points_z_ptr+N_pts, which_proc_ptr, strided_z.begin(), is_equal(proc));
+            ZeitGeist_tock(query_copy_if);
         }
     }
     timings[3]+=+MPI_Wtime();
+    ZeitGeist_tock(scatter_create_mpi_buffer);
     
 
     // Now sort the query points in zyx order
-#ifdef SORT_QUERIES
-    timings[3]+=-MPI_Wtime();
-    sort_queries(query_outside,f_index,N_reg,h,c_comm);
-    timings[3]+=+MPI_Wtime();
-    //if(procid==0) std::cout<<"Sorting Queries\n";
-#endif
+//#ifdef SORT_QUERIES
+//    timings[3]+=-MPI_Wtime();
+//    sort_queries(query_outside,f_index,N_reg,h,c_comm);
+//    timings[3]+=+MPI_Wtime();
+//    //if(procid==0) std::cout<<"Sorting Queries\n";
+//#endif
 
     // Now we need to send the query_points that land onto other processor's domain.
     // This done using a sparse alltoallv.
@@ -473,11 +499,14 @@ void Interp3_Plan_GPU::scatter( int data_dof,
       else
         f_index_procs_self_sizes[proc]=0;
     }
+    ZeitGeist_define(scatter_comm_query_size);
+    ZeitGeist_tick(scatter_comm_query_size);
     timings[0]+=-MPI_Wtime();
     MPI_Alltoall(f_index_procs_self_sizes,1, MPI_INT,
         f_index_procs_others_sizes,1, MPI_INT,
         c_comm);
     timings[0]+=+MPI_Wtime();
+    ZeitGeist_tock(scatter_comm_query_size);
 
 
     // Now we need to allocate memory for the receiving buffer of all query
@@ -553,42 +582,38 @@ void Interp3_Plan_GPU::scatter( int data_dof,
 
 
     // Now perform the allotall to send/recv query_points
-    double scatter_query = 0;
-    scatter_query += -MPI_Wtime();
+    ZeitGeist_define(scatter_comm_query_points_sendrcv);
+    ZeitGeist_tick(scatter_comm_query_points_sendrcv);
     timings[0]+=-MPI_Wtime();
-    {
-      int dst_r,dst_s;
-      for (int i=0;i<nprocs;++i) {
-        dst_r=i;//(procid+i)%nprocs;
-        dst_s=i;//(procid-i+nprocs)%nprocs;
-        s_request[dst_s]=MPI_REQUEST_NULL;
-        request[dst_r]=MPI_REQUEST_NULL;
-        int roffset=f_index_procs_others_offset[dst_r]*COORD_DIM; // notice that COORD_DIM is needed because query_points are 3 times f
-        //int soffset=f_index_procs_self_offset[dst_s]*COORD_DIM;
-        if(f_index_procs_others_sizes[dst_r]!=0) {
-          MPI_Irecv(&all_query_points_d[roffset], f_index_procs_others_sizes[dst_r]*COORD_DIM,MPI_T, dst_r, 0, c_comm, &request[dst_r]);
-        }
-
-        if(!query_outside[dst_s].empty()) {
-          ScalarType* src_ptr = thrust::raw_pointer_cast(query_outside[dst_s].data());
-          MPI_Isend(src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM, MPI_T, dst_s, 0, c_comm, &s_request[dst_s]);
-        }
+    int dst_r,dst_s;
+    for (int i=0;i<nprocs;++i) {
+      dst_r=i;//(procid+i)%nprocs;
+      dst_s=i;//(procid-i+nprocs)%nprocs;
+      s_request[dst_s]=MPI_REQUEST_NULL;
+      request[dst_r]=MPI_REQUEST_NULL;
+      int roffset=f_index_procs_others_offset[dst_r]*COORD_DIM; // notice that COORD_DIM is needed because query_points are 3 times f
+      //int soffset=f_index_procs_self_offset[dst_s]*COORD_DIM;
+      if(f_index_procs_others_sizes[dst_r]!=0) {
+        MPI_Irecv(&all_query_points_d[roffset], f_index_procs_others_sizes[dst_r]*COORD_DIM,MPI_T, dst_r, 0, c_comm, &request[dst_r]);
       }
 
-      // Wait for all the communication to finish
-      MPI_Status ierr;
-      for (int proc=0;proc<nprocs;++proc) {
-        if(request[proc]!=MPI_REQUEST_NULL)
-          MPI_Wait(&request[proc], &ierr);
-        if(s_request[proc]!=MPI_REQUEST_NULL)
-          MPI_Wait(&s_request[proc], &ierr);
+      if(!query_outside[dst_s].empty()) {
+        ScalarType* src_ptr = thrust::raw_pointer_cast(query_outside[dst_s].data());
+        MPI_Isend(src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM, MPI_T, dst_s, 0, c_comm, &s_request[dst_s]);
       }
     }
+    
+    // Wait for all the communication to finish
+    MPI_Status ierr;
+    for (int proc=0;proc<nprocs;++proc) {
+      if(request[proc]!=MPI_REQUEST_NULL)
+        MPI_Wait(&request[proc], &ierr);
+      if(s_request[proc]!=MPI_REQUEST_NULL)
+        MPI_Wait(&s_request[proc], &ierr);
+    }
+    ZeitGeist_tock(scatter_comm_query_points_sendrcv);
     timings[0]+=+MPI_Wtime();
-    scatter_query += MPI_Wtime();
   
-    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] scatter_query_time = %g\n", procid, scatter_query);
-    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
     // Now perform the interpolation on all query points including those that need to
     // be sent to other processors and store them into all_f_cubic
@@ -617,12 +642,15 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   proc_coord[1] = static_cast<int>(istart[1]/isize[1]);
 
   // transfer query points "all_query_points" from host to device
+  ZeitGeist_define(scatter_query_points_normalize_kernel);
+  ZeitGeist_tick(scatter_query_points_normalize_kernel);
   timings[3]+=-MPI_Wtime();
   //cudaMemcpy(all_query_points_d,all_query_points,all_query_points_allocation*sizeof(Real),cudaMemcpyHostToDevice);
   //PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] total_query_points = %d, proc_i = %d, proc_j = %d\n", procid, total_query_points, proc_coord[0], proc_coord[1]);
   //PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
   normalizeQueryPoints(xq1, xq2, xq3, all_query_points_d, total_query_points, isize, N_reg, proc_coord, g_size);
   timings[3]+=+MPI_Wtime();
+  ZeitGeist_tock(scatter_query_points_normalize_kernel);
 
   this->scatter_baked=true;
   return;
@@ -689,6 +717,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
 #endif
     
   // compute the interpolation on the GPU
+  ZeitGeist_define(interp_kernel);
+  ZeitGeist_tick(interp_kernel);
   timings[1]+=-MPI_Wtime();
   if (data_dof == 3)
     gpuInterpVec3D(&ghost_reg_grid_vals_d[0*nlghost], 
@@ -705,7 +735,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
                 all_f_cubic_d, 
                 tmp1, tmp2, isize_g, static_cast<long int>(total_query_points), yi_tex, 
                 iporder, interp_time);
-    
+  ZeitGeist_tock(interp_kernel);
   timings[1]+=+MPI_Wtime();
   
   PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] query points = %d\n", procid, total_query_points);
@@ -720,42 +750,42 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   //timings[2]+=+MPI_Wtime();
 
   // Now we have to do an alltoall to distribute the interpolated data from all_f_cubic_d to f_cubic_unordered_d
-  double scatter_query = 0;
-  scatter_query += -MPI_Wtime();
+  ZeitGeist_define(interp_comm_values_sendrcv);
+  ZeitGeist_tick(interp_comm_values_sendrcv);
   timings[0]+=-MPI_Wtime();
-  {
-    int dst_r,dst_s;
-    for (int i=0;i<nprocs;++i){
-      dst_r=i;//(procid+i)%nprocs;
-      dst_s=i;//(procid-i+nprocs)%nprocs;
-      s_request[dst_s]=MPI_REQUEST_NULL;
-      request[dst_r]=MPI_REQUEST_NULL;
-      // Notice that this is the adjoint of the first comm part
-      // because now you are sending others f and receiving your part of f
-      int soffset=f_index_procs_others_offset[dst_r];
-      int roffset=f_index_procs_self_offset[dst_s];
-      if(f_index_procs_self_sizes[dst_r]!=0)
-        MPI_Irecv(&f_cubic_unordered_d[roffset],1,rtype[i], dst_r,
-            0, c_comm, &request[dst_r]); 
-      if(f_index_procs_others_sizes[dst_s]!=0)
-        MPI_Isend(&all_f_cubic_d[soffset],1,stype[i],dst_s,
-            0, c_comm, &s_request[dst_s]);
-    }
-    MPI_Status ierr;
-    for (int proc=0;proc<nprocs;++proc){
-      if(request[proc]!=MPI_REQUEST_NULL)
-        MPI_Wait(&request[proc], &ierr);
-      if(s_request[proc]!=MPI_REQUEST_NULL)
-        MPI_Wait(&s_request[proc], &ierr);
-    }
+  int dst_r,dst_s;
+  for (int i=0;i<nprocs;++i){
+    dst_r=i;//(procid+i)%nprocs;
+    dst_s=i;//(procid-i+nprocs)%nprocs;
+    s_request[dst_s]=MPI_REQUEST_NULL;
+    request[dst_r]=MPI_REQUEST_NULL;
+    // Notice that this is the adjoint of the first comm part
+    // because now you are sending others f and receiving your part of f
+    int soffset=f_index_procs_others_offset[dst_r];
+    int roffset=f_index_procs_self_offset[dst_s];
+    if(f_index_procs_self_sizes[dst_r]!=0)
+      MPI_Irecv(&f_cubic_unordered_d[roffset],1,rtype[i], dst_r,
+          0, c_comm, &request[dst_r]); 
+    if(f_index_procs_others_sizes[dst_s]!=0)
+      MPI_Isend(&all_f_cubic_d[soffset],1,stype[i],dst_s,
+          0, c_comm, &s_request[dst_s]);
   }
-  timings[0]+=+MPI_Wtime();
-  scatter_query += MPI_Wtime();
 
-  PetscSynchronizedPrintf(PETSC_COMM_WORLD,"[%d] scatter_query_val = %g\n", procid, scatter_query);
-  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+  MPI_Status ierr;
+  for (int proc=0;proc<nprocs;++proc){
+    if(request[proc]!=MPI_REQUEST_NULL)
+      MPI_Wait(&request[proc], &ierr);
+    if(s_request[proc]!=MPI_REQUEST_NULL)
+      MPI_Wait(&s_request[proc], &ierr);
+  }
+  
+  ZeitGeist_tock(interp_comm_values_sendrcv);
+  timings[0]+=+MPI_Wtime();
+
   
   timings[3]+=-MPI_Wtime();
+  ZeitGeist_define(interp_values_copy_kernel);
+  ZeitGeist_tick(interp_values_copy_kernel);
   int* f_index_ptr;
   // Now copy back f_cubic_unordered_d to query_values_d in the correct f_index
   for(int dof=0;dof<data_dof;++dof) {
@@ -776,6 +806,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
       }
     }
   }
+  ZeitGeist_tock(interp_values_copy_kernel);
   timings[3]+=+MPI_Wtime();
 
   return;

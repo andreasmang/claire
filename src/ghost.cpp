@@ -79,24 +79,20 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 	MPI_Request rs_s_request, rs_r_request;
 	MPI_Status ierr;
 
-    //Real *send, *recv;
-	//cudaMalloc((void**)&send, sizeof(Real)*10);
-	//cudaMemset((void*)send, 10, sizeof(Real)*10);
-	//cudaMalloc((void**)&recv, sizeof(Real)*10);
 
 	//MPI_Send(send, 10, MPI_FLOAT, dst_s, 0, row_comm);
 	//MPI_Recv(recv, 10, MPI_FLOAT, dst_r, 0, row_comm, &ierr);
 	//cudaFree(send);
 	//cudaFree(recv);
-	double ghost_time = 0;
-	ghost_time += -MPI_Wtime();
+	ZeitGeist_define(ghost_comm);
+	ZeitGeist_tick(ghost_comm);
   timers[0]+=-MPI_Wtime();
 	MPI_Isend(RS, rs_buf_size, MPI_T, dst_s, 0, row_comm, &rs_s_request);
 	MPI_Irecv(GL, rs_buf_size, MPI_T, dst_r, 0, row_comm, &rs_r_request);
 	MPI_Wait(&rs_s_request, &ierr);
 	MPI_Wait(&rs_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-	ghost_time += MPI_Wtime();
+	ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -151,17 +147,15 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 	if (procid_r == 0)
 		dst_s = nprocs_r - 1;
   
-  ghost_time += -MPI_Wtime();
+  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(LS, ls_buf_size, MPI_T, dst_s, 0, row_comm, &rs_s_request);
 	MPI_Irecv(GR, ls_buf_size, MPI_T, dst_r, 0, row_comm, &rs_r_request);
 	MPI_Wait(&rs_s_request, &ierr);
 	MPI_Wait(&rs_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-  ghost_time += MPI_Wtime();
-  
-  PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] ghost LR = %g\n", procid, ghost_time);
-  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+  ZeitGeist_tock(ghost_comm);
+
 
 #ifdef VERBOSE2
 	if(procid==1) {
@@ -293,15 +287,16 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 	MPI_Status ierr;
   
   double ghost_time = 0;
-
-  ghost_time += -MPI_Wtime();
+  
+  ZeitGeist_define(ghost_comm);
+  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&BS[0], bs_buf_size, MPI_T, dst_s, 0, col_comm, &bs_s_request);
 	MPI_Irecv(&GT[0], bs_buf_size, MPI_T, dst_r, 0, col_comm, &bs_r_request);
 	MPI_Wait(&bs_s_request, &ierr);
 	MPI_Wait(&bs_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-	ghost_time += MPI_Wtime();
+  ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -356,17 +351,14 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 	if (procid_c == 0)
 		dst_s = nprocs_c - 1;
   
-  ghost_time += -MPI_Wtime();
+  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&TS[0], ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
 	MPI_Irecv(&GB[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
 	MPI_Wait(&ts_s_request, &ierr);
 	MPI_Wait(&ts_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-	ghost_time += MPI_Wtime();
-
-	PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] ghost_TB = %g\n", procid, ghost_time);
-	PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+  ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {

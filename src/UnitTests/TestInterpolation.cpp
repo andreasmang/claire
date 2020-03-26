@@ -340,7 +340,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   Vec f = NULL; ScalarType* p_f; // on grid function
   Vec ref = NULL; ScalarType* p_ref; // on grid function
   Vec fout = NULL; ScalarType *p_fout;  // output function values 
-  Vec dhx = NULL; ScalarType *p_dhx;  // output function values 
+  Vec dhx = NULL; ScalarType *p_dhx=nullptr;  // output function values 
   Interp3_Plan_GPU* interp_plan = NULL;
   ScalarType* p_fghost = NULL;  // ghost padded data
   
@@ -348,8 +348,8 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   char pciBusId[512];
   cudaGetDevice ( &device );
   cudaDeviceGetPCIBusId ( pciBusId, 512, device );
-  PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d][%d] has PCI-id = %s\n", procid, device, pciBusId);
-  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+  //PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d][%d] has PCI-id = %s\n", procid, device, pciBusId);
+  //PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
   for (int i = 0; i < 3; ++i) {
     nx[i]     = m_Opt->m_Domain.nx[i];
@@ -396,7 +396,6 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecCUDARestoreArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
   //ierr = VecCUDARestoreArray(dhx, &p_dhx); CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD, "grid initialized\n");
 
   
   // no need of dhx now
@@ -435,7 +434,6 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecCUDARestoreArray(zq, &p_zq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD, "scatter done\n");
 
 #if defined(REG_HAS_MPICUDA)
   cudaMalloc((void**)&p_fghost, g_alloc_max);
@@ -482,11 +480,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   
   MPI_Reduce(timers, global_timers, 4, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
   ss << "MAX COMM = " << std::scientific << global_timers[0] << std::scientific << "s, INTERP = " << global_timers[1] << std::scientific << "s, MEMCPY = " << global_timers[2] << std::scientific << "s, MISC = " << global_timers[3] << std::scientific << "s\n"; 
-  std::string s = ss.str();
-  if (procid==0) {
-    std::cout << s << std::scientific << std::endl;
-  }
-  printOnMaster(s);
+  printOnMaster(ss.str());
   ss.str("");
   
   MPI_Reduce(timers, global_timers, 4, MPI_DOUBLE, MPI_MIN, 0, PETSC_COMM_WORLD);
@@ -507,6 +501,14 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   printOnMaster(ss.str());
   ss.str("");
 
+  
+  ierr = PetscPrintf(PETSC_COMM_WORLD, "Timings\n");
+  for (auto zg : ZeitGeist::zgMap()) {
+      char txt[120];
+      PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d]  %16s: %5lix, %0.4e s\n", procid, zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
+      PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+      PetscPrintf(PETSC_COMM_WORLD, "============================================================================\n");
+  }
 
   cudaDestroyTextureObject(tex);
   ierr = VecDestroy(&q); CHKERRQ(ierr); q = NULL;
@@ -528,6 +530,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
 #endif
     p_fghost = NULL;
   }
+  
 
   PetscFunctionReturn(ierr);
 
