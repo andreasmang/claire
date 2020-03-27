@@ -23,16 +23,20 @@
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
+#include "Differentiation.hpp"
 #include <math.h>
 
 namespace reg {
     
     cudaTextureObject_t gpuInitEmptyGradientTexture(IntType *);
     
-    PetscErrorCode initConstants(IntType*);
-    PetscErrorCode computeTextureGradient(ScalarType* , ScalarType* , ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
-    PetscErrorCode computeTextureDivergence(ScalarType* , const ScalarType* , const ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
-    PetscErrorCode computeTextureLaplacian(ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, ScalarType);
+    PetscErrorCode initConstants(IntType*, IntType*, ScalarType*);
+    PetscErrorCode computeGradient(ScalarType* , ScalarType* , ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
+    PetscErrorCode computeDivergence(ScalarType* , const ScalarType* , const ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*);
+    PetscErrorCode computeLaplacian(ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, ScalarType);
+    PetscErrorCode computeDivergenceX(ScalarType* , ScalarType*, IntType*);
+    PetscErrorCode computeDivergenceY(ScalarType* , ScalarType*, IntType*);
+    PetscErrorCode computeDivergenceZ(ScalarType* , ScalarType*, IntType*);
 }
 
 #endif

@@ -420,6 +420,7 @@ PetscErrorCode UnitTestOpt::Run() {
   switch(this->m_TestType) {
   case TestType::All:
     ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestInterpolationMultiGPU(this); CHKERRQ(ierr);
     ierr = UnitTest::TestForwardSolver(this); CHKERRQ(ierr);
     ierr = UnitTest::TestTrajectory(this); CHKERRQ(ierr);
     ierr = UnitTest::TestGradient(this); CHKERRQ(ierr);
@@ -427,13 +428,15 @@ PetscErrorCode UnitTestOpt::Run() {
     ierr = UnitTest::TestRegularization(this); CHKERRQ(ierr);
     break;
   case TestType::Interpolate:
-    ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
+    //ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestInterpolationMultiGPU(this); CHKERRQ(ierr);
     break;
   case TestType::ForwardSolver:
     ierr = UnitTest::TestForwardSolver(this); CHKERRQ(ierr);
     break;
   case TestType::Trajectory:
-    ierr = UnitTest::TestTrajectory(this); CHKERRQ(ierr);
+//    ierr = UnitTest::TestTrajectory(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestTrajectoryMultiGPU(this); CHKERRQ(ierr);
     break;
   case TestType::Gradient:
     ierr = UnitTest::TestGradient(this); CHKERRQ(ierr);
@@ -445,7 +448,8 @@ PetscErrorCode UnitTestOpt::Run() {
     ierr = UnitTest::TestRegularization(this); CHKERRQ(ierr);
     break;
   case TestType::Diff:
-    ierr = UnitTest::TestDifferentiation(this); CHKERRQ(ierr);
+//    ierr = UnitTest::TestDifferentiation(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestDifferentiationMultiGPU(this); CHKERRQ(ierr);
     break;
   };
   

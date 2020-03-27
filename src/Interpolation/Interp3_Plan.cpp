@@ -49,6 +49,8 @@ void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
 #ifdef INTERP_DEBUG
   PCOUT << "entered allocate\n";
 #endif
+
+  // TODO: this needs to be converted to AllocateMemoryOnce
 	query_points = pvfmm::aligned_new<Real>(N_pts * COORD_DIM);
   pvfmm::memset(query_points,0, N_pts*COORD_DIM);
 
@@ -56,10 +58,10 @@ void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
 	f_index_procs_self_offset   = pvfmm::aligned_new<int>(nprocs); // offset in the query_outside array
 	f_index_procs_self_sizes    = pvfmm::aligned_new<int>(nprocs); // sizes of the number of interpolations that need to be sent to procs
 	f_index_procs_others_sizes  = pvfmm::aligned_new<int>(nprocs); // sizes of the number of interpolations that need to be received from procs
-
+    
 	s_request = pvfmm::aligned_new<MPI_Request>(nprocs);
 	request = pvfmm::aligned_new<MPI_Request>(2*nprocs);
-
+    
 	f_index = new std::vector<int>[nprocs];
 	query_outside = new std::vector<Real>[nprocs];
 
@@ -73,7 +75,8 @@ void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
     this->data_dofs_[i] = data_dofs[i];
   }
   this->data_dof_max = max;
-
+    
+    // TODO: this needs to be converted to AllocateMemoryOnce
 	f_cubic_unordered = pvfmm::aligned_new<Real>(N_pts * data_dof_max); // The reshuffled semi-final interpolated values are stored here
   memset(&f_cubic_unordered[0],0, N_pts * sizeof(Real) * data_dof_max);
 

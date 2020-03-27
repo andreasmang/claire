@@ -70,8 +70,15 @@ class DifferentiationFD : public Differentiation {
     VecField *m_tmp;
     
 #ifdef REG_HAS_CUDA
-    cudaTextureObject_t mtex;
+  cudaTextureObject_t mtex;
 #endif    
+
+  int nghost = 4;
+  size_t g_alloc_max;
+  int nlghost, isize_g[3], istart_g[3];
+  ScalarType* m_Ghost, *d_Ghost, *m_Work;
+  pvfmm::Iterator<Real> m_GhostWork1, m_GhostWork2;
+
 };
 
 }  // end of namespace

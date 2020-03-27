@@ -276,12 +276,14 @@ PetscErrorCode SemiLagrangianGPU::Interpolate(ScalarType* w,ScalarType* v,std::s
 
     // deal with ghost points
     plan = this->m_Opt->m_MiscOpt->plan;
+    // on CPU
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
 
     if(this->m_ScaFieldGhost==NULL){
         this->m_ScaFieldGhost = (ScalarType*)accfft_alloc(g_alloc_max);
     }
-
+    
+    // on CPU
     accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,v,this->m_ScaFieldGhost);
 
     if (strcmp(flag.c_str(),"state") !=0 ) {
@@ -357,12 +359,12 @@ PetscErrorCode SemiLagrangianGPU::Interpolate(VecField* w, VecField* v, std::str
  * Description: interpolate vector field
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
-                                                      ScalarType* vox2,
-                                                      ScalarType* vox3,
-                                                      ScalarType* vix1,
-                                                      ScalarType* vix2,
-                                                      ScalarType* vix3,
-                                                      std::string flag) {
+                                                ScalarType* vox2,
+                                                ScalarType* vox3,
+                                                ScalarType* vix1,
+                                                ScalarType* vix2,
+                                                ScalarType* vix3,
+                                                std::string flag) {
     PetscErrorCode ierr;
     int nx[3],isize_g[3],istart_g[3],c_dims[2];
     double timers[4] = {0,0,0,0};
@@ -399,14 +401,15 @@ PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
             ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
         }
     }
-
+    
+    // input vector field is first stored in the iVecField linear array all x, all y, all z components
     for (unsigned long i = 0; i < nl; ++i){
         this->m_iVecField[0*nl + i] = vix1[i];
         this->m_iVecField[1*nl + i] = vix2[i];
         this->m_iVecField[2*nl + i] = vix3[i];
     }
 
-    // get ghost sizes
+    // get ghost padded sizes needed in one dimension and gets the max of the three dimensions
     plan = this->m_Opt->m_MiscOpt->plan;
     g_alloc_max=accfft_ghost_xyz_local_size_dft_r2c(plan,this->m_GhostSize,isize_g,istart_g);
 
@@ -416,17 +419,17 @@ PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
         nlghost *= static_cast<unsigned long>(isize_g[i]);
     }
 
-    // deal with ghost points
+    // deal with ghost points, this allocates memory for the ghost padded regular grid values only for the first time on the CPU
     if(this->m_VecFieldGhost==NULL){
         this->m_VecFieldGhost = (ScalarType*)accfft_alloc(3*g_alloc_max);
     }
 
 
-    // do the communication for the ghost points
+    // do the communication for the ghost points one by one for each component x,y,z
     for (unsigned int i = 0; i < 3; i++){
         accfft_get_ghost_xyz(plan,this->m_GhostSize,isize_g,
-                                 &this->m_iVecField[i*nl],
-                                 &this->m_VecFieldGhost[i*nlghost]);
+                                 &this->m_iVecField[i*nl], // this is input
+                                 &this->m_VecFieldGhost[i*nlghost]); // this is output
     }
 
     if (strcmp(flag.c_str(),"state")!=0){
@@ -434,7 +437,10 @@ PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
         ierr=Assert(this->m_XS!=NULL,"state X null pointer"); CHKERRQ(ierr);
         ierr=Assert(this->m_StatePlanVec!=NULL,"state X null pointer"); CHKERRQ(ierr);
 
-
+        // interpolate
+        // m_VecFieldGhost is the ghost padded regular grid values for the proc
+        // m_xVecField is the output 
+        // query coordinates are a member variable of m_StatePlanVec
         this->m_StatePlanVec->interpolate(this->m_VecFieldGhost,3,nx,
                                         this->m_Opt->m_MiscOpt->isize,
                                         this->m_Opt->m_MiscOpt->istart,
@@ -458,7 +464,8 @@ PetscErrorCode SemiLagrangianGPU::Interpolate( ScalarType* vox1,
     else { ierr=ThrowError("flag wrong"); CHKERRQ(ierr); }
 
 //    ierr=this->m_Opt->StopTimer(IPVECEXEC); CHKERRQ(ierr);
-
+    
+    // writes the results back to the output vector field
     for (unsigned long i = 0; i < nl; ++i){
         vox1[i] = this->m_xVecField[0*nl + i];
         vox2[i] = this->m_xVecField[1*nl + i];
@@ -601,10 +608,10 @@ PetscErrorCode SemiLagrangianGPU::MapCoordinateVector(std::string flag) {
             this->m_StatePlan->allocate(nl,1);
         }
         // scatter
-        this->m_StatePlan->scatter(1,nx,this->m_Opt->m_MiscOpt->isize,
-                                    this->m_Opt->m_MiscOpt->istart,nl,
-                                    this->m_GhostSize,this->m_XS,
-                                    c_dims,this->m_Opt->m_MiscOpt->c_comm,timers);
+        this->m_StatePlan->scatter(1, nx, this->m_Opt->m_MiscOpt->isize,
+                                   this->m_Opt->m_MiscOpt->istart, nl,
+                                   this->m_GhostSize, this->m_XS,
+                                   c_dims, this->m_Opt->m_MiscOpt->c_comm, timers);
 
 
         // create planer

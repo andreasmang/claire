@@ -24,8 +24,8 @@
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
 #include "ReadWriteReg.hpp"
-#include "interp3_gpu_new.hpp"
 #include "interp3.hpp"
+#include "interp3_gpu_mpi.hpp"
 
 
 
@@ -73,27 +73,38 @@ class SemiLagrangianGPUNew {
     virtual PetscErrorCode CommunicateCoord(std::string);
     PetscErrorCode ComputeTrajectoryRK2(VecField*, std::string);
     PetscErrorCode ComputeTrajectoryRK4(VecField*, std::string);
+    PetscErrorCode MapCoordinateVector(std::string);
 
     RegOpt* m_Opt;
 
     VecField* m_WorkVecField1;
-
     VecField* m_Xstate;
     VecField* m_Xadjoint;
     VecField* m_InitialTrajectory;
-
-    int m_Dofs[2];
+    
+    Vec m_X;
     
     cudaTextureObject_t m_texture;
     
-    float *m_tmpInterpol1;
-    float *m_tmpInterpol2;
-
-    struct GhostPoints {
-        int isize[3];
-        int istart[3];
-        int nghost;
-    };
+    ScalarType* m_tmpInterpol1;
+    ScalarType* m_tmpInterpol2;
+    
+    Interp3_Plan_GPU* m_StatePlan;
+    Interp3_Plan_GPU* m_StatePlanVec;
+    Interp3_Plan_GPU* m_AdjointPlan;
+    Interp3_Plan_GPU* m_AdjointPlanVec;
+    
+    ScalarType* m_ScaFieldGhost;
+    ScalarType* m_VecFieldGhost;
+    ScalarType* m_WorkScaField1;
+    ScalarType* m_WorkScaField2;
+    
+    
+    pvfmm::Iterator<ScalarType> m_GhostWork1, m_GhostWork2;
+    
+    int nghost, nlghost, m_Dofs[2], istart_g[3], isize_g[3];
+    size_t g_alloc_max; 
+    
 };
 
 typedef SemiLagrangianGPUNew SemiLagrangian;

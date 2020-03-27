@@ -44,7 +44,9 @@ PetscErrorCode VecFieldPointWiseNorm(Vec norm, Vec m_X1, Vec m_X2, Vec m_X3) {
     ierr = GetRawPointerRead(m_X3, &p_X3); CHKERRQ(ierr);
     
     ierr = VecGetLocalSize(norm, &nl); CHKERRQ(ierr);
-    
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
+    ierr = reg::VecFieldPointWiseNormGPU(p_m, p_X1, p_X2, p_X3, nl); CHKERRQ(ierr);    
+#else
 #pragma omp parallel
 {
 #pragma omp for
@@ -52,6 +54,7 @@ PetscErrorCode VecFieldPointWiseNorm(Vec norm, Vec m_X1, Vec m_X2, Vec m_X3) {
     p_m[i] = sqrtf(p_X1[i]*p_X1[i] + p_X2[i]*p_X2[i] + p_X3[i]*p_X3[i]);
   }
 }
+#endif
 
     ierr = RestoreRawPointer(norm, &p_m); CHKERRQ(ierr);
     ierr = RestoreRawPointerRead(m_X1, &p_X1); CHKERRQ(ierr);
@@ -76,8 +79,11 @@ PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
 
     ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
     ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(x); CHKERRQ(ierr);
-
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
+    ierr = VecSetType(x, VECCUDA); CHKERRQ(ierr);
+#else
+    ierr = VecSetType(x, VECSTANDARD); CHKERRQ(ierr);
+#endif
     PetscFunctionReturn(ierr);
 }
 

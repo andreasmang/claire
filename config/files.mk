@@ -72,7 +72,9 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
+		$(SRCDIR)/Interpolation/Interp3_Plan_GPU.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
+		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationSM.cpp \
 		$(SRCDIR)/VecField.cpp \

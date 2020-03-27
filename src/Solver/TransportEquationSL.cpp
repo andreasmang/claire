@@ -258,7 +258,11 @@ PetscErrorCode TransportEquationSL::SolveStateEquation(VecField *v) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
 
-    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce<SemiLagrangian>(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+    try { this->m_SemiLagrangianMethod = new SemiLagrangian(this->m_Opt);}
+    catch (std::bad_alloc& err) {
+      ierr = reg::ThrowError(err); CHKERRQ(ierr);
+    }
 
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
@@ -508,7 +512,7 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
       if (this->m_GradientState) {
         ierr = this->m_GradientState[k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
       } else {
-        ierr = this->m_StateVariable->GetArrayRead(pM, k, 0); CHKERRQ(ierr);
+        ierr = this->m_StateVariable->GetArrayRead(pM, k, 0, 0); CHKERRQ(ierr);
         ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
       }
       for (IntType j = 0; j < nt; ++j) {  // for all time points
@@ -517,8 +521,8 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
         } else {
             lmt = 0; lmtnext = 0;
         }
-          ierr = this->m_IncStateVariable->GetArrayReadWrite(kernel.pMtilde, k, lmtnext); CHKERRQ(ierr);
-          ierr = this->m_IncStateVariable->GetArrayReadWrite(pMtilde, k, lmt); CHKERRQ(ierr);
+          ierr = this->m_IncStateVariable->GetArrayReadWrite(kernel.pMtilde, k, lmtnext, 0); CHKERRQ(ierr);
+          ierr = this->m_IncStateVariable->GetArrayReadWrite(pMtilde, k, lmt, 0); CHKERRQ(ierr);
           //ierr = this->m_StateVariable->GetArrayRead(pM, k, j); CHKERRQ(ierr);
 
           // interpolate incremental adjoint variable \tilde{m}^j(X)
@@ -539,7 +543,7 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
             ierr = this->m_GradientState[j*nc + k]->RestoreArrays(); CHKERRQ(ierr);
             ierr = this->m_GradientState[(j+1)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
           } else {
-            ierr = this->m_StateVariable->GetArrayRead(pM, k, j+1); CHKERRQ(ierr);
+            ierr = this->m_StateVariable->GetArrayRead(pM, k, j+1, 0); CHKERRQ(ierr);
             // compute gradient for state variable at next time time point
             ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
           }

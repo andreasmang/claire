@@ -84,7 +84,43 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::RegOpt* opt) {
 }
 
 
+/********************************************************************
+ * @brief compute synthetic characteristic point
+ * @description Notes that this is a redundant function, need to merge with ComputeSyntheticData()
+ *******************************************************************/
+PetscErrorCode ComputeSyntheticVelocity(ScalarType* v, ScalarType* x, IntType vcase) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    ScalarType x1, x2, x3;
+    x1 = x[0];
+    x2 = x[1];
+    x3 = x[2];
 
+    if (vcase == 0) {
+        // compute the velocity field
+        v[0] = 0.5*PetscSinReal(x3)*PetscCosReal(x2)*PetscSinReal(x2);
+        v[1] = 0.5*PetscSinReal(x1)*PetscCosReal(x3)*PetscSinReal(x3);
+        v[2] = 0.5*PetscSinReal(x2)*PetscCosReal(x1)*PetscSinReal(x1);
+    } else if (vcase == 1) {
+        // compute the velocity field
+        v[0] = PetscSinReal(x3)*PetscCosReal(x2)*PetscSinReal(x2);
+        v[1] = PetscSinReal(x1)*PetscCosReal(x3)*PetscSinReal(x3);
+        v[2] = PetscSinReal(x2)*PetscCosReal(x1)*PetscSinReal(x1);
+    } else if (vcase == 2) {
+        // compute divergence freee velocity field
+        v[0] = PetscCosReal(x2)*PetscCosReal(x3);
+        v[1] = PetscSinReal(x3)*PetscSinReal(x1);
+        v[2] = PetscCosReal(x1)*PetscCosReal(x2);
+    } else if (vcase == 3) {
+        v[0] = sin(x1);
+        v[1] = cos(x2);
+        v[2] = sin(x3);
+    } else {
+      ierr = DebugNotImplemented(); CHKERRQ(ierr);
+    }
+
+    PetscFunctionReturn(ierr);
+}
 
 /********************************************************************
  * @brief compute synthetic velocity field
@@ -144,15 +180,15 @@ PetscErrorCode ComputeSyntheticData(reg::VecField*& v, reg::RegOpt* opt, IntType
                     p_v2[i] = PetscSinReal(x3)*PetscSinReal(x1);
                     p_v3[i] = PetscCosReal(x1)*PetscCosReal(x2);
                 } else if (vcase == 3) {
-                    p_v1[i] = 0.5;
-                    p_v2[i] = 1;
-                    p_v3[i] = 0.5;
+                    p_v1[i] = sin(x1);
+                    p_v2[i] = cos(x2);
+                    p_v3[i] = sin(x3);
                 } else if (vcase == 4) {
-                    p_v1[i] = 0.0;
+                    p_v1[i] = i;
                     p_v2[i] = 0.0;
                     p_v3[i] = 0.0;
                 } else if (vcase == 5) {
-                    p_v1[i] = 1.0;
+                    p_v1[i] = i1+i2+i3;
                     p_v2[i] = 1.0;
                     p_v3[i] = 1.0;
                 }
@@ -200,7 +236,7 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
     ierr = VecGetArray(dv->m_X2, &pdv[1]); CHKERRQ(ierr);
     ierr = VecGetArray(dv->m_X3, &pdv[2]); CHKERRQ(ierr);
     
-    int s = 32;
+    int s = 1;
     for (IntType i1 = 0; i1 < opt->m_Domain.isize[0]; ++i1) {  // x1
         for (IntType i2 = 0; i2 < opt->m_Domain.isize[1]; ++i2) {  // x2
             for (IntType i3 = 0; i3 < opt->m_Domain.isize[2]; ++i3) {  // x3
@@ -258,10 +294,10 @@ PetscErrorCode ComputeDiffFunction(VecField *v, VecField *dv, int type, reg::Reg
                   pdv[2][i] = s*sin(s*x1)*sin(s*x2)*cos(s*x3);
                   break;
                 case 5:
-                  pv[0][i]  = sin(s*x1);
-                  pdv[0][i] = s*cos(s*x1);
+                  pv[0][i]  = sin(s*x3);
+                  pdv[0][i] = 0;
                   pdv[1][i] = 0;
-                  pdv[2][i] = 0;
+                  pdv[2][i] = s*cos(s*x3);
                   break;
                 };
 
