@@ -300,8 +300,9 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     ZeitGeist_define(FD_DIV);
     ZeitGeist_tick(FD_DIV);
 
-    cudaMemset((void*)l, 0, this->m_Opt->m_Domain.nl*sizeof(ScalarType));
 #if defined(REG_HAS_MPICUDA)
+    cudaMemset((void*)l, 0, this->m_Opt->m_Domain.nl*sizeof(ScalarType));
+    
     ierr = cudaMemcpy((void*)this->m_Work, (const void*)v3, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
     ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
