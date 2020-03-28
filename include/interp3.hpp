@@ -50,9 +50,8 @@
 #define COORD_DIM 3
 #include <mpi.h>
 #include <vector>
-#include <interp3_common.hpp>
 #include <set>
-#include <compact_mem_mgr.hpp>
+#include <interp3_common.hpp>
 
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		int* isize, int* isize_g, const int N_pts, Real* Q_);

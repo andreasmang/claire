@@ -389,18 +389,19 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     
   cudaTextureObject_t tex = gpuInitEmptyTexture(isize_g);   
   
+  int dofs[2] = {1, 3};
   if (interp_plan == NULL){
       
       try{ interp_plan = new Interp3_Plan_GPU(g_alloc_max); }
       catch (std::bad_alloc&){
           ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
       }
-      interp_plan->allocate(nl,1);
+      interp_plan->allocate(nl,dofs,2);
   }
  
   double timers[4] = {0,0,0,0};
   ierr = VecGetArray(q, &p_q); CHKERRQ(ierr);
-  interp_plan->scatter(1, nx, isize, istart, nl, nghost, p_q, m_Opt->m_CartGridDims, m_Opt->m_FFT.mpicomm, timers);
+  interp_plan->scatter(nx, isize, istart, nl, nghost, p_q, m_Opt->m_CartGridDims, m_Opt->m_FFT.mpicomm, timers);
   ierr = VecRestoreArray(q, &p_q); CHKERRQ(ierr);
     
   p_fghost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
@@ -414,7 +415,6 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecGetArray(fout, &p_fout); CHKERRQ(ierr);
     
   interp_plan->interpolate( p_fghost, 
-                            1, 
                             nx,
                             isize,
                             istart,
@@ -430,7 +430,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
                             m_tmpInterpol2, 
                             tex, 
                             3, 
-                            &m_GPUtime);
+                            &m_GPUtime, 0);
     
   TestError(ref, p_fout, nl, &error, &max);
 

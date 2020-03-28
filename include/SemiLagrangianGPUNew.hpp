@@ -90,9 +90,7 @@ class SemiLagrangianGPUNew {
     ScalarType* m_tmpInterpol2;
     
     Interp3_Plan_GPU* m_StatePlan;
-    Interp3_Plan_GPU* m_StatePlanVec;
     Interp3_Plan_GPU* m_AdjointPlan;
-    Interp3_Plan_GPU* m_AdjointPlanVec;
     
     ScalarType* m_ScaFieldGhost;
     ScalarType* m_VecFieldGhost;

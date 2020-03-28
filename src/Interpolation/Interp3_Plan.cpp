@@ -76,7 +76,7 @@ void Interp3_Plan::allocate(int N_pts, int* data_dofs, int nplans) {
   }
   this->data_dof_max = max;
     
-    // TODO: this needs to be converted to AllocateMemoryOnce
+  // TODO: this needs to be converted to AllocateMemoryOnce
 	f_cubic_unordered = pvfmm::aligned_new<Real>(N_pts * data_dof_max); // The reshuffled semi-final interpolated values are stored here
   memset(&f_cubic_unordered[0],0, N_pts * sizeof(Real) * data_dof_max);
 
@@ -854,7 +854,7 @@ Interp3_Plan::~Interp3_Plan() {
 
 	if (this->allocate_baked) {
     //if(this->scatter_baked == false)
-      pvfmm::aligned_delete<Real>(query_points);
+    pvfmm::aligned_delete<Real>(query_points);
 
     pvfmm::aligned_delete<int>(f_index_procs_others_offset);
 		pvfmm::aligned_delete<int>(f_index_procs_self_offset);

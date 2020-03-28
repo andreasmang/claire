@@ -302,7 +302,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
 
     cudaMemset((void*)l, 0, this->m_Opt->m_Domain.nl*sizeof(ScalarType));
 #if defined(REG_HAS_MPICUDA)
-    ierr = cudaMemcpy((void*)this->m_Work, (const void*)v1, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+    ierr = cudaMemcpy((void*)this->m_Work, (const void*)v3, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
     ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
     ierr  = computeDivergenceZ(l, this->d_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
@@ -312,7 +312,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
     ierr  = computeDivergenceY(l, this->d_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
     
-    ierr = cudaMemcpy((void*)this->m_Work, (const void*)v3, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+    ierr = cudaMemcpy((void*)this->m_Work, (const void*)v1, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
     ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
     ierr  = computeDivergenceX(l, this->d_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
