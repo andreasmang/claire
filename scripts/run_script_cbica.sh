@@ -195,7 +195,7 @@ fi
 
 ###########################################
 if [ -z "$REG_RES" ]; then
-    echo "--reg_res is needed"
+    echo "--reg_res needs to be provided"
     exit;
 fi
 

@@ -2,15 +2,30 @@ import numpy as np
 import os
 import nibabel as nib
 import argparse
-import file_io as fio
 from copy import deepcopy
 
+
+def writeNII(img, filename, affine=None, ref_image=None):
+    '''
+    function to write a nifti image, creates a new nifti object
+    '''
+    if ref_image is not None:
+        data = nib.Nifti1Image(img, affine=ref_image.affine, header=ref_image.header);
+        data.header['datatype'] = 64
+        #data.header['glmax'] = np.amax(img.get_fdata().flatten())
+        #data.header['glmin'] = np.amin(img.get_fdata().flatten())
+    elif affine is not None:
+        data = nib.Nifti1Image(img, affine=affine);
+    else:
+        data = nib.Nifti1Image(img, np.eye(4))
+
+    nib.save(data, filename);
 
 def MakeImagePeriodic(args):
     input_image = nib.load(args.input_image)
     img = input_image.get_fdata()
     img[:,:,0:args.nz] = 0;
-    fio.writeNII(img, args.output_image, ref_image=input_image);
+    writeNII(img, args.output_image, ref_image=input_image);
 
 def FilterSingleImage(img, nf):
     img_k = np.fft.fftn(img)
@@ -49,9 +64,9 @@ def FilterImage(args):
     filtered_v2 = FilterSingleImage(v2, nf)
     filtered_v3 = FilterSingleImage(v3, nf)
 
-    fio.writeNII(filtered_v1, os.path.join(input_path, 'filtered_velocity-field-x1.nii.gz'), ref_image=ref)
-    fio.writeNII(filtered_v2, os.path.join(input_path, 'filtered_velocity-field-x2.nii.gz'), ref_image=ref)
-    fio.writeNII(filtered_v3, os.path.join(input_path, 'filtered_velocity-field-x3.nii.gz'), ref_image=ref)
+    writeNII(filtered_v1, os.path.join(input_path, 'filtered_velocity-field-x1.nii.gz'), ref_image=ref)
+    writeNII(filtered_v2, os.path.join(input_path, 'filtered_velocity-field-x2.nii.gz'), ref_image=ref)
+    writeNII(filtered_v3, os.path.join(input_path, 'filtered_velocity-field-x3.nii.gz'), ref_image=ref)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='process input images')
