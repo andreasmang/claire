@@ -6,9 +6,7 @@
 
 
 # fixed arguments
-CLAIRE_DIR=${HOME}/claire
-CLAIRE_SCRIPT_DIR=$CLAIRE_DIR/scripts
-CLAIRE_BDIR=$CLAIRE_DIR/bin
+CLAIRE_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 
 myline="----------------------------------------------------------------------------------"
@@ -284,7 +282,7 @@ fi
 if [ ! -f ${OUTPUT_DIR}/velocity-field-x1.nii.gz ]; then
     if [ "$PARAM_CONT" == binary ]; then
     	mpirun --prefix $OPENMPI -np $NSLOTS \
-        $CLAIRE_BDIR/claire \
+        claire \
         -x $OUTPUT_DIR/ \
         -mt ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
         -mr $OUTPUT_DIR/${TEMPLATE_FNAME%.nii.gz}_upsampled.nii.gz \
@@ -298,7 +296,7 @@ if [ ! -f ${OUTPUT_DIR}/velocity-field-x1.nii.gz ]; then
         > $OUTPUT_DIR/solver_log.txt
     else
         mpirun --prefix $OPENMPI -np $NSLOTS \
-        $CLAIRE_BDIR/claire \
+        claire \
         -x $OUTPUT_DIR/ \
         -mt ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped_upsampled.nii.gz \
         -mr $OUTPUT_DIR/${TEMPLATE_FNAME%.nii.gz}_upsampled.nii.gz \
@@ -355,7 +353,7 @@ fi
 # run apply the claire warp field on the affine registered subject image
 if [ -f ${OUTPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
 	mpirun --prefix $OPENMPI -np $NSLOTS \
-    $CLAIRE_BDIR/clairetools \
+    clairetools \
     -deformimage \
     -ifile ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
     -xfile ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_rTemplate.nii.gz \
@@ -365,7 +363,7 @@ if [ -f ${OUTPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
     > $OUTPUT_DIR/transport_log.txt
 
 	mpirun --prefix $OPENMPI -np $NSLOTS \
-    $CLAIRE_BDIR/clairetools \
+    clairetools \
     -tlabelmap \
     -labels ${LABELS} \
     -ifile ${OUTPUT_DIR}/${SUBJECT_LAB_FNAME%.nii.gz}_affine_warped.nii.gz \
@@ -376,7 +374,7 @@ if [ -f ${OUTPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
     >> $OUTPUT_DIR/transport_log.txt
 
 	mpirun --prefix $OPENMPI -np $NSLOTS \
-    $CLAIRE_BDIR/clairetools \
+    clairetools \
     -invdetdefgrad \
     -x ${OUTPUT_DIR}/ \
     -v1 $OUTPUT_DIR/downsampled_velocity-field-x1.nii.gz \
@@ -460,7 +458,7 @@ if [ $MODE == 2 ]; then
     # use the velocity field from the input directory of claire results
     if [ -f ${INPUT_DIR}/downsampled_velocity-field-x1.nii.gz ]; then
         mpirun --prefix $OPENMPI -np $NSLOTS \
-            $CLAIRE_BDIR/clairetools \
+            clairetools \
             -deformimage \
             -ifile ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_affine_warped.nii.gz \
             -xfile ${OUTPUT_DIR}/${SUBJECT_FNAME%.nii.gz}_rTemplate.nii.gz \
@@ -470,7 +468,7 @@ if [ $MODE == 2 ]; then
             > $OUTPUT_DIR/transport_log.txt
 
         mpirun --prefix $OPENMPI -np $NSLOTS \
-            $CLAIRE_BDIR/clairetools \
+            clairetools \
             -tlabelmap \
             -labels ${LABELS} \
             -ifile ${OUTPUT_DIR}/${SUBJECT_LAB_FNAME%.nii.gz}_affine_warped.nii.gz \
@@ -481,7 +479,7 @@ if [ $MODE == 2 ]; then
             >> $OUTPUT_DIR/transport_log.txt
 
         mpirun --prefix $OPENMPI -np $NSLOTS \
-            $CLAIRE_BDIR/clairetools \
+            clairetools \
             -invdetdefgrad \
             -x ${OUTPUT_DIR}/ \
             -v1 $INPUT_DIR/downsampled_velocity-field-x1.nii.gz \
