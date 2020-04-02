@@ -17,8 +17,8 @@
  *  along with CLAIRE. If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _TESTINTERPOLATION_CPP_
-#define _TESTINTERPOLATION_CPP_
+#ifndef _SYNTHETICDATA_CPP_
+#define _SYNTHETICDATA_CPP_
 
 #include <stdlib.h>
 #include <math.h>
@@ -83,12 +83,11 @@ PetscErrorCode ComputeSyntheticData(Vec& m, reg::RegOpt* opt) {
     PetscFunctionReturn(ierr);
 }
 
-
 /********************************************************************
  * @brief compute synthetic characteristic point
  * @description Notes that this is a redundant function, need to merge with ComputeSyntheticData()
  *******************************************************************/
-PetscErrorCode ComputeSyntheticVelocity(ScalarType* v, ScalarType* x, IntType vcase) {
+PetscErrorCode ComputeSyntheticVelocity(ScalarType* v, ScalarType* x, int vcase) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     ScalarType x1, x2, x3;

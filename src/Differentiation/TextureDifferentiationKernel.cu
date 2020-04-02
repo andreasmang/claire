@@ -703,7 +703,7 @@ void printFloat3(float3 a){
 
 namespace reg {
 
-cudaTextureObject_t gpuInitEmptyGradientTexture(IntType *nx) {
+cudaTextureObject_t gpuInitEmptyGradientTexture(int *nx) {
    cudaTextureObject_t texObj = 0;
 #if defined(USE_TEXTURE_GRADIENT)
    cudaError_t err = cudaSuccess;
@@ -765,7 +765,7 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
     }
 }
 
-PetscErrorCode initConstants(IntType* isize, IntType* isize_g, ScalarType* hx) {
+PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   

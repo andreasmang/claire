@@ -30,7 +30,7 @@
 namespace reg {
 namespace UnitTest {
 
-PetscErrorCode ComputeTrajectoryError(Vec &X, RegOpt* m_Opt, int vcase) {
+PetscErrorCode ComputeTrajectoryError(Vec &X, reg::RegOpt* m_Opt, int vcase) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   const ScalarType *p_cX;
@@ -75,7 +75,7 @@ PetscErrorCode ComputeTrajectoryError(Vec &X, RegOpt* m_Opt, int vcase) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode TestTrajectoryMultiGPU(RegOpt *m_Opt) {
+PetscErrorCode TestTrajectoryMultiGPU(reg::RegOpt *m_Opt) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 

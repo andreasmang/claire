@@ -66,7 +66,7 @@ SemiLagrangianGPUNew::~SemiLagrangianGPUNew() {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Initialize() { 
     PetscErrorCode ierr = 0;
-    int isize[3];
+    IntType isize[3];
     PetscFunctionBegin;
     
     this->m_Xstate = nullptr;

@@ -25,7 +25,8 @@
 
 namespace reg {
 
-namespace UnitTest { 
+namespace UnitTest {
+  PetscErrorCode ComputeTrajectoryError(Vec &, reg::RegOpt*, int);
   PetscErrorCode ComputeSyntheticVelocity(ScalarType*, ScalarType*, int);
   PetscErrorCode ComputeSyntheticData(Vec& m, RegOpt* opt);
   PetscErrorCode ComputeSyntheticData(VecField*&, RegOpt*, IntType=1);

@@ -31,7 +31,7 @@
 #include "VecField.hpp"
 
 #ifdef REG_HAS_CUDA
-//#define TEST_FD
+#define TEST_FD
 #endif
 //#define SPECTRAL_ANALYSIS
 
@@ -256,7 +256,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   if (rank == 0)std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
 #ifdef TEST_FD
-  ierr = m_fd->RegLapOp(dv, v, 1.); CHKERRQ(ierr);
+  /*ierr = m_fd->RegLapOp(dv, v, 1.); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, 1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, 1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, 1., ref->m_X3); CHKERRQ(ierr);
@@ -277,7 +277,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   if (rank == 0) std::cout << "FD lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  if (rank == 0) std::cout << "FD lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;*/
 #endif
   ierr = m_dif->RegLapOp(dv, v, 1.); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, 1., ref->m_X1); CHKERRQ(ierr);
@@ -305,7 +305,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   if (rank == 0)std::cout << std::endl;
   ierr = ComputeDiffFunction(ref, v, 2, m_Opt); CHKERRQ(ierr); // Lap
 #ifdef TEST_FD
-  ierr = m_fd->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
+  /*ierr = m_fd->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X2, -1., ref->m_X2); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X3, -1., ref->m_X3); CHKERRQ(ierr);
@@ -326,7 +326,7 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   if (rank == 0) std::cout << "FD inv lap vector_2 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X3, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X3, NORM_INFINITY, &value); CHKERRQ(ierr);
-  if (rank == 0) std::cout << "FD inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD inv lap vector_3 error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;*/
 #endif
   ierr = m_dif->InvRegLapOp(dv, v, false, -1.); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);

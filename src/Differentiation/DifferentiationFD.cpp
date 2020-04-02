@@ -355,7 +355,8 @@ PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType
     ierr = cudaMemcpy((void*)this->m_Work, (const void*)pV[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
     ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-    ierr = computeLaplacian(pBV[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, -b0); CHKERRQ(ierr);
+    ierr = DebugNotImplemented(); CHKERRQ(ierr);
+    //ierr = computeLaplacian(pBV[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, -b0); CHKERRQ(ierr);
   }
 #elif REG_HAS_CUDA
   for (int i=0; i<3; i++) {
@@ -419,7 +420,8 @@ PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool us
       ierr = cudaMemcpy((void*)this->m_Work, (const void*)pV[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
       share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
       ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr = computeLaplacian(pBV[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, b0); CHKERRQ(ierr);
+      ierr = DebugNotImplemented(); CHKERRQ(ierr);
+      //ierr = computeLaplacian(pBV[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, b0); CHKERRQ(ierr);
     }
 #elif REG_HAS_CUDA
     for (int i=0; i<3; i++) {

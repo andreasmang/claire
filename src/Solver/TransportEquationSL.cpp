@@ -258,11 +258,7 @@ PetscErrorCode TransportEquationSL::SolveStateEquation(VecField *v) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
 
-    //ierr = AllocateOnce<SemiLagrangian>(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
-    try { this->m_SemiLagrangianMethod = new SemiLagrangian(this->m_Opt);}
-    catch (std::bad_alloc& err) {
-      ierr = reg::ThrowError(err); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
 
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);

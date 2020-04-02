@@ -448,8 +448,8 @@ PetscErrorCode UnitTestOpt::Run() {
     ierr = UnitTest::TestRegularization(this); CHKERRQ(ierr);
     break;
   case TestType::Diff:
-//    ierr = UnitTest::TestDifferentiation(this); CHKERRQ(ierr);
-    ierr = UnitTest::TestDifferentiationMultiGPU(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestDifferentiation(this); CHKERRQ(ierr);
+    //ierr = UnitTest::TestDifferentiationMultiGPU(this); CHKERRQ(ierr);
     break;
   };
   
