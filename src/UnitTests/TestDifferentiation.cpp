@@ -235,14 +235,14 @@ PetscErrorCode TestDifferentiation(RegOpt *m_Opt) {
   if (rank == 0) std::cout << std::endl;
   ierr = ComputeDiffFunction(v, ref, 2, m_Opt); CHKERRQ(ierr); // Lap
 #ifdef TEST_FD
-  ierr = m_fd->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
+  /*ierr = m_fd->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);
   ierr = VecNorm(ref->m_X1, NORM_2, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_2, &value); CHKERRQ(ierr);
   if (rank == 0) std::cout << "FD lap error l2: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
   ierr = VecNorm(ref->m_X1, NORM_INFINITY, &vnorm); CHKERRQ(ierr);
   ierr = VecNorm(dv->m_X1, NORM_INFINITY, &value); CHKERRQ(ierr);
-  if (rank == 0) std::cout << "FD lap error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;
+  if (rank == 0) std::cout << "FD lap error linf: " << value/(vnorm==0.0?1.:vnorm) << std::endl;*/
 #endif
   ierr = m_dif->Laplacian(dv->m_X1, v->m_X1); CHKERRQ(ierr);
   ierr = VecAXPY(dv->m_X1, -1., ref->m_X1); CHKERRQ(ierr);

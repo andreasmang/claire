@@ -60,10 +60,6 @@ PetscErrorCode Spectral::Initialize() {
     this->m_kernel.nstart[2] = 0;
     this->m_kernel.scale = 0;
 
-#ifdef REG_HAS_CUDA
-    this->m_planC2R = nullptr;
-    this->m_planR2C = nullptr;
-#endif
     this->m_plan = nullptr;
 
     this->m_Opt = nullptr;
@@ -96,6 +92,45 @@ PetscErrorCode Spectral::InitFFT() {
 /********************************************************************
  * @brief init variables
  *******************************************************************/
+PetscErrorCode Spectral::SetDomain() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+#ifdef REG_HAS_CUDA
+    size_t isize[3], istart[3];
+    this->m_plan->getInSize(isize);
+    this->m_plan->getInStart(istart);
+    this->m_Opt->m_Domain.nl = 1;
+    this->m_Opt->m_Domain.ng = 1;
+    for (int i = 0; i < 3; ++i) {
+        this->m_Opt->m_Domain.isize[i] = static_cast<IntType>(isize[i]);
+        this->m_Opt->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
+        this->m_Opt->m_Domain.nl *= this->m_Opt->m_Domain.isize[i];
+        this->m_Opt->m_Domain.ng *= this->m_Opt->m_Domain.nx[i];
+    }
+#else
+    int isize[3], istart[3], osize[3], ostart[3];
+    // get sizes (n is an integer, so it can overflow)
+    accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
+    
+    this->m_Opt->m_Domain.nl = 1;
+    this->m_Opt->m_Domain.ng = 1;
+    for (int i = 0; i < 3; ++i) {
+        this->m_Opt->m_Domain.nl *= static_cast<IntType>(isize[i]);
+        this->m_Opt->m_Domain.ng *= this->m_Opt->m_Domain.nx[i];
+        this->m_Opt->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
+        this->m_Opt->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
+    }
+    this->m_Opt->m_Domain.rowcomm = this->m_plan->row_comm;
+    this->m_Opt->m_Domain.colcomm = this->m_plan->col_comm;
+#endif
+    
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief init variables
+ *******************************************************************/
 PetscErrorCode Spectral::SetupFFT() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -104,27 +139,39 @@ PetscErrorCode Spectral::SetupFFT() {
     nx[0] = this->m_FFT->nx[0];
     nx[1] = this->m_FFT->nx[1];
     nx[2] = this->m_FFT->nx[2];
-    nalloc = this->m_FFT->nalloc;
     
 #ifdef REG_HAS_CUDA
-    int nrank = 0;
-    MPI_Comm_size(PETSC_COMM_WORLD, &nrank);
-    if (nrank == 1) {
-      if (this->m_planR2C == nullptr) {
-        ierr = AllocateOnce(this->m_planR2C); CHKERRQ(ierr);
-        cufftPlan3d(this->m_planR2C, nx[0],  nx[1], nx[2], CUFFT_R2C);
-      }
-      if (this->m_planC2R == nullptr) {
-        ierr = AllocateOnce(this->m_planC2R); CHKERRQ(ierr);
-        cufftPlan3d(this->m_planC2R, nx[0], nx[1], nx[2],  CUFFT_C2R);
-      }
+    {
+#ifdef REG_HAS_MPICUDA
+      ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, true); CHKERRQ(ierr);
+#else
+      ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, false); CHKERRQ(ierr);
+#endif
       int np[2], periods[2], coord[2];
+      size_t osize[3], ostart[3];
+      this->m_plan->initFFT(nx[0], nx[1], nx[2], true);
+      this->m_FFT->nalloc = this->m_plan->getDomainSize();
+      this->m_plan->getOutSize(osize);
+      this->m_plan->getOutStart(ostart);
+      for (int i = 0; i < 3; ++i) {
+        this->m_FFT->osize[i] = static_cast<IntType>(osize[i]);
+        this->m_FFT->ostart[i] = static_cast<IntType>(ostart[i]);
+      }
       MPI_Cart_get(this->m_Opt->m_Domain.mpicomm, 2, np, periods, coord);
       MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[0], coord[1], &this->m_Opt->m_Domain.rowcomm);
       MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[1], coord[0], &this->m_Opt->m_Domain.colcomm);
-    } else
-#endif
+    }
+#else
     {
+      int isize[3], istart[3], osize[3], ostart[3];
+      // get sizes (n is an integer, so it can overflow)
+      this->m_FFT->nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
+      
+      for (int i = 0; i < 3; ++i) {
+        this->m_FFT.osize[i]  = static_cast<IntType>(osize[i]);
+        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
+      }
+      
       std::stringstream ss;
       ScalarType *u = nullptr;
       ComplexType *uk = nullptr;
@@ -157,10 +204,8 @@ PetscErrorCode Spectral::SetupFFT() {
           // clean up
       ierr = FreeMemory(u); CHKERRQ(ierr);
       ierr = FreeMemory(uk); CHKERRQ(ierr);
-      
-      this->m_Opt->m_Domain.rowcomm = this->m_plan->row_comm;
-      this->m_Opt->m_Domain.colcomm = this->m_plan->col_comm;
     }
+#endif
     
     PetscFunctionReturn(ierr);
 }
@@ -173,14 +218,12 @@ PetscErrorCode Spectral::ClearMemory() {
     PetscFunctionBegin;
     
 #ifdef REG_HAS_CUDA
-    if (this->m_planC2R) cufftDestroy(*this->m_planC2R);
-    if (this->m_planR2C) cufftDestroy(*this->m_planR2C);
-    ierr = Free(this->m_planC2R); CHKERRQ(ierr);
-    ierr = Free(this->m_planR2C); CHKERRQ(ierr);
-#endif
+    ierr = Free(this->m_plan); CHKERRQ(ierr);
+#else
     if(this->m_plan) {
       accfft_destroy_plan(this->m_plan);
     }
+#endif
     this->m_plan = nullptr;
 
     PetscFunctionReturn(ierr);
@@ -194,17 +237,17 @@ PetscErrorCode Spectral::FFT_R2C(const ScalarType *real, ComplexType *complex) {
     PetscFunctionBegin;
     
 #ifdef REG_HAS_CUDA
-    if (this->m_planR2C) {
-      cufftExecR2C(*this->m_planR2C, const_cast<cufftReal*>(real), reinterpret_cast<cufftComplex*>(complex));
-      cudaDeviceSynchronize();
-    } else
-#endif
+    {
+      this->m_plan->execR2C(complex, real);
+    }
+#else
     {
       double timer[NFFTTIMERS] = {0};
       accfft_execute_r2c_t(this->m_plan, const_cast<ScalarType*>(real), complex, timer);
       this->m_Opt->IncrementCounter(FFT, 1);
       this->m_Opt->IncreaseFFTTimers(timer);
     }
+#endif
 
     PetscFunctionReturn(ierr);
 }
@@ -217,17 +260,17 @@ PetscErrorCode Spectral::FFT_C2R(const ComplexType *complex, ScalarType *real) {
     PetscFunctionBegin;
     
 #ifdef REG_HAS_CUDA
-    if (this->m_planC2R) {
-      cufftExecC2R(*this->m_planC2R, const_cast<cufftComplex*>(reinterpret_cast<const cufftComplex*>(complex)), reinterpret_cast<cufftReal*>(real));
-      cudaDeviceSynchronize();
-    } else
-#endif
+    {
+      this->m_plan->execC2R(real, complex);
+    }
+#else
     {
       double timer[NFFTTIMERS] = {0};
       accfft_execute_c2r_t(this->m_plan, const_cast<ComplexType*>(complex), real, timer);
       this->m_Opt->IncrementCounter(FFT, 1);
       this->m_Opt->IncreaseFFTTimers(timer);
     }
+#endif
 
     PetscFunctionReturn(ierr);
 }

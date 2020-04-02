@@ -1068,7 +1068,7 @@ PetscErrorCode RegOpt::DestroyFFT() {
  *******************************************************************/
 PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
-    int nx[3], isize[3], istart[3], osize[3], ostart[3], rank, nalloc, iporder;
+    int iporder;
     std::stringstream ss;
     ScalarType *u = NULL;
     ScalarType fftsetuptime;
@@ -1087,100 +1087,13 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
                                           this->m_Domain.mpicomm, false); CHKERRQ(ierr);
     }
-
-    //PETSC_COMM_WORLD = this->m_FFT.mpicomm;
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     
     // parse grid size for setup
     for (int i = 0; i < 3; ++i) {
         this->m_FFT.nx[i]    = this->m_Domain.nx[i];
-        nx[i]                = static_cast<int>(this->m_Domain.nx[i]);
-        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(nx[i]);
+        this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(this->m_Domain.nx[i]);
     }
 
-    // get sizes (n is an integer, so it can overflow)
-    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
-    //ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
-    this->m_FFT.nalloc = static_cast<IntType>(nalloc);
-
-    iporder = this->m_PDESolver.iporder;
-    if (this->m_PDESolver.type == SL) {
-        if (isize[0] < iporder+1 || isize[1] < iporder+1) {
-            ss << "\n\x1b[31m local size smaller than padding size (isize=("
-               << isize[0] << "," << isize[1] << "," << isize[2]
-               << ") < 3) -> reduce number of mpi tasks\x1b[0m\n";
-            ierr = PetscPrintf(PETSC_COMM_WORLD, ss.str().c_str(), NULL); CHKERRQ(ierr);
-            PetscFunctionReturn(PETSC_ERR_ARG_SIZ);
-        }
-    }
-
-    if (this->m_Verbosity > 2) {
-        ss << "data distribution: nx=("
-           << nx[0] << "," << nx[1] << "," << nx[2]
-           << "); isize=(" << isize[0] << "," << isize[1]
-           << "," << isize[2] << "); nalloc=" << this->m_FFT.nalloc;
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.clear(); ss.str(std::string());
-    }
-
-/*#ifndef REG_HAS_CUDA
-    // set up the fft
-    if (this->m_Verbosity > 2) {
-        ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.clear(); ss.str(std::string());
-    }
-#ifdef REG_HAS_CUDA
-    cudaMalloc((void**)&u, sizeof(ScalarType)*nalloc);
-#else
-    u = reinterpret_cast<ScalarType*>(accfft_alloc(nalloc));
-#endif
-    ierr = Assert(u != NULL, "allocation failed"); CHKERRQ(ierr);
-
-    // set up the fft
-    if (this->m_Verbosity > 2) {
-        ss << " >> " << __func__ << ": allocation (size = " << nalloc << ")";
-        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
-        ss.clear(); ss.str(std::string());
-    }
-#ifdef REG_HAS_CUDA
-    cudaMalloc((void**)&uk, sizeof(ComplexType)*nalloc);
-#else
-    uk = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-#endif
-    ierr = Assert(uk != NULL, "allocation failed"); CHKERRQ(ierr);
-
-    if (this->m_FFT.plan != NULL) {
-        if (this->m_Verbosity > 2) {
-            ierr = DbgMsg("deleting fft plan"); CHKERRQ(ierr);
-        }
-        accfft_destroy_plan(this->m_FFT.plan);
-        this->m_FFT.plan = NULL;
-    }
-
-    if (this->m_Verbosity > 2) {
-        ierr = DbgMsg("allocating fft plan"); CHKERRQ(ierr);
-    }
-    
-    fftsetuptime = -MPI_Wtime();
-    this->m_FFT.plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<ScalarType*>(uk),
-                                              this->m_FFT.mpicomm, ACCFFT_MEASURE);
-    fftsetuptime += MPI_Wtime();
-    ierr = Assert(this->m_FFT.plan != NULL, "allocation failed"); CHKERRQ(ierr);
-
-    // set the fft setup time
-    this->m_Timer[FFTSETUP][LOG] += fftsetuptime;
-    
-        // clean up
-#ifdef REG_HAS_CUDA
-    if (u != NULL) {cudaFree(u); u = NULL;}
-    if (uk != NULL) {cudaFree(uk); uk = NULL;}
-#else
-    if (u != NULL) {accfft_free(u); u = NULL;}
-    if (uk != NULL) {accfft_free(uk); uk = NULL;}
-#endif
-
-#endif*/
     fftsetuptime = -MPI_Wtime();
     ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_FFT.fft, this, &this->m_FFT); CHKERRQ(ierr);
@@ -1191,28 +1104,34 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ierr = DbgMsg("setting up sizes"); CHKERRQ(ierr);
     }
     // compute global and local size
-    this->m_Domain.nl = 1;
-    this->m_Domain.ng = 1;
-    for (int i = 0; i < 3; ++i) {
-        this->m_FFT.osize[i]  = static_cast<IntType>(osize[i]);
-        this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
-        this->m_Domain.nl *= static_cast<IntType>(isize[i]);
-        this->m_Domain.ng *= this->m_Domain.nx[i];
-        this->m_Domain.isize[i]  = static_cast<IntType>(isize[i]);
-        this->m_Domain.istart[i] = static_cast<IntType>(istart[i]);
-    }
-    
+    this->m_FFT.fft->SetDomain();
     
     this->m_FFT.fft->InitFFT();
     
-    nx[0] = nx[0]/2; nx[1] = nx[1]/2; nx[2] = nx[2]/2;
-    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
-    this->m_FFT_coarse.nalloc = static_cast<IntType>(nalloc);
-    for (int i = 0; i < 3; ++i) {
-        this->m_FFT_coarse.nx[i]     = static_cast<IntType>(nx[i]);
-        this->m_FFT_coarse.osize[i]  = static_cast<IntType>(osize[i]);
-        this->m_FFT_coarse.ostart[i] = static_cast<IntType>(ostart[i]);
+    iporder = this->m_PDESolver.iporder;
+    if (this->m_PDESolver.type == SL) {
+        if (this->m_Domain.isize[0] < iporder+1 || this->m_Domain.isize[1] < iporder+1) {
+            ss << "\n\x1b[31m local size smaller than padding size (isize=("
+               << this->m_Domain.isize[0] << "," << this->m_Domain.isize[1] << "," << this->m_Domain.isize[2]
+               << ") < 3) -> reduce number of mpi tasks\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD, ss.str().c_str(), NULL); CHKERRQ(ierr);
+            PetscFunctionReturn(PETSC_ERR_ARG_SIZ);
+        }
     }
+
+    if (this->m_Verbosity > 2) {
+        ss << "data distribution: nx=("
+           << this->m_Domain.nx[0] << "," << this->m_Domain.nx[1] << "," << this->m_Domain.nx[2]
+           << "); isize=(" << this->m_Domain.isize[0] << "," << this->m_Domain.isize[1]
+           << "," << this->m_Domain.isize[2] << "); nalloc=" << this->m_FFT.nalloc;
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
+    }
+    
+    
+    this->m_FFT_coarse.nx[0] = this->m_FFT.nx[0]/2;
+    this->m_FFT_coarse.nx[1] = this->m_FFT.nx[1]/2;
+    this->m_FFT_coarse.nx[2] = this->m_FFT.nx[2]/2;
     
     fftsetuptime = -MPI_Wtime();
     ierr = Free(this->m_FFT_coarse.fft); CHKERRQ(ierr);
@@ -1520,25 +1439,11 @@ PetscErrorCode RegOpt::Initialize() {
     ierr = this->ResetTimers(); CHKERRQ(ierr);
     ierr = this->ResetCounters(); CHKERRQ(ierr);
     
-    // ierr = this->SetupParser(); CHKERRQ(ierr);
-    
 #ifdef REG_HAS_CUDA
-    {
-      int rank, nrank;
-      int dev, ndevs;
-      MPI_Comm_size(PETSC_COMM_WORLD, &nrank);
-      MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-      cudaGetDevice(&dev);
-      //printf("PetscCudaDevice rank %i dev %i\n",rank, dev);
-      //cudaGetDeviceCount(&ndevs);
-      //dev = rank%ndevs;
-      //cudaDeviceProp prop;
-      //cudaGetDeviceProperties(&prop, dev);
-      this->m_gpu_id = dev;
-      cudaSetDevice(this->m_gpu_id);
-      cudaCheckKernelError();
-    }
+    cudaGetDevice(&this->m_gpu_id);
 #endif
+    
+    // ierr = this->SetupParser(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

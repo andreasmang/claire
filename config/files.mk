@@ -112,7 +112,9 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREDivReg.cpp \
 		$(SRCDIR)/Preprocessing.cpp \
 		$(SRCDIR)/Spectral/Spectral.cpp \
-		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp
+		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp \
+		$(SRCDIR)/Spectral/mpicufft.cpp
+		
 		#$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp \
 		#$(SRCDIR)/Interpolation/interp3.cpp \
 		#$(SRCDIR)/Interpolation/Interp3_Plan.cpp

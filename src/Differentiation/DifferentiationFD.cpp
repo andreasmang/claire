@@ -272,7 +272,8 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
       ierr = cudaMemcpy((void*)this->m_Work, (const void*)pv[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
       share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
       ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr = computeLaplacian(pl[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1.); CHKERRQ(ierr);
+      //ierr = computeLaplacian(pl[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1.); CHKERRQ(ierr);
+      ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #elif defined(REG_HAS_CUDA)
       ierr = computeLaplacian(pl[i], pv[i], this->mtex, this->m_Opt->m_Domain.isize, 1.); CHKERRQ(ierr);
 #else

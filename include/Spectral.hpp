@@ -42,6 +42,7 @@ class Spectral {
     virtual ~Spectral();
     
     PetscErrorCode InitFFT();
+    PetscErrorCode SetDomain();
     
     PetscErrorCode FFT_R2C(const ScalarType *real, ComplexType *complex);
     PetscErrorCode FFT_C2R(const ComplexType *complex, ScalarType *real);
@@ -56,7 +57,6 @@ class Spectral {
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     
  protected:
-    FFTPlanType *m_plan;
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
     
@@ -65,9 +65,11 @@ class Spectral {
     SpectralKernel m_kernel;
 
 #ifdef REG_HAS_CUDA
-    MPIcuFFT_fp32 *m_plan2;
-    cufftHandle *m_planR2C;
-    cufftHandle *m_planC2R;
+    MPIcuFFT<ScalarType> *m_plan;
+    //cufftHandle *m_planR2C;
+    //cufftHandle *m_planC2R;
+#else
+    FFTPlanType *m_plan;
 #endif
 
     RegOpt *m_Opt;
