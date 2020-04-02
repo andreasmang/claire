@@ -67,6 +67,7 @@ following papers:
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
+#define TWO_PI 2.0f*CUDART_PI
 #define KERNEL_DIM 4
 #define MAX_BLOCKS 1024
 #define HALO 7
@@ -746,13 +747,13 @@ extern "C" cudaTextureObject_t initTextureFromVolume(cudaPitchedPtr volume, cuda
         exit(EXIT_FAILURE);
     }
     return texObj;
-
 }
 
 /********************************************************************
  * @brief create texture object with empty data (cudaArray)
  *******************************************************************/
 extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
+
    cudaError_t err = cudaSuccess;
    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
    cudaExtent extent = make_cudaExtent(nx[2], nx[1], nx[0]);
@@ -785,8 +786,6 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
         exit(EXIT_FAILURE);
     }
     return texObj;
-    
-
 }
 
 /********************************************************************************
@@ -807,126 +806,12 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
     p.extent = extent;
     p.kind = cudaMemcpyDeviceToDevice;
     err = cudaMemcpy3D(&p);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to copy 3D memory to cudaArray (error code %s)!\n", cudaGetErrorString(err));
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Failed to copy 3D memory to cudaArray (error name %s = %s)!\n", cudaGetErrorName(err), cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
 }
 
-
-/********************************************************************
- * @brief interpolation kernel for scalar field
- * @parm[in] yi_tex 3D texture used for interpolation
- * @parm[in] xq,yq,zq query coordinates
- * @parm[in] nx array denoting number of query coordinates in each dimension 
- * @parm[out] yo memory for storing interpolated values
- *******************************************************************/
-/*__global__ void interp3D_kernel(
-        cudaTextureObject_t  yi_tex,
-        const PetscScalar* xq,
-        const PetscScalar* yq,
-        const PetscScalar* zq, 
-        PetscScalar* yo,
-        const float3 inv_nx, int nq)
-{
-    // Get thread index 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    if (tid < nq) {
-      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
-
-      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
-    }
-}
-*/
-/********************************************************************
- * @brief interpolation kernel for scalar field
- * @parm[in] yi_tex 3D texture used for interpolation
- * @parm[in] xq,yq,zq query coordinates
- * @parm[in] nx array denoting number of query coordinates in each dimension 
- * @parm[out] yo memory for storing interpolated values
- *******************************************************************/
-/*__global__ void interp3D_kernel(
-        cudaTextureObject_t  yi_tex,
-        const PetscScalar* xq,
-        const PetscScalar* yq,
-        const PetscScalar* zq, 
-        PetscScalar* yo,
-        const float3 inv_nx, int nq)
-{
-    // Get thread index 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    if (tid < nq) {
-      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
-
-      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
-    }
-}
-*/
-/********************************************************************
- * @brief interpolation kernel for scalar field
- * @parm[in] yi_tex 3D texture used for interpolation
- * @parm[in] xq,yq,zq query coordinates
- * @parm[in] nx array denoting number of query coordinates in each dimension 
- * @parm[out] yo memory for storing interpolated values
- *******************************************************************/
-/*__global__ void interp3D_kernel(
-        cudaTextureObject_t  yi_tex,
-        const PetscScalar* xq,
-        const PetscScalar* yq,
-        const PetscScalar* zq, 
-        PetscScalar* yo,
-        const float3 inv_nx, int nq)
-{
-    // Get thread index 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    if (tid < nq) {
-      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
-
-      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
-    }
-}
-*/
-/********************************************************************
- * @brief interpolation kernel for scalar field
- * @parm[in] yi_tex 3D texture used for interpolation
- * @parm[in] xq,yq,zq query coordinates
- * @parm[in] nx array denoting number of query coordinates in each dimension 
- * @parm[out] yo memory for storing interpolated values
- *******************************************************************/
-/*__global__ void interp3D_kernel(
-        cudaTextureObject_t  yi_tex,
-        const PetscScalar* xq,
-        const PetscScalar* yq,
-        const PetscScalar* zq, 
-        PetscScalar* yo,
-        const float3 inv_nx, int nq)
-{
-    // Get thread index 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    if (tid < nq) {
-      float3 qcoord = make_float3(zq[tid], yq[tid], xq[tid]);
-
-      yo[tid] = cubicTex3D_splineFast(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_splineSimple(yi_tex, qcoord, inv_nx);
-        //yo[tid] = cubicTex3D_lagrangeSimple(yi_tex, qcoord, inv_nx);
-      //yo[tid] = cubicTex3D_lagrangeFast(yi_tex, qcoord, inv_nx);
-    }
-}
-*/
 
 /********************************************************************
  * @brief linear interpolation kernel for scalar field
@@ -949,7 +834,8 @@ __global__ void interp3D_kernel_linear(
       yo[tid] = linTex3D(yi_tex, qcoord, inv_nx);
     }
 }
-    
+
+
 /********************************************************************
  * @brief host function to do interpolation of a scalar field
  * @parm[in] yi input data values 
@@ -974,7 +860,7 @@ void gpuInterp3Dkernel(
            long int nq)
 {
     // SET cubic interpolation type here
-    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;
+    enum CUBIC_INTERP_TYPE interp_type = SLOW_LAGRANGE;
     cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
@@ -996,13 +882,11 @@ void gpuInterp3Dkernel(
             yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
             break;
       };
-            
-            
+
       updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
     } else {
       // make input image a cudaPitchedPtr for fi
       yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
-      //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
       // update texture object
       updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
     }
@@ -1034,7 +918,7 @@ void gpuInterp3Dkernel(
     //default:
       // Not implemented
     };
-    cudaCheckKernelError();
+    //cudaCheckKernelError();
 }
 
 /********************************************************************
@@ -1054,90 +938,23 @@ void gpuInterp3D(
            PetscScalar* yo,
            float *tmp1, float* tmp2,
            int*  nx,
+           long int nq,
            cudaTextureObject_t yi_tex,
            int iporder,
            float* interp_time)
 {
    
-    // timing variables
-    //float time=0, dummy_time=0;
-    //cudaEvent_t startEvent, stopEvent;
-    //cudaEventCreate(&startEvent);
-    //cudaEventCreate(&stopEvent);
-
     // define inv of nx for normalizing in texture interpolation
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 
                                         1.0f/static_cast<float>(nx[0]));
-    long int nq = nx[0]*nx[1]*nx[2]; 
-
-    /*cudaMemcpyToSymbol(d_invnx, &inv_nx.x, sizeof(float), 0, cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(d_invny, &inv_nx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(d_invnz, &inv_nx.z, sizeof(float), 0, cudaMemcpyHostToDevice);*/
-
-    // define nxq, the dimensions of the grid
-    //const float3 nxq = make_float3( nx[0], nx[1], nx[2]);
-
-    // create a common cudaResourceDesc objects
-    //struct cudaResourceDesc resDesc;
-    //memset(&resDesc, 0, sizeof(resDesc));
-   
-
-    // initiate by computing the bspline coefficients for mt (in-place computation, updates mt)
-    //if (iporder == 3) {
-    //  cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
-    //  cudaMemcpyToSymbol(d_ny, &nx[1], sizeof(int), 0, cudaMemcpyHostToDevice);
-    //  cudaMemcpyToSymbol(d_nz, &nx[2], sizeof(int), 0, cudaMemcpyHostToDevice);
-    //  CubicBSplinePrefilter3D_fast(yi, nx);
-    //}
-
-    // make input image a cudaPitchedPtr for fi
-//    cudaPitchedPtr yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
-    //CubicBSplinePrefilter3D_Periodic((float*)yi_cudaPitchedPtr.ptr, (uint)yi_cudaPitchedPtr.pitch, nx[2], nx[1], nx[0]);
     
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-  
-  
+
     gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    
     cudaDeviceSynchronize();
-    // update texture object
-/*    updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
-
-    int threads = 256;
-    int blocks = (nq+255)/threads;
-    
-    // start recording the interpolation kernel
-    
-    //time = 0; dummy_time = 0; 
-    //cudaEventRecord(startEvent,0); 
-    
-    // launch the interpolation kernel
-    switch (iporder) {
-    case 1:
-      interp3D_kernel_linear<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
-      break;
-    case 3:
-      interp3D_kernel<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
-      break;
-    //default:
-      // Not implemented
-    };
-    cudaCheckKernelError();
-
-    //cudaEventRecord(stopEvent,0);
-    //cudaEventSynchronize(stopEvent);
-    //cudaEventElapsedTime(&dummy_time, startEvent, stopEvent);
-    //time+=dummy_time;
-    //cudaDeviceSynchronize();
-    
-    //cudaEventDestroy(startEvent);
-    //cudaEventDestroy(stopEvent);
-    
-    // print interpolation time and number of interpolations in Mvoxels/sec
-    //printf("> interp time = %fmsec ==> %f MVoxels/sec\n", time, (nq/1E6)/(time/1000));
-    //*interp_time += time;
-*/
 }
 
 /********************************************************************
@@ -1145,7 +962,7 @@ void gpuInterp3D(
  * @parm[in] yi input data values 
  * @parm[in] xq1,yq1,zq1 query coordinates
  * @parm[in] yi_tex texture object
- * @parm[in] nx array denoting number of query coordinates in each dimension 
+ * @parm[in] nx array denoting number of query coordinates in each dimension  (this will be isize when using multi-GPU)
  * @parm[out] yo interpolated values
  * @parm[out] interp_time time for computing the interpolation
  *******************************************************************/
@@ -1154,17 +971,20 @@ void gpuInterpVec3D(
            const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
            PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3,
            float *tmp1, float* tmp2,
-           int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
+           int*  nx, long int nq, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
 {
     // define inv of nx for normalizing in texture interpolation
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 
                                         1.0f/static_cast<float>(nx[0]));
-    long int nq = nx[0]*nx[1]*nx[2]; 
-    
+
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-  
+
+    //int threads = 256;
+    //int blocks = (nq+255)/threads;
+    //printVector<<<blocks, threads>>>(yi1, nq);
+
     gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
@@ -1180,4 +1000,71 @@ void getMax(ScalarType* x, int nl, ScalarType* max) {
     *max = *it;
 }
     
+/********************************************************************
+ * @brief host function to do interpolation of a scalar field
+ * @parm[in] yi regular grid values [yix0,yix1,yix2,....,yiy0,yiy1,yiy2,....,yiz0,yiz1,yiz2....]
+ * @parm[in] xq query coordinates   [x0,y0,z0,x1,y1,z1,.....]
+ * @parm[in] yi_tex texture object 
+ * @parm[in] nx array denoting number of query coordinates in each dimension  (this will be isize when using multi-GPU)
+ * @parm[out] yo interpolated values (same format at yi)
+ *******************************************************************/
+/*void gpuInterpVec3D(
+           PetscScalar* yi, 
+           const PetscScalar* xq,
+           PetscScalar* yo,
+           float *tmp1, float* tmp2,
+           int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
+{
+    // define inv of nx for normalizing in texture interpolation
+    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
+                                        1.0f/static_cast<float>(nx[1]), 
+                                        1.0f/static_cast<float>(nx[0]));
+    long int nq = nx[0]*nx[1]*nx[2]; 
+    
+    // create a cudaExtent for input resolution
+    cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
+    
+    gpuInterp3Dkernel(&yi[0*nq], xq, &yo[0*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
+    gpuInterp3Dkernel(&yi[1*nq], xq, &yo[1*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
+    gpuInterp3Dkernel(&yi[2*nq], xq, &yo[2*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
+    
+    cudaDeviceSynchronize();
+}
+*/
+
+__global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 scale, const float3 offset) {
+
+    int tid = threadIdx.x + blockIdx.x * blockDim.x; 
+
+    if (tid<nq) {
+        //xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x)*scale.x;
+        //xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y)*scale.y;
+        //xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z)*scale.z;
+        xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x);
+        xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y);
+        xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z);
+        //printf("tid = %d \t xq = %0.4f \t yq = %0.4f \t zq = %f\n", tid, xq1[tid], xq2[tid], xq3[tid]);
+    }
+
+}
+
+
+void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost) {
+    
+    const float3 scale = make_float3( 1.0f/static_cast<float>(isize[0]+2*nghost), 
+                                      1.0f/static_cast<float>(isize[1]+2*nghost),
+                                      1.0f/static_cast<float>(isize[2]+2*nghost) );
+    
+    const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
+                                       static_cast<float>(nghost-procid[1]*isize[1]),
+                                       static_cast<float>(nghost));
+    
+    const float3 ng = make_float3( nx[0], nx[1], nx[2] );
+
+    int threads = 256;
+    int blocks = (nq+threads-1)/threads;
+    normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, scale, offset);
+
+    cudaDeviceSynchronize();
+}
 

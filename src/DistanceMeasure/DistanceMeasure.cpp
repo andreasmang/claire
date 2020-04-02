@@ -222,7 +222,13 @@ PetscErrorCode DistanceMeasure::SetObjectiveFunctionalWeights() {
     
     nc = this->m_Opt->m_Domain.nc;
     if (this->m_ObjWts == nullptr) {
-        ierr = VecCreate(this->m_ObjWts, nc, nc);
+        ierr = VecCreate(PETSC_COMM_SELF, &this->m_ObjWts);
+        ierr = VecSetSizes(this->m_ObjWts, nc, nc); CHKERRQ(ierr);
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
+        ierr = VecSetType(this->m_ObjWts, VECSEQCUDA); CHKERRQ(ierr);
+#else
+        ierr = VecSetType(this->m_ObjWts, VECSEQ); CHKERRQ(ierr);
+#endif
     }
     
     ierr = VecGetArray(this->m_ObjWts, &p_ObjWts); CHKERRQ(ierr);

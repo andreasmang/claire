@@ -50,9 +50,8 @@
 #define COORD_DIM 3
 #include <mpi.h>
 #include <vector>
-#include <interp3_common.hpp>
 #include <set>
-#include <compact_mem_mgr.hpp>
+#include <interp3_common.hpp>
 
 void rescale_xyz(const int g_size, int* N_reg, int* N_reg_g, int* istart,
 		int* isize, int* isize_g, const int N_pts, Real* Q_);
@@ -112,13 +111,18 @@ public:
 	// void interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 	// 		int * isize, int* istart, const int N_pts, const int g_size,
 	// 		Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings);
+/*
   void interpolate(Real* __restrict ghost_reg_grid_vals,
 		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
 		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings, int version =0);
+  */
+void interpolate(Real* __restrict ghost_reg_grid_vals,
+		int*__restrict N_reg, int *__restrict isize, int*__restrict istart, const int N_pts, const int g_size,
+		Real*__restrict query_values, int*__restrict c_dims, MPI_Comm c_comm, double *__restrict timings, int version =0);
+
 	void high_order_interpolate(Real* ghost_reg_grid_vals, int data_dof, int* N_reg,
 			int * isize, int* istart, const int N_pts, const int g_size,
 			Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order);
-
 	int N_reg_g[3];
 	int isize_g[3];
 	int total_query_points;
@@ -206,6 +210,9 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 
 void accfft_get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data);
+
+void share_ghost_layer(reg::RegOpt* m_Opt, int g_size, int* isize_g,
+		Real* data, Real* ghost_data, pvfmm::Iterator<Real> padded_data, pvfmm::Iterator<Real> ghost_data_xy);
 //void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 //		Real* data, Real* ghost_data);
 

@@ -108,9 +108,16 @@ PetscErrorCode Normalize(Vec, IntType nc = 1);
 
 /*! compte pointwise norm of vector field */
 PetscErrorCode VecFieldPointWiseNorm(Vec, Vec, Vec, Vec);
+PetscErrorCode VecFieldPointWiseNormGPU(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*, IntType);
 
 /*! clip field to [0,1] */
 PetscErrorCode Clip(Vec, IntType nc = 1);
+
+/* Copy vector field to a flat array in strided fasion */
+PetscErrorCode CopyStridedToFlatVec(ScalarType*, const ScalarType*, const ScalarType*, const ScalarType*, IntType);
+
+/* Copy from a strided flat array to vecfield strided fasion */
+PetscErrorCode CopyStridedFromFlatVec(ScalarType*, ScalarType*, ScalarType*, const ScalarType*, IntType);
 
 /*! ensure partition of unity */
 PetscErrorCode EnsurePartitionOfUnity(Vec, IntType);

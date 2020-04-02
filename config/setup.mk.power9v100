@@ -1,12 +1,12 @@
 # developer flags (ignore)
-DBGCODE=no
+DBGCODE=yes
 PEDANTIC=yes
 
 RM = rm -f
 MKDIRS = mkdir -p
 
 ifeq ($(DBGCODE),yes)
-	CXXFLAGS = -g
+    CXXFLAGS = -g
 else
 	CXXFLAGS = -O3 -ansi -g
 endif
@@ -39,7 +39,7 @@ ifeq ($(PEDANTIC),yes)
 	endif
 	CXXFLAGS += -Warray-bounds -Wchar-subscripts -Wcomment
 	CXXFLAGS += -Wenum-compare -Wformat -Wuninitialized
-	CXXFLAGS += -Wmaybe-uninitialized -Wmain -Wnarrowing
+	CXXFLAGS += -Wmain -Wnarrowing #-Wmaybe-uninitialized
 	CXXFLAGS += -Wnonnull -Wparentheses #-Wpointer-sign
 	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
 	CXXFLAGS += -Wsequence-point -Wtrigraphs -Wunused-function
@@ -60,6 +60,10 @@ ifeq ($(USECUDA),yes)
 	ifeq ($(USECUDADBG),yes)
 		CXXFLAGS += -DREG_DBG_CUDA
 	endif
+endif
+
+ifeq ($(USEMPICUDA), yes)
+    CXXFLAGS += -DREG_HAS_MPICUDA
 endif
 
 ifeq ($(USECUDA),yes)
@@ -85,24 +89,28 @@ ifeq ($(USECUDA),yes)
     CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR) -I$(EXSRCDIR)
 endif
 
+MPI_INC = $(MPI_DIR)/include
+
 ifeq ($(USECUDA),yes)
 	ifeq ($(USESINGLE),yes)
 		ifeq ($(DBGCODE),yes)
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE_DBG)/include
 		else
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_SINGLE)/include
 		endif
 	else
 		ifeq ($(DBGCODE),yes)
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE_DBG)/include
 		else
-				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include -I$(MPI_DIR)
-				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include -I$(MPI_DIR)
+				CLAIRE_INC += -isystem$(PETSC_DIR)/include -isystem$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include
+				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include
 		endif
 	endif
+  CLAIRE_INC += -I$(MPI_INC)
+  CUDA_INC += -I$(MPI_INC)
 else
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
@@ -132,7 +140,7 @@ ifeq ($(USECUDA),yes)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
+CUDA_FLAGS=-c -G -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50

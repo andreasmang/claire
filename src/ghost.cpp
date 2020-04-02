@@ -5,6 +5,7 @@
 #include <mpi.h>
 //#include <accfft.h>
 #include <interp3.hpp>
+#include <CLAIREUtils.hpp>
 //#define VERBOSE2
 #include "RegOpt.hpp"
 
@@ -396,7 +397,7 @@ size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 	IntType* n = m_Opt->m_Domain.nx;
 	istart_g[2] = istart[2];
 	isize_g[2] = isize[2];
-
+    
 	istart_g[0] = istart[0] - g_size;
 	istart_g[1] = istart[1] - g_size;
 
@@ -404,7 +405,7 @@ size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 		istart_g[0] += n[0];
 	if (istart_g[1] < 0)
 		istart_g[1] += n[1];
-
+    
 	isize_g[0] = isize[0] + 2 * g_size;
 	isize_g[1] = isize[1] + 2 * g_size;
 	return (alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real)
@@ -514,10 +515,20 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 	isize_g[0] = isize[0] + 2 * g_size;
 	isize_g[1] = isize[1] + 2 * g_size;
 	isize_g[2] = isize[2] + 2 * g_size;
+
+  //printf("\nalloc_max = %zu", alloc_max);
+  //printf("\nisize_g[0] = %d", isize_g[0]);
+  //printf("\nisize_g[1] = %d", isize_g[1]);
+  //printf("\nisize_g[2] = %d", isize_g[2]);
+
   size_t alloc_max_g = alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real)
 			+ 2 * g_size * isize[2] * isize_g[1] * sizeof(Real)
 			+ 2 * g_size * isize_g[0] * isize_g[1] * sizeof(Real);
+  //printf("\nalloc_max_g before = %zu", alloc_max_g);
+
   alloc_max_g += (16*isize_g[2]*isize_g[1]+16*isize_g[1]+16)*sizeof(Real); // to account for padding required for peeled loop in interp
+  //printf("\nalloc_max_g after = %zu", alloc_max_g); 
+
   return alloc_max_g;
 }
 
@@ -590,26 +601,87 @@ void accfft_get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 	ghost_top_bottom(ghost_data_xy, padded_data, g_size, m_Opt);
 	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, m_Opt);
 
-#ifdef VERBOSE2
+//#ifdef VERBOSE2
+#ifdef VERBOSE3
 	if(procid==0) {
 		std::cout<<"\n final ghost data\n";
 		for (int i=0;i<isize_g[0];++i) {
-			for (int j=0;j<isize_g[1];++j)
-			std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]]<<" ";
-			std::cout<<"\n";
-		}
-
+			for (int j=0;j<isize_g[1];++j) {
+			    for (int k=0;k<isize_g[2];++k) {
+			        int idx = reg::GetLinearIndex(i,j,k,isize_g);
+                    //std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]]<<" ";
+                    std::cout<<ghost_data[idx]<<" ";
+                }
+                std::cout<<"\n";
+            }
+            std::cout<<"\n\n";
+        }
+   /* 
 		std::cout<<"\n a random z\n";
 		int i=3+0*isize_g[0]/2;
 		int j=3+0*isize_g[1]/2;
 		for(int k=0;k<isize_g[2];++k)
 		std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]+k]<<" ";
 		std::cout<<"\n";
+		*/
 	}
 #endif
 
   pvfmm::aligned_delete<Real>(padded_data);
   pvfmm::aligned_delete<Real>(ghost_data_xy);
+	return;
+}
+
+void share_ghost_layer(reg::RegOpt* m_Opt, int g_size, int* isize_g,
+		Real* data, Real* ghost_data, pvfmm::Iterator<Real> padded_data, pvfmm::Iterator<Real> ghost_data_xy) {
+	
+	int nprocs, procid;
+	MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
+	MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
+
+	/*if (plan->inplace == true) {
+		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
+				<< std::endl;
+		return;
+	}*/
+
+	if (g_size == 0) {
+		memcpy(ghost_data, data, m_Opt->m_FFT.nalloc);
+		return;
+	}
+
+	IntType *isize = m_Opt->m_Domain.isize;
+//	int *istart = plan->istart;
+//	int *n = plan->N;
+	if (g_size > isize[0] || g_size > isize[1]) {
+		std::cout
+				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
+				<< std::endl;
+		return;
+	}
+
+	ghost_left_right(padded_data, data, g_size, m_Opt);
+	ghost_top_bottom(ghost_data_xy, padded_data, g_size, m_Opt);
+	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, m_Opt);
+
+//#ifdef VERBOSE2
+#ifdef VERBOSE3
+	if(procid==0) {
+		std::cout<<"\n final ghost data\n";
+		for (int i=0;i<isize_g[0];++i) {
+			for (int j=0;j<isize_g[1];++j) {
+			    for (int k=0;k<isize_g[2];++k) {
+			        int idx = reg::GetLinearIndex(i,j,k,isize_g);
+                    //std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]]<<" ";
+                    std::cout<<ghost_data[idx]<<" ";
+                }
+                std::cout<<"\n";
+            }
+            std::cout<<"\n\n";
+        }
+	}
+#endif
+
 	return;
 }
 

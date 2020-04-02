@@ -77,6 +77,7 @@ PetscErrorCode CLAIRE::Initialize() {
  *******************************************************************/
 PetscErrorCode CLAIRE::ClearMemory(void) {
     PetscErrorCode ierr = 0;
+    double local_runtime, global_runtime;
     PetscFunctionBegin;
     
 #ifdef ZEITGEIST
@@ -85,7 +86,9 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
       Msg("ZeitGeist:");
       for (auto zg : ZeitGeist::zgMap()) {
         char txt[120];
-        sprintf(txt, "  %16s: %5lix, %10lf",zg.first.c_str(), zg.second.Count(), zg.second.Total_s());
+        local_runtime = zg.second.Total_s();
+        MPI_Reduce(&local_runtime, &global_runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+        sprintf(txt, "  %16s: %5lix, %0.10lf",zg.first.c_str(), zg.second.Count(), global_runtime);
         Msg(txt);
       }
       Msg("-----------------------------------------------------------------------------------------------------");

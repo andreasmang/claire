@@ -89,7 +89,9 @@ protected:
     Interp3_Plan_GPU* m_AdjointPlanVec;
     Interp3_Plan_GPU* m_StatePlanVec;
 
+    // this is the ghost padded regular grid values for a scalar field
     ScalarType* m_ScaFieldGhost;
+    // this is the ghost padded regular grid values for a vector field
     ScalarType* m_VecFieldGhost;
     static const int m_GhostSize = 3;
 

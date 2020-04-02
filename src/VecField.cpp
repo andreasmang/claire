@@ -651,7 +651,6 @@ PetscErrorCode VecField::RestoreArrays() {
     PetscFunctionReturn(ierr);
 }
 
-
 /********************************************************************
  * @brief sets the individual components of a vector field;
  * the input is a flat petsc array
@@ -691,7 +690,7 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format)
       ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
     if (block) {
       ierr = cudaMemcpy(static_cast<void*>(p_x1), static_cast<const void*>(pX), 
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
@@ -701,7 +700,8 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX, std::string format)
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
       ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     } else {
-      DebugGPUNotImplemented();
+        //printf("setting strided components\n");
+      ierr = CopyStridedFromFlatVec(p_x1, p_x2, p_x3, pX, nl); CHKERRQ(ierr);
     }
 #else
     if (block) {
@@ -737,7 +737,7 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX1, const ScalarType *
     // compute size of each individual component
     nl = this->m_Opt->m_Domain.nl;
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
       ierr = cudaMemcpy(static_cast<void*>(p_x1), static_cast<const void*>(pX1), 
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
       ierr = cudaMemcpy(static_cast<void*>(p_x2), static_cast<const void*>(pX2),
@@ -777,6 +777,8 @@ PetscErrorCode VecField::GetComponents(Vec w, std::string format) {
 
     PetscFunctionReturn(ierr);
 }
+
+
 PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -798,7 +800,7 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
       ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
     if (block) {
       ierr = cudaMemcpy(static_cast<void*>(pX), static_cast<const void*>(p_x1), 
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
@@ -807,7 +809,8 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
       ierr = cudaMemcpy(static_cast<void*>(&pX[2*nl]), static_cast<const void*>(p_x3), 
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
     } else {
-      DebugGPUNotImplemented();
+        //printf("getting strided components\n");
+      ierr = CopyStridedToFlatVec(pX, p_x1, p_x2, p_x3, nl); CHKERRCUDA(ierr);
     }
 #else
     if (block) {
@@ -831,6 +834,7 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX, std::string format) {
 
     PetscFunctionReturn(ierr);
 }
+
 PetscErrorCode VecField::GetComponents(ScalarType *pX1, ScalarType *pX2, ScalarType *pX3) {
     PetscErrorCode ierr = 0;
     IntType nl;
@@ -843,7 +847,7 @@ PetscErrorCode VecField::GetComponents(ScalarType *pX1, ScalarType *pX2, ScalarT
     // compute size of each individual component
     nl = this->m_Opt->m_Domain.nl;
 
-#ifdef REG_HAS_CUDA
+#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
     ierr = cudaMemcpy(static_cast<void*>(pX1), static_cast<const void*>(p_x1), 
                 sizeof(ScalarType)*nl, cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
     ierr = cudaMemcpy(static_cast<void*>(pX2), static_cast<const void*>(p_x2), 
