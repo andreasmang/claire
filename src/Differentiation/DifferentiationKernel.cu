@@ -235,6 +235,20 @@ PetscErrorCode DifferentiationKernel::Leray(ScalarType b0, ScalarType b1) {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode DifferentiationKernel::InvRegLeray(ScalarType b0, ScalarType b1, ScalarType b2) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = SpectralKernelCallGPU<LerayKernel>(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], 
+    scale, b0, b1); CHKERRQ(ierr);
+  ierr = SpectralKernelCallGPU<InverseNLaplacianKernel<1> >(nstart, nx, nl, 
+    pXHat[0], pXHat[1], pXHat[2], 
+    1., b2); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode DifferentiationKernel::GaussianFilter(const ScalarType c[3]) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;

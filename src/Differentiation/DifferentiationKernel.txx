@@ -238,16 +238,16 @@ struct LerayKernel {
     divVim *= -opik*lapinvik;
 
     // compute x1 gradient of lab^{-1} div(b), note grad multiplies by i
-    v1[i][0] = -gradik1*divVim;
-    v1[i][1] =  gradik1*divVre;
+    v1[i][0] = scale*v1[i][0] - gradik1*divVim;
+    v1[i][1] = scale*v1[i][1] + gradik1*divVre;
 
     // compute x2 gradient of lab^{-1} div(b)
-    v2[i][0] = -gradik2*divVim;
-    v2[i][1] =  gradik2*divVre;
+    v2[i][0] = scale*v2[i][0] - gradik2*divVim;
+    v2[i][1] = scale*v2[i][1] + gradik2*divVre;
 
     // compute x3 gradient of lab^{-1} div(b)
-    v3[i][0] = -gradik3*divVim;
-    v3[i][1] =  gradik3*divVre;
+    v3[i][0] = scale*v3[i][0] - gradik3*divVim;
+    v3[i][1] = scale*v3[i][1] + gradik3*divVre;
   }
 };
 

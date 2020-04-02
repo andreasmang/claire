@@ -53,6 +53,7 @@ struct DifferentiationKernel {
   PetscErrorCode Divergence();
   
   PetscErrorCode Leray(ScalarType, ScalarType);
+  PetscErrorCode InvRegLeray(ScalarType, ScalarType, ScalarType);
 };
 
 } // namespace reg

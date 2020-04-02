@@ -64,6 +64,7 @@ class DifferentiationSM : public Differentiation {
     virtual PetscErrorCode RegTriLapFunc(VecField*, VecField*, ScalarType, ScalarType=0.0);
     
     virtual PetscErrorCode LerayOperator(VecField*, VecField*, ScalarType, ScalarType);
+    virtual PetscErrorCode InvRegLerayOp(VecField*, VecField*, ScalarType, ScalarType, ScalarType);
     
     virtual PetscErrorCode GaussianFilter(ScalarType*, const ScalarType*, const ScalarType*);
     

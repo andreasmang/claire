@@ -338,7 +338,7 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
-
+    
     // allocate state variable
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
 
@@ -1083,16 +1083,18 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     //ScalarType beta = sqrt(this->m_Opt->m_RegNorm.beta[0]);
     
-    ScalarType beta;
+    ScalarType beta, betav, betaw;
     //if (this->m_Opt->m_RegNorm.beta[3] == 0) beta = this->m_Opt->m_RegNorm.beta[0];
     //else beta = this->m_Opt->m_RegNorm.beta[3];
     
     beta = this->m_Opt->m_RegNorm.beta[0];
+    betav = this->m_Opt->m_RegNorm.beta[0];
+    betaw = this->m_Opt->m_RegNorm.beta[2];
     if (this->m_Opt->m_RegNorm.beta[3] > 0 && this->m_Opt->m_RegNorm.beta[3] > beta) {
       beta = this->m_Opt->m_RegNorm.beta[3];
     }
     
-    kernel.beta = beta;
+    kernel.beta = 1;//beta;
     
     diff = (DifferentiationSM*)this->m_Differentiation;
     
@@ -1141,7 +1143,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     if (!twolevel) {
       ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, 1.); CHKERRQ(ierr);
+      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
     } else {
       ierr = gradM[1]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
@@ -1168,7 +1170,8 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     }
     
     ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->Scale(1./beta); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField1->Scale(1./beta); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField1->SetValue(0); CHKERRQ(ierr);
     
     normref = 1.;
     
@@ -1177,7 +1180,8 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     //}
     
     IntType innerloop = 500;
-    ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint;
+    //ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint;
+    ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint*this->m_Opt->m_KrylovMethod.reltol;
     
     VecField *vecR, *vecP, *vecM, *vecX;
     vecR = this->m_WorkVecField4;
@@ -1194,7 +1198,8 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
       
-      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
+      //ierr = diff->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
+      ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
       
       ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
       ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
@@ -1225,7 +1230,8 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
         
-        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
+        //ierr = diff->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
+        ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
         
         ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
         ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
@@ -1309,6 +1315,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       cg_eps = 1.;
       
       twolevel = false;
+      break;
     } else {
       break;
     }
@@ -1701,7 +1708,7 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     }
 
     // set initial condition m_0 = m_T
-    ierr = this->SetInitialState(*this->m_TemplateImage); CHKERRQ(ierr);
+    ierr = this->SetInitialState(this->m_TemplateImage->m_X); CHKERRQ(ierr);
     
     if (this->m_Opt->m_Verbosity > 3) {
       if(this->m_StateVariable) this->m_StateVariable->DebugInfo("state       ",__LINE__,__FILE__);

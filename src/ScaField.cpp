@@ -341,6 +341,8 @@ PetscErrorCode ScaField::RestoreArray() {
     this->m_Ptr = nullptr;
     this->m_Type = AccessType::None;
     break;
+  default:
+    break;
   };
   
   PetscFunctionReturn(ierr);
@@ -364,11 +366,11 @@ PetscErrorCode ScaField::SetFrame(Vec X, IntType t) {
   ierr = GetRawPointerRead(X, &orig); CHKERRQ(ierr);
   
   ptr += t*this->m_Size[1];
-  
+    
 #ifndef REG_HAS_CUDA
-    std::copy(orig, orig + this->m_Size[1], ptr);
+  std::copy(orig, orig + this->m_Size[1], ptr);
 #else
-    ierr = cudaMemcpy((void*)ptr,(void*)orig,sizeof(ScalarType)*this->m_Size[1],cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+  ierr = cudaMemcpy((void*)ptr,(void*)orig,sizeof(ScalarType)*this->m_Size[1],cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
 #endif
 #ifdef REG_HAS_CUDA
   cudaDeviceSynchronize();

@@ -334,6 +334,7 @@ PetscErrorCode TransportProbabilityMaps(reg::RegToolsOpt* regopt) {
     }
 
     regopt->m_RegFlags.applyrescaling = false;
+    regopt->m_RegFlags.runinversion = false;
     ierr = ReadData(regopt, readwrite, probmap); CHKERRQ(ierr);
     ierr = reg::Assert(probmap != NULL, "set input probability maps"); CHKERRQ(ierr);
     ierr = ReadData(regopt, readwrite, v); CHKERRQ(ierr);
@@ -422,6 +423,7 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
 
     // make sure we apply smoothing before we solve the forward problem
     regopt->m_RegFlags.applysmoothing = true;
+    regopt->m_RegFlags.runinversion = false;
 
     // allocate class for registration interface
     try {registration = new reg::CLAIREInterface(regopt);}

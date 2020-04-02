@@ -525,6 +525,29 @@ PetscErrorCode DifferentiationSM::LerayOperator(VecField* bv, VecField* v, Scala
 
     PetscFunctionReturn(ierr);
 }
+PetscErrorCode DifferentiationSM::InvRegLerayOp(VecField* bv, VecField* v, ScalarType b0, ScalarType b1, ScalarType b2) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    DebugGPUStartEvent("FFT leray operator");
+    
+    ZeitGeist_define(FFT_H0);
+    ZeitGeist_tick(FFT_H0);
+    
+    this->m_Opt->StartTimer(FFTSELFEXEC);
+    
+    ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
+    ierr = this->m_SpectralKernel.InvRegLeray(b0, b1, b2); CHKERRQ(ierr);
+    ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
+    
+    this->m_Opt->StopTimer(FFTSELFEXEC);
+    
+    ZeitGeist_tock(FFT_H0);
+    
+    DebugGPUStopEvent();
+
+    PetscFunctionReturn(ierr);
+}
 
 PetscErrorCode DifferentiationSM::GaussianFilter(ScalarType* bv, const ScalarType* v, const ScalarType c[3]) {
     PetscErrorCode ierr = 0;
