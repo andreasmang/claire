@@ -184,7 +184,7 @@ PetscErrorCode BenchmarkOpt::ParseArguments(int argc, char** argv) {
 
     // set number of threads
     ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
+                                      this->m_Domain.mpicomm, (this->m_Domain.mpicomm != MPI_COMM_NULL)); CHKERRQ(ierr);
 
     PetscFunctionReturn(0);
 }

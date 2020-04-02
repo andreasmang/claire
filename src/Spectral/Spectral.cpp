@@ -118,6 +118,10 @@ PetscErrorCode Spectral::SetupFFT() {
         ierr = AllocateOnce(this->m_planC2R); CHKERRQ(ierr);
         cufftPlan3d(this->m_planC2R, nx[0], nx[1], nx[2],  CUFFT_C2R);
       }
+      int np[2], periods[2], coord[2];
+      MPI_Cart_get(this->m_Opt->m_Domain.mpicomm, 2, np, periods, coord);
+      MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[0], coord[1], &this->m_Opt->m_Domain.rowcomm);
+      MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[1], coord[0], &this->m_Opt->m_Domain.colcomm);
     } else
 #endif
     {
@@ -147,12 +151,15 @@ PetscErrorCode Spectral::SetupFFT() {
       }
       
       this->m_plan = accfft_plan_dft_3d_r2c(nx, u, reinterpret_cast<ScalarType*>(uk),
-                                                this->m_FFT->mpicomm, ACCFFT_MEASURE);
+                                                this->m_Opt->m_Domain.mpicomm, ACCFFT_MEASURE);
       ierr = Assert(this->m_plan != nullptr, "allocation failed"); CHKERRQ(ierr);
       
           // clean up
       ierr = FreeMemory(u); CHKERRQ(ierr);
       ierr = FreeMemory(uk); CHKERRQ(ierr);
+      
+      this->m_Opt->m_Domain.rowcomm = this->m_plan->row_comm;
+      this->m_Opt->m_Domain.colcomm = this->m_plan->col_comm;
     }
     
     PetscFunctionReturn(ierr);

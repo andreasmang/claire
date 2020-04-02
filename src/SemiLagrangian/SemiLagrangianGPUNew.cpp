@@ -578,7 +578,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
                               this->nghost, 
                               this->m_WorkScaField2,
                               c_dims,
-                              this->m_Opt->m_FFT.mpicomm, 
+                              this->m_Opt->m_Domain.mpicomm, 
                               timers, 
                               this->m_tmpInterpol1, 
                               this->m_tmpInterpol2, 
@@ -724,7 +724,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
                               this->nghost, 
                               this->m_WorkScaField1,
                               c_dims,
-                              this->m_Opt->m_FFT.mpicomm, 
+                              this->m_Opt->m_Domain.mpicomm, 
                               timers, 
                               this->m_tmpInterpol1, 
                               this->m_tmpInterpol2, 
@@ -899,11 +899,11 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     
     if (flag.compare("state")==0) {
         
-        this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers);
+        this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_Domain.mpicomm, timers);
       
     } else if (flag.compare("adjoint")==0) {
 
-        this->m_AdjointPlan->scatter(nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_FFT.mpicomm, timers);
+        this->m_AdjointPlan->scatter(nx, isize, istart, nl, this->nghost, p_X, c_dims, this->m_Opt->m_Domain.mpicomm, timers);
 
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);

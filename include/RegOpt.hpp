@@ -286,6 +286,9 @@ struct Domain {
     IntType nc;                 ///< number of components/images to be registered
     ScalarType timehorizon[2];  ///< time horizon
     IntType level;              ///< level for multi-grid schemes, 0 for single grid
+    MPI_Comm mpicomm;           ///< communicator for accfft
+    MPI_Comm rowcomm;           ///< row communicator for accfft
+    MPI_Comm colcomm;           ///< column communicator for accfft
 };
 
 
@@ -423,10 +426,6 @@ struct Distance {
 struct FourierTransform {
     Spectral* fft;      ///< spectral operator
     //FFTPlanType* plan;  ///< accfft plan
-    MPI_Comm mpicomm;   ///< communicator for accfft
-    MPI_Comm rowcomm;   ///< row communicator for accfft
-    MPI_Comm colcomm;   ///< column communicator for accfft
-    bool mpicommexists; ///< communicator for accfft
     IntType nalloc;     ///< size for allocation in fourier domain
     IntType nx[3];      ///< spatial grid cell size
     IntType osize[3];   ///< size of grid in fourier domain for mpi proc

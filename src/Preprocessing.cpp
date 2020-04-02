@@ -248,10 +248,10 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     this->m_FFTCoarseScale = 1.0/this->m_FFTCoarseScale;
 
     // get communicator
-    mpicomm = this->m_Opt->m_FFT.mpicomm;
+    mpicomm = this->m_Opt->m_Domain.mpicomm;
 
-    nalloc_c = accfft_local_size_dft_r2c_t<ScalarType>(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
-    nalloc_f = accfft_local_size_dft_r2c_t<ScalarType>(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
+    nalloc_c = this->m_OptCoarse->m_FFT.nalloc;// accfft_local_size_dft_r2c_t<ScalarType>(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
+    nalloc_f = this->m_Opt->m_FFT.nalloc;//accfft_local_size_dft_r2c_t<ScalarType>(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
     if (this->m_Opt->m_Verbosity > 2) {
         ss << "sizes on coarse grid: isize=("
            << _isize_c[0] << "," << _isize_c[1] << "," << _isize_c[2]

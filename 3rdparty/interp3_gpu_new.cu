@@ -608,8 +608,8 @@ __device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, cons
 // Fast prefilter for B-Splines
 void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp2) {
     
-    float time=0, dummy_time=0;
-    int repcount = 1;
+    //float time=0, dummy_time=0;
+    //int repcount = 1;
     cudaEvent_t startEvent, stopEvent;
     cudaEventCreate(&startEvent);
     cudaEventCreate(&stopEvent);

@@ -86,8 +86,6 @@ RegOpt::RegOpt(const RegOpt& opt) {
 void RegOpt::Copy(const RegOpt& opt) {
     this->m_SetupDone = false;
     //this->m_FFT.plan = NULL;
-    this->m_FFT.mpicomm = 0;
-    this->m_FFT.mpicommexists = false;
     this->m_StoreCheckPoints = opt.m_StoreCheckPoints;
 
     this->m_FFT.osize[0] = opt.m_FFT.osize[0];
@@ -119,6 +117,10 @@ void RegOpt::Copy(const RegOpt& opt) {
 
     this->m_Domain.timehorizon[0] = opt.m_Domain.timehorizon[0];
     this->m_Domain.timehorizon[1] = opt.m_Domain.timehorizon[1];
+    
+    this->m_Domain.mpicomm = MPI_COMM_NULL;
+    this->m_Domain.rowcomm = MPI_COMM_NULL;
+    this->m_Domain.colcomm = MPI_COMM_NULL;
 
     this->m_Distance.type = opt.m_Distance.type;
     this->m_Distance.reset = opt.m_Distance.reset;
@@ -969,7 +971,7 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
     this->m_Timer[FFTSETUP][LOG] = 0.0;
     // set number of threads
     ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                      this->m_FFT.mpicomm, this->m_FFT.mpicommexists); CHKERRQ(ierr);
+                                      this->m_Domain.mpicomm, (this->m_Domain.mpicomm != MPI_COMM_NULL)); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
 
@@ -1052,7 +1054,7 @@ PetscErrorCode RegOpt::DestroyFFT() {
     ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
 
 //    if (this->m_FFT.mpicommexists) {
-        MPI_Comm_free(&this->m_FFT.mpicomm);
+        //MPI_Comm_free(&this->m_Domain.mpicomm);
 //    }
 
     PetscFunctionReturn(ierr);
@@ -1081,10 +1083,9 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // if communicator is not set up
-    if (this->m_FFT.mpicommexists == false) {
+    if (this->m_Domain.mpicomm == MPI_COMM_NULL) {
         ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                          this->m_FFT.mpicomm, false); CHKERRQ(ierr);
-        this->m_FFT.mpicommexists = true;
+                                          this->m_Domain.mpicomm, false); CHKERRQ(ierr);
     }
 
     //PETSC_COMM_WORLD = this->m_FFT.mpicomm;
@@ -1098,7 +1099,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     }
 
     // get sizes (n is an integer, so it can overflow)
-    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
     //ierr = Assert(nalloc > 0 && nalloc < std::numeric_limits<int>::max(), "allocation error"); CHKERRQ(ierr);
     this->m_FFT.nalloc = static_cast<IntType>(nalloc);
 
@@ -1204,20 +1205,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
     
     this->m_FFT.fft->InitFFT();
     
-    if (this->m_FFT.fft->m_plan) {
-      this->m_FFT.rowcomm = this->m_FFT.fft->m_plan->row_comm;
-      this->m_FFT.colcomm = this->m_FFT.fft->m_plan->col_comm;
-    } else {
-      int np[2], periods[2], coord[2];
-      MPI_Cart_get(this->m_FFT.mpicomm, 2, np, periods, coord);
-      MPI_Comm_split(this->m_FFT.mpicomm, coord[0], coord[1], &this->m_FFT.rowcomm);
-      MPI_Comm_split(this->m_FFT.mpicomm, coord[1], coord[0], &this->m_FFT.colcomm);
-    }
-    
     nx[0] = nx[0]/2; nx[1] = nx[1]/2; nx[2] = nx[2]/2;
-    this->m_FFT_coarse.mpicommexists = this->m_FFT.mpicommexists;
-    this->m_FFT_coarse.mpicomm = this->m_FFT.mpicomm;
-    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
     this->m_FFT_coarse.nalloc = static_cast<IntType>(nalloc);
     for (int i = 0; i < 3; ++i) {
         this->m_FFT_coarse.nx[i]     = static_cast<IntType>(nx[i]);
@@ -1254,8 +1243,6 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_FFT = {};
     this->m_FFT.fft = nullptr;
 //    this->m_FFT.plan = NULL;
-    this->m_FFT.mpicomm = 0;
-    this->m_FFT.mpicommexists = false;
     this->m_FFT.osize[0] = 0;
     this->m_FFT.osize[1] = 0;
     this->m_FFT.osize[2] = 0;
@@ -1290,6 +1277,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_Domain.timehorizon[0] = 0.0;
     this->m_Domain.timehorizon[1] = 1.0;
     this->m_Domain.level = 0;
+    this->m_Domain.mpicomm = MPI_COMM_NULL;
+    this->m_Domain.rowcomm = MPI_COMM_NULL;
+    this->m_Domain.colcomm = MPI_COMM_NULL;
 
     this->m_RegModel = RELAXEDSTOKES;               ///< default registration model
     //this->m_RegModel = RELAXEDSTOKES;
@@ -2294,7 +2284,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         this->m_GridCont.ng[j] = ng;  // set global size
 
         // get the local sizes
-        nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+        nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
         this->m_GridCont.nalloc[j] = nalloc;
 
         // compute local sizes
@@ -2857,7 +2847,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     nxi[1] = static_cast<int>(nx[1]);
     nxi[2] = static_cast<int>(nx[2]);
 
-    accfft_local_size_dft_r2c_t<ScalarType>(nxi, isize, istart, osize, ostart, this->m_FFT.mpicomm);
+    accfft_local_size_dft_r2c_t<ScalarType>(nxi, isize, istart, osize, ostart, this->m_Domain.mpicomm);
 
     nl = 1; ng = 1;
     for (int i = 0; i < 3; ++i) {
@@ -2892,7 +2882,7 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     nxi[1] = static_cast<int>(nx[1]);
     nxi[2] = static_cast<int>(nx[2]);
 
-    accfft_local_size_dft_r2c_t<ScalarType>(nxi, isizei, istarti, osize, ostart, this->m_FFT.mpicomm);
+    accfft_local_size_dft_r2c_t<ScalarType>(nxi, isizei, istarti, osize, ostart, this->m_Domain.mpicomm);
 
     for (int i = 0; i < 3; ++i) {
         isize[i] = static_cast<IntType>(isizei[i]);

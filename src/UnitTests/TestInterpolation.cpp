@@ -401,7 +401,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
  
   double timers[4] = {0,0,0,0};
   ierr = VecGetArray(q, &p_q); CHKERRQ(ierr);
-  interp_plan->scatter(nx, isize, istart, nl, nghost, p_q, m_Opt->m_CartGridDims, m_Opt->m_FFT.mpicomm, timers);
+  interp_plan->scatter(nx, isize, istart, nl, nghost, p_q, m_Opt->m_CartGridDims, m_Opt->m_Domain.mpicomm, timers);
   ierr = VecRestoreArray(q, &p_q); CHKERRQ(ierr);
     
   p_fghost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
@@ -424,7 +424,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
                             nghost, 
                             p_fout,
                             m_Opt->m_CartGridDims,
-                            m_Opt->m_FFT.mpicomm, 
+                            m_Opt->m_Domain.mpicomm, 
                             timers, 
                             m_tmpInterpol1, 
                             m_tmpInterpol2, 

@@ -34,7 +34,7 @@ void ghost_left_right(pvfmm::Iterator<Real> padded_data, Real* data, int g_size,
 //	int * ostart = plan->ostart;
 //	int alloc_max = plan->alloc_max;
 
-	MPI_Comm row_comm = m_Opt->m_FFT.rowcomm;
+	MPI_Comm row_comm = m_Opt->m_Domain.rowcomm;
 	int nprocs_r, procid_r;
 	MPI_Comm_rank(row_comm, &procid_r);
 	MPI_Comm_size(row_comm, &nprocs_r);
@@ -202,7 +202,7 @@ void ghost_top_bottom(pvfmm::Iterator<Real> ghost_data, pvfmm::Iterator<Real> pa
 //	int * ostart = plan->ostart;
 //	int alloc_max = plan->alloc_max;
 
-	MPI_Comm col_comm = m_Opt->m_FFT.colcomm;
+	MPI_Comm col_comm = m_Opt->m_Domain.colcomm;
 	int nprocs_c, procid_c;
 	MPI_Comm_rank(col_comm, &procid_c);
 	MPI_Comm_size(col_comm, &nprocs_c);
@@ -442,8 +442,8 @@ size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
 void accfft_get_ghost(reg::RegOpt* m_Opt, int g_size, int* isize_g, Real* data,
 		Real* ghost_data) {
 	int nprocs, procid;
-	MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
-	MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
+	MPI_Comm_rank(m_Opt->m_Domain.mpicomm, &procid);
+	MPI_Comm_size(m_Opt->m_Domain.mpicomm, &nprocs);
 
 	/*if (plan->inplace == true) {
 		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
@@ -567,8 +567,8 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
 void accfft_get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data) {
 	int nprocs, procid;
-	MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
-	MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
+	MPI_Comm_rank(m_Opt->m_Domain.mpicomm, &procid);
+	MPI_Comm_size(m_Opt->m_Domain.mpicomm, &nprocs);
 
 	/*if (plan->inplace == true) {
 		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
@@ -636,8 +636,8 @@ void share_ghost_layer(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data, pvfmm::Iterator<Real> padded_data, pvfmm::Iterator<Real> ghost_data_xy) {
 	
 	int nprocs, procid;
-	MPI_Comm_rank(m_Opt->m_FFT.mpicomm, &procid);
-	MPI_Comm_size(m_Opt->m_FFT.mpicomm, &nprocs);
+	MPI_Comm_rank(m_Opt->m_Domain.mpicomm, &procid);
+	MPI_Comm_size(m_Opt->m_Domain.mpicomm, &nprocs);
 
 	/*if (plan->inplace == true) {
 		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."

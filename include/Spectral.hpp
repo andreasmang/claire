@@ -24,6 +24,7 @@
 #include "SpectralKernel.hpp"
 
 #ifdef REG_HAS_CUDA
+#include "mpicufft.hpp"
 #include <cufft.h>
 #include "cuda_helper.hpp"
 #endif
@@ -54,8 +55,8 @@ class Spectral {
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     
-    FFTPlanType *m_plan;
  protected:
+    FFTPlanType *m_plan;
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
     
@@ -64,6 +65,7 @@ class Spectral {
     SpectralKernel m_kernel;
 
 #ifdef REG_HAS_CUDA
+    MPIcuFFT_fp32 *m_plan2;
     cufftHandle *m_planR2C;
     cufftHandle *m_planC2R;
 #endif
