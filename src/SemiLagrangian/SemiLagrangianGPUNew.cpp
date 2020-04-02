@@ -104,7 +104,7 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     }
     
     this->nghost = this->m_Opt->m_PDESolver.iporder;
-    this->g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
+    this->g_alloc_max = ghost_xyz_local_size(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
     this->nlghost = this->isize_g[0]*this->isize_g[1]*this->isize_g[2];
     this->m_GhostWork1 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0]);
     this->m_GhostWork2 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);

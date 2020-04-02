@@ -382,7 +382,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     ierr = VecRestoreArray(q, &p_q); CHKERRQ(ierr);
 
     // get ghost dimensions
-    size_t g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(m_Opt, nghost, isize_g, istart_g);
+    size_t g_alloc_max = ghost_xyz_local_size(m_Opt, nghost, isize_g, istart_g);
     for (int i=0; i<3; ++i) {
         nlghost *= isize_g[i];
     }
@@ -406,7 +406,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     
   p_fghost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
   ierr = VecGetArray(f, &p_f);  CHKERRQ(ierr);
-  accfft_get_ghost_xyz(m_Opt, nghost, isize_g, p_f, p_fghost); 
+  get_ghost_xyz(m_Opt, nghost, isize_g, p_f, p_fghost); 
   ierr = VecRestoreArray(f, &p_f); CHKERRQ(ierr);
 
   ScalarType* m_tmpInterpol1 = NULL, *m_tmpInterpol2 = NULL;

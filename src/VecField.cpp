@@ -646,6 +646,8 @@ PetscErrorCode VecField::RestoreArrays() {
       this->m_Ptr[2] = nullptr;
       this->m_Type = AccessType::None;
       break;
+    default:
+      break;
     };
     
     PetscFunctionReturn(ierr);

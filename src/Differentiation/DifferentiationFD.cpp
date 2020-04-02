@@ -103,7 +103,7 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
     ierr = initConstants(isize, isize, hx); CHKERRQ(ierr);
 #elif defined(REG_HAS_MPICUDA) 
-    this->g_alloc_max = accfft_ghost_xyz_local_size_dft_r2c(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
+    this->g_alloc_max = ghost_xyz_local_size(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
     this->nlghost = isize_g[0]*isize_g[1]*isize_g[2];
 
     // work memory allocation for ghost point sharing

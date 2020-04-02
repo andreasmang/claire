@@ -33,13 +33,9 @@
 #if defined(PETSC_USE_REAL_SINGLE)
   typedef float Real;
   #define MPI_T MPI_FLOAT
-  #define TC Complexf
-  #define PL fftwf_plan
 #else
   typedef double Real;
   #define MPI_T MPI_DOUBLE
-  #define TC Complex
-  #define PL fftw_plan
 #endif
 
 #ifndef __INTEL_COMPILER
@@ -194,21 +190,21 @@ namespace reg {
 class RegOpt;
 }
 
-size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
+size_t ghost_local_size(reg::RegOpt* m_Opt, int g_size,
 		int * isize_g, int* istart_g);
 //size_t accfft_ghost_local_size_dft_r2c(accfft_plan* plan, int g_size,
 //		int * isize_g, int* istart_g);
-void accfft_get_ghost(reg::RegOpt* m_Optn, int g_size, int* isize_g, Real* data,
+void get_ghost(reg::RegOpt* m_Optn, int g_size, int* isize_g, Real* data,
 		Real* ghost_data);
 //void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
 //		Real* ghost_data);
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
+size_t ghost_xyz_local_size(reg::RegOpt* m_Opt, int g_size,
 		int * isize_g, int* istart_g);
 //size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
 //		int * isize_g, int* istart_g);
 
-void accfft_get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
+void get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data);
 
 void share_ghost_layer(reg::RegOpt* m_Opt, int g_size, int* isize_g,

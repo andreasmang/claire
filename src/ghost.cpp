@@ -388,7 +388,7 @@ void ghost_z(Real *ghost_data_z, pvfmm::Iterator<Real> ghost_data, int g_size, i
  * (that originally resided in the last processor).
  */
 
-size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
+size_t ghost_local_size(reg::RegOpt* m_Opt, int g_size,
 		int * isize_g, int* istart_g) {
 
 	size_t alloc_max = m_Opt->m_FFT.nalloc;
@@ -439,7 +439,7 @@ size_t accfft_ghost_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
  * @param[in] data: The local data whose ghost cells from other processors are sought.
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
-void accfft_get_ghost(reg::RegOpt* m_Opt, int g_size, int* isize_g, Real* data,
+void get_ghost(reg::RegOpt* m_Opt, int g_size, int* isize_g, Real* data,
 		Real* ghost_data) {
 	int nprocs, procid;
 	MPI_Comm_rank(m_Opt->m_Domain.mpicomm, &procid);
@@ -493,7 +493,7 @@ void accfft_get_ghost(reg::RegOpt* m_Opt, int g_size, int* isize_g, Real* data,
  * (that originally resided in the last processor).
  */
 
-size_t accfft_ghost_xyz_local_size_dft_r2c(reg::RegOpt* m_Opt, int g_size,
+size_t ghost_xyz_local_size(reg::RegOpt* m_Opt, int g_size,
 		int * isize_g, int* istart_g) {
 
 	size_t alloc_max = m_Opt->m_FFT.nalloc;
@@ -564,7 +564,7 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(accfft_plan* plan, int g_size,
  * @param[in] data: The local data whose ghost cells from other processors are sought.
  * @param[out] ghost_data: An array that is the ghost cell padded version of the input data.
  */
-void accfft_get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
+void get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data) {
 	int nprocs, procid;
 	MPI_Comm_rank(m_Opt->m_Domain.mpicomm, &procid);
