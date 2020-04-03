@@ -60,10 +60,9 @@ ifeq ($(USECUDA),yes)
 	ifeq ($(USECUDADBG),yes)
 		CXXFLAGS += -DREG_DBG_CUDA
 	endif
-endif
-
-ifeq ($(USEMPICUDA), yes)
+  ifeq ($(USEMPICUDA), yes)
     CXXFLAGS += -DREG_HAS_MPICUDA
+  endif
 endif
 
 ifeq ($(USECUDA),yes)
@@ -109,8 +108,6 @@ ifeq ($(USECUDA),yes)
 				CUDA_INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH_CUDA_DOUBLE)/include
 		endif
 	endif
-  CLAIRE_INC += -I$(MPI_INC)
-  CUDA_INC += -I$(MPI_INC)
 else
 ifeq ($(DBGCODE),yes)
 	ifeq ($(USESINGLE),yes)
@@ -127,6 +124,9 @@ else
 endif
 endif
 
+CLAIRE_INC += -I$(MPI_INC)
+CUDA_INC += -I$(MPI_INC)
+
 
 CLAIRE_INC += -I$(ACCFFT_DIR)/include
 CLAIRE_INC += -I$(FFTW_DIR)/include
@@ -140,7 +140,7 @@ ifeq ($(USECUDA),yes)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -G -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50

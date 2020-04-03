@@ -29,28 +29,6 @@ namespace reg {
   
 
 /********************************************************************
- * @brief interface to create vector
- *******************************************************************/
-PetscErrorCode VecCreate(Vec& x, IntType nl, IntType ng) {
-    PetscErrorCode ierr = 0;
-
-    if (x != NULL) {
-        ierr = VecDestroy(&x); CHKERRQ(ierr);
-        x = NULL;
-    }
-
-    ierr = VecCreate(PETSC_COMM_WORLD, &x); CHKERRQ(ierr);
-    ierr = VecSetSizes(x, nl, ng); CHKERRQ(ierr);
-#if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
-    ierr = VecSetType(x, VECCUDA); CHKERRQ(ierr);
-#else
-    ierr = VecSetType(x, VECSTANDARD); CHKERRQ(ierr);
-#endif
-    PetscFunctionReturn(ierr);
-}
-
-
-/********************************************************************
  * @brief clip image to be in [0,1]
  *******************************************************************/
 PetscErrorCode Clip(Vec x, IntType nc) {
