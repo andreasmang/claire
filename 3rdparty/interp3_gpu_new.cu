@@ -860,7 +860,7 @@ void gpuInterp3Dkernel(
            long int nq)
 {
     // SET cubic interpolation type here
-    enum CUBIC_INTERP_TYPE interp_type = SLOW_LAGRANGE;
+    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;//SLOW_LAGRANGE;
     cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);

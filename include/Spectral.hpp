@@ -66,8 +66,6 @@ class Spectral {
 
 #ifdef REG_HAS_CUDA
     MPIcuFFT<ScalarType> *m_plan;
-    //cufftHandle *m_planR2C;
-    //cufftHandle *m_planC2R;
 #else
     FFTPlanType *m_plan;
 #endif
