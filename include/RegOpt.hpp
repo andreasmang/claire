@@ -625,8 +625,10 @@ class RegOpt {
     std::string m_PostFix;
     
 #ifdef REG_HAS_CUDA
-    int m_gpu_id;
+    int m_gpu_id;                      ///< id of used GPU
 #endif
+    int rank;                          ///< process id 
+    int rank_cnt;                      ///< number of processes
 
 
  protected:

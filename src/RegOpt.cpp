@@ -1442,6 +1442,8 @@ PetscErrorCode RegOpt::Initialize() {
 #ifdef REG_HAS_CUDA
     cudaGetDevice(&this->m_gpu_id);
 #endif
+    MPI_Comm_size(PETSC_COMM_WORLD, &this->rank_cnt);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &this->rank);
     
     // ierr = this->SetupParser(); CHKERRQ(ierr);
 

@@ -63,14 +63,12 @@ __device__ inline int getLinearIdx_local(int i, int j, int k) {
     return i*d_isize1*d_isize2 + j*d_isize2 + k;
 }
 
-#if defined(REG_HAS_MPICUDA)
-
 /**********************************************************************************
  * @brief compute z-gradient using 8th order finite differencing
  * @param[in] f = input scalar field with ghost padding
  * @param[out] dfz = z-component of gradient
 **********************************************************************************/
-__global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
+__global__ void mgpu_gradient_z(ScalarType* dfz, const ScalarType* f) {
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -112,7 +110,7 @@ __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
  * @param[in]    f = scalar field with ghost layer padding
  * @param[out] dfy = y-component of gradient
 **********************************************************************************/
-__global__ void gradient_y(ScalarType* dfy, const ScalarType* f) {
+__global__ void mgpu_gradient_y(ScalarType* dfy, const ScalarType* f) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -161,7 +159,7 @@ __global__ void gradient_y(ScalarType* dfy, const ScalarType* f) {
  * @param[in]    f = scalar field with ghost layer padding
  * @param[out] dfx = x-component of gradient
 **********************************************************************************/
-__global__ void gradient_x(ScalarType* dfx, const ScalarType* f) {
+__global__ void mgpu_gradient_x(ScalarType* dfx, const ScalarType* f) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -210,7 +208,7 @@ __global__ void gradient_x(ScalarType* dfx, const ScalarType* f) {
  * @param[in]    f    = scalar field f with ghost padding
  * @param[in]    beta = some constant which needs to be defined TODO
 **********************************************************************************/
-__global__ void d_zz(ScalarType* ddf, const ScalarType* f, const ScalarType beta) {
+__global__ void mgpu_d_zz(ScalarType* ddf, const ScalarType* f, const ScalarType beta) {
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -250,7 +248,7 @@ __global__ void d_zz(ScalarType* ddf, const ScalarType* f, const ScalarType beta
  * @param[in]    f    = scalar field f with ghost padding
  * @param[in]    beta = some constant which needs to be defined TODO
 **********************************************************************************/
-__global__ void d_yy(ScalarType* ddf, const ScalarType* f, const ScalarType beta) {
+__global__ void mgpu_d_yy(ScalarType* ddf, const ScalarType* f, const ScalarType beta) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -298,7 +296,7 @@ __global__ void d_yy(ScalarType* ddf, const ScalarType* f, const ScalarType beta
  * @param[in]    f    = scalar field f with ghost padding
  * @param[in]    beta = some constant which needs to be defined TODO
 **********************************************************************************/
-__global__ void d_xx(ScalarType* ddf, const ScalarType* f, const ScalarType beta) {
+__global__ void mgpu_d_xx(ScalarType* ddf, const ScalarType* f, const ScalarType beta) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -339,13 +337,15 @@ __global__ void d_xx(ScalarType* ddf, const ScalarType* f, const ScalarType beta
   }
 }
 
-#else
+inline __device__ void add_op (ScalarType& a, ScalarType b) { a += b; }
+inline __device__ void replace_op (ScalarType& a, ScalarType b) { a = b; }
 
 /**************************************************************************************************
  * @brief compute z-component of gradient using 8th order finite differencing (single GPU version)
  * @param[in]    f = scalar field with no ghost layer padding
  * @param[out] dfz = z-component of gradient
 **************************************************************************************************/
+template<void(*Op)(ScalarType&,ScalarType)=add_op>
 __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
@@ -376,9 +376,9 @@ __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
   
   ScalarType result = 0;
   for(int l=0; l<HALO; l++) {
-      result += dfz[globalIdx] += d_cz[l] * (s_f[sj][sk+1+l] - s_f[sj][sk-1-l]);
+      result += d_cz[l] * (s_f[sj][sk+1+l] - s_f[sj][sk-1-l]);
   }
-  dfz[globalIdx] += result;
+  Op(dfz[globalIdx], result);
 }
 
 
@@ -387,6 +387,7 @@ __global__ void gradient_z(ScalarType* dfz, const ScalarType* f) {
  * @param[in]    f = scalar field with no ghost layer padding
  * @param[out] dfy = y-component of gradient
 **************************************************************************************************/
+template<void(*Op)(ScalarType&,ScalarType)=add_op>
 __global__ void gradient_y(ScalarType* dfy, const ScalarType* f) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
@@ -426,7 +427,7 @@ __global__ void gradient_y(ScalarType* dfy, const ScalarType* f) {
     for( int l=0; l<HALO; l++) {
         result +=  d_cy[l] * ( s_f[sj+1+l][sk] - s_f[sj-1-l][sk]);
     }
-    dfy[globalIdx] += result;
+    Op(dfy[globalIdx], result);
   }
 
 }
@@ -436,6 +437,7 @@ __global__ void gradient_y(ScalarType* dfy, const ScalarType* f) {
  * @param[in]    f = scalar field with no ghost layer padding
  * @param[out] dfz = x-component of gradient
 **************************************************************************************************/
+template<void(*Op)(ScalarType&,ScalarType)=add_op>
 __global__ void gradient_x(ScalarType* dfx, const ScalarType* f) {
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
@@ -467,16 +469,14 @@ __global__ void gradient_x(ScalarType* dfx, const ScalarType* f) {
 
   __syncthreads();
   
-  ScalarType result;
   for(int i = threadIdx.y; i < syy; i += blockDim.y) {
-    result = 0;
+    ScalarType result = 0;
     int globalIdx = getLinearIdx(blockIdx.y*syy + i , j, k);
     int si = i + HALO;
-    ScalarType lval = 0;
     for( int l=0; l<HALO; l++) {
        result += d_cx[l] * ( s_f[si+1+l][sk] - s_f[si-1-l][sk]);
     }
-    dfx[globalIdx] += result;
+    Op(dfx[globalIdx],result);
   } 
 }
 
@@ -618,8 +618,6 @@ __global__ void d_xx(ScalarType* ddf, const ScalarType* f, const ScalarType beta
     ddf[globalIdx] *= beta;
   }
 }
-
-#endif
 
 __global__ void TextureDivXComputeKernel(cudaTextureObject_t tex, ScalarType* div) {
     const int tidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -813,12 +811,14 @@ PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx) {
 }
 
 
-PetscErrorCode computeDivergence(ScalarType* l, const ScalarType* g1, const ScalarType* g2, const ScalarType* g3, cudaTextureObject_t mtex, IntType* nx) {
+PetscErrorCode computeDivergence(ScalarType* l, const ScalarType* g1, const ScalarType* g2, const ScalarType* g3, cudaTextureObject_t mtex, IntType* nx, bool mgpu) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   size_t count = sizeof(ScalarType)*nx[0]*nx[1]*nx[2];
-  ierr = cudaMemset((void*)l, 0, count); CHKERRCUDA(ierr);
+  if (mgpu) {
+    ierr = cudaMemset((void*)l, 0, count); CHKERRCUDA(ierr);
+  }
 
 #if defined(USE_TEXTURE_GRADIENT)
   // create a cudaExtent for input resolution
@@ -861,19 +861,28 @@ PetscErrorCode computeDivergence(ScalarType* l, const ScalarType* g1, const Scal
   // Z-Gradient
   dim3 threadsPerBlock_z(sy, sx, 1);
   dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-  gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(l,g3);
+  if (mgpu)
+    mgpu_gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(l,g3);
+  else
+    gradient_z<replace_op><<<numBlocks_z, threadsPerBlock_z>>>(l,g3);
   cudaCheckKernelError();
     
   // Y-Gradient 
   dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
   dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-  gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(l, g2);
+  if (mgpu)
+    mgpu_gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(l, g2);
+  else
+    gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(l, g2);
   cudaCheckKernelError();
     
   // X-Gradient
   dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
   dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
-  gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(l, g1);
+  if (mgpu)
+    mgpu_gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(l, g1);
+  else
+    gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(l, g1);
   cudaCheckKernelError();
   cudaDeviceSynchronize();
 #endif
@@ -882,26 +891,32 @@ PetscErrorCode computeDivergence(ScalarType* l, const ScalarType* g1, const Scal
 }
 
 
-PetscErrorCode computeDivergenceZ(ScalarType* l, ScalarType* gz, IntType* nx) {
+PetscErrorCode computeDivergenceZ(ScalarType* l, ScalarType* gz, IntType* nx, bool mgpu) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   dim3 threadsPerBlock_z(sy, sx, 1);
   dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-  gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(l,gz);
+  if (mgpu)
+    mgpu_gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(l,gz);
+  else
+    gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(l,gz);
   cudaCheckKernelError();
   cudaDeviceSynchronize();
       
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode computeDivergenceY(ScalarType* l, ScalarType* gy, IntType* nx) {
+PetscErrorCode computeDivergenceY(ScalarType* l, ScalarType* gy, IntType* nx, bool mgpu) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
   dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-  gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(l, gy);
+  if (mgpu)
+    mgpu_gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(l, gy);
+  else
+    gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(l, gy);
   cudaCheckKernelError();
   cudaDeviceSynchronize();
   
@@ -909,28 +924,33 @@ PetscErrorCode computeDivergenceY(ScalarType* l, ScalarType* gy, IntType* nx) {
 }
 
 
-PetscErrorCode computeDivergenceX(ScalarType* l, ScalarType* gx, IntType* nx) {
+PetscErrorCode computeDivergenceX(ScalarType* l, ScalarType* gx, IntType* nx, bool mgpu) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
   dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
-  gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(l, gx);
+  if (mgpu)
+    mgpu_gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(l, gx);
+  else
+    gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(l, gx);
   cudaCheckKernelError();
   cudaDeviceSynchronize();
 
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode computeGradient(ScalarType* gx, ScalarType* gy, ScalarType* gz, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx) {
+PetscErrorCode computeGradient(ScalarType* gx, ScalarType* gy, ScalarType* gz, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx, bool mgpu) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
     // set all values to zero first
     size_t count = sizeof(ScalarType)*nx[0]*nx[1]*nx[2];
-    ierr = cudaMemset((void*)gz, 0, count); CHKERRCUDA(ierr);
-    ierr = cudaMemset((void*)gy, 0, count); CHKERRCUDA(ierr);
-    ierr = cudaMemset((void*)gx, 0, count); CHKERRCUDA(ierr);
+    if (mgpu) {
+      ierr = cudaMemset((void*)gz, 0, count); CHKERRCUDA(ierr);
+      ierr = cudaMemset((void*)gy, 0, count); CHKERRCUDA(ierr);
+      ierr = cudaMemset((void*)gx, 0, count); CHKERRCUDA(ierr);
+    }
 
 #if defined(USE_TEXTURE_GRADIENT)
     // make input image a cudaPitchedPtr for m
@@ -953,19 +973,28 @@ PetscErrorCode computeGradient(ScalarType* gx, ScalarType* gy, ScalarType* gz, c
     // Z-Gradient
     dim3 threadsPerBlock_z(sy, sx, 1);
     dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-    gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz,m);
+    if (mgpu)
+      mgpu_gradient_z<<<numBlocks_z, threadsPerBlock_z>>>(gz,m);
+    else
+      gradient_z<replace_op><<<numBlocks_z, threadsPerBlock_z>>>(gz,m);
     cudaCheckKernelError();
     
     // Y-Gradient 
     dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-    gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
+    if (mgpu)
+      mgpu_gradient_y<<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
+    else
+      gradient_y<replace_op><<<numBlocks_y, threadsPerBlock_y>>>(gy, m);
     cudaCheckKernelError();
     
     // X-Gradient
     dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
-    gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
+    if (mgpu)
+      mgpu_gradient_x<<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
+    else
+      gradient_x<replace_op><<<numBlocks_x, threadsPerBlock_x>>>(gx, m);
     cudaCheckKernelError();
     cudaDeviceSynchronize();
 #endif
@@ -974,29 +1003,38 @@ PetscErrorCode computeGradient(ScalarType* gx, ScalarType* gy, ScalarType* gz, c
 }
 
 
-PetscErrorCode computeLaplacian(ScalarType* ddm, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx, ScalarType beta) {
+PetscErrorCode computeLaplacian(ScalarType* ddm, const ScalarType* m, cudaTextureObject_t mtex, IntType* nx, ScalarType beta, bool mgpu) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
     size_t count = sizeof(ScalarType)*nx[0]*nx[1]*nx[2];
-    ierr = cudaMemset((void*)ddm, 0, count); CHKERRCUDA(ierr);
+    //ierr = cudaMemset((void*)ddm, 0, count); CHKERRCUDA(ierr);
 
     // Z-component
     dim3 threadsPerBlock_z(sy, sx, 1);
     dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
-    d_zz<<<numBlocks_z, threadsPerBlock_z>>>(ddm, m, beta);
+    if (mgpu)
+      mgpu_d_zz<<<numBlocks_z, threadsPerBlock_z>>>(ddm, m, beta);
+    else
+      d_zz<<<numBlocks_z, threadsPerBlock_z>>>(ddm, m, beta);
     cudaCheckKernelError();
     
     // Y-component
     dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-    d_yy<<<numBlocks_y, threadsPerBlock_y>>>(ddm, m, beta);
+    if (mgpu)
+      mgpu_d_yy<<<numBlocks_y, threadsPerBlock_y>>>(ddm, m, beta);
+    else
+      d_yy<<<numBlocks_y, threadsPerBlock_y>>>(ddm, m, beta);
     cudaCheckKernelError();
     
     // X-component
     dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
     dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
-    d_xx<<<numBlocks_x, threadsPerBlock_x>>>(ddm, m, beta);
+    if (mgpu)
+      mgpu_d_xx<<<numBlocks_x, threadsPerBlock_x>>>(ddm, m, beta);
+    else
+      d_xx<<<numBlocks_x, threadsPerBlock_x>>>(ddm, m, beta);
     cudaCheckKernelError();
     cudaDeviceSynchronize();
     
