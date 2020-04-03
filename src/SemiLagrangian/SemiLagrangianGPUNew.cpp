@@ -96,31 +96,32 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
 
-#if defined(REG_HAS_MPICUDA)
-    int nl = this->m_Opt->m_Domain.nl;
-    int ng = this->m_Opt->m_Domain.ng;
-    for (int i=0; i<3; i++) {
-      isize[i] = this->m_Opt->m_Domain.isize[i];
+    if (this->m_Opt->rank_cnt > 1) {
+      int nl = this->m_Opt->m_Domain.nl;
+      int ng = this->m_Opt->m_Domain.ng;
+      for (int i=0; i<3; i++) {
+        isize[i] = this->m_Opt->m_Domain.isize[i];
+      }
+      
+      this->nghost = this->m_Opt->m_PDESolver.iporder;
+      this->g_alloc_max = ghost_xyz_local_size(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
+      this->nlghost = this->isize_g[0]*this->isize_g[1]*this->isize_g[2];
+      this->m_GhostWork1 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0]);
+      this->m_GhostWork2 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);
+      this->m_VecFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(3*this->g_alloc_max));
+      this->m_ScaFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(this->g_alloc_max));
+      this->m_WorkScaField1 = reinterpret_cast<ScalarType*> (accfft_alloc(3*nl*sizeof(ScalarType)));
+      this->m_WorkScaField2 = reinterpret_cast<ScalarType*> (accfft_alloc(nl*sizeof(ScalarType)));
+      
+      ierr = AllocateOnce(this->m_StatePlan, this->g_alloc_max);
+      this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
+
+      ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max);
+      this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
+
+      ierr = VecCreate(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
     }
     
-    this->nghost = this->m_Opt->m_PDESolver.iporder;
-    this->g_alloc_max = ghost_xyz_local_size(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
-    this->nlghost = this->isize_g[0]*this->isize_g[1]*this->isize_g[2];
-    this->m_GhostWork1 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0]);
-    this->m_GhostWork2 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);
-    this->m_VecFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(3*this->g_alloc_max));
-    this->m_ScaFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(this->g_alloc_max));
-    this->m_WorkScaField1 = reinterpret_cast<ScalarType*> (accfft_alloc(3*nl*sizeof(ScalarType)));
-    this->m_WorkScaField2 = reinterpret_cast<ScalarType*> (accfft_alloc(nl*sizeof(ScalarType)));
-    
-    ierr = AllocateOnce(this->m_StatePlan, this->g_alloc_max);
-    this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
-
-    ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max);
-    this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
-
-    ierr = VecCreate(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
-#endif
     ierr = AllocateOnce(this->m_InitialTrajectory, m_Opt); CHKERRQ(ierr);
     ierr = this->ComputeInitialTrajectory(); CHKERRQ(ierr);
     ierr = this->InitializeInterpolationTexture(); CHKERRQ(ierr);
