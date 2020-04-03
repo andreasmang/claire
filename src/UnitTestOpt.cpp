@@ -455,6 +455,22 @@ PetscErrorCode UnitTestOpt::Run() {
     break;
   };
   
+#ifdef ZEITGEIST
+    if (this->m_Domain.level == 0) {
+      Msg("-----------------------------------------------------------------------------------------------------");
+      Msg("ZeitGeist:");
+      for (auto zg : ZeitGeist::zgMap()) {
+        char txt[120];
+        double global_runtime;
+        double local_runtime = zg.second.Total_s();
+        MPI_Reduce(&local_runtime, &global_runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+        sprintf(txt, "  %16s: %5lix, %0.10lf",zg.first.c_str(), zg.second.Count(), global_runtime);
+        Msg(txt);
+      }
+      Msg("-----------------------------------------------------------------------------------------------------");
+    }
+#endif
+  
   PetscFunctionReturn(ierr);
 }
 
