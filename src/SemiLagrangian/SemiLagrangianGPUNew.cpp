@@ -433,6 +433,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     ierr = Assert(v != nullptr, "nullptr"); CHKERRQ(ierr);
     ierr = Assert(this->m_InitialTrajectory != nullptr, "nullptr"); CHKERRQ(ierr);
     
+    // X = x - ht*v ; single GPU: X \in [0, N], multi GPU: X \in [0, 1]
     ierr = VecWAXPY(X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
     ierr = VecWAXPY(X->m_X2, -scale*ht*invhx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
     ierr = VecWAXPY(X->m_X3, -scale*ht*invhx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr); 
