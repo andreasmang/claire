@@ -792,7 +792,7 @@ PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx) {
   cudaMemcpyToSymbol(d_invhy, &inv_hx.y, sizeof(float), 0, cudaMemcpyHostToDevice);
   cudaMemcpyToSymbol(d_invhz, &inv_hx.z, sizeof(float), 0, cudaMemcpyHostToDevice);
   
-  float h_ct[HALO];
+  float h_ct[HALO+1];
   for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx[0];
   cudaMemcpyToSymbol(d_cx, h_ct, sizeof(float)*HALO, 0, cudaMemcpyHostToDevice);
   for(int l=0; l<HALO; l++) h_ct[l] = h_c[l]/hx[1];
