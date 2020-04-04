@@ -1024,7 +1024,7 @@ void gpuInterpVec3D(
 }
 */
 
-__global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 scale, const float3 offset) {
+__global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 offset) {
 
     int tid = threadIdx.x + blockIdx.x * blockDim.x; 
 
@@ -1035,6 +1035,9 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
         xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x);
         xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y);
         xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z);
+        //xq1[tid] = all_query_points[tid*3 + 0];
+        //xq2[tid] = all_query_points[tid*3 + 1];
+        //xq3[tid] = all_query_points[tid*3 + 2];
         //printf("tid = %d \t xq = %0.4f \t yq = %0.4f \t zq = %f\n", tid, xq1[tid], xq2[tid], xq3[tid]);
     }
 
@@ -1043,19 +1046,18 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
 
 void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost) {
     
-    const float3 scale = make_float3( 1.0f/static_cast<float>(isize[0]+2*nghost), 
-                                      1.0f/static_cast<float>(isize[1]+2*nghost),
-                                      1.0f/static_cast<float>(isize[2]+2*nghost) );
+   // const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
+   //                                    static_cast<float>(nghost-procid[1]*isize[1]),
+   //                                    static_cast<float>(nghost));
     
     const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
                                        static_cast<float>(nghost-procid[1]*isize[1]),
-                                       static_cast<float>(nghost));
-    
+                                       static_cast<float>(0*nghost));
     const float3 ng = make_float3( nx[0], nx[1], nx[2] );
 
     int threads = 256;
     int blocks = (nq+threads-1)/threads;
-    normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, scale, offset);
+    normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, offset);
 
     cudaDeviceSynchronize();
 }
@@ -1219,8 +1221,8 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
         //y += h.y*perturb;
         //z += h.z*perturb;
         
-        x += h.x*sinf(x);
-        y += h.y*sinf(y);
+        x += h.x*6;
+        y += h.y*5;
         z += h.z*sinf(z);
         
         //x += h.x*(dhx[i*3]*2-1);

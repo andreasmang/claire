@@ -4,6 +4,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/ghost.cpp \
+		$(SRCDIR)/GhostPlan.cpp \
 		$(SRCDIR)/Interpolation/interp3.cpp \
 		$(SRCDIR)/Interpolation/Interp3_Plan.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
@@ -73,6 +74,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
+		$(SRCDIR)/GhostPlan.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \

@@ -10,7 +10,6 @@
 //#define VERBOSE2
 //#define VERBOSE3
 
-
 /*
  * Get the left right ghost cells.
  *
@@ -30,12 +29,7 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 //	MPI_Comm c_comm = plan->c_comm;
 
 	/* Get the local pencil size and the allocation size */
-	//int isize[3],osize[3],istart[3],ostart[3];
 	int* isize = plan->isize;
-//	int * osize = plan->isize;
-//	int * istart = plan->istart;
-//	int * ostart = plan->ostart;
-//	int alloc_max = plan->alloc_max;
 
 	MPI_Comm row_comm = plan->row_comm;
 	int nprocs_r, procid_r;
@@ -51,18 +45,37 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 	int rs_buf_size = g_size * isize[2] * isize[0];
 
     Real *RS, *GL;
+    ZeitGeist_define(ghost_memalloc);
 #if defined(REG_HAS_MPICUDA)
+    ZeitGeist_tick(ghost_memalloc);
     cudaMalloc((void**)&RS, rs_buf_size * sizeof(Real));
     cudaMalloc((void**)&GL, rs_buf_size * sizeof(Real));
+    ZeitGeist_tock(ghost_memalloc);
 #else
 	RS = (Real*) accfft_alloc(rs_buf_size * sizeof(Real)); // Stores local right ghost data to be sent
 	GL = (Real*) accfft_alloc(rs_buf_size * sizeof(Real)); // Left Ghost cells to be received
 #endif
+  
+  const int num_streams = 1;
+  cudaStream_t* stream = new cudaStream_t[num_streams];
+  for (int i=0; i<num_streams; i++) {
+      cudaStreamCreate(&stream[i]);
+  }
 
-	for (int x = 0; x < isize[0]; ++x)
-		reg::gencpy(&RS[x * g_size * isize[2]],
-				    &data[x * isize[2] * isize[1] + (isize[1] - g_size) * isize[2]],
-				    g_size * isize[2] * sizeof(Real));
+  ZeitGeist_define(ghost_cudamemcpy);
+  ZeitGeist_tick(ghost_cudamemcpy);
+	for (int x = 0; x < isize[0]; ++x) {
+	//	reg::gencpy(&RS[x * g_size * isize[2]],
+	//			    &data[x * isize[2] * isize[1] + (isize[1] - g_size) * isize[2]],
+	//			    g_size * isize[2] * sizeof(Real));
+    cudaMemcpyAsync((void*)&RS[x * g_size * isize[2]], 
+                    (const void*)&data[x * isize[2] * isize[1] + (isize[1] - g_size) * isize[2]], 
+                    g_size * isize[2] * sizeof(Real), cudaMemcpyDeviceToDevice, stream[x%num_streams]);
+  }
+  for (int i=0; i<num_streams; i++)
+    cudaStreamSynchronize (stream[i]);
+  ZeitGeist_tock(ghost_cudamemcpy);
+  
 
 	/* Phase 2: Send your data to your right process
 	 * First question is who is your right process?
@@ -127,17 +140,28 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 
     Real *LS, *GR;
 #if defined(REG_HAS_MPICUDA)
+    ZeitGeist_tick(ghost_memalloc);
     cudaMalloc((void**)&LS, ls_buf_size * sizeof(Real));
     cudaMalloc((void**)&GR, ls_buf_size * sizeof(Real));
+    ZeitGeist_tock(ghost_memalloc);
 #else
 	LS = (Real*) accfft_alloc(ls_buf_size * sizeof(Real)); // Stores local right ghost data to be sent
 	GR = (Real*) accfft_alloc(ls_buf_size * sizeof(Real)); // Left Ghost cells to be received
 #endif
 
-	for (int x = 0; x < isize[0]; ++x)
-		reg::gencpy(&LS[x * g_size * isize[2]], 
-		             &data[x * isize[2] * isize[1]],
-		             g_size * isize[2] * sizeof(Real));
+  ZeitGeist_tick(ghost_cudamemcpy);
+	for (int x = 0; x < isize[0]; ++x) {
+		//reg::gencpy(&LS[x * g_size * isize[2]], 
+		//             &data[x * isize[2] * isize[1]],
+		//             g_size * isize[2] * sizeof(Real));
+		cudaMemcpyAsync(&LS[x * g_size * isize[2]], 
+		                &data[x * isize[2] * isize[1]],
+		                g_size * isize[2] * sizeof(Real), cudaMemcpyDeviceToDevice, stream[x%num_streams]);
+  }
+  for (int i=0; i<num_streams; i++)
+    cudaStreamSynchronize (stream[i]);
+  ZeitGeist_tock(ghost_cudamemcpy);
+  
 
 	/* Phase 4: Send your data to your right process
 	 * First question is who is your right process?
@@ -184,19 +208,38 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 		}
 	}
 #endif
-
+  
+  int k = 0;
+  ZeitGeist_tick(ghost_cudamemcpy);
 	// Phase 5: Pack the data GL+ data + GR
 	for (int i = 0; i < isize[0]; ++i) {
-		reg::gencpy(&padded_data[i * isize[2] * (isize[1] + 2 * g_size)],
+		//reg::gencpy(&padded_data[i * isize[2] * (isize[1] + 2 * g_size)],
+		//		    &GL[i * g_size * isize[2]], 
+		//		    g_size * isize[2] * sizeof(Real));
+		//reg::gencpy(&padded_data[i * isize[2] * (isize[1] + 2 * g_size) + g_size * isize[2]], 
+		//		    &data[i * isize[2] * isize[1]],
+		//		    isize[1] * isize[2] * sizeof(Real));
+		//reg::gencpy(&padded_data[i * isize[2] * (isize[1] + 2 * g_size) + g_size * isize[2] + isize[2] * isize[1]],
+		//		    &GR[i * g_size * isize[2]], 
+		//		    g_size * isize[2] * sizeof(Real));
+		
+		cudaMemcpyAsync(&padded_data[i * isize[2] * (isize[1] + 2 * g_size)],
 				    &GL[i * g_size * isize[2]], 
-				    g_size * isize[2] * sizeof(Real));
-		reg::gencpy(&padded_data[i * isize[2] * (isize[1] + 2 * g_size) + g_size * isize[2]], 
+				    g_size * isize[2] * sizeof(Real), cudaMemcpyDeviceToDevice, stream[k%num_streams]);
+		k++;
+		cudaMemcpyAsync(&padded_data[i * isize[2] * (isize[1] + 2 * g_size) + g_size * isize[2]], 
 				    &data[i * isize[2] * isize[1]],
-				    isize[1] * isize[2] * sizeof(Real));
-		reg::gencpy(&padded_data[i * isize[2] * (isize[1] + 2 * g_size) + g_size * isize[2] + isize[2] * isize[1]],
+				    isize[1] * isize[2] * sizeof(Real), cudaMemcpyDeviceToDevice, stream[k%num_streams]);
+		k++;
+		cudaMemcpyAsync(&padded_data[i * isize[2] * (isize[1] + 2 * g_size) + g_size * isize[2] + isize[2] * isize[1]],
 				    &GR[i * g_size * isize[2]], 
-				    g_size * isize[2] * sizeof(Real));
+				    g_size * isize[2] * sizeof(Real), cudaMemcpyDeviceToDevice, stream[k%num_streams]);
+	  k++; 	
 	}
+  for (int i=0; i<num_streams; i++)
+    cudaStreamSynchronize (stream[i]);
+	ZeitGeist_tock(ghost_cudamemcpy);
+  
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -209,11 +252,18 @@ void ghost_left_right(T padded_data, Real* data, int g_size,
 	}
 #endif
 
+  for (int i=0; i<num_streams; i++) 
+    cudaStreamDestroy(stream[i]);
+
+  delete[] stream;
+
 #if defined(REG_HAS_MPICUDA)
+ZeitGeist_tick(ghost_memalloc);
     cudaFree(LS);
     cudaFree(GR);
     cudaFree(RS);
     cudaFree(GL);
+    ZeitGeist_tock(ghost_memalloc);
 #else
 	accfft_free(LS);
 	accfft_free(GR);
@@ -263,10 +313,13 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 #endif
 
 	int bs_buf_size = g_size * isize[2] * (isize[1] + 2 * g_size); // isize[1] now includes two side ghost cells
-
+  
+  ZeitGeist_define(ghost_memalloc);
 #if defined(REG_HAS_MPICUDA)
     Real *GT;
+    ZeitGeist_tick(ghost_memalloc);
     cudaMalloc((void**)&GT, sizeof(Real)*bs_buf_size);
+    ZeitGeist_tock(ghost_memalloc);
 #else
 	//Real *BS=(Real*)accfft_alloc(bs_buf_size*sizeof(Real)); // Stores local right ghost data to be sent
     pvfmm::Iterator<Real> GT = pvfmm::aligned_new<Real>(bs_buf_size); // Left Ghost cells to be received
@@ -332,7 +385,9 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 
 #if defined(REG_HAS_MPICUDA)
     Real *GB;
+    ZeitGeist_tick(ghost_memalloc);
     cudaMalloc((void**)&GB, sizeof(Real)*ts_buf_size);
+    ZeitGeist_tock(ghost_memalloc);
 #else
 	//Real *TS=(Real*)accfft_alloc(ts_buf_size*sizeof(Real)); // Stores local right ghost data to be sent
   pvfmm::Iterator<Real> GB = pvfmm::aligned_new<Real>(ts_buf_size); // Left Ghost cells to be received
@@ -388,15 +443,28 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 #endif
 
 	// Phase 5: Pack the data GT+ padded_data + GB
-	reg::gencpy(&ghost_data[0], 
+	//reg::gencpy(&ghost_data[0], 
+	//            &GT[0], 
+	//            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
+	//reg::gencpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)], 
+	//            &padded_data[0], 
+	//            isize[0] * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
+	//reg::gencpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], 
+	//            &GB[0],
+	//            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
+  
+  ZeitGeist_define(ghost_cudamemcpy);
+  ZeitGeist_tick(ghost_cudamemcpy);
+	cudaMemcpyAsync(&ghost_data[0], 
 	            &GT[0], 
-	            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
-	reg::gencpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)], 
+	            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real), cudaMemcpyDeviceToDevice);
+	cudaMemcpyAsync(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)], 
 	            &padded_data[0], 
-	            isize[0] * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
-	reg::gencpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], 
+	            isize[0] * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real), cudaMemcpyDeviceToDevice);
+	cudaMemcpyAsync(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], 
 	            &GB[0],
-	            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real));
+	            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(Real), cudaMemcpyDeviceToDevice);
+	ZeitGeist_tock(ghost_cudamemcpy);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -410,13 +478,12 @@ void ghost_top_bottom(T ghost_data, pvfmm::Iterator<Real> padded_data, int g_siz
 #endif
 
 #if defined(REG_HAS_MPICUDA)
+ZeitGeist_tick(ghost_memalloc);
     cudaFree(GB);
     cudaFree(GT);
+    ZeitGeist_tock(ghost_memalloc);
 #else
-	//accfft_free(TS);
   pvfmm::aligned_delete<Real>(GB);
-	//accfft_free(BS);
-	//accfft_free(GT);
   pvfmm::aligned_delete<Real>(GT);
 #endif
 
@@ -442,16 +509,16 @@ void ghost_z(Real *ghost_data_z, T ghost_data, int g_size, int* isize_g,
 	for (int i = 0; i < isize_g[0]; ++i)
 		for (int j = 0; j < isize_g[1]; ++j) {
 			reg::gencpy(&ghost_data_z[(i * isize_g[1] + j) * isize_g[2]],
-					&ghost_data[(i * isize_g[1] + j) * isize[2] + isize[2]
-							- g_size], g_size * sizeof(Real));
+					        &ghost_data[(i * isize_g[1] + j) * isize[2] + isize[2]- g_size], 
+					        g_size * sizeof(Real));
+			
 			reg::gencpy(&ghost_data_z[(i * isize_g[1] + j) * isize_g[2] + g_size],
-					&ghost_data[(i * isize_g[1] + j) * isize[2]],
-					isize[2] * sizeof(Real));
-			reg::gencpy(
-					&ghost_data_z[(i * isize_g[1] + j) * isize_g[2] + g_size
-							+ isize[2]],
-					&ghost_data[(i * isize_g[1] + j) * isize[2]],
-					g_size * sizeof(Real));
+					        &ghost_data[(i * isize_g[1] + j) * isize[2]],
+					        isize[2] * sizeof(Real));
+
+			reg::gencpy(&ghost_data_z[(i * isize_g[1] + j) * isize_g[2] + g_size + isize[2]],
+					        &ghost_data[(i * isize_g[1] + j) * isize[2]],
+					        g_size * sizeof(Real));
 		}
 	return;
 }
@@ -474,12 +541,10 @@ void ghost_z(Real *ghost_data_z, T ghost_data, int g_size, int* isize_g,
 size_t accfft_ghost_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 		int * isize_g, int* istart_g) {
     
-    PetscPrintf(PETSC_COMM_WORLD, "\ninside accfft_ghost");
 	size_t alloc_max = plan->alloc_max;
 	int *isize = plan->isize;
 	int *istart = plan->istart;
 	int* n = plan->N;
-    PetscPrintf(PETSC_COMM_WORLD, "\nnx[0] = %d", n[0]);
 	istart_g[2] = istart[2];
 	isize_g[2] = isize[2];
     
@@ -561,6 +626,55 @@ void accfft_get_ghost(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
 
 }
 
+void share_ghost_layer_xy(FFTPlanType* plan, int g_size, int* isize_g, Real* data,
+		Real* ghost_data, double* timers, Real* padded_data) {
+	int nprocs, procid;
+	MPI_Comm_rank(plan->c_comm, &procid);
+	MPI_Comm_size(plan->c_comm, &nprocs);
+  //double timers[4] = {0, 0, 0, 0};
+
+	if (plan->inplace == true) {
+		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
+				<< std::endl;
+		return;
+	}
+
+	if (g_size == 0) {
+		memcpy(ghost_data, data, plan->alloc_max);
+		return;
+	}
+
+	int *isize = plan->isize;
+	//int *istart = plan->istart;
+	//int *n = plan->N;
+	if (g_size > isize[0] || g_size > isize[1]) {
+		std::cout
+				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
+				<< std::endl;
+		return;
+	}
+
+ZeitGeist_define(ghost_comm_left_right);
+ZeitGeist_define(ghost_comm_top_bottom);
+
+#if defined(REG_HAS_MPICUDA)
+  ZeitGeist_tick(ghost_comm_left_right);
+	ghost_left_right<Real*>(padded_data, data, g_size, plan, timers);
+	ZeitGeist_tock(ghost_comm_left_right);
+	ZeitGeist_tick(ghost_comm_top_bottom);
+	ghost_top_bottom<Real*>(ghost_data, padded_data, g_size, plan, timers);
+	ZeitGeist_tock(ghost_comm_top_bottom);
+#else
+  pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real>
+    (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
+	ghost_left_right(padded_data, data, g_size, plan, timers);
+	ghost_top_bottom(ghost_data, padded_data, g_size, plan, timers);
+  pvfmm::aligned_delete<Real>(padded_data);
+#endif
+	return;
+
+}
+
 /*void accfft_get_ghost(accfft_plan* plan, int g_size, int* isize_g, Real* data,
 		Real* ghost_data) {
   accfft_get_ghost((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, data, ghost_data);
@@ -602,18 +716,11 @@ size_t accfft_ghost_xyz_local_size_dft_r2c(FFTPlanType* plan, int g_size,
 	isize_g[1] = isize[1] + 2 * g_size;
 	isize_g[2] = isize[2] + 2 * g_size;
 
-  //printf("\nalloc_max = %zu", alloc_max);
-  //printf("\nisize_g[0] = %d", isize_g[0]);
-  //printf("\nisize_g[1] = %d", isize_g[1]);
-  //printf("\nisize_g[2] = %d", isize_g[2]);
-
   size_t alloc_max_g = alloc_max + 2 * g_size * isize[2] * isize[0] * sizeof(Real)
 			+ 2 * g_size * isize[2] * isize_g[1] * sizeof(Real)
 			+ 2 * g_size * isize_g[0] * isize_g[1] * sizeof(Real);
-  //printf("\nalloc_max_g before = %zu", alloc_max_g);
 
   alloc_max_g += (16*isize_g[2]*isize_g[1]+16*isize_g[1]+16)*sizeof(Real); // to account for padding required for peeled loop in interp
-  //printf("\nalloc_max_g after = %zu", alloc_max_g); 
 
   return alloc_max_g;
 }
@@ -728,6 +835,78 @@ void accfft_get_ghost_xyz(FFTPlanType* plan, int g_size, int* isize_g,
 	return;
 }
 
+void share_ghost_layer_xyz(FFTPlanType* plan, int g_size, int* isize_g,
+		Real* data, Real* ghost_data, double* timers, Real* padded_data, Real* ghost_data_xy) {
+	int nprocs, procid;
+	MPI_Comm_rank(plan->c_comm, &procid);
+	MPI_Comm_size(plan->c_comm, &nprocs);
+
+	if (plan->inplace == true) {
+		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
+				<< std::endl;
+		return;
+	}
+
+	if (g_size == 0) {
+		memcpy(ghost_data, data, plan->alloc_max);
+		return;
+	}
+
+	int *isize = plan->isize;
+	
+	if (g_size > isize[0] || g_size > isize[1]) {
+		std::cout
+				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
+				<< std::endl;
+		return;
+	}
+
+
+#if defined(REG_HAS_MPICUDA)
+	ghost_left_right<Real*>(padded_data, data, g_size, plan, timers);
+	ghost_top_bottom<Real*>(ghost_data_xy, padded_data, g_size, plan, timers);
+	ghost_z<Real*>(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
+#else
+  pvfmm::Iterator<Real> padded_data = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0]);
+  pvfmm::Iterator<Real> ghost_data_xy = pvfmm::aligned_new<Real> (plan->alloc_max + 2 * g_size * isize[2] * isize[0] + 2 * g_size * isize[2] * isize_g[1]);
+	ghost_left_right<pvfmm::Iterator<Real>>(padded_data, data, g_size, plan, timers);
+	ghost_top_bottom(ghost_data_xy, padded_data, g_size, plan, timers);
+	ghost_z(&ghost_data[0], ghost_data_xy, g_size, isize_g, plan);
+#endif
+
+
+//#ifdef VERBOSE2
+#if defined(VERBOSE3) && !defined(REG_HAS_MPICUDA)
+	if(procid==0) {
+		std::cout<<"\n final ghost data\n";
+		for (int i=0;i<isize_g[0];++i) {
+			for (int j=0;j<isize_g[1];++j) {
+			    for (int k=0;k<isize_g[2];++k) {
+			        int idx = reg::GetLinearIndex(i,j,k,isize_g);
+                    //std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]]<<" ";
+                    std::cout<<ghost_data[idx]<<" ";
+                }
+                std::cout<<"\n";
+            }
+            std::cout<<"\n\n";
+        }
+   /* 
+		std::cout<<"\n a random z\n";
+		int i=3+0*isize_g[0]/2;
+		int j=3+0*isize_g[1]/2;
+		for(int k=0;k<isize_g[2];++k)
+		std::cout<<ghost_data[(i*isize_g[1]+j)*isize_g[2]+k]<<" ";
+		std::cout<<"\n";
+		*/
+	}
+#endif
+
+#if !defined(REG_HAS_MPICUDA)
+  pvfmm::aligned_delete<Real>(padded_data);
+  pvfmm::aligned_delete<Real>(ghost_data_xy);
+#endif
+	return;
+}
 /*void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 		Real* data, Real* ghost_data) {
   accfft_get_ghost_xyz((accfft_plan_t<Real, TC, PL>*)plan, g_size, isize_g, data, ghost_data);

@@ -272,7 +272,7 @@ inline bool OnMaster() {
     int rank;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     return (rank == 0);
-}
+};
 
 
 }   // namespace reg

@@ -62,7 +62,7 @@ struct Interp3_Plan_GPU{
   size_t g_alloc_max; // size in bytes of the ghost input
   int N_reg_g[3];
   int isize_g[3];
-  int total_query_points;
+  int total_query_points, total_query_points_prev;
   int data_dof;
   size_t all_query_points_allocation;
   MPI_Datatype *stype,*rtype;
@@ -80,6 +80,8 @@ struct Interp3_Plan_GPU{
   thrust::device_vector<int> *f_index;
   thrust::device_vector<Real> *query_outside;
 
+  int* which_proc;
+  Real *query_points_x, *query_points_y, *query_points_z;
   bool allocate_baked;
   bool scatter_baked;
 
@@ -99,6 +101,7 @@ void gpu_par_interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
               Real* query_values,int* c_dims,MPI_Comm c_comm);
 
 void get_count(int* arr, int size, int val, int* count);
+void print_norm(ScalarType* arr, int N);
 
 void test_count();
 
