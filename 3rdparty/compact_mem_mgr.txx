@@ -1,3 +1,4 @@
+#include <cstring>
 
 // Written by Dhairya Malhotra
 // Modified by Amir Gholami
@@ -560,7 +561,7 @@ namespace pvfmm{
       ptr[0];
       ptr[num-1];
 #endif
-      ::memset ( &ptr[0], value, num*sizeof(ValueType) );
+      std::memset ( &ptr[0], value, num*sizeof(ValueType) );
     }
     return ptr;
   }
