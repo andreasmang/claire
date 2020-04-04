@@ -184,8 +184,14 @@ void Interp3_Plan_GPU::allocate (int N_pts, int data_dof)
   s_request= new MPI_Request[nprocs];
   request= new MPI_Request[nprocs];
     
-  f_index = new thrust::device_vector<int> [nprocs];
-  query_outside=new thrust::device_vector<Real> [nprocs];
+  //f_index = new thrust::device_vector<int> [nprocs];
+  //query_outside=new thrust::device_vector<Real> [nprocs];
+
+  query_outside = thrust::device_malloc<Real>(COORD_DIM*N_pts);
+  f_index = thrust::device_malloc<int>(N_pts);
+  num_query_per_proc.resize(nprocs);
+  query_outside_offset.resize(nprocs);
+  f_index_offset.resize(nprocs);
 
   //thrust::device_vector<int> f_index(N_pts);
   //thrust::device_vector<Real> query_outside(COORD_DIM*N_pts);
@@ -238,15 +244,15 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
     delete(s_request);
     delete(request);
     //vectors
-    for(int proc=0;proc<nprocs;++proc)
-    {
-      thrust::device_vector<int>().swap(f_index[proc]);
-      thrust::device_vector<Real>().swap(query_outside[proc]);
-    }
-
-    //free(f_cubic_unordered);
+    //for(int proc=0;proc<nprocs;++proc)
+    //{
+    //  thrust::device_vector<int>().swap(f_index[proc]);
+    //  thrust::device_vector<Real>().swap(query_outside[proc]);
+    //}
     cudaFree(f_cubic_unordered_d);
 
+    thrust::device_free(f_index);
+    thrust::device_free(query_outside);
   }
 
   if(this->scatter_baked) {
@@ -413,6 +419,8 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     ZeitGeist_define(scatter_memalloc);
     
     // loop over all procs
+    f_index_offset[0] = 0;
+    query_outside_offset[0] = 0;
     for (int proc=0; proc<nprocs; ++proc) {
         // count how many points belong to proc, will be useful in memory allocation
         ZeitGeist_tick(scatter_create_mpi_buffer);
@@ -422,34 +430,44 @@ void Interp3_Plan_GPU::scatter( int data_dof,
         //if (procid==0)
         //PetscPrintf(PETSC_COMM_WORLD, "proc 0 sending %d points to proc %d\n", coords_in_proc, proc);
         
+        num_query_per_proc[proc] = coords_in_proc;
+        if (proc < nprocs-1) {
+          f_index_offset[proc+1] = f_index_offset[proc] + coords_in_proc;
+          query_outside_offset[proc+1] = query_outside_offset[proc] + coords_in_proc*COORD_DIM;
+        }
+
+
         if (coords_in_proc > 0) {
             // allocate the required memory for f_index[proc]
             ZeitGeist_tick(scatter_memalloc);
-            if (f_index[proc].capacity() < coords_in_proc) {
-              f_index[proc].reserve(coords_in_proc);
-              f_index[proc].resize(coords_in_proc);
-            }
+            //if (f_index[proc].capacity() < coords_in_proc) {
+            //  f_index[proc].reserve(coords_in_proc);
+            //  f_index[proc].resize(coords_in_proc);
+            //}
             ZeitGeist_tock(scatter_memalloc);
             // get indices of coordinates which belong to this proc and store in f_index[proc]
 
             ZeitGeist_tick(scatter_create_mpi_buffer);
-            thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index[proc].begin(), is_equal(proc));
+            //thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index[proc].begin(), is_equal(proc));
+            thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index+f_index_offset[proc], is_equal(proc));
             ZeitGeist_tock(scatter_create_mpi_buffer);
           
             ZeitGeist_tick(scatter_memalloc);
-            if (query_outside[proc].capacity() < 3*coords_in_proc) { 
-              query_outside[proc].reserve(3*coords_in_proc);
-              query_outside[proc].resize(3*coords_in_proc);
-            }
+            //if (query_outside[proc].capacity() < 3*coords_in_proc) { 
+            //  query_outside[proc].reserve(3*coords_in_proc);
+            //  query_outside[proc].resize(3*coords_in_proc);
+            //}
             ZeitGeist_tock(scatter_memalloc);
 
             ZeitGeist_tick(scatter_create_mpi_buffer);
-            strided_range<Iterator> strided_x(query_outside[proc].begin(),   query_outside[proc].end(), COORD_DIM);
-            strided_range<Iterator> strided_y(query_outside[proc].begin()+1, query_outside[proc].end(), COORD_DIM);
-            strided_range<Iterator> strided_z(query_outside[proc].begin()+2, query_outside[proc].end(), COORD_DIM);
-            //thrust::copy_if(thrust::device, query_points_x_ptr, query_points_x_ptr+N_pts, which_proc_ptr, strided_x.begin(), is_equal(proc));
-            //thrust::copy_if(thrust::device, query_points_y_ptr, query_points_y_ptr+N_pts, which_proc_ptr, strided_y.begin(), is_equal(proc));
-            //thrust::copy_if(thrust::device, query_points_z_ptr, query_points_z_ptr+N_pts, which_proc_ptr, strided_z.begin(), is_equal(proc));
+            //strided_range<Iterator> strided_x(query_outside[proc].begin(),   query_outside[proc].end(), COORD_DIM);
+            //strided_range<Iterator> strided_y(query_outside[proc].begin()+1, query_outside[proc].end(), COORD_DIM);
+            //strided_range<Iterator> strided_z(query_outside[proc].begin()+2, query_outside[proc].end(), COORD_DIM);
+            
+            // check the end iterator properly
+            strided_range<Iterator> strided_x(query_outside+query_outside_offset[proc],   query_outside+query_outside_offset[proc]+coords_in_proc*COORD_DIM, COORD_DIM);
+            strided_range<Iterator> strided_y(query_outside+query_outside_offset[proc]+1, query_outside+query_outside_offset[proc]+coords_in_proc*COORD_DIM, COORD_DIM);
+            strided_range<Iterator> strided_z(query_outside+query_outside_offset[proc]+2, query_outside+query_outside_offset[proc]+coords_in_proc*COORD_DIM, COORD_DIM);
             thrust::copy_if(thrust::device, 
                             thrust::make_zip_iterator(thrust::make_tuple(query_points_x_ptr, query_points_y_ptr, query_points_z_ptr)), 
                             thrust::make_zip_iterator(thrust::make_tuple(query_points_x_ptr+N_pts, query_points_y_ptr+N_pts, query_points_z_ptr+N_pts)), 
@@ -468,11 +486,15 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     // command as well as memory allocation for received data.
     // So we first do an alltoall to get the f_index[proc].size from all processes.
 
+    //for (int proc=0;proc<nprocs;proc++) {
+    //  if(!f_index[proc].empty())
+    //    f_index_procs_self_sizes[proc]=f_index[proc].size();
+    //  else
+    //    f_index_procs_self_sizes[proc]=0;
+    //}
+    
     for (int proc=0;proc<nprocs;proc++) {
-      if(!f_index[proc].empty())
-        f_index_procs_self_sizes[proc]=f_index[proc].size();
-      else
-        f_index_procs_self_sizes[proc]=0;
+        f_index_procs_self_sizes[proc]=num_query_per_proc[proc];
     }
     ZeitGeist_define(scatter_comm_query_size);
     ZeitGeist_tick(scatter_comm_query_size);
@@ -550,18 +572,21 @@ void Interp3_Plan_GPU::scatter( int data_dof,
       dst_s=i;//(procid-i+nprocs)%nprocs;
       s_request[dst_s]=MPI_REQUEST_NULL;
       request[dst_r]=MPI_REQUEST_NULL;
-      ScalarType* src_ptr = thrust::raw_pointer_cast(query_outside[dst_s].data());
+      //ScalarType* src_ptr = thrust::raw_pointer_cast(query_outside[dst_s].data());
+      ScalarType* src_ptr = thrust::raw_pointer_cast(query_outside + query_outside_offset[dst_s]);
       int roffset=f_index_procs_others_offset[dst_r]*COORD_DIM; // notice that COORD_DIM is needed because query_points are 3 times f
       if (i != procid) {
         //int soffset=f_index_procs_self_offset[dst_s]*COORD_DIM;
         if(f_index_procs_others_sizes[dst_r]!=0)
           MPI_Irecv(&all_query_points_d[roffset], f_index_procs_others_sizes[dst_r]*COORD_DIM,MPI_T, dst_r, 0, c_comm, &request[dst_r]);
 
-        if(!query_outside[dst_s].empty())
+        //if(!query_outside[dst_s].empty())
+        if(num_query_per_proc[dst_s] > 0)
           MPI_Isend(src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM, MPI_T, dst_s, 0, c_comm, &s_request[dst_s]);
 
       } else {
-        if (!query_outside[dst_s].empty())
+        //if (!query_outside[dst_s].empty())
+        if (num_query_per_proc[dst_s] > 0)
           reg::gencpy(&all_query_points_d[roffset], src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM*sizeof(ScalarType));
       }
     }
@@ -583,8 +608,8 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   }
 
   for(int i=0;i<nprocs;++i){
-    MPI_Type_vector(data_dof,f_index_procs_self_sizes[i], N_pts, MPI_T, &rtype[i]);
-    MPI_Type_vector(data_dof,f_index_procs_others_sizes[i], total_query_points, MPI_T, &stype[i]);
+    MPI_Type_vector(data_dof, f_index_procs_self_sizes[i], N_pts, MPI_T, &rtype[i]);
+    MPI_Type_vector(data_dof, f_index_procs_others_sizes[i], total_query_points, MPI_T, &stype[i]);
     MPI_Type_commit(&stype[i]);
     MPI_Type_commit(&rtype[i]);
   }
@@ -725,7 +750,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   // Now copy back f_cubic_unordered_d to query_values_d in the correct f_index
   for(int dof=0;dof<data_dof;++dof) {
     for(int proc=0;proc<nprocs;++proc) {
-      if(!f_index[proc].empty()) {
+      //if(!f_index[proc].empty()) {
+      if(num_query_per_proc[proc] > 0) {
           //for (int i=0; i<f_index[proc].size(); ++i) {
           //int ind=f_index[proc][i];
           //query_values_d[ind+dof*N_pts]=f_cubic_unordered_d[f_index_procs_self_offset[proc]+i+dof*N_pts];
@@ -733,11 +759,12 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
           //PetscSynchronizedPrintf(PETSC_COMM_WORLD, "[%d] proc = %d, f_index[proc].size()=%d\n", procid, proc, f_index[proc].size());
           //PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
           //f_index[proc] = f_index[proc];
-          f_index_ptr = thrust::raw_pointer_cast( f_index[proc].data() );
+          f_index_ptr = thrust::raw_pointer_cast( f_index + f_index_offset[proc] );
           copyQueryValues(&query_values_d[dof*N_pts],
                           &f_cubic_unordered_d[f_index_procs_self_offset[proc]+dof*N_pts], 
                           f_index_ptr, 
-                          f_index[proc].size());
+                          //f_index[proc].size());
+                          num_query_per_proc[proc]);
       }
     }
   }

@@ -77,8 +77,15 @@ struct Interp3_Plan_GPU{
   MPI_Request * s_request;
   MPI_Request * request;
 
-  thrust::device_vector<int> *f_index;
-  thrust::device_vector<Real> *query_outside;
+  //thrust::device_vector<int> *f_index;
+  //thrust::device_vector<Real> *query_outside;
+  thrust::device_ptr<Real> query_outside;
+  thrust::device_ptr<int> f_index;
+  // vector to store number of query points in each proc
+  thrust::host_vector<int> num_query_per_proc;
+  thrust::host_vector<int> query_outside_offset;
+  thrust::host_vector<int> f_index_offset;
+
 
   int* which_proc;
   Real *query_points_x, *query_points_y, *query_points_z;
