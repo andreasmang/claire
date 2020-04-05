@@ -579,7 +579,7 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
 
     // set up MPI/cartesian grid
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
-    np = c_grid[0]*c_grid[1];
+    np = c_grid[1]*c_grid[1];
     if (np != nprocs) {
         // update cartesian grid layout
         c_grid[0] = 0; c_grid[1] = 0;

@@ -450,7 +450,8 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   p_fghost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
 #endif
 
-  int repcount = 0;
+  int repcount = 5;
+  int nt = 4;
   
   ZeitGeist_define(overall);
   ZeitGeist_define(interp_overall);
@@ -470,7 +471,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
     ZeitGeist_tock(scatter_overall);
     
-    for (int j=0; j<1; j++) {
+    for (int j=0; j<nt; j++) {
       ZeitGeist_tick(ghost_overall);
       if (j>0) {
         ierr = VecCUDAGetArray(fout, &p_f);  CHKERRQ(ierr);

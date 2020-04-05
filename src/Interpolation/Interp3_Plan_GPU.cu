@@ -205,7 +205,7 @@ void Interp3_Plan_GPU::allocate (int N_pts, int data_dof)
   cudaMalloc((void**)&query_points_y, sizeof(Real)*N_pts);
   cudaMalloc((void**)&query_points_z, sizeof(Real)*N_pts);
   cudaMalloc((void**)&which_proc, sizeof(int)*N_pts);
-
+    
   //double time=0;
   //time=-MPI_Wtime();
 
@@ -515,7 +515,7 @@ void Interp3_Plan_GPU::scatter( int data_dof,
     for (int proc=0;proc<nprocs;++proc) {
       // The reason we multiply by COORD_DIM is that we have three coordinates per interpolation request
       all_query_points_allocation+=f_index_procs_others_sizes[proc]*COORD_DIM;
-      if(proc>0){
+      if(proc>0) {
         f_index_procs_others_offset[proc]=f_index_procs_others_offset[proc-1]+f_index_procs_others_sizes[proc-1];
         f_index_procs_self_offset[proc]=f_index_procs_self_offset[proc-1]+f_index_procs_self_sizes[proc-1];
       }
@@ -532,33 +532,59 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   // without having to create a new plan
   ZeitGeist_tick(scatter_memalloc);
   if(this->scatter_baked==true) {
-    // freeing the cuda memory is required everytime scatter is called because the distribution of query points might not be uniform across all GPUs
-    cudaFree(all_f_cubic_d);
-    cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
     
-    cudaFree(all_query_points_d);
-    cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
-    
-    cudaFree(xq1);
-    cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
-    
-    cudaFree(xq2);
-    cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
-    
-    cudaFree(xq3);
-    cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
-    
+    if (total_query_points > max_query_points_capacity) {
+      // Modify the max memory estimate by increasing neighbour query width by 1 until the requrement is reached
+      while (total_query_points > max_query_points_capacity) {
+        neighbour_query_width++;
+        max_query_points_capacity = (isize[0]+2*neighbour_query_width)*(isize[1]+2*neighbour_query_width)*isize[2]; 
+      }
+      cudaFree(all_f_cubic_d);
+      cudaMalloc((void**)&all_f_cubic_d, max_query_points_capacity*sizeof(Real)*data_dof);
+      cudaFree(all_query_points_d);
+      cudaMalloc((void**)&all_query_points_d, max_query_points_capacity*COORD_DIM*sizeof(Real) );
+      cudaFree(xq1);
+      cudaMalloc((void**)&xq1, max_query_points_capacity*sizeof(Real));
+      cudaFree(xq2);
+      cudaMalloc((void**)&xq2, max_query_points_capacity*sizeof(Real));
+      cudaFree(xq3);
+      cudaMalloc((void**)&xq3, max_query_points_capacity*sizeof(Real));
+      
+      // freeing the cuda memory is required everytime scatter is called because the distribution of query points might not be uniform across all GPUs
+      //cudaFree(all_f_cubic_d);
+      //cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
+      //
+      //cudaFree(all_query_points_d);
+      //cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
+      //
+      //cudaFree(xq1);
+      //cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
+      //
+      //cudaFree(xq2);
+      //cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
+      //
+      //cudaFree(xq3);
+      //cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
+    }
   }
   else {
-    cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
+    // Make an estimate on the number of query points which the current process expects to receive
+    // from neighbouring processes
+    neighbour_query_width = g_size;
+    // change this if using a slab decomposition TODO
+    max_query_points_capacity = (isize[0]+2*neighbour_query_width)*(isize[1]+2*neighbour_query_width)*isize[2]; 
+
+    cudaMalloc((void**)&all_f_cubic_d, max_query_points_capacity*sizeof(Real)*data_dof);
+    cudaMalloc((void**)&all_query_points_d, max_query_points_capacity*COORD_DIM*sizeof(Real) );
+    cudaMalloc((void**)&xq1, max_query_points_capacity*sizeof(Real));
+    cudaMalloc((void**)&xq2, max_query_points_capacity*sizeof(Real));
+    cudaMalloc((void**)&xq3, max_query_points_capacity*sizeof(Real));
     
-    cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
-    
-    cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
-    
-    cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
-    
-    cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
+    //cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
+    //cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
+    //cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
+    //cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
+    //cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
   }
   ZeitGeist_tock(scatter_memalloc);  
 

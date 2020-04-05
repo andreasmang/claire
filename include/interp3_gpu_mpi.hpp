@@ -62,7 +62,7 @@ struct Interp3_Plan_GPU{
   size_t g_alloc_max; // size in bytes of the ghost input
   int N_reg_g[3];
   int isize_g[3];
-  int total_query_points, total_query_points_prev;
+  int total_query_points;
   int data_dof;
   size_t all_query_points_allocation;
   MPI_Datatype *stype,*rtype;
@@ -85,6 +85,8 @@ struct Interp3_Plan_GPU{
   thrust::host_vector<int> num_query_per_proc;
   thrust::host_vector<int> query_outside_offset;
   thrust::host_vector<int> f_index_offset;
+  int neighbour_query_width;
+  size_t max_query_points_capacity;
 
 
   int* which_proc;
