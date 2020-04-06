@@ -64,21 +64,14 @@ PetscErrorCode SpectralKernel::Scale(ComplexType *pX, ScalarType val) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf, const IntType nxc[3]) {
+PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf, const IntType nxc[3], const IntType ostart_c[3]) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]) {
-  PetscErrorCode ierr = 0;
-  PetscFunctionBegin;
-  
-  PetscFunctionReturn(ierr);
-}
-
-PetscErrorCode SpectralKernel::ProlongNonZero(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]) {
+PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3],  const IntType ostart_c[3]) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   

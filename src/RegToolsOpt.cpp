@@ -727,6 +727,8 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
             flag = this->m_FileNames.iv1.empty()
                 || this->m_FileNames.iv2.empty()
                 || this->m_FileNames.iv3.empty() ? 0 : 2;
+        } else {
+          flag = this->m_FileNames.xsc.empty() ? 1 : -1;
         }
 
 
@@ -755,6 +757,8 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
                 extension = this->m_FileNames.extension;
             }
             this->m_FileNames.xv3 = path + "/" + "resampled_" + filename + extension;
+        } else if (flag == -1) {
+          // filename already set
         } else {
             msg = "\x1b[31m resampling requires input vector or scalar field \x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);

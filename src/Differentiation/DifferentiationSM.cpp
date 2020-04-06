@@ -666,12 +666,16 @@ PetscErrorCode DifferentiationSM::Restrict(ScalarType* vc, const ScalarType* vf,
   ComplexType **pXHat = this->m_SpectralKernel.pXHat;
   PetscFunctionBegin;
   
+  ZeitGeist_define(FFT_RESTRICT);
+  ZeitGeist_tick(FFT_RESTRICT);
   ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
   
   this->m_FFT->fft->FFT_R2C(vf, pXHat[0]);
-  this->m_FFT->fft->Restrict(pXHat[1], pXHat[0], coarse->osize);
+  this->m_FFT->fft->Restrict(pXHat[1], pXHat[0], coarse->nx, coarse->osize, coarse->ostart);
   coarse->fft->Scale(pXHat[1], scale);
   coarse->fft->FFT_C2R(pXHat[1], vc);
+  
+  ZeitGeist_tock(FFT_RESTRICT);
   
   PetscFunctionReturn(ierr);
 }
@@ -680,14 +684,19 @@ PetscErrorCode DifferentiationSM::Prolong(ScalarType* vf, const ScalarType* vc, 
   ComplexType **pXHat = this->m_SpectralKernel.pXHat;
   PetscFunctionBegin;
   
+  ZeitGeist_define(FFT_PROLONG);
+  ZeitGeist_tick(FFT_PROLONG);
+  
   ScalarType scale = 1./(coarse->nx[0]*coarse->nx[1]*coarse->nx[2]);
   
   coarse->fft->FFT_R2C(vc, pXHat[0]);
-  this->m_FFT->fft->FFT_R2C(vf, pXHat[1]);
+  //this->m_FFT->fft->FFT_R2C(vf, pXHat[1]);
   coarse->fft->Scale(pXHat[0], scale);
-  this->m_FFT->fft->Scale(pXHat[1], 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]));
-  this->m_FFT->fft->ProlongNonZero(pXHat[1], pXHat[0], coarse->osize);
+  //this->m_FFT->fft->Scale(pXHat[1], 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]));
+  this->m_FFT->fft->Prolong(pXHat[1], pXHat[0], coarse->nx, coarse->osize, coarse->ostart);
   this->m_FFT->fft->FFT_C2R(pXHat[1], vf);
+  
+  ZeitGeist_tock(FFT_PROLONG);
   
   PetscFunctionReturn(ierr);
 }

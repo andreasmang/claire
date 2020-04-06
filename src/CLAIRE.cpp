@@ -1143,7 +1143,9 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       }
     }
     
-    if (!twolevel) {
+    bool pre = true;
+    
+    if (!twolevel || pre) {
       ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
       ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
@@ -1281,7 +1283,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         //ierr = this->m_WorkVecField5->AXPY(1.,this->m_WorkVecField4); CHKERRQ(ierr);
       }
       
-    if (sqrt(cg_r) < cg_eps*normref && t < 1)  {
+    if (this->m_Opt->m_Verbosity > 1 && sqrt(cg_r) < cg_eps*normref)  {
       std::stringstream ss;
       ss << "PC converged: " << i;
       ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
@@ -1298,7 +1300,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = diff->SetFFT(&this->m_Opt->m_FFT); CHKERRQ(ierr);
       
       ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField3->Scale(1./beta); CHKERRQ(ierr);
+      //ierr = this->m_WorkVecField3->Scale(1./beta); CHKERRQ(ierr);
       
       ScalarType *pvec[3], *ovec[3];
       ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
@@ -1315,10 +1317,9 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       
       kernel.nl = this->m_Opt->m_Domain.nl;
       
-      cg_eps = 1.;
+      cg_eps = 1;
       
       twolevel = false;
-      break;
     } else {
       break;
     }

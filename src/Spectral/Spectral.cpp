@@ -108,6 +108,10 @@ PetscErrorCode Spectral::SetDomain() {
         this->m_Opt->m_Domain.nl *= this->m_Opt->m_Domain.isize[i];
         this->m_Opt->m_Domain.ng *= this->m_Opt->m_Domain.nx[i];
     }
+    int np[2], periods[2], coord[2];
+    MPI_Cart_get(this->m_Opt->m_Domain.mpicomm, 2, np, periods, coord);
+    MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[0], coord[1], &this->m_Opt->m_Domain.rowcomm);
+    MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[1], coord[0], &this->m_Opt->m_Domain.colcomm);
 #else
     int isize[3], istart[3], osize[3], ostart[3];
     // get sizes (n is an integer, so it can overflow)
@@ -147,19 +151,19 @@ PetscErrorCode Spectral::SetupFFT() {
 #else
       ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, false); CHKERRQ(ierr);
 #endif
-      int np[2], periods[2], coord[2];
-      size_t osize[3], ostart[3];
+      size_t osize[3], ostart[3], isize[3], istart[3];
       this->m_plan->initFFT(nx[0], nx[1], nx[2], true);
       this->m_FFT->nalloc = this->m_plan->getDomainSize();
       this->m_plan->getOutSize(osize);
       this->m_plan->getOutStart(ostart);
+      this->m_plan->getInSize(isize);
+      this->m_plan->getInStart(istart);
       for (int i = 0; i < 3; ++i) {
         this->m_FFT->osize[i] = static_cast<IntType>(osize[i]);
         this->m_FFT->ostart[i] = static_cast<IntType>(ostart[i]);
+        this->m_FFT->isize[i] = static_cast<IntType>(osize[i]);
+        this->m_FFT->istart[i] = static_cast<IntType>(ostart[i]);
       }
-      MPI_Cart_get(this->m_Opt->m_Domain.mpicomm, 2, np, periods, coord);
-      MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[0], coord[1], &this->m_Opt->m_Domain.rowcomm);
-      MPI_Comm_split(this->m_Opt->m_Domain.mpicomm, coord[1], coord[0], &this->m_Opt->m_Domain.colcomm);
     }
 #else
     {
@@ -170,6 +174,8 @@ PetscErrorCode Spectral::SetupFFT() {
       for (int i = 0; i < 3; ++i) {
         this->m_FFT.osize[i]  = static_cast<IntType>(osize[i]);
         this->m_FFT.ostart[i] = static_cast<IntType>(ostart[i]);
+        this->m_FFT.isize[i]  = static_cast<IntType>(isize[i]);
+        this->m_FFT.istart[i] = static_cast<IntType>(istart[i]);
       }
       
       std::stringstream ss;
@@ -302,14 +308,11 @@ PetscErrorCode Spectral::HighPassFilter(ComplexType *xHat, ScalarType pct) {
 /********************************************************************
  * @brief Restrict to lower Grid
  *******************************************************************/
-PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, const IntType nxc[3]) {
+PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    IntType nx_c[3];
-    nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
-    
-    ierr = this->m_kernel.Restrict(xc, xf, nx_c); CHKERRQ(ierr);
+    ierr = this->m_kernel.Restrict(xc, xf, nx_c, osize_c, ostart_c); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }
@@ -317,29 +320,11 @@ PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, const 
 /********************************************************************
  * @brief Prolong from lower Grid
  *******************************************************************/
-PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]) {
+PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    IntType nx_c[3];
-    nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
-    
-    ierr = this->m_kernel.Prolong(xf, xc, nx_c); CHKERRQ(ierr);
-
-    PetscFunctionReturn(ierr);
-}
-
-/********************************************************************
- * @brief Prolong from lower Grid without resetting xf to 0
- *******************************************************************/
-PetscErrorCode Spectral::ProlongNonZero(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]) {
-    PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
-    
-    IntType nx_c[3];
-    nx_c[0] = nxc[0]; nx_c[1] = nxc[1]; nx_c[2] = nxc[2];
-    
-    ierr = this->m_kernel.ProlongNonZero(xf, xc, nx_c); CHKERRQ(ierr);
+    ierr = this->m_kernel.Prolong(xf, xc, nx_c, osize_c, ostart_c); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
 }

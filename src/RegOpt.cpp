@@ -1161,6 +1161,8 @@ PetscErrorCode RegOpt::Initialize() {
 
     this->m_FFT = {};
     this->m_FFT.fft = nullptr;
+    this->m_FFT_coarse = {};
+    this->m_FFT_coarse.fft = nullptr;
 //    this->m_FFT.plan = NULL;
     this->m_FFT.osize[0] = 0;
     this->m_FFT.osize[1] = 0;

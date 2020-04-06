@@ -42,6 +42,7 @@ struct GridData {
     //accfft_plan* fftplan;
     //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* fftplan;  ///< accfft plan
     FFTPlanType* fftplan;  ///< accfft plan
+    
 
     IntType nx[3];
     IntType osize[3];
@@ -101,6 +102,11 @@ class Preprocessing {
     RegOpt* m_Opt;
     RegOpt* m_OptCoarse;
     ReadWriteType* m_ReadWrite;
+    
+    FourierTransform *m_fine_fft;
+    FourierTransform *m_coarse_fft;
+    
+    FourierTransform *m_transform_fft;
 
     std::vector< std::vector<IntType> > m_IndicesF;
     std::vector< std::vector<IntType> > m_IndicesC;

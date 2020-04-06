@@ -430,6 +430,8 @@ struct FourierTransform {
     IntType nx[3];      ///< spatial grid cell size
     IntType osize[3];   ///< size of grid in fourier domain for mpi proc
     IntType ostart[3];  ///< start index in fourier domain for mpi proc
+    IntType isize[3];  ///< start index in real domain for mpi proc
+    IntType istart[3];  ///< start index in real domain for mpi proc
     ScalarType threshold; ///< threshold to cut of frequencies to zero
 };
 

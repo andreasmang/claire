@@ -50,9 +50,8 @@ class Spectral {
     PetscErrorCode LowPassFilter(ComplexType *xHat, ScalarType pct);
     PetscErrorCode HighPassFilter(ComplexType *xHat, ScalarType pct);
     
-    PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, const IntType nxc[3]);
-    PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]);
-    PetscErrorCode ProlongNonZero(ComplexType *xf, const ComplexType *xc, const IntType nxc[3]);
+    PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]);
+    PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, const IntType nx_c[3],  const IntType osize_c[3], const IntType ostart_c[3]);
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     

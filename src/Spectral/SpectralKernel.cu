@@ -85,141 +85,72 @@ __global__ void FilterKernel(int3 wave, int3 nl, ComplexType *x, int3 nxc) {
   }
 }
 
-PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf, const IntType nxc[3]) {
+PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf, 
+                                        const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  cudaMemset(pXc, 0, sizeof(ComplexType)*nxc[0]*nxc[1]*nxc[2]);
-  /*for (int x = 0; x < nxc[0]; ++x) {
-    for (int y = 0; y < nxc[1]; ++y) {
-      int idx_c, idx_f;
-      idx_c = y*nxc[2] + x*nxc[2]*nxc[1];
-      idx_f = y*nl[2] + x*nl[2]*nl[1];
-      if (y > nxc[1]/2)
-        idx_f += (nl[1] - nxc[1])*nl[2];
-      if (x > nxc[0]/2)
-        idx_f += (nl[0] - nxc[0])*nl[2]*nl[1];
-      if (x != nxc[0]/2 && y != nxc[1]/2)
-        cudaMemcpyAsync(&pXc[idx_c], &pXf[idx_f], sizeof(ComplexType)*(nxc[2]-1), cudaMemcpyDeviceToDevice);
-    }
-  }*/
+  cudaMemset(pXc, 0, sizeof(ComplexType)*osize_c[0]*osize_c[1]*osize_c[2]);
   
-  cudaMemcpy3DParms params = {0};
-  params.kind = cudaMemcpyDeviceToDevice;
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(pXf)), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(pXc), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2, nxc[0]/2);
-  cudaMemcpy3D(&params);
-  size_t offset_f, offset_c;
-  offset_f = (nl[1]-(nxc[1]/2) + 1)*nl[2];
-  offset_c = (nxc[1]/2+1)*nxc[2];
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(&pXf[offset_f])), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(&pXc[offset_c]), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2-1, nxc[0]/2-1);
-  cudaMemcpy3D(&params);
-  offset_f = (nl[0]-(nxc[0]/2) + 1)*nl[2]*nl[1];
-  offset_c = (nxc[0]/2+1)*nxc[2]*nxc[1];
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(&pXf[offset_f])), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(&pXc[offset_c]), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2, nxc[0]/2-1);
-  cudaMemcpy3D(&params);
-  offset_f = (nl[1]-(nxc[1]/2) + 1)*nl[2] + (nl[0]-(nxc[0]/2) + 1)*nl[2]*nl[1];
-  offset_c = (nxc[1]/2+1)*nxc[2] + (nxc[0]/2+1)*nxc[2]*nxc[1];
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(&pXf[offset_f])), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(&pXc[offset_c]), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2-1, nxc[0]/2-1);
-  cudaMemcpy3D(&params);
+  size_t pitch_f = nl[2]*sizeof(ComplexType);
+  size_t pitch_c = osize_c[2]*sizeof(ComplexType);
+  size_t width = (osize_c[2]-1)*sizeof(ComplexType);
+  size_t height = osize_c[1]/2;
+  
+  // width always fits in pencil or slab decomposition;
+  
+  for (IntType x=0; x<osize_c[0]/2; ++x) {
+    size_t offset_c = osize_c[2]*osize_c[1]*x;
+    size_t offset_f = nl[2]*nl[1]*x;
+    cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
+    offset_c += osize_c[2]*(osize_c[1] - height);
+    offset_f += nl[2]*(nl[1] - height);
+    cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
+  }
+  for (IntType x=1; x<=osize_c[0]/2; ++x) {
+    size_t offset_c = osize_c[2]*osize_c[1]*(osize_c[0]-x);
+    size_t offset_f = nl[2]*nl[1]*(nl[0]-x);
+    cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
+    offset_c += osize_c[2]*(osize_c[1] - height);
+    offset_f += nl[2]*(nl[1] - height);
+    cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
+  }
   
   cudaDeviceSynchronize();
   
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]) {
+PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc, 
+                                       const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
   cudaMemset(pXf, 0, sizeof(ComplexType)*nl[0]*nl[1]*nl[2]);
-  ierr = ProlongNonZero(pXf, pXc, nxc); CHKERRQ(ierr);
   
-  PetscFunctionReturn(ierr);
-}
+  size_t pitch_f = nl[2]*sizeof(ComplexType);
+  size_t pitch_c = osize_c[2]*sizeof(ComplexType);
+  size_t width = (osize_c[2]-1)*sizeof(ComplexType);
+  size_t height = osize_c[1]/2;
   
-  
-PetscErrorCode SpectralKernel::ProlongNonZero(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]) {
-  PetscErrorCode ierr = 0;
-  PetscFunctionBegin;
-  
-  /*cudaMemcpy3DParms params = {0};
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(static_cast<const void*>(pXc)), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.dstPtr = make_cudaPitchedPtr(static_cast<void*>(pXf), nx[2]*sizeof(ComplexType), nx[2], nx[1]);
-  params.extent =  make_cudaExtent(nxc[2], nxc[1], nxc[0]);
-  params.kind = cudaMemcpyDeviceToDevice;
-  cudaMemcpy3D(&params);*/
-  /*
-  for (int x = 0; x < nxc[0]; ++x) {
-    for (int y = 0; y < nxc[1]; ++y) {
-      int idx_c, idx_f;
-      idx_c = y * nxc[2] + x * nxc[2]*nxc[1];
-      idx_f = y * nl[2] + x * nl[2]*nl[1];
-      if (y > nxc[1]/2)
-        idx_f += (nl[1] - nxc[1])*nl[2];
-      if (x > nxc[0]/2)
-        idx_f += (nl[0] - nxc[0])*nl[2]*nl[1];
-      if (x != nxc[0]/2 && y != nxc[1]/2)
-      cudaMemcpyAsync(&pXf[idx_f], &pXc[idx_c], sizeof(ComplexType)*(nxc[2]-1), cudaMemcpyDeviceToDevice);
-    }
-  }*/
-  
-  cudaMemcpy3DParms params = {0};
-  params.kind = cudaMemcpyDeviceToDevice;
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(pXf), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(pXc)), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2, nxc[0]/2);
-  cudaMemcpy3D(&params);
-  size_t offset_f, offset_c;
-  offset_f = (nl[1]-(nxc[1]/2) + 1)*nl[2];
-  offset_c = (nxc[1]/2+1)*nxc[2];
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(&pXf[offset_f]), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(&pXc[offset_c])), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2-1, nxc[0]/2-1);
-  cudaMemcpy3D(&params);
-  offset_f = (nl[0]-(nxc[0]/2) + 1)*nl[2]*nl[1];
-  offset_c = (nxc[0]/2+1)*nxc[2]*nxc[1];
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(&pXf[offset_f]), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(&pXc[offset_c])), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2, nxc[0]/2-1);
-  cudaMemcpy3D(&params);
-  offset_f = (nl[1]-(nxc[1]/2) + 1)*nl[2] + (nl[0]-(nxc[0]/2) + 1)*nl[2]*nl[1];
-  offset_c = (nxc[1]/2+1)*nxc[2] + (nxc[0]/2+1)*nxc[2]*nxc[1];
-  params.dstPtr = make_cudaPitchedPtr(reinterpret_cast<void*>(&pXf[offset_f]), nl[2]*sizeof(ComplexType), nl[2], nl[1]);
-  params.srcPtr = make_cudaPitchedPtr(const_cast<void*>(reinterpret_cast<const void*>(&pXc[offset_c])), nxc[2]*sizeof(ComplexType), nxc[2], nxc[1]);
-  params.extent =  make_cudaExtent(nxc[2]-1, nxc[1]/2-1, nxc[0]/2-1);
-  cudaMemcpy3D(&params);
+  for (IntType x=0; x<osize_c[0]/2; ++x) {
+    size_t offset_c = osize_c[2]*osize_c[1]*x;
+    size_t offset_f = nl[2]*nl[1]*x;
+    cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);
+    offset_c += osize_c[2]*(osize_c[1] - height);
+    offset_f += nl[2]*(nl[1] - height);
+    cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);
+  }
+  for (IntType x=1; x<=osize_c[0]/2; ++x) {
+    size_t offset_c = osize_c[2]*osize_c[1]*(osize_c[0]-x);
+    size_t offset_f = nl[2]*nl[1]*(nl[0]-x);
+    cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);
+    offset_c += osize_c[2]*(osize_c[1] - height);
+    offset_f += nl[2]*(nl[1] - height);
+    cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);
+  }
   
   cudaDeviceSynchronize();
-  
-  /*dim3 block, grid;
-  if (nl[2] <= 1024 && nl[2] >= 32) {
-    block.x = (nl[2] + 31)/32;
-    block.x *= 32;
-    grid.x = 1;
-  } else {
-    block.x = 128; // 128 threads per block
-    grid.x = (nl[2] + 127)/128;  // $\lceil nl_2 / 128 \rceil$
-  }
-  grid.y = nl[1];
-  grid.z = nl[0];
-  int3 nl3, wave, nxc3;
-  wave.x = nstart[0]; wave.y = nstart[1]; wave.z = nstart[2];
-  nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
-  nxc3.x = nxc[0]; nxc3.y = nxc[1]; nxc3.z = nxc[2];
-  
-  if (nl[0]*nl[1]*nl[2] > 0) {
-    FilterKernel<<<grid, block>>>(wave, nl3, pXf, nxc3);
-    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
-    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
-  }*/
   
   PetscFunctionReturn(ierr);
 }

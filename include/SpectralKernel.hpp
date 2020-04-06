@@ -34,9 +34,10 @@ struct SpectralKernel {
   PetscErrorCode LowPassFilter(ComplexType *pXHat, ScalarType pct);
   PetscErrorCode HighPassFilter(ComplexType *pXHat, ScalarType pct);
   
-  PetscErrorCode Restrict(ComplexType *pXc, const ComplexType *pXf, const IntType nxc[3]);
-  PetscErrorCode Prolong(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]);
-  PetscErrorCode ProlongNonZero(ComplexType *pXf, const ComplexType *pXc, const IntType nxc[3]);
+  PetscErrorCode Restrict(ComplexType *pXc, const ComplexType *pXf, 
+                          const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]);
+  PetscErrorCode Prolong(ComplexType *pXf, const ComplexType *pXc, 
+                         const IntType nx_c[3],  const IntType osize_c[3], const IntType ostart_c[3]);
   
   PetscErrorCode Scale(ComplexType *pX, ScalarType val);
 };
