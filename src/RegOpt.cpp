@@ -151,7 +151,9 @@ this->m_RegNorm.type = opt.m_RegNorm.type;
     this->m_KrylovMethod.tol[1] = opt.m_KrylovMethod.tol[1];
     this->m_KrylovMethod.tol[2] = opt.m_KrylovMethod.tol[2];
     this->m_KrylovMethod.pcmaxit = opt.m_KrylovMethod.pcmaxit;
-    this->m_KrylovMethod.pctolint = opt.m_KrylovMethod.pctolint;
+    this->m_KrylovMethod.pctolint[0] = opt.m_KrylovMethod.pctolint[0];
+    this->m_KrylovMethod.pctolint[1] = opt.m_KrylovMethod.pctolint[1];
+    this->m_KrylovMethod.pctolint[2] = opt.m_KrylovMethod.pctolint[2];
     this->m_KrylovMethod.reesteigvals = opt.m_KrylovMethod.reesteigvals;
     this->m_KrylovMethod.usepetsceigest = opt.m_KrylovMethod.usepetsceigest;
     this->m_KrylovMethod.pctol[0] = opt.m_KrylovMethod.pctol[0];
@@ -757,7 +759,13 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
             }
         } else if (strcmp(argv[1], "-pctolint") == 0) {
             argc--; argv++;
-            this->m_KrylovMethod.pctolint = atof(argv[1]);
+            this->m_KrylovMethod.pctolint[0] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-pctolintpre") == 0) {
+            argc--; argv++;
+            this->m_KrylovMethod.pctolint[1] = atof(argv[1]);
+        } else if (strcmp(argv[1], "-pctolintpost") == 0) {
+            argc--; argv++;
+            this->m_KrylovMethod.pctolint[2] = atof(argv[1]);
         } else if (strcmp(argv[1], "-gridscale") == 0) {
             argc--; argv++;
             this->m_KrylovMethod.pcgridscale = atof(argv[1]);
@@ -1211,7 +1219,7 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_RegNorm.beta[0] = 1E-2;                 ///< default regularization parameter for velocity
     this->m_RegNorm.beta[1] = 1E-4;                 ///< default regularization parameter for norm (idenity)
     this->m_RegNorm.beta[2] = 1E-4;                 ///< default regularization parameter for divergence of velocity
-    this->m_RegNorm.beta[3] = 0;                    ///< not used
+    this->m_RegNorm.beta[3] = 5e-2;                 ///< used for solver of preconditioner
 
     this->m_Distance = {};
     this->m_Distance.type = SL2;                        ///< default distance measure (squared l2 distance)
@@ -1269,7 +1277,9 @@ PetscErrorCode RegOpt::Initialize() {
     this->m_KrylovMethod.g0normset = false;
     this->m_KrylovMethod.iter = 0;
     this->m_KrylovMethod.pcsolver = PCG;
-    this->m_KrylovMethod.pctolint = 1E-1;
+    this->m_KrylovMethod.pctolint[0] = 5E-2;
+    this->m_KrylovMethod.pctolint[1] = 1E-1;
+    this->m_KrylovMethod.pctolint[2] = 1E-1;
     this->m_KrylovMethod.pctolscale = 1E-1;
     //this->m_KrylovMethod.pcmaxit = 1000;
     this->m_KrylovMethod.pcmaxit = 10;

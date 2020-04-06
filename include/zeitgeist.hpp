@@ -13,6 +13,7 @@
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock()
 #define ZeitGeist_inc(NAME) NAME ## _zg.Inc()
+#define ZeitGeist_name(NAME) NAME ## _zg
 #else
 #define ZeitGeist_define(NAME)
 #define ZeitGeist_tick(NAME)
@@ -59,8 +60,8 @@ public:
     ++cnt;
     tot += usec() - tick;
   }
-  inline void Inc() {
-    ++cnt;
+  inline void Inc(int inc=1) {
+    cnt+=inc;
   }
   int64_t Tock_stat () {
     gettimeofday(&tmp_tv, NULL);
