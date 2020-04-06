@@ -25,26 +25,6 @@
 
 namespace reg {
 
-namespace UnitTest {
-  PetscErrorCode ComputeTrajectoryError(Vec &, reg::RegOpt*, int);
-  PetscErrorCode ComputeSyntheticVelocity(ScalarType*, ScalarType*, int);
-  PetscErrorCode ComputeSyntheticData(Vec& m, RegOpt* opt);
-  PetscErrorCode ComputeSyntheticData(VecField*&, RegOpt*, IntType=1);
-  PetscErrorCode ComputeDiffFunction(VecField *, VecField *, int, RegOpt*);
-  PetscErrorCode ComputeGradSpectral(ScalarType, VecField *, VecField *, RegOpt*);
-  
-  PetscErrorCode TestInterpolation(RegOpt *m_Opt);
-  PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt);
-  PetscErrorCode TestForwardSolver(RegOpt *m_Opt);
-  PetscErrorCode TestTrajectory(RegOpt *m_Opt);
-  PetscErrorCode TestTrajectoryMultiGPU(RegOpt *m_Opt);
-  PetscErrorCode TestGradient(RegOpt *m_Opt);
-  PetscErrorCode TestHessian(RegOpt *m_Opt);
-  PetscErrorCode TestRegularization(RegOpt *m_Opt);
-  PetscErrorCode TestDifferentiation(RegOpt *m_Opt);
-  PetscErrorCode TestDifferentiationMultiGPU(RegOpt *m_Opt);
-}
-
 class UnitTestOpt : public RegOpt {
  public:
     typedef UnitTestOpt Self;
@@ -56,6 +36,8 @@ class UnitTestOpt : public RegOpt {
     virtual ~UnitTestOpt();
 
     virtual PetscErrorCode Run();
+    
+    int rep;
 
  protected:
     virtual PetscErrorCode Initialize(void);
@@ -78,11 +60,28 @@ class UnitTestOpt : public RegOpt {
       Reg,
       Diff
     } TestType;
-
+    
     TestType m_TestType;
 };
 
-
+namespace UnitTest {
+  PetscErrorCode ComputeTrajectoryError(Vec &, reg::RegOpt*, int);
+  PetscErrorCode ComputeSyntheticVelocity(ScalarType*, ScalarType*, int);
+  PetscErrorCode ComputeSyntheticData(Vec& m, RegOpt* opt);
+  PetscErrorCode ComputeSyntheticData(VecField*&, RegOpt*, IntType=1);
+  PetscErrorCode ComputeDiffFunction(VecField *, VecField *, int, RegOpt*);
+  PetscErrorCode ComputeGradSpectral(ScalarType, VecField *, VecField *, RegOpt*);
+  
+  PetscErrorCode TestInterpolation(RegOpt *m_Opt);
+  PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt);
+  PetscErrorCode TestForwardSolver(RegOpt *m_Opt);
+  PetscErrorCode TestTrajectory(RegOpt *m_Opt);
+  PetscErrorCode TestTrajectoryMultiGPU(RegOpt *m_Opt);
+  PetscErrorCode TestGradient(RegOpt *m_Opt);
+  PetscErrorCode TestHessian(RegOpt *m_Opt);
+  PetscErrorCode TestRegularization(RegOpt *m_Opt);
+  PetscErrorCode TestDifferentiation(UnitTestOpt *m_Opt);
+}
 
 
 }  // namespace reg
