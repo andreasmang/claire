@@ -329,7 +329,7 @@ struct KrylovMethod {
 
     ScalarType pctol[3];            ///< tolerances for krylov method (preconditioner)
     IntType pcmaxit;                ///< tolerances for krylov method (preconditioner)
-    ScalarType pctolint;                ///< tolerances for krylov method (preconditioner)
+    ScalarType pctolint[3];         ///< tolerances for solver of preconditioner
     PrecondMeth pctype;             ///< flag for type of preconditioner
     HessianMatVecType matvectype;   ///< flag for the type of hessian matvec
     std::string pcname;             ///< name of preconditioner

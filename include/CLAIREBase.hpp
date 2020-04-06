@@ -158,7 +158,7 @@ class CLAIREBase : public OptimizationProblem {
     PetscErrorCode ApplyInvRegularizationOperator(Vec, Vec, bool flag = false);
     
     /*! apply inverse H(v=0) */
-    virtual PetscErrorCode ApplyInvHessian(Vec, Vec, VecField**, bool first=false, bool twolevel=false) = 0;
+    virtual PetscErrorCode ApplyInvHessian(Vec, Vec, VecField**, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;

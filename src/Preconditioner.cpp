@@ -755,7 +755,7 @@ PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x, bool twolevel) {
     }
 
     // apply inverse regularization operator
-    ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x, this->m_GradState, this->firstrun, twolevel); CHKERRQ(ierr);
+    ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x, this->m_GradState, this->firstrun, twolevel, this->m_PreProc); CHKERRQ(ierr);
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PMVEXEC); CHKERRQ(ierr);

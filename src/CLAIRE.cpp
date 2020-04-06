@@ -1062,7 +1062,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 /********************************************************************
  * @brief applies inverse of H(v=0) (used as preconditioner for our problem)
  *******************************************************************/
-PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool first, bool twolevel) {
+PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool first, bool twolevel, Preprocessing* preproc) {
     PetscErrorCode ierr = 0;
     H0PrecondKernel kernel;
     const ScalarType *ptr = nullptr;
@@ -1108,10 +1108,6 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     kernel.diag = beta*((nx[0]-2)*(nx[0]-1) + (nx[1]-2)*(nx[1]-1) + (nx[2]-2)*(nx[2]-1))/12.;
     
-    if (twolevel) {
-      kernel.nl = this->m_Opt->m_FFT_coarse.nx[0]*this->m_Opt->m_FFT_coarse.nx[1]*this->m_Opt->m_FFT_coarse.nx[2];
-    }
-    
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
@@ -1121,6 +1117,10 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     //if (twolevel) {
     //  ierr = this->m_WorkVecField3->SetValue(0); CHKERRQ(ierr);
     //}
+    
+    IntType *nx_f, *nx_c;
+    nx_f = this->m_Opt->m_FFT.nx;
+    nx_c = this->m_Opt->m_FFT_coarse.nx;
     
     if (first) {
       if (this->m_GradientState) {
@@ -1132,61 +1132,63 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       }
       
       if (twolevel) {
-        ScalarType *pvec[3], *ovec[3];
+        ierr = preproc->Restrict(gradM[1], gradM[0], nx_c, nx_f); CHKERRQ(ierr);
+        /*ScalarType *pvec[3], *ovec[3];
         ierr = gradM[0]->GetArraysReadWrite(pvec); CHKERRQ(ierr);
         ierr = gradM[1]->GetArraysReadWrite(ovec); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = gradM[0]->RestoreArrays(); CHKERRQ(ierr);
-        ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);
+        ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);*/
       }
     }
     
-    bool pre = true;
+    bool pre    = twolevel?(this->m_Opt->m_KrylovMethod.pctolint[1] > 0):true;
+    bool coarse = twolevel;
+    bool post   = twolevel?(this->m_Opt->m_KrylovMethod.pctolint[2] > 0):false;
     
-    if (!twolevel || pre) {
+    ScalarType *pvec[3], *ovec[3];
+    
+    if (pre) {
       ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
-      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
+      if (coarse) {
+        ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField3, this->m_WorkVecField3, false, beta); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
+      } else {
+        ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
+      }
     } else {
       ierr = gradM[1]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
-      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField3, this->m_WorkVecField3, false, 1.); CHKERRQ(ierr);
-    }
-    
-    /*if (first) {
-      ierr = DbgMsgCall("Writing h0.nii.gz"); CHKERRQ(ierr);
-      this->m_ReadWrite->Write(this->m_WorkVecField1, "h0.nii.gz");
-    }*/
-    
-    if (twolevel) {
-      ScalarType *pvec[3], *ovec[3];
-      //ierr = this->m_WorkVecField1->SetValue(0.0); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField3->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+      ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField3, this->m_WorkVecField3, false, beta); CHKERRQ(ierr);
+
+      ierr = preproc->Restrict(this->m_WorkVecField1, this->m_WorkVecField3, nx_c, nx_f); CHKERRQ(ierr);
+      /*ierr = this->m_WorkVecField3->GetArraysReadWrite(pvec); CHKERRQ(ierr);
       ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
       ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
       ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
       ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
       ierr = this->m_WorkVecField1->RestoreArrays();
-      ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);*/
       
       ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+      
+      kernel.nl = this->m_Opt->m_FFT_coarse.nx[0]*this->m_Opt->m_FFT_coarse.nx[1]*this->m_Opt->m_FFT_coarse.nx[2];
     }
     
     ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField1); CHKERRQ(ierr);
-    //ierr = this->m_WorkVecField1->Scale(1./beta); CHKERRQ(ierr);
-    //ierr = this->m_WorkVecField1->SetValue(0); CHKERRQ(ierr);
-    
-    normref = 1.;
-    
-    //if (twolevel) {
-    //  ierr = this->m_WorkVecField2->SetValue(0); CHKERRQ(ierr);
-    //}
     
     IntType innerloop = 500;
-    //ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint;
-    ScalarType cg_eps = this->m_Opt->m_KrylovMethod.pctolint*this->m_Opt->m_KrylovMethod.reltol;
+    
+    ScalarType cg_eps;
+    if (twolevel && pre) {
+      cg_eps = this->m_Opt->m_KrylovMethod.pctolint[1];
+    } else {
+      cg_eps = this->m_Opt->m_KrylovMethod.pctolint[0]*this->m_Opt->m_KrylovMethod.reltol;
+    }
     
     VecField *vecR, *vecP, *vecM, *vecX;
     vecR = this->m_WorkVecField4;
@@ -1194,16 +1196,17 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     vecM = this->m_WorkVecField2;
     vecX = this->m_WorkVecField1;
     
+    normref = 1.;
     int rval;
     
-    for (int t=0;t<2;++t) {
+    int mg = (pre?0:1);
+    while (mg < (post?3:(coarse?2:1))) { // 0:pre 1:coarse 2:post
       ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
       ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
       ierr = kernel.gMgMT(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
       
-      //ierr = diff->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
       ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
       
       ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
@@ -1221,7 +1224,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
   
       normref = sqrt(cg_r);
       
-      if (this->m_Opt->m_Verbosity > 1) {
+      if (this->m_Opt->m_Verbosity > 1 && mg == (pre?0:1)) {
         std::stringstream ss;
         ss << "PC res: " << sqrt(cg_r);
         ss << ", " << sqrt(cg_r)/normref;
@@ -1235,7 +1238,6 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
         
-        //ierr = diff->InvRegLapOp(this->m_WorkVecField2, this->m_WorkVecField2, false, 1.); CHKERRQ(ierr);
         ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
         
         ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
@@ -1248,9 +1250,6 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
         
         cg_a = cg_r/cg_p;
-        //ierr = this->m_WorkVecField1->AXPY(cg_a, this->m_WorkVecField5);
-        //ierr = this->m_WorkVecField4->AXPY(-cg_a, this->m_WorkVecField2);
-        //ierr = this->m_WorkVecField4->Norm2(cg_a); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
         ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
@@ -1279,14 +1278,77 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_b, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-        //ierr = this->m_WorkVecField5->Scale(cg_b); CHKERRQ(ierr);
-        //ierr = this->m_WorkVecField5->AXPY(1.,this->m_WorkVecField4); CHKERRQ(ierr);
       }
       
-    if (this->m_Opt->m_Verbosity > 1 && sqrt(cg_r) < cg_eps*normref)  {
-      std::stringstream ss;
-      ss << "PC converged: " << i;
-      ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      if (this->m_Opt->m_Verbosity > 1)  {
+        std::stringstream ss;
+        ss << "PC " << (mg==0?"pre: ":(mg==1?"coarse: ":"post: ")) << i;
+        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+      }
+      
+      if (mg == 1) {
+        ZeitGeist_define(PC_H0_coarse);
+        ZeitGeist_name(PC_H0_coarse).Inc(i);
+      } else {
+        ZeitGeist_define(PC_H0_fine);
+        ZeitGeist_name(PC_H0_fine).Inc(i);
+      }
+      
+      if (mg == 0 && coarse) {
+        if (sqrt(cg_r) < this->m_Opt->m_KrylovMethod.pctolint[0]*this->m_Opt->m_KrylovMethod.reltol*normref) {
+          mg+=2;
+        } else {
+          ierr = preproc->Restrict(this->m_WorkVecField1, this->m_WorkVecField1, nx_c, nx_f); CHKERRQ(ierr);
+          /*ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
+          ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);*/
+          
+          ierr = preproc->Restrict(this->m_WorkVecField4, this->m_WorkVecField3, nx_c, nx_f); CHKERRQ(ierr);
+          /*ierr = this->m_WorkVecField3->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField4->GetArraysReadWrite(ovec); CHKERRQ(ierr);
+          ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField4->RestoreArrays();
+          ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);*/
+          
+          ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+          
+          kernel.nl = this->m_Opt->m_FFT_coarse.nx[0]*this->m_Opt->m_FFT_coarse.nx[1]*this->m_Opt->m_FFT_coarse.nx[2];
+          
+          cg_eps = this->m_Opt->m_KrylovMethod.pctolint[0]*this->m_Opt->m_KrylovMethod.reltol;
+          
+          ierr = gradM[0]->RestoreArrays(); CHKERRQ(ierr);
+          ierr = gradM[1]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+        }
+      } else if (mg == 1) {
+        ierr = diff->SetFFT(&this->m_Opt->m_FFT); CHKERRQ(ierr);
+      
+        if (post) {
+          ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
+        }
+        
+        ierr = preproc->Prolong(this->m_WorkVecField1, this->m_WorkVecField1, nx_f, nx_c); CHKERRQ(ierr);
+        /*ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
+        ierr = diff->Prolong(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = diff->Prolong(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = diff->Prolong(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->RestoreArrays();*/
+        
+        //ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
+        
+        ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);
+        ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+        
+        kernel.nl = this->m_Opt->m_Domain.nl;
+        
+        cg_eps = this->m_Opt->m_KrylovMethod.pctolint[2];
+      }
+      mg++;
     }
     
     if (this->m_Opt->m_Verbosity > 1) {
@@ -1296,41 +1358,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ss.str(std::string()); ss.clear();
     }
     
-    if (twolevel) {
-      ierr = diff->SetFFT(&this->m_Opt->m_FFT); CHKERRQ(ierr);
-      
-      ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
-      //ierr = this->m_WorkVecField3->Scale(1./beta); CHKERRQ(ierr);
-      
-      ScalarType *pvec[3], *ovec[3];
-      ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField3->GetArraysReadWrite(ovec); CHKERRQ(ierr);
-      ierr = diff->Prolong(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-      ierr = diff->Prolong(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-      ierr = diff->Prolong(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField1->RestoreArrays();
-      ierr = this->m_WorkVecField3->RestoreArrays();
-      ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
-      
-      ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);
-      ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
-      
-      kernel.nl = this->m_Opt->m_Domain.nl;
-      
-      cg_eps = 1;
-      
-      twolevel = false;
-    } else {
-      break;
-    }
-    
-    }
-    
     ierr = gradM[0]->RestoreArrays(); CHKERRQ(ierr);
-    /*if (first) {
-      ierr = DbgMsgCall("Writing h0_inv.nii.gz"); CHKERRQ(ierr);
-      this->m_ReadWrite->Write(this->m_WorkVecField1, "h0_inv.nii.gz");
-    }*/
         
     ierr = this->m_WorkVecField1->GetComponents(precx); CHKERRQ(ierr);
     
