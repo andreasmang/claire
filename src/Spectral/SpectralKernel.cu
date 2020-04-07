@@ -97,9 +97,14 @@ PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf
   size_t width = (osize_c[2]-1)*sizeof(ComplexType);
   size_t height = osize_c[1]/2;
   
+  if (osize_c[1]%2 == 0) height -= 1;
+  
+  IntType half_x = osize_c[0]/2;
+  if (osize_c[1]%2 == 0) half_x -= 1;
+  
   // width always fits in pencil or slab decomposition;
   
-  for (IntType x=0; x<osize_c[0]/2; ++x) {
+  for (IntType x=0; x<half_x; ++x) {
     size_t offset_c = osize_c[2]*osize_c[1]*x;
     size_t offset_f = nl[2]*nl[1]*x;
     cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
@@ -107,7 +112,7 @@ PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf
     offset_f += nl[2]*(nl[1] - height);
     cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
   }
-  for (IntType x=1; x<=osize_c[0]/2; ++x) {
+  for (IntType x=1; x<=half_x; ++x) {
     size_t offset_c = osize_c[2]*osize_c[1]*(osize_c[0]-x);
     size_t offset_f = nl[2]*nl[1]*(nl[0]-x);
     cudaMemcpy2DAsync(&pXc[offset_c], pitch_c, const_cast<ComplexType*>(&pXf[offset_f]), pitch_f, width, height, cudaMemcpyDeviceToDevice);
@@ -133,7 +138,12 @@ PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc,
   size_t width = (osize_c[2]-1)*sizeof(ComplexType);
   size_t height = osize_c[1]/2;
   
-  for (IntType x=0; x<osize_c[0]/2; ++x) {
+  if (osize_c[1]%2 == 0) height -= 1;
+  
+  IntType half_x = osize_c[0]/2;
+  if (osize_c[1]%2 == 0) half_x -= 1;
+  
+  for (IntType x=0; x<half_x; ++x) {
     size_t offset_c = osize_c[2]*osize_c[1]*x;
     size_t offset_f = nl[2]*nl[1]*x;
     cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);
@@ -141,7 +151,7 @@ PetscErrorCode SpectralKernel::Prolong(ComplexType *pXf, const ComplexType *pXc,
     offset_f += nl[2]*(nl[1] - height);
     cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);
   }
-  for (IntType x=1; x<=osize_c[0]/2; ++x) {
+  for (IntType x=1; x<=half_x; ++x) {
     size_t offset_c = osize_c[2]*osize_c[1]*(osize_c[0]-x);
     size_t offset_f = nl[2]*nl[1]*(nl[0]-x);
     cudaMemcpy2DAsync(&pXf[offset_f], pitch_f, const_cast<ComplexType*>(&pXc[offset_c]), pitch_c, width, height, cudaMemcpyDeviceToDevice);

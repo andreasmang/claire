@@ -395,6 +395,7 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.saveprob = false;
     this->m_RegToolFlags.computedice = false;
     this->m_RegToolFlags.tprobmaps = false;
+    this->m_RegToolFlags.computeravensmap = false;
 
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
