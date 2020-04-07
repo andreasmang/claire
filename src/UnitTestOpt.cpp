@@ -134,6 +134,9 @@ PetscErrorCode UnitTestOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-nthreads") == 0) {
             argc--; argv++;
             this->m_NumThreads = atoi(argv[1]);
+        } else if (strcmp(argv[1], "-rep") == 0) {
+            argc--; argv++;
+            this->rep = atoi(argv[1]);
         } else if (strcmp(argv[1], "-np") == 0) {
             argc--; argv++;
             const std::string npinput = argv[1];
@@ -256,6 +259,7 @@ PetscErrorCode UnitTestOpt::Initialize() {
     ierr = this->SuperClass::Initialize(); CHKERRQ(ierr);
 
     this->m_TestType = TestType::None;
+    this->rep = 1;
 
     PetscFunctionReturn(ierr);
 }
