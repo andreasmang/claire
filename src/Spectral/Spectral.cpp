@@ -161,8 +161,8 @@ PetscErrorCode Spectral::SetupFFT() {
       for (int i = 0; i < 3; ++i) {
         this->m_FFT->osize[i] = static_cast<IntType>(osize[i]);
         this->m_FFT->ostart[i] = static_cast<IntType>(ostart[i]);
-        this->m_FFT->isize[i] = static_cast<IntType>(osize[i]);
-        this->m_FFT->istart[i] = static_cast<IntType>(ostart[i]);
+        this->m_FFT->isize[i] = static_cast<IntType>(isize[i]);
+        this->m_FFT->istart[i] = static_cast<IntType>(istart[i]);
       }
     }
 #else
