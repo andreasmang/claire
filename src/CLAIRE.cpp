@@ -1182,7 +1182,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = this->m_WorkVecField1->RestoreArrays();
       ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);*/
       
-      kernel.nl = this->m_Opt->m_FFT_coarse.nx[0]*this->m_Opt->m_FFT_coarse.nx[1]*this->m_Opt->m_FFT_coarse.nx[2];
+      kernel.nl = this->m_Opt->m_FFT_coarse.isize[0]*this->m_Opt->m_FFT_coarse.isize[1]*this->m_Opt->m_FFT_coarse.isize[2];
     }
     
     ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField1); CHKERRQ(ierr);
@@ -1323,7 +1323,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
           
           ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           
-          kernel.nl = this->m_Opt->m_FFT_coarse.nx[0]*this->m_Opt->m_FFT_coarse.nx[1]*this->m_Opt->m_FFT_coarse.nx[2];
+          kernel.nl = this->m_Opt->m_FFT_coarse.isize[0]*this->m_Opt->m_FFT_coarse.isize[1]*this->m_Opt->m_FFT_coarse.isize[2];
           
           cg_eps = this->m_Opt->m_KrylovMethod.pctolint[0]*this->m_Opt->m_KrylovMethod.reltol;
           
