@@ -659,10 +659,11 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
   ZeitGeist_define(INTERPOL_MISC);
   for (int i = 0; i < procs_i_send_to_size_; ++i) {
     int proc = procs_i_send_to_[i];    
-    if (request[proc] != MPI_REQUEST_NULL)
+    if (request[proc] != MPI_REQUEST_NULL) {
       ZeitGeist_tick(INTERPOL_COMM);
       MPI_Wait(&request[proc], MPI_STATUS_IGNORE);
       ZeitGeist_tock(INTERPOL_COMM);
+    }
       for (int dof = 0; dof < data_dofs[version]; ++dof) {
         Real* ptr = &f_cubic_unordered[f_index_procs_self_offset[proc]+dof*N_pts];
         ZeitGeist_tick(INTERPOL_MISC);
