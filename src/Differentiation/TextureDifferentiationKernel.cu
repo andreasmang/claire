@@ -27,7 +27,7 @@
 #define HALO 4 
 #define spencil 4
 #define lpencil 32
-#define sharedrows 64
+#define sharedrows 32
 #define perthreadcomp 8
 
 

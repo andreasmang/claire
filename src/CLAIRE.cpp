@@ -1289,6 +1289,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       if (this->m_Opt->m_Verbosity > 1)  {
         std::stringstream ss;
         ss << "PC " << (mg==0?"pre: ":(mg==1?"coarse: ":"post: ")) << i;
+        ss << " ,kernel size: " << kernel.nl;
         ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
       }
       
