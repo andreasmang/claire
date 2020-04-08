@@ -741,6 +741,9 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
                 this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
 //                this->m_KrylovMethod.pctype = NOPC;
 //                this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
+            } else if (strcmp(argv[1], "h0invreg") == 0) {
+                this->m_KrylovMethod.pctype = INVREG;
+                this->m_KrylovMethod.matvectype = H0MATVEC;
             } else if (strcmp(argv[1], "2level") == 0) {
                 this->m_KrylovMethod.pctype = TWOLEVEL;
                 this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;

@@ -562,20 +562,20 @@ PetscErrorCode Preconditioner::MatVec(Vec Px, Vec x) {
         }
         case H0:
         {
-            //if (this->m_Opt->m_RegNorm.beta[0] > 5e-3) {
-            //  ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
-            //} else {
+            if (this->m_Opt->m_RegNorm.beta[0] > 5e-1) {
+              ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
+            } else {
               ierr = this->ApplyH0Precond(Px, x, false); CHKERRQ(ierr);
-            //}
+            }
             break;
         }
         case H0MG:
         {
-            //if (this->m_Opt->m_RegNorm.beta[0] < 5e-3) {
-            //  ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
-            //} else {
+            if (this->m_Opt->m_RegNorm.beta[0] > 5e-1) {
+              ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
+            } else {
               ierr = this->ApplyH0Precond(Px, x, true); CHKERRQ(ierr);
-            //}
+            }
             break;
         }
         default:

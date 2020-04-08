@@ -55,6 +55,11 @@ class Spectral {
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     
+#ifdef REG_HAS_CUDA
+    MPIcuFFT<ScalarType> *m_plan;
+#else
+    FFTPlanType *m_plan;
+#endif
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
@@ -62,12 +67,6 @@ class Spectral {
     PetscErrorCode SetupFFT();
     
     SpectralKernel m_kernel;
-
-#ifdef REG_HAS_CUDA
-    MPIcuFFT<ScalarType> *m_plan;
-#else
-    FFTPlanType *m_plan;
-#endif
 
     RegOpt *m_Opt;
     FourierTransform *m_FFT;

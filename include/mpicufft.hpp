@@ -18,6 +18,9 @@ public:
   virtual inline size_t getWorkSizeDevice() const { return worksize_d; };
   virtual inline size_t getWorkSizeHost() const { return worksize_h; };
   
+  virtual inline void* getWorkAreaDevice() const { return workarea_d; };
+  virtual inline void* getWorkAreaHost() const { return workarea_h; };
+  
   virtual void execR2C(void *out, const void *in);
   virtual void execC2R(void *out, const void *in);
   

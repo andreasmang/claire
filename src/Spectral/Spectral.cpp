@@ -146,13 +146,32 @@ PetscErrorCode Spectral::SetupFFT() {
     
 #ifdef REG_HAS_CUDA
     {
+      bool allocmem = true;
+      void *sharedmem_d = nullptr, *sharedmem_h = nullptr;
+      size_t sharedsize_d = 0, sharedsize_h = 0;
+      if (this->m_Opt->m_FFT.fft && this->m_Opt->m_FFT.fft != this && this->m_Opt->m_FFT.fft->m_plan) {
+        sharedmem_d = this->m_Opt->m_FFT.fft->m_plan->getWorkAreaDevice();
+        sharedmem_h = this->m_Opt->m_FFT.fft->m_plan->getWorkAreaHost();
+        sharedsize_d = this->m_Opt->m_FFT.fft->m_plan->getWorkSizeDevice();
+        sharedsize_h = this->m_Opt->m_FFT.fft->m_plan->getWorkSizeHost();
+        allocmem = false;
+      }
 #ifdef REG_HAS_MPICUDA
       ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, true); CHKERRQ(ierr);
 #else
       ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, false); CHKERRQ(ierr);
 #endif
       size_t osize[3], ostart[3], isize[3], istart[3];
-      this->m_plan->initFFT(nx[0], nx[1], nx[2], true);
+      this->m_plan->initFFT(nx[0], nx[1], nx[2], allocmem);
+      if (sharedsize_d < this->m_plan->getWorkSizeDevice()) {
+        sharedmem_d = nullptr;
+      }
+      if (sharedsize_h < this->m_plan->getWorkSizeHost()) {
+        sharedmem_h = nullptr;
+      }
+      if (!allocmem) {
+        this->m_plan->setWorkArea(sharedmem_d, sharedmem_h);
+      }
       this->m_FFT->nalloc = this->m_plan->getDomainSize();
       this->m_plan->getOutSize(osize);
       this->m_plan->getOutStart(ostart);

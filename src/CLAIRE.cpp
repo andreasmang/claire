@@ -1016,6 +1016,13 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
             //ierr = VecCopy(vtilde, Hvtilde); CHKERRQ(ierr);
             break;
         }
+        case H0MATVEC:
+        {
+            // apply hessian H to \tilde{v}
+            ierr = this->H0HessMatVec(Hvtilde, vtilde); CHKERRQ(ierr);
+            //ierr = VecCopy(vtilde, Hvtilde); CHKERRQ(ierr);
+            break;
+        }
         case PRECONDMATVEC:
         {
             // apply analytically preconditioned hessian H to \tilde{v}
@@ -1384,20 +1391,31 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
  *******************************************************************/
 PetscErrorCode CLAIRE::H0HessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
-    PetscFunctionBegin;
+    H0PrecondKernel kernel;
+    ScalarType hd;
+    const ScalarType *ptr = nullptr;
     
-    if (this->m_Opt->m_Verbosity > 2) {
-        ierr = DbgMsg2("h0 hessian matvec"); CHKERRQ(ierr);
-    }
+    PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    // allocate container for incremental velocity field
+    ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
+  
     ierr = AllocateOnce(this->m_IncVelocityField, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-    if (this->m_Regularization == NULL) {
-        ierr = this->SetupRegularization(); CHKERRQ(ierr);
+    
+    hd  = this->m_Opt->GetLebesgueMeasure();
+        
+    kernel.nl = this->m_Opt->m_Domain.nl;
+    
+    if (this->m_GradientState) {
+      ierr = this->m_GradientState[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_StateVariable->GetArrayRead(ptr, 0, 0); CHKERRQ(ierr);
+      ierr = this->m_Differentiation->Gradient(this->m_WorkVecField1, ptr); CHKERRQ(ierr);
+      ierr = this->m_StateVariable->RestoreArray();
+      ierr = this->m_WorkVecField1->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
     }
     
     // parse input
@@ -1405,19 +1423,27 @@ PetscErrorCode CLAIRE::H0HessMatVec(Vec Hvtilde, Vec vtilde) {
         ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
     }
     
-    // compute \tilde{m}(x,t)
-    ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
-
-    // compute \tilde{\lambda}(x,t)
-    ierr = this->SolveIncAdjointEquation(); CHKERRQ(ierr);
-
-    // compute incremental body force
-//    ierr = this->ComputeIncBodyForce(); CHKERRQ(ierr);
-
+    ierr = this->m_IncVelocityField->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+    ierr = kernel.gMgMT(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->RestoreArrays(); CHKERRQ(ierr);
+    
+    if (this->m_GradientState) {
+      ierr = this->m_GradientState[0]->RestoreArrays(); CHKERRQ(ierr);
+    } else {
+      ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    }
+    
+    // apply K[\tilde{b}]
+    ierr = this->ApplyProjection(); CHKERRQ(ierr);
+    // scale result by hd
+    ierr = this->m_WorkVecField2->Scale(hd); CHKERRQ(ierr);
+        
     // apply 2nd variation of regularization model to
     // incremental control variable: \beta*\D{A}[\vect{\tilde{v}}]
     ierr = this->m_Regularization->HessianMatVec(this->m_WorkVecField1, this->m_IncVelocityField); CHKERRQ(ierr);
-
+    
     // \D{H}\vect{\tilde{v}} = \beta*\D{A}[\vect{\tilde{v}}] + \D{K}[\vect{\tilde{b}}]
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory

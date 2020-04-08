@@ -96,6 +96,7 @@ enum DifferentiationType {
 /*! hessian mat vec type */
 enum HessianMatVecType {
     DEFAULTMATVEC,
+    H0MATVEC,
     PRECONDMATVEC,
     PRECONDMATVECSYM,
 };
