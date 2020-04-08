@@ -66,6 +66,7 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu \
 		$(SRCDIR)/Spectral/SpectralKernel.cu \
 		$(SRCDIR)/PreconditionerKernel.cu \
+		$(SRCDIR)/Regularization/RegularizationKernel.cu 
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \

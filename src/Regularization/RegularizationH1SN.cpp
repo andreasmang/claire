@@ -50,6 +50,7 @@ RegularizationH1SN::RegularizationH1SN(RegOpt* opt) : SuperClass(opt) {
 PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, value, hd;
+    IntType rval;
     
     RegularizationKernel kernel;
 
