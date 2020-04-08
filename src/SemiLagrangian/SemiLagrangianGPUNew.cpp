@@ -97,15 +97,17 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt > 1) {
-      int nl = this->m_Opt->m_Domain.nl;
-      int ng = this->m_Opt->m_Domain.ng;
+      IntType nl = this->m_Opt->m_Domain.nl;
+      IntType ng = this->m_Opt->m_Domain.ng;
       for (int i=0; i<3; i++) {
         isize[i] = this->m_Opt->m_Domain.isize[i];
       }
       
       this->nghost = this->m_Opt->m_PDESolver.iporder;
       this->g_alloc_max = ghost_xyz_local_size(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
-      this->nlghost = this->isize_g[0]*this->isize_g[1]*this->isize_g[2];
+      this->nlghost  = this->isize_g[0];
+      this->nlghost *= this->isize_g[1];
+      this->nlghost *= this->isize_g[2];
       this->m_GhostWork1 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0]);
       this->m_GhostWork2 = pvfmm::aligned_new<ScalarType> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);
       this->m_VecFieldGhost = reinterpret_cast<ScalarType*> (accfft_alloc(3*this->g_alloc_max));
@@ -293,7 +295,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     PetscErrorCode ierr;
     ScalarType *p_x1=nullptr,*p_x2=nullptr,*p_x3=nullptr;
     IntType isize[3],istart[3];
-    int nx[3];
+    IntType nx[3];
     
     ScalarType hx[3];
     IntType l,i1,i2,i3;

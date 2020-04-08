@@ -101,7 +101,8 @@ class SemiLagrangianGPUNew {
     pvfmm::Iterator<ScalarType> m_GhostWork1, m_GhostWork2;
     
     int m_Dofs[2];
-    int nghost, nlghost, istart_g[3], isize_g[3];
+    IntType nghost, nlghost;
+    int istart_g[3], isize_g[3];
     size_t g_alloc_max; 
     
 };

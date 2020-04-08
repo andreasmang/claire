@@ -555,8 +555,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                                     int* isize,                // size of the local grid owned by the process
                                     int* istart,               // start point of the local grid owned by the process
                                     int* isize_g,              // size of the local grid (including ghost points)
-                                    const int nlghost,         // number of local grid points (including ghost points) owned by process
-                                    const int N_pts,           // number of local points owned by the process
+                                    const IntType nlghost,         // number of local grid points (including ghost points) owned by process
+                                    const IntType N_pts,           // number of local points owned by the process
                                     const int g_size,          // ghost layer width
                                     Real* query_values,        // interpolation result on CPU
                                     int* c_dims,               // dimensions of the communicator plan
