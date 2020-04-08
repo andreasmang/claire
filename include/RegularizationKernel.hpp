@@ -17,8 +17,8 @@
  *  along with CLAIRE.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#ifndef _REGULARIZATION_HPP_
-#define _REGULARIZATION_HPP_
+#ifndef _REGULARIZATIONKERNEL_HPP_
+#define _REGULARIZATIONKERNEL_HPP_
 
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
@@ -34,3 +34,5 @@ struct RegularizationKernel {
 };
   
 } // namespace reg
+
+#endif
