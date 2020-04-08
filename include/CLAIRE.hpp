@@ -95,6 +95,10 @@ class CLAIRE : public CLAIREBase {
 
 
  protected:
+    /*! compute Hessian matvec (second variation
+        of lagrangian with respect to control variable(s) for zero velocity */
+    PetscErrorCode H0HessMatVec(Vec, Vec);
+    
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 

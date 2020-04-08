@@ -638,7 +638,7 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
-
+    
     // compute solution of state equation
     ierr = this->SolveStateEquation(); CHKERRQ(ierr);
     
@@ -695,7 +695,9 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
 
     // evaluate the regularization model
     ierr = this->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
-
+    
+    ZeitGeist_define(OBJ_REG);
+    ZeitGeist_tick(OBJ_REG);
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (!this->m_VelocityIsZero) {
         // evaluate the regularization model
@@ -705,6 +707,7 @@ PetscErrorCode CLAIRE::EvaluateObjective(ScalarType* J, Vec v) {
         ierr = this->m_Regularization->EvaluateFunctional(&R, this->m_VelocityField); CHKERRQ(ierr);
         //ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
     }
+    ZeitGeist_tock(OBJ_REG);
 
     // add up the contributions
     *J = D + R;
@@ -1379,6 +1382,68 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
 /********************************************************************
  * @brief applies the hessian to a vector (default way of doing this)
  *******************************************************************/
+PetscErrorCode CLAIRE::H0HessMatVec(Vec Hvtilde, Vec vtilde) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg2("h0 hessian matvec"); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Enter(__func__);
+
+    // allocate container for incremental velocity field
+    ierr = AllocateOnce(this->m_IncVelocityField, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    if (this->m_Regularization == NULL) {
+        ierr = this->SetupRegularization(); CHKERRQ(ierr);
+    }
+    
+    // parse input
+    if (vtilde != NULL) {
+        ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
+    }
+    
+    // compute \tilde{m}(x,t)
+    ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
+
+    // compute \tilde{\lambda}(x,t)
+    ierr = this->SolveIncAdjointEquation(); CHKERRQ(ierr);
+
+    // compute incremental body force
+//    ierr = this->ComputeIncBodyForce(); CHKERRQ(ierr);
+
+    // apply 2nd variation of regularization model to
+    // incremental control variable: \beta*\D{A}[\vect{\tilde{v}}]
+    ierr = this->m_Regularization->HessianMatVec(this->m_WorkVecField1, this->m_IncVelocityField); CHKERRQ(ierr);
+
+    // \D{H}\vect{\tilde{v}} = \beta*\D{A}[\vect{\tilde{v}}] + \D{K}[\vect{\tilde{b}}]
+    // we use the same container for the bodyforce and the incremental body force to
+    // save some memory
+    ierr = this->m_WorkVecField1->AXPY(1.0, this->m_WorkVecField2); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      if(this->m_WorkVecField1) this->m_WorkVecField1->DebugInfo("hessian     ",__LINE__,__FILE__);
+      else DbgMsg3("hessian          : nullptr");
+    }
+
+    // pass to output
+    if (Hvtilde != NULL) {
+        ierr = this->m_WorkVecField1->GetComponents(Hvtilde); CHKERRQ(ierr);
+    }
+    
+    ierr = this->m_VelocityField->DebugInfo("velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+    ierr = this->m_IncVelocityField->DebugInfo("inc velocity", __LINE__, __FILE__); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief applies the hessian to a vector (default way of doing this)
+ *******************************************************************/
 PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
@@ -1715,6 +1780,9 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     this->m_Opt->Enter(__func__);
     
+    ZeitGeist_define(PDE_STATE);
+    ZeitGeist_tick(PDE_STATE);
+    
     DebugGPUStartEvent(__FUNCTION__);
 
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1835,6 +1903,8 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
     
     DebugGPUStopEvent();
     
+    ZeitGeist_tock(PDE_STATE);
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1857,6 +1927,8 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    ZeitGeist_define(PDE_ADJOINT);
+    ZeitGeist_tick(PDE_ADJOINT);
     
     DebugGPUStartEvent(__FUNCTION__);
 
@@ -1932,6 +2004,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     this->m_Opt->IncrementCounter(PDESOLVE);
         
     DebugGPUStopEvent();
+    ZeitGeist_tock(PDE_ADJOINT);
 
     this->m_Opt->Exit(__func__);
 
@@ -2055,6 +2128,9 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     this->m_Opt->Enter(__func__);
     
+    ZeitGeist_define(PDE_INCSTATE);
+    ZeitGeist_tick(PDE_INCSTATE);
+    
     DebugGPUStartEvent(__FUNCTION__);
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
@@ -2112,6 +2188,8 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     this->m_Opt->IncrementCounter(PDESOLVE);
 
     DebugGPUStopEvent();
+    
+    ZeitGeist_tock(PDE_INCSTATE);
 
     this->m_Opt->Exit(__func__);
 
@@ -2138,6 +2216,9 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(PDE_INCADJOINT);
+    ZeitGeist_tick(PDE_INCADJOINT);
     
     DebugGPUStartEvent(__FUNCTION__);
 
@@ -2202,6 +2283,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     this->m_Opt->IncrementCounter(PDESOLVE);
 
     DebugGPUStopEvent();
+    
+    ZeitGeist_tock(PDE_INCADJOINT);
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
