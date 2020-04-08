@@ -21,6 +21,7 @@
 #define _REGULARIZATIONH1SN_CPP_
 
 #include "RegularizationH1SN.hpp"
+#include "RegularizationKernel.hpp"
 
 namespace reg {
 
@@ -49,6 +50,8 @@ RegularizationH1SN::RegularizationH1SN(RegOpt* opt) : SuperClass(opt) {
 PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, value, hd;
+    
+    RegularizationKernel kernel;
 
     PetscFunctionBegin;
 
@@ -59,6 +62,8 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
     // get regularization parameter
     beta = this->m_Opt->m_RegNorm.beta[0];
     hd  = this->m_Opt->GetLebesgueMeasure();   
+    
+    kernel.nl = this->m_Opt->m_Domain.nl;
 
     *R = 0.0;
 
@@ -74,23 +79,39 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
         // X1 gradient
         ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, v->m_X1); CHKERRQ(ierr);
         // compute inner products
-        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
-        ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value); *R +=value;
-        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;
+        ierr = this->m_WorkVecField->GetArraysRead(kernel.pX);
+        ierr = kernel.LocalNorm(value); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField->RestoreArrays();
+        *R += value;
+        
+        //ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
+        //ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value); *R +=value;
+        //ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;
         
         // X2 gradient
         ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, v->m_X2); CHKERRQ(ierr);
         // compute inner products
-        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
+        /*ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
         ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value); *R +=value;
-        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;
+        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;*/
+        ierr = this->m_WorkVecField->GetArraysRead(kernel.pX);
+        ierr = kernel.LocalNorm(value); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField->RestoreArrays();
+        *R += value;
 
         // X3 gradient
         ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, v->m_X3); CHKERRQ(ierr);
         // compute inner products
-        ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
+        /*ierr = VecTDot(this->m_WorkVecField->m_X1, this->m_WorkVecField->m_X1, &value); *R +=value;
         ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value); *R +=value;
-        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;
+        ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;*/
+        ierr = this->m_WorkVecField->GetArraysRead(kernel.pX);
+        ierr = kernel.LocalNorm(value); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField->RestoreArrays();
+        *R += value;
+        
+        rval = MPI_Allreduce(MPI_IN_PLACE, R, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+        ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
         
         // multiply with regularization weight
         *R = 0.5*hd*beta*(*R);

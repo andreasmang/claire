@@ -25,21 +25,12 @@
 
 namespace reg {
   
-
-template<int N> struct RegularizationKernel {
-  ScalarType *pXHat[3];
+struct RegularizationKernel {
+  const ScalarType *pX[3];
   
-  IntType nx[3];
-  IntType nl[3];
-  IntType nstart[3];
+  IntType nl;
   
-  ScalarType beta0;  
-  ScalarType beta1;
-  ScalarType scale;
-  
-  PetscErrorCode EvaluateGradient();
-  PetscErrorCode EvaluateFunctional();
-  PetscErrorCode ApplyInverse(bool usesqrt);
+  PetscErrorCode LocalNorm(ScalarType &lnorm);
 };
   
 } // namespace reg

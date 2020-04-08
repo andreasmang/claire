@@ -30,15 +30,6 @@
 
 namespace reg {
 
-template<int>
-PetscErrorCode EvaluateGradientKernel(ComplexType *, ComplexType *, ComplexType *,
-    IntType[3], IntType[3], IntType[3],
-    ScalarType, ScalarType);
-
-PetscErrorCode ScaleVectorField(ScalarType *, ScalarType *, ScalarType *,
-    ScalarType *, ScalarType *, ScalarType *,
-    IntType, ScalarType);
-
 class Regularization {
  public:
     typedef Regularization Self;
