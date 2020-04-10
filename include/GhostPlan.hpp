@@ -51,11 +51,14 @@ struct GhostPlan {
 
   void share_ghost_xy(ScalarType* data, ScalarType* ghost_data, double* timers);
   
+  void share_ghost_x(ScalarType* data, ScalarType* ghost_data, double* timers);
+  
   void share_left_right(ScalarType* data, double* timers);
 
   void share_top_bottom(ScalarType* ghost_data, double* timers);
 
-  size_t get_ghost_local_size(int * isize_g, int* istart_g);
+  size_t get_ghost_local_size_x(int * isize_g, int* istart_g);
+  size_t get_ghost_local_size_xy(int * isize_g, int* istart_g);
 };
 
 }

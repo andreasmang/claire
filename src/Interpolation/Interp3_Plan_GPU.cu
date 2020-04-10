@@ -8,6 +8,7 @@
 #include <cuda_runtime_api.h>
 #include <cuda_helper.hpp>
 #include <cmath>
+#include <time.h>
 
 #include <algorithm>
 
@@ -46,6 +47,9 @@ inline cufftResult checkCuda_accfft(cufftResult result)
 }
 #endif
 
+inline size_t get_max_query_allocation(int* isize, int neighbour_query_width) {
+  return (isize[0]+2*neighbour_query_width)*isize[1]*isize[2]; 
+}
 
 struct is_equal {
     int id;
@@ -426,9 +430,11 @@ void Interp3_Plan_GPU::scatter( int data_dof,
         ZeitGeist_tick(scatter_create_mpi_buffer);
         get_count(which_proc, N_pts, proc, &coords_in_proc);
         ZeitGeist_tock(scatter_create_mpi_buffer);
-        
-        //if (procid==0)
-        //PetscPrintf(PETSC_COMM_WORLD, "proc 0 sending %d points to proc %d\n", coords_in_proc, proc);
+
+#if defined(VERBOSE1) 
+        if (procid==0)
+        PetscPrintf(PETSC_COMM_WORLD, "proc 0 sending %d points to proc %d\n", coords_in_proc, proc);
+#endif
         
         num_query_per_proc[proc] = coords_in_proc;
         if (proc < nprocs-1) {
@@ -438,27 +444,12 @@ void Interp3_Plan_GPU::scatter( int data_dof,
 
 
         if (coords_in_proc > 0) {
-            // allocate the required memory for f_index[proc]
-            ZeitGeist_tick(scatter_memalloc);
-            //if (f_index[proc].capacity() < coords_in_proc) {
-            //  f_index[proc].reserve(coords_in_proc);
-            //  f_index[proc].resize(coords_in_proc);
-            //}
-            ZeitGeist_tock(scatter_memalloc);
             // get indices of coordinates which belong to this proc and store in f_index[proc]
-
             ZeitGeist_tick(scatter_create_mpi_buffer);
             //thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index[proc].begin(), is_equal(proc));
             thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, f_index+f_index_offset[proc], is_equal(proc));
             ZeitGeist_tock(scatter_create_mpi_buffer);
           
-            ZeitGeist_tick(scatter_memalloc);
-            //if (query_outside[proc].capacity() < 3*coords_in_proc) { 
-            //  query_outside[proc].reserve(3*coords_in_proc);
-            //  query_outside[proc].resize(3*coords_in_proc);
-            //}
-            ZeitGeist_tock(scatter_memalloc);
-
             ZeitGeist_tick(scatter_create_mpi_buffer);
             //strided_range<Iterator> strided_x(query_outside[proc].begin(),   query_outside[proc].end(), COORD_DIM);
             //strided_range<Iterator> strided_y(query_outside[proc].begin()+1, query_outside[proc].end(), COORD_DIM);
@@ -534,10 +525,11 @@ void Interp3_Plan_GPU::scatter( int data_dof,
   if(this->scatter_baked==true) {
     
     if (total_query_points > max_query_points_capacity) {
+      PetscPrintf(PETSC_COMM_WORLD, "going to allocate memory again\n");
       // Modify the max memory estimate by increasing neighbour query width by 1 until the requrement is reached
       while (total_query_points > max_query_points_capacity) {
         neighbour_query_width++;
-        max_query_points_capacity = (isize[0]+2*neighbour_query_width)*(isize[1]+2*neighbour_query_width)*isize[2]; 
+        max_query_points_capacity = get_max_query_allocation(isize, neighbour_query_width);
       }
       cudaFree(all_f_cubic_d);
       cudaMalloc((void**)&all_f_cubic_d, max_query_points_capacity*sizeof(Real)*data_dof);
@@ -549,6 +541,7 @@ void Interp3_Plan_GPU::scatter( int data_dof,
       cudaMalloc((void**)&xq2, max_query_points_capacity*sizeof(Real));
       cudaFree(xq3);
       cudaMalloc((void**)&xq3, max_query_points_capacity*sizeof(Real));
+    }
       
       // freeing the cuda memory is required everytime scatter is called because the distribution of query points might not be uniform across all GPUs
       //cudaFree(all_f_cubic_d);
@@ -565,14 +558,16 @@ void Interp3_Plan_GPU::scatter( int data_dof,
       //
       //cudaFree(xq3);
       //cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
-    }
   }
   else {
     // Make an estimate on the number of query points which the current process expects to receive
     // from neighbouring processes
     neighbour_query_width = g_size;
-    // change this if using a slab decomposition TODO
-    max_query_points_capacity = (isize[0]+2*neighbour_query_width)*(isize[1]+2*neighbour_query_width)*isize[2]; 
+    max_query_points_capacity = get_max_query_allocation(isize, neighbour_query_width);
+    while (total_query_points > max_query_points_capacity) {
+      neighbour_query_width++;
+      max_query_points_capacity = get_max_query_allocation(isize, neighbour_query_width);
+    }
 
     cudaMalloc((void**)&all_f_cubic_d, max_query_points_capacity*sizeof(Real)*data_dof);
     cudaMalloc((void**)&all_query_points_d, max_query_points_capacity*COORD_DIM*sizeof(Real) );
@@ -657,6 +652,15 @@ void Interp3_Plan_GPU::scatter( int data_dof,
 }
 
 
+void Interp3_Plan_GPU::test_kernel(Real* f, int nq) {
+  test(f, nq);
+  return;
+}
+
+
+
+    
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -698,6 +702,8 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
     return;
   }
 
+  //PetscSynchronizedPrintf(PETSC_COMM_WORLD, "c_dims = [%d,%d]\n", c_dims[0], c_dims[1]);
+
 #if defined(VERBOSE1) 
   printf("\ng_alloc_max = %zu", g_alloc_max);
   printf("\ndata_dof = %d", data_dof);
@@ -708,11 +714,12 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   printf("\ntotal_query_points = %d", total_query_points);
   printf("\nnlghost = %d", nlghost);
 #endif
-    
+  
   // compute the interpolation on the GPU
   ZeitGeist_define(interp_kernel);
   ZeitGeist_tick(interp_kernel);
   timings[1]+=-MPI_Wtime();
+  double interp_kernel_time = -MPI_Wtime();
   if (data_dof == 3)
     gpuInterpVec3D(&ghost_reg_grid_vals_d[0*nlghost], 
                    &ghost_reg_grid_vals_d[1*nlghost], 
@@ -730,6 +737,27 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
                 iporder, interp_time);
   ZeitGeist_tock(interp_kernel);
   timings[1]+=+MPI_Wtime();
+  interp_kernel_time += MPI_Wtime();
+
+#if defined(VERBOSE1) 
+  int device;
+  cudaGetDevice(&device);
+  double global_interp_time = 0;
+  MPI_Barrier(c_comm);
+  MPI_Reduce(&interp_kernel_time, &global_interp_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+  double all_interp_runtimes[nprocs];
+  MPI_Gather(&interp_kernel_time, 1, MPI_DOUBLE, all_interp_runtimes, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  PetscPrintf(PETSC_COMM_WORLD, "max =  %0.2E\t", global_interp_time);
+  if (procid == 0) {
+    PetscPrintf(PETSC_COMM_WORLD, "[");
+    for (int i=0; i<nprocs; i++) {
+      PetscPrintf(PETSC_COMM_WORLD, "%0.2E," , all_interp_runtimes[i]);
+    }
+    PetscPrintf(PETSC_COMM_WORLD, "]\n");
+  }
+#endif
+
+  //std::cout << "interp on device " << device << " took " << interp_kernel_time << "s for " << total_query_points << std::endl;
   
   // Now we have to do an alltoall to distribute the interpolated data from all_f_cubic_d to f_cubic_unordered_d
   ZeitGeist_define(interp_comm_values_sendrcv);

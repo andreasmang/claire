@@ -49,4 +49,6 @@ void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int 
 
 void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart, int* nx, ScalarType* dhx);
 
+void test(ScalarType* f, int nq);
+
 #endif

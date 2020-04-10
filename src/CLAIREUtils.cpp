@@ -592,6 +592,10 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     }
 
+#if defined(REG_HAS_CUDA)
+    c_grid[0] = nprocs;
+    c_grid[1] = 1;
+#endif
     // initialize accfft
     accfft_create_comm(PETSC_COMM_WORLD, c_grid, &c_comm);
     accfft_init(nthreads);

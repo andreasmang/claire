@@ -46,6 +46,8 @@ following papers:
 #include "petscconf.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <chrono>
+#include <ctime> 
 #include <algorithm>
 #include <memcpy.cu>
 #include <bspline_kernel.cu>
@@ -893,7 +895,7 @@ void gpuInterp3Dkernel(
   
     int threads = 256;
     int blocks = (nq+255)/threads;
-    
+     
     // launch the interpolation kernel
     switch (iporder) {
     case 1:
@@ -951,9 +953,18 @@ void gpuInterp3D(
     
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-
-    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    
+    cudaEventRecord(start);
+    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    //std::cout << "time elapsed  " << milliseconds << std::endl;
     cudaDeviceSynchronize();
 }
 
@@ -981,10 +992,6 @@ void gpuInterpVec3D(
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
 
-    //int threads = 256;
-    //int blocks = (nq+255)/threads;
-    //printVectorKernel<<<blocks, threads>>>(yi1, nq);
-
     gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
@@ -992,53 +999,14 @@ void gpuInterpVec3D(
     cudaDeviceSynchronize();
 }
 
-/********************************************************************
- * @brief host function to do interpolation of a scalar field
- * @parm[in] yi regular grid values [yix0,yix1,yix2,....,yiy0,yiy1,yiy2,....,yiz0,yiz1,yiz2....]
- * @parm[in] xq query coordinates   [x0,y0,z0,x1,y1,z1,.....]
- * @parm[in] yi_tex texture object 
- * @parm[in] nx array denoting number of query coordinates in each dimension  (this will be isize when using multi-GPU)
- * @parm[out] yo interpolated values (same format at yi)
- *******************************************************************/
-/*void gpuInterpVec3D(
-           PetscScalar* yi, 
-           const PetscScalar* xq,
-           PetscScalar* yo,
-           float *tmp1, float* tmp2,
-           int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
-{
-    // define inv of nx for normalizing in texture interpolation
-    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
-                                        1.0f/static_cast<float>(nx[1]), 
-                                        1.0f/static_cast<float>(nx[0]));
-    long int nq = nx[0]*nx[1]*nx[2]; 
-    
-    // create a cudaExtent for input resolution
-    cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-    
-    gpuInterp3Dkernel(&yi[0*nq], xq, &yo[0*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
-    gpuInterp3Dkernel(&yi[1*nq], xq, &yo[1*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
-    gpuInterp3Dkernel(&yi[2*nq], xq, &yo[2*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
-    
-    cudaDeviceSynchronize();
-}
-*/
-
 __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 offset) {
 
     int tid = threadIdx.x + blockIdx.x * blockDim.x; 
 
     if (tid<nq) {
-        //xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x)*scale.x;
-        //xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y)*scale.y;
-        //xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z)*scale.z;
         xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x);
         xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y);
         xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z);
-        //xq1[tid] = all_query_points[tid*3 + 0];
-        //xq2[tid] = all_query_points[tid*3 + 1];
-        //xq3[tid] = all_query_points[tid*3 + 2];
-        //printf("tid = %d \t xq = %0.4f \t yq = %0.4f \t zq = %f\n", tid, xq1[tid], xq2[tid], xq3[tid]);
     }
 
 }
@@ -1046,19 +1014,14 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
 
 void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost) {
     
-   // const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
-   //                                    static_cast<float>(nghost-procid[1]*isize[1]),
-   //                                    static_cast<float>(nghost));
-    
     const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
-                                       static_cast<float>(nghost-procid[1]*isize[1]),
+                                       static_cast<float>(0*nghost-0*procid[1]*isize[1]),
                                        static_cast<float>(0*nghost));
     const float3 ng = make_float3( nx[0], nx[1], nx[2] );
 
     int threads = 256;
     int blocks = (nq+threads-1)/threads;
     normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, offset);
-
     cudaDeviceSynchronize();
 }
 
@@ -1271,4 +1234,24 @@ void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* 
 
     //cudaFree(d_state);
 }
+
+__global__ void testKernel(ScalarType* f) {
+  int tid = threadIdx.x + blockIdx.x*blockDim.x;
+  
+  ScalarType x = 0;
+  for (int i=0; i<500; i++) {
+    x += sinf((float)i);
+  }
+  f[tid] = x;
+}
+
+void test(ScalarType* f, int nq) {
+
+  int threads = 256;
+  int blocks = (nq+threads-1)/threads;
+
+  testKernel<<<blocks, threads>>>(f);
+  cudaDeviceSynchronize();
+}
+
 

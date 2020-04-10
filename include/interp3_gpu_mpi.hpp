@@ -39,6 +39,7 @@ struct Interp3_Plan_GPU{
   //            int* N_reg, int * isize, int* istart, const int N_pts, const int g_size,
   //            Real* query_values,int* c_dims, MPI_Comm c_comm,double * timings);
   
+  void test_kernel(Real* f, int nq);
   // current interpolation function
   void interpolate( Real* ghost_reg_grid_vals, 
                     int data_dof,
