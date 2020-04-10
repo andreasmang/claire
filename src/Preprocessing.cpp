@@ -860,9 +860,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     //accfft_execute_r2c_t(this->m_FFTFinePlan, const_cast<ScalarType*>(p_xf), this->m_XHatFine.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
     //ierr = this->m_XHatFine.CopyDeviceToHost(); CHKERRQ(ierr);
-#ifdef REG_HAS_CUDA
-    if (this->m_Opt->rank_cnt > 2 && false) {
-#endif
+#ifndef REG_HAS_CUDA
     ierr = this->m_XHatCoarse.AllocateHost(); CHKERRQ(ierr);
 
     this->m_XHatCoarse.WriteHost();
@@ -938,11 +936,9 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
         }
     }
 
-#ifdef REG_HAS_CUDA
-  } else {
+#else
     ierr = this->m_fine_fft->fft->Restrict(this->m_XHatCoarse.WriteDevice(), this->m_XHatFine.ReadWriteDevice(), this->m_coarse_fft->fft); CHKERRQ(ierr);
     ierr = this->m_coarse_fft->fft->Scale(this->m_XHatCoarse.ReadWriteDevice(), this->m_FFTFineScale); CHKERRQ(ierr);
-  }
 #endif
 
     ierr = GetRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
@@ -1622,9 +1618,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     //accfft_execute_r2c_t(this->m_FFTCoarsePlan, const_cast<ScalarType*>(p_xc), this->m_XHatCoarse.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
     //ierr = this->m_XHatCoarse.CopyDeviceToHost(); CHKERRQ(ierr);
-#ifdef REG_HAS_CUDA
-    if (this->m_Opt->rank_cnt > 2 && false) {
-#endif
+#ifndef REG_HAS_CUDA
     ierr = this->m_XHatFine.AllocateHost(); CHKERRQ(ierr);
 
     this->m_XHatFine.WriteHost();
@@ -1698,11 +1692,9 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
             }
         }
     }
-#ifdef REG_HAS_CUDA
-  } else {
+#else
     ierr = this->m_coarse_fft->fft->Scale(this->m_XHatCoarse.ReadWriteDevice(), this->m_FFTCoarseScale); CHKERRQ(ierr);
     ierr = this->m_fine_fft->fft->Prolong(this->m_XHatFine.WriteDevice(), this->m_XHatCoarse.ReadDevice(), this->m_coarse_fft->fft); CHKERRQ(ierr);
-  }
 #endif
 
     ierr = GetRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
