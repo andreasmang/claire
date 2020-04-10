@@ -72,6 +72,7 @@ PetscErrorCode TestDifferentiation(UnitTestOpt *m_Opt) {
       ZeitGeist_define(FFT_LIB);
       ZeitGeist_tick(FFT_LIB);
       fft.fft->FFT_R2C(real, spectral);
+      fft.fft->Scale(spectral, 1./static_cast<ScalarType>(fft.nx[0]*fft.nx[1]*fft.nx[2]));
       fft.fft->FFT_C2R(spectral, real);
       ZeitGeist_tock(FFT_LIB);
     }
