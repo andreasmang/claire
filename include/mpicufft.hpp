@@ -28,7 +28,17 @@ public:
   virtual inline void getInStart(size_t *istart) { istart[0] = istartx[pidx]; istart[1] = 0; istart[2] = 0; };
   virtual inline void getOutSize(size_t *osize) { osize[0] = osizex; osize[1] = osizey[pidx]; osize[2] = osizez; };
   virtual inline void getOutStart(size_t *ostart) { ostart[0] = 0; ostart[1] = ostarty[pidx]; ostart[2] = 0; };
+  
+  virtual inline void restrictTo(void *coarse, const void *fine, MPIcuFFT<T>* fft_coarse) {
+    changeSize(coarse, fine, fft_coarse, Restrict);
+  }
+  virtual inline void prolongFrom(void *fine, const void *coarse, MPIcuFFT<T>* fft_coarse) {
+    changeSize(fine, coarse, fft_coarse, Prolong);
+  }
 protected:
+  enum changeType_e {Prolong, Restrict};
+  virtual void changeSize(void *out, const void *in, MPIcuFFT<T>* fft_coarse, changeType_e direction);
+  
   cufftHandle planR2C;
   cufftHandle planC2R;
   cufftHandle planC2C;

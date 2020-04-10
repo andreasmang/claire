@@ -671,7 +671,7 @@ PetscErrorCode DifferentiationSM::Restrict(ScalarType* vc, const ScalarType* vf,
   ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
   
   this->m_FFT->fft->FFT_R2C(vf, pXHat[0]);
-  this->m_FFT->fft->Restrict(pXHat[1], pXHat[0], coarse->nx, coarse->osize, coarse->ostart);
+  this->m_FFT->fft->Restrict(pXHat[1], pXHat[0], coarse->fft);
   coarse->fft->Scale(pXHat[1], scale);
   coarse->fft->FFT_C2R(pXHat[1], vc);
   
@@ -693,7 +693,7 @@ PetscErrorCode DifferentiationSM::Prolong(ScalarType* vf, const ScalarType* vc, 
   //this->m_FFT->fft->FFT_R2C(vf, pXHat[1]);
   coarse->fft->Scale(pXHat[0], scale);
   //this->m_FFT->fft->Scale(pXHat[1], 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]));
-  this->m_FFT->fft->Prolong(pXHat[1], pXHat[0], coarse->nx, coarse->osize, coarse->ostart);
+  this->m_FFT->fft->Prolong(pXHat[1], pXHat[0], coarse->fft);
   this->m_FFT->fft->FFT_C2R(pXHat[1], vf);
   
   ZeitGeist_tock(FFT_PROLONG);

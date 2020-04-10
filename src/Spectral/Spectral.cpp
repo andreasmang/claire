@@ -161,6 +161,7 @@ PetscErrorCode Spectral::SetupFFT() {
 #else
       ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, false); CHKERRQ(ierr);
 #endif
+      allocmem = true;
       size_t osize[3], ostart[3], isize[3], istart[3];
       this->m_plan->initFFT(nx[0], nx[1], nx[2], allocmem);
       if (sharedsize_d < this->m_plan->getWorkSizeDevice()) {
@@ -327,11 +328,20 @@ PetscErrorCode Spectral::HighPassFilter(ComplexType *xHat, ScalarType pct) {
 /********************************************************************
  * @brief Restrict to lower Grid
  *******************************************************************/
-PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]) {
+PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, Spectral *fft_coarse) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    
-    ierr = this->m_kernel.Restrict(xc, xf, nx_c, osize_c, ostart_c); CHKERRQ(ierr);
+
+#if REG_HAS_CUDA
+    this->m_plan->restrictTo(xc, xf, fft_coarse->m_plan);
+    //ierr = this->m_kernel.Restrict(xc, xf, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
+#else
+    if (this->m_Opt->rank_cnt == 1) {
+      ierr = this->m_kernel.Restrict(xc, xf, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
+    } else {
+      ierr = ThrowError("Spectral restriction not implemented!"); CHKERRQ(ierr);
+    }
+#endif
 
     PetscFunctionReturn(ierr);
 }
@@ -339,11 +349,20 @@ PetscErrorCode Spectral::Restrict(ComplexType *xc, const ComplexType *xf, const 
 /********************************************************************
  * @brief Prolong from lower Grid
  *******************************************************************/
-PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]) {
+PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, Spectral *fft_coarse) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    
-    ierr = this->m_kernel.Prolong(xf, xc, nx_c, osize_c, ostart_c); CHKERRQ(ierr);
+
+#if REG_HAS_CUDA
+    this->m_plan->prolongFrom(xf, xc, fft_coarse->m_plan);
+    //ierr = this->m_kernel.Prolong(xf, xc, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
+#else
+    if (this->m_Opt->rank_cnt == 1) {
+      ierr = this->m_kernel.Prolong(xf, xc, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
+    } else {
+      ierr = ThrowError("Spectral restriction not implemented!"); CHKERRQ(ierr);
+    }
+#endif
 
     PetscFunctionReturn(ierr);
 }

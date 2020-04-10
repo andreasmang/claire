@@ -861,7 +861,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     ierr = RestoreRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
     //ierr = this->m_XHatFine.CopyDeviceToHost(); CHKERRQ(ierr);
 #ifdef REG_HAS_CUDA
-    if (this->m_Opt->rank_cnt > 1) {
+    if (this->m_Opt->rank_cnt > 2 && false) {
 #endif
     ierr = this->m_XHatCoarse.AllocateHost(); CHKERRQ(ierr);
 
@@ -940,8 +940,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 
 #ifdef REG_HAS_CUDA
   } else {
-    ierr = this->m_fine_fft->fft->Restrict(this->m_XHatCoarse.WriteDevice(), this->m_XHatFine.ReadWriteDevice(), 
-                                           this->m_coarse_fft->nx, this->m_coarse_fft->osize, this->m_coarse_fft->ostart); CHKERRQ(ierr);
+    ierr = this->m_fine_fft->fft->Restrict(this->m_XHatCoarse.WriteDevice(), this->m_XHatFine.ReadWriteDevice(), this->m_coarse_fft->fft); CHKERRQ(ierr);
     ierr = this->m_coarse_fft->fft->Scale(this->m_XHatCoarse.ReadWriteDevice(), this->m_FFTFineScale); CHKERRQ(ierr);
   }
 #endif
@@ -1624,7 +1623,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     ierr = RestoreRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
     //ierr = this->m_XHatCoarse.CopyDeviceToHost(); CHKERRQ(ierr);
 #ifdef REG_HAS_CUDA
-    if (this->m_Opt->rank_cnt > 1) {
+    if (this->m_Opt->rank_cnt > 2 && false) {
 #endif
     ierr = this->m_XHatFine.AllocateHost(); CHKERRQ(ierr);
 
@@ -1702,8 +1701,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
 #ifdef REG_HAS_CUDA
   } else {
     ierr = this->m_coarse_fft->fft->Scale(this->m_XHatCoarse.ReadWriteDevice(), this->m_FFTCoarseScale); CHKERRQ(ierr);
-    ierr = this->m_fine_fft->fft->Prolong(this->m_XHatFine.WriteDevice(), this->m_XHatCoarse.ReadDevice(), 
-                                          this->m_coarse_fft->nx, this->m_coarse_fft->osize, this->m_coarse_fft->ostart); CHKERRQ(ierr);
+    ierr = this->m_fine_fft->fft->Prolong(this->m_XHatFine.WriteDevice(), this->m_XHatCoarse.ReadDevice(), this->m_coarse_fft->fft); CHKERRQ(ierr);
   }
 #endif
 

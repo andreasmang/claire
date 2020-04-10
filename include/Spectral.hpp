@@ -50,21 +50,21 @@ class Spectral {
     PetscErrorCode LowPassFilter(ComplexType *xHat, ScalarType pct);
     PetscErrorCode HighPassFilter(ComplexType *xHat, ScalarType pct);
     
-    PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, const IntType nx_c[3], const IntType osize_c[3], const IntType ostart_c[3]);
-    PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, const IntType nx_c[3],  const IntType osize_c[3], const IntType ostart_c[3]);
+    PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, Spectral* fft_coarse);
+    PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, Spectral* fft_coarse);
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
+ protected:
+    PetscErrorCode Initialize();
+    PetscErrorCode ClearMemory();
+    
+    PetscErrorCode SetupFFT();
     
 #ifdef REG_HAS_CUDA
     MPIcuFFT<ScalarType> *m_plan;
 #else
     FFTPlanType *m_plan;
 #endif
- protected:
-    PetscErrorCode Initialize();
-    PetscErrorCode ClearMemory();
-    
-    PetscErrorCode SetupFFT();
     
     SpectralKernel m_kernel;
 
