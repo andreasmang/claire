@@ -242,4 +242,5 @@ ifeq ($(BUILDTOOLS),yes)
 endif
 ifeq ($(BUILDTEST),yes)
 	BIN += $(BINDIR)/test
+	BIN += $(BINDIR)/debug
 endif
