@@ -820,7 +820,7 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
 
     PetscFunctionBegin;
     
-    if (this->m_Opt->m_Verbosity > 1) {
+    if (this->m_Opt->m_Verbosity > 2) {
       ierr = DbgMsgCall("Mapping query points"); CHKERRQ(ierr);
     }
 
