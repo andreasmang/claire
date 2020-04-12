@@ -72,11 +72,10 @@ PetscErrorCode DifferentiationFD::Initialize() {
     
     this->m_tmp = nullptr;
     this->mtex = 0;
-    this->m_GhostWork1 = nullptr;
-    this->m_GhostWork2 = nullptr;
     this->m_Ghost = nullptr;
     this->d_Ghost = nullptr;
     this->m_Work = nullptr;
+    this->m_GhostPlan = nullptr;
 
     ierr = this->SetupData(); CHKERRQ(ierr);
     
@@ -93,7 +92,7 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     int isize[3], nx[3];
     ScalarType hx[3];
     PetscFunctionBegin;
-  
+     
     for (int i=0; i<3; i++) {
       isize[i] = this->m_Opt->m_Domain.isize[i];
       hx[i] = this->m_Opt->m_Domain.hx[i];
@@ -103,26 +102,22 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
 #if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
     if (this->m_Opt->rank_cnt == 1) {
       this->mtex = gpuInitEmptyGradientTexture(nx);
-      ierr = initConstants(isize, isize, hx); CHKERRQ(ierr);
+      ierr = initConstants(isize, isize, hx, this->halo); CHKERRQ(ierr);
     } else {
-      this->g_alloc_max = ghost_xyz_local_size(this->m_Opt, this->nghost, this->isize_g, this->istart_g);
+      ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt, this->nghost); CHKERRQ(ierr);
+      this->g_alloc_max = this->m_GhostPlan->get_ghost_local_size_x(this->isize_g, this->istart_g);
       this->nlghost = isize_g[0]*isize_g[1]*isize_g[2];
 
-      // work memory allocation for ghost point sharing
-      this->m_GhostWork1 = pvfmm::aligned_new<Real> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0]);
-      this->m_GhostWork2 = pvfmm::aligned_new<Real> (this->m_Opt->m_FFT.nalloc + 2 * this->nghost * isize[2] * isize[0] + 2 * this->nghost * isize[2] * this->isize_g[1]);
-      
       // ghost data mem alloc on CPU
-      this->m_Ghost = reinterpret_cast<ScalarType*>(accfft_alloc(this->g_alloc_max));
-      
+      //this->m_Ghost = reinterpret_cast<ScalarType*>(accfft_alloc(this->g_alloc_max));
+      cudaMalloc((void**)&this->m_Ghost, this->g_alloc_max);
       // work memory on CPU
-      this->m_Work = reinterpret_cast<ScalarType*>(accfft_alloc(sizeof(ScalarType)*this->m_Opt->m_Domain.nl));
-
+      //this->m_Work = reinterpret_cast<ScalarType*>(accfft_alloc(sizeof(ScalarType)*this->m_Opt->m_Domain.nl));
       // ghost data mem alloc on GPU
-      cudaMalloc((void**)&this->d_Ghost, this->nlghost*sizeof(ScalarType));
+      //cudaMalloc((void**)&this->d_Ghost, this->nlghost*sizeof(ScalarType));
       
       this->mtex = gpuInitEmptyGradientTexture(this->isize_g); CHKERRQ(ierr);
-      ierr = initConstants(isize, this->isize_g, hx); CHKERRQ(ierr);
+      ierr = initConstants(isize, this->isize_g, hx, this->halo); CHKERRQ(ierr);
     }
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
@@ -147,8 +142,9 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
     }
 #endif
 
-    if (this->m_Ghost != nullptr) {
-      accfft_free(this->m_Ghost);
+    if (this->m_Ghost != nullptr) { 
+      //accfft_free(this->m_Ghost);
+      cudaFree(this->m_Ghost);
       this->m_Ghost = nullptr;
     }
 
@@ -162,14 +158,9 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
       this->d_Ghost = nullptr;
     }
 
-    if (this->m_GhostWork1 != nullptr) {
-      pvfmm::aligned_delete<Real>(this->m_GhostWork1);
-      this->m_GhostWork1 = nullptr;
-    }
-
-    if (this->m_GhostWork2 != nullptr) {
-      pvfmm::aligned_delete<Real>(this->m_GhostWork2);
-      this->m_GhostWork2 = nullptr;
+    if (this->m_GhostPlan != nullptr) {
+      ierr = Free(this->m_GhostPlan); CHKERRQ(ierr);
+      this->m_GhostPlan = nullptr;
     }
     
     if (this->m_tmp != nullptr) {
@@ -198,10 +189,12 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
 
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
     if (this->m_Opt->rank_cnt > 1) {
-      ierr = cudaMemcpy((void*)this->m_Work, (const void*)m, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost);  CHKERRCUDA(ierr);
-      share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-      ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr = computeGradient(g1, g2, g3, this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      //ierr = cudaMemcpy((void*)this->m_Work, (const void*)m, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost);  CHKERRCUDA(ierr);
+      //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+      //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+      //ierr = computeGradient(g1, g2, g3, this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      this->m_GhostPlan->share_ghost_x(m, this->m_Ghost); 
+      ierr = computeGradient(g1, g2, g3, this->m_Ghost, this->mtex, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
     } else {
       ierr = computeGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
     }
@@ -230,10 +223,12 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
 
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
     if (this->m_Opt->rank_cnt > 1) {
-      ierr = cudaMemcpy((void*)this->m_Work, (const void*)m, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-      share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-      ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr = computeLaplacian(l, this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1., true); CHKERRQ(ierr);
+      //ierr = cudaMemcpy((void*)this->m_Work, (const void*)m, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+      //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+      //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+      //ierr = computeLaplacian(l, this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1., true); CHKERRQ(ierr);
+      this->m_GhostPlan->share_ghost_x(m, this->m_Ghost);
+      ierr = computeLaplacian(l, this->m_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1., true); CHKERRQ(ierr);
     } else {
       ierr = computeLaplacian(l, m, this->mtex, this->m_Opt->m_Domain.isize, 1.); CHKERRQ(ierr);
     }
@@ -277,9 +272,9 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
     for (int i=0; i<3; i++) {
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
       if (this->m_Opt->rank_cnt > 1) {
-        ierr = cudaMemcpy((void*)this->m_Work, (const void*)pv[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-        share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-        ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+        //ierr = cudaMemcpy((void*)this->m_Work, (const void*)pv[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+        //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+        //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
         //ierr = computeLaplacian(pl[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1., true); CHKERRQ(ierr);
         ierr = DebugNotImplemented(); CHKERRQ(ierr);
       } else {
@@ -314,20 +309,26 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
     if (this->m_Opt->rank_cnt > 1) {
       cudaMemset((void*)l, 0, this->m_Opt->m_Domain.nl*sizeof(ScalarType));
       
-      ierr = cudaMemcpy((void*)this->m_Work, (const void*)v3, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-      share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-      ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr  = computeDivergenceZ(l, this->d_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      //ierr = cudaMemcpy((void*)this->m_Work, (const void*)v3, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+      //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+      //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+      //ierr  = computeDivergenceZ(l, this->d_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      this->m_GhostPlan->share_ghost_x(v3, this->m_Ghost); 
+      ierr = computeDivergenceZ(l, this->m_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
     
-      ierr = cudaMemcpy((void*)this->m_Work, (const void*)v2, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-      share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-      ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr  = computeDivergenceY(l, this->d_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      //ierr = cudaMemcpy((void*)this->m_Work, (const void*)v2, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+      //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+      //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+      //ierr  = computeDivergenceY(l, this->d_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      this->m_GhostPlan->share_ghost_x(v2, this->m_Ghost); 
+      ierr = computeDivergenceY(l, this->m_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
       
-      ierr = cudaMemcpy((void*)this->m_Work, (const void*)v1, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-      share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-      ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
-      ierr  = computeDivergenceX(l, this->d_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      //ierr = cudaMemcpy((void*)this->m_Work, (const void*)v1, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+      //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+      //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+      //ierr  = computeDivergenceX(l, this->d_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
+      this->m_GhostPlan->share_ghost_x(v1, this->m_Ghost); 
+      ierr = computeDivergenceX(l, this->m_Ghost, this->m_Opt->m_Domain.isize, true); CHKERRQ(ierr);
     } else {
       ierr = computeDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
     }
@@ -365,9 +366,9 @@ PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
     if (this->m_Opt->rank_cnt > 1) {
       for (int i=0; i<3; i++) {
-        ierr = cudaMemcpy((void*)this->m_Work, (const void*)pV[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-        share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-        ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+        //ierr = cudaMemcpy((void*)this->m_Work, (const void*)pV[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+        //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+        //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
         ierr = DebugNotImplemented(); CHKERRQ(ierr);
         //ierr = computeLaplacian(pBV[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, -b0, true); CHKERRQ(ierr);
       }
@@ -432,9 +433,9 @@ PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool us
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
     if (this->m_Opt->rank_cnt > 1) {
       for (int i=0; i<3; i++) {
-        ierr = cudaMemcpy((void*)this->m_Work, (const void*)pV[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
-        share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
-        ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
+        //ierr = cudaMemcpy((void*)this->m_Work, (const void*)pV[i], sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+        //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
+        //ierr = cudaMemcpy((void*)this->d_Ghost, (const void*)this->m_Ghost, this->nlghost*sizeof(ScalarType), cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
         ierr = DebugNotImplemented(); CHKERRQ(ierr);
         //ierr = computeLaplacian(pBV[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, b0, true); CHKERRQ(ierr);
       }

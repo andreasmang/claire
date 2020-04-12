@@ -2,9 +2,9 @@
 
 namespace reg {
 
-GhostPlan::GhostPlan(RegOpt* m_Opt) {
+GhostPlan::GhostPlan(RegOpt* m_Opt, int g_size) {
   this->m_Opt = m_Opt;
-  this->g_size = m_Opt->m_PDESolver.iporder;
+  this->g_size = g_size;
   
   int isize[3], istart[3], nl = this->m_Opt->m_Domain.nl;
   for (int i=0; i<3; i++) {
@@ -115,7 +115,7 @@ GhostPlan::~GhostPlan() {
   delete[] stream;
 }
 
-void GhostPlan::share_left_right(ScalarType* data, double* timers) {
+void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -457,7 +457,7 @@ void GhostPlan::share_top_bottom(ScalarType* ghost_data,  double* timers) {
 #endif
 }
 
-void GhostPlan::share_ghost_x(ScalarType* data, ScalarType* ghost_data) {
+void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -494,7 +494,7 @@ void GhostPlan::share_ghost_x(ScalarType* data, ScalarType* ghost_data) {
 	int bs_buf_size = g_size * isize[2] * (isize[1]);
   
 	// snafu: not really necessary to do memcpy, you can simply use padded_data directly
-  ScalarType* BS = &data[(isize[0] - g_size) * isize[2] * (isize[1])];
+  const ScalarType* BS = &data[(isize[0] - g_size) * isize[2] * (isize[1])];
 
 
   /* Phase 2: Send your data to your bottom process
@@ -556,7 +556,7 @@ void GhostPlan::share_ghost_x(ScalarType* data, ScalarType* ghost_data) {
 
 	// snafu: not really necessary to do memcpy, you can simply use padded_data directly
 	//memcpy(TS,padded_data,ts_buf_size*sizeof(ScalarType));
-	ScalarType* TS = &data[0];
+	const ScalarType* TS = &data[0];
 
 	/* Phase 4: Send your data to your right process
 	 * First question is who is your right process?
@@ -645,7 +645,7 @@ void GhostPlan::share_ghost_x(ScalarType* data, ScalarType* ghost_data) {
 	return;
 }
 
-void GhostPlan::share_ghost_xy(ScalarType* data, ScalarType* ghost_data) {
+void GhostPlan::share_ghost_xy(const ScalarType* data, ScalarType* ghost_data) {
 	int nprocs, procid;
 	MPI_Comm_rank(MPI_COMM_WORLD, &procid);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);

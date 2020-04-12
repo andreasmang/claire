@@ -27,7 +27,7 @@ namespace reg {
 struct GhostPlan {
   
   public:
-    GhostPlan(RegOpt*);
+    GhostPlan(RegOpt*, int);
     ~GhostPlan();
     
     RegOpt* m_Opt;
@@ -48,11 +48,11 @@ struct GhostPlan {
     const int num_streams = 1;
     cudaStream_t* stream;
     
-    void share_ghost_xy(ScalarType* data, ScalarType* ghost_data);
+    void share_ghost_xy(const ScalarType* data, ScalarType* ghost_data);
     
-    void share_ghost_x(ScalarType* data, ScalarType* ghost_data);
+    void share_ghost_x(const ScalarType* data, ScalarType* ghost_data);
     
-    void share_left_right(ScalarType* data, double* timers);
+    void share_left_right(const ScalarType* data, double* timers);
 
     void share_top_bottom(ScalarType* ghost_data, double* timers);
 

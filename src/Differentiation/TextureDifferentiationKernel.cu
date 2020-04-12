@@ -39,6 +39,7 @@ const float h2_c[HALO+1] = {-205.f/72.f, 8.f / 5.f , -1.f / 5.f , 8.f / 315.f, -
 __constant__ int d_nx, d_ny, d_nz;
 __constant__ int d_isize0, d_isize1, d_isize2;
 __constant__ int d_isize_g0, d_isize_g1, d_isize_g2;
+__constant__ int d_halox, d_haloy, d_haloz;
 
 __constant__ float d_invnx, d_invny, d_invnz;
 __constant__ float d_invhx, d_invhy, d_invhz;
@@ -78,19 +79,29 @@ __global__ void mgpu_gradient_z(ScalarType* dfz, const ScalarType* f) {
   int sk = threadIdx.x + HALO;       // local k for shared memory ac3ess + halo offset
   int sj = threadIdx.y; // local j for shared memory ac3ess
   
-  int globalIdx = getLinearIdx_ghost(i+HALO,j+HALO,k+HALO);
+  int globalIdx = getLinearIdx_ghost(i+d_halox,j+d_haloy,k+d_haloz);
 
   s_f[sj][sk] = f[globalIdx];
   
   __syncthreads();
     
-  int id;
+  int id,lid,rid;
   // fill in periodic images in shared memory array 
   if (threadIdx.x < HALO) {
-    id = getLinearIdx_ghost(i+HALO, j+HALO, k);
-    s_f[sj][sk-HALO] = f[id];
-    id = getLinearIdx_ghost(i+HALO, j+HALO, k+sy+HALO);
-    s_f[sj][sk+sy] = f[id];
+    if (d_haloz == 0) {
+      lid = k%d_isize2-HALO;
+      if (lid<0) lid+=d_isize2;
+      id = getLinearIdx_ghost(i+d_halox, j+d_haloy, lid);
+      s_f[sj][sk-HALO] = f[id];
+      rid = (k+sy)%d_isize2;
+      id = getLinearIdx_ghost(i+d_halox, j+d_haloy, rid);
+      s_f[sj][sy+sk] = f[id];
+    } else {
+      id = getLinearIdx_ghost(i+d_halox, j+d_haloy, k);
+      s_f[sj][sk-HALO] = f[id];
+      id = getLinearIdx_ghost(i+d_halox, j+d_haloy, k+sy+d_haloz);
+      s_f[sj][sk+sy] = f[id];
+    }
   }
   
   __syncthreads();
@@ -119,7 +130,7 @@ __global__ void mgpu_gradient_y(ScalarType* dfy, const ScalarType* f) {
   int sk = threadIdx.x;       // local k for shared memory ac3ess, fixed
     
   for(int j = threadIdx.y; j < syy; j += blockDim.y) {
-    int globalIdx = getLinearIdx_ghost(i+HALO, blockIdx.y*syy + j + HALO, k+HALO);
+    int globalIdx = getLinearIdx_ghost(i+d_halox, blockIdx.y*syy + j + d_haloy, k+d_haloz);
     int sj = j + HALO;
     s_f[sj][sk] = f[globalIdx];
   }
@@ -129,13 +140,23 @@ __global__ void mgpu_gradient_y(ScalarType* dfy, const ScalarType* f) {
   
   int sj = threadIdx.y + HALO;
   int y = syy*blockIdx.y + threadIdx.y;
-  int id;
+  int id, lid, rid;
   // fill in periodic images in shared memory array 
   if (threadIdx.y < HALO) {
-    id = getLinearIdx_ghost(i+HALO, y, k+HALO);
-    s_f[sj-HALO][sk] = f[id];
-    id = getLinearIdx_ghost(i+HALO, y+syy+HALO, k+HALO);
-    s_f[sj+syy][sk] = f[id];
+    if (d_haloy == 0) {
+      lid = y%d_isize1-HALO;
+      if (lid<0) lid+=d_isize1;
+      id = getLinearIdx_ghost(i+d_halox, lid, k+d_haloz);
+      s_f[sj-HALO][sk] = f[id];
+      rid = (y+syy)%d_isize1;
+      id = getLinearIdx_ghost(i+d_halox, rid, k+d_haloz);
+      s_f[sj+syy][sk] = f[id];
+    } else {
+      id = getLinearIdx_ghost(i+d_halox, y, k+d_haloz);
+      s_f[sj-HALO][sk] = f[id];
+      id = getLinearIdx_ghost(i+d_halox, y+syy+d_haloy, k+d_haloz);
+      s_f[sj+syy][sk] = f[id];
+    }
   }
 
   __syncthreads();
@@ -169,7 +190,7 @@ __global__ void mgpu_gradient_x(ScalarType* dfx, const ScalarType* f) {
     
     
   for(int i = threadIdx.y; i < syy; i += blockDim.y) {
-    int globalIdx = getLinearIdx_ghost(blockIdx.y*syy + i + HALO, j + HALO , k + HALO);
+    int globalIdx = getLinearIdx_ghost(blockIdx.y*syy + i + d_halox, j + d_haloy, k + d_haloz);
     int si = i + HALO;
     s_f[si][sk] = f[globalIdx];
   }
@@ -179,13 +200,23 @@ __global__ void mgpu_gradient_x(ScalarType* dfx, const ScalarType* f) {
   
   int si = threadIdx.y + HALO;
   int x = syy*blockIdx.y + threadIdx.y;
-  int id;
+  int id, lid, rid;
   // fill in periodic images in shared memory array 
   if (threadIdx.y < HALO) {
-    id = getLinearIdx_ghost(x, j+HALO, k+HALO);
-    s_f[si-HALO][sk] = f[id];
-    id = getLinearIdx_ghost(x+syy+HALO, j+HALO, k+HALO);
-    s_f[si+syy][sk] = f[id];
+    if (d_halox == 0) {
+      lid = x%d_isize0-HALO;
+      if (lid<0) lid+=d_isize0;
+      id = getLinearIdx_ghost(lid, j+d_haloy, k+d_haloz);
+      s_f[si-HALO][sk] = f[id];
+      rid = (x+syy)%d_isize0;
+      id = getLinearIdx_ghost(rid, j+d_haloy, k+d_haloz);
+      s_f[si+syy][sk] = f[id];
+    } else {
+      id = getLinearIdx_ghost(x, j+d_haloy, k+d_haloz);
+      s_f[si-HALO][sk] = f[id];
+      id = getLinearIdx_ghost(x+syy+d_halox, j+d_haloy, k+d_haloz);
+      s_f[si+syy][sk] = f[id];
+    }
   }
 
   __syncthreads();
@@ -763,7 +794,7 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
     }
 }
 
-PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx) {
+PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx, int* halo) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -771,6 +802,10 @@ PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx) {
                                 1.0f/static_cast<float>(isize[1]), 
                                 1.0f/static_cast<float>(isize[2]));
   float3 inv_hx = make_float3(0.5f/hx[0], 0.5f/hx[1], 0.5f/hx[2]);
+
+  cudaMemcpyToSymbol(d_halox, &halo[0], sizeof(int), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_haloy, &halo[1], sizeof(int), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_haloz, &halo[2], sizeof(int), 0, cudaMemcpyHostToDevice);
 
   cudaMemcpyToSymbol(d_isize0, &isize[0], sizeof(int), 0, cudaMemcpyHostToDevice);
   cudaMemcpyToSymbol(d_isize1, &isize[1], sizeof(int), 0, cudaMemcpyHostToDevice);

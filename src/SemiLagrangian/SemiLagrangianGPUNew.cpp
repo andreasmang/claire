@@ -100,8 +100,8 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
         isize[i] = this->m_Opt->m_Domain.isize[i];
       }
       
-      ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt); CHKERRQ(ierr);
       this->nghost = this->m_Opt->m_PDESolver.iporder;
+      ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt, this->nghost); CHKERRQ(ierr);
       this->g_alloc_max = this->m_GhostPlan->get_ghost_local_size_x(this->isize_g, this->istart_g);
       this->nlghost  = this->isize_g[0];
       this->nlghost *= this->isize_g[1];

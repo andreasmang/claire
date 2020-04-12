@@ -395,7 +395,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   // get ghost dimensions
   if (ghost_plan == nullptr) {
     try {
-      ghost_plan = new GhostPlan(m_Opt);
+      ghost_plan = new GhostPlan(m_Opt,m_Opt->m_PDESolver.iporder);
     } catch (std::bad_alloc&) {
       ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
@@ -652,7 +652,7 @@ PetscErrorCode TestVectorFieldInterpolationMultiGPU(RegOpt *m_Opt) {
   // get ghost dimensions
   if (ghost_plan == nullptr) {
     try {
-      ghost_plan = new GhostPlan(m_Opt);
+      ghost_plan = new GhostPlan(m_Opt, m_Opt->m_PDESolver.iporder);
     } catch (std::bad_alloc&) {
       ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
