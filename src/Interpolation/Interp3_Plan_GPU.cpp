@@ -35,6 +35,63 @@ inline cufftResult checkCuda_accfft(cufftResult result)
 #endif
 
 
+struct is_equal {
+    int id;
+    is_equal(int comp_id) : id(comp_id) {};
+    __host__ __device__ 
+    bool operator()(const int &x) {
+        return x == id;
+    }
+};
+
+template <typename Iterator>
+class strided_range
+{
+    public:
+
+    typedef typename thrust::iterator_difference<Iterator>::type difference_type;
+
+    struct stride_functor : public thrust::unary_function<difference_type,difference_type>
+    {
+        difference_type stride;
+
+        stride_functor(difference_type stride)
+            : stride(stride) {}
+
+        __host__ __device__
+        difference_type operator()(const difference_type& i) const
+        { 
+            return stride * i;
+        }
+    };
+
+    typedef typename thrust::counting_iterator<difference_type>                   CountingIterator;
+    typedef typename thrust::transform_iterator<stride_functor, CountingIterator> TransformIterator;
+    typedef typename thrust::permutation_iterator<Iterator,TransformIterator>     PermutationIterator;
+
+    // type of the strided_range iterator
+    typedef PermutationIterator iterator;
+
+    // construct strided_range for the range [first,last)
+    strided_range(Iterator first, Iterator last, difference_type stride)
+        : first(first), last(last), stride(stride) {}
+   
+    iterator begin(void) const
+    {
+        return PermutationIterator(first, TransformIterator(CountingIterator(0), stride_functor(stride)));
+    }
+
+    iterator end(void) const
+    {
+        return begin() + ((last - first) + (stride - 1)) / stride;
+    }
+    
+    protected:
+    Iterator first;
+    Iterator last;
+    difference_type stride;
+};
+
 class Trip_GPU{
   public:
     Trip_GPU() {};
@@ -50,6 +107,7 @@ static bool ValueCmp(Trip_GPU const & a, Trip_GPU const & b)
 {
     return a.z + a.y/a.h[1]*a.N[2] + a.x/a.h[0]* a.N[1]*a.N[2]<b.z + b.y/b.h[1]*b.N[2] + b.x/b.h[0]* b.N[1]*b.N[2] ;
 }
+
 static void sort_queries(std::vector<Real>* query_outside,std::vector<int>* f_index,int* N_reg,Real* h,MPI_Comm c_comm) {
 
   int nprocs, procid;
@@ -87,7 +145,7 @@ static void sort_queries(std::vector<Real>* query_outside,std::vector<int>* f_in
   }
   return;
 }
-
+#endif
 
 
 /**********************************************************************************
@@ -233,7 +291,9 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
                                 int* istart, // local grid start indices
                                 const int N_pts, // local grid point count
                                 const int g_size, // ghost layer width
-                                Real* query_points_in, // input query points
+                                Real* query_points_in_x, // input query points
+                                Real* query_points_in_y, // input query points
+                                Real* query_points_in_z, // input query points
                                 int* c_dims,  // process cartesian grid dimensions
                                 MPI_Comm c_comm,  // MPI Comm
                                 double * timings) {
@@ -298,6 +358,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     // need to send it to any other processor, as we own the necessary information locally,
     // and interpolation can be done locally.
     int Q_local=0, Q_outside=0;
+    
+
 
     // This is needed for one-to-one correspondence with output f. This is becaues we are reshuffling
     // the data according to which processor it land onto, and we need to somehow keep the original
@@ -498,7 +560,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
 #endif
   }
-  else{
+  else {
     // if this the first time scatter is being called (scatter_baked = False) then, only allocate the memory on GPU
 #ifdef INTERP_PINNED
     cudaMallocHost((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
@@ -511,7 +573,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     cudaMalloc((void**)&xq1, total_query_points*sizeof(Real));
     cudaMalloc((void**)&xq2, total_query_points*sizeof(Real));
     cudaMalloc((void**)&xq3, total_query_points*sizeof(Real));
-    cudaMalloc((void**)&all_query_points_d,all_query_points_allocation*sizeof(Real) );
+    cudaMalloc((void**)&all_f_cubic_d, total_query_points*sizeof(Real)*data_dof);
 #endif
   }
   ZeitGeist_tock(INTERPOL_MEMALLOC);
@@ -551,17 +613,11 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
  */
 
 void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded regular grid values on CPU
-                                    int* N_reg,                // size of global grid points 
-                                    int* isize,                // size of the local grid owned by the process
-                                    int* istart,               // start point of the local grid owned by the process
                                     int* isize_g,              // size of the local grid (including ghost points)
                                     const IntType nlghost,         // number of local grid points (including ghost points) owned by process
                                     const IntType N_pts,           // number of local points owned by the process
-                                    const int g_size,          // ghost layer width
-                                    Real* query_values,        // interpolation result on CPU
-                                    int* c_dims,               // dimensions of the communicator plan
+                                    Real* query_values_d,      // interpolation result on GPU
                                     MPI_Comm c_comm,           // MPI communicator
-                                    double * timings,          // time variable to store interpolation time
                                     float *tmp1,               // temporary memory for interpolation prefilter
                                     float* tmp2,               // temporary memory for interpolation prefilter
                                     cudaTextureObject_t yi_tex,// texture object for interpolation
@@ -582,14 +638,14 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
   }
 
   int data_dof = data_dofs[version];
-
+/*
   ZeitGeist_define(INTERPOL_MEMCPY);
   ZeitGeist_tick(INTERPOL_MEMCPY);
   timings[2]+=-MPI_Wtime();
   cudaMemcpy((void*)ghost_reg_grid_vals_d, (const void*)ghost_reg_grid_vals, nlghost*data_dof*sizeof(Real), cudaMemcpyHostToDevice);
   timings[2]+=+MPI_Wtime();
   ZeitGeist_tock(INTERPOL_MEMCPY);
-
+*/
 
 //#if defined(VERBOSE1) 
 //  printf("\ng_alloc_max = %zu", g_alloc_max);
@@ -604,7 +660,6 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
   
   ZeitGeist_define(INTERPOL_EXEC);
   ZeitGeist_tick(INTERPOL_EXEC);
-  timings[1]+=-MPI_Wtime();
   if (data_dof == 3)
     gpuInterpVec3D(&ghost_reg_grid_vals_d[0*nlghost], 
                    &ghost_reg_grid_vals_d[1*nlghost], 
@@ -621,7 +676,6 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals, // ghost padded r
                 tmp1, tmp2, isize_g, static_cast<long int>(total_query_points), yi_tex, 
                 iporder, interp_time);
     
-  timings[1]+=+MPI_Wtime();
   ZeitGeist_tock(INTERPOL_EXEC);
     
   // copy the interpolated results from the device to the host

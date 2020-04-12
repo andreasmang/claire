@@ -4,6 +4,7 @@ CPPFILES=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/ghost.cpp \
+		$(SRCDIR)/GhostPlan.cpp \
 		$(SRCDIR)/Interpolation/interp3.cpp \
 		$(SRCDIR)/Interpolation/Interp3_Plan.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
@@ -66,14 +67,16 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/Differentiation/TextureDifferentiationKernel.cu \
 		$(SRCDIR)/Spectral/SpectralKernel.cu \
 		$(SRCDIR)/PreconditionerKernel.cu \
-		$(SRCDIR)/Regularization/RegularizationKernel.cu 
+		$(SRCDIR)/Regularization/RegularizationKernel.cu \
+		$(SRCDIR)/Interpolation/Interp3_Plan_GPU.cu \
+		$(SRCDIR)/Interpolation/Interp3_Plan_GPU_kernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
 		$(SRCDIR)/ghost.cpp \
-		$(SRCDIR)/Interpolation/Interp3_Plan_GPU.cpp \
+		$(SRCDIR)/GhostPlan.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
 		$(SRCDIR)/Differentiation/DifferentiationFD.cpp \

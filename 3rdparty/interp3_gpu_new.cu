@@ -46,24 +46,19 @@ following papers:
 #include "petscconf.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
-
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/extrema.h>
-#include <thrust/pair.h>
+#include <chrono>
+#include <ctime> 
 #include <algorithm>
-#include <thrust/device_ptr.h>
-
 #include <memcpy.cu>
-#include <cubicPrefilter3D.cu>
 #include <bspline_kernel.cu>
 #include <lagrange_kernel.cu>
 #include "interp3_gpu_new.hpp"
-
 #include "cuda_helper.hpp"
 #include "cuda_profiler_api.h"
-
 #include "zeitgeist.hpp"
+#include <math.h>
+#include <curand.h>
+#include <curand_kernel.h>
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
@@ -84,6 +79,11 @@ const int syy = sharedrows;
 // device constants
 __constant__ float d_c[HALO+1];
 __constant__ int d_nx, d_ny, d_nz;
+__constant__ float d_h[3];
+__constant__ float d_iX0[3];
+__constant__ float d_iX1[3];
+__constant__ int d_istart[3];
+__constant__ int d_isize[3];
 //__constant__ float d_invnx, d_invny, d_invnz;
 //__constant__ float d_invhx, d_invhy, d_invhz;
 
@@ -123,10 +123,14 @@ void interp0(float* m, float* q1, float* q2, float* q3, float* q, int nx[3]) {
   interp0gpu<<<nl/256,256>>>(m,q1,q2,q3,q,n);
 }
 
-
-__global__ void printVector(float *m, int n) {
+__global__ void printVectorKernel(ScalarType* m, int n) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     if (i<n) printf("m[%d] = %f\n", i , m[i]);
+}
+
+__global__ void print3DVectorKernel(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int n) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i<n) printf("m[%d] = %f\nm[%d] = %f\nm[%d] = %f\n", 3*i , arr1[i], 3*i+1, arr2[i], 3*i+2, arr3[i]);
 }
 
 /********************************************************************
@@ -608,8 +612,6 @@ __device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, cons
 // Fast prefilter for B-Splines
 void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp2) {
     
-    //float time=0, dummy_time=0;
-    //int repcount = 1;
     cudaEvent_t startEvent, stopEvent;
     cudaEventCreate(&startEvent);
     cudaEventCreate(&stopEvent);
@@ -860,7 +862,7 @@ void gpuInterp3Dkernel(
            long int nq)
 {
     // SET cubic interpolation type here
-    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;//SLOW_LAGRANGE;
+    enum CUBIC_INTERP_TYPE interp_type = SLOW_LAGRANGE;
     cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
@@ -893,7 +895,7 @@ void gpuInterp3Dkernel(
   
     int threads = 256;
     int blocks = (nq+255)/threads;
-    
+     
     // launch the interpolation kernel
     switch (iporder) {
     case 1:
@@ -951,9 +953,18 @@ void gpuInterp3D(
     
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-
-    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    
+    cudaEventRecord(start);
+    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    //std::cout << "time elapsed  " << milliseconds << std::endl;
     cudaDeviceSynchronize();
 }
 
@@ -981,10 +992,6 @@ void gpuInterpVec3D(
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
 
-    //int threads = 256;
-    //int blocks = (nq+255)/threads;
-    //printVector<<<blocks, threads>>>(yi1, nq);
-
     gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
     gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
@@ -1000,50 +1007,14 @@ void getMax(ScalarType* x, int nl, ScalarType* max) {
     *max = *it;
 }
     
-/********************************************************************
- * @brief host function to do interpolation of a scalar field
- * @parm[in] yi regular grid values [yix0,yix1,yix2,....,yiy0,yiy1,yiy2,....,yiz0,yiz1,yiz2....]
- * @parm[in] xq query coordinates   [x0,y0,z0,x1,y1,z1,.....]
- * @parm[in] yi_tex texture object 
- * @parm[in] nx array denoting number of query coordinates in each dimension  (this will be isize when using multi-GPU)
- * @parm[out] yo interpolated values (same format at yi)
- *******************************************************************/
-/*void gpuInterpVec3D(
-           PetscScalar* yi, 
-           const PetscScalar* xq,
-           PetscScalar* yo,
-           float *tmp1, float* tmp2,
-           int*  nx, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
-{
-    // define inv of nx for normalizing in texture interpolation
-    const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
-                                        1.0f/static_cast<float>(nx[1]), 
-                                        1.0f/static_cast<float>(nx[0]));
-    long int nq = nx[0]*nx[1]*nx[2]; 
-    
-    // create a cudaExtent for input resolution
-    cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
-    
-    gpuInterp3Dkernel(&yi[0*nq], xq, &yo[0*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
-    gpuInterp3Dkernel(&yi[1*nq], xq, &yo[1*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
-    gpuInterp3Dkernel(&yi[2*nq], xq, &yo[2*nq], tmp1, tmp2, nx, yi_tex, iporder, yi_extent, inv_nx, nq);
-    
-    cudaDeviceSynchronize();
-}
-*/
-
-__global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 scale, const float3 offset) {
+__global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 offset) {
 
     int tid = threadIdx.x + blockIdx.x * blockDim.x; 
 
     if (tid<nq) {
-        //xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x)*scale.x;
-        //xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y)*scale.y;
-        //xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z)*scale.z;
         xq1[tid] = (all_query_points[tid*3 + 0]*ng.x + offset.x);
         xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y);
         xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z);
-        //printf("tid = %d \t xq = %0.4f \t yq = %0.4f \t zq = %f\n", tid, xq1[tid], xq2[tid], xq3[tid]);
     }
 
 }
@@ -1051,20 +1022,252 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
 
 void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost) {
     
-    const float3 scale = make_float3( 1.0f/static_cast<float>(isize[0]+2*nghost), 
-                                      1.0f/static_cast<float>(isize[1]+2*nghost),
-                                      1.0f/static_cast<float>(isize[2]+2*nghost) );
-    
     const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
-                                       static_cast<float>(nghost-procid[1]*isize[1]),
-                                       static_cast<float>(nghost));
-    
+                                       static_cast<float>(0*nghost-0*procid[1]*isize[1]),
+                                       static_cast<float>(0*nghost));
     const float3 ng = make_float3( nx[0], nx[1], nx[2] );
 
     int threads = 256;
     int blocks = (nq+threads-1)/threads;
-    normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, scale, offset);
-
+    normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, offset);
     cudaDeviceSynchronize();
 }
+
+void printGPUVector(ScalarType* arr, int nq) {
+    int threads = 256;
+    int blocks = (nq+threads-1)/threads;
+    printVectorKernel<<<blocks, threads>>>(arr, nq);
+}
+
+
+void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int nq) {
+    int threads = 256;
+    int blocks = (nq+255)/threads;
+    print3DVectorKernel<<<blocks, threads>>>(arr1, arr2, arr3, nq);
+}
+
+
+__global__ void copyQueryValuesKernel(ScalarType* dst, ScalarType* src, int* index, int len) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    
+    int ind;
+    if (tid < len) {
+        ind = index[tid];
+        dst[ind] = src[tid];
+    }
+}
+    
+
+void copyQueryValues(ScalarType* dst, ScalarType* src, int* index, int len) {
+    int threads = 256;
+    int blocks = (len+threads-1)/threads;
+
+    copyQueryValuesKernel<<<blocks, threads>>>(dst, src, index, len);
+    cudaDeviceSynchronize();
+}
+
+__global__ void enforcePeriodicityKernel(ScalarType* xq, ScalarType* yq, ScalarType* zq, int len) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    ScalarType x, y, z;
+    if (tid < len) {
+        x = xq[tid];
+        y = yq[tid];
+        z = zq[tid];
+        while (x <= -d_h[0]) { x += 1; }
+        while (y <= -d_h[1]) { y += 1; }
+        while (z <= -d_h[2]) { z += 1; }
+        
+        while (x >= 1) { x -= 1; }
+        while (y >= 1) { y -= 1; }
+        while (z >= 1) { z -= 1; }
+
+        xq[tid] = x;
+        yq[tid] = y;
+        zq[tid] = z;
+    }
+}
+
+void enforcePeriodicity(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* h, int len) {
+    int threads = 255;
+    int blocks = (len+threads-1)/threads;
+    
+    // copy constant h to device
+    cudaMemcpyToSymbol(d_h, h, sizeof(float)*(3), 0, cudaMemcpyHostToDevice);
+
+    enforcePeriodicityKernel<<<blocks, threads>>>(xq, yq, zq, len);
+    cudaDeviceSynchronize();
+}
+
+__global__ void checkDomainKernel(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, int len, int procid, const int2 isize, int c_dim1) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    ScalarType x,y,z;
+    int dproc0, dproc1;
+    int proc;
+    if (tid < len) {
+        x = xq[tid];
+        y = yq[tid];
+        z = zq[tid];
+        if ( d_iX0[0]-d_h[0] <= x && x <= d_iX1[0]+d_h[0] &&
+             d_iX0[1]-d_h[1] <= y && y <= d_iX1[1]+d_h[1] &&
+             d_iX0[2]-d_h[2] <= z && z <= d_iX1[2]+d_h[2] ) {
+            which_proc[tid] = procid;
+        } else {
+            dproc0=(int)(x/d_h[0])/isize.x;
+            dproc1=(int)(y/d_h[1])/isize.y;
+            proc=dproc0*c_dim1+dproc1; 
+            which_proc[tid] = proc;
+        }
+    }
+}
+
+
+
+void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1) {
+    
+    int threads = 255;
+    int blocks = (len+threads-1)/threads;
+    
+    // copy constant h to device
+    cudaMemcpyToSymbol(d_h, h, 3*sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_iX0, iX0, 3*sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(d_iX1, iX1, 3*sizeof(float), 0, cudaMemcpyHostToDevice);
+    const int2 isize = make_int2(isize0, isize1);
+
+
+    checkDomainKernel<<<blocks, threads>>>(which_proc, xq, yq, zq, len, procid, isize, c_dim1);
+    cudaDeviceSynchronize();
+}
+
+
+__host__ __device__ 
+void TestFunction(ScalarType *val, const ScalarType x, const ScalarType y, const ScalarType z, int caseid) {
+      *val = (caseid+1)*( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
+}
+
+__global__ void setup_kernel(curandState *state, const int3 size, const int3 start, const int3 n) {
+
+    int ix = threadIdx.x + blockDim.x * blockIdx.x;
+    int iy = threadIdx.y + blockDim.y * blockIdx.y;
+    int iz = threadIdx.z + blockDim.z * blockIdx.z;
+    
+
+    int idx = ix*size.y*size.z + iy*size.z + iz; // global index local to GPU
+    if (idx < size.x*size.y*size.z) {
+      int i = ( (ix+start.x) * n.y * n.z ) + ( (iy+start.y) * n.z ) + iz+start.z; // global index to the grid
+      curand_init(1234, i*3, 0, &state[idx]);
+    }
+}
+
+__global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, const float3 h, const int3 size, const int3 start, const int3 n, int caseid) {
+    int ix = threadIdx.x + blockDim.x * blockIdx.x;
+    int iy = threadIdx.y + blockDim.y * blockIdx.y;
+    int iz = threadIdx.z + blockDim.z * blockIdx.z;
+
+    int i = (ix*size.y*size.z) + (iy*size.z) + iz;
+    //curandState_t state;
+    
+    ScalarType x,y,z;
+
+    /* we have to initialize the state */
+    //curand_init(0, /* the seed controls the sequence of random values that are produced */
+    //            i*3, /* the sequence number is only important with multiple cores */
+    //            0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
+    //            &state);
+
+    if (i < size.x*size.y*size.z) {
+        x = h.x*(float)(ix+start.x);
+        y = h.y*(float)(iy+start.y);
+        z = h.z*(float)(iz+start.z);
+        
+        TestFunction(&f[i], x, y, z, caseid);
+
+        //x += h.x*0.1;
+        //y += h.y*0.1;
+        //z += h.z*0.1;
+        
+        //float perturb=sinf(x)*sinf(y)*sinf(z); 
+        //x += h.x*perturb;
+        //y += h.y*perturb;
+        //z += h.z*perturb;
+        
+        //x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
+        //y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
+        //z -= 0.25*0.5*sinf(y)*cosf(x)*sinf(x);
+        
+        x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
+        y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
+        z -= 0.25*0.5*sinf(y)*cosf(x)*sinf(x);
+        
+        //x += h.x*(dhx[i*3]*2-1);
+        //y += h.y*(dhx[i*3+1]*2-1);
+        //z += h.z*(dhx[i*3+2]*2-1);
+
+        //x += h.x*(curand_uniform(&state[i])*2.0-1.0);
+        //y += h.y*(curand_uniform(&state[i])*2.0-1.0);
+        //z += h.z*(curand_uniform(&state[i])*2.0-1.0);
+        
+        //x = curand_uniform(&state)*2*PI;
+        //y = curand_uniform(&state)*2*PI;
+        //z = curand_uniform(&state)*2*PI;
+
+
+        if (x > 2.*PI) x -= 2.*PI;
+        if (y > 2.*PI) y -= 2.*PI;
+        if (z > 2.*PI) z -= 2.*PI;
+        
+        if (x < 0) x += 2.*PI;
+        if (y < 0) y += 2.*PI;
+        if (z < 0) z += 2.*PI;
+        
+        TestFunction(&ref[i], x, y, z, caseid);
+        
+        xq[i] = x/(2.*PI);
+        yq[i] = y/(2.*PI);
+        zq[i] = z/(2.*PI);
+
+    }
+}
+
+void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart, int* nx, int caseid) {
+    dim3 threads(1,32,32);
+    dim3 blocks((isize[0]+threads.x-1)/threads.x, (isize[1]+threads.y-1)/threads.y, (isize[2]+threads.z-1)/threads.z);
+
+
+    const float3 hx = make_float3(h[0], h[1], h[2]);
+    const int3 size = make_int3(isize[0], isize[1], isize[2]);
+    const int3 start = make_int3(istart[0], istart[1], istart[2]);
+    const int3 n = make_int3(nx[0], nx[1], nx[2]);
+    
+    //curandState *d_state;
+    //cudaMalloc(&d_state, isize[0]*isize[1]*isize[2]*sizeof(curandState));
+    //setup_kernel<<<blocks, threads>>>(d_state, size, start, n);
+
+
+    initializeGridKernel<<<blocks, threads>>>(xq, yq, zq, f, ref, hx, size, start, n, caseid);
+    cudaDeviceSynchronize();
+
+    //cudaFree(d_state);
+}
+
+__global__ void testKernel(ScalarType* f) {
+  int tid = threadIdx.x + blockIdx.x*blockDim.x;
+  
+  ScalarType x = 0;
+  for (int i=0; i<500; i++) {
+    x += sinf((float)i);
+  }
+  f[tid] = x;
+}
+
+void test(ScalarType* f, int nq) {
+
+  int threads = 256;
+  int blocks = (nq+threads-1)/threads;
+
+  testKernel<<<blocks, threads>>>(f);
+  cudaDeviceSynchronize();
+}
+
 

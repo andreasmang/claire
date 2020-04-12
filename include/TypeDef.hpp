@@ -4,6 +4,8 @@
 // local includes
 #include "petsc.h"
 #include "petscsys.h"
+#include "stdio.h"
+#include "stdlib.h"
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
   #include "petscvec.h"

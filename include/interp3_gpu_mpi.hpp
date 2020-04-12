@@ -7,39 +7,35 @@
 #include <set>
 #include "interp3_common.hpp"
 #include "interp3_gpu_new.hpp"
+#include <vector>
+#include <iostream>
 #include "CLAIREUtils.hpp"
 
-//#if defined(PETSC_USE_REAL_SINGLE)
+#if defined(PETSC_USE_REAL_SINGLE)
   typedef float Real;
   #define MPI_T MPI_FLOAT
   #define TC Complexf
   #define PL fftwf_plan
-//#else
-//  typedef double Real;
-//  #define MPI_T MPI_DOUBLE
-//  #define TC Complex
-//  #define PL fftw_plan
-//#endif
+#else
+  typedef double Real;
+  #define MPI_T MPI_DOUBLE
+  #define TC Complex
+  #define PL fftw_plan
+#endif
 
 //#define INTERP_PINNED // if defined will use pinned memory for GPU
 struct Interp3_Plan_GPU{
   public:
-  Interp3_Plan_GPU(size_t g_alloc_max);
-  void allocate (int N_pts, int* data_dof, int nplans);
-  void scatter(int* N_reg, int * isize, int* istart, const int N_pts, const int g_size, Real* query_points_in, int* c_dims, MPI_Comm c_comm, double * timings);
-  
+  Interp3_Plan_GPU(size_t g_alloc_max, bool cuda_aware);
+  void allocate (int N_pts, int* data_dofs, int nplans);
+  void scatter(int* N_reg, int * isize, int* istart, const int N_pts, const int g_size, Real* query_points_in_x, Real* query_points_in_y, Real* query_points_in_z, int* c_dims, MPI_Comm c_comm, double * timings);
+  void test_kernel(Real* f, int nq);
   void interpolate( Real* ghost_reg_grid_vals, 
-                    int* N_reg, 
-                    int * isize, 
-                    int* istart, 
                     int* isize_g,
                     const IntType nlghost,
                     const IntType N_pts, 
-                    const int g_size,
                     Real* query_values,
-                    int* c_dims, 
                     MPI_Comm c_comm,
-                    double * timings, 
                     float *tmp1, 
                     float* tmp2,
                     cudaTextureObject_t yi_tex, 
@@ -53,26 +49,38 @@ struct Interp3_Plan_GPU{
   int total_query_points;
 	int data_dof_max;
   int nplans_;
-  pvfmm::Iterator<int> data_dofs;
+  int* data_dofs;
   size_t all_query_points_allocation;
-  pvfmm::Iterator<MPI_Datatype> stypes, rtypes;
+  MPI_Datatype* stypes, *rtypes;
+  bool cuda_aware;
+
+  // CPU memory pointers
+  Real* all_query_points;
+  Real* all_f_cubic;
+  Real* f_cubic_unordered;
+  Real* query_points;
+    
+  int* f_index_procs_others_offset; // offset in the all_query_points array
+  int* f_index_procs_self_offset  ; // offset in the query_outside array
+  int* f_index_procs_self_sizes   ; // sizes of the number of interpolations that need to be sent to procs
+  int* f_index_procs_others_sizes ; // sizes of the number of interpolations that need to be received from procs
+
+  MPI_Request* s_request;
+	MPI_Request* request;
+
+  thrust::device_ptr<Real> query_outside;
+  thrust::device_ptr<int> f_index;
   
-  pvfmm::Iterator<Real> all_query_points;
-  pvfmm::Iterator<Real> all_f_cubic;
-  pvfmm::Iterator<Real> f_cubic_unordered;
-  pvfmm::Iterator<Real> query_points;
+  // vector to store number of query points in each proc
+  int* num_query_per_proc;
+  int* query_outside_offset;
+  int* f_index_offset;
+  int neighbour_query_width;
+  size_t max_query_points_capacity;
 
-  pvfmm::Iterator<int> f_index_procs_others_offset; // offset in the all_query_points array
-	pvfmm::Iterator<int> f_index_procs_self_offset; // offset in the query_outside array
-	pvfmm::Iterator<int> f_index_procs_self_sizes; // sizes of the number of interpolations that need to be sent to procs
-	pvfmm::Iterator<int> f_index_procs_others_sizes; // sizes of the number of interpolations that need to be received from procs
 
-  pvfmm::Iterator<MPI_Request> s_request;
-	pvfmm::Iterator<MPI_Request> request;
-
-  std::vector <int> *f_index;
-  std::vector <Real> *query_outside;
-
+  int* which_proc;
+  Real *query_points_x, *query_points_y, *query_points_z;
   bool allocate_baked;
   bool scatter_baked;
   
@@ -83,15 +91,17 @@ struct Interp3_Plan_GPU{
   // GPU memory pointers
   Real* all_f_cubic_d;
   Real* all_query_points_d;
-  Real* ghost_reg_grid_vals_d;
+  Real * f_cubic_unordered_d;
+  //Real* ghost_reg_grid_vals_d;
   Real *xq1, *xq2, *xq3; 
 
   ~Interp3_Plan_GPU();
 
 };
 
-void gpu_par_interp3_ghost_xyz_p( Real* reg_grid_vals, int data_dof,
-              int* N_reg, int * isize, int* istart, const int N_pts,int g_size, Real* query_points,
-              Real* query_values,int* c_dims,MPI_Comm c_comm);
+void get_count(int* arr, int size, int val, int* count);
+void print_norm(ScalarType* arr, int N);
+void print_max(ScalarType* arr, int N);
+void test_count();
 
 #endif

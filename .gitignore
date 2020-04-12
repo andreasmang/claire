@@ -23,3 +23,7 @@ environment_vars.sh
 scripts/
 bingpu/
 external/libs-cuda-openmpi/
+*.nvprof
+*.slurm
+compile
+run

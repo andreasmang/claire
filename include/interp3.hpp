@@ -209,6 +209,7 @@ void get_ghost_xyz(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 
 void share_ghost_layer(reg::RegOpt* m_Opt, int g_size, int* isize_g,
 		Real* data, Real* ghost_data, pvfmm::Iterator<Real> padded_data, pvfmm::Iterator<Real> ghost_data_xy);
+
 //void accfft_get_ghost_xyz(accfft_plan* plan, int g_size, int* isize_g,
 //		Real* data, Real* ghost_data);
 
