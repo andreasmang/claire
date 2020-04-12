@@ -20,7 +20,13 @@ else
 	CXXFLAGS += -fopenmp -DPOWER9
 	#CXXFLAGS += -march=native
 endif
-CXXFLAGS += -std=c++11
+CXXFLAGS += -std=c++11 -m64
+
+MPICXXFLAGS = 
+ifeq ($(USEIBMXL),yes)
+  MPICXXFLAGS += -qarch=pwr9 -qtune=pwr9 -qsmp=omp:auto:opt -qnooffload
+  #MPICXXFLAGS += -qsmp
+endif
 
 ifeq ($(USEKNL),yes)
 	CXXFLAGS += -DKNL
@@ -42,7 +48,7 @@ ifeq ($(PEDANTIC),yes)
 	CXXFLAGS += -Wmain -Wnarrowing #-Wmaybe-uninitialized
 	CXXFLAGS += -Wnonnull -Wparentheses #-Wpointer-sign
 	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
-	CXXFLAGS += -Wsequence-point -Wtrigraphs -Wunused-function
+	CXXFLAGS += -Wsequence-point -Wtrigraphs #-Wunused-function
 	CXXFLAGS += -Wwrite-strings #-Wunused-variable -Wunused-but-set-variable 
 endif
 
@@ -140,10 +146,14 @@ ifeq ($(USECUDA),yes)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g -m64
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50
+
+ifeq ($(USEIBMXL),yes)
+  CUDA_FLAGS += -ccbin xlC
+endif
 
 
 ifeq ($(USENIFTI),yes)
