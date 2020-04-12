@@ -576,8 +576,8 @@ void Interp3_Plan_GPU::test_kernel(Real* f, int nq) {
 
 void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded regular grid values on GPU
                                     int* isize_g,              // size of the local grid (including ghost points)
-                                    const int nlghost,         // number of local grid points (including ghost points) owned by process
-                                    const int N_pts,           // number of local points owned by the process
+                                    const IntType nlghost,         // number of local grid points (including ghost points) owned by process
+                                    const IntType N_pts,           // number of local points owned by the process
                                     Real* query_values_d,      // interpolation result on GPU
                                     MPI_Comm c_comm,           // MPI communicator
                                     float *tmp1,               // temporary memory for interpolation prefilter
