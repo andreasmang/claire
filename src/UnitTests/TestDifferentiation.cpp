@@ -31,7 +31,7 @@
 #include "VecField.hpp"
 
 #ifdef REG_HAS_CUDA
-#define TEST_FD
+//#define TEST_FD
 #endif
 //#define SPECTRAL_ANALYSIS
 
@@ -49,6 +49,34 @@ PetscErrorCode TestDifferentiation(UnitTestOpt *m_Opt) {
   
 #ifdef REG_HAS_CUDA
   printf("rank %2i uses GPU %2i\n", rank, m_Opt->m_gpu_id);
+  {
+    FourierTransform fft;
+    fft.fft = nullptr;
+    fft.nx[0] = m_Opt->m_Domain.nx[0];
+    fft.nx[1] = m_Opt->m_Domain.nx[1];
+    fft.nx[2] = m_Opt->m_Domain.nx[2];
+    AllocateOnce(fft.fft, m_Opt, &fft);
+    ComplexType *spectral;
+    ScalarType *real;
+    cudaMalloc(&spectral, fft.nalloc);
+    cudaMalloc(&real, fft.nalloc);
+    
+    MPI_Barrier(PETSC_COMM_WORLD);
+    for (int r=0; r<m_Opt->rep; ++r) {
+      fft.fft->FFT_R2C(real, spectral);
+      fft.fft->FFT_C2R(spectral, real);
+    }
+    MPI_Barrier(PETSC_COMM_WORLD);
+    
+    for (int r=0; r<m_Opt->rep; ++r) {
+      ZeitGeist_define(FFT_LIB);
+      ZeitGeist_tick(FFT_LIB);
+      fft.fft->FFT_R2C(real, spectral);
+      fft.fft->Scale(spectral, 1./static_cast<ScalarType>(fft.nx[0]*fft.nx[1]*fft.nx[2]));
+      fft.fft->FFT_C2R(spectral, real);
+      ZeitGeist_tock(FFT_LIB);
+    }
+  }
 #endif
   
   DifferentiationSM *m_dif = nullptr;

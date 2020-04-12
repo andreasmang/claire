@@ -22,6 +22,7 @@
 
 #include "RegOpt.hpp"
 #include <algorithm>
+#include "cuda_helper.hpp"
 
 // trim from start
 static inline std::string &ltrim(std::string &s) {
@@ -1104,7 +1105,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
         this->m_FFT.nx[i]    = this->m_Domain.nx[i];
         this->m_Domain.hx[i] = PETSC_PI*2.0/static_cast<ScalarType>(this->m_Domain.nx[i]);
     }
-
+    
     fftsetuptime = -MPI_Wtime();
     ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_FFT.fft, this, &this->m_FFT); CHKERRQ(ierr);
@@ -1152,7 +1153,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
     
     this->m_FFT_coarse.fft->InitFFT();
     
-
     this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
