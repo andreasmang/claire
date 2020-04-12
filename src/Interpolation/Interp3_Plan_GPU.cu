@@ -514,7 +514,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       } else {
         //if (!query_outside[dst_s].empty())
         if (num_query_per_proc[dst_s] > 0)
-          reg::gencpy(&all_query_points_d[roffset], src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM*sizeof(ScalarType));
+          cudaMemcpy(&all_query_points_d[roffset], src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM*sizeof(ScalarType), cudaMemcpyDeviceToDevice);
       }
     }
     
@@ -679,7 +679,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
     // because now you are sending others f and receiving your part of f
     int soffset=f_index_procs_others_offset[dst_r];
     int roffset=f_index_procs_self_offset[dst_s];
-    if (true) {
+    if (i != procid) {
       if(f_index_procs_self_sizes[dst_r]!=0)
         MPI_Irecv(&f_cubic_unordered_d[roffset],1,rtypes[dst_r+version*nprocs], dst_r,
             0, c_comm, &request[dst_r]); 
@@ -687,7 +687,10 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
         MPI_Isend(&all_f_cubic_d[soffset],1,stypes[dst_s+version*nprocs],dst_s,
             0, c_comm, &s_request[dst_s]);
     } else {
-      reg::gencpy(&f_cubic_unordered_d[roffset], &all_f_cubic_d[soffset], sizeof(ScalarType)*f_index_procs_self_sizes[i]);
+      for (int dof=0; dof<data_dofs[version]; ++dof) {
+        // when sending to itself i.e. i==procid, f_index_procs_self_sizes[i] == f_index_procs_others_sizes[i]
+        cudaMemcpy(&f_cubic_unordered_d[roffset+dof*N_pts], &all_f_cubic_d[soffset+dof*total_query_points], sizeof(ScalarType)*f_index_procs_self_sizes[i], cudaMemcpyDeviceToDevice);
+      }
     }
   }
 
