@@ -31,7 +31,7 @@
 #include "VecField.hpp"
 
 #ifdef REG_HAS_CUDA
-//#define TEST_FD
+#define TEST_FD
 #endif
 //#define SPECTRAL_ANALYSIS
 

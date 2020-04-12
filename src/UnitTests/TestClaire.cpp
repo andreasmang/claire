@@ -30,16 +30,21 @@
 namespace reg {
 namespace UnitTest {
 
-PetscErrorCode ComputeTrajectoryError(Vec &X, reg::RegOpt* m_Opt, int vcase) {
+PetscErrorCode ComputeTrajectoryError(Vec &X, VecField* vinterp, reg::RegOpt* m_Opt, int vcase) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   const ScalarType *p_cX;
+  const ScalarType *p_v1 = nullptr, *p_v2=nullptr, *p_v3=nullptr;
   double e1=0,e2=0,e3=0;
   ScalarType x[3], xstar[3], Xtrue[3], v[3], vstar[3];
   ScalarType ht = 1.0/m_Opt->m_Domain.nt;
   ScalarType hthalf = ht/2.0;
 
   ierr = VecGetArrayRead(X, &p_cX); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(vinterp->m_X1, &p_v1); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(vinterp->m_X2, &p_v2); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(vinterp->m_X3, &p_v3); CHKERRQ(ierr);
+
   
   for (int i1=0; i1<m_Opt->m_Domain.isize[0]; i1++) {
     for (int i2=0; i2<m_Opt->m_Domain.isize[1]; i2++) {
@@ -56,13 +61,25 @@ PetscErrorCode ComputeTrajectoryError(Vec &X, reg::RegOpt* m_Opt, int vcase) {
         Xtrue[0] = x[0] - hthalf*(v[0] + vstar[0]);
         Xtrue[1] = x[1] - hthalf*(v[1] + vstar[1]);
         Xtrue[2] = x[2] - hthalf*(v[2] + vstar[2]);
+        //if (i > 2e5 && i <(2e5+20)) {
+        //  PetscPrintf(PETSC_COMM_WORLD, "Xtrue[0] = %f, x[0] = %f\n", vstar[0], p_v1[i]);
+        //}
         e1 = std::max(e1, std::abs(static_cast<double>(Xtrue[0] - p_cX[3*i])));
         e2 = std::max(e2, std::abs(static_cast<double>(Xtrue[1] - p_cX[3*i+1])));
         e3 = std::max(e3, std::abs(static_cast<double>(Xtrue[2] - p_cX[3*i+2])));
+        //e1 = std::max(e1, std::abs(static_cast<double>(xstar[0] - p_cX[3*i])));
+        //e2 = std::max(e2, std::abs(static_cast<double>(xstar[1] - p_cX[3*i+1])));
+        //e3 = std::max(e3, std::abs(static_cast<double>(xstar[2] - p_cX[3*i+2])));
+        //e1 = std::max(e1, std::abs(static_cast<double>(vstar[0] - p_v1[i])));
+        //e2 = std::max(e2, std::abs(static_cast<double>(vstar[1] - p_v2[i])));
+        //e3 = std::max(e3, std::abs(static_cast<double>(vstar[2] - p_v3[i])));
       }
     }
   }
   
+  ierr = VecRestoreArrayRead(vinterp->m_X1, &p_v1); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(vinterp->m_X2, &p_v2); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(vinterp->m_X3, &p_v3); CHKERRQ(ierr);
   ierr = VecRestoreArrayRead(X, &p_cX); CHKERRQ(ierr);
   
   e1 = std::max(e1, std::max(e2, e3));
@@ -108,7 +125,7 @@ PetscErrorCode TestTrajectoryMultiGPU(reg::RegOpt *m_Opt) {
   
   // first compute trajectory using given velocity field
   ierr = sl->ComputeTrajectory(v, "state"); CHKERRQ(ierr);
-  ierr = sl->Interpolate(vinterp, v, "state"); CHKERRQ(ierr);
+  //ierr = sl->Interpolate(vinterp, v, "state"); CHKERRQ(ierr);
 
   // extract the trajectory
   ierr = GetRawPointer(X, &p_X); CHKERRQ(ierr);
@@ -118,7 +135,7 @@ PetscErrorCode TestTrajectoryMultiGPU(reg::RegOpt *m_Opt) {
   ierr = VecScale(X, 2.0*PETSC_PI); CHKERRQ(ierr);
   // everything until here is fine  
   
-  ierr = ComputeTrajectoryError(X, m_Opt, vcase);
+  ierr = ComputeTrajectoryError(X, vwork, m_Opt, vcase);
 
   ierr = Free(v);  CHKERRQ(ierr);
   ierr = Free(vinterp); CHKERRQ(ierr);

@@ -74,6 +74,7 @@ namespace UnitTest {
   
   PetscErrorCode TestInterpolation(RegOpt *m_Opt);
   PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt);
+  PetscErrorCode TestVectorFieldInterpolationMultiGPU(RegOpt *m_Opt);
   PetscErrorCode TestForwardSolver(RegOpt *m_Opt);
   PetscErrorCode TestTrajectory(RegOpt *m_Opt);
   PetscErrorCode TestTrajectoryMultiGPU(RegOpt *m_Opt);

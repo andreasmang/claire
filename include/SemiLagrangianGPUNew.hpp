@@ -26,6 +26,7 @@
 #include "ReadWriteReg.hpp"
 #include "interp3.hpp"
 #include "interp3_gpu_mpi.hpp"
+#include "GhostPlan.hpp"
 
 
 
@@ -97,13 +98,14 @@ class SemiLagrangianGPUNew {
     ScalarType* m_WorkScaField1;
     ScalarType* m_WorkScaField2;
     
-    
-    pvfmm::Iterator<ScalarType> m_GhostWork1, m_GhostWork2;
+    GhostPlan* m_GhostPlan;
     
     int m_Dofs[2];
     IntType nghost, nlghost;
     int istart_g[3], isize_g[3];
     size_t g_alloc_max; 
+
+    bool cuda_aware = true;
     
 };
 
