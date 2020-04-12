@@ -333,16 +333,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
   }
   all_query_points_allocation=0;
  {
-    //int N_reg_g[3], isize_g[3];
-    N_reg_g[0]=N_reg[0]+2*g_size;
-    N_reg_g[1]=N_reg[1]+2*g_size;
-    N_reg_g[2]=N_reg[2]+2*g_size;
-
-    isize_g[0]=isize[0]+2*g_size;
-    isize_g[1]=isize[1]+2*g_size;
-    isize_g[2]=isize[2]+2*g_size;
-
-    Real h[3]; // original grid size along each axis
+    // original grid size along each axis
+    Real h[3]; 
     h[0]=1./N_reg[0];
     h[1]=1./N_reg[1];
     h[2]=1./N_reg[2];
@@ -636,9 +628,9 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   bool verbose = false;
 
   if (verbose) {
-    PetscPrintf(PETSC_COMM_WORLD, "max ghost value\n");
+    PetscPrintf(PETSC_COMM_WORLD, "max ghost ");
     print_max(ghost_reg_grid_vals_d, 3*nlghost);
-    PetscPrintf(PETSC_COMM_WORLD, "max xq\n");
+    PetscPrintf(PETSC_COMM_WORLD, "max xq ");
     print_max(xq1, total_query_points); 
   }
 
@@ -679,7 +671,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   interp_kernel_time += MPI_Wtime();
 
   if (verbose) {
-    PetscPrintf(PETSC_COMM_WORLD, "max interpolated value\n");
+    PetscPrintf(PETSC_COMM_WORLD, "max interpolated ");
     print_max(all_f_cubic_d, 3*total_query_points);
   }
 

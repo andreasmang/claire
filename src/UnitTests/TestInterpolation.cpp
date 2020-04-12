@@ -360,7 +360,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     ng       *= nx[i];
   }
   
-  if (m_Opt->m_Verbosity > 2) {
+  if (m_Opt->m_Verbosity > 1) {
     printVector(nx, 3, "nx");
     printVector(isize, 3, "isize");
     printVector(istart, 3, "istart");
@@ -401,11 +401,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     }
   }
   size_t g_alloc_max = ghost_plan->get_ghost_local_size_x(isize_g, istart_g);
-#if defined(REG_HAS_MPICUDA)
   cudaMalloc((void**)&p_fghost, g_alloc_max);
-#else
-  p_fghost = reinterpret_cast<ScalarType*>(accfft_alloc(g_alloc_max));
-#endif
 
   for (int i=0; i<3; ++i) {
       nlghost *= isize_g[i];

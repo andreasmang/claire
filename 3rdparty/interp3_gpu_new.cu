@@ -1089,7 +1089,7 @@ __global__ void enforcePeriodicityKernel(ScalarType* xq, ScalarType* yq, ScalarT
 }
 
 void enforcePeriodicity(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* h, int len) {
-    int threads = 255;
+    int threads = 256;
     int blocks = (len+threads-1)/threads;
     
     // copy constant h to device
@@ -1126,7 +1126,7 @@ __global__ void checkDomainKernel(int* which_proc, ScalarType* xq, ScalarType* y
 
 void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1) {
     
-    int threads = 255;
+    int threads = 256;
     int blocks = (len+threads-1)/threads;
     
     // copy constant h to device
@@ -1166,15 +1166,8 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
     int iz = threadIdx.z + blockDim.z * blockIdx.z;
 
     int i = (ix*size.y*size.z) + (iy*size.z) + iz;
-    //curandState_t state;
     
     ScalarType x,y,z;
-
-    /* we have to initialize the state */
-    //curand_init(0, /* the seed controls the sequence of random values that are produced */
-    //            i*3, /* the sequence number is only important with multiple cores */
-    //            0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
-    //            &state);
 
     if (i < size.x*size.y*size.z) {
         x = h.x*(float)(ix+start.x);
@@ -1239,11 +1232,6 @@ void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* 
     const int3 size = make_int3(isize[0], isize[1], isize[2]);
     const int3 start = make_int3(istart[0], istart[1], istart[2]);
     const int3 n = make_int3(nx[0], nx[1], nx[2]);
-    
-    //curandState *d_state;
-    //cudaMalloc(&d_state, isize[0]*isize[1]*isize[2]*sizeof(curandState));
-    //setup_kernel<<<blocks, threads>>>(d_state, size, start, n);
-
 
     initializeGridKernel<<<blocks, threads>>>(xq, yq, zq, f, ref, hx, size, start, n, caseid);
     cudaDeviceSynchronize();
