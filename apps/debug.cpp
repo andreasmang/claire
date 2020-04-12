@@ -32,29 +32,31 @@ int main(int argc, char **argv) {
                               reinterpret_cast<char*>(NULL)); CHKERRQ(ierr);
     PetscFunctionBegin;
     
-    reg::RegOpt opt;
-    
-    opt.m_Domain.mpicomm = PETSC_COMM_WORLD;
-    opt.m_FFT.fft = nullptr;
-    opt.m_FFT.nx[0] = 256;
-    opt.m_FFT.nx[1] = 256;
-    opt.m_FFT.nx[2] = 256;
-    
-    ierr = AllocateOnce(opt.m_FFT.fft, &opt, &opt.m_FFT);
-    
-    opt.m_FFT.fft->InitFFT();
-    
     ComplexType *spectral;
     ScalarType *real;
+    
+    reg::RegOpt opt(argc, argv);
+    opt.DoSetup();
+    
+    if (opt.m_FFT.nalloc < 1024) opt.m_FFT.nalloc = 512*512*257*2;
+    
     cudaMalloc(&spectral, opt.m_FFT.nalloc);
     cudaMalloc(&real, opt.m_FFT.nalloc);
     
     MPI_Barrier(PETSC_COMM_WORLD);
-    for (int r=0; r<20; ++r) {
-      opt.m_FFT.fft->FFT_R2C(real, spectral);
-      opt.m_FFT.fft->FFT_C2R(spectral, real);
-    }
+    /*for (int r=0; r<20; ++r) {
+      //opt.m_FFT.fft->FFT_R2C(real, spectral);
+      opt.m_FFT.fft->Scale(spectral, 1./static_cast<ScalarType>(opt.m_FFT.nx[0]*opt.m_FFT.nx[1]*opt.m_FFT.nx[2]));
+      //opt.m_FFT.fft->FFT_C2R(spectral, real);
+    }*/
     MPI_Barrier(PETSC_COMM_WORLD);
+    
+    for (int r=0; r<20; ++r) {
+      ZeitGeist_define(CUDA_MEMCPY);
+      ZeitGeist_tick(CUDA_MEMCPY);
+      cudaMemcpy(real, spectral, opt.m_FFT.nalloc, cudaMemcpyDeviceToDevice);
+      ZeitGeist_tock(CUDA_MEMCPY);
+    }
     
     for (int r=0; r<20; ++r) {
       ZeitGeist_define(FFT_LIB);

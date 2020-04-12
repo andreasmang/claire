@@ -173,6 +173,40 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
   this->cuda_aware = cuda_aware;
   this->procs_i_recv_from_size_ = 0;
   this->procs_i_send_to_size_ = 0;
+  
+  data_dofs = nullptr;
+  stypes = nullptr;
+  rtypes  = nullptr;
+
+  all_query_points   = nullptr;
+  all_f_cubic  = nullptr; 
+  f_cubic_unordered   = nullptr;
+  query_points  = nullptr;
+    
+  f_index_procs_others_offset  = nullptr;
+  f_index_procs_self_offset    = nullptr;
+  f_index_procs_self_sizes     = nullptr;
+  f_index_procs_others_sizes   = nullptr;
+
+  s_request   = nullptr;
+  request  = nullptr;
+
+  num_query_per_proc  = nullptr;;
+  query_outside_offset  = nullptr;;
+  f_index_offset  = nullptr;;
+
+  which_proc  = nullptr;;
+  query_points_x = nullptr;
+  query_points_y = nullptr;
+  query_points_z = nullptr;
+
+  all_f_cubic_d  = nullptr;
+  all_query_points_d = nullptr;
+  f_cubic_unordered_d = nullptr;
+
+  xq1 = nullptr;
+  xq2 = nullptr;
+  xq3 = nullptr;
 }
 
 
@@ -576,8 +610,8 @@ void Interp3_Plan_GPU::test_kernel(Real* f, int nq) {
 
 void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded regular grid values on GPU
                                     int* isize_g,              // size of the local grid (including ghost points)
-                                    const int nlghost,         // number of local grid points (including ghost points) owned by process
-                                    const int N_pts,           // number of local points owned by the process
+                                    const IntType nlghost,         // number of local grid points (including ghost points) owned by process
+                                    const IntType N_pts,           // number of local points owned by the process
                                     Real* query_values_d,      // interpolation result on GPU
                                     MPI_Comm c_comm,           // MPI communicator
                                     float *tmp1,               // temporary memory for interpolation prefilter

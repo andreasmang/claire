@@ -640,7 +640,7 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 
 	ZeitGeist_tock(ghost_comm_top_bottom);
   
-  if (this->m_Opt->m_Verbosity > 1) reg::DbgMsg("ghost points shared");
+  if (this->m_Opt->m_Verbosity > 2) reg::DbgMsg("ghost points shared");
 
 	return;
 }

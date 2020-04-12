@@ -121,7 +121,7 @@ void interpolate(Real* __restrict ghost_reg_grid_vals,
 			Real* query_values, int* c_dims, MPI_Comm c_comm, double * timings, int interp_order);
 	int N_reg_g[3];
 	int isize_g[3];
-	int total_query_points;
+	size_t total_query_points;
 	int data_dof_max;
   int nplans_;
   pvfmm::Iterator<int> data_dofs_;

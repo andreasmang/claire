@@ -3,6 +3,7 @@ USECUDA=yes
 USEMPICUDA=yes
 USECUDADBG=no
 USEINTEL=no
+USEIBMXL=yes
 USEINTELMPI=no
 USESINGLE=yes
 USEPNETCDF=no
@@ -43,11 +44,11 @@ ifeq ($(USECUDA),yes)
 #$(BINDIR)/%: $(OBJDIR)/%.o $(CUDA_OBJS) $(OBJS)
 $(BINDIR)/%: $(OBJDIR)/bin/%.o $(CUDA_OBJS) $(OBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
-	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
+	$(CXX) $(CXXFLAGS) $(MPICXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
+	$(CXX) $(CXXFLAGS) $(MPICXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 
 $(OBJDIR)/cuda/%.o: $(SRCDIR)/%.cu
 	-@$(MKDIRS) $(dir $@)
@@ -59,7 +60,7 @@ $(OBJDIR)/cuda/%.o: $(EXSRCDIR)/%.cu
 
 $(OBJDIR)/bin/%.o: $(APPDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
+	$(CXX) $(CXXFLAGS) $(MPICXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 
 else
 
