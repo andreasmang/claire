@@ -859,7 +859,8 @@ void gpuInterp3Dkernel(
            int iporder,
            cudaExtent yi_extent,
            const float3 inv_nx,
-           long int nq)
+           long int nq,
+           cudaStream_t* stream)
 {
     // SET cubic interpolation type here
     enum CUBIC_INTERP_TYPE interp_type = FAST_LAGRANGE;
@@ -899,21 +900,21 @@ void gpuInterp3Dkernel(
     // launch the interpolation kernel
     switch (iporder) {
     case 1:
-      interp3D_kernel_linear<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+      interp3D_kernel_linear<<<blocks,threads, 0, *stream>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
       break;
     case 3:
       switch (interp_type) {
         case FAST_SPLINE:
-            cubicTex3DFastSpline<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            cubicTex3DFastSpline<<<blocks,threads, 0, *stream>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
             break;
         case SLOW_SPLINE:
-            cubicTex3DSlowSpline<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            cubicTex3DSlowSpline<<<blocks,threads, 0, *stream>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
             break;
         case FAST_LAGRANGE:
-            cubicTex3DFastLagrange<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            cubicTex3DFastLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
             break;
         case SLOW_LAGRANGE:
-            cubicTex3DSlowLagrange<<<blocks,threads>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
+            cubicTex3DSlowLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq1, xq2, xq3, yo, inv_nx, nq);
             break;
       };
       break;
@@ -954,17 +955,15 @@ void gpuInterp3D(
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
     
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    
-    cudaEventRecord(start);
-    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    //std::cout << "time elapsed  " << milliseconds << std::endl;
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+
+    gpuInterp3Dkernel(yi,xq1,xq2,xq3,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream);
+
+    cudaStreamSynchronize(stream);
+    cudaStreamDestroy(stream);
+
+
     cudaDeviceSynchronize();
 }
 
@@ -991,10 +990,24 @@ void gpuInterpVec3D(
 
     // create a cudaExtent for input resolution
     cudaExtent yi_extent = make_cudaExtent(nx[2], nx[1], nx[0]);
+    
+    // launch the 3 interpolations in 3 different streams to have some speed up
+    // in case there is not enough work for the GPU
+    cudaStream_t stream[3];
+    for (int i=0; i<3; i++) {
+      cudaStreamCreate(&stream[i]);
+    }
 
-    gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
-    gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
-    gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq);
+    gpuInterp3Dkernel(yi1,xq1,xq2,xq3,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream[0]);
+    gpuInterp3Dkernel(yi2,xq1,xq2,xq3,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream[1]);
+    gpuInterp3Dkernel(yi3,xq1,xq2,xq3,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream[2]);
+
+    for (int i=0; i<3; i++) 
+      cudaStreamSynchronize(stream[i]);
+    
+    for (int i=0; i<3; i++)
+      cudaStreamDestroy(stream[i]);
+
     
     cudaDeviceSynchronize();
 }
