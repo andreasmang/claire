@@ -14,6 +14,16 @@ GhostPlan::GhostPlan(RegOpt* m_Opt, int g_size) {
     this->istart[i] = istart[i];
   }
   
+  this->padded_data = nullptr;
+  this->RS = nullptr;
+  this->GL = nullptr;
+  this->LS = nullptr;
+  this->GR = nullptr;
+  this->GB = nullptr;
+  this->GT = nullptr;
+
+/*
+  // only needed for xy ghost
   cudaMalloc((void**)&padded_data, sizeof(ScalarType)*( nl + 2*this->g_size*isize[2]*isize[0] ));
 
 	int rs_buf_size = this->g_size * isize[2] * isize[0];
@@ -29,10 +39,10 @@ GhostPlan::GhostPlan(RegOpt* m_Opt, int g_size) {
 	//int ts_buf_size = this->g_size * isize[2] * (isize[1] + 2*this->g_size); // for xy ghost
 	int ts_buf_size = this->g_size * isize[2] * isize[1];
   cudaMalloc((void**)&GB, sizeof(ScalarType)*ts_buf_size);
-  
+*/  
 
 	//int bs_buf_size = this->g_size * isize[2] * (isize[1] + 2 * this->g_size); // for xy ghost
-	int bs_buf_size = this->g_size * isize[2] * isize[1];
+	int bs_buf_size = this->g_size * isize[2] * isize[1]; // only one auxilliary is needed for ghost comm in x
   cudaMalloc((void**)&GT, sizeof(ScalarType)*bs_buf_size);
   
   stream = new cudaStream_t[num_streams];
@@ -103,13 +113,41 @@ size_t GhostPlan::get_ghost_local_size_xy(int * isize_g, int* istart_g) {
 }
 
 GhostPlan::~GhostPlan() {
-  cudaFree(padded_data);
-  cudaFree(RS);
-  cudaFree(GL);
-  cudaFree(LS);
-  cudaFree(GR);
-  cudaFree(GB);
-  cudaFree(GT);
+  if (padded_data != nullptr) {
+    cudaFree(padded_data);
+    padded_data = nullptr;
+  }
+
+  if (RS != nullptr) {
+    cudaFree(RS);
+    RS = nullptr;
+  }
+
+  if (GL != nullptr) {
+    cudaFree(GL);
+    GL = nullptr;
+  }
+  
+  if (LS != nullptr) {
+    cudaFree(LS);
+    LS = nullptr;
+  }
+
+  if (GR != nullptr) {
+    cudaFree(GR);
+    GR = nullptr;
+  }
+  
+  if (GB != nullptr) {
+    cudaFree(GB);
+    GB = nullptr;
+  }
+
+  if (GT != nullptr) {
+    cudaFree(GT);
+    GT = nullptr;
+  }
+
   for (int i=0; i<num_streams; i++) 
     cudaStreamDestroy(stream[i]);
   delete[] stream;
@@ -521,6 +559,16 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	MPI_Wait(&bs_s_request, &ierr);
 	MPI_Wait(&bs_r_request, &ierr);
   ZeitGeist_tock(ghost_comm);
+  
+  ZeitGeist_define(ghost_cudamemcpy);
+  ZeitGeist_tick(ghost_cudamemcpy);
+	cudaMemcpy(&ghost_data[g_size * isize[2] * isize[1]], 
+	            &data[0], 
+	            isize[0] * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(&ghost_data[0], 
+	            &GT[0], 
+	            g_size * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
+	ZeitGeist_tock(ghost_cudamemcpy);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -570,7 +618,7 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
   ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&TS[0], ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
-	MPI_Irecv(&GB[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
+	MPI_Irecv(&GT[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
 	MPI_Wait(&ts_s_request, &ierr);
 	MPI_Wait(&ts_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
@@ -603,27 +651,9 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	}
 #endif
 
-	// Phase 5: Pack the data GT+ padded_data + GB
-	//reg::gencpy(&ghost_data[0], 
-	//            &GT[0], 
-	//            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(ScalarType));
-	//reg::gencpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)], 
-	//            &padded_data[0], 
-	//            isize[0] * isize[2] * (isize[1] + 2 * g_size) * sizeof(ScalarType));
-	//reg::gencpy(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], 
-	//            &GB[0],
-	//            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(ScalarType));
-  
-  ZeitGeist_define(ghost_cudamemcpy);
   ZeitGeist_tick(ghost_cudamemcpy);
-	cudaMemcpy(&ghost_data[g_size * isize[2] * isize[1]], 
-	            &data[0], 
-	            isize[0] * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
-	cudaMemcpy(&ghost_data[0], 
-	            &GT[0], 
-	            g_size * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
 	cudaMemcpy(&ghost_data[(isize[0] + g_size) * isize[2] * isize[1]], 
-	            &GB[0],
+	            &GT[0],
 	            g_size * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
 	ZeitGeist_tock(ghost_cudamemcpy);
 

@@ -469,12 +469,6 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     }
     total_query_points=all_query_points_allocation/COORD_DIM;
     
-    //if (this->scatter_baked == false) {
-    //  total_query_points_prev = total_query_points;
-    //} else {
-    //  total_query_points_prev = std::max(total_query_points_prev, total_query_points);
-    //}
-  
   // This if condition is to allow multiple calls to scatter fucntion with different query points
   // without having to create a new plan
   ZeitGeist_tick(scatter_memalloc);
@@ -557,10 +551,6 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     }
     ZeitGeist_tock(scatter_comm_query_points_sendrcv);
     timings[0]+=+MPI_Wtime();
-  
-    // Now perform the interpolation on all query points including those that need to
-    // be sent to other processors and store them into all_f_cubic
-    //free(query_points);
   }
 
   for(int ver = 0; ver < nplans_; ++ver) {
