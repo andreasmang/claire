@@ -71,7 +71,9 @@ PetscErrorCode DifferentiationFD::Initialize() {
     PetscFunctionBegin;
     
     this->m_tmp = nullptr;
+#ifdef REG_HAS_CUDA
     this->mtex = 0;
+#endif
     this->m_Ghost = nullptr;
     this->d_Ghost = nullptr;
     this->m_Work = nullptr;
@@ -123,7 +125,7 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
     
-    ierr = AllocateOnce(this->m_tmp, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_tmp, this->m_Opt); CHKERRQ(ierr);
     
     PetscFunctionReturn(ierr);
 }
@@ -422,6 +424,8 @@ PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool us
 
   ZeitGeist_define(FD_INVREG);
   ZeitGeist_tick(FD_INVREG);
+  
+  ierr = Assert(this->m_tmp != nullptr, "nullptr"); CHKERRQ(ierr);
   
   ScalarType *hx = this->m_Opt->m_Domain.hx;
   ScalarType aii = b0*205./75. * (1./(hx[0]*hx[0]) + 1./(hx[1]*hx[1]) + 1./(hx[2]*hx[2]));

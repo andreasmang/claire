@@ -161,7 +161,6 @@ PetscErrorCode Spectral::SetupFFT() {
 #else
       ierr = AllocateOnce(m_plan, this->m_Opt->m_Domain.mpicomm, false); CHKERRQ(ierr);
 #endif
-      allocmem = true;
       size_t osize[3], ostart[3], isize[3], istart[3];
       this->m_plan->initFFT(nx[0], nx[1], nx[2], allocmem);
       if (sharedsize_d < this->m_plan->getWorkSizeDevice()) {
@@ -172,6 +171,12 @@ PetscErrorCode Spectral::SetupFFT() {
       }
       if (!allocmem) {
         this->m_plan->setWorkArea(sharedmem_d, sharedmem_h);
+      }
+      if (allocmem && this->m_Opt->m_Verbosity > 2) {
+        std::stringstream ss;
+        ss << "FFT allocated " << this->m_plan->getWorkSizeDevice() << " bytes";
+        ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
+        ss.clear(); ss.str(std::string());
       }
       this->m_FFT->nalloc = this->m_plan->getDomainSize();
       this->m_plan->getOutSize(osize);
