@@ -108,9 +108,9 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
       this->nlghost *= this->isize_g[2];
       
       cudaMalloc((void**)&this->m_VecFieldGhost, 3*this->g_alloc_max); 
-      cudaMalloc((void**)&this->m_ScaFieldGhost, this->g_alloc_max); 
-      cudaMalloc((void**)&this->m_WorkScaField1, 3*nl*sizeof(ScalarType));
-      cudaMalloc((void**)&this->m_WorkScaField2, nl*sizeof(ScalarType));
+      //cudaMalloc((void**)&this->m_ScaFieldGhost, this->g_alloc_max); 
+      //cudaMalloc((void**)&this->m_WorkScaField1, 3*nl*sizeof(ScalarType));
+      //cudaMalloc((void**)&this->m_WorkScaField2, nl*sizeof(ScalarType));
 
       ierr = AllocateOnce(this->m_StatePlan, this->g_alloc_max, this->cuda_aware);
       this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
@@ -531,10 +531,10 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt > 1) {
-      ierr = Assert(this->m_WorkScaField2 != nullptr, "null pointer"); CHKERRQ(ierr);
+      //ierr = Assert(this->m_WorkScaField2 != nullptr, "null pointer"); CHKERRQ(ierr);
       ZeitGeist_define(INTERPOL_COMM);
       ZeitGeist_tick(INTERPOL_COMM);
-      this->m_GhostPlan->share_ghost_x(xi, this->m_ScaFieldGhost);
+      this->m_GhostPlan->share_ghost_x(xi, this->m_VecFieldGhost);
       ZeitGeist_tock(INTERPOL_COMM);
       
       if (flag.compare("state") == 0) {
@@ -545,18 +545,21 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
           ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
       }
       
-      interp_plan->interpolate( this->m_ScaFieldGhost, 
+      ScalarType *wout[1] = {xo};
+      
+      interp_plan->interpolate( this->m_VecFieldGhost, 
                                 this->isize_g, 
                                 this->nlghost,
                                 nl, 
-                                this->m_WorkScaField2,
+                                //this->m_WorkScaField2,
+                                wout,
                                 this->m_Opt->m_Domain.mpicomm, 
                                 this->m_tmpInterpol1, 
                                 this->m_tmpInterpol2, 
                                 this->m_texture, 
                                 this->m_Opt->m_PDESolver.iporder, 
                                 &(this->m_Opt->m_GPUtime), 0);
-      ierr = cudaMemcpy((void*)xo, (const void*)this->m_WorkScaField2, nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr); 
+      //ierr = cudaMemcpy((void*)xo, (const void*)this->m_WorkScaField2, nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr); 
     } else {
       // compute interpolation for all components of the input scalar field
       if (flag.compare("state") == 0) {
@@ -652,7 +655,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt > 1) {
-      ierr = Assert(this->m_WorkScaField1 != nullptr, "nullptr pointer"); CHKERRQ(ierr);
+      //ierr = Assert(this->m_WorkScaField1 != nullptr, "nullptr pointer"); CHKERRQ(ierr);
       
       ZeitGeist_define(INTERPOL_COMM);
       ZeitGeist_tick(INTERPOL_COMM);
@@ -669,12 +672,15 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
           ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
       }
       
+      ScalarType *wout[3] = {wx1, wx2, wx3};
+      
       // do interpolation
       interp_plan->interpolate( this->m_VecFieldGhost, 
                                 this->isize_g, 
                                 this->nlghost,
                                 nl, 
-                                this->m_WorkScaField1,
+                                //this->m_WorkScaField1,
+                                wout,
                                 this->m_Opt->m_Domain.mpicomm, 
                                 this->m_tmpInterpol1, 
                                 this->m_tmpInterpol2, 
@@ -682,9 +688,9 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
                                 this->m_Opt->m_PDESolver.iporder, 
                                 &(this->m_Opt->m_GPUtime), 1);
 
-      ierr = cudaMemcpy((void*)wx1, (const void*)&this->m_WorkScaField1[0*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
-      ierr = cudaMemcpy((void*)wx2, (const void*)&this->m_WorkScaField1[1*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
-      ierr = cudaMemcpy((void*)wx3, (const void*)&this->m_WorkScaField1[2*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      //ierr = cudaMemcpy((void*)wx1, (const void*)&this->m_WorkScaField1[0*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      //ierr = cudaMemcpy((void*)wx2, (const void*)&this->m_WorkScaField1[1*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      //ierr = cudaMemcpy((void*)wx3, (const void*)&this->m_WorkScaField1[2*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
 
     } else {
       if (flag.compare("state") == 0) {

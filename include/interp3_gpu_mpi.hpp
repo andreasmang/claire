@@ -34,7 +34,7 @@ struct Interp3_Plan_GPU{
                     int* isize_g,
                     const IntType nlghost,
                     const IntType N_pts, 
-                    Real* query_values,
+                    Real** query_values,
                     MPI_Comm c_comm,
                     float *tmp1, 
                     float* tmp2,

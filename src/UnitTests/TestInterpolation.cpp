@@ -474,11 +474,12 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
       
       ZeitGeist_tick(interp_overall);
       ierr = VecCUDAGetArray(fout, &p_fout); CHKERRQ(ierr);
+      ScalarType *wout[3] = {&p_fout[0]};
       interp_plan->interpolate( p_fghost, 
                                 isize_g, 
                                 nlghost,
                                 nl, 
-                                p_fout,
+                                wout,
                                 m_Opt->m_Domain.mpicomm, 
                                 m_tmpInterpol1, 
                                 m_tmpInterpol2, 
@@ -716,11 +717,12 @@ PetscErrorCode TestVectorFieldInterpolationMultiGPU(RegOpt *m_Opt) {
       
   ZeitGeist_tick(interp_overall);
   ierr = VecCUDAGetArray(fout, &p_fout); CHKERRQ(ierr);
+  ScalarType *wout[3] = {&p_fout[0], &p_fout[1*nl], &p_fout[2*nl]};
   interp_plan->interpolate( p_fghost, 
                             isize_g, 
                             nlghost,
                             nl, 
-                            p_fout,
+                            wout,
                             m_Opt->m_Domain.mpicomm, 
                             m_tmpInterpol1, 
                             m_tmpInterpol2, 

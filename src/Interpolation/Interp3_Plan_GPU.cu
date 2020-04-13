@@ -612,7 +612,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
                                     int* isize_g,              // size of the local grid (including ghost points)
                                     const IntType nlghost,         // number of local grid points (including ghost points) owned by process
                                     const IntType N_pts,           // number of local points owned by the process
-                                    Real* query_values_d,      // interpolation result on GPU
+                                    Real** query_values_d,      // interpolation result on GPU
                                     MPI_Comm c_comm,           // MPI communicator
                                     float *tmp1,               // temporary memory for interpolation prefilter
                                     float* tmp2,               // temporary memory for interpolation prefilter
@@ -747,7 +747,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
     for(int proc=0;proc<nprocs;++proc) {
       if(num_query_per_proc[proc] > 0) {
           f_index_ptr = thrust::raw_pointer_cast( f_index + f_index_offset[proc] );
-          copyQueryValues(&query_values_d[dof*N_pts],
+          copyQueryValues(&query_values_d[dof][0],
                           &f_cubic_unordered_d[f_index_procs_self_offset[proc]+dof*N_pts], 
                           f_index_ptr, 
                           num_query_per_proc[proc]);
@@ -758,7 +758,9 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
 
   if (verbose) {
     PetscPrintf(PETSC_COMM_WORLD, "query_values ");
-    print_max(query_values_d, 3*N_pts);
+    for(int dof=0;dof<data_dofs[version]; ++dof) {
+      print_max(query_values_d[dof], 3*N_pts);
+    }
   }
 
 /*
