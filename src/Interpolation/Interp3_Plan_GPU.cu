@@ -333,16 +333,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
   }
   all_query_points_allocation=0;
  {
-    //int N_reg_g[3], isize_g[3];
-    N_reg_g[0]=N_reg[0]+2*g_size;
-    N_reg_g[1]=N_reg[1]+2*g_size;
-    N_reg_g[2]=N_reg[2]+2*g_size;
-
-    isize_g[0]=isize[0]+2*g_size;
-    isize_g[1]=isize[1]+2*g_size;
-    isize_g[2]=isize[2]+2*g_size;
-
-    Real h[3]; // original grid size along each axis
+    // original grid size along each axis
+    Real h[3]; 
     h[0]=1./N_reg[0];
     h[1]=1./N_reg[1];
     h[2]=1./N_reg[2];
@@ -494,6 +486,9 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
         neighbour_query_width++;
         max_query_points_capacity = get_max_query_allocation(isize, neighbour_query_width);
       }
+
+      if (verbose) reg::DbgMsgCall("allocating scatter memory");
+
       cudaFree(all_f_cubic_d);
       cudaMalloc((void**)&all_f_cubic_d, max_query_points_capacity*sizeof(Real)*data_dof_max);
       cudaFree(all_query_points_d);
@@ -548,7 +543,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       } else {
         //if (!query_outside[dst_s].empty())
         if (num_query_per_proc[dst_s] > 0)
-          reg::gencpy(&all_query_points_d[roffset], src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM*sizeof(ScalarType));
+          cudaMemcpy(&all_query_points_d[roffset], src_ptr, f_index_procs_self_sizes[dst_s]*COORD_DIM*sizeof(ScalarType), cudaMemcpyDeviceToDevice);
       }
     }
     
@@ -636,9 +631,9 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   bool verbose = false;
 
   if (verbose) {
-    PetscPrintf(PETSC_COMM_WORLD, "max ghost value\n");
+    PetscPrintf(PETSC_COMM_WORLD, "max ghost ");
     print_max(ghost_reg_grid_vals_d, 3*nlghost);
-    PetscPrintf(PETSC_COMM_WORLD, "max xq\n");
+    PetscPrintf(PETSC_COMM_WORLD, "max xq ");
     print_max(xq1, total_query_points); 
   }
 
@@ -679,7 +674,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
   interp_kernel_time += MPI_Wtime();
 
   if (verbose) {
-    PetscPrintf(PETSC_COMM_WORLD, "max interpolated value\n");
+    PetscPrintf(PETSC_COMM_WORLD, "max interpolated ");
     print_max(all_f_cubic_d, 3*total_query_points);
   }
 
@@ -713,7 +708,7 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
     // because now you are sending others f and receiving your part of f
     int soffset=f_index_procs_others_offset[dst_r];
     int roffset=f_index_procs_self_offset[dst_s];
-    if (true) {
+    if (i != procid) {
       if(f_index_procs_self_sizes[dst_r]!=0)
         MPI_Irecv(&f_cubic_unordered_d[roffset],1,rtypes[dst_r+version*nprocs], dst_r,
             0, c_comm, &request[dst_r]); 
@@ -721,7 +716,10 @@ void Interp3_Plan_GPU::interpolate( Real* ghost_reg_grid_vals_d, // ghost padded
         MPI_Isend(&all_f_cubic_d[soffset],1,stypes[dst_s+version*nprocs],dst_s,
             0, c_comm, &s_request[dst_s]);
     } else {
-      reg::gencpy(&f_cubic_unordered_d[roffset], &all_f_cubic_d[soffset], sizeof(ScalarType)*f_index_procs_self_sizes[i]);
+      for (int dof=0; dof<data_dofs[version]; ++dof) {
+        // when sending to itself i.e. i==procid, f_index_procs_self_sizes[i] == f_index_procs_others_sizes[i]
+        cudaMemcpy(&f_cubic_unordered_d[roffset+dof*N_pts], &all_f_cubic_d[soffset+dof*total_query_points], sizeof(ScalarType)*f_index_procs_self_sizes[i], cudaMemcpyDeviceToDevice);
+      }
     }
   }
 

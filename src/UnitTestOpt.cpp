@@ -434,8 +434,8 @@ PetscErrorCode UnitTestOpt::Run() {
     break;
   case TestType::Interpolate:
     //ierr = UnitTest::TestInterpolation(this); CHKERRQ(ierr);
-    //ierr = UnitTest::TestInterpolationMultiGPU(this); CHKERRQ(ierr);
-    ierr = UnitTest::TestVectorFieldInterpolationMultiGPU(this); CHKERRQ(ierr);
+    ierr = UnitTest::TestInterpolationMultiGPU(this); CHKERRQ(ierr);
+    //ierr = UnitTest::TestVectorFieldInterpolationMultiGPU(this); CHKERRQ(ierr);
     break;
   case TestType::ForwardSolver:
     ierr = UnitTest::TestForwardSolver(this); CHKERRQ(ierr);

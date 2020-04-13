@@ -27,7 +27,7 @@ void print_norm(ScalarType* arr, int N) {
 void print_max(ScalarType *arr, int N) {
   thrust::device_ptr<ScalarType> d_arr = thrust::device_pointer_cast<ScalarType>(arr);
   ScalarType result = *(thrust::max_element(thrust::device, d_arr, d_arr+N));
-  PetscPrintf(PETSC_COMM_WORLD, "max_element = %f\n", result);
+  PetscPrintf(PETSC_COMM_WORLD, "%f\n", result);
 }
 
 

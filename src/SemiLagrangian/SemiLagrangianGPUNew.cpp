@@ -531,7 +531,6 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt > 1) {
-      //ierr = Assert(this->m_WorkScaField2 != nullptr, "null pointer"); CHKERRQ(ierr);
       ZeitGeist_define(INTERPOL_COMM);
       ZeitGeist_tick(INTERPOL_COMM);
       this->m_GhostPlan->share_ghost_x(xi, this->m_VecFieldGhost);
@@ -559,7 +558,6 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
                                 this->m_texture, 
                                 this->m_Opt->m_PDESolver.iporder, 
                                 &(this->m_Opt->m_GPUtime), 0);
-      //ierr = cudaMemcpy((void*)xo, (const void*)this->m_WorkScaField2, nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr); 
     } else {
       // compute interpolation for all components of the input scalar field
       if (flag.compare("state") == 0) {
@@ -838,8 +836,11 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     
     c_dims[0] = this->m_Opt->m_CartGridDims[0];
     c_dims[1] = this->m_Opt->m_CartGridDims[1];
-
+  
     nl = this->m_Opt->m_Domain.nl;
+    
+    ZeitGeist_define(INTERPOL_COMM);
+    ZeitGeist_tick(INTERPOL_COMM);
 
     if (flag.compare("state")==0) {
         
@@ -856,6 +857,8 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
+    
+    ZeitGeist_tock(INTERPOL_COMM);
 
     this->m_Opt->IncreaseInterpTimers(timers);
 
