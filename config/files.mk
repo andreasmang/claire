@@ -69,7 +69,8 @@ CUFILES=$(SRCDIR)/Solver/TransportKernel.cu \
 		$(SRCDIR)/PreconditionerKernel.cu \
 		$(SRCDIR)/Regularization/RegularizationKernel.cu \
 		$(SRCDIR)/Interpolation/Interp3_Plan_GPU.cu \
-		$(SRCDIR)/Interpolation/Interp3_Plan_GPU_kernel.cu
+		$(SRCDIR)/Interpolation/Interp3_Plan_GPU_kernel.cu \
+		$(SRCDIR)/SemiLagrangian/SemiLagrangianKernel.cu
 
 CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \

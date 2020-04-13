@@ -1008,7 +1008,7 @@ PetscErrorCode initConstants(int* isize, int* isize_g, ScalarType* hx, int* halo
   PetscFunctionReturn(ierr);
 }
 
-void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, int* nx) {
+void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, IntType* nx) {
   threads.x = sxx;
   threads.y = syy/perthreadcomp;
   threads.z = 1;
@@ -1017,7 +1017,7 @@ void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, int* nx) {
   blocks.z = nx[1];
 }
 
-void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, int* nx) {
+void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, IntType* nx) {
   threads.x = sxx;
   threads.y = syy/perthreadcomp;
   threads.z = 1;
@@ -1026,7 +1026,7 @@ void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, int* nx) {
   blocks.z = nx[0];
 }
 
-void getThreadBlockDimensionsZ(dim3& threads, dim3& blocks, int* nx) {
+void getThreadBlockDimensionsZ(dim3& threads, dim3& blocks, IntType* nx) {
   threads.x = sy;
   threads.y = sx;
   threads.z = 1;

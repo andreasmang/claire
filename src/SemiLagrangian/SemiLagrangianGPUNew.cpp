@@ -21,6 +21,7 @@
 #define _SEMILAGRANGIANGPUNEW_CPP_
 
 #include "SemiLagrangianGPUNew.hpp"
+#include "SemiLagrangianKernel.hpp"
 #include <petsc/private/vecimpl.h>
 
 
@@ -89,9 +90,6 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     this->m_StatePlan = nullptr;
     this->m_AdjointPlan = nullptr;
     this->m_GhostPlan = nullptr;
-  
-    ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt > 1) {
       IntType nl = this->m_Opt->m_Domain.nl;
@@ -117,10 +115,13 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
 
       ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max, this->cuda_aware);
       this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
+    } else {
+      ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
+      ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
     }
     
-    ierr = AllocateOnce(this->m_InitialTrajectory, m_Opt); CHKERRQ(ierr);
-    ierr = this->ComputeInitialTrajectory(); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_InitialTrajectory, m_Opt); CHKERRQ(ierr);
+    //ierr = this->ComputeInitialTrajectory(); CHKERRQ(ierr);
     ierr = this->InitializeInterpolationTexture(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
@@ -376,6 +377,8 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     const ScalarType* p;
     VecField *X = nullptr;
     ScalarType norm;
+    
+    TrajectoryKernel kernel;
 
     PetscFunctionBegin;
 
@@ -383,7 +386,76 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
 
     ierr = Assert(this->m_WorkVecField1 != nullptr, "null pointer"); CHKERRQ(ierr);
     
-    ht = this->m_Opt->GetTimeStepSize();
+    kernel.isize[0] = this->m_Opt->m_Domain.isize[0];
+    kernel.isize[1] = this->m_Opt->m_Domain.isize[1];
+    kernel.isize[2] = this->m_Opt->m_Domain.isize[2];
+    kernel.istart[0] = this->m_Opt->m_Domain.istart[0];
+    kernel.istart[1] = this->m_Opt->m_Domain.istart[1];
+    kernel.istart[2] = this->m_Opt->m_Domain.istart[2];
+    
+    if (this->m_Opt->rank_cnt == 1) { // Coordinates in [0, Ni)
+      kernel.ix[0] = 1.; kernel.ix[1] = 1.; kernel.ix[2] = 1.;
+      kernel.hx[0] = this->m_Opt->GetTimeStepSize()/this->m_Opt->m_Domain.hx[0];
+      kernel.hx[1] = this->m_Opt->GetTimeStepSize()/this->m_Opt->m_Domain.hx[1];
+      kernel.hx[2] = this->m_Opt->GetTimeStepSize()/this->m_Opt->m_Domain.hx[2];
+    } else { // Coordinates in [0, 1)
+      kernel.ix[0] = 1./static_cast<ScalarType>(this->m_Opt->m_Domain.nx[0]);
+      kernel.ix[1] = 1./static_cast<ScalarType>(this->m_Opt->m_Domain.nx[1]);
+      kernel.ix[2] = 1./static_cast<ScalarType>(this->m_Opt->m_Domain.nx[2]);
+      kernel.hx[0] = this->m_Opt->GetTimeStepSize()/(2.*PETSC_PI);
+      kernel.hx[1] = this->m_Opt->GetTimeStepSize()/(2.*PETSC_PI);
+      kernel.hx[2] = this->m_Opt->GetTimeStepSize()/(2.*PETSC_PI);
+    }
+    
+    if (flag.compare("state") == 0) {
+        X = this->m_Xstate;
+    } else if (flag.compare("adjoint") == 0) {
+        X = this->m_Xadjoint;
+        kernel.hx[0] *= -1.;
+        kernel.hx[1] *= -1.;
+        kernel.hx[2] *= -1.;
+    } else {
+        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
+    }
+    
+    if (this->m_Opt->rank_cnt == 1) {
+      ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
+    } else {
+      kernel.pX[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
+      kernel.pX[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
+      kernel.pX[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
+    }
+    ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
+    
+    ierr = kernel.RK2_Step1(); CHKERRQ(ierr);
+    
+    if (this->m_Opt->rank_cnt > 1) {
+      ierr = this->MapCoordinateVector(flag);
+    } else {
+      ierr = X->RestoreArrays(); CHKERRQ(ierr);
+    }
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
+    
+    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
+    
+    ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArraysRead(kernel.pVx); CHKERRQ(ierr);
+    if (this->m_Opt->rank_cnt == 1) {
+      ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
+    }
+    
+    ierr = kernel.RK2_Step2(); CHKERRQ(ierr);
+    
+    if (this->m_Opt->rank_cnt > 1) {
+      ierr = this->MapCoordinateVector(flag);
+    } else {
+      ierr = X->RestoreArrays(); CHKERRQ(ierr);
+    }
+    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
+    
+    
+    /*ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
     
     if (this->m_Opt->m_Verbosity > 2) {
@@ -449,7 +521,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
 
     if (this->m_Opt->rank_cnt > 1) {
       ierr = this->MapCoordinateVector(flag);
-    }
+    }*/
     
     if (this->m_Opt->m_Verbosity > 2) {
       DbgMsgCall("Trajectory computed");
@@ -603,8 +675,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(VecField* vo, VecField* vi, std
     ierr = vi->GetArraysReadWrite(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
     ierr = vo->GetArraysReadWrite(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
     ierr = this->Interpolate(p_vox1, p_vox2, p_vox3, p_vix1, p_vix2, p_vix3, flag); CHKERRQ(ierr);
-    ierr = vi->RestoreArraysReadWrite(p_vix1, p_vix2, p_vix3); CHKERRQ(ierr);
-    ierr = vo->RestoreArraysReadWrite(p_vox1, p_vox2, p_vox3); CHKERRQ(ierr);
+    ierr = vi->RestoreArrays(); CHKERRQ(ierr);
+    ierr = vo->RestoreArrays(); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);
 
@@ -841,18 +913,22 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     
     ZeitGeist_define(INTERPOL_COMM);
     ZeitGeist_tick(INTERPOL_COMM);
+    
+    p_X[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
+    p_X[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
+    p_X[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
 
     if (flag.compare("state")==0) {
         
-        ierr = this->m_Xstate->GetArrays(p_X);
+        //ierr = this->m_Xstate->GetArrays(p_X);
         this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers);
-        ierr = this->m_Xstate->RestoreArrays(p_X);
+        //ierr = this->m_Xstate->RestoreArrays(p_X);
       
     } else if (flag.compare("adjoint")==0) {
 
-        ierr = this->m_Xadjoint->GetArrays(p_X);
+        //ierr = this->m_Xadjoint->GetArrays(p_X);
         this->m_AdjointPlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers);
-        ierr = this->m_Xadjoint->RestoreArrays(p_X);
+        //ierr = this->m_Xadjoint->RestoreArrays(p_X);
 
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);

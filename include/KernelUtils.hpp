@@ -208,6 +208,32 @@ __global__ void SpectralKernelGPU(real3 wave, real3 nx, int3 nl, Args ... args) 
 }
 
 /********************************************************************
+ * @brief GPU kernel function wrapper for spacial operators
+ * p: must be initialized with the offset of local subdomain
+ * nx: absolute dimensions of the domain
+ * nl: contains precomputed local domain sizes: 
+ *  nl.x = nl0      local size in x
+ *  nl.y = nl1*nl2  size of local pencil slice in Z-Y-X order
+ *  nl.z = nl2      size of local pencil width in Z-Y-X order
+ *******************************************************************/
+template<typename KernelFn, typename ... Args>
+__global__ void SpacialKernelGPU(int3 p, int3 nl, Args ... args) {
+  int i3 = threadIdx.x + blockIdx.x*blockDim.x;
+  int i2 = blockIdx.y;
+  int i1 = blockIdx.z;
+  
+  if (i3 < nl.z) {
+    p.x += i1;
+    p.y += i2;
+    p.z += i3;
+
+    int i = GetLinearIndex(i1, i2, i3, nl);
+
+    KernelFn::call(i, p, args...);
+  }
+}
+
+/********************************************************************
  * @brief GPU kernel function wrapper
  *******************************************************************/
 template<typename KernelFn, typename ... Args>
@@ -248,6 +274,40 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+  }
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Starts a GPU kernel for spacial operators
+ * Note: Local index must not exceed $2^{31} - 1$
+ *******************************************************************/
+template<typename KernelFn, typename ... Args>
+PetscErrorCode SpacialKernelCallGPU(IntType nstart[3], IntType nl[3], Args ... args) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  dim3 block, grid;
+  if (nl[2] <= 1024 && nl[2] >= 32) {
+    block.x = (nl[2] + 31)/32;
+    block.x *= 32;
+    grid.x = 1;
+  } else {
+    block.x = 128; // 128 threads per block
+    grid.x = (nl[2] + 127)/128;  // $\lceil nl_2 / 128 \rceil$
+  }
+  grid.y = nl[1];
+  grid.z = nl[0];
+  int3 p;
+  int3 nl3;
+  p.x = nstart[0]; p.y = nstart[1]; p.z = nstart[2];
+  nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
+  
+  if (nl[0]*nl[1]*nl[2] > 0) {
+    SpacialKernelGPU<KernelFn><<<grid, block>>>(p, nl3, args...);
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
@@ -345,6 +405,37 @@ PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3
               int i = GetLinearIndex(i1, i2, i3, nl3);
               
               KernelFn::call(i, w, args...);
+          }
+      }
+  }
+  
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Starts a CPU kernel for spacial operators
+ * Note: Local index must not exceed $2^{31} - 1$
+ *******************************************************************/
+template<typename KernelFn, typename ... Args>
+PetscErrorCode SpacialKernelCall(IntType nstart[3], IntType nl[3], Args ... args) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  int3 nl3;
+  nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
+  
+#pragma omp parallel for collapse(3)
+  for (int i1 = 0; i1 < nl[0]; ++i1) {
+      for (int i2 = 0; i2 < nl[1]; ++i2) {
+          for (int i3 = 0; i3 < nl[2]; ++i3) {
+              int3 p;
+              p.x = i1 + nstart[0];
+              p.y = i2 + nstart[1];
+              p.z = i3 + nstart[2];
+              
+              int i = GetLinearIndex(i1, i2, i3, nl3);
+              
+              KernelFn::call(i, p, args...);
           }
       }
   }

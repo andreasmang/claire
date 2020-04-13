@@ -1153,6 +1153,10 @@ PetscErrorCode RegOpt::InitializeFFT() {
     
     this->m_FFT_coarse.fft->InitFFT();
     
+    if (this->m_Domain.nl > 1024*1024*1024) {
+      ierr = ThrowError("local domain size to large"); CHKERRQ(ierr);
+    }
+    
     this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
