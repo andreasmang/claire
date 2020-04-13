@@ -486,6 +486,9 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
         neighbour_query_width++;
         max_query_points_capacity = get_max_query_allocation(isize, neighbour_query_width);
       }
+
+      if (verbose) reg::DbgMsgCall("allocating scatter memory");
+
       cudaFree(all_f_cubic_d);
       cudaMalloc((void**)&all_f_cubic_d, max_query_points_capacity*sizeof(Real)*data_dof_max);
       cudaFree(all_query_points_d);
