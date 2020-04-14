@@ -1246,7 +1246,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
   
       normref = sqrt(cg_r);
       
-      if (this->m_Opt->m_Verbosity > 1 && mg == (pre?0:1)) {
+      if (this->m_Opt->m_Verbosity > 2 && mg == (pre?0:1)) {
         std::stringstream ss;
         ss << "PC res: " << sqrt(cg_r);
         ss << ", " << sqrt(cg_r)/normref;
@@ -1302,7 +1302,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
       }
       
-      if (this->m_Opt->m_Verbosity > 1)  {
+      if (this->m_Opt->m_Verbosity > 2)  {
         std::stringstream ss;
         ss << "PC " << (mg==0?"pre: ":(mg==1?"coarse: ":"post: ")) << i;
         ss << " ,kernel size: " << kernel.nl;
@@ -1374,7 +1374,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       mg++;
     }
     
-    if (this->m_Opt->m_Verbosity > 1) {
+    if (this->m_Opt->m_Verbosity > 2) {
       std::stringstream ss;
       ss << "PC res: " << sqrt(cg_r) << ", " << sqrt(cg_r)/normref;
       ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
