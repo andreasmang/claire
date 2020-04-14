@@ -19,16 +19,28 @@
 #include <thrust/device_free.h>
 #include <thrust/extrema.h>
 
+//#define BLOCK_COORDINATES
+
 using ScalarType = PetscScalar;
 
+//void gpuInterp3D(PetscScalar* yi, 
+//  const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
+//  PetscScalar* yo, 
+//  float *tmp1, float* tmp2,
+//  int* nx, long int nq, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 void gpuInterp3D(PetscScalar* yi, 
-  const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
+  const PetscScalar** query_in, 
   PetscScalar* yo, 
   float *tmp1, float* tmp2,
   int* nx, long int nq, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 
+//void gpuInterpVec3D(PetscScalar* yi1, PetscScalar* yi2, PetscScalar* yi3, 
+//    const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
+//    PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3, 
+//    float *tmp1, float* tmp2,
+//    int* nx, long int nq, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);
 void gpuInterpVec3D(PetscScalar* yi1, PetscScalar* yi2, PetscScalar* yi3, 
-    const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3, 
+    const PetscScalar** query_in, 
     PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3, 
     float *tmp1, float* tmp2,
     int* nx, long int nq, cudaTextureObject_t yi_tex, int iporder, PetscScalar* interp_time);

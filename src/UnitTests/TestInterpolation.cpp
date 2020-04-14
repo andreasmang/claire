@@ -76,6 +76,7 @@ void TestError(ScalarType *ref, ScalarType *eval, IntType nl, double *err, doubl
   double max = 0;
   for (int i = 0; i < nl; ++i) {
     double local = static_cast<double>(ref[i]) - static_cast<double>(eval[i]);
+    PetscPrintf(PETSC_COMM_WORLD, "ref[i] = %f, eval[i] = %f\n", ref[i], eval[i]);
     double lmax = std::abs(eval[i]);
     if (lmax > max) max = lmax;
     error += local*local;
@@ -432,6 +433,8 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   int repcount = 0;
   int nt = 1;
   
+  std::string flag = "state";
+
   ZeitGeist_define(overall);
   ZeitGeist_define(interp_overall);
   ZeitGeist_define(scatter_overall);
@@ -445,28 +448,22 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     ierr = VecCUDAGetArray(xq, &p_xq); CHKERRQ(ierr);
     ierr = VecCUDAGetArray(yq, &p_yq); CHKERRQ(ierr);
     ierr = VecCUDAGetArray(zq, &p_zq); CHKERRQ(ierr);
-    interp_plan->scatter(nx, isize, istart, nl, nghost, p_xq, p_yq, p_zq, m_Opt->m_CartGridDims, m_Opt->m_Domain.mpicomm, timers);
+    interp_plan->scatter(nx, isize, istart, nl, nghost, p_xq, p_yq, p_zq, m_Opt->m_CartGridDims, m_Opt->m_Domain.mpicomm, timers, flag);
     ierr = VecCUDARestoreArray(zq, &p_zq); CHKERRQ(ierr);
     ierr = VecCUDARestoreArray(yq, &p_yq); CHKERRQ(ierr);
     ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
     ZeitGeist_tock(scatter_overall);
+    reg::DbgMsgCall("Scatter done");
 
     for (int j=0; j<nt; j++) {
-      if (true) {
-        ZeitGeist_tick(ghost_overall);
-        if (j>0) {
-          ierr = VecCUDAGetArray(fout, &p_f);  CHKERRQ(ierr);
-          ghost_plan->share_ghost_x(p_f, p_fghost);
-          ierr = VecCUDARestoreArray(fout, &p_f); CHKERRQ(ierr);
-        } else {
-          ierr = VecCUDAGetArray(f, &p_f);  CHKERRQ(ierr);
-          ghost_plan->share_ghost_x(p_f, p_fghost);
-          ierr = VecCUDARestoreArray(f, &p_f); CHKERRQ(ierr);
-        }
-        ZeitGeist_tock(ghost_overall);
-      }
+      ZeitGeist_tick(ghost_overall);
+      ierr = VecCUDAGetArray(f, &p_f);  CHKERRQ(ierr);
+      ghost_plan->share_ghost_x(p_f, p_fghost);
+      ierr = VecCUDARestoreArray(f, &p_f); CHKERRQ(ierr);
+      ZeitGeist_tock(ghost_overall);
 
       reg::Assert(p_fghost != nullptr, "nullptr");
+      reg::DbgMsgCall("Ghost shared");
       
       ZeitGeist_tick(interp_overall);
       ierr = VecCUDAGetArray(fout, &p_fout); CHKERRQ(ierr);
@@ -481,7 +478,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
                                 m_tmpInterpol2, 
                                 tex, 
                                 m_Opt->m_PDESolver.iporder, 
-                                &m_GPUtime, 0);
+                                &m_GPUtime, 0, flag);
       ierr = VecCUDARestoreArray(fout, &p_fout); CHKERRQ(ierr);
       ZeitGeist_tock(interp_overall);
     }
@@ -493,11 +490,11 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   MPI_Barrier(PETSC_COMM_WORLD);
 
   // compute error in interpolation
-  ierr = VecGetArray(fout, &p_fout);  CHKERRQ(ierr);
   ierr = VecGetArray(ref, &p_ref);  CHKERRQ(ierr);
+  ierr = VecGetArray(fout, &p_fout);  CHKERRQ(ierr);
   TestError(p_ref, p_fout, nl, &error, &max);
-  ierr = VecRestoreArray(ref, &p_ref); CHKERRQ(ierr);
   ierr = VecRestoreArray(fout, &p_fout); CHKERRQ(ierr);
+  ierr = VecRestoreArray(ref, &p_ref); CHKERRQ(ierr);
   
   // get global runtimes and errors
   std::ostringstream ss;
@@ -695,7 +692,7 @@ PetscErrorCode TestVectorFieldInterpolationMultiGPU(RegOpt *m_Opt) {
   ierr = VecCUDAGetArray(xq, &p_xq); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDAGetArray(zq, &p_zq); CHKERRQ(ierr);
-  interp_plan->scatter(nx, isize, istart, nl, nghost, p_xq, p_yq, p_zq, m_Opt->m_CartGridDims, m_Opt->m_Domain.mpicomm, timers);
+  interp_plan->scatter(nx, isize, istart, nl, nghost, p_xq, p_yq, p_zq, m_Opt->m_CartGridDims, m_Opt->m_Domain.mpicomm, timers, "state");
   ierr = VecCUDARestoreArray(zq, &p_zq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(yq, &p_yq); CHKERRQ(ierr);
   ierr = VecCUDARestoreArray(xq, &p_xq); CHKERRQ(ierr);
@@ -724,7 +721,7 @@ PetscErrorCode TestVectorFieldInterpolationMultiGPU(RegOpt *m_Opt) {
                             m_tmpInterpol2, 
                             tex, 
                             m_Opt->m_PDESolver.iporder, 
-                            &m_GPUtime, 1);
+                            &m_GPUtime, 1, "state");
   ierr = VecCUDARestoreArray(fout, &p_fout); CHKERRQ(ierr);
   ZeitGeist_tock(interp_overall);
   ZeitGeist_tock(overall);
