@@ -20,8 +20,7 @@ void print_norm(ScalarType* arr, int N) {
   thrust::plus<ScalarType> binary_op;
   ScalarType init = 0; 
   ScalarType norm = std::sqrt( thrust::transform_reduce(d_arr, d_arr+N, unary_op, init, binary_op) );
-  PetscSynchronizedPrintf(PETSC_COMM_WORLD, "norm = %f\n", norm);
-  PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+  PetscPrintf(PETSC_COMM_WORLD, "%f\n", norm);
 }
 
 void print_max(ScalarType *arr, int N) {
@@ -29,6 +28,18 @@ void print_max(ScalarType *arr, int N) {
   ScalarType result = *(thrust::max_element(thrust::device, d_arr, d_arr+N));
   PetscPrintf(PETSC_COMM_WORLD, "%f\n", result);
 }
+
+void print_vector(thrust::device_ptr<ScalarType> arr, int N, int stride) {
+  thrust::host_vector<ScalarType> H(arr, arr+N*stride);
+  for (int i=0; i<N; i++) {
+    std::cout << i << " = ";
+    for (int j=0; j<stride; j++) {
+      std::cout << H[i*stride+j] << ",";
+    }
+    std::cout << std::endl;
+  }
+}
+
 
 
 void test_count() {

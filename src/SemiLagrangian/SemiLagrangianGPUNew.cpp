@@ -113,8 +113,8 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
       ierr = AllocateOnce(this->m_StatePlan, this->g_alloc_max, this->cuda_aware);
       this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
 
-      ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max, this->cuda_aware);
-      this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
+      //ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max, this->cuda_aware);
+      //this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
     } else {
       ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
       ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
@@ -607,7 +607,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
       ZeitGeist_tick(INTERPOL_COMM);
       this->m_GhostPlan->share_ghost_x(xi, this->m_VecFieldGhost);
       ZeitGeist_tock(INTERPOL_COMM);
-      
+     /* 
       if (flag.compare("state") == 0) {
           interp_plan = this->m_StatePlan;
       } else if (flag.compare("adjoint") == 0) {
@@ -615,32 +615,37 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
       } else {
           ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
       }
-      
+      */
       ScalarType *wout[1] = {xo};
       
+      interp_plan = this->m_StatePlan;
+
       interp_plan->interpolate( this->m_VecFieldGhost, 
                                 this->isize_g, 
                                 this->nlghost,
                                 nl, 
-                                //this->m_WorkScaField2,
                                 wout,
                                 this->m_Opt->m_Domain.mpicomm, 
                                 this->m_tmpInterpol1, 
                                 this->m_tmpInterpol2, 
                                 this->m_texture, 
                                 this->m_Opt->m_PDESolver.iporder, 
-                                &(this->m_Opt->m_GPUtime), 0);
+                                &(this->m_Opt->m_GPUtime), 0, flag);
     } else {
       // compute interpolation for all components of the input scalar field
       if (flag.compare("state") == 0) {
           ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
           ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
           gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          //const ScalarType* xq[3] = {xq1, xq2, xq3};
+          //gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
       } else if (flag.compare("adjoint") == 0) {
           ierr = Assert(this->m_Xadjoint != nullptr, "null pointer"); CHKERRQ(ierr);
           ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
           gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          //const ScalarType* xq[3] = {xq1, xq2, xq3};
+          //gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
       } else {
           ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -734,44 +739,51 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
       this->m_GhostPlan->share_ghost_x(vx3, &this->m_VecFieldGhost[2*this->nlghost]);
       ZeitGeist_tock(INTERPOL_COMM);
 
-      if (flag.compare("state") == 0) {
-          interp_plan = this->m_StatePlan;
-      } else if (flag.compare("adjoint") == 0) {
-          interp_plan = this->m_AdjointPlan;
-      } else {
-          ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-      }
+      //if (flag.compare("state") == 0) {
+      //    interp_plan = this->m_StatePlan;
+      //} else if (flag.compare("adjoint") == 0) {
+      //    interp_plan = this->m_AdjointPlan;
+      //} else {
+      //    ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
+      //}
       
       ScalarType *wout[3] = {wx1, wx2, wx3};
       
+      interp_plan = this->m_StatePlan;
+
       // do interpolation
       interp_plan->interpolate( this->m_VecFieldGhost, 
                                 this->isize_g, 
                                 this->nlghost,
                                 nl, 
-                                //this->m_WorkScaField1,
                                 wout,
                                 this->m_Opt->m_Domain.mpicomm, 
                                 this->m_tmpInterpol1, 
                                 this->m_tmpInterpol2, 
                                 this->m_texture, 
                                 this->m_Opt->m_PDESolver.iporder, 
-                                &(this->m_Opt->m_GPUtime), 1);
+                                &(this->m_Opt->m_GPUtime), 1, flag);
 
       //ierr = cudaMemcpy((void*)wx1, (const void*)&this->m_WorkScaField1[0*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
       //ierr = cudaMemcpy((void*)wx2, (const void*)&this->m_WorkScaField1[1*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
       //ierr = cudaMemcpy((void*)wx3, (const void*)&this->m_WorkScaField1[2*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
 
     } else {
+      
+
       if (flag.compare("state") == 0) {
 
           ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
+          //const ScalarType* xq[3] = {xq1, xq2, xq3};
+          //gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
 
       } else if (flag.compare("adjoint") == 0) {
           
           ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
+          //const ScalarType* xq[3] = {xq1, xq2, xq3};
+          //gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
          
@@ -917,7 +929,10 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     p_X[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
     p_X[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
     p_X[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
+    
+    this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers, flag);
 
+/*
     if (flag.compare("state")==0) {
         
         //ierr = this->m_Xstate->GetArrays(p_X);
@@ -933,7 +948,7 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
-    
+*/    
     ZeitGeist_tock(INTERPOL_COMM);
 
     this->m_Opt->IncreaseInterpTimers(timers);

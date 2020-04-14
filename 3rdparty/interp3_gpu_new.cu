@@ -1029,7 +1029,6 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
         xq2[tid] = (all_query_points[tid*3 + 1]*ng.y + offset.y);
         xq3[tid] = (all_query_points[tid*3 + 2]*ng.z + offset.z);
     }
-
 }
 
 
