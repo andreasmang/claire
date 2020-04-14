@@ -636,16 +636,14 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
       if (flag.compare("state") == 0) {
           ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
           ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
-          gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
-          //const ScalarType* xq[3] = {xq1, xq2, xq3};
-          //gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          const ScalarType* xq[3] = {xq1, xq2, xq3};
+          gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
       } else if (flag.compare("adjoint") == 0) {
           ierr = Assert(this->m_Xadjoint != nullptr, "null pointer"); CHKERRQ(ierr);
           ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
-          gpuInterp3D(xi, xq1, xq2, xq3, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
-          //const ScalarType* xq[3] = {xq1, xq2, xq3};
-          //gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          const ScalarType* xq[3] = {xq1, xq2, xq3};
+          gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
       } else {
           ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -774,17 +772,15 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
       if (flag.compare("state") == 0) {
 
           ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
-          //const ScalarType* xq[3] = {xq1, xq2, xq3};
-          //gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
-          gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          const ScalarType* xq[3] = {xq1, xq2, xq3};
+          gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
 
       } else if (flag.compare("adjoint") == 0) {
           
           ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
-          //const ScalarType* xq[3] = {xq1, xq2, xq3};
-          //gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
-          gpuInterpVec3D(vx1, vx2, vx3, xq1, xq2, xq3, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          const ScalarType* xq[3] = {xq1, xq2, xq3};
+          gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
          
       } else {

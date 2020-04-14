@@ -14,15 +14,15 @@
 
 #define verbose false
 
-static void printGPUMemory(int rank) {
-    if (rank == 0) {
-      size_t free, used;
-      cudaMemGetInfo(&free, &used);
-      used -= free;
-      std::string msg = "Used mem = " + std::to_string(used/1E9) + " GB, Free mem = " + std::to_string(free/1E9) + " GB\n";
-      PetscPrintf(PETSC_COMM_WORLD, msg.c_str());
-    }
-}
+//static void printGPUMemory(int rank) {
+//    if (rank == 0) {
+//      size_t free, used;
+//      cudaMemGetInfo(&free, &used);
+//      used -= free;
+//      std::string msg = "Used mem = " + std::to_string(used/1E9) + " GB, Free mem = " + std::to_string(free/1E9) + " GB\n";
+//      PetscPrintf(PETSC_COMM_WORLD, msg.c_str());
+//    }
+//}
 
 #ifndef ACCFFT_CHECKCUDA_H
 #define ACCFFT_CHECKCUDA_H
@@ -517,6 +517,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       reg::FreeMemory(Eq[id].all_query_points);
       reg::AllocateMemoryOnce(Eq[id].all_query_points, Eq[id].max_query_points_capacity*COORD_DIM*sizeof(ScalarType) );
 
+#ifdef BLOCK_COORDINATES
       reg::FreeMemory(Eq[id].xq1);
       reg::AllocateMemoryOnce(Eq[id].xq1, Eq[id].max_query_points_capacity*sizeof(ScalarType));
 
@@ -525,6 +526,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
 
       reg::FreeMemory(Eq[id].xq3);
       reg::AllocateMemoryOnce(Eq[id].xq3, Eq[id].max_query_points_capacity*sizeof(ScalarType));
+#endif
     }
   }
   else {
@@ -539,9 +541,11 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
 
     reg::AllocateMemoryOnce(Eq[id].all_f, Eq[id].max_query_points_capacity*sizeof(ScalarType)*data_dof_max);
     reg::AllocateMemoryOnce(Eq[id].all_query_points, Eq[id].max_query_points_capacity*COORD_DIM*sizeof(ScalarType) );
+#ifdef BLOCK_COORDINATES
     reg::AllocateMemoryOnce(Eq[id].xq1, Eq[id].max_query_points_capacity*sizeof(ScalarType));
     reg::AllocateMemoryOnce(Eq[id].xq2, Eq[id].max_query_points_capacity*sizeof(ScalarType));
     reg::AllocateMemoryOnce(Eq[id].xq3, Eq[id].max_query_points_capacity*sizeof(ScalarType));
+#endif
   }
   ZeitGeist_tock(scatter_memalloc);  
 
@@ -649,9 +653,6 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
     reg::ThrowError("wrong flag");
   }
   
-  reg::Assert(Eq[id].xq1 != nullptr, "Eq[id].xq1 is nullptr");
-  reg::Assert(Eq[id].xq2 != nullptr, "Eq[id].xq2 is nullptr");
-  reg::Assert(Eq[id].xq3 != nullptr, "Eq[id].xq3 is nullptr");
   
   if(Eq[id].allocate_baked==false){
     std::cout<<"ERROR Interp3_Plan_GPU interpolate called before calling allocate.\n";
@@ -685,8 +686,14 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
   ZeitGeist_define(interp_values_copy_kernel);
 
   // change this to have strided or block access to query points
-  //const ScalarType* xq[3] = {&Eq[id].all_query_points[0]};
-  //const ScalarType* xq[3] = {Eq[id].xq1, Eq[id].xq2, Eq[id].xq3};
+#ifdef BLOCK_COORDINATES
+  const ScalarType* xq[3] = {Eq[id].xq1, Eq[id].xq2, Eq[id].xq3};
+  reg::Assert(Eq[id].xq1 != nullptr, "Eq[id].xq1 is nullptr");
+  reg::Assert(Eq[id].xq2 != nullptr, "Eq[id].xq2 is nullptr");
+  reg::Assert(Eq[id].xq3 != nullptr, "Eq[id].xq3 is nullptr");
+#else
+  const ScalarType* xq[3] = {Eq[id].all_query_points};
+#endif
 
   // compute the interpolation on the GPU
   ZeitGeist_tick(interp_kernel);
@@ -695,16 +702,14 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
     gpuInterpVec3D(&f_ghost[0*nlghost], 
                    &f_ghost[1*nlghost], 
                    &f_ghost[2*nlghost], 
-                   //xq,
-                   Eq[id].xq1, Eq[id].xq2, Eq[id].xq3,
+                   xq, 
                    &Eq[id].all_f[0*Eq[id].total_query_points], 
                    &Eq[id].all_f[1*Eq[id].total_query_points], 
                    &Eq[id].all_f[2*Eq[id].total_query_points], 
                    tmp1, tmp2, isize_g, static_cast<long int>(Eq[id].total_query_points), yi_tex, iporder, interp_time);
   else 
     gpuInterp3D(f_ghost, 
-                //xq, 
-                Eq[id].xq1, Eq[id].xq2, Eq[id].xq3,
+                xq, 
                 Eq[id].all_f, 
                 tmp1, tmp2, isize_g, static_cast<long int>(Eq[id].total_query_points), yi_tex, 
                 iporder, interp_time);
