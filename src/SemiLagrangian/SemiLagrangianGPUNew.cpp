@@ -109,7 +109,8 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
       this->nlghost *= this->isize_g[1];
       this->nlghost *= this->isize_g[2];
       
-      cudaMalloc((void**)&this->m_VecFieldGhost, 3*this->g_alloc_max); 
+      cudaMalloc((void**)&this->m_VecFieldGhost, this->g_alloc_max); 
+      //cudaMalloc((void**)&this->m_VecFieldGhost, 3*this->g_alloc_max); 
       //cudaMalloc((void**)&this->m_ScaFieldGhost, this->g_alloc_max); 
       //cudaMalloc((void**)&this->m_WorkScaField1, 3*nl*sizeof(ScalarType));
       //cudaMalloc((void**)&this->m_WorkScaField2, nl*sizeof(ScalarType));
@@ -727,44 +728,40 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     ZeitGeist_tick(SL_INTERPOL);
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
+    interp_plan = this->m_StatePlan;
+    
+    ScalarType* vin[3] = {vx1, vx2, vx3};
+    ScalarType* wout[3] = {wx1, wx2, wx3};
+
     if (this->m_Opt->rank_cnt > 1) {
-      //ierr = Assert(this->m_WorkScaField1 != nullptr, "nullptr pointer"); CHKERRQ(ierr);
-      
       ZeitGeist_define(INTERPOL_COMM);
-      ZeitGeist_tick(INTERPOL_COMM);
-      this->m_GhostPlan->share_ghost_x(vx1, &this->m_VecFieldGhost[0*this->nlghost]);
-      this->m_GhostPlan->share_ghost_x(vx2, &this->m_VecFieldGhost[1*this->nlghost]);
-      this->m_GhostPlan->share_ghost_x(vx3, &this->m_VecFieldGhost[2*this->nlghost]);
-      ZeitGeist_tock(INTERPOL_COMM);
+      for (int i=0; i<3; i++) { 
+        ZeitGeist_tick(INTERPOL_COMM);
+        this->m_GhostPlan->share_ghost_x(vin[i], &this->m_VecFieldGhost[0*this->nlghost]);
+        //this->m_GhostPlan->share_ghost_x(vx1, &this->m_VecFieldGhost[0*this->nlghost]);
+        //this->m_GhostPlan->share_ghost_x(vx2, &this->m_VecFieldGhost[1*this->nlghost]);
+        //this->m_GhostPlan->share_ghost_x(vx3, &this->m_VecFieldGhost[2*this->nlghost]);
+        ZeitGeist_tock(INTERPOL_COMM);
 
-      //if (flag.compare("state") == 0) {
-      //    interp_plan = this->m_StatePlan;
-      //} else if (flag.compare("adjoint") == 0) {
-      //    interp_plan = this->m_AdjointPlan;
-      //} else {
-      //    ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-      //}
-      
-      ScalarType *wout[3] = {wx1, wx2, wx3};
-      
-      interp_plan = this->m_StatePlan;
+        //ScalarType *wout[3] = {wx1, wx2, wx3};
+        
+        // do interpolation
+        interp_plan->interpolate( this->m_VecFieldGhost, 
+                                  this->isize_g, 
+                                  this->nlghost,
+                                  nl, 
+                                  &wout[i],
+                                  this->m_Opt->m_Domain.mpicomm, 
+                                  this->m_tmpInterpol1, 
+                                  this->m_tmpInterpol2, 
+                                  this->m_texture, 
+                                  this->m_Opt->m_PDESolver.iporder, 
+                                  &(this->m_Opt->m_GPUtime), 0, flag);
 
-      // do interpolation
-      interp_plan->interpolate( this->m_VecFieldGhost, 
-                                this->isize_g, 
-                                this->nlghost,
-                                nl, 
-                                wout,
-                                this->m_Opt->m_Domain.mpicomm, 
-                                this->m_tmpInterpol1, 
-                                this->m_tmpInterpol2, 
-                                this->m_texture, 
-                                this->m_Opt->m_PDESolver.iporder, 
-                                &(this->m_Opt->m_GPUtime), 1, flag);
-
-      //ierr = cudaMemcpy((void*)wx1, (const void*)&this->m_WorkScaField1[0*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
-      //ierr = cudaMemcpy((void*)wx2, (const void*)&this->m_WorkScaField1[1*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
-      //ierr = cudaMemcpy((void*)wx3, (const void*)&this->m_WorkScaField1[2*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+        //ierr = cudaMemcpy((void*)wx1, (const void*)&this->m_WorkScaField1[0*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+        //ierr = cudaMemcpy((void*)wx2, (const void*)&this->m_WorkScaField1[1*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+        //ierr = cudaMemcpy((void*)wx3, (const void*)&this->m_WorkScaField1[2*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
+      }
 
     } else {
       
