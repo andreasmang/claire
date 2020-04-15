@@ -1390,8 +1390,8 @@ void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq
 
 __host__ __device__ 
 void TestFunction(ScalarType *val, const ScalarType x, const ScalarType y, const ScalarType z, int caseid) {
-      //*val = (caseid+1)*( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
-      *val = x;
+      *val = (caseid+1)*( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
+      //*val = x;
 }
 
 __global__ void setup_kernel(curandState *state, const int3 size, const int3 start, const int3 n) {
@@ -1424,18 +1424,18 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
         
         TestFunction(&f[i], x, y, z, caseid);
 
-        x = 0;
-        y = 0;
-        z = 0;
+        //x = 0;
+        //y = 0;
+        //z = 0;
         
         //float perturb=sinf(x)*sinf(y)*sinf(z); 
         //x += h.x*perturb;
         //y += h.y*perturb;
         //z += h.z*perturb;
         
-        //x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
-        //y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
-        //z -= 0.25*0.5*sinf(y)*cosf(x)*sinf(x);
+        x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
+        y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
+        z -= 0.25*0.5*sinf(y)*cosf(x)*sinf(x);
         
         //x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
         //y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
