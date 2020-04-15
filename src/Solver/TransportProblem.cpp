@@ -89,7 +89,7 @@ PetscErrorCode TransportProblem::ClearMemory() {
     if (this->m_DiffAllocated) {
       Free(this->m_Differentiation);
     }
-
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -358,6 +358,7 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation *diff) {
 
     if (this->m_DiffAllocated) {
       Free(this->m_Differentiation);
+      this->m_DiffAllocated = false;
     }
     
     this->m_Differentiation = diff;

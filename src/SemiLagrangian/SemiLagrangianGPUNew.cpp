@@ -139,8 +139,6 @@ PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
-    DBGCHK();
-
     if (this->m_Xstate != nullptr) {
         delete this->m_Xstate;
         this->m_Xstate = nullptr;
@@ -197,7 +195,7 @@ PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
     Free(this->m_StatePlan);
     Free(this->m_AdjointPlan);
     Free(this->m_GhostPlan);
-
+    
     PetscFunctionReturn(ierr);
 }
 

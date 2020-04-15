@@ -67,9 +67,9 @@ PetscErrorCode TransportEquationSL::Initialize() {
 PetscErrorCode TransportEquationSL::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-        
+    
     Free(this->m_SemiLagrangianMethod);
-
+    
     PetscFunctionReturn(ierr);
 }
 

@@ -1008,6 +1008,7 @@ PetscErrorCode RegOpt::ClearMemory() {
     PetscFunctionBegin;
 
     ierr = this->DestroyFFT(); CHKERRQ(ierr);
+    
 
     // clear vectors
     if (this->m_Log.krylovresidual.size()) {
@@ -1061,8 +1062,8 @@ PetscErrorCode RegOpt::DestroyFFT() {
 //        accfft_cleanup();
 //        this->m_FFT.plan = NULL;
 //    }
-    ierr = Free(this->m_FFT_coarse.fft); CHKERRQ(ierr);
     
+    ierr = Free(this->m_FFT_coarse.fft); CHKERRQ(ierr);
     ierr = Free(this->m_FFT.fft); CHKERRQ(ierr);
 
 //    if (this->m_FFT.mpicommexists) {

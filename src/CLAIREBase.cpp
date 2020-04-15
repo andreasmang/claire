@@ -256,11 +256,11 @@ PetscErrorCode CLAIREBase::ClearMemory() {
       ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
       ss.clear(); ss.str(std::string());
     }
-
+    
     if (this->m_DeleteControlVariable) {
         Free(this->m_VelocityField);
     }
-
+    
     if (this->m_DeleteIncControlVariable) {
         Free(this->m_IncVelocityField);
     }
@@ -269,9 +269,9 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     Free(this->m_Regularization);
     Free(this->m_SemiLagrangianMethod);
     Free(this->m_DeformationFields);
+    Free(this->m_TransportProblem);
     Free(this->m_Differentiation);
     Free(this->m_DifferentiationFD);
-    Free(this->m_TransportProblem);
     
     Free(this->m_TemplateImage);
     Free(this->m_ReferenceImage);
@@ -994,7 +994,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
 
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
@@ -1003,14 +1003,14 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt, this->m_WorkVecField5->m_X1); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt, this->m_WorkVecField5->m_X2); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt, this->m_WorkVecField5->m_X1); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt, this->m_WorkVecField5->m_X2); CHKERRQ(ierr);
     
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField1, 1); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField2, 2); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField3, 3); CHKERRQ(ierr);
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 4); CHKERRQ(ierr);
-    ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 5); CHKERRQ(ierr);
+    //ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 4); CHKERRQ(ierr);
+    //ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 5); CHKERRQ(ierr);
     
     switch (this->m_Opt->m_Diff.diffPDE) {
         case SPECTRAL:

@@ -100,7 +100,7 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
 
     // delete all variables
     ierr = this->ClearVariables(); CHKERRQ(ierr);
-
+  
     PetscFunctionReturn(ierr);
 }
 

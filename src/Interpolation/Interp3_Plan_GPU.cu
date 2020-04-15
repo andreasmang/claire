@@ -291,30 +291,26 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
   reg::FreeMemory(all_f);
   //reg::FreeMemory(f_unordered);
   
-  
   for (int i=0; i<numeq; i++) {
     reg::FreeArray(Eq[i].f_index_procs_others_offset);
     reg::FreeArray(Eq[i].f_index_procs_self_offset  );
     reg::FreeArray(Eq[i].f_index_procs_self_sizes   );
     reg::FreeArray(Eq[i].f_index_procs_others_sizes );
-    
     if (Eq[i].f_index != nullptr) {
       thrust::device_free(Eq[i].f_index);
       Eq[i].f_index = nullptr;
     }
     reg::FreeArray(Eq[i].f_index_offset);
     reg::FreeArray(Eq[i].num_query_per_proc);
-    
     //reg::FreeMemory(Eq[i].all_f);
     reg::FreeMemory(Eq[i].all_query_points);
     reg::FreeMemory(Eq[i].xq1);
     reg::FreeMemory(Eq[i].xq2);
     reg::FreeMemory(Eq[i].xq3);
-
 		for (int ver = 0; ver < nplans_; ++ver) {
-      for (int i = 0; i < nprocs; ++i) {
-        MPI_Type_free(&Eq[i].stypes[i+ver*nprocs]);
-        MPI_Type_free(&Eq[i].rtypes[i+ver*nprocs]);
+      for (int j = 0; j < nprocs; ++j) {
+        MPI_Type_free(&Eq[i].stypes[j+ver*nprocs]);
+        MPI_Type_free(&Eq[i].rtypes[j+ver*nprocs]);
       }
     }
     reg::FreeArray(Eq[i].stypes);
