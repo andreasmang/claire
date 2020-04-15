@@ -138,7 +138,8 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
 PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-    
+
+    DBGCHK();
 
     if (this->m_Xstate != nullptr) {
         delete this->m_Xstate;
@@ -191,23 +192,11 @@ PetscErrorCode SemiLagrangianGPUNew::ClearMemory() {
     
     if (this->m_tmpInterpol2 != nullptr) {
       cudaFree(this->m_tmpInterpol2);
-      this->m_tmpInterpol2 = nullptr;
     }
 
-    if (this->m_StatePlan != nullptr) {
-      Free(this->m_StatePlan);
-      this->m_StatePlan = nullptr;
-    }
-
-    if (this->m_AdjointPlan != nullptr) {
-      Free(this->m_AdjointPlan);
-      this->m_AdjointPlan = nullptr;
-    }
-
-    if (this->m_GhostPlan != nullptr) {
-      Free(this->m_GhostPlan);
-      this->m_GhostPlan = nullptr;
-    }
+    Free(this->m_StatePlan);
+    Free(this->m_AdjointPlan);
+    Free(this->m_GhostPlan);
 
     PetscFunctionReturn(ierr);
 }

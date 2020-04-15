@@ -49,7 +49,7 @@ struct Interp3_Plan_GPU{
   // size in bytes of the ghost input
   size_t g_alloc_max; 
   //int N_reg_g[3];
-  int isize_g[3];
+  //int isize_g[3];
   //size_t total_query_points;
 	int data_dof_max;
 	// for scalar and vector field

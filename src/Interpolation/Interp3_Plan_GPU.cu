@@ -178,7 +178,7 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
   query_outside = nullptr;
   query_outside_offset  = nullptr;;
 
-  which_proc  = nullptr;;
+  which_proc  = nullptr;
   f_unordered = nullptr;
   eq_max_query_capacity = 0;
   all_f = nullptr;
