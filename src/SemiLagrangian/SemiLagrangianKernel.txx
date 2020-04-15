@@ -42,6 +42,16 @@ struct RK2Kernel {
     y[i] = iy*static_cast<T>(p.y) - hy*(vy[i] + vyx[i]);
     z[i] = iz*static_cast<T>(p.z) - hz*(vz[i] + vzx[i]);
   }
+  
+  template<typename T> KernelOperator (int i, int3 p, 
+                                       const T *vx, const T *vy, const T *vz,
+                                       T *vxx, T *vyx, T *vzx,
+                                       const T ix, const T iy, const T iz,
+                                       const T hx, const T hy, const T hz) {
+    vxx[i] = ix*static_cast<T>(p.x) - hx*(vx[i] + vxx[i]);
+    vyx[i] = iy*static_cast<T>(p.y) - hy*(vy[i] + vyx[i]);
+    vzx[i] = iz*static_cast<T>(p.z) - hz*(vz[i] + vzx[i]);
+  }
 };
 
 #endif

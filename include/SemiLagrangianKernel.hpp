@@ -27,7 +27,7 @@ namespace reg {
  
 struct TrajectoryKernel {
   const ScalarType *pV[3];
-  const ScalarType *pVx[3];
+  ScalarType *pVx[3];
   ScalarType *pX[3];
   
   IntType isize[3];
@@ -38,6 +38,7 @@ struct TrajectoryKernel {
   
   PetscErrorCode RK2_Step1();
   PetscErrorCode RK2_Step2();
+  PetscErrorCode RK2_Step2_inplace();
 };
 
 }

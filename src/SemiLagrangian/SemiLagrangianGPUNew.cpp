@@ -413,10 +413,10 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     if (this->m_Opt->rank_cnt == 1) {
       ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
     } else {
-      kernel.pX[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
-      kernel.pX[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
-      kernel.pX[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
-      //ierr = this->m_WorkVecField1->GetArrays(kernel.pX); CHKERRQ(ierr);
+      //kernel.pX[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
+      //kernel.pX[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
+      //kernel.pX[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
+      ierr = this->m_WorkVecField1->GetArrays(kernel.pX); CHKERRQ(ierr);
     }
     ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
     
@@ -425,7 +425,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     if (this->m_Opt->rank_cnt == 1) {
       ierr = X->RestoreArrays(); CHKERRQ(ierr);
     } else {
-      //ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->MapCoordinateVector(flag);
     }
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
@@ -435,20 +435,24 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     
     // RK2 stage 2 
     ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->GetArraysRead(kernel.pVx); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField1->GetArraysRead(kernel.pVx); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->GetArrays(kernel.pVx); CHKERRQ(ierr);
+
     if (this->m_Opt->rank_cnt == 1) {
       ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
-    }
+    } 
     
-    ierr = kernel.RK2_Step2(); CHKERRQ(ierr);
+    //ierr = kernel.RK2_Step2(); CHKERRQ(ierr);
+    ierr = kernel.RK2_Step2_inplace(); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = v->RestoreArrays(); CHKERRQ(ierr);
     
     if (this->m_Opt->rank_cnt > 1) {
       ierr = this->MapCoordinateVector(flag);
     } else {
       ierr = X->RestoreArrays(); CHKERRQ(ierr);
     }
-    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
-    ierr = v->RestoreArrays(); CHKERRQ(ierr);
     
     
     /*ht = this->m_Opt->GetTimeStepSize();
@@ -918,14 +922,14 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     ZeitGeist_define(INTERPOL_COMM);
     ZeitGeist_tick(INTERPOL_COMM);
     
-    p_X[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
-    p_X[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
-    p_X[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
-    //ierr = this->m_WorkScaField1->GetArrays(p_X); CHKERRQ(ierr);
+    //p_X[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
+    //p_X[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
+    //p_X[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
+    ierr = this->m_WorkVecField1->GetArrays(p_X); CHKERRQ(ierr);
     
     this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers, flag);
 
-    //ierr = this->m_WorkScaField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
 
 /*
     if (flag.compare("state")==0) {
