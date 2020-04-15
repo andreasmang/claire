@@ -58,6 +58,8 @@ struct Interp3_Plan_GPU{
   //size_t all_query_points_allocation;
   //MPI_Datatype* stypes, *rtypes;
   bool cuda_aware;
+  bool output_baked;
+  size_t eq_max_query_capacity;
   
   /*
   int* f_index_procs_others_offset; // offset in the all_query_points array
@@ -78,7 +80,8 @@ struct Interp3_Plan_GPU{
   //int neighbour_query_width;
   //size_t max_query_points_capacity;
 
-  int* which_proc;
+  short* which_proc;
+  //int* which_proc;
   //ScalarType *query_points_x, *query_points_y, *query_points_z;
   //bool allocate_baked;
   //bool scatter_baked;
@@ -88,7 +91,7 @@ struct Interp3_Plan_GPU{
   //int procs_i_send_to_size_, procs_i_recv_from_size_;
 
   // GPU memory pointers for state and adjoint fields
-  //ScalarType* all_f;
+  ScalarType* all_f;
   //ScalarType* all_query_points;
   ScalarType* f_unordered;
   //ScalarType *xq1, *xq2, *xq3; 
@@ -113,7 +116,7 @@ struct Interp3_Plan_GPU{
     int neighbour_query_width;
     size_t max_query_points_capacity;
   
-    ScalarType* all_f;
+    //ScalarType* all_f;
     ScalarType* all_query_points;
     ScalarType *xq1, *xq2, *xq3; 
   };
@@ -122,7 +125,7 @@ struct Interp3_Plan_GPU{
 
 };
 
-void get_count(int* arr, int size, int val, int* count);
+void get_count(short* arr, int size, int val, int* count);
 void print_norm(ScalarType* arr, int N);
 void print_max(ScalarType* arr, int N);
 void test_count();

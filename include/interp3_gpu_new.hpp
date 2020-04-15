@@ -59,7 +59,7 @@ void copyQueryValues(ScalarType* dst, ScalarType* src, int* index, int len);
 
 void enforcePeriodicity(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* h, int len);
 
-void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1);
+void checkDomain(short* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1);
 
 void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int nq);
 

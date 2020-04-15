@@ -335,6 +335,8 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     
   MPI_Comm_rank(MPI_COMM_WORLD, &procid);
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+  
+  PetscPrintf(PETSC_COMM_WORLD, "size of 16 bit integer is %d\n", sizeof(short));
 
   Vec q = nullptr; ScalarType* p_q; // query points
   Vec xq = nullptr; ScalarType* p_xq; // query points

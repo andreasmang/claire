@@ -9,8 +9,8 @@ struct square
         }
 };
 
-void get_count(int * arr, int size, int val, int* count) {
-  thrust::device_ptr<int> dev_ptr = thrust::device_pointer_cast<int>(arr);
+void get_count(short* arr, int size, int val, int* count) {
+  thrust::device_ptr<short> dev_ptr = thrust::device_pointer_cast<short>(arr);
   *count = thrust::count(dev_ptr, dev_ptr + size, val);
 }
 
