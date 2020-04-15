@@ -1346,7 +1346,7 @@ void enforcePeriodicity(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarTy
     cudaDeviceSynchronize();
 }
 
-__global__ void checkDomainKernel(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, int len, int procid, const int2 isize, int c_dim1) {
+__global__ void checkDomainKernel(short* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, int len, int procid, const int2 isize, int c_dim1) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     ScalarType x,y,z;
@@ -1359,19 +1359,17 @@ __global__ void checkDomainKernel(int* which_proc, ScalarType* xq, ScalarType* y
         if ( d_iX0[0]-d_h[0] <= x && x <= d_iX1[0]+d_h[0] &&
              d_iX0[1]-d_h[1] <= y && y <= d_iX1[1]+d_h[1] &&
              d_iX0[2]-d_h[2] <= z && z <= d_iX1[2]+d_h[2] ) {
-            which_proc[tid] = procid;
+            which_proc[tid] = static_cast<short>(procid);
         } else {
             dproc0=(int)(x/d_h[0])/isize.x;
             dproc1=(int)(y/d_h[1])/isize.y;
             proc=dproc0*c_dim1+dproc1; 
-            which_proc[tid] = proc;
+            which_proc[tid] = static_cast<short>(proc);
         }
     }
 }
 
-
-
-void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1) {
+void checkDomain(short* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1) {
     
     int threads = 256;
     int blocks = (len+threads-1)/threads;
@@ -1390,8 +1388,8 @@ void checkDomain(int* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq
 
 __host__ __device__ 
 void TestFunction(ScalarType *val, const ScalarType x, const ScalarType y, const ScalarType z, int caseid) {
-      //*val = (caseid+1)*( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
-      *val = x;
+      *val = (caseid+1)*( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
+      //*val = x;
 }
 
 __global__ void setup_kernel(curandState *state, const int3 size, const int3 start, const int3 n) {
@@ -1424,18 +1422,18 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
         
         TestFunction(&f[i], x, y, z, caseid);
 
-        x = 0;
-        y = 0;
-        z = 0;
+        //x = 0;
+        //y = 0;
+        //z = 0;
         
         //float perturb=sinf(x)*sinf(y)*sinf(z); 
         //x += h.x*perturb;
         //y += h.y*perturb;
         //z += h.z*perturb;
         
-        //x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
-        //y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
-        //z -= 0.25*0.5*sinf(y)*cosf(x)*sinf(x);
+        x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
+        y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
+        z -= 0.25*0.5*sinf(y)*cosf(x)*sinf(x);
         
         //x -= 0.25*0.5*sinf(z)*cosf(y)*sinf(y);
         //y -= 0.25*0.5*sinf(x)*cosf(z)*sinf(z);
