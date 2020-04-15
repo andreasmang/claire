@@ -47,6 +47,10 @@ SemiLagrangianGPUNew::SemiLagrangianGPUNew() {
 SemiLagrangianGPUNew::SemiLagrangianGPUNew(RegOpt* opt) {
     this->m_Opt = opt;
     this->Initialize();
+    
+    if (opt->m_Verbosity > 2) {
+      DbgMsg("SemiLagrangianGPUNew created");
+    }
 }
 
 
@@ -111,7 +115,7 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
       //cudaMalloc((void**)&this->m_WorkScaField2, nl*sizeof(ScalarType));
 
       ierr = AllocateOnce(this->m_StatePlan, this->g_alloc_max, this->cuda_aware);
-      this->m_StatePlan->allocate(nl, this->m_Dofs, 2);
+      this->m_StatePlan->allocate(nl, this->m_Dofs, 2, this->nghost, this->isize_g);
 
       //ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max, this->cuda_aware);
       //this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);

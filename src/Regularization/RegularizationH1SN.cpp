@@ -42,6 +42,9 @@ RegularizationH1SN::~RegularizationH1SN(void) {
  * @brief constructor
  *******************************************************************/
 RegularizationH1SN::RegularizationH1SN(RegOpt* opt) : SuperClass(opt) {
+  if (opt->m_Verbosity > 2) {
+      DbgMsg("RegularizationH1SN created");
+    }
 }
 
 /********************************************************************

@@ -135,24 +135,105 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     if (this->m_Opt->m_Verbosity > 2) {
       std::stringstream ss;
       size_t total = 0;
-      if (this->m_WorkScaField1) total += this->m_WorkScaField1->GetSize();
-      if (this->m_WorkScaField2) total += this->m_WorkScaField2->GetSize();
-      if (this->m_WorkScaField3) total += this->m_WorkScaField3->GetSize();
-      if (this->m_WorkScaField4) total += this->m_WorkScaField4->GetSize();
-      if (this->m_WorkScaField5) total += this->m_WorkScaField5->GetSize();
-      if (this->m_WorkVecField1) total += this->m_WorkVecField1->GetSize();
-      if (this->m_WorkVecField2) total += this->m_WorkVecField2->GetSize();
-      if (this->m_WorkVecField3) total += this->m_WorkVecField3->GetSize();
-      if (this->m_WorkVecField4) total += this->m_WorkVecField4->GetSize();
-      if (this->m_WorkVecField5) total += this->m_WorkVecField5->GetSize();
+      if (this->m_WorkScaField1) {
+        total += this->m_WorkScaField1->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WSF1 " << this->m_WorkScaField1->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkScaField2) {
+        total += this->m_WorkScaField2->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WSF2 " << this->m_WorkScaField2->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkScaField3) {
+        total += this->m_WorkScaField3->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WSF3 " << this->m_WorkScaField3->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkScaField4) {
+        total += this->m_WorkScaField4->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WSF4 " << this->m_WorkScaField4->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkScaField5) {
+        total += this->m_WorkScaField5->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WSF5 " << this->m_WorkScaField5->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkVecField1) {
+        total += this->m_WorkVecField1->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WVF1 " << this->m_WorkVecField1->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkVecField2) {
+        total += this->m_WorkVecField2->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WVF2 " << this->m_WorkVecField2->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkVecField3) {
+        total += this->m_WorkVecField3->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WVF1 " << this->m_WorkVecField3->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkVecField4) {
+        total += this->m_WorkVecField4->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WVF1 " << this->m_WorkVecField4->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_WorkVecField5) {
+        total += this->m_WorkVecField5->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WVF1 " << this->m_WorkVecField5->GetSize();
+        DbgMsg3(ss.str());
+      }
       
-      if (this->m_WorkScaFieldMC) total += this->m_WorkScaFieldMC->GetSize();
+      if (this->m_WorkScaFieldMC) {
+        total += this->m_WorkScaFieldMC->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "WSFMC " << this->m_WorkScaFieldMC->GetSize();
+        DbgMsg3(ss.str());
+      }
       
-      if (this->m_TemplateImage) total += this->m_TemplateImage->GetSize();
-      if (this->m_ReferenceImage) total += this->m_ReferenceImage->GetSize();
-      if (this->m_AuxVariable) total += this->m_AuxVariable->GetSize();
-      if (this->m_CellDensity) total += this->m_CellDensity->GetSize();
-      if (this->m_Mask) total += this->m_Mask->GetSize();
+      if (this->m_TemplateImage) {
+        total += this->m_TemplateImage->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "mT " << this->m_TemplateImage->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_ReferenceImage) {
+        total += this->m_ReferenceImage->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "mR " << this->m_ReferenceImage->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_AuxVariable) {
+        total += this->m_AuxVariable->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "Aux " << this->m_AuxVariable->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_CellDensity) {
+        total += this->m_CellDensity->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "Cell " << this->m_CellDensity->GetSize();
+        DbgMsg3(ss.str());
+      }
+      if (this->m_Mask) {
+        total += this->m_Mask->GetSize();
+        ss.clear(); ss.str(std::string());
+        ss << "mask " << this->m_Mask->GetSize();
+        DbgMsg3(ss.str());
+      }
+      ss.clear(); ss.str(std::string());
       
       if (this->m_GradientState) {
         for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
@@ -199,12 +280,12 @@ PetscErrorCode CLAIREBase::ClearMemory() {
     Free(this->m_Mask);
     
     if (this->m_GradientState) {
-      for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
+      for (int i=0;i<this->m_Opt->m_Domain.nc*(this->m_Opt->m_RegFlags.runinversion?this->m_Opt->m_Domain.nt+1:1);++i)
         Free(this->m_GradientState[i]);
     }
     FreeArray(this->m_GradientState);
     if (this->m_GradientXState) {
-      for (int i=0;i<this->m_Opt->m_Domain.nt;++i)
+      for (int i=0;i<this->m_Opt->m_Domain.nt*this->m_Opt->m_Domain.nc;++i)
         Free(this->m_GradientXState[i]);
     }
     FreeArray(this->m_GradientXState);
@@ -331,6 +412,7 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
   
     ierr = Free(this->m_ReferenceImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_ReferenceImage, this->m_Opt, mR, true); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->SetVector(mR); CHKERRQ(ierr);
 
     // assign pointer
     //this->m_ReferenceImage = mR;
@@ -361,6 +443,7 @@ PetscErrorCode CLAIREBase::SetTemplateImage(Vec mT) {
     
     ierr = Free(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, mT, true); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->SetVector(mT); CHKERRQ(ierr);
 
     // assign pointer
     //this->m_TemplateImage = mT;
@@ -489,6 +572,7 @@ PetscErrorCode CLAIREBase::SetMask(Vec mask) {
 
     ierr = Free(this->m_Mask); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_Mask, this->m_Opt, mask); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->SetVector(mask); CHKERRQ(ierr);
     // assign pointer
     //this->m_Mask = mask;
 
@@ -514,6 +598,7 @@ PetscErrorCode CLAIREBase::SetAuxVariable(Vec q) {
     
     ierr = Free(this->m_AuxVariable); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_AuxVariable, this->m_Opt, q, true); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->SetVector(q); CHKERRQ(ierr);
     
     //this->m_AuxVariable = q;
 
@@ -539,6 +624,7 @@ PetscErrorCode CLAIREBase::SetCellDensity(Vec c) {
     
     ierr = Free(this->m_CellDensity); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_CellDensity, this->m_Opt, c, true); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->SetVector(c); CHKERRQ(ierr);
     //this->m_CellDensity = c;
 
     this->m_Opt->Exit(__func__);
@@ -560,6 +646,10 @@ PetscErrorCode CLAIREBase::SetIncControlVariable(VecField* v) {
 
     ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
 
+    if (this->m_DeleteIncControlVariable) {
+        Free(this->m_IncVelocityField);
+    }
+    
     this->m_IncVelocityField = v;
     this->m_DeleteIncControlVariable = false;
 
@@ -838,12 +928,9 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
             ierr = reg::ThrowError("regularization model not defined"); CHKERRQ(ierr);
         }
     }
-
-    if (!this->m_Differentiation) {
-      ierr = this->m_Regularization->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
-    } else {
-      ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
-    }
+    
+    ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+    ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
     
     //ierr = this->m_Regularization->SetSpectralData(); CHKERRQ(ierr);
 
@@ -906,16 +993,18 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
 
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkVecField(this->m_WorkVecField3, 3); CHKERRQ(ierr);
 
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt, this->m_WorkVecField5->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt, this->m_WorkVecField5->m_X2); CHKERRQ(ierr);
     
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField1, 1); CHKERRQ(ierr);
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField2, 2); CHKERRQ(ierr);
@@ -925,10 +1014,12 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     
     switch (this->m_Opt->m_Diff.diffPDE) {
         case SPECTRAL:
-          ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
+          ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+          ierr = this->m_TransportProblem->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
           break;
         case FINITE:
-          ierr = this->m_TransportProblem->SetDifferentiation(Differentiation::Type::Finite); CHKERRQ(ierr);
+          ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
+          ierr = this->m_TransportProblem->SetDifferentiation(this->m_DifferentiationFD); CHKERRQ(ierr);
           break;
         default:
           ierr = reg::ThrowError("differentiation scheme for transport problem not defined"); CHKERRQ(ierr);
@@ -958,6 +1049,7 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
 
     ierr = AllocateOnce(this->m_DeformationFields, this->m_Opt); CHKERRQ(ierr);
     
+    ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     if (this->m_Differentiation != NULL) {
       this->m_DeformationFields->SetDifferentiation(this->m_Differentiation);
     }
@@ -965,16 +1057,18 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
     
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField3, 3); CHKERRQ(ierr);
     
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt, this->m_WorkVecField5->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt, this->m_WorkVecField5->m_X2); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField1, 1); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField2, 2); CHKERRQ(ierr);
@@ -1432,8 +1526,12 @@ PetscErrorCode CLAIREBase::ComputeCFLCondition() {
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
     nt = this->m_Opt->m_Domain.nt;
-
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    
+    
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
     //if (this->m_WorkScaField1 == NULL) {
     //    ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     //}

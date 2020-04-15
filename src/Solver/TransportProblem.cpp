@@ -74,6 +74,7 @@ PetscErrorCode TransportProblem::Initialize() {
     }
     
     this->m_Differentiation = nullptr;
+    this->m_DiffAllocated = false;
 
     PetscFunctionReturn(0);
 }
@@ -85,7 +86,9 @@ PetscErrorCode TransportProblem::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    Free(this->m_Differentiation);
+    if (this->m_DiffAllocated) {
+      Free(this->m_Differentiation);
+    }
 
     PetscFunctionReturn(ierr);
 }
@@ -319,7 +322,7 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) 
     
     this->m_Opt->Enter(__func__);
 
-    if (this->m_Differentiation != nullptr && this->m_Differentiation->m_Type != type) {
+    if (this->m_Differentiation != nullptr && this->m_Differentiation->m_Type != type && this->m_DiffAllocated) {
       Free(this->m_Differentiation);
     }
     
@@ -327,15 +330,37 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation::Type type) 
       switch (type) {
       case Differentiation::Type::Spectral:
         ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+        this->m_DiffAllocated = true;
         break;
       case Differentiation::Type::Finite:
         ierr = AllocateOnce<DifferentiationFD>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
+        this->m_DiffAllocated = true;
         break;
       default:
         ierr = ThrowError("no valid differentiation method"); CHKERRQ(ierr);
         break;
       };
     }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief set the differentiation method
+ *******************************************************************/
+PetscErrorCode TransportProblem::SetDifferentiation(Differentiation *diff) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+    
+    this->m_Opt->Enter(__func__);
+
+    if (this->m_DiffAllocated) {
+      Free(this->m_Differentiation);
+    }
+    
+    this->m_Differentiation = diff;
     
     this->m_Opt->Exit(__func__);
 

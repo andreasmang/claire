@@ -52,6 +52,9 @@ DistanceMeasureSL2::~DistanceMeasureSL2() {
  * @brief constructor
  *******************************************************************/
 DistanceMeasureSL2::DistanceMeasureSL2(RegOpt* opt) : SuperClass(opt) {
+  if (opt->m_Verbosity > 2) {
+      DbgMsg("DistanceMeasureSL2 created");
+    }
 }
 
 

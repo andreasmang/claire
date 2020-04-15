@@ -96,6 +96,7 @@ PetscErrorCode PreKrylovSolve(KSP krylovmethod, Vec b, Vec x, void* ptr) {
     (void)krylovmethod;
 
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
+    
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     // set the iteration count to zero

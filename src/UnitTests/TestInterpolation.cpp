@@ -426,7 +426,7 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
     catch (std::bad_alloc&) {
       ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
-    interp_plan->allocate(nl, data_dofs, 2);
+    interp_plan->allocate(nl, data_dofs, 2, nghost, isize_g);
   }
   
 
@@ -677,7 +677,7 @@ PetscErrorCode TestVectorFieldInterpolationMultiGPU(RegOpt *m_Opt) {
     catch (std::bad_alloc&) {
       ierr=reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
-    interp_plan->allocate(nl, data_dofs, 2);
+    interp_plan->allocate(nl, data_dofs, 2, nghost, isize_g);
   }
   
   ZeitGeist_define(overall);

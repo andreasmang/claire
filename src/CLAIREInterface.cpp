@@ -547,6 +547,7 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
         ierr = this->m_PreProc->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
     }
 
+
     if (this->m_Opt->m_KrylovMethod.pctype != NOPC) {
         if (this->m_Opt->m_Verbosity > 2) {
             ierr = DbgMsg("allocating preconditioner"); CHKERRQ(ierr);
@@ -563,7 +564,7 @@ PetscErrorCode CLAIREInterface::SetupSolver() {
         ierr = this->m_Precond->SetProblem(this->m_RegProblem); CHKERRQ(ierr);
         ierr = this->m_Optimizer->SetPreconditioner(this->m_Precond); CHKERRQ(ierr);
     }
-    
+
     // set up initial condition
     if (this->m_Solution == NULL) {
         if (this->m_Opt->m_Verbosity > 2) {
@@ -923,6 +924,7 @@ PetscErrorCode CLAIREInterface::RunSolverRegParaCont() {
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->SetupData(mR, mT); CHKERRQ(ierr);
+
 
     // reset all the clocks we have used so far
     ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
@@ -1347,7 +1349,6 @@ PetscErrorCode CLAIREInterface::RunSolverRegParaContReduction() {
     // initialize registration problem (evaluate objective and gradient
     // for zero velocity field)
     this->m_Opt->m_RegNorm.beta[0] = beta;
-
     //ierr = this->m_RegProblem->InitializeOptimization(this->m_Solution); CHKERRQ(ierr);
     ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
 

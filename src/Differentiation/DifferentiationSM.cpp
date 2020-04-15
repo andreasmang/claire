@@ -36,6 +36,10 @@ DifferentiationSM::DifferentiationSM() : SuperClass() {
  *******************************************************************/
 DifferentiationSM::DifferentiationSM(RegOpt* opt) : SuperClass(opt, Type::Spectral) {
     this->Initialize();
+    
+    if (opt->m_Verbosity > 2) {
+      DbgMsg("DifferentiationSM created");
+    }
 }
 
 /********************************************************************

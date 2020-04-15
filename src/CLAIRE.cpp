@@ -155,10 +155,12 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
-
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
+    
+    
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
 
     /*if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
@@ -168,7 +170,7 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
     }*/
 
-    ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     if (this->m_DeformationFields != NULL) {
       this->m_DeformationFields->SetDifferentiation(this->m_Differentiation);
@@ -444,6 +446,7 @@ PetscErrorCode CLAIRE::SolveForwardProblem(Vec m1, Vec m0) {
 
     // set initial condition
     ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, m0, true); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->SetVector(m0); CHKERRQ(ierr);
     //this->m_TemplateImage = m0;
 
     // compute solution of state equation
@@ -537,14 +540,14 @@ PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
 
     // if semi lagrangian pde solver is used,
     // we have to initialize it here
-    if (this->m_Opt->m_PDESolver.type == SL) {
+    /*if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
         // compute trajectory
         ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-    }
+    }*/
 
     this->m_Opt->Exit(__func__);
 
@@ -595,14 +598,14 @@ PetscErrorCode CLAIRE::SetAdjointVariable(Vec lambda) {
 
     ierr = this->m_AdjointVariable->Copy(lambda); CHKERRQ(ierr);
 
-    if (this->m_Opt->m_PDESolver.type == SL) {
+    /*if (this->m_Opt->m_PDESolver.type == SL) {
         ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
         // compute trajectory
         ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-    }
+    }*/
 
     this->m_Opt->Exit(__func__);
 
@@ -979,6 +982,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg2("computing hessian matvec"); CHKERRQ(ierr);
@@ -1763,7 +1767,10 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
     /*if (this->m_WorkScaField1 == NULL) {
         ierr = VecCreate(this->m_WorkScaField1, nl, ng); CHKERRQ(ierr);
     }*/
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
 
     // store time history
@@ -2074,9 +2081,10 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
 
     ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
@@ -2187,6 +2195,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     // allocate variables
     ierr = AllocateOnce(this->m_IncStateVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
+    
     
     if (this->m_TransportProblem == nullptr) {
       ierr = this->SetupTransportProblem(); CHKERRQ(ierr);
@@ -2383,7 +2392,10 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     // store iterates
     if (this->m_Opt->m_ReadWriteFlags.iterates) {
         // allocate
-        ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, true); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
         if (this->m_WorkScaFieldMC == NULL) {
             ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt); CHKERRQ(ierr);
             //ierr = VecCreate(this->m_WorkScaFieldMC, nl*nc, ng*nc); CHKERRQ(ierr);
@@ -2505,8 +2517,10 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
     ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt, true); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
 
     // process timer
     ierr = this->m_Opt->ProcessTimers(); CHKERRQ(ierr);
@@ -2516,6 +2530,7 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // compute residuals
     if (this->m_Opt->m_Log.enabled[LOGDIST]) {
+        ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt, true); CHKERRQ(ierr);
         ierr = VecWAXPY(*this->m_WorkScaFieldMC, -1.0, *this->m_TemplateImage, *this->m_ReferenceImage); CHKERRQ(ierr);
 
         ierr = VecNorm(*this->m_WorkScaFieldMC, NORM_2, &value); CHKERRQ(ierr);
@@ -2549,6 +2564,7 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // write deformed template image to file
     if (this->m_Opt->m_ReadWriteFlags.deftemplate) {
+        ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt, true); CHKERRQ(ierr);
         // copy memory for m_1
         ierr = VecGetArray(*this->m_WorkScaFieldMC, &p_m1); CHKERRQ(ierr);
         ierr = VecGetArray(*this->m_StateVariable, &p_m); CHKERRQ(ierr);
@@ -2571,6 +2587,7 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
 
     // write residual images to file
     if (this->m_Opt->m_ReadWriteFlags.residual || this->m_Opt->m_ReadWriteFlags.invresidual) {
+        ierr = AllocateOnce(this->m_WorkScaFieldMC, this->m_Opt, true); CHKERRQ(ierr);
         ierr = VecGetArray(*this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
         // write residual at t = 0 to file

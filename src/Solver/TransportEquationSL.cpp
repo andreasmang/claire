@@ -43,6 +43,10 @@ TransportEquationSL::~TransportEquationSL() {
  *******************************************************************/
 TransportEquationSL::TransportEquationSL(RegOpt* opt) : SuperClass(opt) {
     this->Initialize();
+    
+    if (opt->m_Verbosity > 2) {
+      DbgMsg("TransportEquationSL created");
+    }
 }
 
 /********************************************************************

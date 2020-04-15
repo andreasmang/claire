@@ -48,6 +48,10 @@ DifferentiationFD::DifferentiationFD() : SuperClass() {
  *******************************************************************/
 DifferentiationFD::DifferentiationFD(RegOpt* opt) : SuperClass(opt, Type::Finite) {
     this->Initialize();
+    
+    if (opt->m_Verbosity > 2) {
+      DbgMsg("DifferentiationFD created");
+    }
 }
 
 

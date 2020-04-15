@@ -26,7 +26,9 @@
 #include "KrylovInterface.hpp"
 #include "TaoInterface.hpp"
 
-
+#ifdef REG_HAS_CUDA
+#include "cuda_helper.hpp"
+#endif
 
 
 namespace reg {
@@ -375,7 +377,7 @@ PetscErrorCode Optimizer::SetupTao() {
             ierr = PCShellSetContext(preconditioner, this->m_Precond); CHKERRQ(ierr);
 //            ierr = PCShellSetName(taokktpc,"kktpc"); CHKERRQ(ierr);
 //            ierr = PCShellSetSetUp(preconditioner, PrecondSetup); CHKERRQ(ierr);
-        }
+      }
     }
 
     optprob = reinterpret_cast<void*>(this->m_OptimizationProblem);

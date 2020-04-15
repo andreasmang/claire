@@ -40,6 +40,10 @@ Spectral::Spectral(RegOpt *opt, FourierTransform *fft) {
     this->m_Opt = opt;
     this->m_FFT = fft;
     this->SetupFFT();
+    
+    if (opt->m_Verbosity > 2) {
+      DbgMsg("Spectral created");
+    }
 }
 
 /********************************************************************

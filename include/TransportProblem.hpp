@@ -67,6 +67,7 @@ class TransportProblem {
     virtual PetscErrorCode SolveInverseProblem();
     
     PetscErrorCode SetDifferentiation(Differentiation::Type);
+    PetscErrorCode SetDifferentiation(Differentiation*);
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
@@ -90,6 +91,7 @@ class TransportProblem {
     RegOpt* m_Opt;
     
     Differentiation* m_Differentiation;
+    bool m_DiffAllocated;
 
  private:
 };

@@ -73,7 +73,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     ScalarType D = 0.0, Rv = 0.0, Rw = 0.0;
     std::stringstream ss;
     PetscFunctionBegin;
-
+    
     this->m_Opt->Enter(__func__);
 
     // allocate velocity field
@@ -104,11 +104,15 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
         // evaluate the regularization model for v
         ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-        if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+        if (this->m_Opt->m_Diff.diffPDE == FINITE && 
+            (this->m_Opt->m_RegNorm.type == H1 || this->m_Opt->m_RegNorm.type == H1SN)) {
+          ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
           ierr = this->m_Regularization->SetDifferentiation(this->m_DifferentiationFD); CHKERRQ(ierr);
         }
         ierr = this->m_Regularization->EvaluateFunctional(&Rv, this->m_VelocityField); CHKERRQ(ierr);
-        if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+        if (this->m_Opt->m_Diff.diffPDE == FINITE && 
+            (this->m_Opt->m_RegNorm.type == H1 || this->m_Opt->m_RegNorm.type == H1SN)) {
+          ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
           ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
         }
 
@@ -155,7 +159,10 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     hd  = this->m_Opt->GetLebesgueMeasure();   
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
 
     // get regularization weight
     betaw = this->m_Opt->m_RegNorm.beta[2];
@@ -163,6 +170,7 @@ PetscErrorCode CLAIREDivReg::EvaluteRegularizationDIV(ScalarType* Rw) {
     //ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
     Differentiation* diff = this->m_Differentiation;
     if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+      ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
       diff = this->m_DifferentiationFD;
     }
     
@@ -204,7 +212,6 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     beta[0] = this->m_Opt->m_RegNorm.beta[0];
     beta[2] = this->m_Opt->m_RegNorm.beta[2];
     
-    ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
     
     if (this->m_Opt->m_Verbosity > 2) {

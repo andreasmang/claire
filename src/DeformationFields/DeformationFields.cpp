@@ -57,6 +57,10 @@ DeformationFields::~DeformationFields() {
 DeformationFields::DeformationFields(RegOpt* opt) {
     this->Initialize();
     this->m_Opt = opt;
+    
+    if (opt->m_Verbosity > 2) {
+      DbgMsg("DeformationFields created");
+    }
 }
 
 

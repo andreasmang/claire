@@ -205,7 +205,7 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
 }
 
 
-void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans)
+void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsize, int *isize_g)
 {
   int nprocs, procid;
   MPI_Comm_rank(MPI_COMM_WORLD, &procid);
@@ -244,6 +244,18 @@ void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans)
     reg::AllocateArrayOnce<MPI_Datatype>(Eq[i].rtypes, nprocs*nplans);
     
     Eq[i].allocate_baked=true;
+    
+    Eq[i].neighbour_query_width = gsize;
+    Eq[i].max_query_points_capacity = get_max_query_allocation(isize_g, Eq[i].neighbour_query_width);
+
+    reg::AllocateMemoryOnce(Eq[i].all_f, Eq[i].max_query_points_capacity*sizeof(ScalarType)*data_dof_max);
+    reg::AllocateMemoryOnce(Eq[i].all_query_points, Eq[i].max_query_points_capacity*COORD_DIM*sizeof(ScalarType) );
+#ifdef BLOCK_COORDINATES
+    reg::AllocateMemoryOnce(Eq[i].xq1, Eq[i].max_query_points_capacity*sizeof(ScalarType));
+    reg::AllocateMemoryOnce(Eq[i].xq2, Eq[i].max_query_points_capacity*sizeof(ScalarType));
+    reg::AllocateMemoryOnce(Eq[i].xq3, Eq[i].max_query_points_capacity*sizeof(ScalarType));
+#endif
+    Eq[i].scatter_baked=true;
   }
   //cudaMalloc((void**)&query_points_x, sizeof(ScalarType)*N_pts);
   //cudaMalloc((void**)&query_points_y, sizeof(ScalarType)*N_pts);
@@ -504,6 +516,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
   if(Eq[id].scatter_baked==true) {
     if (Eq[id].total_query_points > Eq[id].max_query_points_capacity) {
       // Modify the max memory estimate by increasing neighbour query width by 1 until the requrement is reached
+      
       while (Eq[id].total_query_points > Eq[id].max_query_points_capacity) {
         Eq[id].neighbour_query_width++;
         Eq[id].max_query_points_capacity = get_max_query_allocation(isize, Eq[id].neighbour_query_width);
