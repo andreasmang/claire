@@ -70,8 +70,12 @@ struct Interp3_Plan_GPU{
 
   MPI_Request* s_request;
 	MPI_Request* request;
+  
+  std::vector<int> proc_neighbours; // for slab decomp
 
   thrust::device_ptr<ScalarType> query_outside;
+  size_t max_query_outside_capacity;
+  bool query_baked;
   int* query_outside_offset;
   //int* num_query_per_proc;
   //thrust::device_ptr<int> f_index;

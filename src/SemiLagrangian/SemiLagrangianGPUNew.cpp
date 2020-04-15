@@ -409,26 +409,31 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
     
+    // RK2 stage 1
     if (this->m_Opt->rank_cnt == 1) {
       ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
     } else {
       kernel.pX[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
       kernel.pX[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
       kernel.pX[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
+      //ierr = this->m_WorkVecField1->GetArrays(kernel.pX); CHKERRQ(ierr);
     }
     ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
     
     ierr = kernel.RK2_Step1(); CHKERRQ(ierr);
     
-    if (this->m_Opt->rank_cnt > 1) {
-      ierr = this->MapCoordinateVector(flag);
-    } else {
+    if (this->m_Opt->rank_cnt == 1) {
       ierr = X->RestoreArrays(); CHKERRQ(ierr);
+    } else {
+      //ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+      ierr = this->MapCoordinateVector(flag);
     }
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
     
+    // Interpolate on Euler coordinates
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
     
+    // RK2 stage 2 
     ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArraysRead(kernel.pVx); CHKERRQ(ierr);
     if (this->m_Opt->rank_cnt == 1) {
@@ -916,8 +921,11 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     p_X[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
     p_X[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
     p_X[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
+    //ierr = this->m_WorkScaField1->GetArrays(p_X); CHKERRQ(ierr);
     
     this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers, flag);
+
+    //ierr = this->m_WorkScaField1->RestoreArrays(); CHKERRQ(ierr);
 
 /*
     if (flag.compare("state")==0) {
