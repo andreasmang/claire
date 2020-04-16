@@ -51,7 +51,23 @@ PetscErrorCode TrajectoryKernel::RK2_Step2() {
                                          ix[0], ix[1], ix[2],
                                          hx[0]*half, hx[1]*half, hx[2]*half); CHKERRQ(ierr);
 
+
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode TrajectoryKernel::RK2_Step2_inplace() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  const ScalarType half = 0.5;
+
+  ierr = SpacialKernelCallGPU<RK2Kernel>(istart, isize,
+                                         pV[0], pV[1], pV[2],
+                                         pVx[0], pVx[1], pVx[2],
+                                         ix[0], ix[1], ix[2],
+                                         hx[0]*half, hx[1]*half, hx[2]*half); CHKERRQ(ierr);
+
+
+  PetscFunctionReturn(ierr);
+}
 } // namespace reg
