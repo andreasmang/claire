@@ -108,6 +108,8 @@ template<typename T> MPIcuFFT<T>::MPIcuFFT(MPI_Comm comm, bool cuda_aware)
   send_req.resize(pcnt, MPI_REQUEST_NULL);
   recv_req.resize(pcnt, MPI_REQUEST_NULL);
   
+  comm_mode = Peer;
+  
   if (pcnt%2 == 1) {
     for (int i=0; i<pcnt; ++i)
       if ((pcnt + i - pidx)%pcnt != pidx)
@@ -150,6 +152,10 @@ template<typename T> void MPIcuFFT<T>::initFFT(size_t nx, size_t ny, size_t nz, 
     ostarty[p] = (p==0?0:ostarty[p-1]+osizey[p-1]);
   }
   osizex = nx; osizez = (nz / 2) + 1;
+  
+  if (isizex[pidx] <= 8) half_batch = false;
+  
+  if (pcnt > 4 && cuda_aware && isizex[0]*osizey[0] <= pcnt*pcnt) comm_mode = All2All;
   
   domainsize = 2*sizeof(T)*std::max((isizex[pidx]*isizey*isizez/2) + 1, osizex*osizey[pidx]*osizez);
   
@@ -270,49 +276,79 @@ template<typename T> void MPIcuFFT<T>::execR2C(void *out, const void *in) {
       cudaCheck(cuFFT<T>::execR2C(planR2C, &real[isizez*isizey*batch], &complex[osizez*isizey*batch]));
       cudaCheck(cudaDeviceSynchronize());
     }
-    //MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
-    for (auto p : comm_order) { // transpose each (missing) block and send it to respective process
-    //for (int i=1; i<pcnt; ++i) { // transpose each (missing) block and send it to respective process
-      //if (p == pidx) continue;
-      //int p = (pcnt + pidx - i)%pcnt;
-      MPI_Irecv((&recv_ptr[istartx[p]*osizez*osizey[pidx]]),
-        sizeof(C_t)*isizex[p]*osizez*osizey[pidx], MPI_BYTE,
-        p, p, comm, &recv_req[p]);
-      //p = (pidx + i)%pcnt;
-      size_t oslice = isizex[pidx]*osizez*ostarty[p];
-      cudaCheck(cudaMemcpy2DAsync(&send_ptr[oslice + batch*osizez*osizey[p]], sizeof(C_t)*osizey[p]*osizez,
-                                  &complex[batch*osizez*isizey + ostarty[p]*osizez], sizeof(C_t)*isizey*osizez,
-                                  sizeof(C_t)*osizey[p]*osizez, isizex[pidx]-batch,
-                                  cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyDeviceToHost));
+    if (comm_mode == Peer) {
+      //MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
+      for (auto p : comm_order) { // transpose each (missing) block and send it to respective process
+      //for (int i=1; i<pcnt; ++i) { // transpose each (missing) block and send it to respective process
+        //if (p == pidx) continue;
+        //int p = (pcnt + pidx - i)%pcnt;
+        MPI_Irecv((&recv_ptr[istartx[p]*osizez*osizey[pidx]]),
+          sizeof(C_t)*isizex[p]*osizez*osizey[pidx], MPI_BYTE,
+          p, p, comm, &recv_req[p]);
+        //p = (pidx + i)%pcnt;
+        size_t oslice = isizex[pidx]*osizez*ostarty[p];
+        cudaCheck(cudaMemcpy2DAsync(&send_ptr[oslice + batch*osizez*osizey[p]], sizeof(C_t)*osizey[p]*osizez,
+                                    &complex[batch*osizez*isizey + ostarty[p]*osizez], sizeof(C_t)*isizey*osizez,
+                                    sizeof(C_t)*osizey[p]*osizez, isizex[pidx]-batch,
+                                    cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyDeviceToHost));
+        cudaCheck(cudaDeviceSynchronize());
+        MPI_Isend(&send_ptr[oslice], 
+                  sizeof(C_t)*isizex[pidx]*osizez*osizey[p], MPI_BYTE, 
+                  p, pidx, comm, &send_req[p]);
+      }
+      { // transpose local block
+        size_t oslice = osizez*osizey[pidx]*istartx[pidx];
+        cudaCheck(cudaMemcpy2DAsync(&temp_ptr[oslice], sizeof(C_t)*osizey[pidx]*osizez,
+                                    &complex[ostarty[pidx]*osizez], sizeof(C_t)*isizey*osizez,
+                                    sizeof(C_t)*osizey[pidx]*osizez, isizex[pidx],
+                                    cudaMemcpyDeviceToDevice));
+      }
+      if (!cuda_aware) { // copy received blocks to device
+        int p;
+        do {
+          MPI_Waitany(pcnt, recv_req.data(), &p, MPI_STATUSES_IGNORE);
+          if (p == MPI_UNDEFINED) break;
+          cudaCheck(cudaMemcpyAsync(&temp_ptr[istartx[p]*osizez*osizey[pidx]],
+                                    &recv_ptr[istartx[p]*osizez*osizey[pidx]],
+                                    isizex[p]*osizez*osizey[pidx]*sizeof(C_t), cudaMemcpyHostToDevice));
+        } while(p != MPI_UNDEFINED);
+      } else { // just wait for all receives
+        MPI_Waitall(pcnt, recv_req.data(), MPI_STATUSES_IGNORE);
+      }
       cudaCheck(cudaDeviceSynchronize());
-      MPI_Isend(&send_ptr[oslice], 
-                sizeof(C_t)*isizex[pidx]*osizez*osizey[p], MPI_BYTE, 
-                p, pidx, comm, &send_req[p]);
+    } else {
+      std::vector<int> sendcount(pcnt, 0);
+      std::vector<int> senddispl(pcnt, 0);
+      std::vector<int> recvcount(pcnt, 0);
+      std::vector<int> recvdispl(pcnt, 0);
+      for (int p=0; p<pcnt; ++p) { // transpose each (missing) block and send it to respective process
+        size_t oslice = isizex[pidx]*osizez*ostarty[p];
+        sendcount[p] = sizeof(C_t)*isizex[pidx]*osizez*osizey[p];
+        senddispl[p] = oslice*sizeof(C_t);
+        recvcount[p] = sizeof(C_t)*isizex[p]*osizez*osizey[pidx];
+        recvdispl[p] = istartx[p]*osizez*osizey[pidx]*sizeof(C_t);
+        if (p == pidx) {
+          cudaCheck(cudaMemcpy2DAsync(&send_ptr[oslice], sizeof(C_t)*osizey[p]*osizez,
+                                      &complex[ostarty[p]*osizez], sizeof(C_t)*isizey*osizez,
+                                      sizeof(C_t)*osizey[p]*osizez, isizex[pidx],
+                                      cudaMemcpyDeviceToDevice));
+        } else {
+          cudaCheck(cudaMemcpy2DAsync(&send_ptr[oslice + batch*osizez*osizey[p]], sizeof(C_t)*osizey[p]*osizez,
+                                      &complex[batch*osizez*isizey + ostarty[p]*osizez], sizeof(C_t)*isizey*osizez,
+                                      sizeof(C_t)*osizey[p]*osizez, isizex[pidx]-batch,
+                                      cudaMemcpyDeviceToDevice));
+        }
+      }
+      cudaCheck(cudaDeviceSynchronize());
+      MPI_Alltoallv(send_ptr, sendcount.data(), senddispl.data(), MPI_BYTE,
+                    recv_ptr, recvcount.data(), recvdispl.data(), MPI_BYTE, comm);
     }
-    { // transpose local block
-      size_t oslice = osizez*osizey[pidx]*istartx[pidx];
-      cudaCheck(cudaMemcpy2DAsync(&temp_ptr[oslice], sizeof(C_t)*osizey[pidx]*osizez,
-                                  &complex[ostarty[pidx]*osizez], sizeof(C_t)*isizey*osizez,
-                                  sizeof(C_t)*osizey[pidx]*osizez, isizex[pidx],
-                                  cudaMemcpyDeviceToDevice));
-    }
-    if (!cuda_aware) { // copy received blocks to device
-      int p;
-      do {
-        MPI_Waitany(pcnt, recv_req.data(), &p, MPI_STATUSES_IGNORE);
-        if (p == MPI_UNDEFINED) break;
-        cudaCheck(cudaMemcpyAsync(&temp_ptr[istartx[p]*osizez*osizey[pidx]],
-                                  &recv_ptr[istartx[p]*osizez*osizey[pidx]],
-                                  isizex[p]*osizez*osizey[pidx]*sizeof(C_t), cudaMemcpyHostToDevice));
-      } while(p != MPI_UNDEFINED);
-    } else { // just wait for all receives
-      MPI_Waitall(pcnt, recv_req.data(), MPI_STATUSES_IGNORE);
-    }
-    cudaCheck(cudaDeviceSynchronize());
     // compute remaining 1d FFT, for cuda-aware recv and temp buffer are identical
     cudaCheck(cuFFT<T>::execC2C(planC2C, temp_ptr, complex, CUFFT_FORWARD));
     cudaCheck(cudaDeviceSynchronize());
-    MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
+    if (comm_mode == Peer) {
+      MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
+    }
   }
 }
 
@@ -341,45 +377,69 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
     // compute 1d complex to complex FFT in x direction
     cudaCheck(cuFFT<T>::execC2C(planC2C, complex, temp_ptr, CUFFT_INVERSE));
     cudaCheck(cudaDeviceSynchronize());
-    //MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
-    for (auto p : comm_order) { // copy blocks and send to respective process
-    //for (int i=1; i<pcnt; ++i) { // copy blocks and send to respective process
-      //if (p == pidx) continue;
-      //int p = (pcnt + pidx - i)%pcnt;
-      MPI_Irecv(&recv_ptr[isizex[pidx]*osizez*ostarty[p]],
-                sizeof(C_t)*isizex[pidx]*osizez*osizey[p], MPI_BYTE,
-                p, p, comm, &recv_req[p]);
-      //p = (pidx + i)%pcnt;
-      if (!cuda_aware) {
-        cudaCheck(cudaMemcpy(&send_ptr[istartx[p]*osizez*osizey[pidx]],
-                             &temp_ptr[istartx[p]*osizez*osizey[pidx]],
-                             isizex[p]*osizez*osizey[pidx]*sizeof(C_t), cudaMemcpyDeviceToHost));
-        cudaCheck(cudaDeviceSynchronize());
+    if (comm_mode == Peer) {
+      //MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
+      for (auto p : comm_order) { // copy blocks and send to respective process
+      //for (int i=1; i<pcnt; ++i) { // copy blocks and send to respective process
+        //if (p == pidx) continue;
+        //int p = (pcnt + pidx - i)%pcnt;
+        MPI_Irecv(&recv_ptr[isizex[pidx]*osizez*ostarty[p]],
+                  sizeof(C_t)*isizex[pidx]*osizez*osizey[p], MPI_BYTE,
+                  p, p, comm, &recv_req[p]);
+        //p = (pidx + i)%pcnt;
+        if (!cuda_aware) {
+          cudaCheck(cudaMemcpy(&send_ptr[istartx[p]*osizez*osizey[pidx]],
+                               &temp_ptr[istartx[p]*osizez*osizey[pidx]],
+                               isizex[p]*osizez*osizey[pidx]*sizeof(C_t), cudaMemcpyDeviceToHost));
+          cudaCheck(cudaDeviceSynchronize());
+        }
+        MPI_Isend(&send_ptr[istartx[p]*osizez*osizey[pidx]], 
+                  sizeof(C_t)*isizex[p]*osizez*osizey[pidx], MPI_BYTE, 
+                  p, pidx, comm, &send_req[p]);
       }
-      MPI_Isend(&send_ptr[istartx[p]*osizez*osizey[pidx]], 
-                sizeof(C_t)*isizex[p]*osizez*osizey[pidx], MPI_BYTE, 
-                p, pidx, comm, &send_req[p]);
-    }
-    { // transpose local block
-      size_t islice = istartx[pidx]*osizez*osizey[pidx];
-      cudaCheck(cudaMemcpy2DAsync(&copy_ptr[ostarty[pidx]*osizez], sizeof(C_t)*osizez*isizey,
-                                  &temp_ptr[islice], sizeof(C_t)*osizey[pidx]*osizez,
-                                  sizeof(C_t)*osizey[pidx]*osizez, isizex[pidx],
-                                  cudaMemcpyDeviceToDevice));
-    }
-    { // transpose received data blocks
-      int p;
-      do {
-        MPI_Waitany(pcnt, recv_req.data(), &p, MPI_STATUSES_IGNORE);
-        if (p == MPI_UNDEFINED) break;
+      { // transpose local block
+        size_t islice = istartx[pidx]*osizez*osizey[pidx];
+        cudaCheck(cudaMemcpy2DAsync(&copy_ptr[ostarty[pidx]*osizez], sizeof(C_t)*osizez*isizey,
+                                    &temp_ptr[islice], sizeof(C_t)*osizey[pidx]*osizez,
+                                    sizeof(C_t)*osizey[pidx]*osizez, isizex[pidx],
+                                    cudaMemcpyDeviceToDevice));
+      }
+      { // transpose received data blocks
+        int p;
+        do {
+          MPI_Waitany(pcnt, recv_req.data(), &p, MPI_STATUSES_IGNORE);
+          if (p == MPI_UNDEFINED) break;
+          size_t islice = isizex[pidx]*osizez*ostarty[p];
+          cudaCheck(cudaMemcpy2DAsync(&copy_ptr[ostarty[p]*osizez], sizeof(C_t)*osizez*isizey,
+                                      &recv_ptr[islice], sizeof(C_t)*osizey[p]*osizez,
+                                      sizeof(C_t)*osizey[p]*osizez, isizex[pidx],
+                                      cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyHostToDevice));
+        } while(p != MPI_UNDEFINED);
+      }
+      cudaCheck(cudaDeviceSynchronize());
+    } else {
+      std::vector<int> sendcount(pcnt, 0);
+      std::vector<int> senddispl(pcnt, 0);
+      std::vector<int> recvcount(pcnt, 0);
+      std::vector<int> recvdispl(pcnt, 0);
+      for (int p=0; p<pcnt; ++p) { // transpose each (missing) block and send it to respective process
+        size_t oslice = isizex[pidx]*osizez*ostarty[p];
+        sendcount[p] = sizeof(C_t)*isizex[p]*osizez*osizey[pidx];
+        senddispl[p] = istartx[p]*osizez*osizey[pidx]*sizeof(C_t);
+        recvcount[p] = sizeof(C_t)*isizex[pidx]*osizez*osizey[p];
+        recvdispl[p] = isizex[pidx]*osizez*ostarty[p]*sizeof(C_t);
+      }
+      MPI_Alltoallv(send_ptr, sendcount.data(), senddispl.data(), MPI_BYTE,
+                    recv_ptr, recvcount.data(), recvdispl.data(), MPI_BYTE, comm);
+      for (int p=0; p<pcnt; ++p) {
         size_t islice = isizex[pidx]*osizez*ostarty[p];
         cudaCheck(cudaMemcpy2DAsync(&copy_ptr[ostarty[p]*osizez], sizeof(C_t)*osizez*isizey,
                                     &recv_ptr[islice], sizeof(C_t)*osizey[p]*osizez,
                                     sizeof(C_t)*osizey[p]*osizez, isizex[pidx],
                                     cudaMemcpyDeviceToDevice));
-      } while(p != MPI_UNDEFINED);
+      }
+      cudaCheck(cudaDeviceSynchronize());
     }
-    cudaCheck(cudaDeviceSynchronize());
     cudaCheck(cuFFT<T>::execC2R(planC2R, copy_ptr, real));
     cudaCheck(cudaDeviceSynchronize());
     if (half_batch) {
@@ -387,7 +447,9 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
       cudaCheck(cuFFT<T>::execC2R(planC2R, &copy_ptr[osizez*isizey*batch], &real[isizez*isizey*batch]));
       cudaCheck(cudaDeviceSynchronize());
     }
-    MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
+    if (comm_mode == Peer) {
+      MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
+    }
   }
 }
 

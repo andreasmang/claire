@@ -76,4 +76,6 @@ protected:
   bool initialized;
   bool half_batch;
   bool fft3d;
+  
+  enum commMode_e {Peer, All2All} comm_mode;
 };
