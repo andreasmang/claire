@@ -51,6 +51,9 @@ inline cufftResult checkCuda_accfft(cufftResult result)
 inline size_t get_max_query_allocation(int* isize, int neighbour_query_width) {
   return (isize[0]+2*neighbour_query_width)*isize[1]*isize[2]; 
 }
+inline size_t get_max_query_outside_allocation(int* isize, int neighbour_query_width) {
+  return (2*neighbour_query_width)*isize[1]*isize[2]; 
+}
 
 struct is_equal {
     int id;
@@ -242,7 +245,7 @@ void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsiz
   this->data_dof_max = max;
   
   //query_outside = thrust::device_malloc<ScalarType>(COORD_DIM*N_pts);
-  reg::AllocateMemoryOnce(f_unordered, sizeof(ScalarType)*this->data_dof_max*N_pts);
+  //reg::AllocateMemoryOnce(f_unordered, sizeof(ScalarType)*this->data_dof_max*N_pts);
   reg::AllocateArrayOnce<int>(query_outside_offset, nprocs);
   reg::AllocateArrayOnce<MPI_Request>(s_request, nprocs);
   reg::AllocateArrayOnce<MPI_Request>(request, nprocs);
@@ -276,8 +279,10 @@ void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsiz
 #endif
     Eq[i].scatter_baked=true;
   }
+  
   eq_max_query_capacity = get_max_query_allocation(isize_g, gsize);
-  reg::AllocateMemoryOnce(all_f, data_dof_max*eq_max_query_capacity*sizeof(ScalarType));
+  //reg::AllocateMemoryOnce(all_f, data_dof_max*eq_max_query_capacity*sizeof(ScalarType));
+  reg::AllocateMemoryOnce(all_f, eq_max_query_capacity*sizeof(ScalarType));
   output_baked = true;
     
   max_query_outside_capacity = (2*gsize*isize_g[1]*isize_g[2]); 
@@ -573,7 +578,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       // free and reallocate
       ZeitGeist_tick(scatter_memalloc);
       reg::FreeMemory(all_f);
-      reg::AllocateMemoryOnce(all_f, data_dof_max*eq_max_query_capacity*sizeof(ScalarType));
+      //reg::AllocateMemoryOnce(all_f, data_dof_max*eq_max_query_capacity*sizeof(ScalarType));
+      reg::AllocateMemoryOnce(all_f, eq_max_query_capacity*sizeof(ScalarType));
       ZeitGeist_tock(scatter_memalloc);
     }
   }
@@ -767,7 +773,8 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
   // compute the interpolation on the GPU
   ZeitGeist_tick(interp_kernel);
   double interp_kernel_time = -MPI_Wtime();
-  if (data_dofs[version] == 3)
+  if (data_dofs[version] == 3) // this is not being called 
+    //reg::ThrowError("not implemented"); 
     gpuInterpVec3D(&f_ghost[0*nlghost], 
                    &f_ghost[1*nlghost], 
                    &f_ghost[2*nlghost], 
@@ -797,7 +804,9 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
   }
   
   //ScalarType* f_unordered_ptr = thrust::raw_pointer_cast(query_outside);
-  ScalarType* f_unordered_ptr = f_unordered;
+  //ScalarType* f_unordered_ptr = f_unordered;
+  // f_unordered needs to be of size nl==N_pts, and f_ghost has nlghost>nl memory, reuse memory
+  ScalarType* f_unordered_ptr = f_ghost;
 
   // Now we have to do an alltoall to distribute the interpolated data from Eq[id].all_f to f_unordered
   ZeitGeist_tick(interp_comm_values_sendrcv);
