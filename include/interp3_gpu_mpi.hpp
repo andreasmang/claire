@@ -59,11 +59,11 @@ struct Interp3_Plan_GPU{
   //MPI_Datatype* stypes, *rtypes;
   bool cuda_aware;
   bool output_baked;
-  size_t eq_max_query_capacity;
+  size_t all_f_capacity;
   
   /*
   int* f_index_procs_others_offset; // offset in the all_query_points array
-  int* f_index_procs_self_offset  ; // offset in the query_outside array
+  int* f_index_procs_self_offset  ; // offset in the query_send array
   int* f_index_procs_self_sizes   ; // sizes of the number of interpolations that need to be sent to procs
   int* f_index_procs_others_sizes ; // sizes of the number of interpolations that need to be received from procs
   */
@@ -73,16 +73,17 @@ struct Interp3_Plan_GPU{
   
   std::vector<int> proc_neighbours; // for slab decomp
 
-  thrust::device_ptr<ScalarType> query_outside;
-  size_t max_query_outside_capacity;
+  thrust::device_ptr<ScalarType> query_send;
+  size_t query_points_send_capacity;
+  int neighbour_query_send_width;
   bool query_baked;
-  int* query_outside_offset;
+  int* query_send_offset;
   //int* num_query_per_proc;
   //thrust::device_ptr<int> f_index;
   //int* f_index_offset;
   
-  //int neighbour_query_width;
-  //size_t max_query_points_capacity;
+  //int neighbour_query_recv_width;
+  //size_t query_points_recv_capacity;
 
   short* which_proc;
   //int* which_proc;
@@ -110,15 +111,15 @@ struct Interp3_Plan_GPU{
     MPI_Datatype* stypes, *rtypes;
 
     int* f_index_procs_others_offset; // offset in the all_query_points array
-    int* f_index_procs_self_offset  ; // offset in the query_outside array
+    int* f_index_procs_self_offset  ; // offset in the query_send array
     int* f_index_procs_self_sizes   ; // sizes of the number of interpolations that need to be sent to procs
     int* f_index_procs_others_sizes ; // sizes of the number of interpolations that need to be received from procs
 
     thrust::device_ptr<int> f_index;
     int* f_index_offset;
     int* num_query_per_proc;
-    int neighbour_query_width;
-    size_t max_query_points_capacity;
+    int neighbour_query_recv_width;
+    size_t query_points_recv_capacity;
   
     //ScalarType* all_f;
     ScalarType* all_query_points;
