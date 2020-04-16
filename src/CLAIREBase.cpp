@@ -180,19 +180,19 @@ PetscErrorCode CLAIREBase::ClearMemory() {
       if (this->m_WorkVecField3) {
         total += this->m_WorkVecField3->GetSize();
         ss.clear(); ss.str(std::string());
-        ss << "WVF1 " << this->m_WorkVecField3->GetSize();
+        ss << "WVF3 " << this->m_WorkVecField3->GetSize();
         DbgMsg3(ss.str());
       }
       if (this->m_WorkVecField4) {
         total += this->m_WorkVecField4->GetSize();
         ss.clear(); ss.str(std::string());
-        ss << "WVF1 " << this->m_WorkVecField4->GetSize();
+        ss << "WVF4 " << this->m_WorkVecField4->GetSize();
         DbgMsg3(ss.str());
       }
       if (this->m_WorkVecField5) {
         total += this->m_WorkVecField5->GetSize();
         ss.clear(); ss.str(std::string());
-        ss << "WVF1 " << this->m_WorkVecField5->GetSize();
+        ss << "WVF5 " << this->m_WorkVecField5->GetSize();
         DbgMsg3(ss.str());
       }
       
@@ -410,9 +410,9 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
 
     ierr = Assert(mR != NULL, "null pointer"); CHKERRQ(ierr);
   
-    ierr = Free(this->m_ReferenceImage); CHKERRQ(ierr);
+    //ierr = Free(this->m_ReferenceImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_ReferenceImage, this->m_Opt, mR, true); CHKERRQ(ierr);
-    ierr = this->m_TemplateImage->SetVector(mR); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->SetVector(mR); CHKERRQ(ierr);
 
     // assign pointer
     //this->m_ReferenceImage = mR;
@@ -441,7 +441,7 @@ PetscErrorCode CLAIREBase::SetTemplateImage(Vec mT) {
 
     ierr = Assert(mT != NULL, "null pointer"); CHKERRQ(ierr);
     
-    ierr = Free(this->m_TemplateImage); CHKERRQ(ierr);
+    //ierr = Free(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, mT, true); CHKERRQ(ierr);
     ierr = this->m_TemplateImage->SetVector(mT); CHKERRQ(ierr);
 
@@ -570,9 +570,9 @@ PetscErrorCode CLAIREBase::SetMask(Vec mask) {
 
     ierr = Assert(mask != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = Free(this->m_Mask); CHKERRQ(ierr);
+    //ierr = Free(this->m_Mask); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_Mask, this->m_Opt, mask); CHKERRQ(ierr);
-    ierr = this->m_TemplateImage->SetVector(mask); CHKERRQ(ierr);
+    ierr = this->m_Mask->SetVector(mask); CHKERRQ(ierr);
     // assign pointer
     //this->m_Mask = mask;
 
@@ -596,9 +596,9 @@ PetscErrorCode CLAIREBase::SetAuxVariable(Vec q) {
 
     ierr = Assert(q != NULL, "null pointer"); CHKERRQ(ierr);
     
-    ierr = Free(this->m_AuxVariable); CHKERRQ(ierr);
+    //ierr = Free(this->m_AuxVariable); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_AuxVariable, this->m_Opt, q, true); CHKERRQ(ierr);
-    ierr = this->m_TemplateImage->SetVector(q); CHKERRQ(ierr);
+    ierr = this->m_AuxVariable->SetVector(q); CHKERRQ(ierr);
     
     //this->m_AuxVariable = q;
 
@@ -622,9 +622,9 @@ PetscErrorCode CLAIREBase::SetCellDensity(Vec c) {
 
     ierr = Assert(c != NULL, "null pointer"); CHKERRQ(ierr);
     
-    ierr = Free(this->m_CellDensity); CHKERRQ(ierr);
+    //ierr = Free(this->m_CellDensity); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_CellDensity, this->m_Opt, c, true); CHKERRQ(ierr);
-    ierr = this->m_TemplateImage->SetVector(c); CHKERRQ(ierr);
+    ierr = this->m_CellDensity->SetVector(c); CHKERRQ(ierr);
     //this->m_CellDensity = c;
 
     this->m_Opt->Exit(__func__);
@@ -1058,7 +1058,7 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
     
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField1, 1); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkVecField(this->m_WorkVecField2, 2); CHKERRQ(ierr);
@@ -1067,14 +1067,14 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
     ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt, this->m_WorkVecField5->m_X1); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt, this->m_WorkVecField5->m_X2); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkScaField4, this->m_Opt, this->m_WorkVecField5->m_X1); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkScaField5, this->m_Opt, this->m_WorkVecField5->m_X2); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField1, 1); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField2, 2); CHKERRQ(ierr);
-    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField3, 3); CHKERRQ(ierr);
-    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField4, 4); CHKERRQ(ierr);
-    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField5, 5); CHKERRQ(ierr);
+    //ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField3, 3); CHKERRQ(ierr);
+    //ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField4, 4); CHKERRQ(ierr);
+    //ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField5, 5); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetVelocityField(this->m_VelocityField); CHKERRQ(ierr);
 

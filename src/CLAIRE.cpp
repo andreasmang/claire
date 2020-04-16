@@ -1096,7 +1096,6 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
     
     //ScalarType beta = sqrt(this->m_Opt->m_RegNorm.beta[0]);
     
@@ -1141,7 +1140,11 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = gradM[0]->Copy(this->m_GradientState[this->m_Opt->m_Domain.nt]); CHKERRQ(ierr);
       } else {
         ierr = this->m_StateVariable->GetArrayRead(ptr, 0, this->m_Opt->m_Domain.nt); CHKERRQ(ierr);
-        ierr = this->m_Differentiation->Gradient(gradM[0], ptr); CHKERRQ(ierr);
+        if (this->m_Opt->m_Diff.diffPDE == FINITE) {
+          ierr = this->m_DifferentiationFD->Gradient(gradM[0], ptr); CHKERRQ(ierr);
+        } else {
+          ierr = this->m_Differentiation->Gradient(gradM[0], ptr); CHKERRQ(ierr);
+        }
         ierr = this->m_StateVariable->RestoreArray();
       }
       
@@ -1167,9 +1170,10 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     if (pre) {
       ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       if (coarse) {
-        ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
-        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField3, this->m_WorkVecField3, false, beta); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField5->SetComponents(x); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField5, this->m_WorkVecField5, false, beta); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->Copy(this->m_WorkVecField5); CHKERRQ(ierr);
       } else {
         ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
         ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
@@ -1178,16 +1182,17 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = gradM[1]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       
       if (post) {
-        ierr = this->m_WorkVecField3->SetComponents(x); CHKERRQ(ierr);
-        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField3, this->m_WorkVecField3, false, beta); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField5->SetComponents(x); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->InvRegLapOp(this->m_WorkVecField5, this->m_WorkVecField5, false, beta); CHKERRQ(ierr);
         //ierr = preproc->Restrict(this->m_WorkVecField1, this->m_WorkVecField3, nx_c, nx_f); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField5->GetArraysReadWrite(pvec); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->RestoreArrays();
-        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
         ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
       } else {
         ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
@@ -1218,7 +1223,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     VecField *vecR, *vecP, *vecM, *vecX;
     vecR = this->m_WorkVecField4;
-    vecP = this->m_WorkVecField5;
+    vecP = this->m_WorkVecField3;
     vecM = this->m_WorkVecField2;
     vecX = this->m_WorkVecField1;
     
@@ -1238,12 +1243,12 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
       ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
       ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
       ierr = kernel.res(cg_r);
       ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
       ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+      ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
       
       rval = MPI_Allreduce(MPI_IN_PLACE, &cg_r, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
       ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1258,19 +1263,19 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       }
       int i;
       for (i = 0; i<innerloop; ++i) {
-        ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
         ierr = kernel.gMgMT(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
         
         ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
         
         ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
         ierr = kernel.pTAp(cg_p);
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_p, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1279,12 +1284,12 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
         ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
         ierr = kernel.CGres(cg_a);
         ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
         ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_a, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1297,10 +1302,10 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         cg_b = cg_a/cg_r;
         cg_r = cg_a;
         ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
         ierr = kernel.CGp(cg_b);
         ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_b, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1334,13 +1339,13 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
           ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
           
           //ierr = preproc->Restrict(this->m_WorkVecField4, this->m_WorkVecField3, nx_c, nx_f); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField3->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField5->GetArraysReadWrite(pvec); CHKERRQ(ierr);
           ierr = this->m_WorkVecField4->GetArraysReadWrite(ovec); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = this->m_WorkVecField4->RestoreArrays();
-          ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
           
           ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           
@@ -1355,7 +1360,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = diff->SetFFT(&this->m_Opt->m_FFT); CHKERRQ(ierr);
       
         if (post) {
-          ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
+          ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField5); CHKERRQ(ierr);
         }
         
         //ierr = preproc->Prolong(this->m_WorkVecField1, this->m_WorkVecField1, nx_f, nx_c); CHKERRQ(ierr);
