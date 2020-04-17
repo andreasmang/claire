@@ -1072,17 +1072,24 @@ PetscErrorCode CLAIREBase::SetupDeformationField() {
 
     ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField1, 1); CHKERRQ(ierr);
     ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField2, 2); CHKERRQ(ierr);
-    //ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField3, 3); CHKERRQ(ierr);
+    ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField3, 3); CHKERRQ(ierr);
     //ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField4, 4); CHKERRQ(ierr);
     //ierr = this->m_DeformationFields->SetWorkScaField(*this->m_WorkScaField5, 5); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetVelocityField(this->m_VelocityField); CHKERRQ(ierr);
 
-    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
-    ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+    if (this->m_Opt->m_PDESolver.type == SL && this->m_TransportProblem) {
+      SemiLagrangian* sl = static_cast<TransportEquationSL*>(this->m_TransportProblem)->GetSemiLagrangian();
+      sl->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+      ierr = sl->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+      ierr = this->m_DeformationFields->SetSLM(sl); CHKERRQ(ierr);
+    } else {
+      ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+      ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+      ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+      ierr = this->m_DeformationFields->SetSLM(this->m_SemiLagrangianMethod); CHKERRQ(ierr);
+    }
 
-    ierr = this->m_DeformationFields->SetSLM(this->m_SemiLagrangianMethod); CHKERRQ(ierr);
 
     ierr = this->m_DeformationFields->SetReadWrite(this->m_ReadWrite); CHKERRQ(ierr);
 
