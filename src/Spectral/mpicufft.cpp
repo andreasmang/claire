@@ -155,7 +155,9 @@ template<typename T> void MPIcuFFT<T>::initFFT(size_t nx, size_t ny, size_t nz, 
   
   if (isizex[pidx] <= 8) half_batch = false;
   
-  if (pcnt > 4 && cuda_aware && isizex[0]*osizey[0] <= pcnt*pcnt) comm_mode = All2All;
+  // if alltoall msg is to small ( < 512kB)
+  size_t local_volume = isizex[0]*osizey[0]*osizez*sizeof(T)*2;
+  if (pcnt > 4 && cuda_aware && local_volume <= 524288) comm_mode = All2All;
   
   domainsize = 2*sizeof(T)*std::max((isizex[pidx]*isizey*isizez/2) + 1, osizex*osizey[pidx]*osizez);
   
