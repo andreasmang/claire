@@ -454,15 +454,14 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     size_t query_send_size = 0;
     // specific to slab decomposition
     for (int proc=0; proc<nprocs; ++proc) {
-      if (std::find(proc_neighbours.begin(), proc_neighbours.end(), proc) != proc_neighbours.end()) {
+      //if (std::find(proc_neighbours.begin(), proc_neighbours.end(), proc) != proc_neighbours.end()) {
         // count how many points belong to proc
-        // assumes that the coordinates are not scattered beyond neighbouring processes
         ZeitGeist_tick(scatter_create_mpi_buffer);
         get_count(which_proc, N_pts, proc, &coords_in_proc);
         ZeitGeist_tock(scatter_create_mpi_buffer);
-      } else {
-        coords_in_proc = 0;
-      }
+      //} else {
+      //  coords_in_proc = 0;
+      //}
         
       if (verbose) {
         PetscSynchronizedPrintf(PETSC_COMM_WORLD, "proc %d sending %d points to proc %d\n", procid, coords_in_proc, proc);
@@ -608,7 +607,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
                       which_proc_ptr, 
                       thrust::make_zip_iterator(thrust::make_tuple(strided_x.begin(), strided_y.begin(), strided_z.begin())), 
                       is_equal(proc));
-    } else {
+    } 
+    if (coords_in_proc > 0 && proc == procid) {
       int roffset = Eq[id].f_index_procs_others_offset[proc]*COORD_DIM;
       thrust::device_ptr<ScalarType> all_query_points_ptr = thrust::device_pointer_cast<ScalarType>(&Eq[id].all_query_points[roffset]);
       strided_range<Iterator> strided_x(all_query_points_ptr+0, all_query_points_ptr+coords_in_proc*COORD_DIM, COORD_DIM);
