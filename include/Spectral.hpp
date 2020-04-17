@@ -54,6 +54,8 @@ class Spectral {
     PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, Spectral* fft_coarse);
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
+    
+    ComplexType *m_WorkSpace; // 3*nalloc > 3*N
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
@@ -70,6 +72,8 @@ class Spectral {
 
     RegOpt *m_Opt;
     FourierTransform *m_FFT;
+    
+    bool m_SharedWorkSpace;
 };
 
 

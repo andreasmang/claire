@@ -222,7 +222,7 @@ PetscErrorCode CLAIREDivReg::ApplyProjection() {
     }
     
     ierr = this->m_Differentiation->LerayOperator(this->m_WorkVecField2, this->m_WorkVecField2, beta[0], beta[2]); CHKERRQ(ierr);
-    
+        
     //ierr = this->m_WorkVecField2->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);

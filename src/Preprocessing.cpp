@@ -351,8 +351,10 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     }
     ierr = Assert(this->m_XHatFine != nullptr,"allocation failed"); CHKERRQ(ierr);
     */
+#ifndef REG_HAS_CUDA
     ierr = this->m_XHatCoarse.Resize(nalloc_c); CHKERRQ(ierr);
     ierr = this->m_XHatFine.Resize(nalloc_f); CHKERRQ(ierr);
+#endif
 
 /*
     // allocate plan for fine grid
@@ -854,13 +856,14 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     
     ZeitGeist_define(FFT_2LEVEL);
     ZeitGeist_tick(FFT_2LEVEL);
+    
+#ifndef REG_HAS_CUDA
     // compute fft of data on fine grid
     ierr = GetRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
     ierr = this->m_fine_fft->fft->FFT_R2C(p_xf, this->m_XHatFine.WriteDevice()); CHKERRQ(ierr);
     //accfft_execute_r2c_t(this->m_FFTFinePlan, const_cast<ScalarType*>(p_xf), this->m_XHatFine.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
     //ierr = this->m_XHatFine.CopyDeviceToHost(); CHKERRQ(ierr);
-#ifndef REG_HAS_CUDA
     ierr = this->m_XHatCoarse.AllocateHost(); CHKERRQ(ierr);
 
     this->m_XHatCoarse.WriteHost();
@@ -935,16 +938,29 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
             }
         }
     }
-
-#else
-    ierr = this->m_fine_fft->fft->Restrict(this->m_XHatCoarse.WriteDevice(), this->m_XHatFine.ReadWriteDevice(), this->m_coarse_fft->fft); CHKERRQ(ierr);
-    ierr = this->m_coarse_fft->fft->Scale(this->m_XHatCoarse.ReadWriteDevice(), this->m_FFTFineScale); CHKERRQ(ierr);
-#endif
-
     ierr = GetRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
     ierr = this->m_coarse_fft->fft->FFT_C2R(this->m_XHatCoarse.ReadDevice(), p_xc); CHKERRQ(ierr);
     //accfft_execute_c2r_t(this->m_FFTCoarsePlan, const_cast<ComplexType*>(this->m_XHatCoarse.ReadDevice()), p_xc, timer);
     ierr = RestoreRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
+
+#else
+    IntType nc  = this->m_fine_fft->osize[0];
+    nc *= this->m_fine_fft->osize[1];
+    nc *= this->m_fine_fft->osize[2];
+    ComplexType *data_f = this->m_fine_fft->fft->m_WorkSpace;
+    ComplexType *data_c = &this->m_fine_fft->fft->m_WorkSpace[nc];
+    
+    ierr = GetRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
+    ierr = this->m_fine_fft->fft->FFT_R2C(p_xf, data_f); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(x_f, &p_xf); CHKERRQ(ierr);
+    
+    ierr = this->m_fine_fft->fft->Restrict(data_c, data_f, this->m_coarse_fft->fft); CHKERRQ(ierr);
+    ierr = this->m_coarse_fft->fft->Scale(data_c, this->m_FFTFineScale); CHKERRQ(ierr);
+    
+    ierr = GetRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
+    ierr = this->m_coarse_fft->fft->FFT_C2R(data_c, p_xc); CHKERRQ(ierr);
+    ierr = RestoreRawPointerWrite(*x_c, &p_xc); CHKERRQ(ierr);
+#endif
     
     ZeitGeist_tock(FFT_2LEVEL);
     
@@ -1612,13 +1628,13 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     ZeitGeist_define(FFT_2LEVEL);
     ZeitGeist_tick(FFT_2LEVEL);
     
+#ifndef REG_HAS_CUDA
     // compute fft of data on fine grid
     ierr = GetRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
     ierr = this->m_coarse_fft->fft->FFT_R2C(p_xc, this->m_XHatCoarse.WriteDevice()); CHKERRQ(ierr);
     //accfft_execute_r2c_t(this->m_FFTCoarsePlan, const_cast<ScalarType*>(p_xc), this->m_XHatCoarse.WriteDevice(), timer);
     ierr = RestoreRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
     //ierr = this->m_XHatCoarse.CopyDeviceToHost(); CHKERRQ(ierr);
-#ifndef REG_HAS_CUDA
     ierr = this->m_XHatFine.AllocateHost(); CHKERRQ(ierr);
 
     this->m_XHatFine.WriteHost();
@@ -1692,15 +1708,28 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
             }
         }
     }
-#else
-    ierr = this->m_coarse_fft->fft->Scale(this->m_XHatCoarse.ReadWriteDevice(), this->m_FFTCoarseScale); CHKERRQ(ierr);
-    ierr = this->m_fine_fft->fft->Prolong(this->m_XHatFine.WriteDevice(), this->m_XHatCoarse.ReadDevice(), this->m_coarse_fft->fft); CHKERRQ(ierr);
-#endif
-
     ierr = GetRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
     ierr = this->m_fine_fft->fft->FFT_C2R(this->m_XHatFine.ReadDevice(), p_xf); CHKERRQ(ierr);
     //accfft_execute_c2r_t(this->m_FFTFinePlan, const_cast<ComplexType*>(this->m_XHatFine.ReadDevice()), p_xf, timer);
     ierr = RestoreRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
+#else
+    IntType nc  = this->m_fine_fft->osize[0];
+    nc *= this->m_fine_fft->osize[1];
+    nc *= this->m_fine_fft->osize[2];
+    ComplexType *data_f = this->m_fine_fft->fft->m_WorkSpace;
+    ComplexType *data_c = &this->m_fine_fft->fft->m_WorkSpace[nc];
+
+    ierr = GetRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
+    ierr = this->m_coarse_fft->fft->FFT_R2C(p_xc, data_c); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
+    
+    ierr = this->m_coarse_fft->fft->Scale(data_c, this->m_FFTCoarseScale); CHKERRQ(ierr);
+    ierr = this->m_fine_fft->fft->Prolong(data_f, data_c, this->m_coarse_fft->fft); CHKERRQ(ierr);
+    
+    ierr = GetRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
+    ierr = this->m_fine_fft->fft->FFT_C2R(data_f, p_xf); CHKERRQ(ierr);
+    ierr = RestoreRawPointerWrite(*x_f, &p_xf); CHKERRQ(ierr);
+#endif
     
     ZeitGeist_tock(FFT_2LEVEL);
     

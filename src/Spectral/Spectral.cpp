@@ -65,6 +65,9 @@ PetscErrorCode Spectral::Initialize() {
     this->m_kernel.scale = 0;
 
     this->m_plan = nullptr;
+    this->m_WorkSpace = nullptr;
+    
+    this->m_SharedWorkSpace = false;
 
     this->m_Opt = nullptr;
     this->m_FFT = nullptr;
@@ -152,12 +155,13 @@ PetscErrorCode Spectral::SetupFFT() {
     {
       bool allocmem = true;
       void *sharedmem_d = nullptr, *sharedmem_h = nullptr;
-      size_t sharedsize_d = 0, sharedsize_h = 0;
+      size_t sharedsize_d = 0, sharedsize_h = 0, sharedalloc=0;
       if (this->m_Opt->m_FFT.fft && this->m_Opt->m_FFT.fft != this && this->m_Opt->m_FFT.fft->m_plan) {
         sharedmem_d = this->m_Opt->m_FFT.fft->m_plan->getWorkAreaDevice();
         sharedmem_h = this->m_Opt->m_FFT.fft->m_plan->getWorkAreaHost();
         sharedsize_d = this->m_Opt->m_FFT.fft->m_plan->getWorkSizeDevice();
         sharedsize_h = this->m_Opt->m_FFT.fft->m_plan->getWorkSizeHost();
+        sharedalloc  = this->m_Opt->m_FFT.fft->m_plan->getDomainSize();
         allocmem = false;
       }
 #ifdef REG_HAS_MPICUDA
@@ -183,6 +187,13 @@ PetscErrorCode Spectral::SetupFFT() {
         ss.clear(); ss.str(std::string());
       }
       this->m_FFT->nalloc = this->m_plan->getDomainSize();
+      if (sharedalloc > this->m_FFT->nalloc) {
+        this->m_WorkSpace = this->m_Opt->m_FFT.fft->m_WorkSpace;
+        m_SharedWorkSpace = true;
+      } else {
+        ierr = AllocateMemoryOnce(this->m_WorkSpace, this->m_FFT->nalloc*3);
+        m_SharedWorkSpace = false;
+      }
       this->m_plan->getOutSize(osize);
       this->m_plan->getOutStart(ostart);
       this->m_plan->getInSize(isize);
@@ -216,8 +227,11 @@ PetscErrorCode Spectral::SetupFFT() {
           ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
           ss.clear(); ss.str(std::string());
       }
-      ierr = AllocateMemoryOnce(u, nalloc); CHKERRQ(ierr);
-      ierr = Assert(u != nullptr, "allocation failed"); CHKERRQ(ierr);
+      ierr = AllocateMemoryOnce(this->m_WorkSpace, 3*nalloc); CHKERRQ(ierr);
+      u = this->m_WorkSpace;
+      uk = &this->m_WorkSpace[nalloc];
+      //ierr = AllocateMemoryOnce(u, nalloc); CHKERRQ(ierr);
+      //ierr = Assert(u != nullptr, "allocation failed"); CHKERRQ(ierr);
 
       // set up the fft
       if (this->m_Opt->m_Verbosity > 2) {
@@ -225,8 +239,8 @@ PetscErrorCode Spectral::SetupFFT() {
           ierr = DbgMsg(ss.str()); CHKERRQ(ierr);
           ss.clear(); ss.str(std::string());
       }
-      ierr = AllocateMemoryOnce(uk, nalloc); CHKERRQ(ierr);
-      ierr = Assert(uk != nullptr, "allocation failed"); CHKERRQ(ierr);
+      //ierr = AllocateMemoryOnce(uk, nalloc); CHKERRQ(ierr);
+      //ierr = Assert(uk != nullptr, "allocation failed"); CHKERRQ(ierr);
 
       if (this->m_Opt->m_Verbosity > 2) {
           ierr = DbgMsg("allocating fft plan"); CHKERRQ(ierr);
@@ -237,8 +251,8 @@ PetscErrorCode Spectral::SetupFFT() {
       ierr = Assert(this->m_plan != nullptr, "allocation failed"); CHKERRQ(ierr);
       
           // clean up
-      ierr = FreeMemory(u); CHKERRQ(ierr);
-      ierr = FreeMemory(uk); CHKERRQ(ierr);
+      //ierr = FreeMemory(u); CHKERRQ(ierr);
+      //ierr = FreeMemory(uk); CHKERRQ(ierr);
     }
 #endif
     
@@ -251,6 +265,10 @@ PetscErrorCode Spectral::SetupFFT() {
 PetscErrorCode Spectral::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+    
+    if (!this->m_SharedWorkSpace) {
+      ierr = FreeMemory(this->m_WorkSpace); CHKERRQ(ierr);
+    }
     
 #ifdef REG_HAS_CUDA
     ierr = Free(this->m_plan); CHKERRQ(ierr);

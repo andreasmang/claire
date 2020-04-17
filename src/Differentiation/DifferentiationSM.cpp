@@ -117,14 +117,19 @@ PetscErrorCode DifferentiationSM::ClearMemory() {
 
 PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, ComplexType *x3) {
     PetscErrorCode ierr = 0;
-    IntType nalloc;
+    IntType nc;
     PetscFunctionBegin;
     
     this->m_FFT = &this->m_Opt->m_FFT;
     
-    nalloc = this->m_FFT->nalloc;
-        
-    if (!x1) {
+    nc  = this->m_FFT->osize[0];
+    nc *= this->m_FFT->osize[1];
+    nc *= this->m_FFT->osize[2];
+    
+     this->m_SpectralKernel.pXHat[0] = &this->m_FFT->fft->m_WorkSpace[0*nc];
+     this->m_SpectralKernel.pXHat[1] = &this->m_FFT->fft->m_WorkSpace[1*nc];
+     this->m_SpectralKernel.pXHat[2] = &this->m_FFT->fft->m_WorkSpace[2*nc];
+    /*if (!x1) {
       ierr = AllocateMemoryOnce(this->m_XHat[0], nalloc); CHKERRQ(ierr);
       this->m_SpectralKernel.pXHat[0] = this->m_XHat[0];
     } else {
@@ -141,7 +146,7 @@ PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, Co
       this->m_SpectralKernel.pXHat[2] = this->m_XHat[2];
     } else {
       this->m_SpectralKernel.pXHat[2] = x3;
-    }
+    }*/
     this->m_SpectralKernel.nx[0] = this->m_FFT->nx[0];
     this->m_SpectralKernel.nx[1] = this->m_FFT->nx[1];
     this->m_SpectralKernel.nx[2] = this->m_FFT->nx[2];
@@ -606,7 +611,7 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(const ScalarType* pV1, const
     PetscErrorCode ierr = 0;
     ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     PetscFunctionBegin;
-
+    
     this->m_FFT->fft->FFT_R2C(pV1, pXHat[0]);
     this->m_FFT->fft->FFT_R2C(pV2, pXHat[1]);
     this->m_FFT->fft->FFT_R2C(pV3, pXHat[2]);

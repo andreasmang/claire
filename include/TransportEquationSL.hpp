@@ -47,6 +47,8 @@ class TransportEquationSL : public TransportProblem {
     PetscErrorCode SolveInverseProblem();
     
     PetscErrorCode InitializeControlVariable(VecField*);
+    
+    SemiLagrangian* GetSemiLagrangian() { return this->m_SemiLagrangianMethod; }
 
  protected:
     PetscErrorCode Initialize();

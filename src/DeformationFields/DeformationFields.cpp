@@ -441,10 +441,11 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
     hthalf = 0.5*ht;
 
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField3 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField4 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField2 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField3 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField4 != NULL, "null pointer"); CHKERRQ(ierr);
 
     inverse = this->m_Opt->m_RegFlags.invdefgrad;
     alpha = inverse ? -1.0 : 1.0;
@@ -452,11 +453,13 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
     // get pointers
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField2->GetArrays(p_divv, p_jbar, p_rhs0); CHKERRQ(ierr);
 
     ierr = VecGetArray(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    //ierr = VecGetArray(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    //ierr = VecGetArray(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    //ierr = VecGetArray(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
 
     // compute div(v)
     this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);
@@ -483,13 +486,14 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
         }
     }
 
-    ierr = RestoreRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField3, &p_jbar); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_jac); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gx1, p_gx2, p_gx3); CHKERRQ(ierr);
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->RestoreArrays(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -526,10 +530,12 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
 
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField2 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField3 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField3 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField4 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField2 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField3 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField4 != NULL, "null pointer"); CHKERRQ(ierr);
 
 
     // set initial condition
@@ -539,12 +545,13 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField3->GetArrays(p_phibar, p_rhs0, p_divvphi); CHKERRQ(ierr);
 
     ierr = GetRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
+    //ierr = GetRawPointer(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
+    //ierr = GetRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    //ierr = GetRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
 
     // compute div(v)
     this->m_Differentiation->Divergence(p_divv, p_vx1, p_vx2, p_vx3);
@@ -621,13 +628,14 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
 
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
     ierr = RestoreRawPointer(this->m_WorkScaField2, &p_divv); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField3, &p_phibar); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField4, &p_rhs0); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField5, &p_divvphi); CHKERRQ(ierr);
 
-    ierr = this->m_VelocityField->RestoreArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField1->RestoreArrays(p_gphi1, p_gphi2, p_gphi3); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField2->RestoreArrays(p_phiv1, p_phiv2, p_phiv3); CHKERRQ(ierr);
+    ierr = this->m_VelocityField->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
+    ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -663,10 +671,11 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
 
     ierr = Assert(this->m_SemiLagrangianMethod != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkVecField2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkScaField1 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField2 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField3 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkScaField4 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField2 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField3 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkScaField4 != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute trajectory
     ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
@@ -681,10 +690,12 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
 
     // get pointers
     ierr = GetRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
+    //ierr = GetRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
+    //ierr = GetRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
+    //ierr = GetRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
 
+    ierr = this->m_WorkVecField2->GetArrays(kernel.pJx, kernel.pDivV, kernel.pDivVx); CHKERRQ(ierr);
+    
     ierr = this->m_VelocityField->GetArrays(p_vx1, p_vx2, p_vx3); CHKERRQ(ierr);
 
     inverse = this->m_Opt->m_RegFlags.invdefgrad;
@@ -727,9 +738,11 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     }  // for all time points
 
     ierr = RestoreRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
+    
+    ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
+    //ierr = RestoreRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -768,7 +781,7 @@ PetscErrorCode DeformationFields::ComputeDetDefGradViaDispField() {
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField2 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField3 != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = Assert(this->m_WorkVecField4 != NULL, "null pointer"); CHKERRQ(ierr);
+    //ierr = Assert(this->m_WorkVecField4 != NULL, "null pointer"); CHKERRQ(ierr);
 
     // compute deformation map (stored in work vec field one)
     ierr = this->ComputeDisplacementField(); CHKERRQ(ierr);
@@ -777,7 +790,9 @@ PetscErrorCode DeformationFields::ComputeDetDefGradViaDispField() {
     ierr = this->m_WorkVecField1->GetArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->GetArrays(p_gu11, p_gu12, p_gu13); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->GetArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField4->GetArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField4->GetArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
+    
+    p_gu31 = p_u1; p_gu32 = p_u2; p_gu33 = p_u3;
 
     // compute gradient of components of displacement field
     this->m_Differentiation->Gradient(p_gu11, p_gu12, p_gu13, p_u1);
@@ -801,7 +816,7 @@ PetscErrorCode DeformationFields::ComputeDetDefGradViaDispField() {
 
     ierr = RestoreRawPointer(this->m_WorkScaField1, &p_phi); CHKERRQ(ierr);
 
-    ierr = this->m_WorkVecField4->RestoreArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField4->RestoreArrays(p_gu31, p_gu32, p_gu33); CHKERRQ(ierr);
     ierr = this->m_WorkVecField3->RestoreArrays(p_gu21, p_gu22, p_gu23); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(p_gu11, p_gu12, p_gu13); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->RestoreArrays(p_u1, p_u2, p_u3); CHKERRQ(ierr);
