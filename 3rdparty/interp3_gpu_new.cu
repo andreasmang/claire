@@ -59,7 +59,6 @@ following papers:
 #include <math.h>
 #include <curand.h>
 #include <curand_kernel.h>
-#include <thrust/unique.h>
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
@@ -1063,7 +1062,6 @@ void gpuInterp3Dkernel(
     int nprocs;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     
-
     // SET cubic interpolation type here
     enum CUBIC_INTERP_TYPE interp_type = FAST_LAGRANGE;
     cudaPitchedPtr yi_cudaPitchedPtr;
@@ -1153,7 +1151,7 @@ void gpuInterp3Dkernel(
         break;
       };
     }
-    
+
     //cudaCheckKernelError();
 }
 
@@ -1189,14 +1187,13 @@ void gpuInterp3D(
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
-    ZeitGeist_define(interp_kernel);
-    ZeitGeist_tick(interp_kernel);
     gpuInterp3Dkernel(yi,xq,yo,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream);
+
     cudaStreamSynchronize(stream);
-    cudaDeviceSynchronize();
-    ZeitGeist_tock(interp_kernel);
-    
     cudaStreamDestroy(stream);
+
+
+    cudaDeviceSynchronize();
 }
 
 /********************************************************************
@@ -1229,9 +1226,7 @@ void gpuInterpVec3D(
     for (int i=0; i<3; i++) {
       cudaStreamCreate(&stream[i]);
     }
-    
-    ZeitGeist_define(interp_kernel);
-    ZeitGeist_tick(interp_kernel);
+
     gpuInterp3Dkernel(yi1,xq,yo1,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream[0]);
     gpuInterp3Dkernel(yi2,xq,yo2,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream[1]);
     gpuInterp3Dkernel(yi3,xq,yo3,tmp1,tmp2,nx,yi_tex,iporder,yi_extent,inv_nx,nq, &stream[2]);
@@ -1239,13 +1234,11 @@ void gpuInterpVec3D(
     for (int i=0; i<3; i++) 
       cudaStreamSynchronize(stream[i]);
     
-    cudaDeviceSynchronize();
-    ZeitGeist_tock(interp_kernel);
-    ZeitGeist_inc(interp_kernel);
-    ZeitGeist_inc(interp_kernel);
-
     for (int i=0; i<3; i++)
       cudaStreamDestroy(stream[i]);
+
+    
+    cudaDeviceSynchronize();
 }
 
 void getMax(ScalarType* x, int nl, ScalarType* max) {
@@ -1361,29 +1354,16 @@ __global__ void checkDomainKernel(short* which_proc, ScalarType* xq, ScalarType*
     int proc;
     if (tid < len) {
         x = xq[tid];
-        //y = yq[tid];
-        //z = zq[tid];
-        
-        while (x <= -d_h[0]) { x += 1; }
-        //while (y <= -d_h[1]) { y += 1; }
-        //while (z <= -d_h[2]) { z += 1; }
-        
-        while (x >= 1) { x -= 1; }
-        //while (y >= 1) { y -= 1; }
-        //while (z >= 1) { z -= 1; }
-        
-        xq[tid] = x;
-        //yq[tid] = y;
-        //zq[tid] = z;
-        
-        if ( d_iX0[0]-d_h[0] <= x && x <= d_iX1[0]+d_h[0]) { //&&
-             //d_iX0[1]-d_h[1] <= y && y <= d_iX1[1]+d_h[1] &&
-             //d_iX0[2]-d_h[2] <= z && z <= d_iX1[2]+d_h[2] ) {
+        y = yq[tid];
+        z = zq[tid];
+        if ( d_iX0[0]-d_h[0] <= x && x <= d_iX1[0]+d_h[0] &&
+             d_iX0[1]-d_h[1] <= y && y <= d_iX1[1]+d_h[1] &&
+             d_iX0[2]-d_h[2] <= z && z <= d_iX1[2]+d_h[2] ) {
             which_proc[tid] = static_cast<short>(procid);
         } else {
             dproc0=(int)(x/d_h[0])/isize.x;
-            //dproc1=(int)(y/d_h[1])/isize.y;
-            proc=dproc0*c_dim1;//+dproc1; 
+            dproc1=(int)(y/d_h[1])/isize.y;
+            proc=dproc0*c_dim1+dproc1; 
             which_proc[tid] = static_cast<short>(proc);
         }
     }
@@ -1442,9 +1422,9 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
         
         TestFunction(&f[i], x, y, z, caseid);
 
-        //x += h.x*6;
-        //y += h.y*5;
-        //z += h.z*sinf(z);
+        //x = 0;
+        //y = 0;
+        //z = 0;
         
         //float perturb=sinf(x)*sinf(y)*sinf(z); 
         //x += h.x*perturb;

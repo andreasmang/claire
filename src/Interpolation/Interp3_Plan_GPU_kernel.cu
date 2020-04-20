@@ -40,6 +40,8 @@ void print_vector(thrust::device_ptr<ScalarType> arr, int N, int stride) {
   }
 }
 
+
+
 void test_count() {
 
   int dev_id;

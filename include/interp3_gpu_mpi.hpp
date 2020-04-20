@@ -61,8 +61,6 @@ struct Interp3_Plan_GPU{
   bool output_baked;
   size_t all_f_capacity;
   
-  const int num_streams = 3;
-  cudaStream_t* stream;
   /*
   int* f_index_procs_others_offset; // offset in the all_query_points array
   int* f_index_procs_self_offset  ; // offset in the query_send array
@@ -88,7 +86,6 @@ struct Interp3_Plan_GPU{
   //size_t query_points_recv_capacity;
 
   short* which_proc;
-  short* unique_proc;
   //int* which_proc;
   //ScalarType *query_points_x, *query_points_y, *query_points_z;
   //bool allocate_baked;
@@ -138,4 +135,5 @@ void print_norm(ScalarType* arr, int N);
 void print_max(ScalarType* arr, int N);
 void test_count();
 void print_vector(thrust::device_ptr<ScalarType> arr, int N, int stride);
+
 #endif

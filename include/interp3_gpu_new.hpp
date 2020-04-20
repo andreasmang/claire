@@ -18,12 +18,6 @@
 #include <thrust/device_malloc.h>
 #include <thrust/device_free.h>
 #include <thrust/extrema.h>
-#include <thrust/sort.h>
-#include <thrust/inner_product.h>
-#include <thrust/binary_search.h>
-#include <thrust/adjacent_difference.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/counting_iterator.h>
 
 //#define BLOCK_COORDINATES
 
