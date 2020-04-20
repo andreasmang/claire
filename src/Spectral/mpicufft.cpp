@@ -1,5 +1,6 @@
 #include <cuda_runtime_api.h>
 #include "mpicufft.hpp"
+#include "zeitgeist.hpp"
 #include <algorithm>
 
 #if (cudaError == 0) && (cufftError == 0)
@@ -135,6 +136,31 @@ template<typename T> MPIcuFFT<T>::~MPIcuFFT() {
   if (planC2C) cudaCheck(cufftDestroy(planC2C));
 }
 
+template<typename T> size_t MPIcuFFT<T>::getSizes(const size_t* nx,
+                                                  size_t *isize, size_t *istart,
+                                                  size_t *osize, size_t *ostart,
+                                                  MPI_Comm comm) {
+  int pidx, pcnt;
+  MPI_Comm_size(comm, &pcnt);
+  MPI_Comm_rank(comm, &pidx);
+  
+  size_t N1    = nx[0]/pcnt;
+  size_t N1mod = nx[0]%pcnt;
+  istart[0] = N1*pidx + std::min(static_cast<size_t>(pidx), N1mod);
+  istart[1] = 0; istart[2] = 0;
+  isize[0]  = N1 + (static_cast<size_t>(pidx) < N1mod?1:0);
+  isize[1] = nx[1]; isize[2] = nx[2];
+  
+  size_t N2    = nx[1]/pcnt;
+  size_t N2mod = nx[1]%pcnt;
+  ostart[1] = N2*pidx + std::min(static_cast<size_t>(pidx), N2mod);
+  ostart[0] = 0; ostart[2] = 0;
+  osize[1]  = N2 + (static_cast<size_t>(pidx) < N2mod?1:0);
+  osize[0] = nx[0]; osize[2] = (nx[2] / 2) + 1;
+  
+  return 2*sizeof(T)*std::max((isize[0]*isize[1]*isize[2]/2) + 1, osize[0]*osize[1]*osize[2]);
+}
+
 template<typename T> void MPIcuFFT<T>::initFFT(size_t nx, size_t ny, size_t nz, bool allocate) {
   size_t N1    = nx/pcnt;
   size_t N1mod = nx%pcnt;
@@ -261,6 +287,8 @@ template<typename T> void MPIcuFFT<T>::execR2C(void *out, const void *in) {
     recv_req[pidx] = MPI_REQUEST_NULL;
     send_req[pidx] = MPI_REQUEST_NULL;
     // compute 2d FFT 
+    ZeitGeist_define(r2c_2dfft);
+    ZeitGeist_tick(r2c_2dfft);
     cudaCheck(cuFFT<T>::execR2C(planR2C, real, complex));
     cudaCheck(cudaDeviceSynchronize());
     size_t batch = 0;
@@ -278,7 +306,10 @@ template<typename T> void MPIcuFFT<T>::execR2C(void *out, const void *in) {
       cudaCheck(cuFFT<T>::execR2C(planR2C, &real[isizez*isizey*batch], &complex[osizez*isizey*batch]));
       cudaCheck(cudaDeviceSynchronize());
     }
+    ZeitGeist_tock(r2c_2dfft);
     if (comm_mode == Peer) {
+      ZeitGeist_define(r2c_comm);
+      ZeitGeist_tick(r2c_comm);
       //MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
       for (auto p : comm_order) { // transpose each (missing) block and send it to respective process
       //for (int i=1; i<pcnt; ++i) { // transpose each (missing) block and send it to respective process
@@ -318,7 +349,10 @@ template<typename T> void MPIcuFFT<T>::execR2C(void *out, const void *in) {
         MPI_Waitall(pcnt, recv_req.data(), MPI_STATUSES_IGNORE);
       }
       cudaCheck(cudaDeviceSynchronize());
+      ZeitGeist_tock(r2c_comm);
     } else {
+      ZeitGeist_define(r2c_comm);
+      ZeitGeist_tick(r2c_comm);
       std::vector<int> sendcount(pcnt, 0);
       std::vector<int> senddispl(pcnt, 0);
       std::vector<int> recvcount(pcnt, 0);
@@ -344,10 +378,14 @@ template<typename T> void MPIcuFFT<T>::execR2C(void *out, const void *in) {
       cudaCheck(cudaDeviceSynchronize());
       MPI_Alltoallv(send_ptr, sendcount.data(), senddispl.data(), MPI_BYTE,
                     recv_ptr, recvcount.data(), recvdispl.data(), MPI_BYTE, comm);
+      ZeitGeist_tock(r2c_comm);
     }
+    ZeitGeist_define(r2c_1dfft);
+    ZeitGeist_tick(r2c_1dfft);
     // compute remaining 1d FFT, for cuda-aware recv and temp buffer are identical
     cudaCheck(cuFFT<T>::execC2C(planC2C, temp_ptr, complex, CUFFT_FORWARD));
     cudaCheck(cudaDeviceSynchronize());
+    ZeitGeist_tock(r2c_1dfft);
     if (comm_mode == Peer) {
       MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
     }
@@ -376,10 +414,15 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
     }
     recv_req[pidx] = MPI_REQUEST_NULL;
     send_req[pidx] = MPI_REQUEST_NULL;
+    ZeitGeist_define(c2r_1dfft);
+    ZeitGeist_tick(c2r_1dfft);
     // compute 1d complex to complex FFT in x direction
     cudaCheck(cuFFT<T>::execC2C(planC2C, complex, temp_ptr, CUFFT_INVERSE));
     cudaCheck(cudaDeviceSynchronize());
+    ZeitGeist_tock(c2r_1dfft);
     if (comm_mode == Peer) {
+      ZeitGeist_define(c2r_comm);
+      ZeitGeist_tick(c2r_comm);
       //MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
       for (auto p : comm_order) { // copy blocks and send to respective process
       //for (int i=1; i<pcnt; ++i) { // copy blocks and send to respective process
@@ -419,7 +462,10 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
         } while(p != MPI_UNDEFINED);
       }
       cudaCheck(cudaDeviceSynchronize());
+      ZeitGeist_tock(c2r_comm);
     } else {
+      ZeitGeist_define(c2r_comm);
+      ZeitGeist_tick(c2r_comm);
       std::vector<int> sendcount(pcnt, 0);
       std::vector<int> senddispl(pcnt, 0);
       std::vector<int> recvcount(pcnt, 0);
@@ -441,7 +487,10 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
                                     cudaMemcpyDeviceToDevice));
       }
       cudaCheck(cudaDeviceSynchronize());
+      ZeitGeist_tock(c2r_comm);
     }
+    ZeitGeist_define(c2r_2dfft);
+    ZeitGeist_tick(c2r_2dfft);
     cudaCheck(cuFFT<T>::execC2R(planC2R, copy_ptr, real));
     cudaCheck(cudaDeviceSynchronize());
     if (half_batch) {
@@ -449,13 +498,14 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
       cudaCheck(cuFFT<T>::execC2R(planC2R, &copy_ptr[osizez*isizey*batch], &real[isizez*isizey*batch]));
       cudaCheck(cudaDeviceSynchronize());
     }
+    ZeitGeist_tock(c2r_2dfft);
     if (comm_mode == Peer) {
       MPI_Waitall(pcnt, send_req.data(), MPI_STATUSES_IGNORE);
     }
   }
 }
 
-template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPIcuFFT<T>* fft_coarse, changeType_e dir) {
+template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPIcuFFT<T>* fft_coarse, changeType_e dir, bool clear_output) {
   if (!initialized || !fft_coarse->initialized) return;
   MPIcuFFT<T> *fft_o = nullptr, *fft_i = nullptr;
   using C_t = typename cuFFT<T>::C_t;
@@ -472,7 +522,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
       break;
   };
   
-  cudaCheck(cudaMemset(out, 0, fft_o->domainsize));
+  if (clear_output) {
+    cudaCheck(cudaMemset(out, 0, fft_o->domainsize));
+  }
   if (pcnt <= 2) { // coarse and fine data is aligned -> only local copies
     size_t pitch_o = fft_o->osizez*sizeof(C_t);
     size_t pitch_i = fft_i->osizez*sizeof(C_t);
@@ -535,7 +587,10 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
     size_t width = (fft_coarse->osizez-1)*sizeof(C_t);
     size_t height_l = fft_coarse->isizey/2;
     size_t height_h = fft_coarse->isizey/2;
-    size_t half_x = fft_coarse->osizex/2;
+    size_t half_xl = fft_coarse->osizex/2;
+    size_t half_xh = fft_coarse->osizex/2;
+    
+    if (fft_coarse->osizex%2 == 0) half_xh -= 1;
     
     size_t pitch = (fft_coarse->osizex-1)*(fft_coarse->osizez-1);
     
@@ -567,8 +622,7 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
       int p = psend + i;
       size_t sizey = isend[i+1] - isend[i];
       if (p == pidx) {
-        half_x = fft_coarse->osizex/2;
-        for (size_t x=0; x<half_x; ++x) {
+        for (size_t x=0; x<half_xl; ++x) {
           size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*x;
           size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*x;
           offset_i += isend[i]*fft_i->osizez;
@@ -578,10 +632,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       width, sizey,
                                       cudaMemcpyDeviceToDevice));
         }
-        if (fft_coarse->osizex%2 == 0) half_x -= 1; // skip Nyquist
-        for (size_t x=0; x<half_x; ++x) {
-          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_x + x);
-          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_x + x);
+        for (size_t x=0; x<half_xh; ++x) {
+          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_xh + x);
+          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_xh + x);
           offset_i += isend[i]*fft_i->osizez;
           offset_o += selfrecv*fft_o->osizez;
           cudaCheck(cudaMemcpy2DAsync(&data_o[offset_o], pitch_o,
@@ -590,8 +643,7 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       cudaMemcpyDeviceToDevice));
         }
       } else {
-        half_x = fft_coarse->osizex/2;
-        for (size_t x=0; x<half_x; ++x) {
+        for (size_t x=0; x<half_xl; ++x) {
           size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*x;
           offset_i += isend[i]*fft_i->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
@@ -600,10 +652,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       width, sizey,
                                       cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyDeviceToHost));
         }
-        size_t offset = half_x*sizey*(fft_coarse->osizez-1);
-        if (fft_coarse->osizex%2 == 0) half_x -= 1; // skip Nyquist
-        for (size_t x=0; x<half_x; ++x) {
-          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_x + x);
+        size_t offset = half_xl*sizey*(fft_coarse->osizez-1);
+        for (size_t x=0; x<half_xh; ++x) {
+          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_xh + x);
           offset_i += isend[i]*fft_i->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
           cudaCheck(cudaMemcpy2DAsync(&send_ptr[pitch*isend[i] + offset + slice], width,
@@ -624,8 +675,7 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
         if (i == MPI_UNDEFINED) break;
         int p = psend + i;
         size_t sizey = irecv[i+1] - irecv[i];
-        half_x = fft_coarse->osizex/2;
-        for (size_t x=0; x<half_x; ++x) {
+        for (size_t x=0; x<half_xl; ++x) {
           size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*x;
           offset_o += irecv[i]*fft_o->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
@@ -634,10 +684,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       width, sizey,
                                       cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyHostToDevice));
         }
-        size_t offset = half_x*sizey*(fft_coarse->osizez-1);
-        if (fft_coarse->osizex%2 == 0) half_x -= 1; // skip Nyquist
-        for (size_t x=0; x<half_x; ++x) {
-          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_x + x);
+        size_t offset = half_xl*sizey*(fft_coarse->osizez-1);
+        for (size_t x=0; x<half_xh; ++x) {
+          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_xh + x);
           offset_o += irecv[i]*fft_o->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
           cudaCheck(cudaMemcpy2DAsync(&data_o[offset_o], pitch_o,
@@ -675,8 +724,7 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
       int p = psend + i;
       size_t sizey = isend[i+1] - isend[i];
       if (p == pidx) {
-        half_x = fft_coarse->osizex/2;
-        for (size_t x=0; x<half_x; ++x) {
+        for (size_t x=0; x<half_xl; ++x) {
           size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*x;
           size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*x;
           offset_i += isend[i]*fft_i->osizez;
@@ -686,10 +734,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       width, sizey,
                                       cudaMemcpyDeviceToDevice));
         }
-        if (fft_coarse->osizex%2 == 0) half_x -= 1; // skip Nyquist
-        for (size_t x=0; x<half_x; ++x) {
-          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_x + x);
-          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_x + x);
+        for (size_t x=0; x<half_xh; ++x) {
+          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_xh + x);
+          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_xh + x);
           offset_i += isend[i]*fft_i->osizez;
           offset_o += selfrecv*fft_o->osizez;
           cudaCheck(cudaMemcpy2DAsync(&data_o[offset_o], pitch_o,
@@ -698,8 +745,7 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       cudaMemcpyDeviceToDevice));
         }
       } else {
-        half_x = fft_coarse->osizex/2;
-        for (size_t x=0; x<half_x; ++x) {
+        for (size_t x=0; x<half_xl; ++x) {
           size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*x;
           offset_i += isend[i]*fft_i->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
@@ -708,10 +754,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       width, sizey,
                                       cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyDeviceToHost));
         }
-        size_t offset = half_x*sizey*(fft_coarse->osizez-1);
-        if (fft_coarse->osizex%2 == 0) half_x -= 1; // skip Nyquist
-        for (size_t x=0; x<half_x; ++x) {
-          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_x + x);
+        size_t offset = half_xl*sizey*(fft_coarse->osizez-1);
+        for (size_t x=0; x<half_xh; ++x) {
+          size_t offset_i = fft_i->osizez*fft_i->osizey[pidx]*(fft_i->osizex - half_xh + x);
           offset_i += isend[i]*fft_i->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
           cudaCheck(cudaMemcpy2DAsync(&send_ptr[pitch*isend[i] + offset + slice], width,
@@ -732,8 +777,7 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
         if (i == MPI_UNDEFINED) break;
         int p = psend + i;
         size_t sizey = irecv[i+1] - irecv[i];
-        half_x = fft_coarse->osizex/2;
-        for (size_t x=0; x<half_x; ++x) {
+        for (size_t x=0; x<half_xl; ++x) {
           size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*x;
           offset_o += irecv[i]*fft_o->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
@@ -742,10 +786,9 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
                                       width, sizey,
                                       cuda_aware?cudaMemcpyDeviceToDevice:cudaMemcpyHostToDevice));
         }
-        size_t offset = half_x*sizey*(fft_coarse->osizez-1);
-        if (fft_coarse->osizex%2 == 0) half_x -= 1; // skip Nyquist
-        for (size_t x=0; x<half_x; ++x) {
-          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_x + x);
+        size_t offset = half_xl*sizey*(fft_coarse->osizez-1);
+        for (size_t x=0; x<half_xh; ++x) {
+          size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*(fft_o->osizex - half_xh + x);
           offset_o += irecv[i]*fft_o->osizez;
           size_t slice = (fft_coarse->osizez-1)*sizey*x;
           cudaCheck(cudaMemcpy2DAsync(&data_o[offset_o], pitch_o,

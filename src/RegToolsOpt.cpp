@@ -301,6 +301,10 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-scale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
+        } else if (strcmp(argv[1], "-norm") == 0) {
+            this->m_ResamplingPara.normalize = true;
+        } else if (strcmp(argv[1], "-clip") == 0) {
+            this->m_ResamplingPara.clip = true;
         } else if (strcmp(argv[1], "-nxnew") == 0) {
             argc--; argv++;
             const std::string nxinput = argv[1];
@@ -396,7 +400,10 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_RegToolFlags.computedice = false;
     this->m_RegToolFlags.tprobmaps = false;
     this->m_RegToolFlags.computeravensmap = false;
-
+    
+    
+    this->m_ResamplingPara.normalize = false;
+    this->m_ResamplingPara.clip = false;
     this->m_ResamplingPara.gridscale = -1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
     this->m_ResamplingPara.nx[1] = -1.0;
@@ -524,6 +531,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << "                             output is resampled_input.ext)" << std::endl;
         std::cout << " -scale                      scale for resampling (multiplier applied to number of grid points)" << std::endl;
         std::cout << " -nxnew                      number of grid points for output" << std::endl;
+        std::cout << " -norm                       normalize output to [0, 1]" << std::endl;
+        std::cout << " -clip                       clip values below 0" << std::endl;
         std::cout << line << std::endl;
         std::cout << " ### other parameters/debugging" << std::endl;
         std::cout << line << std::endl;

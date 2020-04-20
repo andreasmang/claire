@@ -2760,7 +2760,11 @@ PetscErrorCode RegOpt::DisplayOptions() {
  *******************************************************************/
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     PetscErrorCode ierr = 0;
+#ifdef REG_HAS_CUDA
+    size_t nxi[3], isize[3], istart[3], osize[3], ostart[3];
+#else
     int nxi[3], isize[3], istart[3], osize[3], ostart[3];
+#endif
 
     PetscFunctionBegin;
 
@@ -2774,7 +2778,11 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
     nxi[1] = static_cast<int>(nx[1]);
     nxi[2] = static_cast<int>(nx[2]);
 
+#ifdef REG_HAS_CUDA
+    MPIcuFFT<ScalarType>::getSizes(nxi, isize, istart, osize, ostart);
+#else
     accfft_local_size_dft_r2c_t<ScalarType>(nxi, isize, istart, osize, ostart, this->m_Domain.mpicomm);
+#endif
 
     nl = 1; ng = 1;
     for (int i = 0; i < 3; ++i) {
@@ -2795,8 +2803,11 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType& nl, IntType& ng) {
  *******************************************************************/
 PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     PetscErrorCode ierr = 0;
+#ifdef REG_HAS_CUDA
+    size_t nxi[3], isizei[3], istarti[3], osize[3], ostart[3];
+#else
     int nxi[3], isizei[3], istarti[3], osize[3], ostart[3];
-
+#endif
     PetscFunctionBegin;
 
     this->Enter(__func__);
@@ -2809,7 +2820,11 @@ PetscErrorCode RegOpt::GetSizes(IntType* nx, IntType* istart, IntType* isize) {
     nxi[1] = static_cast<int>(nx[1]);
     nxi[2] = static_cast<int>(nx[2]);
 
+#ifdef REG_HAS_CUDA
+    MPIcuFFT<ScalarType>::getSizes(nxi, isizei, istarti, osize, ostart);
+#else
     accfft_local_size_dft_r2c_t<ScalarType>(nxi, isizei, istarti, osize, ostart, this->m_Domain.mpicomm);
+#endif
 
     for (int i = 0; i < 3; ++i) {
         isize[i] = static_cast<IntType>(isizei[i]);

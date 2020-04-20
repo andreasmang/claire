@@ -708,7 +708,7 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
             if (scale == -1.0) {
                 for (int i = 0; i < 3; ++i) {
                     if      (nxl[i] > nx[i]) pro = true;
-                    else if (nxl[i] < nx[i]) res = true;
+                    else if (nxl[i] <= nx[i]) res = true;
                 }
             } else {
                 for (int i = 0; i < 3; ++i) {
@@ -757,6 +757,23 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
                 try {readwrite = new reg::ReadWriteReg(regopt);}
                 catch (std::bad_alloc&) {
                     ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
+                }
+                
+                if (regopt->m_ResamplingPara.clip) {
+                  ScalarType *p_x;
+                  ierr = VecGetArray(ml, &p_x); CHKERRQ(ierr);
+                  for (IntType i = 0; i < nl; ++i) {
+                    if (p_x[i] < 0.0) p_x[i] = 0.0;
+                  }
+                  ierr = VecRestoreArray(ml, &p_x); CHKERRQ(ierr);
+                }
+                
+                if (regopt->m_ResamplingPara.normalize) {
+                  ScalarType xmin, xmax;
+                  ierr = VecMin(ml, NULL, &xmin); CHKERRQ(ierr);
+                  ierr = VecMax(ml, NULL, &xmax); CHKERRQ(ierr);
+                  ierr = VecShift(ml, -xmin); CHKERRQ(ierr);
+                  ierr = VecScale(ml, 1.0/(xmax-xmin)); CHKERRQ(ierr);
                 }
 
                 // write resampled scalar field to file

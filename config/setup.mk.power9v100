@@ -72,7 +72,7 @@ ifeq ($(USECUDA),yes)
 endif
 
 ifeq ($(USECUDA),yes)
-	BINDIR = ./bingpu
+	BINDIR = ./bindev
 	OBJDIR = ./objgpu
 else
 	BINDIR = ./bin

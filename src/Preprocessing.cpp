@@ -824,10 +824,10 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     ierr = Assert(x_f != nullptr, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(x_c != nullptr, "null pointer"); CHKERRQ(ierr);
 
-    if ((nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2])) {
+    /*if ((nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2])) {
         ierr = VecCopy(x_f, *x_c); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
-    }
+    }*/
 
     for (int i = 0; i < 3; ++i) {
         this->m_nxC[i] = nx_c[i];
@@ -1599,10 +1599,10 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
         ierr = DebugInfo(x_c, "coarse data", __LINE__, __FILE__); CHKERRQ(ierr);
     }
 
-    if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ) {
+    /*if ( (nx_c[0] == nx_f[0]) && (nx_c[1] == nx_f[1]) && (nx_c[2] == nx_f[2]) ) {
         ierr = VecCopy(x_c, *x_f); CHKERRQ(ierr);
         PetscFunctionReturn(ierr);
-    }
+    }*/
 
     for (int i = 0; i < 3; ++i) {
         this->m_nxC[i] = nx_c[i];

@@ -210,8 +210,8 @@ PETSC_CUDA_OPTIONS="
 --with-cuda=1
 --download-cusp=yes
 --CUDAFLAGS='-arch=sm_70'
---CUDAOPTFLAGS='-O3'"
-#-use-gpu-aware-mpi"
+--CUDAOPTFLAGS='-O3'
+-use-gpu-aware-mpi"
 
 PETSC_DBG_OPTIONS="
 --with-cc=${MPI_C}

@@ -72,6 +72,8 @@ class DifferentiationSM : public Differentiation {
     
     virtual PetscErrorCode Restrict(ScalarType*, const ScalarType*, FourierTransform* coarse);
     virtual PetscErrorCode Prolong(ScalarType*, const ScalarType*, FourierTransform* coarse);
+    virtual PetscErrorCode RestrictH0(VecField*, VecField*, FourierTransform* coarse, ScalarType beta);
+    virtual PetscErrorCode ProlongH0(VecField*, VecField*, FourierTransform* coarse);
     
  protected:
     PetscErrorCode Initialize();

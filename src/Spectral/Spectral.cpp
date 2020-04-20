@@ -187,10 +187,10 @@ PetscErrorCode Spectral::SetupFFT() {
         ss.clear(); ss.str(std::string());
       }
       this->m_FFT->nalloc = this->m_plan->getDomainSize();
-      if (sharedalloc > this->m_FFT->nalloc) {
+      /*if (sharedalloc > this->m_FFT->nalloc) {
         this->m_WorkSpace = this->m_Opt->m_FFT.fft->m_WorkSpace;
         m_SharedWorkSpace = true;
-      } else {
+      } else*/ {
         ierr = AllocateMemoryOnce(this->m_WorkSpace, this->m_FFT->nalloc*3);
         m_SharedWorkSpace = false;
       }
@@ -382,6 +382,26 @@ PetscErrorCode Spectral::Prolong(ComplexType *xf, const ComplexType *xc, Spectra
 
 #if REG_HAS_CUDA
     this->m_plan->prolongFrom(xf, xc, fft_coarse->m_plan);
+    //ierr = this->m_kernel.Prolong(xf, xc, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
+#else
+    if (this->m_Opt->rank_cnt == 1) {
+      ierr = this->m_kernel.Prolong(xf, xc, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
+    } else {
+      ierr = ThrowError("Spectral restriction not implemented!"); CHKERRQ(ierr);
+    }
+#endif
+
+    PetscFunctionReturn(ierr);
+}
+/********************************************************************
+ * @brief Prolong from lower Grid
+ *******************************************************************/
+PetscErrorCode Spectral::ProlongMerge(ComplexType *xf, const ComplexType *xc, Spectral *fft_coarse) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+#if REG_HAS_CUDA
+    this->m_plan->prolongFromMerge(xf, xc, fft_coarse->m_plan);
     //ierr = this->m_kernel.Prolong(xf, xc, fft_coarse->m_FFT->nx, fft_coarse->m_FFT->osize, fft_coarse->m_FFT->ostart); CHKERRQ(ierr);
 #else
     if (this->m_Opt->rank_cnt == 1) {

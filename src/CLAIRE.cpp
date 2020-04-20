@@ -1196,15 +1196,24 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
       } else {
         ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+        if (this->m_Opt->m_Verbosity > 2) {
+            ScalarType norm;
+            ierr = this->m_WorkVecField1->Norm2(norm);
+            std::stringstream ss;
+            ss << "KSP res: " << sqrt(norm);
+            ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
+        }
+        /*ierr = diff->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
         //ierr = preproc->Restrict(this->m_WorkVecField1, this->m_WorkVecField1, nx_c, nx_f); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->RestoreArrays();
+        ierr = this->m_WorkVecField1->RestoreArrays();*/
+        ierr = diff->RestrictH0(this->m_WorkVecField1, this->m_WorkVecField1, &this->m_Opt->m_FFT_coarse, beta); CHKERRQ(ierr);
         ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-        ierr = diff->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
+        //ierr = diff->InvRegLapOp(this->m_WorkVecField1, this->m_WorkVecField1, false, beta); CHKERRQ(ierr);
       }
       
       kernel.nl = this->m_Opt->m_FFT_coarse.isize[0]*this->m_Opt->m_FFT_coarse.isize[1]*this->m_Opt->m_FFT_coarse.isize[2];
@@ -1212,7 +1221,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField1); CHKERRQ(ierr);
     
-    IntType innerloop = 500;
+    IntType innerloop = 100;
     
     ScalarType cg_eps;
     if (twolevel && pre) {
@@ -1364,12 +1373,14 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         }
         
         //ierr = preproc->Prolong(this->m_WorkVecField1, this->m_WorkVecField1, nx_f, nx_c); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+        /*ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
         ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
-        ierr = diff->Prolong(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-        ierr = diff->Prolong(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-        ierr = diff->Prolong(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->RestoreArrays();
+        ierr = diff->ProlongMerge(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = diff->ProlongMerge(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = diff->ProlongMerge(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = this->m_WorkVecField1->RestoreArrays();*/
+        
+        ierr = diff->ProlongH0(this->m_WorkVecField1, this->m_WorkVecField1, &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         
         //ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
         
@@ -1388,6 +1399,13 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ss << "PC res: " << sqrt(cg_r) << ", " << sqrt(cg_r)/normref;
       ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
       ss.str(std::string()); ss.clear();
+    }
+    if (this->m_Opt->m_Verbosity > 2) {
+        ScalarType norm;
+        ierr = this->m_WorkVecField1->Norm2(norm);
+        std::stringstream ss;
+        ss << "KSP res: " << sqrt(norm);
+        ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
     }
     
     ierr = gradM[0]->RestoreArrays(); CHKERRQ(ierr);

@@ -122,9 +122,7 @@ PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, Co
     
     this->m_FFT = &this->m_Opt->m_FFT;
     
-    nc  = this->m_FFT->osize[0];
-    nc *= this->m_FFT->osize[1];
-    nc *= this->m_FFT->osize[2];
+    nc = this->m_FFT->nalloc/(2*sizeof(ScalarType));
     
      this->m_SpectralKernel.pXHat[0] = &this->m_FFT->fft->m_WorkSpace[0*nc];
      this->m_SpectralKernel.pXHat[1] = &this->m_FFT->fft->m_WorkSpace[1*nc];
@@ -178,8 +176,16 @@ PetscErrorCode DifferentiationSM::SetupData(ComplexType *x1, ComplexType *x2, Co
 
 PetscErrorCode DifferentiationSM::SetFFT(FourierTransform* fft) {
   PetscErrorCode ierr = 0;
+  IntType nc;
   PetscFunctionBegin;
   this->m_FFT = fft;
+  
+  nc = this->m_FFT->nalloc/(2*sizeof(ScalarType));
+    
+  this->m_SpectralKernel.pXHat[0] = &this->m_FFT->fft->m_WorkSpace[0*nc];
+  this->m_SpectralKernel.pXHat[1] = &this->m_FFT->fft->m_WorkSpace[1*nc];
+  this->m_SpectralKernel.pXHat[2] = &this->m_FFT->fft->m_WorkSpace[2*nc];
+  
   this->m_SpectralKernel.nx[0] = this->m_FFT->nx[0];
   this->m_SpectralKernel.nx[1] = this->m_FFT->nx[1];
   this->m_SpectralKernel.nx[2] = this->m_FFT->nx[2];
@@ -672,12 +678,17 @@ PetscErrorCode DifferentiationSM::ComputeInverseFFT(ScalarType* v) {
 
 PetscErrorCode DifferentiationSM::Restrict(ScalarType* vc, const ScalarType* vf, FourierTransform* coarse) {
   PetscErrorCode ierr = 0;
-  ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+  ComplexType *pXHat[2];
   PetscFunctionBegin;
   
   ZeitGeist_define(FFT_RESTRICT);
   ZeitGeist_tick(FFT_RESTRICT);
   ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
+  
+  IntType nc = coarse->nalloc/(2*sizeof(ScalarType));
+  
+  pXHat[0] = &this->m_FFT->fft->m_WorkSpace[0];
+  pXHat[1] = &coarse->fft->m_WorkSpace[nc];
   
   this->m_FFT->fft->FFT_R2C(vf, pXHat[0]);
   this->m_FFT->fft->Restrict(pXHat[1], pXHat[0], coarse->fft);
@@ -688,15 +699,21 @@ PetscErrorCode DifferentiationSM::Restrict(ScalarType* vc, const ScalarType* vf,
   
   PetscFunctionReturn(ierr);
 }
+
 PetscErrorCode DifferentiationSM::Prolong(ScalarType* vf, const ScalarType* vc, FourierTransform* coarse) {
   PetscErrorCode ierr = 0;
-  ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+  ComplexType *pXHat[2];
   PetscFunctionBegin;
   
   ZeitGeist_define(FFT_PROLONG);
   ZeitGeist_tick(FFT_PROLONG);
   
   ScalarType scale = 1./(coarse->nx[0]*coarse->nx[1]*coarse->nx[2]);
+  
+  IntType nc = coarse->nalloc/(2*sizeof(ScalarType));
+  
+  pXHat[1] = &this->m_FFT->fft->m_WorkSpace[0];
+  pXHat[0] = &coarse->fft->m_WorkSpace[nc];
   
   coarse->fft->FFT_R2C(vc, pXHat[0]);
   //this->m_FFT->fft->FFT_R2C(vf, pXHat[1]);
@@ -706,6 +723,97 @@ PetscErrorCode DifferentiationSM::Prolong(ScalarType* vf, const ScalarType* vc, 
   this->m_FFT->fft->FFT_C2R(pXHat[1], vf);
   
   ZeitGeist_tock(FFT_PROLONG);
+  
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationSM::RestrictH0(VecField* vc, VecField* vf, FourierTransform* coarse, ScalarType beta) {
+  PetscErrorCode ierr = 0;
+  ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+  ComplexType *pXHat_c[3];
+  PetscFunctionBegin;
+  
+  ZeitGeist_define(FFT_H0RESTRICT);
+  ZeitGeist_tick(FFT_H0RESTRICT);
+  ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
+  
+  const ScalarType *pVf[3] = {nullptr, nullptr, nullptr};
+  ScalarType *pVc[3] = {nullptr, nullptr, nullptr};
+  
+  IntType nc = coarse->nalloc/(2*sizeof(ScalarType));
+  
+  pXHat_c[0] = &coarse->fft->m_WorkSpace[0*nc];
+  pXHat_c[1] = &coarse->fft->m_WorkSpace[1*nc];
+  pXHat_c[2] = &coarse->fft->m_WorkSpace[2*nc];
+  
+  ierr = vf->GetArraysRead(pVf); CHKERRQ(ierr);
+  this->m_FFT->fft->FFT_R2C(pVf[0], pXHat[0]);
+  this->m_FFT->fft->FFT_R2C(pVf[1], pXHat[1]);
+  this->m_FFT->fft->FFT_R2C(pVf[2], pXHat[2]);
+  ierr = vf->RestoreArrays(); CHKERRQ(ierr);
+  
+  ierr = this->m_SpectralKernel.InverseLaplacian(false, beta, 0); CHKERRQ(ierr);
+  
+  //this->m_FFT->fft->Scale(pXHat[0], scale);
+  //this->m_FFT->fft->Scale(pXHat[1], scale);
+  //this->m_FFT->fft->Scale(pXHat[2], scale);
+  
+  this->m_FFT->fft->Restrict(pXHat_c[0], pXHat[0], coarse->fft);
+  this->m_FFT->fft->Restrict(pXHat_c[1], pXHat[1], coarse->fft);
+  this->m_FFT->fft->Restrict(pXHat_c[2], pXHat[2], coarse->fft);
+  
+  ierr = vc->GetArraysWrite(pVc); CHKERRQ(ierr);
+  coarse->fft->FFT_C2R(pXHat_c[0], pVc[0]);
+  coarse->fft->FFT_C2R(pXHat_c[1], pVc[1]);
+  coarse->fft->FFT_C2R(pXHat_c[2], pVc[2]);
+  ierr = vc->RestoreArrays(); CHKERRQ(ierr);
+  
+  ZeitGeist_tock(FFT_H0RESTRICT);
+  
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode DifferentiationSM::ProlongH0(VecField* vf, VecField* vc, FourierTransform* coarse) {
+  PetscErrorCode ierr = 0;
+  ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+  ComplexType *pXHat_c[3];
+  PetscFunctionBegin;
+  
+  ZeitGeist_define(FFT_H0PROLONG);
+  ZeitGeist_tick(FFT_H0PROLONG);
+  
+  ScalarType scale = 1./(coarse->nx[0]*coarse->nx[1]*coarse->nx[2]);
+  
+  const ScalarType *pVc[3] = {nullptr, nullptr, nullptr};
+  ScalarType *pVf[3] = {nullptr, nullptr, nullptr};
+  
+  IntType nc = coarse->nalloc/(2*sizeof(ScalarType));
+  
+  pXHat_c[0] = &coarse->fft->m_WorkSpace[0*nc];
+  pXHat_c[1] = &coarse->fft->m_WorkSpace[1*nc];
+  pXHat_c[2] = &coarse->fft->m_WorkSpace[2*nc];
+  
+  ierr = vc->GetArraysRead(pVc); CHKERRQ(ierr);
+  coarse->fft->FFT_R2C(pVc[0], pXHat_c[0]);
+  coarse->fft->FFT_R2C(pVc[1], pXHat_c[1]);
+  coarse->fft->FFT_R2C(pVc[2], pXHat_c[2]);
+  ierr = vc->RestoreArrays(); CHKERRQ(ierr);
+  
+  coarse->fft->Scale(pXHat_c[0], scale);
+  coarse->fft->Scale(pXHat_c[1], scale);
+  coarse->fft->Scale(pXHat_c[2], scale);
+  
+  this->m_FFT->fft->ProlongMerge(pXHat[0], pXHat_c[0], coarse->fft);
+  this->m_FFT->fft->ProlongMerge(pXHat[1], pXHat_c[1], coarse->fft);
+  this->m_FFT->fft->ProlongMerge(pXHat[2], pXHat_c[2], coarse->fft);
+  
+  ierr = vf->GetArraysWrite(pVf); CHKERRQ(ierr);
+  this->m_FFT->fft->FFT_C2R(pXHat[0], pVf[0]);
+  this->m_FFT->fft->FFT_C2R(pXHat[1], pVf[1]);
+  this->m_FFT->fft->FFT_C2R(pXHat[2], pVf[2]);
+  ierr = vf->RestoreArrays(); CHKERRQ(ierr);
+  
+  ZeitGeist_tock(FFT_H0PROLONG);
   
   PetscFunctionReturn(ierr);
 }

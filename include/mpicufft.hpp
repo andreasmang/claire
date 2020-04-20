@@ -35,9 +35,17 @@ public:
   virtual inline void prolongFrom(void *fine, const void *coarse, MPIcuFFT<T>* fft_coarse) {
     changeSize(fine, coarse, fft_coarse, Prolong);
   }
+  virtual inline void prolongFromMerge(void *fine, const void *coarse, MPIcuFFT<T>* fft_coarse) {
+    changeSize(fine, coarse, fft_coarse, Prolong, false);
+  }
+  
+  static size_t getSizes(const size_t* nx, 
+                         size_t *isize, size_t *istart, 
+                         size_t *osize, size_t *ostart,
+                         MPI_Comm comm=MPI_COMM_WORLD);
 protected:
   enum changeType_e {Prolong, Restrict};
-  virtual void changeSize(void *out, const void *in, MPIcuFFT<T>* fft_coarse, changeType_e direction);
+  virtual void changeSize(void *out, const void *in, MPIcuFFT<T>* fft_coarse, changeType_e direction, bool clear_output=true);
   
   cufftHandle planR2C;
   cufftHandle planC2R;

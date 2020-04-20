@@ -52,6 +52,7 @@ class Spectral {
     
     PetscErrorCode Restrict(ComplexType *xc, const ComplexType *xf, Spectral* fft_coarse);
     PetscErrorCode Prolong(ComplexType *xf, const ComplexType *xc, Spectral* fft_coarse);
+    PetscErrorCode ProlongMerge(ComplexType *xf, const ComplexType *xc, Spectral* fft_coarse);
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     

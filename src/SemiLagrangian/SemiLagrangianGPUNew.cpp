@@ -441,10 +441,10 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
 
     if (this->m_Opt->rank_cnt == 1) {
       ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
-    } 
-    
-    //ierr = kernel.RK2_Step2(); CHKERRQ(ierr);
-    ierr = kernel.RK2_Step2_inplace(); CHKERRQ(ierr);
+      ierr = kernel.RK2_Step2(); CHKERRQ(ierr);
+    } else {
+      ierr = kernel.RK2_Step2_inplace(); CHKERRQ(ierr);
+    }
     
     ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
