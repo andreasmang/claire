@@ -24,7 +24,7 @@ A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory sol
 * [News](doc/README-NEWS.md)
 * [Publications](doc/README-REFERENCES.md)
 
-The links above point to individual markdown files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
+The links above point to individual markdown files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded here: [NIREP Data](https://github.com/andreasmang/nirep).
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
