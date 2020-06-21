@@ -175,6 +175,7 @@ __device__ void getCoordinates(ScalarType* x, ScalarType* y, ScalarType* z, cons
  * @brief prefilte for z-direction
  *******************************************************************/
 __global__ void prefilter_z(float* dfz, float* f) {
+  /*
   __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -206,6 +207,54 @@ __global__ void prefilter_z(float* dfz, float* f) {
     for(int l=0; l<HALO; l++) {
         dfz[globalIdx] += d_c[l+1] * (s_f[sj][sk+1+l] + s_f[sj][sk-1-l]);
     }
+    */
+  __shared__ float s_f[sx][sy+2*HALO]; // HALO-wide halo for central diferencing scheme
+    
+  // note i and k have been exchanged to ac3ount for k being the fastest changing index
+  int i = blockIdx.z;
+  int j = blockIdx.y*blockDim.y + threadIdx.y;
+  int k  = blockIdx.x*blockDim.x + threadIdx.x;
+  int sk = threadIdx.x + HALO;       // local k for shared memory ac3ess + halo offset
+  int sj = threadIdx.y; // local j for shared memory ac3ess
+  int zblock_width, id;
+  
+  if (blockIdx.x < gridDim.x - 1) {
+    zblock_width = blockDim.x;
+  }
+  else {
+    zblock_width = d_nz - blockIdx.x*blockDim.x;
+  }
+  
+  bool internal = (j < d_ny) && (threadIdx.x < zblock_width);
+  
+  if (internal) {
+    id = getLinearIdx(i,j,k);
+    s_f[sj][sk] = f[id];
+  }
+
+  __syncthreads();
+    
+  int lid,rid;
+  // fill in periodic images in shared memory array 
+  if (threadIdx.x < HALO) {
+    lid = k%d_nz-HALO;
+    if (lid<0) lid+=d_nz;
+    s_f[sj][sk-HALO] = f[i*d_ny*d_nz + j*d_nz + lid];
+    rid = (k+zblock_width)%d_nz;
+    s_f[sj][zblock_width+sk] = f[i*d_ny*d_nz + j*d_nz + rid];
+  }
+
+  __syncthreads();
+  
+  ScalarType result = 0;
+  if (internal) {
+    result = d_c[0]*s_f[sj][sk];
+    for(int l=0; l<HALO; l++) {
+        result += d_c[l+1] * (s_f[sj][sk+1+l] + s_f[sj][sk-1-l]);
+    }
+    dfz[id] = result;
+  }
+
 }
 
 
@@ -213,6 +262,7 @@ __global__ void prefilter_z(float* dfz, float* f) {
  * @brief prefilter for y-direction
  *******************************************************************/
 __global__ void prefilter_y(float* dfy, float* f) {
+  /*
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -251,6 +301,66 @@ __global__ void prefilter_y(float* dfy, float* f) {
         dfy[globalIdx] += d_c[l+1] * ( s_f[sj+1+l][sk] + s_f[sj-1-l][sk]);
     }
   }
+  */
+  __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
+    
+  // note i and k have been exchanged to ac3ount for k being the fastest changing index
+  int i  = blockIdx.z;
+  int k  = blockIdx.x*blockDim.x + threadIdx.x;
+  int sk = threadIdx.x;       // local k for shared memory ac3ess, fixed
+    
+  int yblock_width, globalIdx, sj;
+  bool internal;
+  
+  if ( blockIdx.y < gridDim.y - 1) {
+    yblock_width = syy;
+  }
+  else {
+    yblock_width = d_ny - syy*blockIdx.y;
+  }
+  
+    
+  for(int j = threadIdx.y; j < yblock_width; j += blockDim.y) {
+    internal = ((blockIdx.y*syy+j) < d_ny) && (k < d_nz);
+    if (internal) {
+        globalIdx = getLinearIdx(i, blockIdx.y*syy + j ,k);
+        sj = j + HALO;
+        s_f[sj][sk] = f[globalIdx];
+    }
+  }
+
+  __syncthreads();
+
+  
+  int lid,rid;
+  sj = threadIdx.y + HALO;
+  int y = syy*blockIdx.y + threadIdx.y;
+  // fill in periodic images in shared memory array 
+  if (threadIdx.y < HALO) {
+    lid = y%d_ny-HALO;
+    if (lid<0) lid+=d_ny;
+    s_f[sj-HALO][sk] = f[i*d_ny*d_nz + lid*d_nz + k];
+    rid = (y+yblock_width)%d_ny;
+    s_f[sj+yblock_width][sk] = f[i*d_ny*d_nz + rid*d_nz + k];
+  }
+
+  __syncthreads();
+    
+  
+  ScalarType result;
+  for(int j = threadIdx.y; j < yblock_width; j += blockDim.y) {
+    result = 0;
+    internal = ((blockIdx.y*syy+j) < d_ny) && (k < d_nz);
+    if (internal) {
+      globalIdx = getLinearIdx(i, blockIdx.y*syy + j ,k);
+      sj = j + HALO;
+      result = d_c[0]*s_f[sj][sk];
+      for( int l=0; l<HALO; l++) {
+          result += d_c[l+1] * ( s_f[sj+1+l][sk] + s_f[sj-1-l][sk]);
+      }
+      dfy[globalIdx] =  result;
+    }
+  }
 
 }
 
@@ -259,6 +369,7 @@ __global__ void prefilter_y(float* dfy, float* f) {
  * @brief prefilter for x-direction
  *******************************************************************/
 __global__ void prefilter_x(float* dfx, float* f) {
+  /*
   __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
     
   // note i and k have been exchanged to ac3ount for k being the fastest changing index
@@ -297,7 +408,65 @@ __global__ void prefilter_x(float* dfx, float* f) {
         dfx[globalIdx] += d_c[l+1] * ( s_f[si+1+l][sk] + s_f[si-1-l][sk]);
     }
   }
+*/
+  
+  __shared__ float s_f[syy+2*HALO][sxx]; // HALO-wide halo for central diferencing scheme
+    
+  // note i and k have been exchanged to ac3ount for k being the fastest changing index
+  int j  = blockIdx.z;
+  int k  = blockIdx.x*blockDim.x + threadIdx.x;
+  int sk = threadIdx.x;       // local k for shared memory ac3ess, fixed
+    
+  int xblock_width, globalIdx, si;
+  bool internal;
+  
+  if ( blockIdx.y < gridDim.y - 1) {
+    xblock_width = syy;
+  }
+  else {
+    xblock_width = d_nx - syy*blockIdx.y;
+  }
+    
+  for(int i = threadIdx.y; i < xblock_width; i += blockDim.y) {
+    internal = ((blockIdx.y*syy + i) < d_nx) && (k < d_nz);
+    if (internal) {
+        globalIdx = getLinearIdx(blockIdx.y*syy + i, j ,k);
+        si = i + HALO;
+        s_f[si][sk] = f[globalIdx];
+    }
+  }
 
+  __syncthreads();
+
+  
+  int lid,rid;
+  si = threadIdx.y + HALO;
+  int x = syy*blockIdx.y + threadIdx.y;
+  // fill in periodic images in shared memory array 
+  if (threadIdx.y < HALO) {
+    lid = x%d_nx-HALO;
+    if (lid<0) lid+=d_nx;
+    s_f[si-HALO][sk] = f[lid*d_ny*d_nz + j*d_nz + k];
+    rid = (x+xblock_width)%d_nx;
+    s_f[si+xblock_width][sk] = f[rid*d_ny*d_nz + j*d_nz + k];
+  }
+
+  __syncthreads();
+    
+  
+  for(int i = threadIdx.y; i < syy; i += blockDim.y) {
+    ScalarType result = 0;
+    internal = ((blockIdx.y*syy + i) < d_nx) && (k < d_nz);
+    if (internal) {
+      int globalIdx = getLinearIdx(blockIdx.y*syy + i , j, k);
+      int si = i + HALO;
+      result = d_c[0]*s_f[si][sk];
+      for( int l=0; l<HALO; l++) {
+        result += d_c[l+1] * ( s_f[si+1+l][sk] + s_f[si-1-l][sk]);
+      }
+      dfx[globalIdx] = result;
+    } 
+  }
 
 }
 
@@ -787,6 +956,33 @@ __device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, cons
   return tex3D<float>(tex, coord.x, coord.y, coord.z);
 }
 
+void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, IntType* nx) {
+  threads.x = sxx;
+  threads.y = syy/perthreadcomp;
+  threads.z = 1;
+  blocks.x = (nx[2]+sxx-1)/sxx;
+  blocks.y = (nx[0]+syy-1)/syy;
+  blocks.z = nx[1];
+}
+
+void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, IntType* nx) {
+  threads.x = sxx;
+  threads.y = syy/perthreadcomp;
+  threads.z = 1;
+  blocks.x = (nx[2]+sxx-1)/sxx;
+  blocks.y = (nx[1]+syy-1)/syy;
+  blocks.z = nx[0];
+}
+
+void getThreadBlockDimensionsZ(dim3& threads, dim3& blocks, IntType* nx) {
+  threads.x = sy;
+  threads.y = sx;
+  threads.z = 1;
+  blocks.x = (nx[2]+sy-1)/sy;
+  blocks.y = (nx[1]+sx-1)/sx;
+  blocks.z = nx[0];
+}
+
 // Fast prefilter for B-Splines
 void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp2) {
     
@@ -808,9 +1004,8 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp
     //float* mtemp;
     //cudaMalloc((void**) &mtemp, sizeof(float)*nx[0]*nx[1]*nx[2]);
 
+
     // Z-Prefilter - WARM UP
-    dim3 threadsPerBlock_z(sy, sx, 1);
-    dim3 numBlocks_z(nx[2]/sy, nx[1]/sx, nx[0]);
     /*prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp,m);
     if ( cudaSuccess != cudaGetLastError())
                 printf("Error in running warmup gradz kernel\n");
@@ -828,38 +1023,29 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp
     cudaDeviceSynchronize();
     printf("> laod-store avg time = %fmsec\n", time);
     time = 0;*/
-
-
     
-    // Y-Gradient
-    dim3 threadsPerBlock_y(sxx, syy/perthreadcomp, 1);
-    dim3 numBlocks_y(nx[2]/sxx, nx[1]/syy, nx[0]);
-    
-    // X-Gradient
-    dim3 threadsPerBlock_x(sxx, syy/perthreadcomp, 1);
-    dim3 numBlocks_x(nx[2]/sxx, nx[0]/syy, nx[1]);
+    dim3 threadsPerBlock_x, numBlocks_x;
+    dim3 threadsPerBlock_y, numBlocks_y;
+    dim3 threadsPerBlock_z, numBlocks_z;
+    getThreadBlockDimensionsX(threadsPerBlock_x, numBlocks_x, nx);
+    getThreadBlockDimensionsY(threadsPerBlock_y, numBlocks_y, nx);
+    getThreadBlockDimensionsZ(threadsPerBlock_z, numBlocks_z, nx);
 
-    // start recording the interpolation kernel
-    //cudaEventRecord(startEvent,0); 
-    
-
-    //for (int rep=0; rep<repcount; rep++) { 
-        // X
-        prefilter_x<<<numBlocks_x, threadsPerBlock_x>>>(mtemp1, m);
-        if ( cudaSuccess != cudaGetLastError())
-            printf("Error in running gradx kernel\n");
-        cudaCheckKernelError();
-        // Y 
-        prefilter_y<<<numBlocks_y, threadsPerBlock_y>>>(mtemp2, mtemp1);
-        if ( cudaSuccess != cudaGetLastError())
-            printf("Error in running gradx kernel\n");
-        cudaCheckKernelError();
-        // Z
-        prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp1, mtemp2);
-        if ( cudaSuccess != cudaGetLastError())
-            printf("Error in running gradx kernel\n");
-        cudaCheckKernelError();
-    //}
+    // X
+    prefilter_x<<<numBlocks_x, threadsPerBlock_x>>>(mtemp1, m);
+    if ( cudaSuccess != cudaGetLastError())
+        printf("Error in running gradx kernel\n");
+    cudaCheckKernelError();
+    // Y 
+    prefilter_y<<<numBlocks_y, threadsPerBlock_y>>>(mtemp2, mtemp1);
+    if ( cudaSuccess != cudaGetLastError())
+        printf("Error in running grady kernel\n");
+    cudaCheckKernelError();
+    // Z
+    prefilter_z<<<numBlocks_z, threadsPerBlock_z>>>(mtemp1, mtemp2);
+    if ( cudaSuccess != cudaGetLastError())
+        printf("Error in running gradz kernel\n");
+    cudaCheckKernelError();
 
     /*cudaEventRecord(stopEvent,0);
     cudaEventSynchronize(stopEvent);
@@ -1063,7 +1249,7 @@ void gpuInterp3Dkernel(
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     
     // SET cubic interpolation type here
-    enum CUBIC_INTERP_TYPE interp_type = FAST_LAGRANGE;
+    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;
     cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
