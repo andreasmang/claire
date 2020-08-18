@@ -8,7 +8,7 @@ MKDIRS = mkdir -p
 ifeq ($(DBGCODE),yes)
     CXXFLAGS = -g
 else
-	CXXFLAGS = -O3 -ansi -g
+	CXXFLAGS = -O3 -ansi
 endif
 
 
@@ -146,7 +146,7 @@ ifeq ($(USECUDA),yes)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g -m64
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -m64
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50

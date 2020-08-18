@@ -956,7 +956,7 @@ __device__ float linTex3D(cudaTextureObject_t tex, const float3 coord_grid, cons
   return tex3D<float>(tex, coord.x, coord.y, coord.z);
 }
 
-void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, IntType* nx) {
+void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, int* nx) {
   threads.x = sxx;
   threads.y = syy/perthreadcomp;
   threads.z = 1;
@@ -965,7 +965,7 @@ void getThreadBlockDimensionsX(dim3& threads, dim3& blocks, IntType* nx) {
   blocks.z = nx[1];
 }
 
-void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, IntType* nx) {
+void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, int* nx) {
   threads.x = sxx;
   threads.y = syy/perthreadcomp;
   threads.z = 1;
@@ -974,7 +974,7 @@ void getThreadBlockDimensionsY(dim3& threads, dim3& blocks, IntType* nx) {
   blocks.z = nx[0];
 }
 
-void getThreadBlockDimensionsZ(dim3& threads, dim3& blocks, IntType* nx) {
+void getThreadBlockDimensionsZ(dim3& threads, dim3& blocks, int* nx) {
   threads.x = sy;
   threads.y = sx;
   threads.z = 1;
@@ -1247,9 +1247,12 @@ void gpuInterp3Dkernel(
     
     int nprocs;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-    
+
     // SET cubic interpolation type here
-    enum CUBIC_INTERP_TYPE interp_type = FAST_SPLINE;
+    enum CUBIC_INTERP_TYPE interp_type = FAST_LAGRANGE;
+    if (nprocs == 1)
+      interp_type = FAST_SPLINE;
+
     cudaPitchedPtr yi_cudaPitchedPtr;
     if (iporder == 3) {
       cudaMemcpyToSymbol(d_nx, &nx[0], sizeof(int), 0, cudaMemcpyHostToDevice);
@@ -1279,14 +1282,11 @@ void gpuInterp3Dkernel(
             yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
             break;
       };
-
-      updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
     } else {
       // make input image a cudaPitchedPtr for fi
       yi_cudaPitchedPtr = make_cudaPitchedPtr(static_cast<void*>(yi), nx[2]*sizeof(float), nx[2], nx[1]);
-      // update texture object
-      updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
     }
+    updateTextureFromVolume(yi_cudaPitchedPtr, yi_extent, yi_tex);
   
     int threads = 256;
     int blocks = (nq+255)/threads;
@@ -1651,7 +1651,6 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
         xq[i] = x/(2.*PI);
         yq[i] = y/(2.*PI);
         zq[i] = z/(2.*PI);
-
     }
 }
 
