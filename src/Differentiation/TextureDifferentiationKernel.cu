@@ -1231,9 +1231,6 @@ PetscErrorCode computeLaplacian(ScalarType* ddm, const ScalarType* m, cudaTextur
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    size_t count = sizeof(ScalarType)*nx[0]*nx[1]*nx[2];
-    //ierr = cudaMemset((void*)ddm, 0, count); CHKERRCUDA(ierr);
-
     // Z-component
     dim3 threadsPerBlock_z, numBlocks_z;
     getThreadBlockDimensionsZ(threadsPerBlock_z, numBlocks_z, nx);
