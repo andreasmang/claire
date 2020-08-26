@@ -28,6 +28,10 @@ ifeq ($(USEIBMXL),yes)
   #MPICXXFLAGS += -qsmp
 endif
 
+ifeq ($(DEBUGTIMING),yes)
+	CXXFLAGS += -DZEITGEIST
+endif
+
 ifeq ($(USEKNL),yes)
 	CXXFLAGS += -DKNL
 endif

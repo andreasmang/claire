@@ -7,7 +7,6 @@
 #ifndef _ZEITGEIST_HPP
 #define _ZEITGEIST_HPP
 //--------------------------------------------------------------------------------------------------
-#define ZEITGEIST
 #ifdef ZEITGEIST
 #define ZeitGeist_define(NAME) static ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()

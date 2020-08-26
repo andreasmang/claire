@@ -12,6 +12,7 @@ USEKNL=no
 USEHASWELL=no
 BUILDTOOLS=yes
 BUILDTEST=yes
+DEBUGTIMING=no
 
 
 include config/setup.mk.power9v100
