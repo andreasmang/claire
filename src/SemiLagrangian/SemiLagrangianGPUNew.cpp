@@ -28,9 +28,6 @@
 
 namespace reg {
 
-
-
-
 /********************************************************************
  * @brief default constructor
  *******************************************************************/
@@ -110,23 +107,15 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
       this->nlghost *= this->isize_g[2];
       
       cudaMalloc((void**)&this->m_VecFieldGhost, this->g_alloc_max); 
-      //cudaMalloc((void**)&this->m_VecFieldGhost, 3*this->g_alloc_max); 
-      //cudaMalloc((void**)&this->m_ScaFieldGhost, this->g_alloc_max); 
-      //cudaMalloc((void**)&this->m_WorkScaField1, 3*nl*sizeof(ScalarType));
-      //cudaMalloc((void**)&this->m_WorkScaField2, nl*sizeof(ScalarType));
 
       ierr = AllocateOnce(this->m_StatePlan, this->g_alloc_max, this->cuda_aware);
       this->m_StatePlan->allocate(nl, this->m_Dofs, 2, this->nghost, this->isize_g);
 
-      //ierr = AllocateOnce(this->m_AdjointPlan, this->g_alloc_max, this->cuda_aware);
-      //this->m_AdjointPlan->allocate(nl, this->m_Dofs, 2);
     } else {
       ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
       ierr = AllocateOnce(this->m_Xadjoint, this->m_Opt); CHKERRQ(ierr);
     }
     
-    //ierr = AllocateOnce(this->m_InitialTrajectory, m_Opt); CHKERRQ(ierr);
-    //ierr = this->ComputeInitialTrajectory(); CHKERRQ(ierr);
     ierr = this->InitializeInterpolationTexture(); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
@@ -285,7 +274,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
       if (this->m_Opt->rank_cnt == 1) {
         hx[i]     = 1.;
       } else {
-        hx[i]     = 1./static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);//this->m_Opt->m_Domain.hx[i];
+        hx[i]     = 1./static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);
       }
         nx[i]     = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         isize[i]  = this->m_Opt->m_Domain.isize[i];
@@ -414,9 +403,6 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     if (this->m_Opt->rank_cnt == 1) {
       ierr = X->GetArraysWrite(kernel.pX); CHKERRQ(ierr);
     } else {
-      //kernel.pX[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
-      //kernel.pX[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
-      //kernel.pX[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
       ierr = this->m_WorkVecField1->GetArrays(kernel.pX); CHKERRQ(ierr);
     }
     ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
@@ -436,7 +422,6 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     
     // RK2 stage 2 
     ierr = v->GetArraysRead(kernel.pV); CHKERRQ(ierr);
-    //ierr = this->m_WorkVecField1->GetArraysRead(kernel.pVx); CHKERRQ(ierr);
     ierr = this->m_WorkVecField1->GetArrays(kernel.pVx); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt == 1) {
@@ -454,75 +439,6 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
     } else {
       ierr = X->RestoreArrays(); CHKERRQ(ierr);
     }
-    
-    
-    /*ht = this->m_Opt->GetTimeStepSize();
-    hthalf = 0.5*ht;
-    
-    if (this->m_Opt->m_Verbosity > 2) {
-        std::string str = "update trajectory: ";
-        str += flag;
-        ierr = DbgMsg2(str); CHKERRQ(ierr);
-        ierr = v->DebugInfo("SL v", __LINE__, __FILE__); CHKERRQ(ierr);
-    }
-    
-    // switch between state and adjoint variable
-    if (flag.compare("state") == 0) {
-        X = this->m_Xstate;
-        scale =  1.0;
-    } else if (flag.compare("adjoint") == 0) {
-        X = this->m_Xadjoint;
-        scale = -1.0;
-    } else {
-        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-    }
-
-
-    for (int i = 0; i < 3; ++i) {
-        hx[i]     = this->m_Opt->m_Domain.hx[i];
-        nx[i]     = this->m_Opt->m_Domain.nx[i];
-        isize[i]  = this->m_Opt->m_Domain.isize[i];
-        istart[i] = this->m_Opt->m_Domain.istart[i];
-        if (this->m_Opt->rank_cnt == 1) {
-          invhx[i]  = 1./hx[i];
-        } else {
-          invhx[i]  = 1./(2.0*PETSC_PI);
-        }
-        nl       *= isize[i];
-        ng       *= nx[i];
-    }
-  
-    ierr = Assert(X != nullptr, "null ptr"); CHKERRQ(ierr);
-    ierr = Assert(this->m_Xstate != nullptr, "null ptr"); CHKERRQ(ierr);
-    ierr = Assert(this->m_Xadjoint != nullptr, "null ptr"); CHKERRQ(ierr);
-    ierr = Assert(v != nullptr, "nullptr"); CHKERRQ(ierr);
-    ierr = Assert(this->m_InitialTrajectory != nullptr, "nullptr"); CHKERRQ(ierr);
-    
-    // X = x - ht*v ; single GPU: X \in [0, N], multi GPU: X \in [0, 1]
-    ierr = VecWAXPY(X->m_X1, -scale*ht*invhx[0], v->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
-    ierr = VecWAXPY(X->m_X2, -scale*ht*invhx[1], v->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
-    ierr = VecWAXPY(X->m_X3, -scale*ht*invhx[2], v->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr); 
-
-    if (this->m_Opt->rank_cnt > 1) {
-      ierr = this->MapCoordinateVector(flag);
-    }
-    
-    ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
-
-    // X = x - 0.5*ht*(v + v(x - ht v))
-    // F = F0 + F1 = v + v(x-ht*v)
-    ierr = VecAXPY(this->m_WorkVecField1->m_X1, 1.0, v->m_X1); CHKERRQ(ierr);
-    ierr = VecAXPY(this->m_WorkVecField1->m_X2, 1.0, v->m_X2); CHKERRQ(ierr);
-    ierr = VecAXPY(this->m_WorkVecField1->m_X3, 1.0, v->m_X3); CHKERRQ(ierr);
-
-    // X = x - 0.5*ht*F
-    ierr = VecWAXPY(X->m_X1, -scale*hthalf*invhx[0], this->m_WorkVecField1->m_X1, this->m_InitialTrajectory->m_X1); CHKERRQ(ierr);
-    ierr = VecWAXPY(X->m_X2, -scale*hthalf*invhx[1], this->m_WorkVecField1->m_X2, this->m_InitialTrajectory->m_X2); CHKERRQ(ierr);
-    ierr = VecWAXPY(X->m_X3, -scale*hthalf*invhx[2], this->m_WorkVecField1->m_X3, this->m_InitialTrajectory->m_X3); CHKERRQ(ierr);
-
-    if (this->m_Opt->rank_cnt > 1) {
-      ierr = this->MapCoordinateVector(flag);
-    }*/
     
     if (this->m_Opt->m_Verbosity > 2) {
       DbgMsgCall("Trajectory computed");
@@ -608,15 +524,6 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
       ZeitGeist_tick(INTERPOL_COMM);
       this->m_GhostPlan->share_ghost_x(xi, this->m_VecFieldGhost);
       ZeitGeist_tock(INTERPOL_COMM);
-     /* 
-      if (flag.compare("state") == 0) {
-          interp_plan = this->m_StatePlan;
-      } else if (flag.compare("adjoint") == 0) {
-          interp_plan = this->m_AdjointPlan;
-      } else {
-          ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-      }
-      */
       ScalarType *wout[1] = {xo};
       
       interp_plan = this->m_StatePlan;
@@ -738,12 +645,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
       for (int i=0; i<3; i++) { 
         ZeitGeist_tick(INTERPOL_COMM);
         this->m_GhostPlan->share_ghost_x(vin[i], &this->m_VecFieldGhost[0*this->nlghost]);
-        //this->m_GhostPlan->share_ghost_x(vx1, &this->m_VecFieldGhost[0*this->nlghost]);
-        //this->m_GhostPlan->share_ghost_x(vx2, &this->m_VecFieldGhost[1*this->nlghost]);
-        //this->m_GhostPlan->share_ghost_x(vx3, &this->m_VecFieldGhost[2*this->nlghost]);
         ZeitGeist_tock(INTERPOL_COMM);
 
-        //ScalarType *wout[3] = {wx1, wx2, wx3};
         
         // do interpolation
         interp_plan->interpolate( this->m_VecFieldGhost, 
@@ -758,9 +661,6 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
                                   this->m_Opt->m_PDESolver.iporder, 
                                   &(this->m_Opt->m_GPUtime), 0, flag);
 
-        //ierr = cudaMemcpy((void*)wx1, (const void*)&this->m_WorkScaField1[0*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
-        //ierr = cudaMemcpy((void*)wx2, (const void*)&this->m_WorkScaField1[1*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
-        //ierr = cudaMemcpy((void*)wx3, (const void*)&this->m_WorkScaField1[2*nl], nl*sizeof(ScalarType), cudaMemcpyDeviceToDevice); CHKERRCUDA(ierr);
       }
 
     } else {
@@ -919,32 +819,12 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     ZeitGeist_define(INTERPOL_COMM);
     ZeitGeist_tick(INTERPOL_COMM);
     
-    //p_X[0] = &this->m_VecFieldGhost[0*this->m_Opt->m_Domain.nl];
-    //p_X[1] = &this->m_VecFieldGhost[1*this->m_Opt->m_Domain.nl];
-    //p_X[2] = &this->m_VecFieldGhost[2*this->m_Opt->m_Domain.nl];
     ierr = this->m_WorkVecField1->GetArrays(p_X); CHKERRQ(ierr);
     
     this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers, flag);
 
     ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
 
-/*
-    if (flag.compare("state")==0) {
-        
-        //ierr = this->m_Xstate->GetArrays(p_X);
-        this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers);
-        //ierr = this->m_Xstate->RestoreArrays(p_X);
-      
-    } else if (flag.compare("adjoint")==0) {
-
-        //ierr = this->m_Xadjoint->GetArrays(p_X);
-        this->m_AdjointPlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers);
-        //ierr = this->m_Xadjoint->RestoreArrays(p_X);
-
-    } else {
-        ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
-    }
-*/    
     ZeitGeist_tock(INTERPOL_COMM);
 
     this->m_Opt->IncreaseInterpTimers(timers);

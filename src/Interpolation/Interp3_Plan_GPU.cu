@@ -200,7 +200,6 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
     Eq[i].f_index_offset = nullptr;
     Eq[i].num_query_per_proc = nullptr;
   
-    //Eq[i].all_f = nullptr;
     Eq[i].all_query_points = nullptr;
     Eq[i].xq1 = nullptr;
     Eq[i].xq2 = nullptr;
@@ -244,8 +243,6 @@ void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsiz
   }
   this->data_dof_max = max;
   
-  //query_send = thrust::device_malloc<ScalarType>(COORD_DIM*N_pts);
-  //reg::AllocateMemoryOnce(f_unordered, sizeof(ScalarType)*this->data_dof_max*N_pts);
   reg::AllocateArrayOnce<int>(query_send_offset, nprocs);
   reg::AllocateArrayOnce<MPI_Request>(s_request, nprocs);
   reg::AllocateArrayOnce<MPI_Request>(request, nprocs);
@@ -270,7 +267,6 @@ void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsiz
     Eq[i].neighbour_query_recv_width = gsize;
     Eq[i].query_points_recv_capacity = get_query_recv_max_capacity(isize_g, Eq[i].neighbour_query_recv_width);
     
-    //reg::AllocateMemoryOnce(Eq[i].all_f, Eq[i].query_points_recv_capacity*sizeof(ScalarType)*data_dof_max);
     reg::AllocateMemoryOnce(Eq[i].all_query_points, Eq[i].query_points_recv_capacity*COORD_DIM*sizeof(ScalarType) );
 #ifdef BLOCK_COORDINATES
     reg::AllocateMemoryOnce(Eq[i].xq1, Eq[i].query_points_recv_capacity*sizeof(ScalarType));
@@ -281,7 +277,6 @@ void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsiz
   }
   
   all_f_capacity = get_query_recv_max_capacity(isize_g, gsize);
-  //reg::AllocateMemoryOnce(all_f, data_dof_max*all_f_capacity*sizeof(ScalarType));
   reg::AllocateMemoryOnce(all_f, all_f_capacity*sizeof(ScalarType));
   output_baked = true;
   
@@ -323,7 +318,6 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
     }
     reg::FreeArray(Eq[i].f_index_offset);
     reg::FreeArray(Eq[i].num_query_per_proc);
-    //reg::FreeMemory(Eq[i].all_f);
     reg::FreeMemory(Eq[i].all_query_points);
     reg::FreeMemory(Eq[i].xq1);
     reg::FreeMemory(Eq[i].xq2);
@@ -400,10 +394,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     h[2]=1./N_reg[2];
     
     // Enforce periodicity // write kernel for this
-    ZeitGeist_define(scatter_create_mpi_buffer);
-    ZeitGeist_tick(scatter_create_mpi_buffer);
     enforcePeriodicity(query_points_x, query_points_y, query_points_z, h, N_pts);
-    ZeitGeist_tock(scatter_create_mpi_buffer);
     
     // Compute the start and end coordinates that this processor owns
     ScalarType iX0[3],iX1[3];
@@ -434,18 +425,14 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     int coords_in_proc;
     typedef thrust::device_vector<ScalarType>::iterator Iterator;
     
-    ZeitGeist_tick(scatter_create_mpi_buffer);
     timings[3]+=-MPI_Wtime();
     checkDomain(which_proc, query_points_x, query_points_y, query_points_z, iX0, iX1, h, N_pts, procid, isize0, isize1, c_dims[1]);
-    ZeitGeist_tock(scatter_create_mpi_buffer);
     
     thrust::device_ptr<ScalarType> query_points_x_ptr = thrust::device_pointer_cast<ScalarType>(query_points_x);
     thrust::device_ptr<ScalarType> query_points_y_ptr = thrust::device_pointer_cast<ScalarType>(query_points_y);
     thrust::device_ptr<ScalarType> query_points_z_ptr = thrust::device_pointer_cast<ScalarType>(query_points_z);
 
     thrust::device_ptr<short> which_proc_ptr = thrust::device_pointer_cast<short>(which_proc);
-    
-    ZeitGeist_define(scatter_memalloc);
     
     // loop over all procs
     Eq[id].f_index_offset[0] = 0;
@@ -454,14 +441,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     size_t query_send_size = 0;
     // specific to slab decomposition
     for (int proc=0; proc<nprocs; ++proc) {
-      //if (std::find(proc_neighbours.begin(), proc_neighbours.end(), proc) != proc_neighbours.end()) {
         // count how many points belong to proc
-        ZeitGeist_tick(scatter_create_mpi_buffer);
         get_count(which_proc, N_pts, proc, &coords_in_proc);
-        ZeitGeist_tock(scatter_create_mpi_buffer);
-      //} else {
-      //  coords_in_proc = 0;
-      //}
         
       if (verbose) {
         PetscSynchronizedPrintf(PETSC_COMM_WORLD, "proc %d sending %d points to proc %d\n", procid, coords_in_proc, proc);
@@ -484,18 +465,7 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
 
       if (coords_in_proc > 0) {
           // get indices of coordinates which belong to this proc and store in Eq[id].f_index[proc]
-          ZeitGeist_tick(scatter_create_mpi_buffer);
           thrust::copy_if(thrust::device, thrust::make_counting_iterator(0), thrust::make_counting_iterator(N_pts), which_proc_ptr, Eq[id].f_index+Eq[id].f_index_offset[proc], is_equal(proc));
-          //strided_range<Iterator> strided_x(query_send+query_send_offset[proc],   query_send+query_send_offset[proc]+coords_in_proc*COORD_DIM, COORD_DIM);
-          //strided_range<Iterator> strided_y(query_send+query_send_offset[proc]+1, query_send+query_send_offset[proc]+coords_in_proc*COORD_DIM, COORD_DIM);
-          //strided_range<Iterator> strided_z(query_send+query_send_offset[proc]+2, query_send+query_send_offset[proc]+coords_in_proc*COORD_DIM, COORD_DIM);
-          //thrust::copy_if(thrust::device, 
-          //                thrust::make_zip_iterator(thrust::make_tuple(query_points_x_ptr, query_points_y_ptr, query_points_z_ptr)), 
-          //                thrust::make_zip_iterator(thrust::make_tuple(query_points_x_ptr+N_pts, query_points_y_ptr+N_pts, query_points_z_ptr+N_pts)), 
-          //                which_proc_ptr, 
-          //                thrust::make_zip_iterator(thrust::make_tuple(strided_x.begin(), strided_y.begin(), strided_z.begin())), 
-          //                is_equal(proc));
-          ZeitGeist_tock(scatter_create_mpi_buffer);
       }
     }
     timings[3]+=+MPI_Wtime();
@@ -511,14 +481,11 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     for (int proc=0;proc<nprocs;proc++) {
         Eq[id].f_index_procs_self_sizes[proc]=Eq[id].num_query_per_proc[proc];
     }
-    ZeitGeist_define(scatter_comm_query_size);
-    ZeitGeist_tick(scatter_comm_query_size);
     timings[0]+=-MPI_Wtime();
     MPI_Alltoall(Eq[id].f_index_procs_self_sizes,1, MPI_INT,
         Eq[id].f_index_procs_others_sizes,1, MPI_INT,
         c_comm);
     timings[0]+=+MPI_Wtime();
-    ZeitGeist_tock(scatter_comm_query_size);
 
     // Now we need to allocate memory for the receiving buffer of all query
     // points including ours. This is simply done by looping through
@@ -545,13 +512,6 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       Eq[id].query_points_recv_capacity = get_query_recv_max_capacity(isize, Eq[id].neighbour_query_recv_width);
     }
 
-    //reg::DbgMsgCall("re-allocating all_query_points");
-
-    ZeitGeist_tick(scatter_memalloc);
-    
-    //reg::FreeMemory(Eq[id].all_f);
-    //reg::AllocateMemoryOnce(Eq[id].all_f, Eq[id].query_points_recv_capacity*sizeof(ScalarType)*data_dof_max);
-
     reg::FreeMemory(Eq[id].all_query_points);
     reg::AllocateMemoryOnce(Eq[id].all_query_points, Eq[id].query_points_recv_capacity*COORD_DIM*sizeof(ScalarType) );
 
@@ -565,20 +525,15 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
     reg::FreeMemory(Eq[id].xq3);
     reg::AllocateMemoryOnce(Eq[id].xq3, Eq[id].query_points_recv_capacity*sizeof(ScalarType));
 #endif
-    ZeitGeist_tock(scatter_memalloc);
   }
   
   // this allocates a single vector field for storing output of both adjoint and scalar 
   if (output_baked && Eq[id].query_points_recv_capacity > all_f_capacity) {
-    //reg::DbgMsgCall("re-allocating all_f");
     // update maximum
     all_f_capacity = Eq[id].query_points_recv_capacity;
     // free and reallocate
-    ZeitGeist_tick(scatter_memalloc);
     reg::FreeMemory(all_f);
-    //reg::AllocateMemoryOnce(all_f, data_dof_max*all_f_capacity*sizeof(ScalarType));
     reg::AllocateMemoryOnce(all_f, all_f_capacity*sizeof(ScalarType));
-    ZeitGeist_tock(scatter_memalloc);
   }
   
   // Allocate MPI send buffer here
@@ -587,11 +542,8 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       neighbour_query_send_width++;
       query_points_send_capacity = get_query_send_max_capacity(isize, neighbour_query_send_width);
     }
-    //reg::DbgMsgCall("re-allocating query_send");
-    ZeitGeist_tick(scatter_memalloc);
     thrust::device_free(query_send);
     query_send = thrust::device_malloc<ScalarType>(COORD_DIM*query_points_send_capacity);
-    ZeitGeist_tock(scatter_memalloc);
   }
 
   for (int proc=0; proc<nprocs; ++proc) {
@@ -624,8 +576,6 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
   }
 
     // Now perform the allotall to send/recv query_points
-    ZeitGeist_define(scatter_comm_query_points_sendrcv);
-    ZeitGeist_tick(scatter_comm_query_points_sendrcv);
     timings[0]+=-MPI_Wtime();
     int dst_r,dst_s;
     for (int i=0;i<nprocs;++i) {
@@ -643,10 +593,6 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
           MPI_Isend(src_ptr, Eq[id].f_index_procs_self_sizes[dst_s]*COORD_DIM, MPI_T, dst_s, 0, c_comm, &s_request[dst_s]);
 
       }
-      //else {
-      //  if (Eq[id].num_query_per_proc[dst_s] > 0)
-      //    cudaMemcpy(&Eq[id].all_query_points[roffset], src_ptr, Eq[id].f_index_procs_self_sizes[dst_s]*COORD_DIM*sizeof(ScalarType), cudaMemcpyDeviceToDevice);
-      //}
     }
     
     // Wait for all the communication to finish
@@ -657,7 +603,6 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
       if(s_request[proc]!=MPI_REQUEST_NULL)
         MPI_Wait(&s_request[proc], &ierr);
     }
-    ZeitGeist_tock(scatter_comm_query_points_sendrcv);
     timings[0]+=+MPI_Wtime();
   }
 
@@ -675,12 +620,9 @@ void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
   proc_coord[1] = static_cast<int>(istart[1]/isize[1]);
   
   // transfer query points "all_query_points" from host to device
-  ZeitGeist_define(scatter_query_points_normalize_kernel);
-  ZeitGeist_tick(scatter_query_points_normalize_kernel);
   timings[3]+=-MPI_Wtime();
   normalizeQueryPoints(Eq[id].xq1, Eq[id].xq2, Eq[id].xq3, Eq[id].all_query_points, Eq[id].total_query_points, isize, N_reg, proc_coord, g_size);
   timings[3]+=+MPI_Wtime();
-  ZeitGeist_tock(scatter_query_points_normalize_kernel);
   
   Eq[id].scatter_baked=true;
   return;
@@ -756,10 +698,6 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
     print_norm(Eq[id].xq1, Eq[id].total_query_points); 
   }
 
-  ZeitGeist_define(interp_kernel);
-  ZeitGeist_define(interp_comm_values_sendrcv);
-  ZeitGeist_define(interp_values_copy_kernel);
-
   // change this to have strided or block access to query points
 #ifdef BLOCK_COORDINATES
   const ScalarType* xq[3] = {Eq[id].xq1, Eq[id].xq2, Eq[id].xq3};
@@ -771,17 +709,12 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
 #endif
 
   // compute the interpolation on the GPU
-  ZeitGeist_tick(interp_kernel);
   double interp_kernel_time = -MPI_Wtime();
-  if (data_dofs[version] == 3) // this is not being called 
-    //reg::ThrowError("not implemented"); 
+  if (data_dofs[version] == 3) 
     gpuInterpVec3D(&f_ghost[0*nlghost], 
                    &f_ghost[1*nlghost], 
                    &f_ghost[2*nlghost], 
                    xq, 
-                   //&Eq[id].all_f[0*Eq[id].total_query_points], 
-                   //&Eq[id].all_f[1*Eq[id].total_query_points], 
-                   //&Eq[id].all_f[2*Eq[id].total_query_points], 
                    &all_f[0*Eq[id].total_query_points], 
                    &all_f[1*Eq[id].total_query_points], 
                    &all_f[2*Eq[id].total_query_points], 
@@ -789,27 +722,21 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
   else 
     gpuInterp3D(f_ghost, 
                 xq, 
-                //Eq[id].all_f, 
                 all_f, 
                 tmp1, tmp2, isize_g, static_cast<long int>(Eq[id].total_query_points), yi_tex, 
                 iporder, interp_time);
-  ZeitGeist_tock(interp_kernel);
   interp_kernel_time += MPI_Wtime();
   
   if (verbose) {
     reg::DbgMsgCall("interpolation kernel executed");
     PetscPrintf(PETSC_COMM_WORLD, "max interpolated ");
-    //print_norm(Eq[id].all_f, data_dofs[version]*Eq[id].total_query_points);
     print_norm(all_f, data_dofs[version]*Eq[id].total_query_points);
   }
   
-  //ScalarType* f_unordered_ptr = thrust::raw_pointer_cast(query_send);
-  //ScalarType* f_unordered_ptr = f_unordered;
   // f_unordered needs to be of size nl==N_pts, and f_ghost has nlghost>nl memory, reuse memory
   ScalarType* f_unordered_ptr = f_ghost;
 
   // Now we have to do an alltoall to distribute the interpolated data from Eq[id].all_f to f_unordered
-  ZeitGeist_tick(interp_comm_values_sendrcv);
   int dst_r,dst_s;
   for (int i=0;i<nprocs;++i) {
     dst_r=i;
@@ -822,20 +749,14 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
     int roffset=Eq[id].f_index_procs_self_offset[dst_s];
     if (i != procid) {
       if(Eq[id].f_index_procs_self_sizes[dst_r]!=0)
-        //MPI_Irecv(&f_unordered[roffset],1,Eq[id].rtypes[dst_r+version*nprocs], dst_r,
-        //    0, c_comm, &request[dst_r]); 
         MPI_Irecv(&f_unordered_ptr[roffset],1,Eq[id].rtypes[dst_r+version*nprocs], dst_r,
             0, c_comm, &request[dst_r]); 
       if(Eq[id].f_index_procs_others_sizes[dst_s]!=0)
-        //MPI_Isend(&Eq[id].all_f[soffset],1,Eq[id].stypes[dst_s+version*nprocs],dst_s,
-        //    0, c_comm, &s_request[dst_s]);
         MPI_Isend(&all_f[soffset],1,Eq[id].stypes[dst_s+version*nprocs],dst_s,
             0, c_comm, &s_request[dst_s]);
     } else {
       for (int dof=0; dof<data_dofs[version]; ++dof) {
         // when sending to itself i.e. i==procid, Eq[id].f_index_procs_self_sizes[i] == Eq[id].f_index_procs_others_sizes[i]
-        //cudaMemcpy(&f_unordered[roffset+dof*N_pts], &Eq[id].all_f[soffset+dof*Eq[id].total_query_points], sizeof(ScalarType)*Eq[id].f_index_procs_self_sizes[i], cudaMemcpyDeviceToDevice);
-        //cudaMemcpy(&f_unordered_ptr[roffset+dof*N_pts], &Eq[id].all_f[soffset+dof*Eq[id].total_query_points], sizeof(ScalarType)*Eq[id].f_index_procs_self_sizes[i], cudaMemcpyDeviceToDevice);
         cudaMemcpy(&f_unordered_ptr[roffset+dof*N_pts], &all_f[soffset+dof*Eq[id].total_query_points], sizeof(ScalarType)*Eq[id].f_index_procs_self_sizes[i], cudaMemcpyDeviceToDevice);
       }
     }
@@ -849,7 +770,6 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
       MPI_Wait(&s_request[proc], &ierr);
   }
   
-  ZeitGeist_tock(interp_comm_values_sendrcv);
   
   if (verbose) {
     PetscPrintf(PETSC_COMM_WORLD, "max f_unordered = ");
@@ -857,7 +777,6 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
     print_norm(f_unordered_ptr, data_dofs[version]*N_pts);
   }
   
-  ZeitGeist_tick(interp_values_copy_kernel);
   int* f_index_ptr;
   // Now copy back f_unordered to query_values in the correct f_index
   for(int dof=0;dof<data_dofs[version]; ++dof) {
@@ -865,14 +784,12 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
       if(Eq[id].num_query_per_proc[proc] > 0) {
           f_index_ptr = thrust::raw_pointer_cast( Eq[id].f_index + Eq[id].f_index_offset[proc] );
           copyQueryValues(&query_values[dof][0],
-                          //&f_unordered[Eq[id].f_index_procs_self_offset[proc]+dof*N_pts], 
                           &f_unordered_ptr[Eq[id].f_index_procs_self_offset[proc]+dof*N_pts], 
                           f_index_ptr, 
                           Eq[id].num_query_per_proc[proc]);
       }
     }
   }
-  ZeitGeist_tock(interp_values_copy_kernel);
 
   if (verbose) {
     PetscPrintf(PETSC_COMM_WORLD, "query_values ");
@@ -881,55 +798,5 @@ void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular
     }
   }
 
-/*
-  ZeitGeist_tick(interp_comm_values_sendrcv);
-  int dst_r,dst_s;
-  for (int i = procs_i_send_to_size_-1; i >=0; --i) {
-    if (i != procid) {
-      dst_r = procs_i_send_to_[i];    
-      request[dst_r] = MPI_REQUEST_NULL; 
-      int roffset = f_index_procs_self_offset[dst_r];
-      MPI_Irecv(&f_unordered[roffset], 1, rtypes[dst_r+version*nprocs], dst_r, 0,
-          c_comm, &request[dst_r]);
-    }
-  }
-  for (int i = 0; i < procs_i_recv_from_size_; ++i) {
-    if (i != procid) {
-      dst_s = procs_i_recv_from_[i];    
-      s_request[dst_s] = MPI_REQUEST_NULL; 
-      int soffset = f_index_procs_others_offset[dst_s];
-      MPI_Isend(&all_f[soffset], 1, stypes[dst_s+version*nprocs], dst_s, 0, c_comm,
-          &s_request[dst_s]);
-    }
-  }
-  ZeitGeist_tock(interp_comm_values_sendrcv);
-  
-  for (int i = 0; i < procs_i_send_to_size_; ++i) {
-    int proc = procs_i_send_to_[i];    
-    ZeitGeist_tick(interp_comm_values_sendrcv);
-    if (request[proc] != MPI_REQUEST_NULL) {
-      MPI_Wait(&request[proc], MPI_STATUS_IGNORE);
-    }
-    ZeitGeist_tock(interp_comm_values_sendrcv);
-
-    ZeitGeist_tick(interp_values_copy_kernel);
-    for (int dof = 0; dof < data_dofs[version]; ++dof) {
-      int *f_index_ptr = thrust::raw_pointer_cast( f_index + f_index_offset[proc] );
-      copyQueryValues(&query_values[dof*N_pts],
-                      &f_unordered[f_index_procs_self_offset[proc]+dof*N_pts], 
-                      f_index_ptr, 
-                      num_query_per_proc[proc]);
-    }
-    ZeitGeist_tock(interp_values_copy_kernel);
-  }
-
-  ZeitGeist_tick(interp_comm_values_sendrcv);
-  for (int i = 0; i < procs_i_recv_from_size_; ++i) {
-    int proc = procs_i_recv_from_[i];    
-    if (s_request[proc] != MPI_REQUEST_NULL)
-      MPI_Wait(&s_request[proc], MPI_STATUS_IGNORE);
-  }
-  ZeitGeist_tock(interp_comm_values_sendrcv);
-*/
   return;
 }

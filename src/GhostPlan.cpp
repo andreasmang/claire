@@ -172,8 +172,6 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 	PCOUT<<"\nGL Row Communication\n";
 #endif
 
-  ZeitGeist_define(ghost_cudamemcpy);
-  ZeitGeist_tick(ghost_cudamemcpy);
 	for (int x = 0; x < isize[0]; ++x) {
     cudaMemcpyAsync((void*)&RS[x * g_size * isize[2]], 
                     (const void*)&data[x * isize[2] * isize[1] + (isize[1] - g_size) * isize[2]], 
@@ -181,7 +179,6 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
   }
   for (int i=0; i<num_streams; i++)
     cudaStreamSynchronize(stream[i]);
-  ZeitGeist_tock(ghost_cudamemcpy);
   
 
 	/* Phase 2: Send your data to your right process
@@ -197,15 +194,12 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 
 	int rs_buf_size = g_size * isize[2] * isize[0];
 	
-	ZeitGeist_define(ghost_comm);
-	ZeitGeist_tick(ghost_comm);
   timers[0]+=-MPI_Wtime();
 	MPI_Isend(RS, rs_buf_size, MPI_T, dst_s, 0, row_comm, &rs_s_request);
 	MPI_Irecv(GL, rs_buf_size, MPI_T, dst_r, 0, row_comm, &rs_r_request);
 	MPI_Wait(&rs_s_request, &ierr);
 	MPI_Wait(&rs_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-	ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -238,7 +232,6 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 	/* Phase 3: Now do the exact same thing for the right ghost side */
 	int ls_buf_size = g_size * isize[2] * isize[0];
 
-  ZeitGeist_tick(ghost_cudamemcpy);
 	for (int x = 0; x < isize[0]; ++x) {
 		cudaMemcpyAsync(&LS[x * g_size * isize[2]], 
 		                &data[x * isize[2] * isize[1]],
@@ -246,7 +239,6 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
   }
   for (int i=0; i<num_streams; i++)
     cudaStreamSynchronize (stream[i]);
-  ZeitGeist_tock(ghost_cudamemcpy);
   
 
 	/* Phase 4: Send your data to your right process
@@ -257,14 +249,12 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 	if (procid_r == 0)
 		dst_s = nprocs_r - 1;
   
-  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(LS, ls_buf_size, MPI_T, dst_s, 0, row_comm, &rs_s_request);
 	MPI_Irecv(GR, ls_buf_size, MPI_T, dst_r, 0, row_comm, &rs_r_request);
 	MPI_Wait(&rs_s_request, &ierr);
 	MPI_Wait(&rs_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-  ZeitGeist_tock(ghost_comm);
 
 
 #ifdef VERBOSE2
@@ -296,7 +286,6 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 #endif
   
   int k = 0;
-  ZeitGeist_tick(ghost_cudamemcpy);
 	// Phase 5: Pack the data GL+ data + GR
 	for (int i = 0; i < isize[0]; ++i) {
 		cudaMemcpyAsync(&padded_data[i * isize[2] * (isize[1] + 2 * g_size)],
@@ -314,7 +303,6 @@ void GhostPlan::share_left_right(const ScalarType* data, double* timers) {
 	}
   for (int i=0; i<num_streams; i++)
     cudaStreamSynchronize (stream[i]);
-	ZeitGeist_tock(ghost_cudamemcpy);
   
 
 #ifdef VERBOSE2
@@ -368,15 +356,12 @@ void GhostPlan::share_top_bottom(ScalarType* ghost_data,  double* timers) {
 	MPI_Request bs_s_request, bs_r_request;
 	MPI_Status ierr;
   
-  ZeitGeist_define(ghost_comm);
-  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&BS[0], bs_buf_size, MPI_T, dst_s, 0, col_comm, &bs_s_request);
 	MPI_Irecv(&GT[0], bs_buf_size, MPI_T, dst_r, 0, col_comm, &bs_r_request);
 	MPI_Wait(&bs_s_request, &ierr);
 	MPI_Wait(&bs_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-  ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -423,14 +408,12 @@ void GhostPlan::share_top_bottom(ScalarType* ghost_data,  double* timers) {
 	if (procid_c == 0)
 		dst_s = nprocs_c - 1;
   
-  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&TS[0], ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
 	MPI_Irecv(&GB[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
 	MPI_Wait(&ts_s_request, &ierr);
 	MPI_Wait(&ts_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-  ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -470,8 +453,6 @@ void GhostPlan::share_top_bottom(ScalarType* ghost_data,  double* timers) {
 	//            &GB[0],
 	//            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(ScalarType));
   
-  ZeitGeist_define(ghost_cudamemcpy);
-  ZeitGeist_tick(ghost_cudamemcpy);
 	cudaMemcpyAsync(&ghost_data[0], 
 	            &GT[0], 
 	            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
@@ -481,7 +462,6 @@ void GhostPlan::share_top_bottom(ScalarType* ghost_data,  double* timers) {
 	cudaMemcpyAsync(&ghost_data[g_size * isize[2] * (isize[1] + 2 * g_size)+ isize[0] * isize[2] * (isize[1] + 2 * g_size)], 
 	            &GB[0],
 	            g_size * isize[2] * (isize[1] + 2 * g_size) * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
-	ZeitGeist_tock(ghost_cudamemcpy);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -514,8 +494,6 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 		return;
 	}
 
-  ZeitGeist_define(ghost_comm_top_bottom);
-	ZeitGeist_tick(ghost_comm_top_bottom);
 	
 	MPI_Comm col_comm = this->m_Opt->m_Domain.colcomm;
 	int nprocs_c, procid_c;
@@ -545,30 +523,22 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	MPI_Request bs_s_request, bs_r_request;
 	MPI_Status ierr;
   
-  ZeitGeist_define(ghost_comm);
-  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&BS[0], bs_buf_size, MPI_T, dst_s, 0, col_comm, &bs_s_request);
 	MPI_Irecv(&GT[0], bs_buf_size, MPI_T, dst_r, 0, col_comm, &bs_r_request);
 	timers[0]+=+MPI_Wtime();
-  ZeitGeist_tock(ghost_comm);
 
   // Do cudamemcpys while waiting for MPI to finish
   // overlap communication and copying
-  ZeitGeist_tick(ghost_comm);
 	MPI_Wait(&bs_s_request, &ierr);
 	MPI_Wait(&bs_r_request, &ierr);
-  ZeitGeist_tock(ghost_comm);
   
-  ZeitGeist_define(ghost_cudamemcpy);
-  ZeitGeist_tick(ghost_cudamemcpy);
 	cudaMemcpy(&ghost_data[g_size * isize[2] * isize[1]], 
 	            &data[0], 
 	            isize[0] * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
 	cudaMemcpy(&ghost_data[0], 
 	            &GT[0], 
 	            g_size * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
-	ZeitGeist_tock(ghost_cudamemcpy);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -615,14 +585,12 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	if (procid_c == 0)
 		dst_s = nprocs_c - 1;
   
-  ZeitGeist_tick(ghost_comm);
 	timers[0]+=-MPI_Wtime();
 	MPI_Isend(&TS[0], ts_buf_size, MPI_T, dst_s, 0, col_comm, &ts_s_request);
 	MPI_Irecv(&GT[0], ts_buf_size, MPI_T, dst_r, 0, col_comm, &ts_r_request);
 	MPI_Wait(&ts_s_request, &ierr);
 	MPI_Wait(&ts_r_request, &ierr);
 	timers[0]+=+MPI_Wtime();
-  ZeitGeist_tock(ghost_comm);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -651,11 +619,9 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	}
 #endif
 
-  ZeitGeist_tick(ghost_cudamemcpy);
 	cudaMemcpy(&ghost_data[(isize[0] + g_size) * isize[2] * isize[1]], 
 	            &GT[0],
 	            g_size * isize[2] * isize[1] * sizeof(ScalarType), cudaMemcpyDeviceToDevice);
-	ZeitGeist_tock(ghost_cudamemcpy);
 
 #ifdef VERBOSE2
 	if(procid==0) {
@@ -668,7 +634,6 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 	}
 #endif
 
-	ZeitGeist_tock(ghost_comm_top_bottom);
   
   if (this->m_Opt->m_Verbosity > 2) reg::DbgMsg("ghost points shared");
 
@@ -682,21 +647,11 @@ void GhostPlan::share_ghost_xy(const ScalarType* data, ScalarType* ghost_data) {
   
   double timers[4] = {0,0,0,0};
 
-/*
-	if (plan->inplace == true) {
-		PCOUT << "accfft_get_ghost_r2c does not support inplace transforms."
-				<< std::endl;
-		return;
-	}
-*/
 	if (g_size == 0) {
 		cudaMemcpy(ghost_data, data, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToDevice);
 		return;
 	}
 
-	//int *isize = plan->isize;
-	//int *istart = plan->istart;
-	//int *n = plan->N;
 	if (g_size > isize[0] || g_size > isize[1]) {
 		std::cout
 				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
@@ -704,15 +659,9 @@ void GhostPlan::share_ghost_xy(const ScalarType* data, ScalarType* ghost_data) {
 		return;
 	}
 
-  ZeitGeist_define(ghost_comm_left_right);
-  ZeitGeist_define(ghost_comm_top_bottom);
 
-  ZeitGeist_tick(ghost_comm_left_right);
 	share_left_right(data,timers);
-	ZeitGeist_tock(ghost_comm_left_right);
-	ZeitGeist_tick(ghost_comm_top_bottom);
 	share_top_bottom(ghost_data, timers);
-	ZeitGeist_tock(ghost_comm_top_bottom);
 	return;
 }
 
