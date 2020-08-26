@@ -12,13 +12,16 @@
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock()
 #define ZeitGeist_inc(NAME) NAME ## _zg.Inc()
+#define ZeitGeist_add(NAME, I) NAME ## _zg.Inc(I)
 #define ZeitGeist_name(NAME) NAME ## _zg
 #else
 #define ZeitGeist_define(NAME)
 #define ZeitGeist_tick(NAME)
 #define ZeitGeist_tock(NAME)
 #define ZeitGeist_inc(NAME)
+#define ZeitGeist_add(NAME, I)
 #define ZeitGeist_reset()
+#define ZeitGeist_name(NAME) NAME ## _zg
 #endif
 //------------------------------------------------------------------------------
 class ZeitGeist {

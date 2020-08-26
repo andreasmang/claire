@@ -95,7 +95,9 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
     }
 #endif
 #ifdef REG_HAS_CUDA
+  if (this->m_Opt->m_Verbosity > 2) {
     cudaPrintDeviceMemory();
+  }
 #endif
 
     // delete all variables
@@ -1329,10 +1331,10 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       
       if (mg == 1) {
         ZeitGeist_define(PC_H0_coarse);
-        ZeitGeist_name(PC_H0_coarse).Inc(i);
+        ZeitGeist_add(PC_H0_coarse, i);
       } else {
         ZeitGeist_define(PC_H0_fine);
-        ZeitGeist_name(PC_H0_fine).Inc(i);
+        ZeitGeist_add(PC_H0_fine,i);
       }
       
       if (mg == 0 && coarse) {
