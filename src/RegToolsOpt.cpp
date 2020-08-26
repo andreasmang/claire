@@ -672,45 +672,6 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
     int flag;
     PetscFunctionBegin;
 
-    cdeffield =  this->m_ReadWriteFlags.defgrad
-              || this->m_ReadWriteFlags.detdefgrad
-              || this->m_ReadWriteFlags.defmap
-              || this->m_ReadWriteFlags.deffield;
-
-    // check output arguments
-    if (cdeffield) {
-        // check if user did set input folder
-        if (this->m_FileNames.ifolder.empty()) {
-            msg = "\x1b[31m input folder needs to be set (-i option) \x1b[0m\n";
-
-            if ( !this->m_FileNames.iv1.empty()
-              && !this->m_FileNames.iv2.empty()
-              && !this->m_FileNames.iv3.empty() ) {
-                // if user did not specify output path, set it to input path
-                if (this->m_FileNames.xfolder.empty()) {
-                    ierr = GetFileName(path, filename, extension, this->m_FileNames.iv1); CHKERRQ(ierr);
-                    this->m_FileNames.xfolder = path + "/";
-                }
-            } else {
-                msg = "\x1b[31m input velocity field needs to be specified\x1b[0m\n";
-                ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
-                ierr = this->Usage(); CHKERRQ(ierr);
-            }
-        } else {
-            if (this->m_FileNames.xfolder.empty()) {
-                this->m_FileNames.xfolder = this->m_FileNames.ifolder;
-            }
-            extension = this->m_FileNames.extension;
-            this->m_FileNames.iv1 = this->m_FileNames.ifolder + "velocity-field-x1" + extension;
-            this->m_FileNames.iv2 = this->m_FileNames.ifolder + "velocity-field-x2" + extension;
-            this->m_FileNames.iv3 = this->m_FileNames.ifolder + "velocity-field-x3" + extension;
-        }
-        this->m_RegToolFlags.computedeffields = true;
-
-        // set this flag to true, so that containers for reference and
-        // template image are not to be deleted in registration class
-        this->m_ReadWriteFlags.readfiles = true;
-    }
 
     if ( !this->m_FileNames.iv1.empty()
       && !this->m_FileNames.iv2.empty()
@@ -720,6 +681,33 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 
     if (!this->m_FileNames.isc.empty()) {
         this->m_RegToolFlags.readscafield = true;
+    }
+
+    cdeffield =  this->m_ReadWriteFlags.defgrad
+              || this->m_ReadWriteFlags.detdefgrad
+              || this->m_ReadWriteFlags.defmap
+              || this->m_ReadWriteFlags.deffield;
+
+    // check output arguments
+    if (cdeffield) {
+        if (!this->m_RegToolFlags.readvecfield) {
+            msg =  "\n\x1b[31m computation of determinant of deformation\n";
+            msg += " requires a velocity field as input:\n";
+            msg += " use the -v1 <file> -v2 <file> -v3 <file> options\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+        if (this->m_FileNames.xfolder.empty()) {
+            msg = "\x1b[31m define an output folder:\n";
+            msg += " use the -x <folder> option\x1b[0m\n";
+            ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
+            ierr = this->Usage(true); CHKERRQ(ierr);
+        }
+        this->m_RegToolFlags.computedeffields = true;
+
+        // set this flag to true, so that containers for reference and
+        // template image are not to be deleted in registration class
+        this->m_ReadWriteFlags.readfiles = true;
     }
 
     if (this->m_RegToolFlags.resample) {
@@ -776,7 +764,9 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
         }
     }
 
-    if (this->m_RegToolFlags.deformimage || this->m_RegToolFlags.tlabelmap || this->m_RegToolFlags.computeravensmap) {
+    if (this->m_RegToolFlags.deformimage
+        || this->m_RegToolFlags.tlabelmap
+        || this->m_RegToolFlags.computeravensmap) {
         // check if flags are set correctly
         if (!this->m_RegToolFlags.readvecfield) {
             msg =  "\n\x1b[31m solution of forward problem requires a velocity field as input:\n";
@@ -794,7 +784,7 @@ PetscErrorCode RegToolsOpt::CheckArguments() {
 
         if (this->m_FileNames.xsc.empty() && !this->m_RegToolFlags.computedice) {
             msg = "\x1b[31m set file name for transported scalar field / ouptut:\n";
-            msg += " use the \n(-xfile option) \x1b[0m\n";
+            msg += " use the -xfile <file> option\x1b[0m\n";
             ierr = PetscPrintf(PETSC_COMM_WORLD,msg.c_str()); CHKERRQ(ierr);
             ierr = this->Usage(true); CHKERRQ(ierr);
         }

@@ -605,7 +605,7 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
 
     this->m_Opt->Enter(__func__);
     
-    nc = m_Opt->m_Domain.nc;
+    nc = this->m_Opt->m_Domain.nc;
     // presmoothing, if necessary
     if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
         ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);

@@ -1,98 +1,34 @@
 # CLAIRE
 
-**CLAIRE** implements a parallel solver for *Constrained Large Deformation Diffeomorphic Image Registration*. Additional information on the methodology can be found in [doc/README-REFERENCES.md](doc/README-REFERENCES.md).
+* Are you looking for **examples**? Check the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
+* Are in interested in **how CLAIRE works**? Check the [documentation](#clairedoc).
+* Are you interested in **what CLAIRE is**? Read the [about](#claireabout) section.
 
-## Installation
+## About <a name="claireabout"></a>
 
-If there are any issues or you have any questions send an email to <andreas@math.uh.edu>.
+**CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core systems. It uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
 
-### Requirements
+<p align="center">
+<img src="doc/figs/claire4brains.jpg" alt="CLAIRE4Brains"  width="800"/>
+</p>
 
-* **cmake** (at least version 2.8; [https://cmake.org](https://cmake.org))
-* **python** (version 2.7)
-* **mpicc** and **mpicxx**, and the MPI libraries, should be in the path
+If there are any issues, you have questions, you would like to give us feedback or you have feature requests, do not hesitate to send an email to <andreas@math.uh.edu>.
 
-If there are issues with compiling the code, take a look at [doc/README-INSTALL.md](doc/README-INSTALL.md). We also provide an FAQ in [doc/README-INSTALL.md](doc/README-INSTALL.md) that lists common problems with compiling the code.
+If you plan on using CLAIRE in your research please cite the following manuscript:
+A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
 
+## Documentation <a name="clairedoc"></a>
+* [Quick Installation Guide](doc/README-INSTALL-QUICK.md)
+* [Detailed Installation Guide](doc/README-INSTALL.md)
+* [Examples](doc/README-RUNME.md)
+* [News](doc/README-NEWS.md)
+* [Publications](doc/README-REFERENCES.md)
 
-### Installation Instructions
-
-#### Build Dependencies
-
-The following explains how to get the libraries, build them, and set the environmental variables.
-
-```bash
-cd external
-./get_libs.sh
-./build_libs.sh --build
-source libs/environment_vars.sh
-cd ..
-```
-
-#### Build CLAIRE
-
-
-In the *top level directory* of the code, do
-
-```bash
-make -j
-```
-
-To user can change some options in the makefile:
-
-* Are you going to run the code in single precision? Set `USESINGLE` in the [makefile](makefile) to `yes` or `no`.
-* Are you going to use the toolbox (e.g., compute jacobians)? Set `BUILDTOOLS` in the [makefile](makefile) to `yes` or `no`.
-* Are your input files netcdf files (.nc)? Set `USEPNETCDF` in the [makefile](makefile) to `yes` or `no`.
-* Are your input files nifti files (.nii)? Set `USENIFTI` in the [makefile](makefile) to `yes` or `no`.
-* Do you use an *intel compiler*? Set `USEINTEL` in the [makefile](makefile) to `yes` or `no`.
-* Are you using *Intel MPI*? Set `USEINTELMPI` in the [makefile](makefile) to `yes` or `no`.
-
-## Run CLAIRE
-
-
-### Test Problem
-
-To run an image registration test example do:
-
-```bash
-mpirun -n 20 ./bin/claire -synthetic 0
-```
-
-To run the code with different grid sizes use the `-nx` option (i.e., for a 128x128x128 problem, use `-nx 128x128x128`).
-
-### Using Input Images
-
-To run an image registration problem with input images do:
-
-```bash
-mpirun -n 20 ./bin/claire -mr ./external/mR.nii.gz -mt ./external/mT.nii.gz -beta 1E-2 -regnorm h2s -velocity -x ./results -disablesmoothing
-```
-
-Here, `-mr ./external/mR.nii.gz` defines the *reference image* (fixed image), `-mt ./external/mT.nii.gz` the *template image* (image to be registered), `-beta 1E-2` the *regularization weight*,  `-regnorm h2s` the *regularization norm* (H2-seminorm in this case), `-x ./results` the *output folder*, and `-velocity` enables the output of the computed velocity field. These images are smooth; we can disable the default smoothing by adding the `-disablesmoothing` flag to the command line. **Warning**: do not do this for real images.
-
-**Important**: We assume that the images have been **affinely pre-registered** (same voxel dimensions and grid size). More details about these options and the output can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
-
-### Options
-
-To see the basic options do:
-
-```bash
-./bin/claire -help
-```
-
-For more advanced options do:
-
-```bash
-./bin/claire -advanced
-```
-
-You can also find a list of the available options for the binary in [doc/help.txt](doc/help.txt) and [doc/advanced-help.txt](doc/advanced-help.txt).
-
-
-## Advanced Instructions
-
-More information on how to **add**, **install**, and **link** these libraries, can be found in [doc/README-INSTALL.md](doc/README-INSTALL.md). More details about how to run the software can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
+The links above point to individual markdown files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded here: [NIREP Data](https://github.com/andreasmang/nirep).
 
 ## License
+Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
 
-Read the [LICENSE](LICENSE) file for more details.
+
+## Contributors
+George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, Andreas Mang, Miriam Mehl

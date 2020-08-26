@@ -91,11 +91,11 @@ EXSRCDIR = ./3rdparty
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-CLAIRE_INC = -I$(INCDIR) -I$(EXSRCDIR)
+CLAIRE_INC = -I$(INCDIR) -I$(EXSRCDIR) -I./deps/$(EXSRCDIR)
 
 ifeq ($(USECUDA),yes)
     # CUDA includes
-    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR) -I$(EXSRCDIR)
+    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR) -I$(EXSRCDIR) -I./deps/$(EXSRCDIR)
 endif
 
 MPI_INC = $(MPI_DIR)/include
