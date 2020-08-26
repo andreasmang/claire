@@ -1840,6 +1840,13 @@ PetscErrorCode RegOpt::CheckArguments() {
     if (!this->m_FileNames.iv2.empty()) {readvx2 = true;}
     if (!this->m_FileNames.iv3.empty()) {readvx3 = true;}
 
+    if (this->m_KrylovMethod.pctype == H0 || this->m_KrylovMethod.pctype == H0MG) {
+      if (this->m_RegNorm.type != H1SN) {
+        msg = "H0 type preconditioner is only compatible with H1SM";
+        ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str()); CHKERRQ(ierr);
+        ierr = this->Usage(true); CHKERRQ(ierr);
+      }
+    }
 
     if (readmT && readmR) {
         // check if files exist
