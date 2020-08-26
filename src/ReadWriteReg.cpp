@@ -1612,7 +1612,7 @@ PetscErrorCode ReadWriteReg::WriteNC(Vec x) {
         mode = NC_CLOBBER | NC_64BIT_OFFSET;
     }
 
-    c_comm = this->m_Opt->m_FFT.mpicomm;
+    c_comm = this->m_Opt->m_Domain.mpicomm;
 
     // create netcdf file
     ncerr = ncmpi_create(c_comm, this->m_FileName.c_str(), mode, MPI_INFO_NULL, &fileid);
