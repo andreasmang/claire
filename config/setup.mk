@@ -84,11 +84,11 @@ EXSRCDIR = ./3rdparty
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-CLAIRE_INC = -I$(INCDIR) -I$(EXSRCDIR)
+CLAIRE_INC = -I$(INCDIR) -I$(EXSRCDIR) -I./deps/$(EXSRCDIR)
 
 ifeq ($(USECUDA),yes)
     # CUDA includes
-    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR) -I$(EXSRCDIR)
+    CUDA_INC = -I$(CUDA_DIR)/include -I$(INCDIR) -I$(EXSRCDIR) -I./deps/$(EXSRCDIR)
 endif
 
 ifeq ($(USECUDA),yes)
@@ -139,7 +139,7 @@ endif
 
 # CUDA flags
 CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
-CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
+CUDA_FLAGS+=-gencode arch=compute_35,code=sm_35
 #CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50
 
@@ -184,15 +184,19 @@ else
 	endif
 endif
 endif
-LDFLAGS += -lpetsc# -lf2clapack -lf2cblas 
+
+LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
 
 #CUDA LINKERS
 ifeq ($(USECUDA),yes)
-    LDFLAGS += -L$(CUDA_DIR)/lib64 -lcusparse -lcufft -lcublas -lcudart
+    LDFLAGS += -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -lcusparse -lcufft -lcusolver
     ifeq ($(USECUDADBG),yes)
 			LDFLAGS += -lnvToolsExt
 		endif
 endif
+
+LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
+
 
 ifeq ($(USENIFTI),yes)
 	LDFLAGS += -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
@@ -215,7 +219,7 @@ LDFLAGS += -lm
 # FFT LIBRARIES
 LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 ifeq ($(USECUDA),yes)
-    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -laccfft -laccfft_utils -lcudart -lcufft
+    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft -lcublas -lcusolver
 endif
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf

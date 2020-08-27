@@ -363,11 +363,12 @@ __global__ void prefilter_x(float* dfx, float* f) {
  * @parm[out] interpolated value
  *******************************************************************/
 __global__ void mgpu_cubicTex3DFastLagrange(cudaTextureObject_t tex,
-                                        const PetscScalar** xq,
+                                        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
                                         PetscScalar* yo,
                                         const float3 inv_ext, int nq)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     
     if (tid < nq) {
         //float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
@@ -459,11 +460,12 @@ __global__ void mgpu_cubicTex3DFastLagrange(cudaTextureObject_t tex,
  * @parm[out] interpolated value
  *******************************************************************/
 __global__ void cubicTex3DFastLagrange(cudaTextureObject_t tex,
-                                        const PetscScalar** xq,
+                                        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
                                         PetscScalar* yo,
                                         const float3 inv_ext, int nq)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     
     if (tid < nq) {
         //float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
@@ -608,11 +610,12 @@ __global__ void fixedpointLagrange(PetscScalar* f,
  * @parm[out] interpolated value
  *******************************************************************/
 __global__ void mgpu_cubicTex3DSlowLagrange(cudaTextureObject_t tex,
-                                        const PetscScalar** xq,
+                                        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
                                         PetscScalar* yo,
                                         const float3 inv_ext, int nq)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     
     if (tid < nq) {
         //float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
@@ -671,11 +674,12 @@ __global__ void mgpu_cubicTex3DSlowLagrange(cudaTextureObject_t tex,
  * @parm[out] interpolated value
  *******************************************************************/
 __global__ void cubicTex3DSlowLagrange(cudaTextureObject_t tex,
-                                        const PetscScalar** xq,
+                                        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
                                         PetscScalar* yo,
                                         const float3 inv_ext, int nq)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     
     if (tid < nq) {
         //float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
@@ -735,11 +739,12 @@ __global__ void cubicTex3DSlowLagrange(cudaTextureObject_t tex,
  * @parm[out] interpolated value
  *******************************************************************/
 __global__ void cubicTex3DSlowSpline(cudaTextureObject_t tex,
-                                        const PetscScalar** xq,
+                                        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
                                         PetscScalar* yo,
                                         const float3 inv_ext, int nq)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     
     if (tid < nq) {
         //float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
@@ -781,11 +786,12 @@ __global__ void cubicTex3DSlowSpline(cudaTextureObject_t tex,
  * @parm[out] interpolated value
  *******************************************************************/
 __global__ void cubicTex3DFastSpline(cudaTextureObject_t tex,
-                                        const PetscScalar** xq,
+                                        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
                                         PetscScalar* yo,
                                         const float3 inv_ext, int nq)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     
     if (tid < nq) {
         //float3 coord_grid = make_float3(zq[tid], yq[tid], xq[tid]);
@@ -968,6 +974,7 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
    cudaExtent extent = make_cudaExtent(nx[2], nx[1], nx[0]);
    cudaArray* cuArray;
+   
    err = cudaMalloc3DArray(&cuArray, &channelDesc, extent, 0);
    if (err != cudaSuccess){
         fprintf(stderr, "Failed to allocate 3D cudaArray (error code %s)!\n", cudaGetErrorString(err));
@@ -988,7 +995,8 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
     texDesc.readMode = cudaReadModeElementType;
     texDesc.filterMode = cudaFilterModeLinear;
     texDesc.normalizedCoords = 1;
-
+    
+    
     cudaTextureObject_t texObj = 0;
     err = cudaCreateTextureObject( &texObj, &resDesc, &texDesc, NULL);
     if (err != cudaSuccess){
@@ -1031,11 +1039,12 @@ void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextu
  *******************************************************************/
 __global__ void mgpu_interp3D_kernel_linear(
         cudaTextureObject_t  yi_tex,
-        const PetscScalar** xq,
+        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
         PetscScalar* yo,
         const float3 inv_nx, int nq) {
     // Get thread index 
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     if (tid < nq) {
       float3 coord_grid;
       getCoordinates(&coord_grid.z, &coord_grid.y, &coord_grid.x, xq, tid);
@@ -1052,11 +1061,12 @@ __global__ void mgpu_interp3D_kernel_linear(
  *******************************************************************/
 __global__ void interp3D_kernel_linear(
         cudaTextureObject_t  yi_tex,
-        const PetscScalar** xq,
+        const PetscScalar* xq1, const PetscScalar* xq2, const PetscScalar* xq3,
         PetscScalar* yo,
         const float3 inv_nx, int nq) {
     // Get thread index 
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const PetscScalar *xq[3] = {xq1, xq2, xq3};
     if (tid < nq) {
       float3 coord_grid;
       getCoordinatesBlock(&coord_grid.z, &coord_grid.y, &coord_grid.x, xq, tid);
@@ -1134,21 +1144,21 @@ void gpuInterp3Dkernel(
     if (nprocs == 1 ) {
       switch (iporder) {
       case 1:
-        interp3D_kernel_linear<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+        interp3D_kernel_linear<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
         break;
       case 3:
         switch (interp_type) {
           case FAST_SPLINE:
-              cubicTex3DFastSpline<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+              cubicTex3DFastSpline<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
               break;
           case SLOW_SPLINE:
-              cubicTex3DSlowSpline<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+              cubicTex3DSlowSpline<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
               break;
           case FAST_LAGRANGE:
-              cubicTex3DFastLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+              cubicTex3DFastLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
               break;
           case SLOW_LAGRANGE:
-              cubicTex3DSlowLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+              cubicTex3DSlowLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
               break;
         };
         break;
@@ -1156,7 +1166,7 @@ void gpuInterp3Dkernel(
     } else {
       switch (iporder) {
       case 1:
-        mgpu_interp3D_kernel_linear<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+        mgpu_interp3D_kernel_linear<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
         break;
       case 3:
         switch (interp_type) {
@@ -1165,10 +1175,10 @@ void gpuInterp3Dkernel(
           case SLOW_SPLINE:
               break;
           case FAST_LAGRANGE:
-              mgpu_cubicTex3DFastLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+              mgpu_cubicTex3DFastLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
               break;
           case SLOW_LAGRANGE:
-              mgpu_cubicTex3DSlowLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq, yo, inv_nx, nq);
+              mgpu_cubicTex3DSlowLagrange<<<blocks,threads, 0, *stream>>>(yi_tex, xq[0], xq[1], xq[2], yo, inv_nx, nq);
               break;
         };
         break;
@@ -1196,7 +1206,6 @@ void gpuInterp3D(
            int iporder,
            float* interp_time)
 {
-   
     // define inv of nx for normalizing in texture interpolation
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 

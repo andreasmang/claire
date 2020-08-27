@@ -416,7 +416,7 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::stri
       ierr = this->MapCoordinateVector(flag);
     }
     ierr = v->RestoreArrays(); CHKERRQ(ierr);
-    
+        
     // Interpolate on Euler coordinates
     ierr = this->Interpolate(this->m_WorkVecField1, v, flag); CHKERRQ(ierr);
     

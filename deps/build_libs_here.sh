@@ -7,7 +7,7 @@ MPI_C=mpicc
 #MPI_F99=mpif90
 
 #petscvar='lite-3.7.6'
-petscvar='lite-3.9.1'
+petscvar='lite-3.12.4'
 
 
 builddep=0		# set to 1 if you wanna build all libraries
@@ -209,7 +209,9 @@ CXXOPTFLAGS='-O3'
 PETSC_CUDA_OPTIONS="
 --with-cuda=1
 --download-cusp=yes
---CUDAFLAGS='-arch=sm_60'"
+--CUDAFLAGS='-arch=sm_35'
+--CUDAOPTFLAGS='-O3'"
+#-use-gpu-aware-mpi"
 
 PETSC_DBG_OPTIONS="
 --with-cc=${MPI_C}
@@ -230,7 +232,8 @@ PETSC_DBG_OPTIONS="
 
 
 #### FFTW OPTIONS
-FFTW_OPTIONS="--enable-sse2 MAKEINFO=missing"
+FFTW_OPTIONS=
+#FFTW_OPTIONS="--enable-sse2 MAKEINFO=missing"
 if [ ${enableOMP} -eq 1 ]; then
 	FFTW_OPTIONS="${FFTW_OPTIONS} --enable-threads --enable-openmp"
 fi
@@ -264,12 +267,10 @@ NIFTICLIB_OPTIONS="
 ##############################################################
 ##############################################################
 
-#LIB_DIR=${HOME}/apps
-
-LIB_DIR=.
+LIB_DIR=${PWD}
 
 # go up one level
-BUILD_DIR=${LIB_DIR}/
+BUILD_DIR=${LIB_DIR}/libs
 
 if [ ! -d ${BUILD_DIR} ]; then
 	mkdir ${BUILD_DIR}
@@ -398,7 +399,7 @@ if [ ${builddep} -eq 1 -o ${buildpetscdbl} -eq 1 ]; then
 	echo ${myline} 
 	echo "building PETSC" 
 	echo ${myline} 
-	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} MAKEFLAGS="-j 1"
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
 else
 	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then
@@ -500,7 +501,7 @@ if [ ${builddep} -eq 1 -o ${buildpetsccudadbl} -eq 1 ]; then
 	echo ${myline} 
 	echo "building PETSC" 
 	echo ${myline} 
-	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH}
+	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} -j 1
 	make PETSC_DIR=${SRC_DIR} PETSC_ARCH=${PETSC_ARCH} install
 else
 	if [ ${cleanup} -eq 1 -a ! ${PETSC_LIB_DIR} == ${HOME} ]; then

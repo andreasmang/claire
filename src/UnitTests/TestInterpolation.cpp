@@ -187,8 +187,9 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   cudaMemcpy(pq1, q1, sizeof(ScalarType)*nl, cudaMemcpyHostToDevice);
   cudaMemcpy(pq2, q2, sizeof(ScalarType)*nl, cudaMemcpyHostToDevice);
   cudaMemcpy(pq3, q3, sizeof(ScalarType)*nl, cudaMemcpyHostToDevice);
-
+  
   cudaTextureObject_t tex = gpuInitEmptyTexture(nx);
+  
   const ScalarType * pq[3] = {pq1, pq2, pq3};
   float timer = 0;
   for (int i=0; i<10; ++i) {
