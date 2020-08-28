@@ -5,9 +5,15 @@ If you plan on using CLAIRE in your research please cite the following manuscrip
 A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
 
 
-## Parallel Implementation
+## Parallel CPU Implementation
 * A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
 * A. Mang, A. Gholami & G. Biros. *Distributed-memory large-deformation diffeomorphic 3D image registration*. Proc ACM/IEEE Conference on SuperComputing, #72, 2016 [[arxiv](https://arxiv.org/abs/1608.03630), [ieee](http://dx.doi.org/10.1109/SC.2016.71)].
+
+
+## Parallel GPU Implementation
+* M. Brunn, N. Himthani, G. Biros, M. Mehl, & A. Mang. Multi-node multi-GPU diffeomorphic image registration for large-scale imaging problems. Proc ACM/IEEE Conference on Supercomputing 2020. (10 pages; accepted for publication).
+* M. Brunn, N. Himthani, G. Biros, M. Mehl, & A. Mang. Fast GPU 3D diffeomorphic image registration. (in review), 2020. [[arxiv](https://arxiv.org/abs/2004.08893)]
+
 
 ## Algorithmic Developments
 * A. Mang & G. Biros. *An inexact Newton-Krylov algorithm for constrained diffeomorphic image registration*. SIAM Journal on Imaging Sciences, 8(2):1030--1069, 2015. [[arxiv](https://arxiv.org/abs/1408.6299v3), [siims](http://epubs.siam.org/doi/10.1137/140984002)].
