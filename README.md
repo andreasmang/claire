@@ -6,7 +6,7 @@
 
 ## About <a name="claireabout"></a>
 
-**CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core systems. It uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
+**CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core CPU systems and multi-node, multi-GPU architectures. The CPU version uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
 
 <p align="center">
 <img src="doc/figs/claire4brains.jpg" alt="CLAIRE4Brains"  width="800"/>
@@ -28,7 +28,7 @@ The links above point to individual markdown files. These files can be found in 
 
 ## News
 
-We have released a GPU version of CLAIRE. If you are interested in using our new (multi-node multi-)GPU version, switch to the **GPU branch**.
+**08/28/2020** We have released a GPU version of CLAIRE. If you are interested in using our new (multi-node multi-)GPU version, switch to the **GPU branch**. If you are interested in learning more about the GPU version of CLAIRE, check out our [publications](doc/README-REFERENCES.md).
 
 
 ## License
