@@ -76,7 +76,6 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/RegToolsOpt.cpp \
 		$(SRCDIR)/BenchmarkOpt.cpp \
 		$(SRCDIR)/CLAIREUtils.cpp \
-		$(SRCDIR)/ghost.cpp \
 		$(SRCDIR)/GhostPlan.cpp \
 		$(SRCDIR)/Differentiation/Differentiation.cpp \
 		$(SRCDIR)/CLAIREUtilsKernel.cpp \
@@ -119,7 +118,7 @@ CPPFILESCUDA=$(SRCDIR)/RegOpt.cpp \
 		$(SRCDIR)/Spectral/Spectral.cpp \
 		$(SRCDIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp \
 		$(SRCDIR)/Spectral/mpicufft.cpp
-		
+		#$(SRCDIR)/ghost.cpp \
 		#$(SRCDIR)/SemiLagrangian/SemiLagrangian.cpp \
 		#$(SRCDIR)/Interpolation/interp3.cpp \
 		#$(SRCDIR)/Interpolation/Interp3_Plan.cpp

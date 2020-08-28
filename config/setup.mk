@@ -139,7 +139,8 @@ endif
 
 # CUDA flags
 CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
-CUDA_FLAGS+=-gencode arch=compute_35,code=sm_35
+#CUDA_FLAGS+=-gencode arch=compute_35,code=sm_35
+CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 #CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
 #CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50
 
@@ -219,7 +220,7 @@ LDFLAGS += -lm
 # FFT LIBRARIES
 LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 ifeq ($(USECUDA),yes)
-    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft -lcublas -lcusolver
+    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -laccfft -laccfft_utils -lcudart -lcufft -lcublas -lcusolver
 endif
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
