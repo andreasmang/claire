@@ -1077,6 +1077,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
 
 /********************************************************************
  * @brief applies inverse of H(v=0) (used as preconditioner for our problem)
+ * This is a PCG solver solving the H0x = r system and prolonging and restricting it.
  *******************************************************************/
 PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool first, bool twolevel, Preprocessing* preproc) {
     PetscErrorCode ierr = 0;
