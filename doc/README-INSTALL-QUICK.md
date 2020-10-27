@@ -18,6 +18,19 @@ make -j
 ./bin/claire -synthetic 0
 ```
 
+For GPU build on TACC's Longhorn system (need to be on the [gpu](https://github.com/andreasmang/claire/tree/gpu) branch of CLAIRE)
+
+```bash
+cd deps
+./get_libs.sh
+./build_libs.sh --build --gpu=V100 --enableCUDA --POWER9
+cd ..
+make -f makefile_p9 -j
+mpirun -np 1 ./bindev/claire -synthetic 0
+```
+
+
+
 ## Step by Step  <a name="stepbystep"></a>
 
 
