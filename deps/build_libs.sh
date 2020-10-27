@@ -19,7 +19,10 @@ enableOMP=1 # needed by ACCFFT
 enableCUDA=0
 useIMPI=0
 POWER9=0
-GPU="P100"
+
+GPU="V100" # TACC Longhorn
+#GPU="RTX" # TACC Frontera
+#GPU="P100" # TACC Maverick2
 
 buildfftw=0
 buildaccfft=0
@@ -254,7 +257,7 @@ NIFTICLIB_OPTIONS="
 LIB_DIR=$PWD/
 
 # go up one level
-BUILD_DIR=${SCRATCH}/libs
+BUILD_DIR=${LIB_DIR}/libs
 
 if [ ! -d ${BUILD_DIR} ]; then
 	mkdir ${BUILD_DIR}

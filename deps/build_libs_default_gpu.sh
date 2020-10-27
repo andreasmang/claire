@@ -1,6 +1,8 @@
 #!/bin/bash
 
-gpu="V100"
+gpu="V100" # TACC Longhorn
+#gpu="RTX" # TACC Frontera
+#gpu="P100" # TACC Maverick2
 
 ./build_libs.sh --gpu=$gpu
 

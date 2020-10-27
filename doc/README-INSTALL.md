@@ -42,7 +42,7 @@ CLAIRE requires the following libraries to be installed on your system:
 To download the libraries we provide a script called `get_libs.sh` (see [deps/get_libs.sh](../deps/get_libs.sh)). Simply run this script in your command window to download *tarball* files of the libraries identified above.
 
 ```bash
-cd debs
+cd deps
 ./get_libs.sh
 ```
 
