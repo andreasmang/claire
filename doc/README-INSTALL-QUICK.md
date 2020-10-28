@@ -23,7 +23,7 @@ For GPU build on TACC's Longhorn system (need to be on the [gpu](https://github.
 ```bash
 cd deps
 ./get_libs.sh
-./build_libs.sh --build --gpu=V100 --enableCUDA --POWER9
+./build_libs_default_gpu_longhorn.sh
 cd ..
 make -f makefile_p9 -j
 mpirun -np 1 ./bindev/claire -synthetic 0
