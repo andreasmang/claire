@@ -344,10 +344,10 @@ if [ ${builddep} -eq 1 -o ${buildfftw} -eq 1 ]; then
 	echo ${myline} 
 	make
 	make install
-    echo "export FFTW_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
 
+echo "export FFTW_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 
 ################################
@@ -404,9 +404,9 @@ fi
 PETSC_ARCH=cxx-opt-dbl
 if [ ${builddep} -eq 1 -o ${buildpetscdbl} -eq 1 ]; then 
 	build_petsc $PETSC_ARCH "configuring PETSC (double precision)"
-    echo "export PETSC_ARCH_DOUBLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PETSC_ARCH_DOUBLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # PETSC-SINGLE-PRECISION
@@ -414,19 +414,19 @@ fi
 PETSC_ARCH=cxx-opt-sgl
 if [ ${builddep} -eq 1 -o ${buildpetscsgl} -eq 1 ]; then 
 	build_petsc $PETSC_ARCH "configuring PETSC (single precision)"
-    echo "export PETSC_ARCH_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PETSC_ARCH_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # PETSC-CUDA-SINGLE-PRECISION
 ################################
-PETSC_ARCH=cuda-opt-sgl
+PETSC_ARCH=cuda-opt-sgl-${GPU}
 if [ ${builddep} -eq 1 -o ${buildpetsccudasgl} -eq 1 ]; then 
 	build_petsc $PETSC_ARCH "configuring PETSC-CUDA (single precision)"
-    echo "export PETSC_ARCH_CUDA_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PETSC_ARCH_CUDA_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # PETSC-DOUBLE-DEBUG
@@ -434,9 +434,9 @@ fi
 PETSC_ARCH=cxx-opt-dbg-dbl
 if [ ${builddep} -eq 1 -o ${buildpetscdbgdbl} -eq 1 ]; then 
 	build_petsc $PETSC_ARCH "configuring PETSC (double precision) in debug mode"
-    echo "export PETSC_ARCH_DBG_DOUBLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PETSC_ARCH_DBG_DOUBLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # PETSC DBG SINGLE PRECISION
@@ -444,19 +444,19 @@ fi
 PETSC_ARCH=cxx-opt-dbg-sgl
 if [ ${builddep} -eq 1 -o ${buildpetscdbgsgl} -eq 1 ]; then 
 	build_petsc $PETSC_ARCH "configuring PETSC (single precision) in debug mode"
-    echo "export PETSC_ARCH_DBG_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PETSC_ARCH_DBG_SINGLE=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # PETSC-CUDA DBG SINGLE
 ################################
-PETSC_ARCH=cuda-opt-sgl-dbg
+PETSC_ARCH=cuda-opt-sgl-dbg-${GPU}
 if [ ${builddep} -eq 1 -o ${buildpetsccudasgldbg} -eq 1 ]; then 
 	build_petsc $PETSC_ARCH "configuring PETSC-cuda (single precision) in debug mode"
-    echo "export PETSC_ARCH_CUDA_SINGLE_DBG=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PETSC_ARCH_CUDA_SINGLE_DBG=${PETSC_ARCH}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # MORTON LIBRARY
@@ -522,13 +522,13 @@ if [ ${builddep} -eq 1 -o ${buildzlib} -eq 1 ]; then
 	echo ${myline} 
 	make 
 	make install
-    echo "export ZLIB_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
-    echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 else
 	if [  ${cleanup} -eq 1 -a ! ${Z_LIB_DIR} == ${HOME} ]; then
 		rm -rf ${Z_LIB_DIR}
 	fi
 fi
+echo "export ZLIB_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
+echo "export LD_LIBRARY_PATH=${BLD_DIR}/lib:\${LD_LIBRARY_PATH}" >> ${BUILD_DIR}/environment_vars.sh
 
 
 ################################
@@ -575,12 +575,12 @@ if [ ${builddep} -eq 1 -o ${buildnifticlib} -eq 1 ]; then
 	echo ${myline} 
 	make
 	make install
-    echo "export NIFTI_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 fi
 
 if [ ${cleanup} -eq 1 ]; then
 	rm -f ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export NIFTI_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # PNETCDF
@@ -624,12 +624,12 @@ if [ ${buildpnetcdf} -eq 1 ]; then
 	echo ${myline} 
 	make
 	make install
-    echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 fi
 
 if [ ${cleanup} -eq 1 ]; then
 	rm -f ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export PNETCDF_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 ################################
 # ACCFFT
@@ -673,10 +673,10 @@ if [ ${builddep} -eq 1 -o ${buildaccfft} -eq 1 ]; then
 	echo ${myline} 
 	make -j
 	make install
-    echo "export ACCFFT_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 fi
 
 if [ ${cleanup} -eq 1 ]; then
 	rm -f ${BUILD_DIR}/environment_vars.sh
 fi
+echo "export ACCFFT_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 

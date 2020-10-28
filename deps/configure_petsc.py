@@ -22,8 +22,8 @@ if __name__ == '__main__':
   
     #'--with-mpi-dir='+os.environ['TACC_SPECTRUM_MPI_DIR'],
     #'--with-mpiexec='+os.path.join(os.environ['TACC_SPECTRUM_MPI_BIN'], 'mpiexec'),
-  if "cuda" in mode:
-    mode = mode + "-" + gpu
+  #if "cuda" in mode:
+  #  mode = mode + "-" + gpu
 
   configure_options.append('--with-petsc-arch='+mode)
 

@@ -1,16 +1,13 @@
 #!/bin/bash
 
-compute_system=frontera  #longhorn
-
-gpu="V100" # TACC Longhorn
-#gpu="RTX" # TACC Frontera
-#gpu="P100" # TACC Maverick2
+compute_system=$1
+gpu=$2
 
 ./build_libs.sh --gpu=$gpu
 
-if [ $compute_system == "longhorn" ]; then
+#if [ $compute_system -neq "frontera" ]; then
     ./build_libs.sh --bpetsccudasgl --enableCUDA --gpu=$gpu
-fi
+#fi
 
 if [ $compute_system == "longhorn" ]; then
     ./build_libs.sh --bfftw --enableCUDA --POWER9
