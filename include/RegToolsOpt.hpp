@@ -33,6 +33,8 @@ struct ResamplingPara {
     IntType nx[3];
     bool normalize;
     bool clip;
+    ScalarType shift;
+    ScalarType scale;
 };
 
 

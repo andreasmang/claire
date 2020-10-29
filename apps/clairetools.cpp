@@ -760,6 +760,9 @@ PetscErrorCode Resample(reg::RegToolsOpt* regopt) {
                     ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
                 }
                 
+                ierr = VecShift(ml, regopt->m_ResamplingPara.shift); CHKERRQ(ierr);
+                ierr = VecScale(ml, regopt->m_ResamplingPara.scale); CHKERRQ(ierr);
+                
                 if (regopt->m_ResamplingPara.clip) {
                   ScalarType *p_x;
                   ierr = VecGetArray(ml, &p_x); CHKERRQ(ierr);

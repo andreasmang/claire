@@ -301,6 +301,12 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
         } else if (strcmp(argv[1], "-scale") == 0) {
             argc--; argv++;
             this->m_ResamplingPara.gridscale = atof(argv[1]);
+        } else if (strcmp(argv[1], "-shift") == 0) {
+            argc--; argv++;
+            this->m_ResamplingPara.shift = atof(argv[1]);
+        } else if (strcmp(argv[1], "-valuescale") == 0) {
+            argc--; argv++;
+            this->m_ResamplingPara.scale = atof(argv[1]);
         } else if (strcmp(argv[1], "-norm") == 0) {
             this->m_ResamplingPara.normalize = true;
         } else if (strcmp(argv[1], "-clip") == 0) {
@@ -405,6 +411,8 @@ PetscErrorCode RegToolsOpt::Initialize() {
     this->m_ResamplingPara.normalize = false;
     this->m_ResamplingPara.clip = false;
     this->m_ResamplingPara.gridscale = -1.0;
+    this->m_ResamplingPara.shift = 0.0;
+    this->m_ResamplingPara.scale = 1.0;
     this->m_ResamplingPara.nx[0] = -1.0;
     this->m_ResamplingPara.nx[1] = -1.0;
     this->m_ResamplingPara.nx[2] = -1.0;
@@ -533,6 +541,8 @@ PetscErrorCode RegToolsOpt::Usage(bool advanced) {
         std::cout << " -nxnew                      number of grid points for output" << std::endl;
         std::cout << " -norm                       normalize output to [0, 1]" << std::endl;
         std::cout << " -clip                       clip values below 0" << std::endl;
+        std::cout << " -shift                      shift values by value before norm/clip" << std::endl;
+        std::cout << " -valuescale                 scale value after shifting, before norm/clip" << std::endl;
         std::cout << line << std::endl;
         std::cout << " ### other parameters/debugging" << std::endl;
         std::cout << line << std::endl;
