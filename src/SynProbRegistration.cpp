@@ -572,7 +572,7 @@ PetscErrorCode SynProbRegistration::ComputeDiamond(Vec m, int id) {
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
 #pragma omp parallel
 {
-    ScalarType x1, x2, x3, x;
+    ScalarType x1=0, x2=0, x3=0, x;
     IntType i1, i2, i3, i;
 #pragma omp for
     for (i1 = 0; i1 < isize[0]; ++i1) {  // x1

@@ -8,14 +8,21 @@ USEPNETCDF=no
 USENIFTI=yes
 USEKNL=no
 USEHASWELL=no
-BUILDTOOLS=yes
-BUILDTEST=yes
-
+BUILDTOOLS=no
+BUILDTEST=no
+BUILDPYTHON=yes
 
 #include config/setup.mk.power9v100
 include config/setup.mk
 include config/files.mk
 
+ifeq ($(BUILDPYTHON),yes)
+CPPFILES += $(SWIGFILE)
+CPPFILESCUDA += $(SWIGFILE)
+CLAIRE_INC += -I/usr/include/python3.5/
+CXXFLAGS += -fPIC
+BIN = swig
+endif
 
 ifeq ($(USECUDA),yes)
 ifeq ($(BUILDTEST),yes)
@@ -80,6 +87,15 @@ $(OBJDIR)/%.o: $(APPDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) -c $^ -o $@
 
+endif
+
+ifeq ($(BUILDPYTHON),yes)
+preswig: $(SRCDIR)/Interface/pyclaire.i
+	swig -c++ -python -I$(INCDIR)/ -outdir $(SRCDIR)/Interface/ $(SRCDIR)/Interface/pyclaire.i
+  
+swig: $(CUDA_OBJS) $(OBJS)
+	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
+	$(CXX) -shared $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o src/Interface/_pyclaire.so
 endif
 
 .PHONY: clean

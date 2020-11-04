@@ -21,8 +21,26 @@
 #define _REGTOOLSOPT_CPP_
 
 #include "RegToolsOpt.hpp"
+#include <algorithm>
 
+// trim from start
+static inline std::string &ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
 
+// trim from end
+static inline std::string &rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    return ltrim(rtrim(s));
+}
 
 
 namespace reg {
@@ -65,18 +83,22 @@ RegToolsOpt::RegToolsOpt(const RegToolsOpt& opt) {
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
-PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
+PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** av) {
     PetscErrorCode ierr = 0;
     std::string msg;
     std::vector<int> nx;
     std::vector<int> nxr;
     std::vector<int> np;
     std::vector<int> sigma;
+    std::vector<char*> av_list(av, av+argc);
+    std::vector<char*> config_args;
     PetscFunctionBegin;
 
     if (argc == 1) {
         ierr = this->Usage(); CHKERRQ(ierr);
     }
+    
+    std::vector<char*>::iterator argv = av_list.begin();
 
     while(argc > 1) {
         if (   (strcmp(argv[1], "-h")    == 0)
@@ -85,6 +107,27 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             ierr = this->Usage(); CHKERRQ(ierr);
         } else if (strcmp(argv[1], "-advanced") == 0) {
             ierr = this->Usage(true); CHKERRQ(ierr);
+        } else if (strcmp(argv[1], "-config") == 0) {
+          size_t pos = argv - av_list.begin();
+          std::ifstream handle(argv[2]);
+          std::string line;
+          while (std::getline(handle, line)) {
+            std::istringstream lines(line);
+            std::string token;
+            while(std::getline(lines, token, ' ')) {
+              trim(token);
+              if (token.size() > 0) {
+                config_args.push_back(nullptr);
+                config_args.back() = new char[token.size()+1];
+                strcpy(config_args.back(), token.c_str());
+                av_list.push_back(config_args.back());
+                argc++;
+              }
+            }
+          }
+          handle.close();
+          argv = av_list.begin() + pos;
+          argc-=1; argv+=1;
         } else if (strcmp(argv[1], "-mr") == 0) {
             argc--; argv++;
             this->m_FileNames.mr.push_back(argv[1]);
@@ -344,6 +387,10 @@ PetscErrorCode RegToolsOpt::ParseArguments(int argc, char** argv) {
             ierr = this->Usage(); CHKERRQ(ierr);
         }
         argc--; argv++;
+    }
+    
+    for (size_t i = 0; i < config_args.size(); ++i) {
+      delete[] config_args[i];
     }
 
     // check the arguments/parameters set by the user

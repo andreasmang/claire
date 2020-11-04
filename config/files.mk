@@ -129,3 +129,6 @@ TESTFILES=$(SRCDIR)/UnitTestOpt.cpp \
 		$(SRCDIR)/UnitTests/SyntheticData.cpp \
 		$(SRCDIR)/UnitTests/TestClaire.cpp \
 		$(SRCDIR)/UnitTests/TestInterpolation.cpp
+
+SWIGFILE=$(SRCDIR)/Interface/PythonInterface.cpp \
+		$(SRCDIR)/Interface/pyclaire_wrap.cxx

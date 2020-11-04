@@ -67,6 +67,14 @@ RegOpt::RegOpt(int argc, char** argv) {
     this->ParseArguments(argc, argv);
 }
 
+/********************************************************************
+ * @brief constructor
+ *******************************************************************/
+RegOpt::RegOpt(const std::vector<std::string>& args) {
+    this->Initialize();
+    this->ParseArguments(args);
+}
+
 
 
 
@@ -291,20 +299,58 @@ void RegOpt::Copy(const RegOpt& opt) {
 /********************************************************************
  * @brief parse user arguments
  *******************************************************************/
+PetscErrorCode RegOpt::ParseArguments(const std::vector<std::string>& args) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = this->SetParameter(args); CHKERRQ(ierr);
+  
+  ierr = this->CheckArguments(); CHKERRQ(ierr);
+  
+  this->m_Timer[FFTSETUP][LOG] = 0.0;
+  
+  // set number of threads
+  ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+                                    this->m_Domain.mpicomm, (this->m_Domain.mpicomm != MPI_COMM_NULL)); CHKERRQ(ierr);
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
     PetscErrorCode ierr = 0;
-    std::string msg;
-    std::vector<int> values;
-    std::vector<char*> av_list(av, av+argc);
-    std::vector<char*> config_args;
-    int flag;
-    PetscFunctionBegin;
-
+    
     if (argc == 1) {
         ierr = this->Usage(true); CHKERRQ(ierr);
     }
     
-    std::vector<char*>::iterator argv = av_list.begin();
+    std::vector<std::string> args(argc-1);
+    
+    for (int i=1;i<argc;++i) args[i-1] = std::string(av[i]);
+    
+    ierr = this->SetParameter(args); CHKERRQ(ierr);
+    
+    ierr = this->CheckArguments(); CHKERRQ(ierr);
+    
+    this->m_Timer[FFTSETUP][LOG] = 0.0;
+  
+    // set number of threads
+    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
+                                    this->m_Domain.mpicomm, (this->m_Domain.mpicomm != MPI_COMM_NULL)); CHKERRQ(ierr);
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode RegOpt::SetParameter(const std::vector<std::string>& args) {
+    PetscErrorCode ierr = 0;
+    std::string msg;
+    std::vector<int> values;
+    std::vector<char*> config_args;
+    int argc = args.size()+1;
+    std::vector<const char*> av_list(argc);
+    int flag;
+    PetscFunctionBegin;
+    
+    for (int i=1;i<argc;++i) av_list[i] = args[i-1].c_str();
+
+    std::vector<const char*>::iterator argv = av_list.begin();
   
     while (argc > 1) {
         if (   (strcmp(argv[1], "-h")    == 0)
@@ -959,8 +1005,6 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
         }
         argc--; argv++;
     }
-    // check the arguments/parameters set by the user
-    ierr = this->CheckArguments(); CHKERRQ(ierr);
     
     for (size_t i = 0; i < config_args.size(); ++i) {
       delete[] config_args[i];
@@ -980,14 +1024,8 @@ PetscErrorCode RegOpt::ParseArguments(int argc, char** av) {
         }
     }
 
-    this->m_Timer[FFTSETUP][LOG] = 0.0;
-    // set number of threads
-    ierr = InitializeDataDistribution(this->m_NumThreads, this->m_CartGridDims,
-                                      this->m_Domain.mpicomm, (this->m_Domain.mpicomm != MPI_COMM_NULL)); CHKERRQ(ierr);
     PetscFunctionReturn(ierr);
 }
-
-
 
 
 /********************************************************************
@@ -1571,6 +1609,7 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << line << std::endl;
         std::cout << " where [options] is one or more of the following" << std::endl;
         std::cout << line << std::endl;
+        std::cout << " -config <file>              load additional parameters from config file" << std::endl;
         std::cout << " -mr <file>                  reference image (*.nii, *.nii.gz, *.hdr)" << std::endl;
         std::cout << " -mt <file>                  template image (*.nii, *.nii.gz, *.hdr)" << std::endl;
 
@@ -2037,7 +2076,7 @@ PetscErrorCode RegOpt::DoSetup(bool dispteaser) {
     if (dispteaser) {
         ierr = this->DisplayOptions(); CHKERRQ(ierr);
     }
-
+    
     this->m_SetupDone = true;
 
     this->Exit(__func__);

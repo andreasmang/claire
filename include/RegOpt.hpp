@@ -23,6 +23,8 @@
 // local includes
 #include "CLAIREUtils.hpp"
 #include "Spectral.hpp"
+#include <vector>
+#include <string>
 //#include "ARGVParser.hpp"
 
 namespace reg {
@@ -501,6 +503,7 @@ class RegOpt {
 
     RegOpt();
     RegOpt(int, char**);
+    RegOpt(const std::vector<std::string>& args);
     RegOpt(const RegOpt&);
     virtual ~RegOpt();
     void Copy(const RegOpt&);
@@ -511,7 +514,8 @@ class RegOpt {
                *this->m_Domain.hx[2];
     }
 
-
+    PetscErrorCode SetParameter(const std::vector<std::string>& args);
+  
     ScalarType GetBetaMinParaCont();
 
     PetscErrorCode GetSizes(IntType*, IntType&, IntType&);
@@ -639,6 +643,7 @@ class RegOpt {
     PetscErrorCode InitializeFFT();
     PetscErrorCode DestroyFFT();
     virtual PetscErrorCode ClearMemory(void);
+    virtual PetscErrorCode ParseArguments(const std::vector<std::string>& args);
     virtual PetscErrorCode ParseArguments(int, char**);
     virtual PetscErrorCode Usage(bool advanced = false);
     virtual PetscErrorCode CheckArguments(void);

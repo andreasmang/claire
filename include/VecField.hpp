@@ -38,6 +38,7 @@ class VecField {
 
     VecField();
     VecField(RegOpt*);
+    VecField(RegOpt*, Vec, Vec, Vec);
     VecField(RegOpt*,int);
     VecField(IntType,IntType);
     virtual ~VecField();
@@ -119,6 +120,7 @@ class VecField {
     typedef enum {None, Read, Write, ReadWrite} AccessType;
     AccessType m_Type;
     IntType m_Allocated;
+    bool m_Owend;
     
     union {
       ScalarType *m_Ptr[3];

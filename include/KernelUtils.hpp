@@ -351,7 +351,6 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
   ScalarType *res = nullptr;
 
   ierr = reg::AllocateMemoryOnce(res, grid.x*sizeof(ScalarType)); CHKERRQ(ierr);
-  
   value = 0.;
   
   if (nl > 0) {

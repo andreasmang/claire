@@ -267,6 +267,9 @@ PetscErrorCode CLAIREInterface::SetReferenceImage(Vec mR) {
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->m_RegFlags.applyrescaling) {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg2("normalize mR"); CHKERRQ(ierr);
+        }
         ierr = Normalize(mR, nc); CHKERRQ(ierr);
     }
 
@@ -313,6 +316,9 @@ PetscErrorCode CLAIREInterface::SetTemplateImage(Vec mT) {
 
     // by default we rescale the intensity range to [0,1]
     if (this->m_Opt->m_RegFlags.applyrescaling) {
+        if (this->m_Opt->m_Verbosity > 2) {
+          ierr = DbgMsg2("normalize mT"); CHKERRQ(ierr);
+        }
         ierr = Normalize(mT, nc); CHKERRQ(ierr);
     }
 
@@ -385,7 +391,8 @@ PetscErrorCode CLAIREInterface::GetFinalState(Vec m1) {
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->m_RegProblem->GetStateVariable(m); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->GetFinalState(m1); CHKERRQ(ierr);
+    /*ierr = this->m_RegProblem->GetStateVariable(m); CHKERRQ(ierr);
 
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
@@ -400,7 +407,7 @@ PetscErrorCode CLAIREInterface::GetFinalState(Vec m1) {
     }
 
     ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);
+    ierr = VecRestoreArray(m1, &p_m1); CHKERRQ(ierr);*/
 
     PetscFunctionReturn(ierr);
 }
@@ -607,7 +614,7 @@ PetscErrorCode CLAIREInterface::SetupData(Vec& mR, Vec& mT) {
     
     nc = this->m_Opt->m_Domain.nc;
     // presmoothing, if necessary
-    if (this->m_IsTemplateSet && this->m_IsReferenceSet) {
+    if (!this->m_Opt->m_RegFlags.runsynprob && this->m_IsTemplateSet && this->m_IsReferenceSet) {
         ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
         ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
@@ -1896,6 +1903,36 @@ PetscErrorCode CLAIREInterface::RunPostProcessing() {
 }
 
 
+
+/********************************************************************
+ * @brief solve the forward problem, given some trial velocity
+ * field v and a template image m0
+ * @param[in] m0 initial condition/template image
+ * @param[out] m1 transported template image
+ ********************************************************************/
+PetscErrorCode CLAIREInterface::SolveForwardProblem() {
+    PetscErrorCode ierr = 0;
+    IntType nc;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    if (this->m_RegProblem == NULL) {
+        ierr = this->SetupRegProblem(); CHKERRQ(ierr);
+    }
+    ierr = Assert(this->m_RegProblem != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_Solution != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
+
+    // set the control variable
+    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->SetTemplateImage(this->m_TemplateImage); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->SolveStateEquation(); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

@@ -202,7 +202,7 @@ CXXOPTFLAGS='-O3'
 --with-ssl=0
 --with-debugging=0
 --with-64-bit-indices
---with-shared=0
+--with-shared=1
 --with-x=0
 --with-fc=0"
 
@@ -222,7 +222,7 @@ PETSC_DBG_OPTIONS="
 --download-f2cblaslapack
 --with-debugging=1
 --with-64-bit-indices
---with-shared=0
+--with-shared=1
 --with-x=0
 --with-fc=0"
 
@@ -232,8 +232,8 @@ PETSC_DBG_OPTIONS="
 
 
 #### FFTW OPTIONS
-FFTW_OPTIONS=
-#FFTW_OPTIONS="--enable-shared"
+#FFTW_OPTIONS=
+FFTW_OPTIONS="--enable-shared"
 #FFTW_OPTIONS="--enable-sse2 MAKEINFO=missing"
 if [ ${enableOMP} -eq 1 ]; then
 	FFTW_OPTIONS="${FFTW_OPTIONS} --enable-threads --enable-openmp"
@@ -246,9 +246,9 @@ fi
 ACCFFT_OPTIONS="
 -DCMAKE_CXX_COMPILER=${MPI_CXX}
 -DCMAKE_C_COMPILER=${MPI_C}
--DFFTW_USE_STATIC_LIBS=true
+-DFFTW_USE_STATIC_LIBS=false
 -DBUILD_GPU=false
--DBUILD_SHARED=false"
+-DBUILD_SHARED=true"
 
 if [ ${enableCUDA} -eq 1 ]; then
 	ACCFFT_OPTIONS="${ACCFFT_OPTIONS} -DBUILD_GPU=true"
@@ -259,7 +259,7 @@ fi
 NIFTICLIB_OPTIONS="
 -DCMAKE_CXX_COMPILER=${MPI_CXX}
 -DCMAKE_C_COMPILER=${MPI_C}
--DBUILD_SHARED_LIBS:BOOL=OFF
+-DBUILD_SHARED_LIBS:BOOL=ON
 -Wno-dev"
 
 ##############################################################
@@ -883,3 +883,5 @@ fi
 echo "export ACCFFT_DIR=${BLD_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 
+echo "export CUDA_DIR=/usr/local/cuda-10.1" >> ${BUILD_DIR}/environment_vars.sh
+echo" export MPI_INC=/usr/lib/openmpi/include" >> ${BUILD_DIR}/environment_vars.sh

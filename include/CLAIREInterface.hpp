@@ -73,6 +73,7 @@ class CLAIREInterface {
     PetscErrorCode ComputeDetDefGrad(Vec);
     PetscErrorCode ComputeDeformationMap(VecField*);
 
+    PetscErrorCode SolveForwardProblem();
     PetscErrorCode SolveForwardProblem(Vec, Vec);
     PetscErrorCode SolveAdjointProblem(Vec, Vec);
 

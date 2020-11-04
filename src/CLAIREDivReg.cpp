@@ -115,7 +115,6 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
           ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
           ierr = this->m_Regularization->SetDifferentiation(this->m_Differentiation); CHKERRQ(ierr);
         }
-
         // evaluate the regularization model for w = div(v)
         ierr = this->EvaluteRegularizationDIV(&Rw); CHKERRQ(ierr); CHKERRQ(ierr);
     }

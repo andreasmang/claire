@@ -92,7 +92,12 @@ class CLAIRE : public CLAIREBase {
 
     /*! allocate all the memory we need */
     PetscErrorCode InitializeSolver();
+    
+    /*! get the final state variable */
+    PetscErrorCode GetFinalState(Vec);
 
+    /*! solve state equation */
+    virtual PetscErrorCode SolveStateEquation(void);
 
  protected:
     /*! compute Hessian matvec (second variation
@@ -109,16 +114,10 @@ class CLAIRE : public CLAIREBase {
     PetscErrorCode ClearMemory(void);
 
     /*! get the final state variable */
-    PetscErrorCode GetFinalState(Vec);
-
-    /*! get the final state variable */
     PetscErrorCode SetInitialState(Vec);
 
     /*! get the final state variable */
     PetscErrorCode SetFinalAdjoint(Vec);
-
-    /*! solve state equation */
-    virtual PetscErrorCode SolveStateEquation(void);
 
     /*! solve incremental state equation */
     virtual PetscErrorCode SolveIncStateEquation(void);

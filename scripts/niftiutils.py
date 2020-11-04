@@ -42,6 +42,17 @@ if args.n:
   nx = nx_new
   ny = ny_new
   nz = nz_new
+  
+if args.l:
+  data = np.array(nifti.dataobj)
+  kernel = eval("lambda v, pos, stat : " + args.l)
+  min_val = np.min(nifti.dataobj)
+  max_val = np.max(nifti.dataobj)
+  for x in range(nx):
+    for y in range(ny):
+      for z in range(nz):
+        data[x,y,z] = kernel(data[x,y,z],(x,y,z),(nx,ny,nz,min_val,max_val))
+  nifti = nib.Nifti1Image(data, nifti.affine, nifti.header)
 
 if args.s:
   data = np.array(nifti.dataobj)
@@ -65,17 +76,6 @@ if args.s:
         data[x,y,z] *= float(z)/lz
         data[x,y,nz-1-z] *= float(z)/lz
 
-  nifti = nib.Nifti1Image(data, nifti.affine, nifti.header)
-
-if args.l:
-  data = np.array(nifti.dataobj)
-  kernel = eval("lambda v, pos, stat : " + args.l)
-  min_val = np.min(nifti.dataobj)
-  max_val = np.max(nifti.dataobj)
-  for x in range(nx):
-    for y in range(ny):
-      for z in range(nz):
-        data[x,y,z] = kernel(data[x,y,z],(x,y,z),(nx,ny,nz,min_val,max_val))
   nifti = nib.Nifti1Image(data, nifti.affine, nifti.header)
   
 if args.l2:

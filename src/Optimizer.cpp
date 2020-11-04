@@ -539,13 +539,10 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     ierr = this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);
     ierr = TaoSolve(this->m_Tao); CHKERRQ(ierr);
     ierr = this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
-
     // get solution
     ierr = TaoGetSolutionVector(this->m_Tao, &x); CHKERRQ(ierr);
-
     // copy solution into place holder
     ierr = VecCopy(x, this->m_Solution); CHKERRQ(ierr);
-
     // if we did not converge, we should display what's going on
     if (!this->m_OptimizationProblem->Converged()) {
         ierr = OptimizationMonitor(this->m_Tao, this->m_OptimizationProblem); CHKERRQ(ierr);

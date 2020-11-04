@@ -177,6 +177,12 @@ class CLAIREBase : public OptimizationProblem {
 
     /*! allocate all the memory we need */
     virtual PetscErrorCode InitializeSolver() = 0;
+    
+    /*! get the final state variable */
+    virtual PetscErrorCode GetFinalState(Vec) = 0;
+
+    /*! solve state equation */
+    virtual PetscErrorCode SolveStateEquation(void) = 0;
 
  protected:
     PetscErrorCode Initialize(void);

@@ -413,6 +413,10 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
     //ierr = Free(this->m_ReferenceImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_ReferenceImage, this->m_Opt, mR, true); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->SetVector(mR); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      ierr = this->m_ReferenceImage->DebugInfo("mR", __LINE__, __FILE__);
+    }
 
     // assign pointer
     //this->m_ReferenceImage = mR;
@@ -444,6 +448,10 @@ PetscErrorCode CLAIREBase::SetTemplateImage(Vec mT) {
     //ierr = Free(this->m_TemplateImage); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_TemplateImage, this->m_Opt, mT, true); CHKERRQ(ierr);
     ierr = this->m_TemplateImage->SetVector(mT); CHKERRQ(ierr);
+    
+    if (this->m_Opt->m_Verbosity > 3) {
+      ierr = this->m_TemplateImage->DebugInfo("mT", __LINE__, __FILE__);
+    }
 
     // assign pointer
     //this->m_TemplateImage = mT;
@@ -827,7 +835,10 @@ PetscErrorCode CLAIREBase::SetupDistanceMeasure() {
         }
         ierr = this->m_DistanceMeasure->SetMask(this->m_Mask); CHKERRQ(ierr);
     }
-
+    
+    if (this->m_Opt->m_ObjWts.empty()) {
+        for (int i=0; i<this->m_Opt->m_Domain.nc; ++i) this->m_Opt->m_ObjWts.push_back(1); 
+    }
     if (this->m_Opt->m_ObjWts.data() != NULL) {
         if (this->m_Opt->m_Verbosity > 1) {
             ierr = DbgMsg("distance measure: objective function weights enabled"); CHKERRQ(ierr);

@@ -61,6 +61,22 @@ VecField::VecField(RegOpt* opt) {
 }
 
 
+/********************************************************************
+ * @brief constructor
+ *******************************************************************/
+VecField::VecField(RegOpt* opt, Vec x1, Vec x2, Vec x3) {
+    this->Initialize();
+    this->SetOpt(opt);
+    this->m_X1 = x1;
+    this->m_X2 = x2;
+    this->m_X3 = x3;
+    this->m_Allocated = this->m_Opt->m_Domain.nl*3;
+    this->m_Owend = false;
+    this->SetValue(0.);
+}
+
+
+
 
 
 /********************************************************************
@@ -106,6 +122,8 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_Ptr[1] = nullptr;
     this->m_Ptr[2] = nullptr;
     
+    this->m_Owend = false;
+    
     PetscFunctionReturn(ierr);
 }
 
@@ -118,18 +136,20 @@ PetscErrorCode VecField::Initialize(void) {
 PetscErrorCode VecField::ClearMemory() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
-
-    if (this->m_X1 != NULL) {
-        ierr = VecDestroy(&this->m_X1); CHKERRQ(ierr);
-        this->m_X1 = NULL;
-    }
-    if (this->m_X2 != NULL) {
-        ierr = VecDestroy(&this->m_X2); CHKERRQ(ierr);
-        this->m_X2 = NULL;
-    }
-    if (this->m_X3 != NULL) {
-        ierr = VecDestroy(&this->m_X3); CHKERRQ(ierr);
-        this->m_X3 = NULL;
+    
+    if (this->m_Owend) {
+      if (this->m_X1 != NULL) {
+          ierr = VecDestroy(&this->m_X1); CHKERRQ(ierr);
+          this->m_X1 = NULL;
+      }
+      if (this->m_X2 != NULL) {
+          ierr = VecDestroy(&this->m_X2); CHKERRQ(ierr);
+          this->m_X2 = NULL;
+      }
+      if (this->m_X3 != NULL) {
+          ierr = VecDestroy(&this->m_X3); CHKERRQ(ierr);
+          this->m_X3 = NULL;
+      }
     }
     
     this->m_Type = AccessType::None;
@@ -264,6 +284,7 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     #endif
     
     this->m_Allocated = 3*nl;
+    this->m_Owend = true;
 
     PetscFunctionReturn(ierr);
 }

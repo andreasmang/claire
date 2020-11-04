@@ -2019,7 +2019,7 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     }
 
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
-
+    
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
