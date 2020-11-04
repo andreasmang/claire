@@ -11,17 +11,23 @@ USEHASWELL=no
 BUILDTOOLS=no
 BUILDTEST=no
 BUILDPYTHON=yes
+BUILDLIB=yes
 
 #include config/setup.mk.power9v100
 include config/setup.mk
 include config/files.mk
 
 ifeq ($(BUILDPYTHON),yes)
-CPPFILES += $(SWIGFILE)
-CPPFILESCUDA += $(SWIGFILE)
+SWIGOBJS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SWIGFILE))
 CLAIRE_INC += -I/usr/include/python3.5/
 CXXFLAGS += -fPIC
-BIN = swig
+BIN += lib/_pyclaire.so
+BUILDLIB = yes
+endif
+
+ifeq ($(BUILDLIB),yes)
+BIN := lib/libclaire.so $(BIN)
+CXXFLAGS += -fPIC
 endif
 
 ifeq ($(USECUDA),yes)
@@ -46,10 +52,23 @@ all: $(BIN)
 
 ifeq ($(USECUDA),yes)
 
+lib/libclaire.so: $(CUDA_OBJS) $(OBJS)
+	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
+	$(CXX) -shared $(CXXFLAGS) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
+
+
+ifeq ($(BUILDLIB),yes)
 #$(BINDIR)/%: $(OBJDIR)/%.o $(CUDA_OBJS) $(OBJS)
+#$(BINDIR)/%: $(OBJDIR)/bin/%.o $(CUDA_OBJS) $(OBJS)
+$(BINDIR)/%: $(OBJDIR)/bin/%.o
+	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
+	#$(CXX) $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L./lib $(LDFLAGS) -lclaire $(CLAIRE_LIB) -o $@
+else
 $(BINDIR)/%: $(OBJDIR)/bin/%.o $(CUDA_OBJS) $(OBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
 	$(CXX) $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o $@
+endif
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
@@ -90,17 +109,19 @@ $(OBJDIR)/%.o: $(APPDIR)/%.cpp
 endif
 
 ifeq ($(BUILDPYTHON),yes)
-preswig: $(SRCDIR)/Interface/pyclaire.i
+$(SRCDIR)/Interface/pyclaire_wrap.cxx: $(SRCDIR)/Interface/pyclaire.i
 	swig -c++ -python -I$(INCDIR)/ -outdir $(SRCDIR)/Interface/ $(SRCDIR)/Interface/pyclaire.i
   
-swig: $(CUDA_OBJS) $(OBJS)
+lib/_pyclaire.so: $(SWIGOBJS)
 	-@$(MKDIRS) $(dir $@) # if bin exists dont give an error
-	$(CXX) -shared $(CXXFLAGS) $(CLAIRE_INC) $^ $(LDFLAGS) $(CLAIRE_LIB) -o src/Interface/_pyclaire.so
+	$(CXX) -shared $(CXXFLAGS) $(CLAIRE_INC) $^ -L./lib $(LDFLAGS) -lclaire $(CLAIRE_LIB) -o lib/_pyclaire.so
+	cp $(SRCDIR)/Interface/pyclaire.py $(BINDIR)/pyclaire.py
 endif
 
 .PHONY: clean
 
 clean:
+	$(RM) -r ./lib
 	$(RM) -r $(BINDIR)/* $(OBJDIR)/*
 	$(RM) -r $(BINDIR) $(OBJDIR) results
 	$(RM) *~ */*~
