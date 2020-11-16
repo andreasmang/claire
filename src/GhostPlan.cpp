@@ -489,7 +489,7 @@ void GhostPlan::share_ghost_x(const ScalarType* data, ScalarType* ghost_data) {
 
 	if (g_size > isize[0]) {
 		std::cout
-				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
+				<< "g_size greater than isize not supported."
 				<< std::endl;
 		return;
 	}
@@ -654,7 +654,7 @@ void GhostPlan::share_ghost_xy(const ScalarType* data, ScalarType* ghost_data) {
 
 	if (g_size > isize[0] || g_size > isize[1]) {
 		std::cout
-				<< "accfft_get_ghost_r2c does not support g_size greater than isize."
+				<< "g_size greater than isize not supported"
 				<< std::endl;
 		return;
 	}

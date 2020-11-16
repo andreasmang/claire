@@ -66,8 +66,8 @@ PetscErrorCode Preprocessing::Initialize() {
 
     //this->m_XHatFine = nullptr;
     //this->m_XHatCoarse = nullptr;
-    this->m_FFTFinePlan = nullptr;
-    this->m_FFTCoarsePlan = nullptr;
+    //this->m_FFTFinePlan = nullptr;
+    //this->m_FFTCoarsePlan = nullptr;
 
     this->m_FourierCoeffSendF = nullptr;
     this->m_FourierCoeffSendC = nullptr;
@@ -131,14 +131,14 @@ PetscErrorCode Preprocessing::ClearMemory() {
         this->m_XHatCoarse = nullptr;
     }*/
 
-    if (this->m_FFTFinePlan != nullptr) {
+    /*if (this->m_FFTFinePlan != nullptr) {
         accfft_destroy_plan(this->m_FFTFinePlan);
         this->m_FFTFinePlan = nullptr;
     }
     if (this->m_FFTCoarsePlan != nullptr) {
         accfft_destroy_plan(this->m_FFTCoarsePlan);
         this->m_FFTCoarsePlan = nullptr;
-    }
+    }*/
     
     if (this->m_transform_fft) {
       ierr = Free(this->m_transform_fft->fft); CHKERRQ(ierr);

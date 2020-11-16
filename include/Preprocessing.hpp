@@ -41,7 +41,7 @@ struct GridData {
     IntType* idxrecv;
     //accfft_plan* fftplan;
     //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* fftplan;  ///< accfft plan
-    FFTPlanType* fftplan;  ///< accfft plan
+    //FFTPlanType* fftplan;  ///< accfft plan
     
 
     IntType nx[3];
@@ -122,9 +122,9 @@ class Preprocessing {
     IntType* m_FourierIndicesRecvC;
 
     //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* m_FFTFinePlan;  ///< accfft plan
-    FFTPlanType* m_FFTFinePlan;  ///< accfft plan
+    //FFTPlanType* m_FFTFinePlan;  ///< accfft plan
     //accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>* m_FFTCoarsePlan;  ///< accfft plan
-    FFTPlanType* m_FFTCoarsePlan;  ///< accfft plan
+    //FFTPlanType* m_FFTCoarsePlan;  ///< accfft plan
     //accfft_plan* m_FFTFinePlan;
     //accfft_plan* m_FFTCoarsePlan;
 

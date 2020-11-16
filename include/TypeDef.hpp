@@ -6,6 +6,8 @@
 #include "petscsys.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include <iostream>
+#include <bitset>
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
   #include "petscvec.h"
@@ -13,13 +15,14 @@
   #include "petsccuda.h"
 #endif
   #include <cuda.h>
+  #include <cuda_runtime_api.h>
   #include <petsc/private/vecimpl.h>
 #endif
 
 #ifdef REG_FFT_CUDA
-  #include "accfft_gpu.h"
-  #include "accfft_gpuf.h"
-  #include "accfft_operators_gpu.h"
+  //#include "accfft_gpu.h"
+  //#include "accfft_gpuf.h"
+  //#include "accfft_operators_gpu.h"
 #else
   #include "accfft.h"
   #include "accfftf.h"
@@ -50,21 +53,17 @@
 
 using IntType = PetscInt;
 using ScalarType = PetscReal;
+using ComplexType = ScalarType[2];
 
 #if PETSC_VERSION_LE(3,9,1)
 #define VecCUDAGetArray VecCUDAGetArrayReadWrite
 #define VecCUDARestoreArray VecCUDARestoreArrayReadWrite
 #endif
 
-#if defined(PETSC_USE_REAL_SINGLE)
-  using ComplexType = Complexf;
-  using FFTWPlanType = fftwf_plan;
-#else
-  using ComplexType = Complex;
-  using FFTWPlanType = fftw_plan;
-#endif
-
 #ifdef REG_FFT_CUDA // GPU FFT
+  inline void* claire_alloc(size_t size) { void* ptr; cudaMallocHost(&ptr, size); return ptr; }
+  inline void claire_free(void* ptr) { cudaFreeHost(ptr); }
+  /*
   #ifdef PETSC_USE_REAL_SINGLE
     using FFTPlanType = accfft_plan_gpuf;
     const auto accfft_plan_dft_3d_r2c = accfft_plan_dft_3d_r2c_gpuf;
@@ -83,7 +82,17 @@ using ScalarType = PetscReal;
   #define accfft_laplace_t accfft_laplace_gpu_t
   #define accfft_divergence_t accfft_divergence_gpu_t
   #define accfft_biharmonic_t accfft_biharmonic_gpu_t
+  */
 #else // CPU FFT:
+#if defined(PETSC_USE_REAL_SINGLE)
+  //using ComplexType = Complexf;
+  using FFTWPlanType = fftwf_plan;
+#else
+  //using ComplexType = Complex;
+  using FFTWPlanType = fftw_plan;
+#endif
+  inline void* claire_alloc(size_t size) { return accfft_alloc(size); }
+  inline void claire_free(void* ptr) { accfft_free(ptr); }
   using FFTPlanType = accfft_plan_t<ScalarType, ComplexType, FFTWPlanType>;
 #endif
 

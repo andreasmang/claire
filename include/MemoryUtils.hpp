@@ -78,7 +78,7 @@ template<class T> inline PetscErrorCode AllocateMemoryOnce(T*& ptr, size_t size)
 #ifdef REG_HAS_CUDA
     ierr = cudaMalloc(reinterpret_cast<void**>(&ptr), size); CHKERRCUDA(ierr);
 #else
-    ptr = reinterpret_cast<T*>(accfft_alloc(size));
+    ptr = reinterpret_cast<T*>(claire_alloc(size));
 #endif
   }
   PetscFunctionReturn(ierr);
@@ -103,7 +103,7 @@ template<class T> inline PetscErrorCode FreeMemory(T*& ptr) {
 #ifdef REG_HAS_CUDA
     ierr = cudaFree(ptr); CHKERRCUDA(ierr);
 #else
-    accfft_free(ptr);
+    claire_free(ptr);
 #endif
   }
   ptr = nullptr;
@@ -288,7 +288,7 @@ template<class T> PetscErrorCode ManagedMemory<T>::AllocateHost() {
   PetscFunctionBegin;
   
   if (this->m_HostPtr == nullptr)
-    this->m_HostPtr = reinterpret_cast<T*>(accfft_alloc(this->m_N*sizeof(T)));
+    this->m_HostPtr = reinterpret_cast<T*>(claire_alloc(this->m_N*sizeof(T)));
   
   this->m_CurrentPtr = this->m_HostPtr;
   
@@ -329,7 +329,7 @@ template<class T> PetscErrorCode ManagedMemory<T>::ClearMemory() {
   PetscFunctionBegin;
   
   if (this->m_HostPtr) 
-    accfft_free(this->m_HostPtr);
+    claire_free(this->m_HostPtr);
 #ifdef REG_HAS_CUDA
   if (this->m_DevicePtr) {
     ierr = cudaFree(this->m_DevicePtr); CHKERRCUDA(ierr);

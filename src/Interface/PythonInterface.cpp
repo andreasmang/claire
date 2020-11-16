@@ -101,17 +101,17 @@ void claire::setParameters(const std::vector<std::string>& args) {
 }
 
 void claire::setReferenceImage(const double* data, size_t size) {
-  if (size != regopt->m_Domain.nl) throw;
+  if (size != static_cast<size_t>(regopt->m_Domain.nl)) throw;
   CopyTo(fields->mR, data, size);
   registration->SetReferenceImage(fields->mR);
 }
 void claire::setTemplateImage(const double* data, size_t size) {
-  if (size != regopt->m_Domain.nl) throw;
+  if (size != static_cast<size_t>(regopt->m_Domain.nl)) throw;
   CopyTo(fields->mT, data, size);
   registration->SetTemplateImage(fields->mT);
 }
 void claire::setVelocityField(const double* data, size_t size) {
-  if (size != regopt->m_Domain.nl*3) throw;
+  if (size != static_cast<size_t>(regopt->m_Domain.nl)*3) throw;
   CopyTo(fields->v1, data, regopt->m_Domain.nl);
   CopyTo(fields->v2, data+regopt->m_Domain.nl, regopt->m_Domain.nl);
   CopyTo(fields->v3, data+2*regopt->m_Domain.nl, regopt->m_Domain.nl);
@@ -119,13 +119,13 @@ void claire::setVelocityField(const double* data, size_t size) {
 }
 
 void claire::getVelocityField(double* data, size_t size) {
-  if (size != regopt->m_Domain.nl*3) throw;
+  if (size != static_cast<size_t>(regopt->m_Domain.nl)*3) throw;
   CopyFrom(data, fields->v1, regopt->m_Domain.nl);
   CopyFrom(data+regopt->m_Domain.nl, fields->v2, regopt->m_Domain.nl);
   CopyFrom(data+2*regopt->m_Domain.nl, fields->v3, regopt->m_Domain.nl);
 }
 void claire::getFinalState(double* data, size_t size) {
-  if (size != regopt->m_Domain.nl) throw;
+  if (size != static_cast<size_t>(regopt->m_Domain.nl)) throw;
   if (!fields->aux) reg::VecCreate(fields->aux, regopt->m_Domain.nl, regopt->m_Domain.ng);
   registration->GetFinalState(fields->aux);
   CopyFrom(data, fields->aux, size);

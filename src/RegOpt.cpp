@@ -2202,6 +2202,10 @@ PetscErrorCode RegOpt::SetupGridCont() {
     PetscFunctionBegin;
 
     this->Enter(__func__);
+    
+#if defined(REG_HAS_CUDA)
+    ierr = DbgMsg("Grid continuation not implemented for GPU"); CHKERRQ(ierr);
+#else
 
     // compute number of levels
     nxmin = this->m_Domain.nx[0];
@@ -2256,7 +2260,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
 
         this->m_GridCont.ng[j] = ng;  // set global size
 
-        // get the local sizes
+        // get the local sizes        
         nalloc = accfft_local_size_dft_r2c_t<ScalarType>(nx, isize, istart, osize, ostart, this->m_Domain.mpicomm);
         this->m_GridCont.nalloc[j] = nalloc;
 
@@ -2286,6 +2290,7 @@ PetscErrorCode RegOpt::SetupGridCont() {
         }
         ++level;  // increment
     }
+#endif
 
     this->Exit(__func__);
 

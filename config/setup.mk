@@ -21,7 +21,7 @@ else
 	CXXFLAGS += -fopenmp
 	CXXFLAGS += -march=native -mavx
 endif
-CXXFLAGS += -std=c++11
+CXXFLAGS += -std=c++14
 
 ifeq ($(USEKNL),yes)
 	CXXFLAGS += -DKNL
@@ -126,19 +126,20 @@ endif
 endif
 
 
-CLAIRE_INC += -I$(ACCFFT_DIR)/include
-CLAIRE_INC += -I$(FFTW_DIR)/include
-CLAIRE_INC += -I$(MORTON_DIR)
 CLAIRE_INC += -I./deps/3rdparty
 # CUDA INCLUDE in CLAIRE
 ifeq ($(USECUDA),yes)
-		CUDA_INC += -I$(ACCFFT_DIR)/include
-		CUDA_INC += -I$(FFTW_DIR)/include
-    CLAIRE_INC += -I$(CUDA_DIR)/include
+	#CUDA_INC += -I$(ACCFFT_DIR)/include
+	#CUDA_INC += -I$(FFTW_DIR)/include
+  CLAIRE_INC += -I$(CUDA_DIR)/include
+else
+	CLAIRE_INC += -I$(ACCFFT_DIR)/include
+	CLAIRE_INC += -I$(FFTW_DIR)/include
+	CLAIRE_INC += -I$(MORTON_DIR)
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" -std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" --std=c++14 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
 CUDA_FLAGS+=-gencode arch=compute_35,code=sm_35
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 #CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
@@ -218,14 +219,17 @@ LDFLAGS += -lm
 
 
 # FFT LIBRARIES
-LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 ifeq ($(USECUDA),yes)
-    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -laccfft -laccfft_utils -lcudart -lcufft -lcublas -lcusolver
+  #LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -laccfft -laccfft_utils -lcudart -lcufft -lcublas -lcusolver
+  LDFLAGS += -lcudart -lcufft -lcublas -lcusolver
+else
+	LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 endif
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif
 
+ifeq ($(USECUDA),no)
 ifeq ($(USESINGLE),yes)
 	LDFLAGS += -L$(FFTW_DIR)/lib
 endif
@@ -235,7 +239,7 @@ ifeq ($(USESINGLE),yes)
 	LDFLAGS += -lfftw3f_threads -lfftw3f
 endif
 LDFLAGS += -lfftw3_threads -lfftw3 -lfftw3f_threads -lfftw3f
-
+endif
 
 BIN += $(BINDIR)/claire
 ifeq ($(BUILDTOOLS),yes)

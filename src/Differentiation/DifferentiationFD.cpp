@@ -80,7 +80,7 @@ PetscErrorCode DifferentiationFD::Initialize() {
 #endif
     this->m_Ghost = nullptr;
     this->d_Ghost = nullptr;
-    this->m_Work = nullptr;
+    //this->m_Work = nullptr;
     this->m_GhostPlan = nullptr;
 
     ierr = this->SetupData(); CHKERRQ(ierr);
@@ -154,10 +154,10 @@ PetscErrorCode DifferentiationFD::ClearMemory() {
       this->m_Ghost = nullptr;
     }
 
-    if (this->m_Work != nullptr) {
+    /*if (this->m_Work != nullptr) {
       accfft_free(this->m_Work);
       this->m_Work = nullptr;
-    }
+    }*/
 
     if (this->d_Ghost != nullptr) {
       cudaFree(this->d_Ghost);

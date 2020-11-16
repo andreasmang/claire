@@ -655,7 +655,9 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
 PetscErrorCode Finalize() {
     PetscErrorCode ierr = 0;
 
+#if !defined(REG_HAS_CUDA)
     accfft_cleanup();
+#endif
 
     // clean up petsc
     ierr = PetscFinalize(); CHKERRQ(ierr);
