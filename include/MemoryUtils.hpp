@@ -18,13 +18,13 @@
  ************************************************************************/
 #pragma once
 
-#ifndef _MEMORYUTILS_HPP
+#ifndef _MEMORYUTILS_HPP_
 #define _MEMORYUTILS_HPP_
 
 #include "TypeDef.hpp"
 
 namespace reg {
-  
+
 /*! throw error (PETSc interface) defined elsewhere */
 extern PetscErrorCode ThrowErrorMsg(std::bad_alloc&, int, const char*);
 /*
@@ -114,41 +114,41 @@ template<class T>
 class ManagedMemory {
   public:
     typedef ManagedMemory Self;
-    
+
     ManagedMemory();
     ManagedMemory(size_t);
     virtual ~ManagedMemory();
-    
+
     PetscErrorCode Resize(size_t);
-    
+
     explicit operator T*();
     T& operator [](size_t);
-    
+
     const T* ReadHost();
     T* WriteHost();
     T* ReadWriteHost();
-    
+
     const T* ReadDevice();
     T* WriteDevice();
     T* ReadWriteDevice();
-    
+
     PetscErrorCode CopyHostToDevice();
     PetscErrorCode CopyDeviceToHost();
-    
+
     PetscErrorCode AllocateHost();
     PetscErrorCode AllocateDevice();
-    
+
   protected:
     bool m_HostValid;
     bool m_DeviceValid;
-    
+
     T *m_HostPtr;
     T *m_DevicePtr;
-    
+
     T* m_CurrentPtr;
-    
+
     size_t m_N;
-    
+
   private:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();
@@ -168,30 +168,30 @@ template<class T> ManagedMemory<T>::~ManagedMemory() {
 template<class T> PetscErrorCode ManagedMemory<T>::Resize(size_t N) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   if (N != this->m_N) {
     ierr = this->ClearMemory(); CHKERRQ(ierr);
     this->m_N = N;
     this->m_HostValid = false;
     this->m_DeviceValid = false;
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
 template<class T> const T* ManagedMemory<T>::ReadHost() {
   this->AllocateHost();
   this->CopyDeviceToHost();
-  
+
   return this->m_HostPtr;
 }
 template<class T> T* ManagedMemory<T>::WriteHost() {
   this->AllocateHost();
   this->m_HostValid = true;
   this->m_DeviceValid = false;
-  
+
   this->m_CurrentPtr = this->m_HostPtr;
-  
+
   return this->m_HostPtr;
 }
 template<class T> T* ManagedMemory<T>::ReadWriteHost() {
@@ -199,14 +199,14 @@ template<class T> T* ManagedMemory<T>::ReadWriteHost() {
   this->CopyDeviceToHost();
   this->m_HostValid = true;
   this->m_DeviceValid = false;
-  
+
   return this->m_HostPtr;
 }
 
 template<class T> const T* ManagedMemory<T>::ReadDevice() {
   this->AllocateDevice();
   this->CopyHostToDevice();
-  
+
   return this->m_DevicePtr;
 }
 template<class T> T* ManagedMemory<T>::WriteDevice() {
@@ -215,7 +215,7 @@ template<class T> T* ManagedMemory<T>::WriteDevice() {
   this->m_DeviceValid = true;
 
   this->m_CurrentPtr = this->m_DevicePtr;
-  
+
   return this->m_DevicePtr;
 }
 template<class T> T* ManagedMemory<T>::ReadWriteDevice() {
@@ -223,18 +223,18 @@ template<class T> T* ManagedMemory<T>::ReadWriteDevice() {
   this->CopyHostToDevice();
   this->m_HostValid = false;
   this->m_DeviceValid = true;
-  
+
   return this->m_DevicePtr;
 }
 
 template<class T> PetscErrorCode ManagedMemory<T>::CopyHostToDevice() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
 #ifdef REG_HAS_CUDA
   if (this->m_DevicePtr) {
     if (!this->m_DeviceValid && this->m_HostPtr) {
-      ierr = cudaMemcpy(static_cast<void*>(this->m_DevicePtr), 
+      ierr = cudaMemcpy(static_cast<void*>(this->m_DevicePtr),
         static_cast<const void*>(this->m_HostPtr),
         this->m_N*sizeof(T),
         cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
@@ -244,7 +244,7 @@ template<class T> PetscErrorCode ManagedMemory<T>::CopyHostToDevice() {
     ierr = this->AllocateDevice(); CHKERRQ(ierr);
     this->m_DeviceValid = true;
     if (this->m_HostPtr) {
-      ierr = cudaMemcpy(static_cast<void*>(this->m_DevicePtr), 
+      ierr = cudaMemcpy(static_cast<void*>(this->m_DevicePtr),
         static_cast<const void*>(this->m_HostPtr),
         this->m_N*sizeof(T),
         cudaMemcpyHostToDevice); CHKERRCUDA(ierr);
@@ -252,17 +252,17 @@ template<class T> PetscErrorCode ManagedMemory<T>::CopyHostToDevice() {
   }
 #endif
   this->m_CurrentPtr = this->m_DevicePtr;
-  
+
   PetscFunctionReturn(ierr);
 }
 template<class T> PetscErrorCode ManagedMemory<T>::CopyDeviceToHost() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
 #ifdef REG_HAS_CUDA
   if (this->m_HostPtr) {
     if (!this->m_HostValid && this->m_DevicePtr) {
-      ierr = cudaMemcpy(static_cast<void*>(this->m_HostPtr), 
+      ierr = cudaMemcpy(static_cast<void*>(this->m_HostPtr),
         static_cast<const void*>(this->m_DevicePtr),
         this->m_N*sizeof(T),
         cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
@@ -272,7 +272,7 @@ template<class T> PetscErrorCode ManagedMemory<T>::CopyDeviceToHost() {
     ierr = this->AllocateHost(); CHKERRQ(ierr);
     this->m_HostValid = true;
     if (this->m_DevicePtr) {
-      ierr = cudaMemcpy(static_cast<void*>(this->m_HostPtr), 
+      ierr = cudaMemcpy(static_cast<void*>(this->m_HostPtr),
         static_cast<const void*>(this->m_DevicePtr),
         this->m_N*sizeof(T),
         cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
@@ -280,24 +280,24 @@ template<class T> PetscErrorCode ManagedMemory<T>::CopyDeviceToHost() {
   }
 #endif
   this->m_CurrentPtr = this->m_HostPtr;
-  
+
   PetscFunctionReturn(ierr);
 }
 
 template<class T> PetscErrorCode ManagedMemory<T>::AllocateHost() {
   PetscFunctionBegin;
-  
+
   if (this->m_HostPtr == nullptr)
     this->m_HostPtr = reinterpret_cast<T*>(claire_alloc(this->m_N*sizeof(T)));
-  
+
   this->m_CurrentPtr = this->m_HostPtr;
-  
+
   PetscFunctionReturn(0);
 }
 template<class T> PetscErrorCode ManagedMemory<T>::AllocateDevice() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   if (this->m_DevicePtr == nullptr) {
 #ifdef REG_HAS_CUDA
     ierr = cudaMalloc(reinterpret_cast<void**>(&this->m_DevicePtr), this->m_N*sizeof(T)); CHKERRCUDA(ierr);
@@ -306,29 +306,29 @@ template<class T> PetscErrorCode ManagedMemory<T>::AllocateDevice() {
     this->m_DevicePtr = this->m_HostPtr;
 #endif
   }
-  
+
   this->m_CurrentPtr = this->m_DevicePtr;
-  
+
   PetscFunctionReturn(ierr);
 }
 
 template<class T> PetscErrorCode ManagedMemory<T>::Initialize() {
   PetscFunctionBegin;
-  
+
   this->m_HostPtr = nullptr;
   this->m_DevicePtr = nullptr;
   this->m_CurrentPtr = nullptr;
   this->m_N = 0;
   this->m_HostValid = false;
   this->m_DeviceValid = false;
-  
+
   PetscFunctionReturn(0);
 }
 template<class T> PetscErrorCode ManagedMemory<T>::ClearMemory() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
-  if (this->m_HostPtr) 
+
+  if (this->m_HostPtr)
     claire_free(this->m_HostPtr);
 #ifdef REG_HAS_CUDA
   if (this->m_DevicePtr) {
@@ -341,7 +341,7 @@ template<class T> PetscErrorCode ManagedMemory<T>::ClearMemory() {
   this->m_N = 0;
   this->m_HostValid = false;
   this->m_DeviceValid = false;
-  
+
   PetscFunctionReturn(ierr);
 }
 

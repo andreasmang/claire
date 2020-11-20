@@ -43,13 +43,13 @@ typedef array3_t<ScalarType> real3;
 
 /********************************************************************
  * @brief compute kernels are static methods
- * the first two arguments for spectral kernels are of type 
+ * the first two arguments for spectral kernels are of type
  *  int and real3, for local index and wave number, respectively
  * the first argument for general kernels is of type int
  *  for the local index
  * the first argument for reduction kernels is of type int
  *  for the local index. The kernel must return a ScalarType
- * 
+ *
  * A typical kernel looks like
  * struct KernelName {
  *    KernelOperator (int i, TypeName1 argument1, ...) {
@@ -86,7 +86,7 @@ __hostdevice__ inline void ComputeWaveNumber(array3_t<T> &w, array3_t<T> n) {
 
 /********************************************************************
  * @brief computes linear array index in Z-Y-X layout
- * nl contains precomputed local sizes: 
+ * nl contains precomputed local sizes:
  *  nl.x = nl0      local size in x
  *  nl.y = nl1*nl2  size of local pencil slice in Z-Y-X order
  *  nl.z = nl2      size of local pencil width in Z-Y-X order
@@ -143,16 +143,16 @@ template<> inline __device__ void LocalReductionSum<1>(ScalarType *shared) {
  *******************************************************************/
 template<int N> __global__ void ReductionSum(ScalarType *res, int n) {
   __shared__ ScalarType value[N];
-  
+
   value[threadIdx.x] = 0.0;
   for (int i=threadIdx.x; i<n; i+=N) {
     value[threadIdx.x] += res[i];
   }
-  
+
   __syncthreads();
-  
+
   LocalReductionSum<N/2>(value);
-  
+
   if (threadIdx.x == 0) {
     res[0] = value[0];
   }
@@ -166,12 +166,12 @@ template<int N, typename KernelFn, typename ... Args>
 __global__ void ReductionKernelGPU(ScalarType *res, int nl, Args ... args) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   __shared__ ScalarType value[N];
-  
+
   value[threadIdx.x] = 0.0;
   if (i < nl) { // execute kernel
     value[threadIdx.x] = KernelFn::func(i, args...);
   }
-  
+
   // start the tree reduction
   __syncthreads();
   LocalReductionSum<N/2>(value);
@@ -184,7 +184,7 @@ __global__ void ReductionKernelGPU(ScalarType *res, int nl, Args ... args) {
  * @brief GPU kernel function wrapper for spectral operators
  * wave: must be initialized with the offset of local subdomain
  * nx: absolute dimensions of the domain
- * nl: contains precomputed local domain sizes: 
+ * nl: contains precomputed local domain sizes:
  *  nl.x = nl0      local size in x
  *  nl.y = nl1*nl2  size of local pencil slice in Z-Y-X order
  *  nl.z = nl2      size of local pencil width in Z-Y-X order
@@ -194,7 +194,7 @@ __global__ void SpectralKernelGPU(real3 wave, real3 nx, int3 nl, Args ... args) 
   int i3 = threadIdx.x + blockIdx.x*blockDim.x;
   int i2 = blockIdx.y;
   int i1 = blockIdx.z;
-  
+
   if (i3 < nl.z) {
     wave.x += i1;
     wave.y += i2;
@@ -211,7 +211,7 @@ __global__ void SpectralKernelGPU(real3 wave, real3 nx, int3 nl, Args ... args) 
  * @brief GPU kernel function wrapper for spacial operators
  * p: must be initialized with the offset of local subdomain
  * nx: absolute dimensions of the domain
- * nl: contains precomputed local domain sizes: 
+ * nl: contains precomputed local domain sizes:
  *  nl.x = nl0      local size in x
  *  nl.y = nl1*nl2  size of local pencil slice in Z-Y-X order
  *  nl.z = nl2      size of local pencil width in Z-Y-X order
@@ -221,7 +221,7 @@ __global__ void SpacialKernelGPU(int3 p, int3 nl, Args ... args) {
   int i3 = threadIdx.x + blockIdx.x*blockDim.x;
   int i2 = blockIdx.y;
   int i1 = blockIdx.z;
-  
+
   if (i3 < nl.z) {
     p.x += i1;
     p.y += i2;
@@ -239,7 +239,7 @@ __global__ void SpacialKernelGPU(int3 p, int3 nl, Args ... args) {
 template<typename KernelFn, typename ... Args>
 __global__ void KernelGPU(int nl, Args ... args) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
-  
+
   if (i < nl) {
     KernelFn::call(i, args...);
   }
@@ -250,11 +250,11 @@ __global__ void KernelGPU(int nl, Args ... args) {
  * Note: Local index must not exceed $2^{31} - 1$
  *******************************************************************/
 template<typename KernelFn, typename ... Args>
-PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType nl[3], 
+PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType nl[3],
     Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   dim3 block, grid;
   if (nl[2] <= 1024 && nl[2] >= 32) {
     block.x = (nl[2] + 31)/32;
@@ -271,13 +271,13 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   wave.x = nstart[0]; wave.y = nstart[1]; wave.z = nstart[2];
   nx3.x = nx[0]; nx3.y = nx[1]; nx3.z = nx[2];
   nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
-  
+
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpectralKernelGPU<KernelFn><<<grid, block>>>(wave, nx3, nl3, args...);
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
@@ -289,7 +289,7 @@ template<typename KernelFn, typename ... Args>
 PetscErrorCode SpacialKernelCallGPU(IntType nstart[3], IntType nl[3], Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   dim3 block, grid;
   if (nl[2] <= 1024 && nl[2] >= 32) {
     block.x = (nl[2] + 31)/32;
@@ -305,13 +305,13 @@ PetscErrorCode SpacialKernelCallGPU(IntType nstart[3], IntType nl[3], Args ... a
   int3 nl3;
   p.x = nstart[0]; p.y = nstart[1]; p.z = nstart[2];
   nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
-  
+
   if (nl[0]*nl[1]*nl[2] > 0) {
     SpacialKernelGPU<KernelFn><<<grid, block>>>(p, nl3, args...);
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
@@ -323,16 +323,16 @@ template<typename KernelFn, typename ... Args>
 PetscErrorCode KernelCallGPU(IntType nl, Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   dim3 block(256,1,1); // 256 threads per block
   dim3 grid((nl + 255)/256,1,1); // $\lceil nl_0 / 256 \rceil, nl_1, nl_2 $
-  
+
   if (nl > 0) {
     KernelGPU<KernelFn><<<grid, block>>>(nl, args...);
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
@@ -352,20 +352,20 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
 
   ierr = reg::AllocateMemoryOnce(res, grid.x*sizeof(ScalarType)); CHKERRQ(ierr);
   value = 0.;
-  
+
   if (nl > 0) {
     // execute the kernel and reduce over threads
     ReductionKernelGPU<256, KernelFn><<<grid, block>>>(res, nl, args...);
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
-    
+
     // reduce over work array
     ReductionSum<1024><<<1, 1024>>>(res, grid.x);
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
 
     // copy result to cpu
-    ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), 
+    ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res),
                       sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
   }
 
@@ -381,16 +381,16 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
  * Note: Local index must not exceed $2^{31} - 1$
  *******************************************************************/
 template<typename KernelFn, typename ... Args>
-PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3], 
+PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3],
     Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   real3 nx3;
   nx3.x = nx[0]; nx3.y = nx[1]; nx3.z = nx[2];
   int3 nl3;
   nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
-  
+
 #pragma omp parallel for collapse(3)
   for (int i1 = 0; i1 < nl[0]; ++i1) {
       for (int i2 = 0; i2 < nl[1]; ++i2) {
@@ -399,15 +399,15 @@ PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3
               w.x = static_cast<IntType>(i1) + nstart[0];
               w.y = static_cast<IntType>(i2) + nstart[1];
               w.z = static_cast<IntType>(i3) + nstart[2];
-              
+
               ComputeWaveNumber(w, nx3);
               int i = GetLinearIndex(i1, i2, i3, nl3);
-              
+
               KernelFn::call(i, w, args...);
           }
       }
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
@@ -419,10 +419,10 @@ template<typename KernelFn, typename ... Args>
 PetscErrorCode SpacialKernelCall(IntType nstart[3], IntType nl[3], Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
   int3 nl3;
   nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
-  
+
 #pragma omp parallel for collapse(3)
   for (int i1 = 0; i1 < nl[0]; ++i1) {
       for (int i2 = 0; i2 < nl[1]; ++i2) {
@@ -431,14 +431,14 @@ PetscErrorCode SpacialKernelCall(IntType nstart[3], IntType nl[3], Args ... args
               p.x = i1 + nstart[0];
               p.y = i2 + nstart[1];
               p.z = i3 + nstart[2];
-              
+
               int i = GetLinearIndex(i1, i2, i3, nl3);
-              
+
               KernelFn::call(i, p, args...);
           }
       }
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
@@ -450,12 +450,12 @@ template<typename KernelFn, typename ... Args>
 PetscErrorCode KernelCall(IntType nl, Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
 #pragma omp parallel for
   for (int i = 0; i < nl; ++i) {
       KernelFn::call(i, args...);
   }
-  
+
   PetscFunctionReturn(ierr);
 }
 
@@ -467,18 +467,18 @@ template<typename KernelFn, typename ... Args>
 PetscErrorCode ReductionKernelCall(ScalarType &value, IntType nl, Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-  
+
 #if PETSC_USE_REAL_SINGLE
   float ivalue = 0.;
 #else
   double ivalue = 0.;
 #endif
-  
+
 #pragma omp parallel for reduction(+:ivalue)
   for (int i = 0; i < nl; ++i) {
     ivalue += KernelFn::func(i, args...);
   }
-  
+
   value = ivalue;
 
   PetscFunctionReturn(ierr);
