@@ -9,7 +9,7 @@ CLAIRE GPU code has been tested on the following systems:
 
 Make sure the following modules are loaded before building external dependencies for CLAIRE.
 
-### Using *MVAPICH2* compiler
+### Modules:
 
 ```bash
 git/2.24.1
@@ -22,6 +22,19 @@ gcc/7.3.0
 mvapich2-gdr/2.3.4
 ```
 
+```bash
+export LD_LIBRARY_PATH=/opt/apps/gcc7_3/mvapich2-gdr/2.3.4/include/:$LD_LIBRARY_PATH
+```
+
+### Dependencies:
+
+* nifticlib
+* petsc-lite-3.11.4
+
+```bash
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bnifti
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bpetsccudasgl
+```
 
 
 # RCDC Systems (University of Houston)
@@ -52,3 +65,7 @@ export MPI_DIR="/project/cacds/apps/openmpi/3.1.2/gcc-cuda"
 * nifticlib
 * petsc-lite-3.11.4
 
+```bash
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bnifti
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bpetsccudasgl
+```
