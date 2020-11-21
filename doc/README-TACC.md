@@ -43,6 +43,12 @@ PSM2/10.3.35-cuda
 OpenMPI/gcc-cuda/3.1.2
 ```
 
+```bash
+export MPI_INC="/project/cacds/apps/openmpi/3.1.2/gcc-cuda/include"
+export MPI_DIR="/project/cacds/apps/openmpi/3.1.2/gcc-cuda"
+```
+
 ### Dependencies:
 * nifticlib
 * petsc-lite-3.11.4
+
