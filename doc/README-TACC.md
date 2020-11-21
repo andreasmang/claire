@@ -24,7 +24,7 @@ mvapich2-gdr/2.3.4
 
 
 
-#RCDC Systems (University of Houston)
+# RCDC Systems (University of Houston)
 
 Information about the Research Computing Data Core ([RCDC](https://www.uh.edu/rcdc/resources/)) center at the Univeristy of Houston can be found at [https://www.uh.edu/rcdc/resources](https://www.uh.edu/rcdc/resources). In the following we will provide information on which modules you need to load on the individual TACC systems to compile the cod and the libraries.
 
