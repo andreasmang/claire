@@ -24,7 +24,7 @@ if [[ ! -e morton.tar.gz ]]; then
 	echo "----------------------------------------------------------------------------------"
 #	wget http://users.ices.utexas.edu/~andreas/libs/morton.tar.gz
 #	wget http://math.uh.edu/~andreas/libs/morton.tar.gz
-	wget https://www.math.uh.edu/~andreas/resources/clairelibs/morton.tar.gz
+#	wget https://www.math.uh.edu/~andreas/resources/clairelibs/morton.tar.gz
 fi
 
 if [[ ! -e nifticlib-2.0.0.tar.gz ]]; then
@@ -44,9 +44,12 @@ if [[ ! -e parallel-netcdf.tar.gz ]]; then
 	wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.8.1.tar.gz -O parallel-netcdf.tar.gz
 fi
 
+petscver=3.13
+
 #if [[ ! -e petsc.tar.gz ]]; then
 #if [[ ! -e petsc-lite-3.9.1.tar.gz ]]; then
-if [[ ! -e petsc-lite-3.12.4.tar.gz ]]; then
+#if [[ ! -e petsc-lite-3.12.4.tar.gz ]]; then
+if [[ ! -e petsc-lite-${petscver}.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading petsc library"
@@ -54,7 +57,8 @@ if [[ ! -e petsc-lite-3.12.4.tar.gz ]]; then
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc.tar.gz
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz
-	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.4.tar.gz
+#	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.4.tar.gz
+	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-${petscver}.tar.gz
 fi
 
 if [[ ! -e zlib.tar.gz ]]; then

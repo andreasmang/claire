@@ -11,7 +11,7 @@
 
 #if defined(REG_HAS_CUDA) || defined(REG_FFT_CUDA)
   #include "petscvec.h"
-#if PETSC_VERSION_LE(3,9,1)
+#if PETSC_VERSION_LE(3,11,4)
   #include "petsccuda.h"
 #endif
   #include <cuda.h>
@@ -55,7 +55,7 @@ using IntType = PetscInt;
 using ScalarType = PetscReal;
 using ComplexType = ScalarType[2];
 
-#if PETSC_VERSION_LE(3,9,1)
+#if PETSC_VERSION_LE(3,11,4)
 #define VecCUDAGetArray VecCUDAGetArrayReadWrite
 #define VecCUDARestoreArray VecCUDARestoreArrayReadWrite
 #endif

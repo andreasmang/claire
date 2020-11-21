@@ -54,6 +54,7 @@ ifeq ($(PEDANTIC),yes)
 	CXXFLAGS += -Wreorder -Wreturn-type -Wsign-compare
 	CXXFLAGS += -Wsequence-point -Wtrigraphs #-Wunused-function
 	CXXFLAGS += -Wwrite-strings #-Wunused-variable -Wunused-but-set-variable 
+#	CXXFLAGS += -fpermissive
 endif
 
 ifeq ($(USEPNETCDF),yes)
@@ -138,14 +139,14 @@ CLAIRE_INC += -I$(MPI_INC)
 CUDA_INC += -I$(MPI_INC)
 
 
-CLAIRE_INC += -I$(ACCFFT_DIR)/include
-CLAIRE_INC += -I$(FFTW_DIR)/include
-CLAIRE_INC += -I$(MORTON_DIR)
+#CLAIRE_INC += -I$(ACCFFT_DIR)/include
+#CLAIRE_INC += -I$(FFTW_DIR)/include
+#CLAIRE_INC += -I$(MORTON_DIR)
 CLAIRE_INC += -I./3rdparty
 # CUDA INCLUDE in CLAIRE
 ifeq ($(USECUDA),yes)
-		CUDA_INC += -I$(ACCFFT_DIR)/include
-		CUDA_INC += -I$(FFTW_DIR)/include
+#		CUDA_INC += -I$(ACCFFT_DIR)/include
+#		CUDA_INC += -I$(FFTW_DIR)/include
     CLAIRE_INC += -I$(CUDA_DIR)/include
 endif
 
@@ -230,23 +231,23 @@ LDFLAGS += -lm
 
 
 # FFT LIBRARIES
-ifeq ($(USECUDA),yes)
-    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
-endif
-LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
+#ifeq ($(USECUDA),yes)
+#    LDFLAGS += -laccfft_gpu -laccfft_utils_gpu -lcudart -lcufft
+#endif
+#LDFLAGS += -L$(ACCFFT_DIR)/lib -laccfft -laccfft_utils
 ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif
 
 ifeq ($(USESINGLE),yes)
-	LDFLAGS += -L$(FFTW_DIR)/lib
+#	LDFLAGS += -L$(FFTW_DIR)/lib
 endif
-LDFLAGS += -L$(FFTW_DIR)/lib
+#LDFLAGS += -L$(FFTW_DIR)/lib
 
 ifeq ($(USESINGLE),yes)
-	LDFLAGS += -lfftw3f_threads -lfftw3f
+#	LDFLAGS += -lfftw3f_threads -lfftw3f
 endif
-LDFLAGS += -lfftw3_threads -lfftw3
+#LDFLAGS += -lfftw3_threads -lfftw3
 
 
 BIN += $(BINDIR)/claire
