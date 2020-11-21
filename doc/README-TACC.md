@@ -33,7 +33,7 @@ Information about the Research Computing Data Core ([RCDC](https://www.uh.edu/rc
 
 GPU version of CLAIRE (GIT version v0.07-363-gb5ed; date: 11/21/2020)
 
-Modules:
+### Modules:
 
 ```bash
 python/3.6
@@ -42,3 +42,7 @@ CUDA/9.2.88
 PSM2/10.3.35-cuda
 OpenMPI/gcc-cuda/3.1.2
 ```
+
+### Dependencies:
+* nifticlib
+* petsc-lite-3.11.4
