@@ -23,6 +23,8 @@
 #include "RegToolsOpt.hpp"
 #include <algorithm>
 
+#define _TO_STR(s) #s
+
 // trim from start
 static inline std::string &ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(),
@@ -640,7 +642,7 @@ PetscErrorCode RegToolsOpt::DisplayOptions() {
         std::cout << line << std::endl;
         std::time_t result = std::time(NULL);
 #ifdef GIT_VERSION
-        std::cout << " Version " << GIT_VERSION << " " << std::asctime(std::localtime(&result));
+        std::cout << " Version " << _TO_STR(GIT_VERSION) << " " << std::asctime(std::localtime(&result));
 #else
         std::cout << " " << std::asctime(std::localtime(&result));
 #endif

@@ -187,7 +187,7 @@ else
 endif
 endif
 
-LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
+#LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
 
 #CUDA LINKERS
 ifeq ($(USECUDA),yes)
@@ -204,6 +204,7 @@ ifeq ($(USENIFTI),yes)
 	LDFLAGS += -L$(NIFTI_DIR)/lib -lnifticdf -lniftiio -lznz -L$(ZLIB_DIR)/lib -lz
 endif
 
+ifeq ($(USECUDA),no)
 #LDFLAGS+= -lcrypto -lssl -ldl
 ifeq ($(USEINTEL),yes)
 	LDFLAGS += -limf
@@ -229,7 +230,6 @@ ifeq ($(USEPNETCDF),yes)
 	LDFLAGS += -L$(PNETCDF_DIR)/lib -lpnetcdf
 endif
 
-ifeq ($(USECUDA),no)
 ifeq ($(USESINGLE),yes)
 	LDFLAGS += -L$(FFTW_DIR)/lib
 endif

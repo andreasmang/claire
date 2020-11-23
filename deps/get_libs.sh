@@ -46,7 +46,7 @@ fi
 
 #if [[ ! -e petsc.tar.gz ]]; then
 #if [[ ! -e petsc-lite-3.9.1.tar.gz ]]; then
-if [[ ! -e petsc-lite-3.12.4.tar.gz ]]; then
+if [[ ! -e petsc-lite-3.14.1.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading petsc library"
@@ -54,7 +54,8 @@ if [[ ! -e petsc-lite-3.12.4.tar.gz ]]; then
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc.tar.gz
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz
-	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.4.tar.gz
+#	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.4.tar.gz
+	wget https://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.14.1.tar.gz
 fi
 
 if [[ ! -e zlib.tar.gz ]]; then
