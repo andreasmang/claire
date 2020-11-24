@@ -31,7 +31,7 @@ ifeq ($(BUILD_GPU), yes)
 	LIBRARIES += $(CUDA_DIR)/lib64
 	LDFLAGS += -lcuda -lcudart -lcufft -lcublas -lcusparse -lcusolver
 	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=c++14 -O3 -c
-	NVCCFLAGS += -gencode arch=compute_35,code=sm_35
+	#NVCCFLAGS += -gencode arch=compute_35,code=sm_35
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
 	ifeq ($(WITH_DEBUG),yes)
@@ -60,7 +60,7 @@ ifeq ($(WITH_DEBUG), yes)
 	CXXFLAGS += -g
 else
 	CXXFLAGS += -O3
-	CXXFLAGS += -march=native
+	#CXXFLAGS += -march=native
 	CXXFLAGS += -fopenmp
 	CXXFLAGS += -std=c++14
 endif

@@ -5,7 +5,7 @@ BUILD_ACCFFT  = no
 
 BUILD_GPU     = yes
 BUILD_DEBUG   = no
-BUILD_SHARED  = yes
+BUILD_SHARED  = no
 
 BUILD_DIR = $(PWD)/lib
 
@@ -15,6 +15,10 @@ NVCC = nvcc
 
 ifneq ($(BUILD_PETSC), no)
 	TARGETS += petsc
+endif
+
+ifneq ($(BUILD_NIFTI), no)
+	TARGETS += nifti
 endif
 
 PETSC_OPTIONS += --download-f2cblaslapack
@@ -28,8 +32,8 @@ PETSC_OPTIONS += --with-precision=single
 PETSC_OPTIONS += --with-cc=$(CC)
 PETSC_OPTIONS += --with-cxx=$(CXX)
 
-NIFTI_OPTIONS += -DCMAKE_CXX_COMPILER={CXX}
-NIFTI_OPTIONS += -DCMAKE_C_COMPILER={CC}
+NIFTI_OPTIONS += -DCMAKE_CXX_COMPILER=$(CXX)
+NIFTI_OPTIONS += -DCMAKE_C_COMPILER=$(CC)
 NIFTI_OPTIONS += -Wno-dev
 
 ifeq ($(BUILD_SHARED), yes)
@@ -84,14 +88,14 @@ petsc: petsc-lite-$(BUILD_PETSC).tar.gz
 	@echo "configure with: $(PETSC_OPTIONS)"
 	@echo "================================================================================"
 	cd $(BASE_DIR)
-	rm -rf $(BUILD_DIR)/petsc
-	mkdir -p $(BUILD_DIR)/petsc
-	tar -xzf petsc-lite-$(BUILD_PETSC).tar.gz -C $(BUILD_DIR)/petsc --strip-components=1
+	rm -rf $(BUILD_DIR)/src/petsc
+	mkdir -p $(BUILD_DIR)/src/petsc
+	tar -xzf petsc-lite-$(BUILD_PETSC).tar.gz -C $(BUILD_DIR)/src/petsc --strip-components=1
 	@echo "================================================================================"
-	cd $(BUILD_DIR)/petsc; ./configure --prefix=$(BUILD_DIR) $(PETSC_OPTIONS)
+	cd $(BUILD_DIR)/src/petsc; ./configure --prefix=$(BUILD_DIR) $(PETSC_OPTIONS)
 	@echo "================================================================================"
-	cd $(BUILD_DIR)/petsc; make
-	cd $(BUILD_DIR)/petsc; make install
+	cd $(BUILD_DIR)/src/petsc; make
+	cd $(BUILD_DIR)/src/petsc; make install
 	@echo "================================================================================"
 
 petsc-lite-$(BUILD_PETSC).tar.gz:
@@ -101,25 +105,25 @@ petsc-lite-$(BUILD_PETSC).tar.gz:
 	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-${BUILD_PETSC}.tar.gz
 	@echo "================================================================================"
 	
-nifti: nifticlib-2.0.0.tar.gz:
+nifti: nifticlib-2.0.0.tar.gz
 	@echo "================================================================================"
 	@echo "building NIFTI"
 	@echo "configure with: $(NIFTI_OPTIONS)"
 	@echo "================================================================================"
 	cd $(BASE_DIR)
-	rm -rf $(BUILD_DIR)/nifti
-	mkdir -p $(BUILD_DIR)/nifti
-	tar -xzf /nifticlib-2.0.0.tar.gz -C $(BUILD_DIR)/nifti --strip-components=1
+	rm -rf $(BUILD_DIR)/src/nifti
+	mkdir -p $(BUILD_DIR)/src/nifti
+	tar -xzf nifticlib-2.0.0.tar.gz -C $(BUILD_DIR)/src/nifti --strip-components=1
 	@echo "================================================================================"
-	cd $(BUILD_DIR)/nifti; ./configure --prefix=$(BUILD_DIR) $(PETSC_OPTIONS)
+	cd $(BUILD_DIR)/src/nifti; cmake -DCMAKE_INSTALL_PREFIX=$(BUILD_DIR) $(NIFTI_OPTIONS)
 	@echo "================================================================================"
-	cd $(BUILD_DIR)/petsc; make
-	cd $(BUILD_DIR)/petsc; make install
+	cd $(BUILD_DIR)/src/nifti; make
+	cd $(BUILD_DIR)/src/nifti; make install
 	@echo "================================================================================"
 	
 nifticlib-2.0.0.tar.gz:
 	@echo "================================================================================"
-	@echo "download PETSc Lite $(BUILD_PETSC)"
+	@echo "download Nifti C Lib"
 	cd $(BASE_DIR)
 	wget http://downloads.sourceforge.net/project/niftilib/nifticlib/nifticlib_2_0_0/nifticlib-2.0.0.tar.gz
 	@echo "================================================================================"
