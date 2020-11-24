@@ -178,8 +178,8 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
   s_request   = nullptr;
   request  = nullptr;
   
-  query_send = nullptr;
-  query_send_offset  = nullptr;;
+  //query_send = nullptr;
+  query_send_offset  = nullptr;
 
   which_proc  = nullptr;
   f_unordered = nullptr;
@@ -196,7 +196,7 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
     Eq[i].stypes = nullptr;
     Eq[i].rtypes = nullptr;
     
-    Eq[i].f_index = nullptr;
+    //Eq[i].f_index = nullptr;
     Eq[i].f_index_offset = nullptr;
     Eq[i].num_query_per_proc = nullptr;
   
@@ -296,9 +296,9 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
   
   reg::FreeArray(this->data_dofs);
-  if (query_send != nullptr) {
+  if (!query_send.get()) {
     thrust::device_free(query_send);
-    query_send = nullptr;
+    //query_send = nullptr;
   }
   reg::FreeArray(query_send_offset);
   reg::FreeArray(s_request);
@@ -312,9 +312,9 @@ Interp3_Plan_GPU::~Interp3_Plan_GPU ()
     reg::FreeArray(Eq[i].f_index_procs_self_offset  );
     reg::FreeArray(Eq[i].f_index_procs_self_sizes   );
     reg::FreeArray(Eq[i].f_index_procs_others_sizes );
-    if (Eq[i].f_index != nullptr) {
+	if (!(Eq[i].f_index).get()) {
       thrust::device_free(Eq[i].f_index);
-      Eq[i].f_index = nullptr;
+//      Eq[i].f_index = nullptr;
     }
     reg::FreeArray(Eq[i].f_index_offset);
     reg::FreeArray(Eq[i].num_query_per_proc);
