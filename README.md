@@ -26,6 +26,24 @@ A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory sol
 
 The links above point to individual markdown files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded here: [NIREP Data](https://github.com/andreasmang/nirep).
 
+# Compatibility and Dependencies
+The compiler needs C++14 support.
+
+|Test   | Compiler  | MPI            | CUDA | PETSc  | CPU       | GPU   |
+|---    |---------- |-----           |------|------- |---        |---    |
+|&check;| GCC 8.4   | OpenMPI 1.10.2 | 10.1 | 3.12.4 | Kaby Lake | GK110 |
+|&check;| GCC 7.4   | OpenMPI 4.0.1  | 10.1 | 3.12.4 | Sky Lake  | GP100 |
+|&check;| GCC 7.4   | OpenMPI 3.1.6  | 10.2 | 3.12.4 | Power9    | GV100 |
+
+## Dependencies
+* PETSc (with GPU support)
+* Nifti (./deps or libnifti-dev)
+* ZLib
+
+## Known issues
+* CUDA >= 11.0 is only supported with PETSc >= 3.13.
+* Kepler GPUs work with PETSc 3.12.4  (others not tested)
+
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
 
