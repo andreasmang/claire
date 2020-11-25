@@ -107,7 +107,7 @@ config:
 	@echo "WITH_NIFTI:   $(WITH_NIFTI)"
 	@echo "WITH_PNETCDF: $(WITH_PNETCDF)"
 	@echo "WITH_DOUBLE:  $(WITH_DOUBLE)"
-	@echo "WITH_DOUBLE:  $(WITH_DEBUG)"
+	@echo "WITH_DEBUG:   $(WITH_DEBUG)"
 	@echo "================================================================================"
 	@echo "BUILD_DIR:    $(BUILD_DIR)"
 	@echo "================================================================================"

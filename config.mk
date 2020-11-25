@@ -30,7 +30,7 @@ ifeq ($(BUILD_GPU), yes)
 	LIBRARIES += $(CUDA_DIR)/lib
 	LIBRARIES += $(CUDA_DIR)/lib64
 	LDFLAGS += -lcuda -lcudart -lcufft -lcublas -lcusparse -lcusolver
-	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=c++14 -O3 -c
+	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=c++11 -O3 -c
 	#NVCCFLAGS += -gencode arch=compute_35,code=sm_35
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
@@ -56,7 +56,7 @@ endif
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=$(GIT_VERSION)
 
-CXXFLAGS += -Wall -c
+CXXFLAGS += -Wall -c -std=c++11
 
 ifeq ($(WITH_DEBUG), yes)
 	CXXFLAGS += -g
@@ -64,7 +64,6 @@ else
 	CXXFLAGS += -O3
 	#CXXFLAGS += -march=native
 	CXXFLAGS += -fopenmp
-	CXXFLAGS += -std=c++14
 endif
 
 #link ACCFFT and FFTW if not building for GPUs
