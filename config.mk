@@ -40,7 +40,7 @@ ifeq ($(BUILD_GPU), yes)
 	endif
 endif
 
-PETSC_DIR ?= ./
+PETSC_DIR ?= ./deps/lib
 INCLUDES += $(PETSC_DIR)/include
 LIBRARIES += $(PETSC_DIR)/lib
 LDFLAGS += -lpetsc -lf2clapack -lf2cblas
@@ -87,7 +87,7 @@ endif
 
 ifeq ($(WITH_NIFTI), yes)
 	CXXFLAGS += -DREG_HAS_NIFTI
-	NIFTI_DIR ?= /usr
+	NIFTI_DIR ?= ./deps/lib
 	ZLIB_DIR ?= ./
 	INCLUDES += $(NIFTI_DIR)/include/nifti
 	LIBRARIES += $(NIFTI_DIR)/lib

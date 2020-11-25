@@ -35,6 +35,7 @@ The compiler needs C++11 support.
 |4967052| GCC 5.4.0 | OpenMPI 1.10.2 | 10.0 | 3.12.4 | x86_64    | GM200 | Ubuntu 16.04 |
 |a5e763f| GCC 7.4   | OpenMPI 4.0.1  | 10.1 | 3.12.4 | x86_64    | GP100 | Ubuntu 16.04 |
 |4967052| GCC 4.8.5 | OpenMPI 3.1.6  | 10.2 | 3.12.4 | Power9    | GV100 | CentOS 7.8   |
+|4967052| XLC 16.1  | Spectrum 10.3  | 10.2 | 3.12.4 | Power9    | GV100 | RHEL 7.8     |
 
 ## Dependencies
 * PETSc (with GPU support)
@@ -44,6 +45,7 @@ The compiler needs C++11 support.
 ## Known issues
 * CUDA >= 11.0 is only supported with PETSc >= 3.14.
 * Kepler GPUs work with PETSc 3.12.4  (others not tested)
+* Compiling PETSc with CUDA support on cluster login nodes without GPUs might fail
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
