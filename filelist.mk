@@ -98,13 +98,14 @@ endif
 
 ifeq ($(BUILD_PYTHON),yes)
 	# C++ files for Python (depend on swig)
-	CPU_FILES += $(SRC_DIR)/Interface/PythonInterface.cpp
-	CPU_FILES += $(SRC_DIR)/Interface/pyclaire_wrap.cxx
+	SWIG_FILES += $(SRC_DIR)/Interface/PythonInterface.cpp
+	SWIG_FILES += $(SRC_DIR)/Interface/pyclaire_wrap.swig.cpp
 	# SWIG files
-	SWIG_FILES += $(SRC_DIR)/Interface/pyclaire.i
+	#SWIG_FILES += $(SRC_DIR)/Interface/pyclaire.i
 endif
 
 CPU_OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CPU_FILES))
+SWIG_OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SWIG_FILES))
 GPU_OBJS = $(patsubst %.cu,$(OBJ_DIR)/%.co,$(GPU_FILES))
 BINS = $(patsubst $(APP_DIR)/%.cpp,$(BUILD_DIR)/%,$(APP_FILES))
 
@@ -113,4 +114,8 @@ ifeq ($(BUILD_SHARED),yes)
 	OBJS = $(LIB_DIR)/libclaire.so
 else
 	OBJS = $(CPU_OBJS) $(GPU_OBJS)
+endif
+
+ifeq ($(BUILD_PYTHON),yes)
+	BINS += $(LIB_DIR)/_pyclaire.so
 endif

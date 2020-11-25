@@ -27,3 +27,5 @@ bingpu/
 *.slurm
 compile
 run
+lib/
+deps/lib

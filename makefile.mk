@@ -50,10 +50,19 @@ endif
 $(LIB_DIR)/libclaire.so: $(CPU_OBJS) $(GPU_OBJS)
 	-@$(MKDIR) $(dir $@)
 ifdef VERBOSE
-	$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -o $@
+	$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -shared -o $@
 else
 	@echo linking $@
-	@$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -o $@
+	@$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -shared -o $@
+endif
+
+$(LIB_DIR)/_pyclaire.so: $(LIB_DIR)/libclaire.so $(SWIG_OBJS)
+	-@$(MKDIR) $(dir $@)
+ifdef VERBOSE
+	$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -lclaire -shared -o $@
+else
+	@echo linking $@
+	@$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -lclaire -shared -o $@
 endif
 
 $(OBJ_DIR)/%.co: %.cu
@@ -73,6 +82,18 @@ else
 	@echo building $@
 	@$(CXX) $(CXXFLAGS) $(addprefix -I,$(INCLUDES)) $^ -o $@
 endif
+
+%_wrap.swig.cpp: %.i
+ifdef VERBOSE
+	swig -c++ -python -cppext swig.cpp $(addprefix -I,$(INCLUDES)) -outdir $(dir $^) $^
+	-@$(MKDIR) $(LIB_DIR)
+	mv $(basename $^).py $(LIB_DIR)/
+else
+	@echo building SWIG interface
+	@swig -c++ -python -cppext swig.cpp $(addprefix -I,$(INCLUDES)) -outdir $(dir $^) $^
+	-@$(MKDIR) $(LIB_DIR)
+	@mv $(basename $^).py $(LIB_DIR)/
+endif 
 
 config:
 	@touch .make.cfg
@@ -104,6 +125,7 @@ ifdef VERBOSE
 	@echo "NIFTI_DIR:     $(NIFTI_DIR)"
 	@echo "ZLIB_DIR:      $(ZLIB_DIR)"
 	@echo "PNETCDF_DIR:   $(PNETCDF_DIR)"
+	@echo "PYTHON_DIR:    $(PYTHON_DIR)"
 	@echo "================================================================================"
 endif
 ifdef VVERBOSE

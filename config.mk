@@ -46,9 +46,11 @@ LIBRARIES += $(PETSC_DIR)/lib
 LDFLAGS += -lpetsc -lf2clapack -lf2cblas
 
 #python build needs shared library
+PYTHON_DIR = /usr/include/python3.5
 BUILD_SHARED ?= no
 ifeq ($(BUILD_PYTHON),yes)
 	override BUILD_SHARED = yes
+	INCLUDES += $(PYTHON_DIR)
 endif
 
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
@@ -81,7 +83,7 @@ endif
 
 ifeq ($(BUILD_SHARED), yes)
 	CXXFLAGS += -fPIC
-	LDFLAGS += -shared
+	#LDFLAGS += -shared
 endif
 
 ifeq ($(WITH_NIFTI), yes)

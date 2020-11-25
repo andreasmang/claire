@@ -5,7 +5,7 @@ BUILD_ACCFFT  = no
 
 BUILD_GPU     = yes
 BUILD_DEBUG   = no
-BUILD_SHARED  = no
+#BUILD_SHARED  = no
 
 BUILD_DIR = $(PWD)/lib
 
@@ -35,14 +35,14 @@ PETSC_OPTIONS += --with-cxx=$(CXX)
 NIFTI_OPTIONS += -DCMAKE_CXX_COMPILER=$(CXX)
 NIFTI_OPTIONS += -DCMAKE_C_COMPILER=$(CC)
 NIFTI_OPTIONS += -Wno-dev
+NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=ON
 
-ifeq ($(BUILD_SHARED), yes)
-	PETSC_OPTIONS += --with-shared=1
-	NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=ON
-else
-	PETSC_OPTIONS += --with-shared=0
-	NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=OFF
-endif
+#ifeq ($(BUILD_SHARED), yes)
+#	PETSC_OPTIONS += --with-shared=1
+#else
+#	PETSC_OPTIONS += --with-shared=0
+#	NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=OFF
+#endif
 
 ifeq ($(BUILD_GPU), yes)
 	PETSC_OPTIONS += --with-cuda=1 
@@ -74,7 +74,7 @@ config:
 	@echo "================================================================================"
 	@echo "build for GPU:    $(BUILD_GPU)"
 	@echo "build with DEBUG: $(BUILD_DEBUG)"
-	@echo "build shared:     $(BUILD_SHARED)"
+	#@echo "build shared:     $(BUILD_SHARED)"
 	@echo "build directory:  $(BUILD_DIR)"
 	@echo "================================================================================"
 	@echo "using CC:   $(CC)"
