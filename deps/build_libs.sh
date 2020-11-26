@@ -268,7 +268,7 @@ fi
 
 cd ${LIB_DIR}
 
-#MPI_DIR=$(which ${MPI_CXX})
+MPI_DIR=$(which ${MPI_CXX})
 #MPI_DIR=$(dirname "${MPI_DIR}")
 #cd ${MPI_DIR}
 #cd ..
