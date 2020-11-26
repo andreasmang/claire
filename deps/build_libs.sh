@@ -269,11 +269,11 @@ fi
 cd ${LIB_DIR}
 
 MPI_DIR=$(which ${MPI_CXX})
-#MPI_DIR=$(dirname "${MPI_DIR}")
-#cd ${MPI_DIR}
-#cd ..
-#MPI_DIR=${PWD}
-#echo " detected MPI directory: ${MPI_DIR}"
+MPI_DIR=$(dirname "${MPI_DIR}")
+cd ${MPI_DIR}
+cd ..
+MPI_DIR=${PWD}
+echo " detected MPI directory: ${MPI_DIR}"
 
 
 
