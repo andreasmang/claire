@@ -6,7 +6,8 @@ GhostPlan::GhostPlan(RegOpt* m_Opt, int g_size) {
   this->m_Opt = m_Opt;
   this->g_size = g_size;
   
-  int isize[3], istart[3], nl = this->m_Opt->m_Domain.nl;
+  int isize[3], istart[3];
+  //int nl = this->m_Opt->m_Domain.nl;
   for (int i=0; i<3; i++) {
     isize[i] = m_Opt->m_Domain.isize[i];
     istart[i] = m_Opt->m_Domain.istart[i];

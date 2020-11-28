@@ -1054,7 +1054,7 @@ PetscErrorCode VecField::WAXPY(ScalarType s, VecField* v, VecField* w) {
  *******************************************************************/
 PetscErrorCode VecField::Norm(Vec xnorm) {
     PetscErrorCode ierr = 0;
-    IntType i, nl;
+    IntType nl;
     const ScalarType *p_x1 = NULL, *p_x2 = NULL, *p_x3 = NULL;
     ScalarType *p_x = NULL;
 
@@ -1072,7 +1072,7 @@ PetscErrorCode VecField::Norm(Vec xnorm) {
 #pragma omp parallel
 {
 #pragma omp for
-    for (i = 0; i < nl; ++i) {
+    for (IntType i = 0; i < nl; ++i) {
         p_x[i] = PetscSqrtReal(p_x1[i]*p_x1[i]
                              + p_x2[i]*p_x2[i]
                              + p_x3[i]*p_x3[i]);

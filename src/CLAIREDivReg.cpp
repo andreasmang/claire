@@ -97,7 +97,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
 
     // evaluate the L2 distance
     ierr = this->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
-
+    
     // evaluate the regularization model
     ierr = this->IsVelocityZero(); CHKERRQ(ierr);
     if (!this->m_VelocityIsZero) {

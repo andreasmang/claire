@@ -135,6 +135,12 @@ class OptimizationProblem {
 
     /*! check if hessian is symmetric */
     PetscErrorCode ComputeUpdateNorm(Vec, ScalarType&, ScalarType&);
+    
+    VecField* m_WorkVecField1;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField2;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField3;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField4;  ///< data container for vector field (temporary variable)
+    VecField* m_WorkVecField5;  ///< data container for vector field (temporary variable)
 
  protected:
     PetscErrorCode Initialize(void);

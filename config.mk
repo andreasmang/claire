@@ -24,6 +24,17 @@ MPI_DIR = /usr/lib/openmpi
 INCLUDES += $(MPI_DIR)/include
 LIBRARIES += $(MPI_DIR)/lib
 
+CXXFLAGS += -g
+
+ifeq ($(WITH_DEVELOP), yes)
+	CXXFLAGS += -DZEITGEIST #-DZEITGEIST_DEV
+endif
+
+ifeq ($(BUILD_TARGET), POWER9)
+	CXXFLAGS += -DREG_HAS_MPICUDA
+	CXXFLAGS += -DPOWER9
+endif
+
 ifeq ($(BUILD_GPU), yes)
 	CUDA_DIR = $(abspath $(subst bin,,$(dir $(shell which $(NVCC)))))
 	INCLUDES += $(CUDA_DIR)/include
@@ -31,7 +42,7 @@ ifeq ($(BUILD_GPU), yes)
 	LIBRARIES += $(CUDA_DIR)/lib64
 	LDFLAGS += -lcuda -lcudart -lcufft -lcublas -lcusparse -lcusolver
 	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=c++11 -O3 -c
-	#NVCCFLAGS += -gencode arch=compute_35,code=sm_35
+	NVCCFLAGS += -gencode arch=compute_70,code=sm_70
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
 	ifeq ($(WITH_DEBUG),yes)

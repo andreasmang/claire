@@ -98,7 +98,7 @@ ScaField::ScaField(RegOpt *opt, Vec vec, bool multicomponent, bool fullnewton) {
     this->m_Size[1] = this->m_Dim[0]*this->m_Dim[1];
     this->m_Size[2] = this->m_Dim[0]*this->m_Dim[1]*this->m_Dim[2];
     
-    IntType global = this->m_Dim[1]*this->m_Dim[2]*opt->m_Domain.ng;
+    //IntType global = this->m_Dim[1]*this->m_Dim[2]*opt->m_Domain.ng;
     
     this->Assign(vec);
 }

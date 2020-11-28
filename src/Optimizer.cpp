@@ -535,10 +535,14 @@ PetscErrorCode Optimizer::Run(bool presolve) {
         ierr = this->m_Precond->Reset(); CHKERRQ(ierr);
     }
 
+    ZeitGeist_define(CLAIRE);
+    ZeitGeist_tick(CLAIRE);
     // solve optimization problem
     ierr = this->m_Opt->StartTimer(T2SEXEC); CHKERRQ(ierr);
     ierr = TaoSolve(this->m_Tao); CHKERRQ(ierr);
     ierr = this->m_Opt->StopTimer(T2SEXEC); CHKERRQ(ierr);
+    
+    ZeitGeist_tock(CLAIRE);
     // get solution
     ierr = TaoGetSolutionVector(this->m_Tao, &x); CHKERRQ(ierr);
     // copy solution into place holder
@@ -547,8 +551,6 @@ PetscErrorCode Optimizer::Run(bool presolve) {
     if (!this->m_OptimizationProblem->Converged()) {
         ierr = OptimizationMonitor(this->m_Tao, this->m_OptimizationProblem); CHKERRQ(ierr);
     }
-
-
 
     this->m_Opt->Exit(__func__);
 

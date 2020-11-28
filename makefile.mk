@@ -15,6 +15,10 @@ WITH_DOUBLE = no
 #enable debugging information (yes, no)
 WITH_DEBUG = no
 
+WITH_DEBUG = yes
+
+BUILD_TARGET = POWER9
+
 include config.mk
 include filelist.mk
 

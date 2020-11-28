@@ -1123,9 +1123,7 @@ PetscErrorCode RegOpt::InitializeFFT() {
     PetscErrorCode ierr = 0;
     int iporder;
     std::stringstream ss;
-    ScalarType *u = NULL;
     ScalarType fftsetuptime;
-    ComplexType *uk = NULL;
 
     PetscFunctionBegin;
 
@@ -2196,11 +2194,6 @@ ScalarType RegOpt::GetBetaMinParaCont() {
  *******************************************************************/
 PetscErrorCode RegOpt::SetupGridCont() {
     PetscErrorCode ierr = 0;
-    IntType nxmin, nxi, nl, ng, nalloc;
-    int nx[3], isize[3], istart[3], ostart[3], osize[3];
-    IntType nlevels, level, j;
-    ScalarType value;
-
     PetscFunctionBegin;
 
     this->Enter(__func__);
@@ -2208,6 +2201,11 @@ PetscErrorCode RegOpt::SetupGridCont() {
 #if defined(REG_HAS_CUDA)
     ierr = DbgMsg("Grid continuation not implemented for GPU"); CHKERRQ(ierr);
 #else
+    IntType nxmin, nxi, nl, ng, nalloc;
+    int nx[3], isize[3], istart[3], ostart[3], osize[3];
+    IntType nlevels, level, j;
+    ScalarType value;
+
 
     // compute number of levels
     nxmin = this->m_Domain.nx[0];

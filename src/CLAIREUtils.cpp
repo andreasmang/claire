@@ -601,7 +601,6 @@ PetscErrorCode gencpy(ScalarType* dst, ScalarType* src, size_t size) {
  *******************************************************************/
 PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c_comm, bool c_exists) {
     PetscErrorCode ierr = 0;
-    int nprocs, np, ompthreads, rval;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -609,12 +608,13 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
     omp_set_dynamic(0);
     omp_set_num_threads(nthreads);
     // check if number of threads is consistent with user options
-    ompthreads = omp_get_max_threads();
+    int ompthreads = omp_get_max_threads();
     ss << "openmp threads (user,set)=("
        << nthreads <<"," << ompthreads << ")\n";
     ierr = Assert(ompthreads == nthreads, ss.str().c_str()); CHKERRQ(ierr);
     ss.str(std::string()); ss.clear();
 
+    int nprocs;
     MPI_Comm_size(PETSC_COMM_WORLD, &nprocs);
 #if defined(REG_HAS_CUDA)
     c_grid[0] = nprocs; c_grid[1] = 1;
@@ -623,8 +623,9 @@ PetscErrorCode InitializeDataDistribution(int nthreads, int *c_grid, MPI_Comm& c
     if (c_comm != MPI_COMM_NULL)  MPI_Comm_free(&c_comm);
     MPI_Cart_create(PETSC_COMM_WORLD, 2, c_grid, period, reorder, &c_comm);
 #else
+    int val;
     // set up MPI/cartesian grid
-    np = c_grid[0]*c_grid[1];
+    int np = c_grid[0]*c_grid[1];
     if (np != nprocs) {
         // update cartesian grid layout
         c_grid[0] = 0; c_grid[1] = 0;

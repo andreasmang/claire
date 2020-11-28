@@ -209,7 +209,7 @@ PetscErrorCode DifferentiationSM::Gradient(ScalarType *g1,
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+    //ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     
     DebugGPUStartEvent("FFT Grad");
     
@@ -591,7 +591,7 @@ PetscErrorCode DifferentiationSM::GaussianFilter(ScalarType* bv, const ScalarTyp
 PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
     PetscErrorCode ierr = 0;
     const ScalarType *pV[3] = {nullptr, nullptr, nullptr};
-    ComplexType **pXHat = this->m_SpectralKernel.pXHat;
+    //ComplexType **pXHat = this->m_SpectralKernel.pXHat;
     PetscFunctionBegin;
         
 //    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
@@ -735,7 +735,7 @@ PetscErrorCode DifferentiationSM::RestrictH0(VecField* vc, VecField* vf, Fourier
   
   ZeitGeist_define(FFT_H0RESTRICT);
   ZeitGeist_tick(FFT_H0RESTRICT);
-  ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
+  //ScalarType scale = 1./(this->m_FFT->nx[0]*this->m_FFT->nx[1]*this->m_FFT->nx[2]);
   
   const ScalarType *pVf[3] = {nullptr, nullptr, nullptr};
   ScalarType *pVc[3] = {nullptr, nullptr, nullptr};

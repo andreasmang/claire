@@ -254,6 +254,9 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
     Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+  
+  ZeitGeist_define(KERNEL_SPECTRAL);
+  ZeitGeist_tick(KERNEL_SPECTRAL);
 
   dim3 block, grid;
   if (nl[2] <= 1024 && nl[2] >= 32) {
@@ -277,6 +280,8 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
+  
+  ZeitGeist_tock(KERNEL_SPECTRAL);
 
   PetscFunctionReturn(ierr);
 }
@@ -289,6 +294,9 @@ template<typename KernelFn, typename ... Args>
 PetscErrorCode SpacialKernelCallGPU(IntType nstart[3], IntType nl[3], Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+
+  ZeitGeist_define(KERNEL_SPACIAL);
+  ZeitGeist_tick(KERNEL_SPACIAL);
 
   dim3 block, grid;
   if (nl[2] <= 1024 && nl[2] >= 32) {
@@ -311,6 +319,8 @@ PetscErrorCode SpacialKernelCallGPU(IntType nstart[3], IntType nl[3], Args ... a
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
+  
+  ZeitGeist_tock(KERNEL_SPACIAL);
 
   PetscFunctionReturn(ierr);
 }
@@ -324,6 +334,8 @@ PetscErrorCode KernelCallGPU(IntType nl, Args ... args) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
+  ZeitGeist_define(KERNEL_DEFUALT);
+  ZeitGeist_tick(KERNEL_DEFUALT);
   dim3 block(256,1,1); // 256 threads per block
   dim3 grid((nl + 255)/256,1,1); // $\lceil nl_0 / 256 \rceil, nl_1, nl_2 $
 
@@ -332,6 +344,7 @@ PetscErrorCode KernelCallGPU(IntType nl, Args ... args) {
     ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
     ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
   }
+  ZeitGeist_tock(KERNEL_DEFUALT);
 
   PetscFunctionReturn(ierr);
 }
@@ -346,6 +359,8 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
+  ZeitGeist_define(KERNEL_REDUCTION);
+  ZeitGeist_tick(KERNEL_REDUCTION);
   dim3 block(256, 1, 1); // 256 threads per block
   dim3 grid((nl + 255)/256, 1, 1);  // $\lceil nl_0 / 256 \rceil, nl_1, nl_2 $
   ScalarType *res = nullptr;
@@ -371,6 +386,8 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
 
   ierr = reg::FreeMemory(res); CHKERRQ(ierr);
 
+  ZeitGeist_tock(KERNEL_REDUCTION);
+  
   PetscFunctionReturn(ierr);
 }
 
@@ -407,7 +424,7 @@ PetscErrorCode SpectralKernelCall(IntType nstart[3], IntType nx[3], IntType nl[3
           }
       }
   }
-
+  
   PetscFunctionReturn(ierr);
 }
 

@@ -520,10 +520,10 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
 
     if (this->m_Opt->rank_cnt > 1) {
-      ZeitGeist_define(INTERPOL_COMM);
-      ZeitGeist_tick(INTERPOL_COMM);
+      ZeitGeist_define(SL_COMM);
+      ZeitGeist_tick(SL_COMM);
       this->m_GhostPlan->share_ghost_x(xi, this->m_VecFieldGhost);
-      ZeitGeist_tock(INTERPOL_COMM);
+      ZeitGeist_tock(SL_COMM);
       ScalarType *wout[1] = {xo};
       
       interp_plan = this->m_StatePlan;
@@ -641,11 +641,11 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     ScalarType* wout[3] = {wx1, wx2, wx3};
 
     if (this->m_Opt->rank_cnt > 1) {
-      ZeitGeist_define(INTERPOL_COMM);
+      ZeitGeist_define(SL_COMM);
       for (int i=0; i<3; i++) { 
-        ZeitGeist_tick(INTERPOL_COMM);
+        ZeitGeist_tick(SL_COMM);
         this->m_GhostPlan->share_ghost_x(vin[i], &this->m_VecFieldGhost[0*this->nlghost]);
-        ZeitGeist_tock(INTERPOL_COMM);
+        ZeitGeist_tock(SL_COMM);
 
         
         // do interpolation
@@ -816,8 +816,8 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
   
     nl = this->m_Opt->m_Domain.nl;
     
-    ZeitGeist_define(INTERPOL_COMM);
-    ZeitGeist_tick(INTERPOL_COMM);
+    ZeitGeist_define(SL_COMM);
+    ZeitGeist_tick(SL_COMM);
     
     ierr = this->m_WorkVecField1->GetArrays(p_X); CHKERRQ(ierr);
     
@@ -825,7 +825,7 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
 
     ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
 
-    ZeitGeist_tock(INTERPOL_COMM);
+    ZeitGeist_tock(SL_COMM);
 
     this->m_Opt->IncreaseInterpTimers(timers);
 

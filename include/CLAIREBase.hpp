@@ -229,12 +229,6 @@ class CLAIREBase : public OptimizationProblem {
 
     ScaField* m_WorkScaFieldMC;  ///< work scalar field for multi-component/vector fields
 
-    VecField* m_WorkVecField1;  ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField2;  ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField3;  ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField4;  ///< data container for vector field (temporary variable)
-    VecField* m_WorkVecField5;  ///< data container for vector field (temporary variable)
-
     ReadWriteReg* m_ReadWrite;                   ///< io; set from outside (not to be delted)
     RegularizationType* m_Regularization;        ///< regularization functional
     DistanceMeasure* m_DistanceMeasure;          ///< distance measure

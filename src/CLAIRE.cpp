@@ -33,6 +33,9 @@
 
 #include "PreconditionerKernel.hpp"
 
+#ifdef ZEITGEIST_DEV
+std::string ZeitGeist::prefix = "";
+#endif
 
 namespace reg {
 
@@ -88,7 +91,7 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
         char txt[120];
         local_runtime = zg.second.Total_s();
         MPI_Reduce(&local_runtime, &global_runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
-        sprintf(txt, "  %16s: %5lix, %0.10lf",zg.first.c_str(), zg.second.Count(), global_runtime);
+        sprintf(txt, "  %-60s: %5lix, %0.10lf",zg.first.c_str(), zg.second.Count(), global_runtime);
         Msg(txt);
       }
       Msg("-----------------------------------------------------------------------------------------------------");
@@ -642,6 +645,9 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
 
     this->m_Opt->Enter(__func__);
 
+    //ZeitGeist_define(EVAL_DIST);
+    //ZeitGeist_tick(EVAL_DIST);
+    
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
     
     // compute solution of state equation
@@ -663,6 +669,8 @@ PetscErrorCode CLAIRE::EvaluateDistanceMeasure(ScalarType* D) {
 
     // evaluate distance measure
     ierr = this->m_DistanceMeasure->EvaluateFunctional(D); CHKERRQ(ierr);
+    
+    //ZeitGeist_tock(EVAL_DIST);
 
     this->m_Opt->Exit(__func__);
 

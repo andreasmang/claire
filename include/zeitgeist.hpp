@@ -8,9 +8,16 @@
 #define _ZEITGEIST_HPP
 //--------------------------------------------------------------------------------------------------
 #ifdef ZEITGEIST
+#define ZeitGeist_define(NAME) ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
+#ifdef ZEITGEIST_DEV
 #define ZeitGeist_define(NAME) static ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
+#define ZeitGeist_tick(NAME) NAME ## _zg.Tick(#NAME)
+#define ZeitGeist_tock(NAME) NAME ## _zg.Tock(#NAME)
+#else
+#define ZeitGeist_define(NAME) ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock()
+#endif
 #define ZeitGeist_inc(NAME) NAME ## _zg.Inc()
 #define ZeitGeist_add(NAME, I) NAME ## _zg.Inc(I)
 #define ZeitGeist_name(NAME) NAME ## _zg
@@ -26,6 +33,9 @@
 //------------------------------------------------------------------------------
 class ZeitGeist {
 private:
+#ifdef ZEITGEIST_DEV
+  static std::string prefix;
+#endif
   int64_t tick;
   bool ticktock;
   int64_t cnt;
@@ -38,7 +48,11 @@ private:
   }
 public:
   inline static ZeitGeist& zg (std::string str) {
+#ifdef ZEITGEIST_DEV
+    return ZeitGeist::zgMap()[prefix+str];
+#else
     return ZeitGeist::zgMap()[str];
+#endif
   }
   static std::map<std::string, ZeitGeist>& zgMap () {
     static std::map<std::string, ZeitGeist> _zg;
@@ -52,15 +66,27 @@ public:
     max = 0;
     tot = 0;
   }
+#ifdef ZEITGEIST_DEV
+  inline void Tick (std::string name) {
+    prefix += name + ":";
+#else
   inline void Tick () {
+#endif
     gettimeofday(&tmp_tv, NULL);
     tick = usec();
     ticktock = true;
   }
+#ifdef ZEITGEIST_DEV
+  inline void Tock(std::string name) {
+#else
   inline void Tock() {
+#endif
     gettimeofday(&tmp_tv, NULL);
     ++cnt;
     tot += usec() - tick;
+#ifdef ZEITGEIST_DEV
+    prefix.erase(prefix.size()-name.size()-1);
+#endif
   }
   inline void Inc(int inc=1) {
     cnt+=inc;
