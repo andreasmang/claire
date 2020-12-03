@@ -17,7 +17,7 @@ WITH_DEBUG = no
 
 WITH_DEBUG = yes
 
-BUILD_TARGET = POWER9
+#BUILD_TARGET = POWER9
 
 include config.mk
 include filelist.mk

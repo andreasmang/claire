@@ -25,6 +25,7 @@ INCLUDES += $(MPI_DIR)/include
 LIBRARIES += $(MPI_DIR)/lib
 
 CXXFLAGS += -g
+LDFLAGS += -g
 
 ifeq ($(WITH_DEVELOP), yes)
 	CXXFLAGS += -DZEITGEIST #-DZEITGEIST_DEV
@@ -42,7 +43,7 @@ ifeq ($(BUILD_GPU), yes)
 	LIBRARIES += $(CUDA_DIR)/lib64
 	LDFLAGS += -lcuda -lcudart -lcufft -lcublas -lcusparse -lcusolver
 	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=c++11 -O3 -c
-	NVCCFLAGS += -gencode arch=compute_70,code=sm_70
+#	NVCCFLAGS += -gencode arch=compute_70,code=sm_70
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
 	ifeq ($(WITH_DEBUG),yes)
