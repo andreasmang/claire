@@ -42,7 +42,7 @@ CLAIRE requires the following libraries to be installed on your system:
 To download the libraries we provide a script called `get_libs.sh` (see [deps/get_libs.sh](../deps/get_libs.sh)). Simply run this script in your command window to download *tarball* files of the libraries identified above.
 
 ```bash
-cd debs
+cd deps
 ./get_libs.sh
 ```
 
@@ -60,6 +60,17 @@ cd deps
 ```
 
 This will decompress the *tarball* files and compile them with standard settings. The compiled libraries will be installed in in a subfolder of your `deps` folder called `libs`.
+
+To build all libraries for GPU, do the following
+
+```bash
+cd deps
+./build_libs.sh --enableCUDA=1 --gpu=V100 --build 
+```
+
+The argument value of  `--gpu` can be either V100, P100 or RTX
+
+For bulding on a IBM Power9 system, append `--POWER9` to the command line
 
 
 #### Detailed Instructions
@@ -86,7 +97,7 @@ source environment_vars.sh
 To add them permanently, copy the content of `environment_vars.sh` to your `~/.bashrc`. Notice that `environment_vars.sh` defines *absolute paths*.
 
 
-## Building CLAIRE <a name="buildclaire"></a>
+## Building CLAIRE for CPU <a name="buildclaire"></a>
 
 Before you can build CLAIRE you need to
 
@@ -104,6 +115,19 @@ make -j
 ```
 
 If you build in parallel using `make -j`, on certain systems to many threads will be used. This will result in compilation errors. To fix this, run `make -j 12` instead (for quick access, you may want to define an alias in your `~/.bashrc`).
+
+## Bulding CLAIRE for GPU <a name="buildclairegpu"></a>
+
+In addition to the instructions for building CLAIRE on CPU, you need to make sure the following:
+
+On TACC's Longhorn system (which does not have Intel Compilers)
+* Check the [makefile](https://github.com/andreasmang/claire/tree/gpu/makefile_p9) before building the code:
+	* Set the `USEINTEL` flag to `no`.
+	* Set the `USEIMPI` flag to `no`.
+	* Set the `USECUDA` flag to `yes`.
+	* Set the `USEMPICUDA` flag to `yes`.
+	* If using the *IBM XL* compiler, set the `USEIBMXL` flag to `yes`, otherwise set it to `no`.
+	* Set the `USESINGLE` flag to `yes`.
 
 
 ## Additional Info for Dependencies <a name="depsinf"></a>
@@ -127,10 +151,11 @@ If you build in parallel using `make -j`, on certain systems to many threads wil
 
 ### PETSc
 
-* file: [petsc-lite-3.9.1.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz)
+* file: [petsc-lite-3.11.4.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.4.tar.gz)
 * source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
 * description: library for numerics, linear algebra, and optimization
 * older versions that have been succesfully used by our group:
+	* [petsc-lite-3.9.1.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz)
 	* [petsc-lite-3.8.3.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz)
 	* [petsc-lite-3.7.6.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz)
 	* [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)

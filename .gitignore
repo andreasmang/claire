@@ -29,3 +29,4 @@ compile
 run
 lib/
 deps/lib
+make.cache

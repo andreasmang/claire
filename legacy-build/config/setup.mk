@@ -9,9 +9,8 @@ MKDIRS = mkdir -p
 ifeq ($(DBGCODE),yes)
 	CXXFLAGS = -g
 else
-	CXXFLAGS = -O3 -ansi -g
+	CXXFLAGS = -O3 -ansi
 endif
-
 
 ifeq ($(USEINTEL),yes)
 	CXXFLAGS += -xhost -parallel
@@ -21,7 +20,7 @@ else
 	CXXFLAGS += -fopenmp
 	CXXFLAGS += -march=native -mavx
 endif
-CXXFLAGS += -std=c++14
+CXXFLAGS += -std=c++11
 
 ifeq ($(USEKNL),yes)
 	CXXFLAGS += -DKNL
@@ -139,11 +138,11 @@ else
 endif
 
 # CUDA flags
-CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" --std=c++14 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
+CUDA_FLAGS=-c -Xcompiler "$(CXXFLAGS)" --std=c++11 -O3 -Xcompiler -fPIC -Wno-deprecated-gpu-targets -g
 CUDA_FLAGS+=-gencode arch=compute_35,code=sm_35
 #CUDA_FLAGS+=-gencode arch=compute_60,code=sm_60
 #CUDA_FLAGS+=-gencode arch=compute_70,code=sm_70
-#CUDA_FLAGS+=-gencode arch=compute_50,code=sm_50
+CUDA_FLAGS+=-gencode arch=compute_75,code=sm_75
 
 
 ifeq ($(USENIFTI),yes)
@@ -214,7 +213,7 @@ endif
 
 
 ifeq ($(USEINTELMPI),yes)
-#	LDFLAGS += -lmpi_mt
+	LDFLAGS += -lmpi_mt
 endif
 LDFLAGS += -lm
 

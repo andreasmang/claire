@@ -1,26 +1,71 @@
-# TACC Systems
+# TACC Systems (University of Texas at Austin)
 
 Information about the Texas Advanced Computing Center ([TACC](https://www.tacc.utexas.edu)) can be found at [https://www.tacc.utexas.edu](https://www.tacc.utexas.edu).In the following we will mainly provide information on which modules you need to load on the individual TACC systems to compile the code and the libraries. For more information on the systems please visit the [TACC](https://www.tacc.utexas.edu) web pages.
 
+CLAIRE GPU code has been tested on the following systems:
 
-## Maverick Systems
 
-Info about Maverick can be found here: [https://www.tacc.utexas.edu/systems/maverick](https://www.tacc.utexas.edu/systems/maverick).
+## [Longhorn](https://portal.tacc.utexas.edu/user-guides/longhorn)
 
-CLAIRE has been tested with the following module settings:
+Make sure the following modules are loaded before building external dependencies for CLAIRE.
+
+### Modules:
 
 ```bash
-module load intel/15.0.3
-module load impi/5.0.3
-module load git/2.7.0
-module load cmake/2.8.12.2
+git/2.24.1
+xalt/2.8.1
+autotools/1.2
+TACC
+cmake/3.16.1
+cuda/10.2
+gcc/7.3.0
+mvapich2-gdr/2.3.4
+```
+
+```bash
+export LD_LIBRARY_PATH=/opt/apps/gcc7_3/mvapich2-gdr/2.3.4/include/:$LD_LIBRARY_PATH
+```
+
+### Dependencies:
+
+* nifticlib
+* petsc-lite-3.11.4
+
+```bash
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bnifti
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bpetsccudasgl
 ```
 
 
+# RCDC Systems (University of Houston)
 
-## Stampede
+Information about the Research Computing Data Core ([RCDC](https://www.uh.edu/rcdc/resources/)) center at the Univeristy of Houston can be found at [https://www.uh.edu/rcdc/resources](https://www.uh.edu/rcdc/resources). In the following we will provide information on which modules you need to load on the individual TACC systems to compile the cod and the libraries.
+
+
+## [Sabine](https://www.uh.edu/rcdc/resources/hpc/sabine)
+
+GPU version of CLAIRE (GIT version v0.07-363-gb5ed; date: 11/21/2020)
+
+### Modules:
 
 ```bash
-module load intel/14.0.1.106
-module load impi/5.0.3 
+python/3.6
+cmake/3.15.4
+CUDA/9.2.88
+PSM2/10.3.35-cuda
+OpenMPI/gcc-cuda/3.1.2
+```
+
+```bash
+export MPI_INC="/project/cacds/apps/openmpi/3.1.2/gcc-cuda/include"
+export MPI_DIR="/project/cacds/apps/openmpi/3.1.2/gcc-cuda"
+```
+
+### Dependencies:
+* nifticlib
+* petsc-lite-3.11.4
+
+```bash
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bnifti
+./build_libs.sh --enableCUDA=1 --gpu=V100 --bpetsccudasgl
 ```

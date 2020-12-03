@@ -7,10 +7,7 @@ CUDA_C=nvcc
 #MPI_F77=mpif77
 #MPI_F99=mpif90
 
-#petscvar='lite-3.12.4'
 petscvar='lite-3.11.4'
-#petscvar='lite-3.14'
-#petscvar='lite-3.13'
 
 
 builddep=0		# set to 1 if you wanna build all libraries

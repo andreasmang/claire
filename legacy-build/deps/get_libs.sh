@@ -44,7 +44,7 @@ if [[ ! -e parallel-netcdf.tar.gz ]]; then
 	wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.8.1.tar.gz -O parallel-netcdf.tar.gz
 fi
 
-petscver=3.13
+petscver=3.12.4
 
 #if [[ ! -e petsc.tar.gz ]]; then
 #if [[ ! -e petsc-lite-3.9.1.tar.gz ]]; then
