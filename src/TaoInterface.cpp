@@ -615,7 +615,6 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     TaoLineSearchConvergedReason flag;
     OptimizationProblem* optprob = NULL;
     TaoLineSearch ls = NULL;
-    //Vec x = NULL, g = NULL;
 
     PetscFunctionBegin;
 
@@ -623,7 +622,20 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
+
+#if PETSC_VERSION_GE(3,12,4)
     ierr = TaoLineSearchGetSolution(ls, 0, &J, 0, &step, &flag); CHKERRQ(ierr);
+#else
+    IntType nl, ng;
+    Vec x = NULL, g = NULL;
+    nl = optprob->GetOptions()->m_Domain.nl;
+    ng = optprob->GetOptions()->m_Domain.ng;
+    ierr = VecCreate(x, nl, ng); CHKERRQ(ierr);
+    ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
+    ierr = TaoLineSearchGetSolution(ls, x, &J, g, &step, &flag); CHKERRQ(ierr);
+    if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
+    if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); g = NULL;}
+#endif
 
     switch(flag) {
         case TAOLINESEARCH_FAILED_INFORNAN:
