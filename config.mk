@@ -17,7 +17,6 @@ RM = rm -f
 MKDIR = mkdir -p
 
 LIBRARIES = $(LIB_DIR)
-LIBRARIES += -ldl
 LDFLAGS += -fopenmp
 
 #locate dependencies
@@ -90,7 +89,7 @@ PETSC_DIR ?= ./deps/lib
 INCLUDES += $(PETSC_DIR)/include
 INCLUDES += $(PETSC_DIR)/$(PETSC_ARCH)/include
 LIBRARIES += $(PETSC_DIR)/$(PETSC_ARCH)/lib
-LDFLAGS += -lpetsc -lf2clapack -lf2cblas 
+LDFLAGS += -lpetsc -lf2clapack -lf2cblas  -ldl
 
 #python build needs shared library
 PYTHON_DIR = /usr/include/python3.5
