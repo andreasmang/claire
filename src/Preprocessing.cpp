@@ -204,12 +204,7 @@ PetscErrorCode Preprocessing::SetReadWrite(Preprocessing::ReadWriteType* readwri
 PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     IntType nalloc_c, nalloc_f;
-    int _nx_f[3], _ostart_f[3], _osize_f[3], _isize_f[3], _istart_f[3],
-        _nx_c[3], _ostart_c[3], _osize_c[3], _isize_c[3], _istart_c[3];
-    ScalarType *p_xfd = nullptr, *p_xcd = nullptr;
-    ComplexType *p_xfdhat = nullptr, *p_xcdhat = nullptr;
     std::stringstream ss;
-    MPI_Comm mpicomm;
 
     PetscFunctionBegin;
 
@@ -282,12 +277,6 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
       ierr = reg::ThrowError("Domain size error"); CHKERRQ(ierr);
     }
 
-    // parse input sizes
-    for (int i = 0; i < 3; ++i) {
-        _nx_f[i] = static_cast<int>(nx_f[i]);
-        _nx_c[i] = static_cast<int>(nx_c[i]);
-    }
-
     this->m_FFTFineScale = 1.0;
     this->m_FFTCoarseScale = 1.0;
     for (int i = 0; i < 3; ++i) {
@@ -296,9 +285,6 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
     }
     this->m_FFTFineScale = 1.0/this->m_FFTFineScale;
     this->m_FFTCoarseScale = 1.0/this->m_FFTCoarseScale;
-
-    // get communicator
-    mpicomm = this->m_Opt->m_Domain.mpicomm;
 
     nalloc_c = this->m_coarse_fft->nalloc;// accfft_local_size_dft_r2c_t<ScalarType>(_nx_c, _isize_c, _istart_c, _osize_c, _ostart_c, mpicomm);
     nalloc_f = this->m_fine_fft->nalloc;//accfft_local_size_dft_r2c_t<ScalarType>(_nx_f, _isize_f, _istart_f, _osize_f, _ostart_f, mpicomm);
@@ -795,10 +781,9 @@ PetscErrorCode Preprocessing::Restrict(VecField* vcoarse, VecField* vfine, IntTy
  *******************************************************************/
 PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType* nx_f) {
     PetscErrorCode ierr = 0;
-    ScalarType scale, coeff[2], value, *p_xc = nullptr;
+    ScalarType *p_xc = nullptr;
     const ScalarType *p_xf = nullptr;
-    IntType n, l, k_c[3], i_c[3], nr, os_recv, nyqfreqid[3];
-    std::stringstream ss;
+        std::stringstream ss;
     int rank, nprocs;
     double timer[NFFTTIMERS] = {0};
 
@@ -832,8 +817,6 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     for (int i = 0; i < 3; ++i) {
         this->m_nxC[i] = nx_c[i];
         this->m_nxF[i] = nx_f[i];
-        value = static_cast<ScalarType>(nx_c[i])/2.0;
-        nyqfreqid[i] = static_cast<IntType>(std::ceil(value));
     }
 //    for(int i = 0; i < 3; ++i) {
 //        value = static_cast<ScalarType>(nx_c[i])/2.0;
@@ -850,7 +833,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 
     //ierr = Assert(this->m_FFTFinePlan != nullptr, "null pointer"); CHKERRQ(ierr);
 
-    n  = this->m_osizeC[0];
+    IntType n  = this->m_osizeC[0];
     n *= this->m_osizeC[1];
     n *= this->m_osizeC[2];
     
@@ -871,7 +854,7 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
 {
 #pragma omp for
     // set freqencies to zero
-    for (l = 0; l < n; ++l) {
+    for (IntType l = 0; l < n; ++l) {
         this->m_XHatCoarse[l][0] = 0.0;
         this->m_XHatCoarse[l][1] = 0.0;
     }
@@ -886,7 +869,14 @@ PetscErrorCode Preprocessing::Restrict(Vec* x_c, Vec x_f, IntType* nx_c, IntType
     ierr = this->GridChangeCommDataRestrict(); CHKERRQ(ierr);
 
     // get grid sizes/fft scales
-    scale = this->m_FFTFineScale;
+    ScalarType scale = this->m_FFTFineScale;
+    IntType k_c[3], i_c[3];
+    IntType nr, os_recv, nyqfreqid[3];
+    
+    for (int i = 0; i < 3; ++i) {
+        ScalarType value = static_cast<ScalarType>(nx_c[i])/2.0;
+        nyqfreqid[i] = static_cast<IntType>(std::ceil(value));
+    }
 
     // get number of entries we are going to assign
     for (int p = 0; p < nprocs; ++p) {
@@ -1576,8 +1566,7 @@ PetscErrorCode Preprocessing::Prolong(VecField* v_f, VecField* v_c, IntType* nx_
 PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType* nx_c) {
     PetscErrorCode ierr = 0;
     int rank, nprocs;
-    IntType l, n, ns, os_send, k_f[3], i_f[3], nyqfreqid[3];
-    ScalarType *p_xf = nullptr, scale, coeff[2], value;
+    ScalarType *p_xf = nullptr;
     const ScalarType *p_xc = nullptr;
     std::stringstream ss;
     double timer[NFFTTIMERS] = {0};
@@ -1607,8 +1596,6 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     for (int i = 0; i < 3; ++i) {
         this->m_nxC[i] = nx_c[i];
         this->m_nxF[i] = nx_f[i];
-        value = static_cast<ScalarType>(nx_c[i])/2.0;
-        nyqfreqid[i] = static_cast<IntType>(std::ceil(value));
     }
 
     if (this->m_ResetGridChangeOps) {
@@ -1621,7 +1608,7 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
         ierr = this->SetupGridChangeOps(nx_f, nx_c); CHKERRQ(ierr);
     }
 
-    n  = this->m_osizeF[0];
+    IntType n  = this->m_osizeF[0];
     n *= this->m_osizeF[1];
     n *= this->m_osizeF[2];
 
@@ -1629,6 +1616,14 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     ZeitGeist_tick(FFT_2LEVEL);
     
 #ifndef REG_HAS_CUDA
+    ScalarType coeff[2];
+    IntType os_send, k_f[3], i_f[3], nyqfreqid[3];
+    
+    for (int i = 0; i < 3; ++i) {
+        ScalarType value = static_cast<ScalarType>(nx_c[i])/2.0;
+        nyqfreqid[i] = static_cast<IntType>(std::ceil(value));
+    }
+  
     // compute fft of data on fine grid
     ierr = GetRawPointerRead(x_c, &p_xc); CHKERRQ(ierr);
     ierr = this->m_coarse_fft->fft->FFT_R2C(p_xc, this->m_XHatCoarse.WriteDevice()); CHKERRQ(ierr);
@@ -1640,10 +1635,9 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     this->m_XHatFine.WriteHost();
 #pragma omp parallel
 {
-    IntType l;
 #pragma omp for
     // set freqencies to zero
-    for (l = 0; l < n; ++l) {
+    for (IntType l = 0; l < n; ++l) {
         this->m_XHatFine[l][0] = 0.0;
         this->m_XHatFine[l][1] = 0.0;
     }
@@ -1658,11 +1652,11 @@ PetscErrorCode Preprocessing::Prolong(Vec* x_f, Vec x_c, IntType* nx_f, IntType*
     ierr = this->GridChangeCommDataProlong(); CHKERRQ(ierr);
 
     // get grid sizes/fft scales
-    scale = this->m_FFTCoarseScale;
+    ScalarType scale = this->m_FFTCoarseScale;
 
     // get number of entries we are going to assign
     for (int p = 0; p < nprocs; ++p) {
-        ns = this->m_NumSend[p];
+        IntType ns = this->m_NumSend[p];
         os_send = this->m_OffsetSend[p];
 
         for (IntType j = 0; j < ns; ++j) {
@@ -1782,8 +1776,6 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     IntType nalloc;
     ScalarType *p_xflt = nullptr;
     const ScalarType *p_x = nullptr;
-    ScalarType nxhalf[3], scale, cfreq[3][2], indicator[2], indic;
-    int nx[3];
     double timer[NFFTTIMERS] = {0};
 
     PetscFunctionBegin;
@@ -1803,13 +1795,6 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
         PetscFunctionReturn(ierr);
     }
 
-    indicator[0] = 1;
-    indicator[1] = 0;
-
-    if (!lowpass) {
-        indicator[0] = 0;
-        indicator[1] = 1;
-    }
 
     // get local pencil size and allocation size
     nalloc = this->m_Opt->m_FFT.nalloc;
@@ -1820,13 +1805,6 @@ PetscErrorCode Preprocessing::ApplyRectFreqFilter(Vec xflt, Vec x, ScalarType pc
     }*/
     ierr = this->m_XHat.Resize(nalloc); CHKERRQ(ierr);
 //    ierr = this->m_XHat.AllocateHost(); CHKERRQ(ierr);
-
-    // get parameters
-    for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-        nxhalf[i] = static_cast<ScalarType>(nx[i]/2.0);
-    }
-    scale = this->m_Opt->ComputeFFTScale();
 
     // compute fft
     ierr = GetRawPointerRead(x, &p_x); CHKERRQ(ierr);
@@ -1930,12 +1908,10 @@ PetscErrorCode Preprocessing::Smooth(Vec xs, Vec x, IntType nc) {
  *******************************************************************/
 PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
     PetscErrorCode ierr = 0;
-    IntType nalloc, nl;
+    IntType nl;
     std::stringstream ss;
-    ScalarType *p_xs = nullptr, c[3], scale; //, nx[3];
+    ScalarType *p_xs = nullptr, c[3]; //, nx[3];
     const ScalarType *p_x = nullptr;
-    int nx[3];
-    double timer[NFFTTIMERS] = {0};
     DifferentiationSM *spectral = nullptr;
 
     PetscFunctionBegin;
@@ -1947,8 +1923,6 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
 
     // get local pencil size and allocation size
     nl     = this->m_Opt->m_Domain.nl;
-    nalloc = this->m_Opt->m_FFT.nalloc;
-    scale  = this->m_Opt->ComputeFFTScale();
 
     ierr = AllocateOnce(spectral, this->m_Opt);
     //ierr = spectral->SetupSpectralData(); CHKERRQ(ierr);
@@ -1978,7 +1952,6 @@ PetscErrorCode Preprocessing::GaussianSmoothing(Vec xs, Vec x, IntType nc) {
 
     // get parameters
     for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         // sigma is provided by user in # of grid points
         c[i] = this->m_Opt->m_Sigma[i]*this->m_Opt->m_Domain.hx[i];
         c[i] *= c[i];

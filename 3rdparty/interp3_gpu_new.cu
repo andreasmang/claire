@@ -1011,7 +1011,6 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
  *******************************************************************************/
 void updateTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent, cudaTextureObject_t texObj) {
     cudaError_t err = cudaSuccess;
-    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 
     /* create cuda resource description */
     struct cudaResourceDesc resDesc;

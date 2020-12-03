@@ -20,12 +20,13 @@ LIBRARIES = $(LIB_DIR)
 LDFLAGS += -fopenmp
 
 #locate dependencies
-MPI_DIR = /usr/lib/openmpi
+MPI_DIR = $(abspath $(subst bin,,$(dir $(shell which $(CXX)))))
 INCLUDES += $(MPI_DIR)/include
+INCLUDES += $(MPI_DIR)/include/mpi
 LIBRARIES += $(MPI_DIR)/lib
 
-CXXFLAGS += -g
-LDFLAGS += -g
+CXXFLAGS += -g $(CXX_FLAGS)
+LDFLAGS += -g $(LD_FLAGS)
 
 ifeq ($(WITH_DEVELOP), yes)
 	CXXFLAGS += -DZEITGEIST #-DZEITGEIST_DEV
@@ -37,19 +38,26 @@ ifeq ($(BUILD_TARGET), POWER9)
 endif
 
 ifeq ($(BUILD_GPU), yes)
+	ifeq ($(WITH_DOUBLE), yes)
+$(error GPU build only supports single precision)
+	endif
 	CUDA_DIR = $(abspath $(subst bin,,$(dir $(shell which $(NVCC)))))
 	INCLUDES += $(CUDA_DIR)/include
 	LIBRARIES += $(CUDA_DIR)/lib
 	LIBRARIES += $(CUDA_DIR)/lib64
 	LDFLAGS += -lcuda -lcudart -lcufft -lcublas -lcusparse -lcusolver
-	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=c++11 -O3 -c
-#	NVCCFLAGS += -gencode arch=compute_70,code=sm_70
+	NVCCFLAGS += -Xcompiler "$(CXXFLAGS)" --std=$(CPP_VERSION) -O3 -c $(NVCC_FLAGS)
 	CXXFLAGS += -DREG_HAS_CUDA
 	CXXFLAGS += -DREG_FFT_CUDA
 	ifeq ($(WITH_DEBUG),yes)
 		CXXFLAGS += -DREG_DBG_CUDA
 		LDFLAGS += -lnvToolsExt
 	endif
+	ifdef GPU_VERSION
+		NVCCFLAGS += -gencode arch=compute_$(GPU_VERSION),code=sm_$(GPU_VERSION)
+	endif 
+else
+$(error This branch only supports GPU build)
 endif
 
 PETSC_DIR ?= ./deps/lib
@@ -68,7 +76,7 @@ endif
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=$(GIT_VERSION)
 
-CXXFLAGS += -Wall -c -std=c++11
+CXXFLAGS += -Wall -c -std=$(CPP_VERSION)
 
 ifeq ($(WITH_DEBUG), yes)
 	CXXFLAGS += -g
@@ -117,4 +125,12 @@ endif
 
 ifeq ($(BUILD_SHARED),yes)
 	LDFLAGS += -lclaire
+endif
+
+CACHE = "$(BUILD_GPU) $(BUILD_TEST) $(BUILD_PYTHON) $(WITH_NIFTI) $(WITH_PNETCDF) $(WITH_DOUBLE) $(WITH_DEBUG) $(BUILD_SHARED) $(WITH_DEBUG) $(BUILD_TARGET) $(GPU_VERSION) $(shell uname -a)"
+
+OLD_CACHE = "$(shell touch make.cache; cat make.cache)"
+
+ifneq ($(strip $(OLD_CACHE)), $(strip $(CACHE)))
+	PRESTEPS += clean
 endif

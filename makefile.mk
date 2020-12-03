@@ -15,32 +15,27 @@ WITH_DOUBLE = no
 #enable debugging information (yes, no)
 WITH_DEBUG = no
 
-WITH_DEBUG = yes
+WITH_DEBUG = no
 
-#BUILD_TARGET = POWER9
+WITH_DEVELOP = no
+
+BUILD_TARGET = X86
+GPU_VERSION = 35
+CPP_VERSION = c++14
 
 include config.mk
 include filelist.mk
 
-all: .PRIMARY .SECONDARY $(BINS)
-	@echo $(BUILD_GPU) $(BUILD_TEST) $(BUILD_PYTHON) $(WITH_NIFTI) $(WITH_PNETCDF) $(WITH_DOUBLE) $(WITH_DEBUG) $(BUILD_SHARED) > .make.cfg
+all: .PRIMARY $(PRESTEPS) $(BINS)
 	@echo "================================================================================"
+	@echo "writing cache"
+	@echo $(CACHE) > make.cache
 	@echo "done"
 	@echo "================================================================================"
 
 .PRIMARY: config
 	@echo "Building"
 	@echo "================================================================================"
-	
-.SECONDARY: .make.cfg
-ifneq ($(shell cat .make.cfg), $(BUILD_GPU) $(BUILD_TEST) $(BUILD_PYTHON) $(WITH_NIFTI) $(WITH_PNETCDF) $(WITH_DOUBLE) $(WITH_DEBUG) $(BUILD_SHARED))
-	@echo "make config changed"
-	$(RM) -r $(LIB_DIR)
-	$(RM) -r $(BUILD_DIR)
-	$(RM) -r $(OBJ_DIR)
-	$(RM) *~ */*~
-	@echo "================================================================================"
-endif
 
 $(BUILD_DIR)/%: $(OBJ_DIR)/$(APP_DIR)/%.o $(OBJS)
 	-@$(MKDIR) $(dir $@)
@@ -100,18 +95,18 @@ else
 endif 
 
 config:
-	@touch .make.cfg
 	@echo "================================================================================"
 	@echo "Options"
 	@echo "================================================================================"
-	@echo "BUILD_GPU:    $(BUILD_GPU)"
-	@echo "BUILD_TEST:   $(BUILD_TEST)"
-	@echo "BUILD_PYTHON: $(BUILD_PYTHON)"
+	@echo "BUILD_GPU:    $(BUILD_GPU); [yes, no]"
+	@echo "BUILD_TEST:   $(BUILD_TEST); [yes, no]"
+	@echo "BUILD_PYTHON: $(BUILD_PYTHON); [yes, no]"
 	@echo "================================================================================"
-	@echo "WITH_NIFTI:   $(WITH_NIFTI)"
-	@echo "WITH_PNETCDF: $(WITH_PNETCDF)"
-	@echo "WITH_DOUBLE:  $(WITH_DOUBLE)"
-	@echo "WITH_DEBUG:   $(WITH_DEBUG)"
+	@echo "WITH_NIFTI:   $(WITH_NIFTI); [yes, no]"
+	@echo "WITH_PNETCDF: $(WITH_PNETCDF); [yes, no]"
+	@echo "WITH_DOUBLE:  $(WITH_DOUBLE); [yes, no]"
+	@echo "WITH_DEBUG:   $(WITH_DEBUG); [yes, no]"
+	@echo "WITH_DEVELOP: $(WITH_DEVELOP); [yes, no]"
 	@echo "================================================================================"
 	@echo "BUILD_DIR:    $(BUILD_DIR)"
 	@echo "================================================================================"
@@ -121,7 +116,8 @@ config:
 ifdef VERBOSE
 	@echo "internal build options"
 	@echo "================================================================================"
-	@echo "BUILD_SHARED:  $(BUILD_SHARED)"
+	@echo "BUILD_SHARED:  $(BUILD_SHARED); [yes, no]"
+	@echo "BUILD_TARGET:  $(BUILD_TARGET); [POWER9, X86]"
 	@echo "================================================================================"
 	@echo "MPI_DIR:       $(MPI_DIR)"
 	@echo "CUDA_DIR:      $(CUDA_DIR)"
@@ -131,6 +127,9 @@ ifdef VERBOSE
 	@echo "PNETCDF_DIR:   $(PNETCDF_DIR)"
 	@echo "PYTHON_DIR:    $(PYTHON_DIR)"
 	@echo "================================================================================"
+	@echo "GPU_VERSION:   $(GPU_VERSION)"
+	@echo "CPP_VERSION:   $(CPP_VERSION)"
+	@echo "================================================================================"
 endif
 ifdef VVERBOSE
 	@echo "APP_DIR:      $(APP_DIR)"
@@ -138,6 +137,10 @@ ifdef VVERBOSE
 	@echo "OBJ_DIR:      $(OBJ_DIR)"
 	@echo "LIB_DIR:      $(LIB_DIR)"
 	@echo "EXSRC_DIR:    $(EXSRC_DIR)"
+	@echo "================================================================================"
+	@echo "CXX_FLAGS:    $(CXX_FLAGS)"
+	@echo "NVCC_FLAGS:   $(NVCC_FLAGS)"
+	@echo "LD_FLAGS:     $(LD_FLAGS)"
 	@echo "================================================================================"
 endif
 
@@ -149,5 +152,7 @@ clean:
 	$(RM) -r $(BUILD_DIR)
 	$(RM) -r $(OBJ_DIR)
 	$(RM) *~ */*~
+	$(RM) make.cache
+	@echo "================================================================================"
 
 .PHONY: config clean

@@ -383,9 +383,6 @@ PetscErrorCode CLAIREInterface::SetCellDensity(Vec mC) {
  *******************************************************************/
 PetscErrorCode CLAIREInterface::GetFinalState(Vec m1) {
     PetscErrorCode ierr = 0;
-    Vec m = NULL;
-    IntType nl, nc, nt;
-    ScalarType *p_m = NULL, *p_m1 = NULL;
     PetscFunctionBegin;
 
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -1912,7 +1909,6 @@ PetscErrorCode CLAIREInterface::RunPostProcessing() {
  ********************************************************************/
 PetscErrorCode CLAIREInterface::SolveForwardProblem() {
     PetscErrorCode ierr = 0;
-    IntType nc;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);

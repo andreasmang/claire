@@ -118,7 +118,6 @@ int main(int argc, char **argv) {
  *******************************************************************/
 PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m) {
     PetscErrorCode ierr = 0;
-    IntType nc;
     std::stringstream ss;
     std::vector <std::string> filename;
 
@@ -137,7 +136,6 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m)
         ierr = reg::DbgMsg(ss.str()); CHKERRQ(ierr);
     }
     if (!regopt->m_FileNames.ivec.empty()) {
-        nc = regopt->m_Domain.nc;
         ierr = rw->ReadT(&m, regopt->m_FileNames.ivec); CHKERRQ(ierr);
         if (!regopt->m_SetupDone) {
             ierr = regopt->DoSetup(); CHKERRQ(ierr);
@@ -156,7 +154,6 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, Vec& m)
 PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::VecField*&v) {
     PetscErrorCode ierr = 0;
     std::vector <std::string> filename;
-    IntType nc;
     Vec vxi = NULL;
 
     PetscFunctionBegin;
@@ -165,7 +162,6 @@ PetscErrorCode ReadData(reg::RegToolsOpt* regopt, reg::ReadWriteReg* rw, reg::Ve
         && !regopt->m_FileNames.iv2.empty()
         && !regopt->m_FileNames.iv3.empty() ) {
         
-        nc = regopt->m_Domain.nc;
         // read velocity components
         filename.push_back(regopt->m_FileNames.iv1);
         ierr = rw->Read(&vxi, regopt->m_FileNames.iv1); CHKERRQ(ierr);
@@ -323,7 +319,7 @@ PetscErrorCode TransportProbabilityMaps(reg::RegToolsOpt* regopt) {
     reg::ReadWriteReg* readwrite = NULL;
     reg::CLAIREInterface* registration = NULL;
     reg::Preprocessing* preproc = NULL;
-    IntType nl, ng, nc;
+    IntType nc;
     PetscFunctionBegin;
 
     regopt->Enter(__func__);
@@ -352,8 +348,6 @@ PetscErrorCode TransportProbabilityMaps(reg::RegToolsOpt* regopt) {
     }
 
     // get number of grid points and components
-    nl = regopt->m_Domain.nl;
-    ng = regopt->m_Domain.ng;
     nc = regopt->m_Domain.nc;
 
     // allocate images for  solution of transport problem

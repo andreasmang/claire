@@ -611,7 +611,6 @@ PetscErrorCode OptimizationMonitor(Tao tao, void* ptr) {
 PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     PetscErrorCode ierr = 0;
     std::string msg;
-    IntType nl, ng;
     ScalarType J, step;
     TaoLineSearchConvergedReason flag;
     OptimizationProblem* optprob = NULL;
@@ -623,12 +622,7 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     optprob = reinterpret_cast<OptimizationProblem*>(ptr);
     ierr = Assert(optprob != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nl = optprob->GetOptions()->m_Domain.nl;
-    ng = optprob->GetOptions()->m_Domain.ng;
-
     ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
-    //ierr = VecCreate(x, nl, ng); CHKERRQ(ierr);
-    //ierr = VecCreate(g, 3*nl, 3*ng); CHKERRQ(ierr);
     ierr = TaoLineSearchGetSolution(ls, 0, &J, 0, &step, &flag); CHKERRQ(ierr);
 
     switch(flag) {
@@ -698,9 +692,6 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
             break;
         }
     }
-
-    //if (x != NULL) {ierr = VecDestroy(&x); CHKERRQ(ierr); x = NULL;}
-    //if (g != NULL) {ierr = VecDestroy(&g); CHKERRQ(ierr); g = NULL;}
 
     PetscFunctionReturn(ierr);
 }

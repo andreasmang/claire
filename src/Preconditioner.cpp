@@ -380,7 +380,7 @@ PetscErrorCode Preconditioner::DoSetup() {
  *******************************************************************/
 PetscErrorCode Preconditioner::SetupCoarseGrid() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc, nlc, ngc, nl, ng, nxc[3], nx[3];
+    IntType nt, nc, nlc, ngc, nxc[3], nx[3];
     ScalarType scale, value;
     std::stringstream ss;
     PetscFunctionBegin;
@@ -455,9 +455,6 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
     } else {
         ierr = ThrowError("registration model not defined"); CHKERRQ(ierr);
     }
-
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     nlc = this->m_CoarseGrid->nl();
     ngc = this->m_CoarseGrid->ng();

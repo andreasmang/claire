@@ -80,7 +80,6 @@ PetscErrorCode CLAIRE::Initialize() {
  *******************************************************************/
 PetscErrorCode CLAIRE::ClearMemory(void) {
     PetscErrorCode ierr = 0;
-    double local_runtime, global_runtime;
     PetscFunctionBegin;
     
 #ifdef ZEITGEIST
@@ -89,7 +88,8 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
       Msg("ZeitGeist:");
       for (auto zg : ZeitGeist::zgMap()) {
         char txt[120];
-        local_runtime = zg.second.Total_s();
+        double global_runtime;
+        double local_runtime = zg.second.Total_s();
         MPI_Reduce(&local_runtime, &global_runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
         sprintf(txt, "  %-60s: %5lix, %0.10lf",zg.first.c_str(), zg.second.Count(), global_runtime);
         Msg(txt);
@@ -143,15 +143,9 @@ PetscErrorCode CLAIRE::ClearVariables(void) {
  *******************************************************************/
 PetscErrorCode CLAIRE::InitializeSolver(void) {
     PetscErrorCode ierr = 0;
-    IntType nt, nl, nc, ng;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, true); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_AdjointVariable, this->m_Opt, true, this->m_Opt->m_OptPara.method == FULLNEWTON); CHKERRQ(ierr);
@@ -335,8 +329,6 @@ PetscErrorCode CLAIRE::InitializeOptimization() {
  *******************************************************************/
 PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_m0 = NULL, *p_m = NULL;
-    IntType nt, nl, nc, ng;
 
     PetscFunctionBegin;
 
@@ -344,11 +336,6 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
 
     ierr = Assert(m0 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-    
     // allocate state variable
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, true, this->m_Opt->m_RegFlags.runinversion); CHKERRQ(ierr);
 
@@ -366,9 +353,6 @@ PetscErrorCode CLAIRE::SetInitialState(Vec m0) {
  *******************************************************************/
 PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_m1 = NULL, *p_m = NULL;
-    IntType nt, nl, nc;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -376,9 +360,7 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    IntType nt = this->m_Opt->m_Domain.nt;
 
     if (!this->m_Opt->m_RegFlags.runinversion) {
         nt = 0; // we did not store the time history
@@ -399,8 +381,6 @@ PetscErrorCode CLAIRE::GetFinalState(Vec m1) {
  *******************************************************************/
 PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_l1 = NULL, *p_l = NULL;
-    IntType nt, nl, ng, nc;
 
     PetscFunctionBegin;
 
@@ -409,10 +389,7 @@ PetscErrorCode CLAIRE::SetFinalAdjoint(Vec l1) {
     ierr = Assert(l1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
+    IntType nt = this->m_Opt->m_Domain.nt;
 
     // we do not store the time history for a gauss-newton approximation
     if (this->m_Opt->m_OptPara.method == GAUSSNEWTON) {
@@ -478,8 +455,6 @@ PetscErrorCode CLAIRE::SolveForwardProblem(Vec m1, Vec m0) {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_m = NULL, *p_m1 = NULL, *p_l = NULL, *p_l0 = NULL;
-    IntType nt, nl, nc, ng;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -488,10 +463,7 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
 
     ierr = Assert(m1 != NULL, "null pointer"); CHKERRQ(ierr);
 
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
+    IntType nt = this->m_Opt->m_Domain.nt;
 
     // allocate state variable
     ierr = AllocateOnce(this->m_StateVariable, this->m_Opt, 0.0, true, true); CHKERRQ(ierr);
@@ -517,8 +489,6 @@ PetscErrorCode CLAIRE::SolveAdjointProblem(Vec l0, Vec m1) {
  *******************************************************************/
 PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -528,12 +498,6 @@ PetscErrorCode CLAIRE::SetStateVariable(Vec m) {
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg2("setting state variable"); CHKERRQ(ierr);
     }
-
-    // get sizes
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
@@ -582,19 +546,11 @@ PetscErrorCode CLAIRE::GetStateVariable(Vec& m) {
  *******************************************************************/
 PetscErrorCode CLAIRE::SetAdjointVariable(Vec lambda) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt;
-
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(lambda != NULL, "null pointer"); CHKERRQ(ierr);
-
-    // get sizes
-    nc = this->m_Opt->m_Domain.nc;
-    nt = this->m_Opt->m_Domain.nt;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     // we have to allocate the variable, because we delete it
     // at the end once we're done; since it comes from external
@@ -1136,15 +1092,11 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
     
-    ScalarType normref, cg_a, cg_b, cg_r, cg_p, tmp, norm_p;
+    ScalarType normref, cg_a, cg_b, cg_r, cg_p;
     
     //if (twolevel) {
     //  ierr = this->m_WorkVecField3->SetValue(0); CHKERRQ(ierr);
     //}
-    
-    IntType *nx_f, *nx_c;
-    nx_f = this->m_Opt->m_FFT.nx;
-    nx_c = this->m_Opt->m_FFT_coarse.nx;
     
     if (first) {
       if (this->m_GradientState) {
@@ -1252,23 +1204,23 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     int mg = (pre?0:1);
     while (mg < (post?3:(coarse?2:1))) { // 0:pre 1:coarse 2:post
-      ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+      ierr = vecX->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+      ierr = vecM->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
       ierr = kernel.gMgMT(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+      ierr = vecM->RestoreArrays(); CHKERRQ(ierr);
+      ierr = vecX->RestoreArrays(); CHKERRQ(ierr);
       
-      ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
+      ierr = diff->InvRegLerayOp(vecM, vecM, betav, betaw, beta); CHKERRQ(ierr);
       
-      ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+      ierr = vecX->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+      ierr = vecM->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+      ierr = vecR->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
+      ierr = vecP->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
       ierr = kernel.res(cg_r);
-      ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
-      ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+      ierr = vecX->RestoreArrays(); CHKERRQ(ierr);
+      ierr = vecM->RestoreArrays(); CHKERRQ(ierr);
+      ierr = vecR->RestoreArrays(); CHKERRQ(ierr);
+      ierr = vecP->RestoreArrays(); CHKERRQ(ierr);
       
       rval = MPI_Allreduce(MPI_IN_PLACE, &cg_r, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
       ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1283,33 +1235,33 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       }
       int i;
       for (i = 0; i<innerloop; ++i) {
-        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+        ierr = vecP->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+        ierr = vecM->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
         ierr = kernel.gMgMT(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecM->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecP->RestoreArrays(); CHKERRQ(ierr);
         
-        ierr = diff->InvRegLerayOp(this->m_WorkVecField2, this->m_WorkVecField2, betav, betaw, beta); CHKERRQ(ierr);
+        ierr = diff->InvRegLerayOp(vecM, vecM, betav, betaw, beta); CHKERRQ(ierr);
         
-        ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+        ierr = vecM->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+        ierr = vecP->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
         ierr = kernel.pTAp(cg_p);
-        ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecM->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecP->RestoreArrays(); CHKERRQ(ierr);
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_p, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
         
         cg_a = cg_r/cg_p;
-        ierr = this->m_WorkVecField1->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField2->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+        ierr = vecX->GetArraysReadWrite(kernel.pVhat); CHKERRQ(ierr);
+        ierr = vecM->GetArraysReadWrite(kernel.pM); CHKERRQ(ierr);
+        ierr = vecR->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
+        ierr = vecP->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
         ierr = kernel.CGres(cg_a);
-        ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecX->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecM->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecR->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecP->RestoreArrays(); CHKERRQ(ierr);
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_a, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1321,11 +1273,11 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         }
         cg_b = cg_a/cg_r;
         cg_r = cg_a;
-        ierr = this->m_WorkVecField4->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
+        ierr = vecR->GetArraysReadWrite(kernel.pRes); CHKERRQ(ierr);
+        ierr = vecP->GetArraysReadWrite(kernel.pP); CHKERRQ(ierr);
         ierr = kernel.CGp(cg_b);
-        ierr = this->m_WorkVecField4->RestoreArrays(); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecR->RestoreArrays(); CHKERRQ(ierr);
+        ierr = vecP->RestoreArrays(); CHKERRQ(ierr);
         
         rval = MPI_Allreduce(MPI_IN_PLACE, &cg_b, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
         ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
@@ -1350,21 +1302,21 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         if (sqrt(cg_r) < this->m_Opt->m_KrylovMethod.pctolint[0]*this->m_Opt->m_KrylovMethod.reltol*normref) {
           mg+=2;
         } else {
-          //ierr = preproc->Restrict(this->m_WorkVecField1, this->m_WorkVecField1, nx_c, nx_f); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
+          //ierr = preproc->Restrict(vecX, vecX, nx_c, nx_f); CHKERRQ(ierr);
+          ierr = vecX->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+          ierr = vecX->GetArraysReadWrite(ovec); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
+          ierr = vecX->RestoreArrays(); CHKERRQ(ierr);
           
-          //ierr = preproc->Restrict(this->m_WorkVecField4, this->m_WorkVecField3, nx_c, nx_f); CHKERRQ(ierr);
+          //ierr = preproc->Restrict(vecR, vecP, nx_c, nx_f); CHKERRQ(ierr);
           ierr = this->m_WorkVecField5->GetArraysReadWrite(pvec); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField4->GetArraysReadWrite(ovec); CHKERRQ(ierr);
+          ierr = vecR->GetArraysReadWrite(ovec); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
           ierr = diff->Restrict(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-          ierr = this->m_WorkVecField4->RestoreArrays();
+          ierr = vecR->RestoreArrays();
           ierr = this->m_WorkVecField5->RestoreArrays(); CHKERRQ(ierr);
           
           ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
@@ -1380,20 +1332,20 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ierr = diff->SetFFT(&this->m_Opt->m_FFT); CHKERRQ(ierr);
       
         if (post) {
-          ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField5); CHKERRQ(ierr);
+          ierr = vecR->Copy(this->m_WorkVecField5); CHKERRQ(ierr);
         }
         
-        //ierr = preproc->Prolong(this->m_WorkVecField1, this->m_WorkVecField1, nx_f, nx_c); CHKERRQ(ierr);
-        /*ierr = this->m_WorkVecField1->GetArraysReadWrite(pvec); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->GetArraysReadWrite(ovec); CHKERRQ(ierr);
+        //ierr = preproc->Prolong(vecX, vecX, nx_f, nx_c); CHKERRQ(ierr);
+        /*ierr = vecX->GetArraysReadWrite(pvec); CHKERRQ(ierr);
+        ierr = vecX->GetArraysReadWrite(ovec); CHKERRQ(ierr);
         ierr = diff->ProlongMerge(ovec[0], pvec[0], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->ProlongMerge(ovec[1], pvec[1], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         ierr = diff->ProlongMerge(ovec[2], pvec[2], &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
-        ierr = this->m_WorkVecField1->RestoreArrays();*/
+        ierr = vecX->RestoreArrays();*/
         
-        ierr = diff->ProlongH0(this->m_WorkVecField1, this->m_WorkVecField1, &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
+        ierr = diff->ProlongH0(vecX, vecX, &this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
         
-        //ierr = this->m_WorkVecField4->Copy(this->m_WorkVecField3); CHKERRQ(ierr);
+        //ierr = vecR->Copy(vecP); CHKERRQ(ierr);
         
         ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);
         ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
@@ -1709,18 +1661,12 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
  *******************************************************************/
 PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
     PetscErrorCode ierr = 0;
-    IntType nt, nl, nc, ng;
     std::string ext;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
     ierr = Assert(this->m_ReadWrite != NULL, "null pointer"); CHKERRQ(ierr);
-
-    nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     ext = this->m_Opt->m_FileNames.extension;
 
@@ -1779,7 +1725,7 @@ PetscErrorCode CLAIRE::ComputeInitialCondition(Vec m, Vec lambda) {
  *******************************************************************/
 PetscErrorCode CLAIRE::StoreStateVariable() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt;
+    IntType nl, nc, nt;
     ScalarType *p_m = NULL, *p_mj = NULL;
     std::stringstream ss;
     std::string ext;
@@ -1793,7 +1739,6 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
     ext = this->m_Opt->m_FileNames.extension;
@@ -1845,8 +1790,7 @@ PetscErrorCode CLAIRE::StoreStateVariable() {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveStateEquation() {
     PetscErrorCode ierr = 0;
-    IntType nl, nc, nt;
-    ScalarType *p_m = NULL;
+    IntType nc, nt;
     std::stringstream ss;
     std::string ext;
     PetscFunctionBegin;
@@ -1874,7 +1818,6 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
     ierr = Assert(nt > 0, "nt <= 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -1991,9 +1934,7 @@ PetscErrorCode CLAIRE::SolveStateEquation() {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveAdjointEquation() {
     PetscErrorCode ierr = 0;
-    IntType nl, nc, ng, nt;
-    ScalarType *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
-               *p_b1 = NULL, *p_b2 = NULL, *p_b3 = NULL, *p_m = NULL, *p_l = NULL;
+    IntType nc, nt;
     ScalarType hd;
     std::stringstream ss;
 
@@ -2012,8 +1953,6 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
     nt = this->m_Opt->m_Domain.nt;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
     nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     hd  = this->m_Opt->GetLebesgueMeasure();
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -2092,11 +2031,12 @@ PetscErrorCode CLAIRE::SolveAdjointEquation() {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     PetscErrorCode ierr = 0;
-    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_divv = NULL, *p_divvx = NULL,
-                *p_m = NULL, *p_mx = NULL;
     ScalarType mx, rhs0, rhs1, ht, hthalf;
-    IntType nl, ng, nc, nt, l, lnext;
+    ScalarType *p_m = nullptr;
+    ScalarType *p_divv = nullptr;
+    ScalarType *p_divvx = nullptr;
+    ScalarType *p_mx = nullptr;
+    IntType nl, nc, nt, l, lnext;
     bool store;
 
     PetscFunctionBegin;
@@ -2111,7 +2051,6 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -2195,7 +2134,7 @@ PetscErrorCode CLAIRE::SolveContinuityEquationSL() {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nt;
+    IntType nc, nt;
     std::stringstream ss;
 
     PetscFunctionBegin;
@@ -2213,8 +2152,6 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_Verbosity > 2) {
@@ -2281,10 +2218,7 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
  *******************************************************************/
 PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_ltilde = NULL, *p_m = NULL,
-               *p_gradm1 = NULL, *p_gradm2 = NULL, *p_gradm3 = NULL,
-               *p_btilde1 = NULL, *p_btilde2 = NULL, *p_btilde3 = NULL;
-    IntType nl, ng, nc, nt;
+    IntType nc, nt;
     ScalarType hd;
     std::stringstream ss;
 
@@ -2302,8 +2236,6 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     hd  = this->m_Opt->GetLebesgueMeasure();
     ierr = Assert(nt > 0, "nt < 0"); CHKERRQ(ierr);
 
@@ -2381,7 +2313,7 @@ PetscErrorCode CLAIRE::ApplyProjection() {
 PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     PetscErrorCode ierr = 0;
     int rank;
-    IntType nl, ng, nc, nt, iter;
+    IntType nl, nc, nt, iter;
     std::string filename, ext;
     std::stringstream ss;
     std::ofstream logwriter;
@@ -2398,7 +2330,6 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     // parse extension
     ext = this->m_Opt->m_FileNames.extension;
@@ -2520,7 +2451,7 @@ PetscErrorCode CLAIRE::FinalizeIteration(Vec v) {
 PetscErrorCode CLAIRE::Finalize(VecField* v) {
     PetscErrorCode ierr = 0;
     std::string filename, fn, ext;
-    IntType nl, ng, nc, nt;
+    IntType nl, nc, nt;
     int rank, nproc;
     std::ofstream logwriter;
     std::stringstream ss, ssnum;
@@ -2541,7 +2472,6 @@ PetscErrorCode CLAIRE::Finalize(VecField* v) {
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_Opt->m_Verbosity > 1) {
         ierr = DbgMsg1("finalizing registration"); CHKERRQ(ierr);

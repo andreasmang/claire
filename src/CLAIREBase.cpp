@@ -341,41 +341,7 @@ PetscErrorCode CLAIREBase::ClearMemory() {
  *******************************************************************/
 PetscErrorCode CLAIREBase::SetupSpectralData() {
     PetscErrorCode ierr = 0;
-    IntType nalloc;
     PetscFunctionBegin;
-
-    nalloc = this->m_Opt->m_FFT.nalloc;
-    
-    //ierr = AllocateMemoryOnce(this->m_x1hat, nalloc); CHKERRQ(ierr);
-    //ierr = AllocateMemoryOnce(this->m_x2hat, nalloc); CHKERRQ(ierr);
-    //ierr = AllocateMemoryOnce(this->m_x3hat, nalloc); CHKERRQ(ierr);
-    
-    // TODO: possible to allocate spectral data twice (once here and once in Regularization)
-    //ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
-    //ierr = Assert(this->m_Differentiation->m_Type == Differentiation::Spectral, "no spectral differentiation"); CHKERRQ(ierr);
-    //ierr = this->m_Differentiation->SetupData(); CHKERRQ(ierr);
-    
-    /*if (this->m_x1hat == NULL) {
-#ifndef REG_HAS_CUDA
-        this->m_x1hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-#else
-        cudaMalloc(reinterpret_cast<void**>(&this->m_x1hat), nalloc);
-#endif
-    }
-    if (this->m_x2hat == NULL) {
-#ifndef REG_HAS_CUDA
-        this->m_x2hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-#else
-        cudaMalloc(reinterpret_cast<void**>(&this->m_x2hat), nalloc);
-#endif
-    }
-    if (this->m_x3hat == NULL) {
-#ifndef REG_HAS_CUDA
-        this->m_x3hat = reinterpret_cast<ComplexType*>(accfft_alloc(nalloc));
-#else
-        cudaMalloc(reinterpret_cast<void**>(&this->m_x3hat), nalloc);
-#endif
-    }*/
 
     PetscFunctionReturn(ierr);
 }
@@ -962,14 +928,10 @@ PetscErrorCode CLAIREBase::SetupRegularization() {
  *******************************************************************/
 PetscErrorCode CLAIREBase::SetupTransportProblem() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
     
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
-
     // delete regularization if already allocated
     // (should never happen)
     if (this->m_TransportProblem != NULL) {
@@ -1050,13 +1012,9 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
  *******************************************************************/
 PetscErrorCode CLAIREBase::SetupDeformationField() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
 
     ierr = AllocateOnce(this->m_DeformationFields, this->m_Opt); CHKERRQ(ierr);
     
@@ -1248,7 +1206,7 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
  *******************************************************************/
 PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT, VecField* v) {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nc, nx[3], i;
+    IntType nx[3], i;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_mt = NULL;
     ScalarType hx[3], xc1, xc2, xc3, x, sigma, maxval, minval, nvx1, nvx2, nvx3;
     ScalarType x1, x2, x3, v0 = 0.5;
@@ -1259,13 +1217,14 @@ PetscErrorCode CLAIREBase::SetupSyntheticProb(Vec &mR, Vec &mT, VecField* v) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    IntType nl = this->m_Opt->m_Domain.nl;
+    IntType nc = this->m_Opt->m_Domain.nc;
+    IntType ng = this->m_Opt->m_Domain.ng;
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = DbgMsg2("setting up synthetic problem"); CHKERRQ(ierr);
     }
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     
     for (int i = 0; i < 3; ++i) {
         hx[i] = this->m_Opt->m_Domain.hx[i];
@@ -1535,14 +1494,12 @@ PetscErrorCode CLAIREBase::ComputeCFLCondition() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType hx[3], cflnum, vmax, vmaxscaled;
-    IntType nl, ng, nt, ntcfl;
+    IntType nt, ntcfl;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
 
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     nt = this->m_Opt->m_Domain.nt;
     
     

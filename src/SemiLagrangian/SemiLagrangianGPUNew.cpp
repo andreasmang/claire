@@ -68,7 +68,6 @@ SemiLagrangianGPUNew::~SemiLagrangianGPUNew() {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Initialize() { 
     PetscErrorCode ierr = 0;
-    IntType isize[3];
     PetscFunctionBegin;
     
     this->m_Xstate = nullptr;
@@ -94,10 +93,6 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
 
     if (this->m_Opt->rank_cnt > 1) {
       IntType nl = this->m_Opt->m_Domain.nl;
-      IntType ng = this->m_Opt->m_Domain.ng;
-      for (int i=0; i<3; i++) {
-        isize[i] = this->m_Opt->m_Domain.isize[i];
-      }
       
       this->nghost = this->m_Opt->m_PDESolver.iporder;
       ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt, this->nghost); CHKERRQ(ierr);
@@ -234,12 +229,9 @@ PetscErrorCode SemiLagrangianGPUNew::SetWorkVecField(VecField* x) {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectory(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
-    IntType nl;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    nl = this->m_Opt->m_Domain.nl;
 
     // compute trajectory by calling a CUDA kernel
     if (this->m_Opt->m_PDESolver.rkorder == 2) {
@@ -263,10 +255,8 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
     PetscErrorCode ierr;
     ScalarType *p_x1=nullptr,*p_x2=nullptr,*p_x3=nullptr;
     IntType isize[3],istart[3];
-    IntType nx[3];
     
     ScalarType hx[3];
-    IntType l,i1,i2,i3;
     PetscFunctionBegin;
 
 
@@ -276,7 +266,6 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeInitialTrajectory() {
       } else {
         hx[i]     = 1./static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i]);
       }
-        nx[i]     = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
         isize[i]  = this->m_Opt->m_Domain.isize[i];
         istart[i] = this->m_Opt->m_Domain.istart[i];
     }
@@ -348,16 +337,8 @@ PetscErrorCode SemiLagrangianGPUNew::SetInitialTrajectory(const ScalarType* pX) 
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectoryRK2(VecField* v, std::string flag) {
     PetscErrorCode ierr = 0;
-    ScalarType ht, hthalf, hx[3], invhx[3], scale = 0.0;
-    IntType isize[3], istart[3], nx[3];
     std::stringstream ss;
-    ScalarType* xq = nullptr;
-    IntType nl=1, ng=1;
-    const ScalarType *vx, *vy, *vz;
-    double runtime=0;
-    const ScalarType* p;
     VecField *X = nullptr;
-    ScalarType norm;
     
     TrajectoryKernel kernel;
 
@@ -489,8 +470,8 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(Vec* xo, Vec xi, std::string fl
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
-    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], neval;
-    IntType nl, nalloc;
+    int nx[3];
+    IntType nl;
     std::stringstream ss;
     double timers[4] = {0, 0, 0, 0};
     const ScalarType *xq1, *xq2, *xq3;
@@ -504,17 +485,11 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     ierr = Assert(xo != nullptr, "null pointer"); CHKERRQ(ierr);
     
     nl     = this->m_Opt->m_Domain.nl;
-    neval  = static_cast<int>(nl);
 
     for (int i = 0; i < 3; ++i) {
         nx[i]     = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-        isize[i]  = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
     
-    c_dims[0] = this->m_Opt->m_CartGridDims[0];
-    c_dims[1] = this->m_Opt->m_CartGridDims[1];
-
     ZeitGeist_define(SL_INTERPOL);
     ZeitGeist_tick(SL_INTERPOL);
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
@@ -600,10 +575,10 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(VecField* vo, VecField* vi, std
 PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx2, ScalarType* wx3,
                                                  ScalarType* vx1, ScalarType* vx2, ScalarType* vx3, std::string flag) {
     PetscErrorCode ierr = 0;
-    int nx[3], isize_g[3], isize[3], istart_g[3], istart[3], c_dims[2], nghost, order;
+    int nx[3];
     double timers[4] = {0, 0, 0, 0};
     std::stringstream ss;
-    IntType nl, nlghost, g_alloc_max;
+    IntType nl;
     Interp3_Plan_GPU* interp_plan = nullptr;
     const ScalarType *xq1, *xq2, *xq3;
 
@@ -619,18 +594,11 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
     ierr = Assert(wx3 != nullptr, "null pointer"); CHKERRQ(ierr);
 
     nl = this->m_Opt->m_Domain.nl;
-    order = this->m_Opt->m_PDESolver.iporder;
-    nghost = order;
 
     for (int i = 0; i < 3; ++i) {
         nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-        isize[i] = static_cast<int>(this->m_Opt->m_Domain.isize[i]);
-        istart[i] = static_cast<int>(this->m_Opt->m_Domain.istart[i]);
     }
     
-    c_dims[0] = this->m_Opt->m_CartGridDims[0];
-    c_dims[1] = this->m_Opt->m_CartGridDims[1];
-
     ZeitGeist_define(SL_INTERPOL);
     ZeitGeist_tick(SL_INTERPOL);
     ierr = this->m_Opt->StartTimer(IPSELFEXEC); CHKERRQ(ierr);
@@ -704,13 +672,10 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* y2, ScalarType* y3, std::string flag) {
     PetscErrorCode ierr = 0;
-    IntType nl;
     VecField* X = nullptr;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    nl = this->m_Opt->m_Domain.nl;
 
     if (flag.compare("state") == 0) {
         X = this->m_Xstate;
@@ -794,7 +759,7 @@ PetscErrorCode SemiLagrangianGPUNew::CommunicateCoord(std::string flag) {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
-    int nx[3], isize_g[3], istart_g[3], c_dims[2], isize[3], istart[3];
+    int nx[3], c_dims[2], isize[3], istart[3];
     IntType nl;
     double timers[4] = {0,0,0,0};
     ScalarType* p_X[3] = {nullptr, nullptr, nullptr};

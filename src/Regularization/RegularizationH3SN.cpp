@@ -160,7 +160,6 @@ PetscErrorCode RegularizationH3SN::EvaluateGradient(VecField* dvR, VecField* v) 
  *******************************************************************/
 PetscErrorCode RegularizationH3SN::HessianMatVec(VecField* dvvR, VecField* vtilde) {
     PetscErrorCode ierr;
-    ScalarType beta;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);

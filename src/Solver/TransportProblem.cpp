@@ -373,15 +373,9 @@ PetscErrorCode TransportProblem::SetDifferentiation(Differentiation *diff) {
  *******************************************************************/
 PetscErrorCode TransportProblem::SolveForwardProblem() {
     PetscErrorCode ierr = 0;
-    ScalarType *pM = nullptr, *pMnext = nullptr;
-    IntType nc, nl, nt;
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
-    
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    nt = this->m_Opt->m_Domain.nt;
     
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     
@@ -401,15 +395,11 @@ PetscErrorCode TransportProblem::SolveForwardProblem() {
  *******************************************************************/
 PetscErrorCode TransportProblem::SolveInverseProblem() {
     PetscErrorCode ierr = 0;
-    ScalarType *pM = nullptr, *pMnext = nullptr;
-    IntType nc, nl, nt;
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
     
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    nt = this->m_Opt->m_Domain.nt;
+    IntType nt = this->m_Opt->m_Domain.nt;
     
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);
     
@@ -430,16 +420,14 @@ PetscErrorCode TransportProblem::SolveInverseProblem() {
 PetscErrorCode TransportProblem::SolveAdjointProblem() {
     PetscErrorCode ierr = 0;
     const ScalarType *pM = nullptr;
-    IntType nc, nl, nt;
     TransportKernelAdjoint kernel;
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
     
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    nt = this->m_Opt->m_Domain.nt;
-    kernel.nl = nl;
+    IntType nt = this->m_Opt->m_Domain.nt;
+    IntType nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     kernel.scale = 1.0/static_cast<ScalarType>(nc);
     
     ierr = Assert(this->m_TemplateImage != nullptr, "null pointer"); CHKERRQ(ierr);
@@ -492,15 +480,13 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
 PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
     PetscErrorCode ierr = 0;
     const ScalarType *pM = nullptr;
-    IntType nc, nl;
     TransportKernelAdjoint kernel;
     PetscFunctionBegin;
     
     this->m_Opt->Enter(__func__);
     
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
-    kernel.nl = nl;
+    IntType nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     kernel.scale = 1.0/static_cast<ScalarType>(nc);
     
     ierr = Assert(this->m_StateVariable != nullptr, "null pointer"); CHKERRQ(ierr);

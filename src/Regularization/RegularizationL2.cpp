@@ -64,7 +64,6 @@ RegularizationL2::RegularizationL2(RegOpt* opt) : SuperClass(opt) {
 PetscErrorCode RegularizationL2::EvaluateFunctional(ScalarType* R, VecField* v) {
     PetscErrorCode ierr = 0;
     ScalarType beta, ipxi, hd;
-    ScalarType n1, n2, n3;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);

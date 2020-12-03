@@ -78,7 +78,7 @@ PetscErrorCode DistanceMeasureNCC::ClearMemory() {
 PetscErrorCode DistanceMeasureNCC::SetupScale(){
     PetscErrorCode ierr = 0;	
     ScalarType *p_mr = NULL, *p_mt = NULL, *p_w = NULL;
-    IntType nt, nc, nl, l;
+    IntType nc, nl;
     ScalarType norm_l2_loc, norm_mT_loc, norm_mR_loc, inpr_mT_mR_loc, 
 	       norm_l2, norm_mT, norm_mR, inpr_mT_mR, mTi, mRi;
     int rval;
@@ -92,7 +92,6 @@ PetscErrorCode DistanceMeasureNCC::SetupScale(){
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
     nl = this->m_Opt->m_Domain.nl;
     hd  = this->m_Opt->GetLebesgueMeasure();   
@@ -100,7 +99,6 @@ PetscErrorCode DistanceMeasureNCC::SetupScale(){
     ierr = GetRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
     ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
 
-    l = nt*nl*nc;
     norm_l2_loc = 0.0;
     norm_mT_loc = 0.0;
     norm_mR_loc = 0.0;

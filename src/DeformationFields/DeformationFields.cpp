@@ -429,7 +429,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
                 *p_jac = NULL,  *p_rhs0 = NULL;
     ScalarType ht, hthalf, alpha, rhs1;
     std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timer[7] = {0};
     bool inverse;
     PetscFunctionBegin;
 
@@ -508,14 +507,12 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2() {
  *******************************************************************/
 PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng, nt;
+    IntType nl, nt;
     ScalarType *p_vx1 = NULL, *p_vx2 = NULL, *p_vx3 = NULL, *p_phibar = NULL,
                 *p_gphi1 = NULL, *p_gphi2 = NULL, *p_gphi3 = NULL, *p_divv = NULL,
                 *p_phiv1 = NULL, *p_phiv2 = NULL, *p_phiv3 = NULL,
                 *p_phi = NULL,  *p_rhs0 = NULL,  *p_divvphi=NULL;
     ScalarType ht, hthalf, alpha;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
-    double timer[7] = {0};
     bool inverse;
 
     PetscFunctionBegin;
@@ -524,7 +521,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradRK2A() {
 
     nt = this->m_Opt->m_Domain.nt;
     nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -655,7 +651,6 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     IntType nt;
     std::stringstream ss;
     std::string ext;
-    double timer[7] = {0};
     bool inverse;
     DetDefGradKernel kernel;
 
@@ -759,13 +754,10 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
  *******************************************************************/
 PetscErrorCode DeformationFields::ComputeDetDefGradViaDispField() {
     PetscErrorCode ierr = 0;
-    IntType nl, ng;
     ScalarType  *p_u1 = NULL, *p_u2 = NULL, *p_u3 = NULL, *p_phi = NULL,
                 *p_gu11 = NULL, *p_gu12 = NULL, *p_gu13 = NULL,
                 *p_gu21 = NULL, *p_gu22 = NULL, *p_gu23 = NULL,
                 *p_gu31 = NULL, *p_gu32 = NULL, *p_gu33 = NULL;
-    double timer[7] = {0};
-    std::bitset<3>XYZ = 0; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
 
     PetscFunctionBegin;
 
@@ -774,8 +766,7 @@ PetscErrorCode DeformationFields::ComputeDetDefGradViaDispField() {
     ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
-    nl = this->m_Opt->m_Domain.nl;
-    ng = this->m_Opt->m_Domain.ng;
+    IntType nl = this->m_Opt->m_Domain.nl;
 
     ierr = Assert(this->m_WorkScaField1 != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_WorkVecField1 != NULL, "null pointer"); CHKERRQ(ierr);
@@ -969,7 +960,6 @@ PetscErrorCode DeformationFields::ComputeDefGrad(bool write2file) {
  *******************************************************************/
 PetscErrorCode DeformationFields::ComputeDefGradSL() {
     PetscErrorCode ierr = 0;
-    std::bitset<3> XYZ; XYZ[0] = 1; XYZ[1] = 1; XYZ[2] = 1;
     IntType nt, nl;
     ScalarType ht, hthalf;
     ScalarType  *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
@@ -985,7 +975,6 @@ PetscErrorCode DeformationFields::ComputeDefGradSL() {
                 *p_gv11X = NULL, *p_gv12X = NULL, *p_gv13X = NULL,
                 *p_gv21X = NULL, *p_gv22X = NULL, *p_gv23X = NULL,
                 *p_gv31X = NULL, *p_gv32X = NULL, *p_gv33X = NULL;
-    double timer[7] = {0};
     PetscFunctionBegin;
 
     nt = this->m_Opt->m_Domain.nt;
@@ -1484,7 +1473,7 @@ PetscErrorCode DeformationFields::ComputeDeformationMapSLRK2() {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     std::string ext;
-    IntType nl, nt;
+    IntType nt;
     ScalarType ht, hthalf;
     ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
                 *p_y1 = NULL, *p_y2 = NULL, *p_y3 = NULL,
@@ -1514,7 +1503,6 @@ PetscErrorCode DeformationFields::ComputeDeformationMapSLRK2() {
 
 
     nt = this->m_Opt->m_Domain.nt;
-    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 
@@ -1854,14 +1842,10 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldRK2() {
  *******************************************************************/
 PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
     PetscErrorCode ierr = 0;
-    IntType nl, nt;
+    IntType nt;
     ScalarType ht, hthalf;
     std::stringstream ss;
     std::string flag;
-    ScalarType *p_v1 = NULL, *p_v2 = NULL, *p_v3 = NULL,
-                *p_vX1 = NULL, *p_vX2 = NULL, *p_vX3 = NULL,
-                *p_u1 = NULL, *p_u2 = NULL, *p_u3 = NULL,
-                *p_uX1 = NULL, *p_uX2 = NULL, *p_uX3 = NULL;
 
     PetscFunctionBegin;
 
@@ -1907,7 +1891,6 @@ PetscErrorCode DeformationFields::ComputeDisplacementFieldSL() {
     ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, flag); CHKERRQ(ierr);
     
     nt = this->m_Opt->m_Domain.nt;
-    nl = this->m_Opt->m_Domain.nl;
     ht = this->m_Opt->GetTimeStepSize();
     hthalf = 0.5*ht;
 

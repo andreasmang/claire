@@ -471,7 +471,6 @@ template<typename T> void MPIcuFFT<T>::execC2R(void *out, const void *in) {
       std::vector<int> recvcount(pcnt, 0);
       std::vector<int> recvdispl(pcnt, 0);
       for (int p=0; p<pcnt; ++p) { // transpose each (missing) block and send it to respective process
-        size_t oslice = isizex[pidx]*osizez*ostarty[p];
         sendcount[p] = sizeof(C_t)*isizex[p]*osizez*osizey[pidx];
         senddispl[p] = istartx[p]*osizez*osizey[pidx]*sizeof(C_t);
         recvcount[p] = sizeof(C_t)*isizex[pidx]*osizez*osizey[p];
@@ -673,7 +672,6 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
       do {
         MPI_Waitany(irecv.size()-1, recv_req.data(), &i, MPI_STATUSES_IGNORE);
         if (i == MPI_UNDEFINED) break;
-        int p = psend + i;
         size_t sizey = irecv[i+1] - irecv[i];
         for (size_t x=0; x<half_xl; ++x) {
           size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*x;
@@ -775,7 +773,6 @@ template<typename T> void MPIcuFFT<T>::changeSize(void *out, const void *in, MPI
       do {
         MPI_Waitany(irecv.size()-1, recv_req.data(), &i, MPI_STATUSES_IGNORE);
         if (i == MPI_UNDEFINED) break;
-        int p = psend + i;
         size_t sizey = irecv[i+1] - irecv[i];
         for (size_t x=0; x<half_xl; ++x) {
           size_t offset_o = fft_o->osizez*fft_o->osizey[pidx]*x;

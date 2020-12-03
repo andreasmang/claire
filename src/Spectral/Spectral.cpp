@@ -146,7 +146,7 @@ PetscErrorCode Spectral::SetupFFT() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
     
-    int nx[3], nalloc;
+    int nx[3];
     nx[0] = this->m_FFT->nx[0];
     nx[1] = this->m_FFT->nx[1];
     nx[2] = this->m_FFT->nx[2];
@@ -155,13 +155,12 @@ PetscErrorCode Spectral::SetupFFT() {
     {
       bool allocmem = true;
       void *sharedmem_d = nullptr, *sharedmem_h = nullptr;
-      size_t sharedsize_d = 0, sharedsize_h = 0, sharedalloc=0;
+      size_t sharedsize_d = 0, sharedsize_h = 0;
       if (this->m_Opt->m_FFT.fft && this->m_Opt->m_FFT.fft != this && this->m_Opt->m_FFT.fft->m_plan) {
         sharedmem_d = this->m_Opt->m_FFT.fft->m_plan->getWorkAreaDevice();
         sharedmem_h = this->m_Opt->m_FFT.fft->m_plan->getWorkAreaHost();
         sharedsize_d = this->m_Opt->m_FFT.fft->m_plan->getWorkSizeDevice();
         sharedsize_h = this->m_Opt->m_FFT.fft->m_plan->getWorkSizeHost();
-        sharedalloc  = this->m_Opt->m_FFT.fft->m_plan->getDomainSize();
         allocmem = false;
       }
 #ifdef REG_HAS_MPICUDA
