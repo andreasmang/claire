@@ -676,6 +676,10 @@ PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    // Hack for bug related to deformation map computation
+    if (this->m_Xstate == nullptr)
+      ierr = AllocateOnce(this->m_Xstate, this->m_Opt); CHKERRQ(ierr);
 
     if (flag.compare("state") == 0) {
         X = this->m_Xstate;
@@ -684,6 +688,8 @@ PetscErrorCode SemiLagrangianGPUNew::SetQueryPoints(ScalarType* y1, ScalarType* 
     } else {
         ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
     }
+  
+    ierr = Assert(X != nullptr, "nullptr"); CHKERRQ(ierr);
     
     ierr = X->SetComponents(y1, y2, y3); 
     
