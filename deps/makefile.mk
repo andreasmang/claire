@@ -1,4 +1,4 @@
-BUILD_PETSC   = 3.11.4
+BUILD_PETSC   = 3.12.4
 BUILD_NIFTI   = yes
 BUILD_PNETCDF = no
 BUILD_ACCFFT  = no
@@ -6,6 +6,8 @@ BUILD_ACCFFT  = no
 BUILD_GPU     = yes
 BUILD_DEBUG   = no
 BUILD_DOUBLE  = no
+
+WITH_BATCH = no
 
 BUILD_DIR = $(PWD)/lib
 
@@ -33,6 +35,10 @@ PETSC_OPTIONS += --with-cc=$(CC)
 PETSC_OPTIONS += --with-cxx=$(CXX)
 PETSC_OPTIONS += --with-shared=1
 
+ifeq ($(WITH_BATCH), yes)
+	PETSC_OPTIONS += --with-batch=1
+endif
+
 NIFTI_OPTIONS += -DCMAKE_CXX_COMPILER=$(CXX)
 NIFTI_OPTIONS += -DCMAKE_C_COMPILER=$(CC)
 NIFTI_OPTIONS += -Wno-dev
@@ -41,9 +47,9 @@ NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=ON
 ifeq ($(BUILD_GPU), yes)
 	PETSC_ARCH =gpu
 	PETSC_OPTIONS += --with-cuda=1 
-	PETSC_OPTIONS += --download-cusp=yes
+#	PETSC_OPTIONS += --download-cusp=yes
 	PETSC_OPTIONS += --CUDAOPTFLAGS='-O3'
-	PETSC_OPTIONS += --with-cudac=$(NVCC)
+	PETSC_OPTIONS += --with-cudac='$(NVCC) -ccbin=$(CXX)'
 else
 	PETSC_ARCH =cpu
 	PETSC_OPTIONS += --with-cuda=0
@@ -76,9 +82,12 @@ config:
 	@echo "build PETSc:      $(BUILD_PETSC)"
 	@echo "build PETSc:      $(BUILD_NIFTI)"
 	@echo "================================================================================"
-	@echo "build for GPU:    $(BUILD_GPU)"
-	@echo "build with DEBUG: $(BUILD_DEBUG)"
-	@echo "build directory:  $(BUILD_DIR)"
+	@echo "build with DEBUG:        $(BUILD_DEBUG)"
+	@echo "build with DOUBLE:       $(BUILD_DOUBLE)"
+	@echo "build with batch system: $(WITH_BATCH)"
+	@echo "build for GPU:           $(BUILD_GPU)"
+	@echo "build with DEBUG:        $(BUILD_DEBUG)"
+	@echo "build directory:         $(BUILD_DIR)"
 	@echo "================================================================================"
 	@echo "using CC:   $(CC)"
 	@echo "using CXX:  $(CXX)"

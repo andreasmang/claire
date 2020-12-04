@@ -615,8 +615,6 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
     TaoLineSearchConvergedReason flag;
     OptimizationProblem* optprob = NULL;
     TaoLineSearch ls = NULL;
-    IntType nl, ng;
-    Vec x = NULL, g = NULL;
 
     PetscFunctionBegin;
 
@@ -628,6 +626,8 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
 #if PETSC_VERSION_GE(3,12,4)
     ierr = TaoLineSearchGetSolution(ls, 0, &J, 0, &step, &flag); CHKERRQ(ierr);
 #else
+		IntType nl, ng;
+    Vec x = nullptr, g = nullptr;
     if (optprob->GetOptions()->m_Verbosity < 2 && !(optprob->GetOptions()->m_Log.enabled[LOGKSPRES]) ) {
       ierr = TaoLineSearchGetSolution(ls, 0, &J, 0, &step, &flag); CHKERRQ(ierr);
     } else {
