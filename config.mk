@@ -60,36 +60,10 @@ else
 $(error This branch only supports GPU build)
 endif
 
-#ifeq ($(BUILD_GPU), yes)
-#	ifeq ($(WITH_DOUBLE), yes)
-#$(error GPU build only supports single precision)
-#	endif
-#	ifeq($(WITH_DEBUG), yes)
-#		PETSC_ARCH = PETSC_ARCH_CUDA_SINGLE_DBG
-#	else
-#		PETSC_ARCH = PETSC_ARCH_CUDA_SINGLE
-#	endif
-#else
-#	ifeq($(WITH_DOUBLE), yes)
-#		ifeq($(WITH_DEBUG), yes)
-#			PETSC_ARCH = PETSC_ARCH_DBG_DOUBLE
-#		else
-#			PETSC_ARCH = PETSC_ARCH_DOUBLE
-#		endif
-#	else
-#		ifeq($(WITH_DEBUG), yes)
-#			PETSC_ARCH = PETSC_ARCH_DBG_SINGLE
-#		els
-#			PETSC_ARCH = PETSC_ARCH_SINGLE
-#		endif
-#	endif
-#endif
-
 PETSC_DIR ?= ./deps/lib
 INCLUDES += $(PETSC_DIR)/include
-INCLUDES += $(PETSC_DIR)/$(PETSC_ARCH)/include
-LIBRARIES += $(PETSC_DIR)/$(PETSC_ARCH)/lib
-LDFLAGS += -lpetsc -lf2clapack -lf2cblas  -ldl
+LIBRARIES += $(PETSC_DIR)/lib
+LDFLAGS += -lpetsc -lf2clapack -lf2cblas
 
 #python build needs shared library
 PYTHON_DIR = /usr/include/python3.5

@@ -1,10 +1,11 @@
-BUILD_PETSC   = 3.12.4
+BUILD_PETSC   = 3.11.4
 BUILD_NIFTI   = yes
 BUILD_PNETCDF = no
 BUILD_ACCFFT  = no
 
 BUILD_GPU     = yes
 BUILD_DEBUG   = no
+BUILD_DOUBLE  = no
 
 BUILD_DIR = $(PWD)/lib
 
@@ -38,15 +39,24 @@ NIFTI_OPTIONS += -Wno-dev
 NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=ON
 
 ifeq ($(BUILD_GPU), yes)
+	PETSC_ARCH =gpu
 	PETSC_OPTIONS += --with-cuda=1 
 	PETSC_OPTIONS += --download-cusp=yes
 	PETSC_OPTIONS += --CUDAOPTFLAGS='-O3'
 	PETSC_OPTIONS += --with-cudac=$(NVCC)
 else
+	PETSC_ARCH =cpu
 	PETSC_OPTIONS += --with-cuda=0
 endif
 
+ifeq ($(BUILD_DOUBLE), yes)
+	PETSC_ARCH :=$(PETSC_ARCH)_double
+else
+	PETSC_ARCH :=$(PETSC_ARCH)_single
+endif
+
 ifeq ($(BUILD_DEBUG), yes)
+	PETSC_ARCH :=$(PETSC_ARCH)_debug
 	PETSC_OPTIONS += --with-debugging=1
 else
 	PETSC_OPTIONS += --with-debugging=0
@@ -85,10 +95,10 @@ petsc: petsc-lite-$(BUILD_PETSC).tar.gz
 	mkdir -p $(BUILD_DIR)/src/petsc
 	tar -xzf petsc-lite-$(BUILD_PETSC).tar.gz -C $(BUILD_DIR)/src/petsc --strip-components=1
 	@echo "================================================================================"
-	cd $(BUILD_DIR)/src/petsc; ./configure --prefix=$(BUILD_DIR) $(PETSC_OPTIONS)
+	cd $(BUILD_DIR)/src/petsc; ./configure --prefix=$(BUILD_DIR) $(PETSC_OPTIONS) PETSC_DIR=$(BUILD_DIR)/src/petsc PETSC_ARCH=$(PETSC_ARCH)
 	@echo "================================================================================"
-	cd $(BUILD_DIR)/src/petsc; make
-	cd $(BUILD_DIR)/src/petsc; make install
+	cd $(BUILD_DIR)/src/petsc; make PETSC_DIR=$(BUILD_DIR)/src/petsc PETSC_ARCH=$(PETSC_ARCH) all
+	cd $(BUILD_DIR)/src/petsc; make PETSC_DIR=$(BUILD_DIR)/src/petsc PETSC_ARCH=$(PETSC_ARCH) install
 	@echo "================================================================================"
 
 petsc-lite-$(BUILD_PETSC).tar.gz:
