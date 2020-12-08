@@ -71,6 +71,9 @@ endif
 BASE_DIR=$(PWD)
 
 all: config $(TARGETS)
+	@echo "export LD_LIBRARY_PATH=$(BUILD_DIR)/lib:$LD_LIBRARY_PATH" > env_source.sh
+	@echo "export PETSC_DIR=$(BUILD_DIR)" >> env_source.sh
+	@echo "export NIFTI_DIR=$(BUILD_DIR)" >> env_source.sh
 	@echo "================================================================================"
 	@echo "done"
 	@echo "================================================================================"
