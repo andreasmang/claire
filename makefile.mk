@@ -20,8 +20,8 @@ WITH_DEBUG = no
 WITH_DEVELOP = no
 
 BUILD_TARGET = X86
-GPU_VERSION = 35
-CPP_VERSION = c++14
+GPU_VERSION = 
+CPP_VERSION = c++11
 
 include config.mk
 include filelist.mk

@@ -232,6 +232,22 @@ PetscErrorCode SemiLagrangianGPUNew::ComputeTrajectory(VecField* v, std::string 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+      ScalarType tmp, max;
+      VecNorm(v->m_X1, NORM_INFINITY, &max);
+      VecNorm(v->m_X2, NORM_INFINITY, &tmp);
+      max = std::max(max, tmp);
+      VecNorm(v->m_X3, NORM_INFINITY, &tmp);
+      max = std::max(max, tmp);
+      
+      tmp = std::min(this->m_Opt->m_Domain.hx[0], this->m_Opt->m_Domain.hx[1]);
+      tmp = std::min(tmp, this->m_Opt->m_Domain.hx[2]);
+      
+      char str[200];
+      sprintf(str, "CFL %s nt=%i vmax=%e", flag.c_str(), static_cast<int>(max/tmp), max);
+      DbgMsg2(str);
+    }
 
     // compute trajectory by calling a CUDA kernel
     if (this->m_Opt->m_PDESolver.rkorder == 2) {
