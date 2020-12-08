@@ -46,6 +46,7 @@ The compiler needs C++11 support.
 * CUDA >= 11.0 is only supported with PETSc >= 3.14.
 * Kepler GPUs work with PETSc 3.12.4  (others not tested)
 * Compiling PETSc with CUDA support on cluster login nodes without GPUs might fail
+* PNETCDF is currently not tested for GPUs
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.

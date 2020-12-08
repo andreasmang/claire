@@ -8,31 +8,15 @@ Here, we only provide a minimal installation guide. We provide scripts to downlo
 
 ## One Shot <a name="oneshot"></a>
 
-
 ```bash
 cd deps
-./get_libs.sh
-./build_libs.sh --build
+make
 cd ..
 make -j
 ./bin/claire -synthetic 0
 ```
 
-For GPU build on TACC's Longhorn system (need to be on the [gpu](https://github.com/andreasmang/claire/tree/gpu) branch of CLAIRE)
-
-```bash
-cd deps
-./get_libs.sh
-./build_libs_default_gpu_longhorn.sh
-cd ..
-make -f makefile_p9 -j
-mpirun -np 1 ./bindev/claire -synthetic 0
-```
-
-
-
 ## Step by Step  <a name="stepbystep"></a>
-
 
 ### Step 1) Installing Dependencies
 
@@ -40,17 +24,16 @@ To install the dependencies go to the top level directory of CLAIRE in your comm
 
 ```bash
 cd deps
-./get_libs.sh
-./build_libs.sh --build
+make
 ```
 
-The first bash script downloads the libraries you need to install. The second bash script compiles these libraries using default settings. To add these dependencies to your environment type the following into your command line and press return:
+This makefile downloads and compiles the dependencies for CLAIRE. To add these dependencies to your environment type the following into your command line and press return:
 
 ```bash
-source environment_vars.sh
+source env_source.sh
 ```
 
-This step needs to be done every time you log out of your computer and would like to recompile CLAIRE. As an alternative, you can add the content of `environment_vars.sh` to your `.bashrc` or `bash_profile`.
+The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
 
 ### Step 2) Compiling CLAIRE
 
