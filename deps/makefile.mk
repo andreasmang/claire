@@ -71,14 +71,12 @@ endif
 BASE_DIR=$(PWD)
 
 all: config $(TARGETS)
-	@echo "export LD_LIBRARY_PATH=$(BUILD_DIR)/lib:$$LD_LIBRARY_PATH" > env_source.sh
-	@echo "export PETSC_DIR=$(BUILD_DIR)" >> env_source.sh
-	@echo "export NIFTI_DIR=$(BUILD_DIR)" >> env_source.sh
 	@echo "================================================================================"
 	@echo "done"
 	@echo "================================================================================"
 
 config:
+	@echo "export LD_LIBRARY_PATH=$(BUILD_DIR)/lib:\$$LD_LIBRARY_PATH" > env_source.sh
 	@echo "================================================================================"
 	@echo "options"
 	@echo "================================================================================"
@@ -112,6 +110,7 @@ petsc: petsc-lite-$(BUILD_PETSC).tar.gz
 	cd $(BUILD_DIR)/src/petsc; make PETSC_DIR=$(BUILD_DIR)/src/petsc PETSC_ARCH=$(PETSC_ARCH) all
 	cd $(BUILD_DIR)/src/petsc; make PETSC_DIR=$(BUILD_DIR)/src/petsc PETSC_ARCH=$(PETSC_ARCH) install
 	@echo "================================================================================"
+	@echo "export PETSC_DIR=$(BUILD_DIR)" >> env_source.sh
 
 petsc-lite-$(BUILD_PETSC).tar.gz:
 	@echo "================================================================================"
@@ -135,6 +134,7 @@ nifti: nifticlib-2.0.0.tar.gz
 	cd $(BUILD_DIR)/src/nifti; make
 	cd $(BUILD_DIR)/src/nifti; make install
 	@echo "================================================================================"
+	@echo "export NIFTI_DIR=$(BUILD_DIR)" >> env_source.sh
 	
 nifticlib-2.0.0.tar.gz:
 	@echo "================================================================================"
