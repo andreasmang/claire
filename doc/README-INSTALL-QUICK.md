@@ -11,10 +11,13 @@ Here, we only provide a minimal installation guide. We provide scripts to downlo
 ```bash
 cd deps
 make
+source env_source.sh
 cd ..
 make -j
 ./bin/claire -synthetic 0
 ```
+
+The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
 
 ## Step by Step  <a name="stepbystep"></a>
 
