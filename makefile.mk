@@ -48,7 +48,7 @@ endif
 
 $(LIB_DIR)/libclaire.so: $(CPU_OBJS) $(GPU_OBJS)
 	-@$(MKDIR) $(dir $@)
-	@echo "export LD_LIBRARY_PATH=$(realpath $(LIB_DIR)):\$LD_LIBRARY_PATH" > env_source.sh
+	@echo "export LD_LIBRARY_PATH=$(realpath $(LIB_DIR)):$$LD_LIBRARY_PATH" > env_source.sh
 ifdef VERBOSE
 	$(CXX) $(addprefix -L,$(LIBRARIES)) $^ $(subst -lclaire,,$(LDFLAGS)) -shared -o $@
 else
