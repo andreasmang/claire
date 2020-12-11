@@ -31,6 +31,7 @@ The compiler needs C++11 support.
 
 |Test   | Compiler  | MPI            | CUDA | PETSc  | CPU       | GPU   | System       |
 |---    |---------- |-----           |------|------- |---        |---    |---           |
+|6f40316| GCC 9.3   | OpenMPI 4.0.3  | 11.1 | 3.14.2 | x86_64    | GK110 | Ubuntu 20.04 |
 |4967052| GCC 8.4   | OpenMPI 1.10.2 | 10.1 | 3.12.4 | x86_64    | GK110 | Ubuntu 16.04 |
 |4967052| GCC 5.4.0 | OpenMPI 1.10.2 | 10.0 | 3.12.4 | x86_64    | GM200 | Ubuntu 16.04 |
 |4967052| GCC 7.4   | OpenMPI 4.0.1  | 10.1 | 3.12.4 | x86_64    | GP100 | Ubuntu 16.04 |
