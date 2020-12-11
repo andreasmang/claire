@@ -14,6 +14,9 @@
 #if PETSC_VERSION_LE(3,11,4)
   #include "petsccuda.h"
 #endif
+#ifndef CHKERRCUDA
+  #define CHKERRCUDA CHKERRQ
+#endif
   #include <cuda.h>
   #include <cuda_runtime_api.h>
   #include <petsc/private/vecimpl.h>

@@ -19,6 +19,8 @@ WITH_DEBUG = no
 
 WITH_DEVELOP = no
 
+WITH_CUDA_MPI = yes
+
 BUILD_TARGET = X86
 GPU_VERSION = 
 CPP_VERSION = c++11
@@ -103,11 +105,12 @@ config:
 	@echo "BUILD_TEST:   $(BUILD_TEST); [yes, no]"
 	@echo "BUILD_PYTHON: $(BUILD_PYTHON); [yes, no]"
 	@echo "================================================================================"
-	@echo "WITH_NIFTI:   $(WITH_NIFTI); [yes, no]"
-	@echo "WITH_PNETCDF: $(WITH_PNETCDF); [yes, no]"
-	@echo "WITH_DOUBLE:  $(WITH_DOUBLE); [yes, no]"
-	@echo "WITH_DEBUG:   $(WITH_DEBUG); [yes, no]"
-	@echo "WITH_DEVELOP: $(WITH_DEVELOP); [yes, no]"
+	@echo "WITH_NIFTI:    $(WITH_NIFTI); [yes, no]"
+	@echo "WITH_PNETCDF:  $(WITH_PNETCDF); [yes, no]"
+	@echo "WITH_DOUBLE:   $(WITH_DOUBLE); [yes, no]"
+	@echo "WITH_DEBUG:    $(WITH_DEBUG); [yes, no]"
+	@echo "WITH_DEVELOP:  $(WITH_DEVELOP); [yes, no]"
+	@echo "WITH_CUDA_MPI: $(WITH_CUDA_MPI); [yes, no]"
 	@echo "================================================================================"
 	@echo "BUILD_DIR:    $(BUILD_DIR)"
 	@echo "================================================================================"

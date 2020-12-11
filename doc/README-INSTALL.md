@@ -49,14 +49,16 @@ The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain locate
 
 The makefile has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The makefile to compile the dependencies has following parameters.
 
-| PARAMETER   | Description                                           | Default | Valid Values  |
-| ----------- | ----------------------------------------------------- | ------- | ------        |
-| BUILD_PETSC | PETSc version to download and compile; empty for none | 3.12.4  | PETSc Version |
-| BUILD_NIFTI | Download and build `niftilib`                         | yes     | yes, no       |
-| WITH_BATCH  | Option to build petsc on a batch system, e.g. slurm   | no      | yes, no       |
-| CC          | Path to C compiler                                    | mpicc   | file path     |
-| CXX         | Path to CXX compiler                                  | mpicxx  | file path     |
-| NVCC        | Path to CUDA compiler                                 | nvcc    | file path     |
+| PARAMETER       | Description                                           | Default | Valid Values  |
+| --------------- | ----------------------------------------------------- | ------- | ------        |
+| BUILD_PETSC     | PETSc version to download and compile; empty for none | 3.12.4  | PETSc Version |
+| BUILD_NIFTI     | Download and build `niftilib`                         | yes     | yes, no       |
+| WITH_BATCH      | Option to build petsc on a batch system, e.g. slurm   | no      | yes, no       |
+| WITH_CUDA_MPI   | MPI is CUDA-aware                                     | yes     | yes, no       |
+| CC              | Path to C compiler                                    | mpicc   | file path     |
+| CXX             | Path to CXX compiler                                  | mpicxx  | file path     |
+| NVCC            | Path to CUDA compiler                                 | nvcc    | file path     |
+| WITH_PETSC_OPTS | additional PETSC compile options                      |         |               |
 
 The libraries will be extraxted and build in the `deps/lib` subfolder.
 
@@ -92,28 +94,29 @@ If you build in parallel using `make -j`, on certain systems to many threads wil
 
 The makefile has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The makefile to compile the dependencies has following parameters.
 
-| PARAMETER    | Description                                           | Default | Valid Values  |
-| -----------  | ----------------------------------------------------- | ------- | ------        |
-| BUILD_TEST   | build the unit test applications                      | no      | yes; no       |
-| BUILD_PYTHON | build `pyclaire` python bindings                      | no      | yes; no       |
-| BUILD_SHARED | build CLAIRE as shared library                        | no      | yes; no       |
-| WITH_NIFTI   | build with `niftilib`                                 | yes     | yes; no       |
-| WITH_DEBUG   | build with additional debug informations              | no      | yes; no       |
-| WITH_DEVELOP | build CLAIRE additional development informations      | no      | yes; no       |
-| BUILD_TARGET | target CPU architecture                               | X86     | X86; POWER9   |
-| GPU_VERSION  | GPU CUDA version to compile, e.g. 35, 60, 70, 75      |         | Compute Capability |
-| CPP_VERSION  | C++ Standard to use                                   | c++11   | c++11; c++14  |
-| LD_FLAGS     | additional flags for the linker                       |         |               |
-| CXX_FLAGS    | additional flags for the C++ compiler                 |         |               |
-| NVCC_FLAGS   | additional flags for the CUDA compiler                |         |               |
-| MPI_DIR      | main path to the MPI include and lib directory        |         |               |
-| CUDA_DIR     | main path to the CUDA include and lib directory       |         |               |
-| PETSC_DIR    | main path to the PETSc include and lib directory      |         |               |
-| NIFTI_DIR    | main path to the libnifti include and lib directory   |         |               |
-| ZLIB_DIR     | main path to the zlib include and lib directory       |         |               |
-| PYTHON_DIR   | main path to the Python3 include and lib directory    |         |               |
-| VERBOSE      | if set to any value the make command is verbose       |         |               |
-| VVERBOSE     | if set to any value the make command is very verbose  |         |               |
+| PARAMETER      | Description                                           | Default | Valid Values  |
+| -------------- | ----------------------------------------------------- | ------- | ------        |
+| BUILD_TEST     | build the unit test applications                      | no      | yes; no       |
+| BUILD_PYTHON   | build `pyclaire` python bindings                      | no      | yes; no       |
+| BUILD_SHARED   | build CLAIRE as shared library                        | no      | yes; no       |
+| WITH_NIFTI     | build with `niftilib`                                 | yes     | yes; no       |
+| WITH_DEBUG     | build with additional debug informations              | no      | yes; no       |
+| WITH_DEVELOP   | build CLAIRE additional development informations      | no      | yes; no       |
+| WITH_CUDA_MPI  | MPI is CUDA-aware                                     | yes     | yes, no       |
+| BUILD_TARGET   | target CPU architecture                               | X86     | X86; POWER9   |
+| GPU_VERSION    | GPU CUDA version to compile, e.g. 35, 60, 70, 75      |         | Compute Capability |
+| CPP_VERSION    | C++ Standard to use                                   | c++11   | c++11; c++14  |
+| LD_FLAGS       | additional flags for the linker                       |         |               |
+| CXX_FLAGS      | additional flags for the C++ compiler                 |         |               |
+| NVCC_FLAGS     | additional flags for the CUDA compiler                |         |               |
+| MPI_DIR        | main path to the MPI include and lib directory        |         |               |
+| CUDA_DIR       | main path to the CUDA include and lib directory       |         |               |
+| PETSC_DIR      | main path to the PETSc include and lib directory      |         |               |
+| NIFTI_DIR      | main path to the libnifti include and lib directory   |         |               |
+| ZLIB_DIR       | main path to the zlib include and lib directory       |         |               |
+| PYTHON_DIR     | main path to the Python3 include and lib directory    |         |               |
+| VERBOSE        | if set to any value the make command is verbose       |         |               |
+| VVERBOSE       | if set to any value the make command is very verbose  |         |               |
 
 Not that the makefile generates a cache (`make.cache`) to detect if a complete rebuild of CLAIRE is needed. If this file is removed or not exsiting the next build will first do `make clean` automatically.
 

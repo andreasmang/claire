@@ -7,6 +7,9 @@ BUILD_GPU     = yes
 BUILD_DEBUG   = no
 BUILD_DOUBLE  = no
 
+WITH_CUDA_MPI = yes
+WITH_PETSC_OPTS =
+
 WITH_BATCH = no
 
 BUILD_DIR = $(PWD)/lib
@@ -34,6 +37,12 @@ PETSC_OPTIONS += --with-precision=single
 PETSC_OPTIONS += --with-cc=$(CC)
 PETSC_OPTIONS += --with-cxx=$(CXX)
 PETSC_OPTIONS += --with-shared=1
+
+ifeq ($(WITH_CUDA_MPI), yes)
+	PETSC_OPTIONS += -use-gpu-aware-mpi=1
+else
+	PETSC_OPTIONS += -use-gpu-aware-mpi=0
+endif
 
 ifeq ($(WITH_BATCH), yes)
 	PETSC_OPTIONS += --with-batch=1
@@ -68,6 +77,8 @@ else
 	PETSC_OPTIONS += --with-debugging=0
 endif
 
+PETSC_OPTIONS += $(WITH_PETSC_OPTS)
+
 BASE_DIR=$(PWD)
 
 all: config $(TARGETS)
@@ -81,14 +92,15 @@ config:
 	@echo "options"
 	@echo "================================================================================"
 	@echo "build PETSc:      $(BUILD_PETSC)"
-	@echo "build PETSc:      $(BUILD_NIFTI)"
+	@echo "build NIFTI:      $(BUILD_NIFTI)"
 	@echo "================================================================================"
-	@echo "build with DEBUG:        $(BUILD_DEBUG)"
-	@echo "build with DOUBLE:       $(BUILD_DOUBLE)"
-	@echo "build with batch system: $(WITH_BATCH)"
-	@echo "build for GPU:           $(BUILD_GPU)"
-	@echo "build with DEBUG:        $(BUILD_DEBUG)"
-	@echo "build directory:         $(BUILD_DIR)"
+	@echo "build with DEBUG:          $(BUILD_DEBUG)"
+	@echo "build with DOUBLE:         $(BUILD_DOUBLE)"
+	@echo "build with batch system:   $(WITH_BATCH)"
+	@echo "build with CUDA-aware MPI: $(WITH_CUDA_MPI)"
+	@echo "build for GPU:             $(BUILD_GPU)"
+	@echo "build with DEBUG:          $(BUILD_DEBUG)"
+	@echo "build directory:           $(BUILD_DIR)"
 	@echo "================================================================================"
 	@echo "using CC:   $(CC)"
 	@echo "using CXX:  $(CXX)"

@@ -43,6 +43,7 @@ The compiler needs C++11 support.
 * ZLib
 
 ## Known issues
+* if MPI is not compiled with CUDA-aware options, add the file `.petscrc` to the working directory and add the option `-use_gpu_aware_mpi 0`
 * CUDA >= 11.0 is only supported with PETSc >= 3.14.
 * Kepler GPUs work with PETSc 3.12.4  (others not tested)
 * Compiling PETSc with CUDA support on cluster login nodes without GPUs might fail
