@@ -158,7 +158,7 @@ template<typename T> size_t MPIcuFFT<T>::getSizes(const size_t* nx,
   osize[1]  = N2 + (static_cast<size_t>(pidx) < N2mod?1:0);
   osize[0] = nx[0]; osize[2] = (nx[2] / 2) + 1;
   
-  return 2*sizeof(T)*std::max((isize[0]*isize[1]*isize[2]/2) + 1, osize[0]*osize[1]*osize[2]);
+  return 2*sizeof(T)*std::max(isize[0]*isize[1]*((isize[2]/2) + 1), osize[0]*osize[1]*osize[2]);
 }
 
 template<typename T> void MPIcuFFT<T>::initFFT(size_t nx, size_t ny, size_t nz, bool allocate) {
@@ -185,7 +185,7 @@ template<typename T> void MPIcuFFT<T>::initFFT(size_t nx, size_t ny, size_t nz, 
   size_t local_volume = isizex[0]*osizey[0]*osizez*sizeof(T)*2;
   if (pcnt > 4 && cuda_aware && local_volume <= 524288) comm_mode = All2All;
   
-  domainsize = 2*sizeof(T)*std::max((isizex[pidx]*isizey*isizez/2) + 1, osizex*osizey[pidx]*osizez);
+  domainsize = 2*sizeof(T)*std::max(isizex[pidx]*isizey*((isizez/2) + 1), osizex*osizey[pidx]*osizez);
   
   size_t ws_r2c, ws_c2r, ws_c2c;
 
