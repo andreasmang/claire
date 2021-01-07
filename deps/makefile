@@ -28,7 +28,11 @@ ifneq ($(BUILD_NIFTI), no)
 	TARGETS += nifti
 endif
 
+PETSC_OPTIONS += --with-mkl_sparse=0
 PETSC_OPTIONS += --download-f2cblaslapack
+PETSC_OPTIONS += --with-fortran-bindings=0
+PETSC_OPTIONS += --with-valgrind=0
+PETSC_OPTIONS += --with-c2html=0
 PETSC_OPTIONS += --with-64-bit-indices
 PETSC_OPTIONS += --with-x=0
 PETSC_OPTIONS += --with-fc=0
@@ -56,13 +60,13 @@ NIFTI_OPTIONS += -Wno-dev
 NIFTI_OPTIONS += -DBUILD_SHARED_LIBS:BOOL=ON
 
 ifeq ($(BUILD_GPU), yes)
-	PETSC_ARCH =gpu
+	PETSC_ARCH = gpu
 	PETSC_OPTIONS += --with-cuda=1 
 #	PETSC_OPTIONS += --download-cusp=yes
 	PETSC_OPTIONS += --CUDAOPTFLAGS='-O3'
 	PETSC_OPTIONS += --with-cudac='$(NVCC) -ccbin=$(CXX)'
 ifdef GPU_VERSION
-	PETSC_OPTIONS += --CUDAFLAGS=-arch=sm_$(GPU_VERSION)
+	PETSC_OPTIONS += --with-cuda-gencodearch=$(GPU_VERSION)
 endif	
 else
 	PETSC_ARCH =cpu
