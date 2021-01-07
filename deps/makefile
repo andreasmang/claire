@@ -14,6 +14,8 @@ WITH_BATCH = no
 
 BUILD_DIR = $(PWD)/lib
 
+GPU_VERSION =
+
 CC = mpicc
 CXX = mpicxx
 NVCC = nvcc
@@ -59,6 +61,9 @@ ifeq ($(BUILD_GPU), yes)
 #	PETSC_OPTIONS += --download-cusp=yes
 	PETSC_OPTIONS += --CUDAOPTFLAGS='-O3'
 	PETSC_OPTIONS += --with-cudac='$(NVCC) -ccbin=$(CXX)'
+ifdef GPU_VERSION
+	PETSC_OPTIONS += --CUDAFLAGS=-arch=sm_$(GPU_VERSION)
+endif	
 else
 	PETSC_ARCH =cpu
 	PETSC_OPTIONS += --with-cuda=0
