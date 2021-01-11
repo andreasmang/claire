@@ -743,6 +743,27 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
         ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.clear(); ss.str(std::string());
     }
+    
+    if (this->m_Opt->m_Verbosity > 1) {
+      CFLStatKernel kernel;
+      kernel.dt = 1.0/static_cast<ScalarType>(this->m_Opt->m_Domain.nt);
+      kernel.h = this->m_Opt->m_Domain.isize[0]*this->m_Opt->m_Domain.hx[0];
+      kernel.ng = static_cast<ScalarType>(this->m_Opt->m_Domain.ng);
+      kernel.nl = this->m_Opt->m_Domain.nl;
+      
+      ierr = this->m_VelocityField->GetArraysRead(kernel.pV); CHKERRQ(ierr);
+      
+      ScalarType res = 0;
+      
+      kernel.CFLx(res);
+      MPI_Allreduce(MPI_IN_PLACE, &res, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+      
+      ss  << "Vx*dt > slab_size: " << res*100 << "%%";
+      ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
+      ss.clear(); ss.str(std::string());
+      
+      ierr = this->m_VelocityField->RestoreArrays(); CHKERRQ(ierr);
+    }
 
     // compute solution of adjoint equation (i.e., \lambda(x,t))
     // and compute body force \int_0^1 grad(m)\lambda dt

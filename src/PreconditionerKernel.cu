@@ -130,4 +130,17 @@ PetscErrorCode H0PrecondKernel::CGp (ScalarType alpha) {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode CFLStatKernel::CFLx (ScalarType &ratio) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType res;
+    
+  ierr = ReductionKernelCallGPU<CFLKernel>(res, nl, pV[0], h, dt); CHKERRQ(ierr);
+  
+  ratio = res/ng;
+    
+  PetscFunctionReturn(ierr);
+}
+
 } // namespace reg

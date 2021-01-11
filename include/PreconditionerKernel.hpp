@@ -47,6 +47,17 @@ struct H0PrecondKernel {
   PetscErrorCode CGp(ScalarType alpha);
 };
 
+struct CFLStatKernel {
+  const ScalarType *pV[3];
+  ScalarType h;
+  ScalarType dt;
+  
+  ScalarType ng;
+  IntType nl;
+  
+  PetscErrorCode CFLx(ScalarType &res);
+};
+
 } // namepsace reg
 
 #endif // _PRECONDITIONERKERNEL_HPP_
