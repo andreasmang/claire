@@ -768,7 +768,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
         ss.clear(); ss.str(std::string());
     }
     
-    if (this->m_Opt->m_Verbosity > 1) {
+    /*if (this->m_Opt->m_Verbosity > 1) {
       CFLStatKernel kernel;
       kernel.dt = 1.0/static_cast<ScalarType>(this->m_Opt->m_Domain.nt);
       //kernel.h = this->m_Opt->m_Domain.isize[0]*this->m_Opt->m_Domain.hx[0];
@@ -791,7 +791,7 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
       ss.clear(); ss.str(std::string());
       
       ierr = this->m_VelocityField->RestoreArrays(); CHKERRQ(ierr);
-    }
+    }*/
 
     // compute solution of adjoint equation (i.e., \lambda(x,t))
     // and compute body force \int_0^1 grad(m)\lambda dt
