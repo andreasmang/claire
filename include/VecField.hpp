@@ -38,24 +38,35 @@ class VecField {
 
     VecField();
     VecField(RegOpt*);
+    VecField(RegOpt*, Vec);
     VecField(RegOpt*, Vec, Vec, Vec);
     VecField(RegOpt*,int);
     VecField(IntType,IntType);
     virtual ~VecField();
 
     PetscErrorCode SetOpt(RegOpt*);
+    
+    PetscErrorCode SetVector(Vec);
 
     /*! set individual vector components based on a
         flat PETSc vector as an input */
     PetscErrorCode SetComponents(Vec, std::string format="block");
     PetscErrorCode SetComponents(const ScalarType*, std::string format="block");
     PetscErrorCode SetComponents(const ScalarType*, const ScalarType*, const ScalarType*);
+    
+    //PetscErrorCode SetCopyComponents(Vec, std::string format="block");
+    //PetscErrorCode SetCopyComponents(const ScalarType*, std::string format="block");
+    //PetscErrorCode SetCopyComponents(const ScalarType*, const ScalarType*, const ScalarType*);
 
     /*! get individual vector components based on a
         flat PETSc vector as an input */
     PetscErrorCode GetComponents(Vec, std::string format="block");
     PetscErrorCode GetComponents(ScalarType*, std::string format="block");
     PetscErrorCode GetComponents(ScalarType*, ScalarType*, ScalarType*);
+    
+    //PetscErrorCode GetCopyComponents(Vec, std::string format="block");
+    //PetscErrorCode GetCopyComponents(ScalarType*, std::string format="block");
+    //PetscErrorCode GetCopyComponents(ScalarType*, ScalarType*, ScalarType*);
 
     /*! set all components to a given value*/
     PetscErrorCode SetValue(ScalarType);
@@ -111,16 +122,22 @@ class VecField {
 
     size_t GetSize() const;
 
+
     // individual components
     Vec m_X1;
     Vec m_X2;
     Vec m_X3;
-
+    
+    PetscErrorCode GetRawVector(ScalarType*&);
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;
     AccessType m_Type;
     IntType m_Allocated;
     bool m_Owend;
+    bool m_OwendX;
+    
+    Vec m_X;
+    ScalarType *m_RawPtr;
     
     union {
       ScalarType *m_Ptr[3];

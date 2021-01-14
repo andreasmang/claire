@@ -11,7 +11,7 @@ PetscErrorCode RegularizationKernel::LocalNorm (ScalarType &lnorm) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = ReductionKernelCallGPU<NormKernel>(lnorm, nl, pX[0], pX[1], pX[2]); CHKERRQ(ierr);
+  ierr = ReductionKernelCallGPU<NormKernel>(lnorm, workspace, nl, pX[0], pX[1], pX[2]); CHKERRQ(ierr);
     
   PetscFunctionReturn(ierr);
 }

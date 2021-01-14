@@ -32,6 +32,8 @@ struct EvaluateFunctionalSL2 {
   const ScalarType *pMr;
   const ScalarType *pWts;
   
+  ScalarType *res;
+  
   IntType nl;
   IntType nc;
   
@@ -40,6 +42,8 @@ struct EvaluateFunctionalSL2 {
   PetscErrorCode ComputeFunctional();
   PetscErrorCode ComputeFunctionalMask();
 };
+
+IntType GetTempResSize(IntType nl, IntType nc);
 
 struct FinalConditionSL2 {
   ScalarType *pL;

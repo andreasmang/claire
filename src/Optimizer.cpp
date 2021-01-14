@@ -84,6 +84,8 @@ PetscErrorCode Optimizer::Initialize(void) {
 
     this->m_KrylovMethod = NULL;
     this->m_OptimizationProblem = NULL;
+    
+    m_SolutionAllocated = false;
 
     PetscFunctionReturn(ierr);
 }
@@ -108,6 +110,7 @@ PetscErrorCode Optimizer::ClearMemory(void) {
     if (this->m_Solution != NULL) {
         ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
         this->m_Solution = NULL;
+        this->m_SolutionAllocated = false;
     }
 
     if (this->m_MatVec != NULL) {
@@ -132,18 +135,47 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
-
-    if (this->m_Solution == NULL) {
-        // compute number of unknowns
-        nlu = 3*this->m_Opt->m_Domain.nl;
-        ngu = 3*this->m_Opt->m_Domain.ng;
-        ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
-        ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
-    }
-
+    
     // the input better is not zero
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+    
+    ScalarType *ptr;
+    
+    ierr = x->GetRawVector(ptr); CHKERRQ(ierr);
+
+    // compute number of unknowns
+    nlu = 3*this->m_Opt->m_Domain.nl;
+    ngu = 3*this->m_Opt->m_Domain.ng;
+    if (this->m_SolutionAllocated) {
+      ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+    } else {
+      if (this->m_Solution != NULL) {
+        ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
+        this->m_Solution = NULL;
+        this->m_SolutionAllocated = false;
+      }
+      if (!ptr) {
+        ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
+        ierr = VecSetType(this->m_Solution, VECCUDA); CHKERRQ(ierr);
+        ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
+        this->m_SolutionAllocated = true;
+        ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+      } else {
+#ifdef REG_HAS_CUDA
+        if (this->m_Opt->rank_cnt > 1) {
+          ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nlu, ngu, ptr, &this->m_Solution);
+        } else {
+          ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nlu, ptr, &this->m_Solution);
+        }
+#else
+        if (this->m_Opt->rank_cnt > 1) {
+          ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nlu, ngu, ptr, &this->m_Solution);
+        } else {
+          ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nlu, ptr, &this->m_Solution);
+        }
+#endif
+      }
+    }
 
     if (this->m_Opt->m_Verbosity > 1) {
         ierr = VecNorm(this->m_Solution, NORM_2, &value); CHKERRQ(ierr);
@@ -177,6 +209,7 @@ PetscErrorCode Optimizer::SetInitialGuess() {
         ngu = 3*this->m_Opt->m_Domain.ng;
         ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
         ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
+        this->m_SolutionAllocated = true;
     }
 
     // parse initial guess to tao

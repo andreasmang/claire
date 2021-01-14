@@ -66,6 +66,7 @@ class Optimizer {
     Preprocessing* m_PreProc;
     Mat m_MatVec;
     Vec m_Solution; ///< solution vector
+    bool m_SolutionAllocated;
 };
 
 
