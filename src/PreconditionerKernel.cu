@@ -138,7 +138,9 @@ PetscErrorCode CFLStatKernel::CFLx (ScalarType &ratio) {
     
   ierr = ReductionKernelCallGPU<CFLKernel>(res, nl, pV[0], h, dt); CHKERRQ(ierr);
   
-  ratio = res/ng;
+  //ratio = res/ng;
+  
+  ratio = res;
     
   PetscFunctionReturn(ierr);
 }
