@@ -442,6 +442,9 @@ PetscErrorCode ReadWriteReg::Read(Vec* x) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(IO_READ);
+    ZeitGeist_tick(IO_READ);
 
     ierr = Assert(!this->m_FileName.empty(), "filename not set"); CHKERRQ(ierr);
 
@@ -474,6 +477,8 @@ PetscErrorCode ReadWriteReg::Read(Vec* x) {
     } else {
         ierr = ThrowError("could not read: data type not supported"); CHKERRQ(ierr);
     }
+    
+    ZeitGeist_tock(IO_READ);
 
     this->m_Opt->Exit(__func__);
 
@@ -709,6 +714,9 @@ PetscErrorCode ReadWriteReg::Write(Vec x) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(IO_WRITE);
+    ZeitGeist_tick(IO_WRITE);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(!this->m_FileName.empty(), "filename not set"); CHKERRQ(ierr);
@@ -742,6 +750,8 @@ PetscErrorCode ReadWriteReg::Write(Vec x) {
     } else {
         ierr = ThrowError("could not write: data type not supported"); CHKERRQ(ierr);
     }
+    
+    ZeitGeist_tock(IO_WRITE);
 
     this->m_Opt->Exit(__func__);
 
