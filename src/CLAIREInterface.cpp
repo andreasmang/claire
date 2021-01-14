@@ -928,8 +928,11 @@ PetscErrorCode CLAIREInterface::RunSolverRegParaCont() {
     ierr = Assert(this->m_Optimizer != NULL, "null pointer"); CHKERRQ(ierr);
 
     ierr = this->SetupData(mR, mT); CHKERRQ(ierr);
-
-
+    
+    ierr = this->m_RegProblem->SetControlVariable(this->m_Solution); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeSolver(); CHKERRQ(ierr);
+    ierr = this->m_RegProblem->InitializeOptimization(); CHKERRQ(ierr);
+    
     // reset all the clocks we have used so far
     ierr = this->m_Opt->ResetTimers(); CHKERRQ(ierr);
     ierr = this->m_Opt->ResetCounters(); CHKERRQ(ierr);

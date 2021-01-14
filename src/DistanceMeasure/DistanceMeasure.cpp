@@ -191,6 +191,22 @@ PetscErrorCode DistanceMeasure::SetWorkVecField(VecField* v, int id) {
 }
 
 
+PetscErrorCode DistanceMeasure::SetWorkScaField(ScaField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(v != nullptr, "null pointer"); CHKERRQ(ierr);
+
+    this->m_WorkScaField = v;
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+
 /********************************************************************
  * @brief set mask
  *******************************************************************/

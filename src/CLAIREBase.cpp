@@ -517,13 +517,17 @@ PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
       ierr = DbgMsg2("Setting control variable"); CHKERRQ(ierr);
     }
 
-    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
 //    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
 
-    ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
+    //ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
 
-//    this->m_VelocityField = v;
-//    this->m_DeleteControlVariable = false;
+    if (this->m_DeleteControlVariable) {
+        Free(this->m_VelocityField);
+    }
+    
+    this->m_VelocityField = v;
+    this->m_DeleteControlVariable = false;
 
     this->m_Opt->Exit(__func__);
 
@@ -1084,6 +1088,11 @@ PetscErrorCode CLAIREBase
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
+    ierr = this->m_Regularization->SetWorkScaField(this->m_WorkScaField1); CHKERRQ(ierr);
 
     ierr = this->m_Regularization->EvaluateFunctional(value, v); CHKERRQ(ierr);
 
@@ -1181,18 +1190,26 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
 
     this->m_Opt->Enter(__func__);
 
-    ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
-    ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
+    //ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    VecField *vinv = nullptr;
+    VecField *v = nullptr;
+    
+    ierr = AllocateOnce(v, this->m_Opt, x); CHKERRQ(ierr);
+    ierr = AllocateOnce(vinv, this->m_Opt, ainvx); CHKERRQ(ierr);
     
     if (this->m_Regularization == NULL) {
         ierr = this->SetupRegularization(); CHKERRQ(ierr);
     }
 
-    ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
     
-    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField2, this->m_WorkVecField1, flag); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(vinv, v, flag); CHKERRQ(ierr);
     
-    ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
+    
+    ierr = Free(v); CHKERRQ(ierr);
+    ierr = Free(vinv); CHKERRQ(ierr);
   
     this->m_Opt->Exit(__func__);
 

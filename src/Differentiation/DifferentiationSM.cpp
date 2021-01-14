@@ -381,11 +381,11 @@ PetscErrorCode DifferentiationSM::RegLapOp(VecField* bv, VecField* v, ScalarType
     this->m_Opt->StartTimer(FFTSELFEXEC);
     
     ierr = this->ComputeForwardFFT(v); CHKERRQ(ierr);
-    if (this->m_FFT->threshold > 0.) {
+    /*if (this->m_FFT->threshold > 0.) {
       ierr = this->m_SpectralKernel.LaplacianTol(b0, b1); CHKERRQ(ierr);
-    } else {
+    } else {*/
       ierr = this->m_SpectralKernel.Laplacian(b0, b1); CHKERRQ(ierr);
-    }
+    //}
     ierr = this->ComputeInverseFFT(bv); CHKERRQ(ierr);
     
     this->m_Opt->StopTimer(FFTSELFEXEC);
@@ -596,7 +596,7 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
         
 //    for (int i=0; i<NFFTTIMERS; ++i) timer[i] = 0;
     
-    if (this->m_FFT->threshold > 0) {
+    /*if (this->m_FFT->threshold > 0) {
       ScalarType value;
       VecNorm(v->m_X1, NORM_INFINITY, &value);
       this->m_SpectralKernel.tol = value;
@@ -605,7 +605,7 @@ PetscErrorCode DifferentiationSM::ComputeForwardFFT(VecField* v) {
       VecNorm(v->m_X3, NORM_INFINITY, &value);
       this->m_SpectralKernel.tol = std::max(this->m_SpectralKernel.tol, std::abs(value));
       this->m_SpectralKernel.tol *= this->m_FFT->threshold;
-    }
+    }*/
         
     ierr = v->GetArraysRead(pV); CHKERRQ(ierr);
     ierr = this->ComputeForwardFFT(pV[0], pV[1], pV[2]); CHKERRQ(ierr);

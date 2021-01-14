@@ -48,6 +48,7 @@ CPU_FILES += $(SRC_DIR)/CLAIREStokes.cpp
 CPU_FILES += $(SRC_DIR)/CLAIREDivReg.cpp
 CPU_FILES += $(SRC_DIR)/Preprocessing.cpp
 CPU_FILES += $(SRC_DIR)/Spectral/Spectral.cpp
+CPU_FILES += $(SRC_DIR)/TwoLevel/TwoLevel.cpp
 
 ifneq ($(BUILD_GPU),yes)
 	# CPU build specific C++ files

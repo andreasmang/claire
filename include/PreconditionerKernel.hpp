@@ -32,6 +32,8 @@ struct H0PrecondKernel {
   ScalarType *pP[3];
   ScalarType *pRes[3];
   
+  ScalarType *pWS;
+  
   ScalarType beta;
   ScalarType diag;
   

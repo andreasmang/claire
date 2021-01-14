@@ -114,6 +114,16 @@ PetscErrorCode Regularization::SetWorkVecField(VecField* v) {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode Regularization::SetWorkScaField(ScaField* v) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    ierr = Assert(v != nullptr, "null pointer"); CHKERRQ(ierr);
+    this->m_WorkScaField = v;
+
+    PetscFunctionReturn(ierr);
+}
+
 
 /********************************************************************
  * @brief set Differentiation interface

@@ -152,10 +152,9 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
-  ScalarType *res = nullptr;
   PetscFunctionBegin;
   
-  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  //ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
   DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pW, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
@@ -167,8 +166,6 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   
   ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     
-  FreeMemory(res);
-  
   PetscFunctionReturn(ierr);
 }
 
@@ -177,10 +174,9 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
-  ScalarType *res = nullptr;
   PetscFunctionBegin;
   
-  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  //ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
   DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
@@ -192,9 +188,11 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   
   ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     
-  FreeMemory(res);
-  
   PetscFunctionReturn(ierr);
+}
+
+IntType GetTempResSize(IntType nl, IntType nc) {
+  return (nl + 255)/256 * nc;
 }
 
 /* Final Condition for Adjoint Equation */
