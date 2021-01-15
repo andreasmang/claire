@@ -1693,8 +1693,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -krylovmaxit <int>          maximum number of (inner) Krylov iterations (default: 50)" << std::endl;
         std::cout << " -krylovfseq <type>          forcing sequence for Krylov solver (tolerance for inner iterations)" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
-        std::cout << "                                 quadratic     quadratic (default)" << std::endl;
-        std::cout << "                                 suplinear     super-linear" << std::endl;
+        std::cout << "                                 suplinear     super-linear (default)" << std::endl;
+        std::cout << "                                 quadratic     quadratic" << std::endl;
         std::cout << "                                 none          exact solve (expensive)" << std::endl;
         std::cout << " -krylovtol <dbl>            relative tolerance for krylov method (default: 1E-12); forcing sequence" << std::endl;
         std::cout << "                             needs to be switched off (i.g., use with '-krylovfseq none')" << std::endl;
