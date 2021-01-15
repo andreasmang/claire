@@ -364,8 +364,9 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
   dim3 block(256, 1, 1); // 256 threads per block
   dim3 grid((nl + 255)/256, 1, 1);  // $\lceil nl_0 / 256 \rceil, nl_1, nl_2 $
   ScalarType *res = nullptr;
-
+  
   ierr = reg::AllocateMemoryOnce(res, grid.x*sizeof(ScalarType)); CHKERRQ(ierr);
+  //res = GPUKernelWorkspace.ptr;
   value = 0.;
 
   if (nl > 0) {
@@ -385,6 +386,39 @@ PetscErrorCode ReductionKernelCallGPU(ScalarType &value, IntType nl, Args ... ar
   }
 
   ierr = reg::FreeMemory(res); CHKERRQ(ierr);
+
+  ZeitGeist_tock(KERNEL_REDUCTION);
+  
+  PetscFunctionReturn(ierr);
+}
+
+template<typename KernelFn, typename ... Args>
+PetscErrorCode ReductionKernelCallGPU(ScalarType &value, ScalarType *workspace, IntType nl, Args ... args) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  ZeitGeist_define(KERNEL_REDUCTION);
+  ZeitGeist_tick(KERNEL_REDUCTION);
+  dim3 block(256, 1, 1); // 256 threads per block
+  dim3 grid((nl + 255)/256, 1, 1);  // $\lceil nl_0 / 256 \rceil, nl_1, nl_2 $
+  
+  value = 0.;
+
+  if (nl > 0) {
+    // execute the kernel and reduce over threads
+    ReductionKernelGPU<256, KernelFn><<<grid, block>>>(workspace, nl, args...);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+
+    // reduce over work array
+    ReductionSum<1024><<<1, 1024>>>(workspace, grid.x);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+
+    // copy result to cpu
+    ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(workspace),
+                      sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+  }
 
   ZeitGeist_tock(KERNEL_REDUCTION);
   

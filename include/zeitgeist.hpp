@@ -8,13 +8,13 @@
 #define _ZEITGEIST_HPP
 //--------------------------------------------------------------------------------------------------
 #ifdef ZEITGEIST
-#define ZeitGeist_define(NAME) ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
+//#define ZeitGeist_define(NAME) static ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
 #ifdef ZEITGEIST_DEV
-#define ZeitGeist_define(NAME) static ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
+#define ZeitGeist_define(NAME) ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick(#NAME)
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock(#NAME)
 #else
-#define ZeitGeist_define(NAME) ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
+#define ZeitGeist_define(NAME) static ZeitGeist& NAME ## _zg = ZeitGeist::zg(#NAME)
 #define ZeitGeist_tick(NAME) NAME ## _zg.Tick()
 #define ZeitGeist_tock(NAME) NAME ## _zg.Tock()
 #endif

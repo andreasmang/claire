@@ -28,6 +28,8 @@ namespace reg {
 struct RegularizationKernel {
   const ScalarType *pX[3];
   
+  ScalarType *workspace;
+  
   IntType nl;
   
   PetscErrorCode LocalNorm(ScalarType &lnorm);

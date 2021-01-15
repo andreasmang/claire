@@ -130,4 +130,10 @@ struct H0KernelCG {
   }
 };
 
+struct CFLKernel {
+  template<typename T> ReductionFunctional (int i, const T* v, const T h, const T dt) {
+    return ((fabs(v[i])*dt > h) ? 1.0 : 0.0);
+  }
+};
+
 #endif // _PRECONDITIONERKERNEL_TXX_

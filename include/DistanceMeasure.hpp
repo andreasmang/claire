@@ -72,6 +72,7 @@ class DistanceMeasure {
     PetscErrorCode SetAuxVariable(ScaField*, int);
 
     PetscErrorCode SetWorkVecField(VecField*,int);
+    PetscErrorCode SetWorkScaField(ScaField*);
 
     /*! set the mask */
     PetscErrorCode SetMask(ScaField*);
@@ -102,6 +103,8 @@ class DistanceMeasure {
     VecField *m_WorkVecField1;
     VecField *m_WorkVecField2;
     VecField *m_WorkVecField3;
+    
+    ScaField *m_WorkScaField;
 
     RegOpt* m_Opt;
 };

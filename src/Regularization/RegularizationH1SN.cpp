@@ -74,6 +74,7 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
     // if regularization weight is zero, do noting
     if (beta != 0.0) {
         ierr = Assert(this->m_WorkVecField != NULL, "null pointer"); CHKERRQ(ierr);
+        ierr = Assert(this->m_WorkScaField != NULL, "null pointer"); CHKERRQ(ierr);
         
         /*ierr = this->m_Differentiation->RegLapOp(this->m_WorkVecField, v, 0.5*hd*beta); CHKERRQ(ierr);
         ierr = VecTDot(this->m_WorkVecField->m_X1, v->m_X1, &value); *R +=value;
@@ -84,7 +85,9 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
         ierr = this->m_Differentiation->Gradient(this->m_WorkVecField, v->m_X1); CHKERRQ(ierr);
         // compute inner products
         ierr = this->m_WorkVecField->GetArraysRead(kernel.pX);
+        ierr = this->m_WorkScaField->GetArrayWrite(kernel.workspace);
         ierr = kernel.LocalNorm(value); CHKERRQ(ierr);
+        ierr = this->m_WorkScaField->RestoreArray();
         ierr = this->m_WorkVecField->RestoreArrays();
         *R += value;
         
@@ -99,8 +102,10 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
         ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value); *R +=value;
         ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;*/
         ierr = this->m_WorkVecField->GetArraysRead(kernel.pX);
+        ierr = this->m_WorkScaField->GetArrayWrite(kernel.workspace);
         ierr = kernel.LocalNorm(value); CHKERRQ(ierr);
         ierr = this->m_WorkVecField->RestoreArrays();
+        ierr = this->m_WorkScaField->RestoreArray();
         *R += value;
 
         // X3 gradient
@@ -110,7 +115,9 @@ PetscErrorCode RegularizationH1SN::EvaluateFunctional(ScalarType* R, VecField* v
         ierr = VecTDot(this->m_WorkVecField->m_X2, this->m_WorkVecField->m_X2, &value); *R +=value;
         ierr = VecTDot(this->m_WorkVecField->m_X3, this->m_WorkVecField->m_X3, &value); *R +=value;*/
         ierr = this->m_WorkVecField->GetArraysRead(kernel.pX);
+        ierr = this->m_WorkScaField->GetArrayWrite(kernel.workspace);
         ierr = kernel.LocalNorm(value); CHKERRQ(ierr);
+        ierr = this->m_WorkScaField->RestoreArray();
         ierr = this->m_WorkVecField->RestoreArrays();
         *R += value;
         
