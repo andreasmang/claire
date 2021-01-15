@@ -41,6 +41,24 @@ struct EvaluateFunctionalSL2 {
   PetscErrorCode ComputeFunctionalMask();
 };
 
+struct EvaluateFunctionalNCC {
+  const ScalarType *pW;
+  const ScalarType *pM;
+  const ScalarType *pMr;
+  const ScalarType *pWts;
+  ScalarType norm_m1_loc;
+  ScalarType norm_mR_loc;
+  ScalarType inpr_m1_mR_loc;
+  
+  IntType nl;
+  IntType nc;
+  
+  ScalarType value;
+  
+  PetscErrorCode ComputeFunctional();
+  PetscErrorCode ComputeFunctionalMask();
+};
+
 struct FinalConditionSL2 {
   ScalarType *pL;
   const ScalarType *pM;
@@ -55,6 +73,31 @@ struct FinalConditionSL2 {
   PetscErrorCode ComputeFinalConditionMaskAE();
   PetscErrorCode ComputeFinalConditionIAE();
   PetscErrorCode ComputeFinalConditionMaskIAE();
+};
+
+struct FinalConditionNCC {
+  ScalarType *pL;
+  ScalarType *pLtilde;
+  const ScalarType *pMtilde;
+  const ScalarType *pM;
+  const ScalarType *pMr;
+  const ScalarType *pW;
+  const ScalarType *pWts;
+  ScalarType const1;
+  ScalarType const2;
+  ScalarType const3;
+  ScalarType const4;
+  ScalarType inpr_m1_mtilde_loc;
+  ScalarType inpr_mR_mtilde_loc;
+  
+  IntType nl;
+  IntType nc;
+  
+  PetscErrorCode ComputeFinalConditionAE();
+  PetscErrorCode ComputeFinalConditionMaskAE();
+  PetscErrorCode ComputeFinalConditionIAE();
+  PetscErrorCode ComputeFinalConditionMaskIAE();
+  PetscErrorCode ComputeInnerProductsFinalConditionIAE();
 };
 
 } // namespace DistanceMeasureKernel

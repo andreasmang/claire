@@ -253,5 +253,68 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
   PetscFunctionReturn(ierr);
 }
 
+
+////////////////////////////////////////////////////////////////////////
+//> NCC Distance metric routines 
+///////////////////////////////////////////////////////////////////////
+__global__ void FinalConditionAENCC_kernel (ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, ScalarType const1, ScalarType const2) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  pL[i] = const1*pMr[i] - const2*pM[i];
+}
+
+__global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarType *pMr, const ScalarType *pM, const ScalarType *pMtilde, ScalarType const1tilde, ScalarType const3tilde, ScalarType const5) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  pLtilde[i] = const1tilde*pMr[i] + const3tilde*pM[i] - const5*pMtilde[i];
+}
+
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeFunctional() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+    
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+
+  stat = cublasCreate(&handle);
+
+  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+
+  stat = cublasDestroy(handle);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  dim3 block(256,1,1);
+  dim3 grid((nl*nc + 255)/256,1,1);
+
+  FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2);
+  cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Incremental Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  dim3 block(256,1,1);
+  dim3 grid((nl*nc + 255)/256,1,1);
+    
+  ScalarType const1tilde = const1 - const2;
+  ScalarType const3tilde = const3 - const4;
+  FinalConditionIAENCC_kernel<<<grid, block>>>(pLtilde, pMr, pM, pMtilde, const1tilde, const3tilde, const5);
+  cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+
 } // namespace DistanceMeasureKernel
 } // namespace reg
