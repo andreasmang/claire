@@ -286,6 +286,15 @@ PetscErrorCode EvaluateFunctionalNCC::ComputeFunctional() {
   PetscFunctionReturn(ierr);
 }
 
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeFunctionalMask() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+    
+  // not implemented 
+  PetscFunctionReturn(ierr);
+}
+
 /* Final Condition for Adjoint Equation */
 PetscErrorCode FinalConditionNCC::ComputeFinalConditionAE() {
   PetscErrorCode ierr = 0;
@@ -297,6 +306,31 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionAE() {
   FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2);
   cudaCheckKernelError();
   
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  // not implemented 
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  stat = cublasCreate(&handle);
+  
+  stat = cublasSdot(handle, nl*nc, pMR, 1, pMtilde, 1, &inpr_mR_mtilde_loc);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMtilde, 1, &inpr_m1_mR_loc);
+  
+  stat = cublasDestroy(handle);
+
   PetscFunctionReturn(ierr);
 }
 
@@ -312,6 +346,16 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE() {
   ScalarType const3tilde = const3 - const4;
   FinalConditionIAENCC_kernel<<<grid, block>>>(pLtilde, pMr, pM, pMtilde, const1tilde, const3tilde, const5);
   cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Incremental Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  // not implemented
   
   PetscFunctionReturn(ierr);
 }

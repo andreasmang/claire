@@ -87,6 +87,7 @@ struct FinalConditionNCC {
   ScalarType const2;
   ScalarType const3;
   ScalarType const4;
+  ScalarType const5;
   ScalarType inpr_m1_mtilde_loc;
   ScalarType inpr_mR_mtilde_loc;
   

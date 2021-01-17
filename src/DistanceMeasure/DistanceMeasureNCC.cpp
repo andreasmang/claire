@@ -21,6 +21,7 @@
 #define _DISTANCEMEASURENCC_CPP_
 
 #include "DistanceMeasureNCC.hpp"
+#include "DistanceMeasureKernel.hpp"
 
 
 
@@ -282,14 +283,14 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
    if (this->m_Mask != NULL) {
         // mask objective functional
         ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
-
-        ierr = kernel.ComputeFinalConditionMaskAE(); CHKERRQ(ierr);
+        
+        // not implemented
+        //ierr = kernel.ComputeFinalConditionMaskAE(); CHKERRQ(ierr);
     
         ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
         ierr = kernel.ComputeFinalConditionAE(); CHKERRQ(ierr);
-}  
-    }
+    }  
 
     ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
@@ -367,19 +368,19 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     if (this->m_Mask != NULL) {
         // mask objective functional
         ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
-
-        ierr = kernel.ComputeFinalConditionMaskIAE(); CHKERRQ(ierr);
+        
+        // not implemented
+        //ierr = kernel.ComputeFinalConditionMaskIAE(); CHKERRQ(ierr);
     
         ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
         ierr = kernel.ComputeFinalConditionIAE(); CHKERRQ(ierr);
-}  
-    }
+    }  
 
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_IncStateVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
-    ierr = this->m_ReferenceVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
