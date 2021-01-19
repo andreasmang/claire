@@ -94,35 +94,46 @@ PetscErrorCode DifferentiationFD::Initialize() {
  *******************************************************************/
 PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, ScalarType *x3) {
     PetscErrorCode ierr = 0;
-    int isize[3], nx[3];
-    ScalarType hx[3];
+    //int isize[3], nx[3];
+    //ScalarType hx[3];
     PetscFunctionBegin;
      
-    for (int i=0; i<3; i++) {
+    /*for (int i=0; i<3; i++) {
       isize[i] = this->m_Opt->m_Domain.isize[i];
       hx[i] = this->m_Opt->m_Domain.hx[i];
       nx[i] = this->m_Opt->m_Domain.nx[i];
-    }
+    }*/
+    
+    const IntType nghost = 4;
+    const IntType halo[3] = {nghost, 0, 0};
 
 #if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
     if (this->m_Opt->rank_cnt == 1) {
-      this->mtex = gpuInitEmptyGradientTexture(nx);
-      ierr = initConstants(isize, isize, hx, this->halo); CHKERRQ(ierr);
+      this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
+      ierr = initConstants(this->m_Opt->m_Domain.isize, 
+                           this->m_Opt->m_Domain.isize,
+                           this->m_Opt->m_Domain.hx,
+                           halo); CHKERRQ(ierr);
     } else {
-      ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt, this->nghost); CHKERRQ(ierr);
-      this->g_alloc_max = this->m_GhostPlan->get_ghost_local_size_x(this->isize_g, this->istart_g);
-      this->nlghost = isize_g[0]*isize_g[1]*isize_g[2];
+      ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt, nghost); CHKERRQ(ierr);
+      IntType isize_g[3], istart_g[3];
+      //size_t nlghost;
+      size_t g_alloc_max = this->m_GhostPlan->get_ghost_local_size_x(isize_g, istart_g);
+      //nlghost = isize_g[0]*isize_g[1]*isize_g[2];
 
       // ghost data mem alloc on CPU
       //this->m_Ghost = reinterpret_cast<ScalarType*>(accfft_alloc(this->g_alloc_max));
-      cudaMalloc((void**)&this->m_Ghost, this->g_alloc_max);
+      cudaMalloc((void**)&this->m_Ghost, g_alloc_max);
       // work memory on CPU
       //this->m_Work = reinterpret_cast<ScalarType*>(accfft_alloc(sizeof(ScalarType)*this->m_Opt->m_Domain.nl));
       // ghost data mem alloc on GPU
       //cudaMalloc((void**)&this->d_Ghost, this->nlghost*sizeof(ScalarType));
       
-      this->mtex = gpuInitEmptyGradientTexture(this->isize_g); CHKERRQ(ierr);
-      ierr = initConstants(isize, this->isize_g, hx, this->halo); CHKERRQ(ierr);
+      this->mtex = gpuInitEmptyGradientTexture(isize_g); CHKERRQ(ierr);
+      ierr = initConstants(this->m_Opt->m_Domain.isize,
+                           isize_g,
+                           this->m_Opt->m_Domain.hx,
+                           halo); CHKERRQ(ierr);
     }
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);

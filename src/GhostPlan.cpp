@@ -2,9 +2,9 @@
 
 namespace reg {
 
-GhostPlan::GhostPlan(RegOpt* m_Opt, int g_size) {
+GhostPlan::GhostPlan(RegOpt* m_Opt, IntType g_size) {
   this->m_Opt = m_Opt;
-  this->g_size = g_size;
+  this->g_size = static_cast<int>(g_size);
   
   int isize[3], istart[3];
   //int nl = this->m_Opt->m_Domain.nl;
@@ -52,7 +52,7 @@ GhostPlan::GhostPlan(RegOpt* m_Opt, int g_size) {
   }
 }
 
-size_t GhostPlan::get_ghost_local_size_x(int * isize_g, int* istart_g) {
+size_t GhostPlan::get_ghost_local_size_x(IntType * isize_g, IntType* istart_g) {
 	int nl = this->m_Opt->m_Domain.nl;
 	int n[3];
   
@@ -81,7 +81,7 @@ size_t GhostPlan::get_ghost_local_size_x(int * isize_g, int* istart_g) {
 	return this->g_alloc_max;
 }
 
-size_t GhostPlan::get_ghost_local_size_xy(int * isize_g, int* istart_g) {
+size_t GhostPlan::get_ghost_local_size_xy(IntType * isize_g, IntType* istart_g) {
 	int nl = this->m_Opt->m_Domain.nl;
 	int n[3];
   

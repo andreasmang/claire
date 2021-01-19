@@ -1168,7 +1168,8 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       }
       
       if (twolevel) {
-        TwoLevelFFT twolevel_op(this->m_Opt);
+        //TwoLevelFFT twolevel_op(this->m_Opt);
+        TwoLevelFinite twolevel_op(this->m_Opt);
         ierr = twolevel_op.Restrict(gradM[1], gradM[0]); CHKERRQ(ierr);
       }
     }
@@ -1177,7 +1178,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       
       //ierr = vecX->SetComponents(x); CHKERRQ(ierr);
-      ierr = this->m_Differentiation->InvRegLapOp(vecX, vecX, false, beta); CHKERRQ(ierr);
+      ierr = this->m_Differentiation->InvRegLapOp(vecR, vecX, false, beta); CHKERRQ(ierr);
     } else {
       ierr = gradM[1]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       
@@ -1190,15 +1191,18 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
           ierr = DbgMsgCall(ss.str()); CHKERRQ(ierr);
       }
       
-      TwoLevelRegFFT twolevel_op(this->m_Opt, beta);      
-      ierr = twolevel_op.Restrict(vecX, vecX); CHKERRQ(ierr);
+      //TwoLevelRegFFT twolevel_op(this->m_Opt, beta);      
+      TwoLevelFFT twolevel_op(this->m_Opt);      
+      ierr = twolevel_op.Restrict(vecR, vecX); CHKERRQ(ierr);
       
       ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
             
       kernel.nl = this->m_Opt->m_FFT_coarse.isize[0]*this->m_Opt->m_FFT_coarse.isize[1]*this->m_Opt->m_FFT_coarse.isize[2];
+      
+      ierr = this->m_Differentiation->InvRegLapOp(vecR, vecR, false, beta); CHKERRQ(ierr);
     }
     
-    ierr = vecR->Copy(vecX); CHKERRQ(ierr);
+    ierr = vecX->Copy(vecR); CHKERRQ(ierr);
     
     IntType innerloop = 100;
     
@@ -1309,8 +1313,10 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       if (twolevel) {
         ierr = diff->SetFFT(&this->m_Opt->m_FFT); CHKERRQ(ierr);
         
-        TwoLevelRegFFT twolevel_op(this->m_Opt, beta);
-        ierr = twolevel_op.Prolong(vecX, vecX);
+        //TwoLevelRegFFT twolevel_op(this->m_Opt, beta);
+        TwoLevelFFT twolevel_op(this->m_Opt);
+        ierr = vecR->Copy(vecX); CHKERRQ(ierr);
+        ierr = twolevel_op.Prolong(vecX, vecR);
               
         ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);
         

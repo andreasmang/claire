@@ -48,10 +48,10 @@ inline cufftResult checkCuda_accfft(cufftResult result)
 }
 #endif
 
-inline size_t get_query_recv_max_capacity(int* isize, int neighbour_query_recv_width) {
+inline size_t get_query_recv_max_capacity(IntType* isize, int neighbour_query_recv_width) {
   return (isize[0]+2*neighbour_query_recv_width)*isize[1]*isize[2]; 
 }
-inline size_t get_query_send_max_capacity(int* isize, int neighbour_query_send_width) {
+inline size_t get_query_send_max_capacity(IntType* isize, int neighbour_query_send_width) {
   return (2*neighbour_query_send_width)*isize[1]*isize[2]; 
 }
 
@@ -220,7 +220,7 @@ Interp3_Plan_GPU::Interp3_Plan_GPU (size_t g_alloc_max, bool cuda_aware) {
 /****************************************************************************************************
 * Allocate Memory
 ****************************************************************************************************/
-void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsize, int *isize_g)
+void Interp3_Plan_GPU::allocate (int N_pts, int* data_dofs, int nplans, int gsize, IntType *isize_g)
 {
   int nprocs, procid;
   MPI_Comm_rank(MPI_COMM_WORLD, &procid);
@@ -347,9 +347,9 @@ void rescale_xyz(const int g_size,  int* N_reg, int* N_reg_g, int* istart, const
  * optimizations performed which assumes that the query_points do not change. For repeated interpolation you should
  * just call this function once, and instead repeatedly call Interp3_Plan::interpolate function.
  */
-void Interp3_Plan_GPU::scatter( int* N_reg,  // global grid dimensions
-                                int * isize, // local grid dimensions
-                                int* istart, // local grid start indices
+void Interp3_Plan_GPU::scatter( IntType* N_reg,  // global grid dimensions
+                                IntType * isize, // local grid dimensions
+                                IntType* istart, // local grid start indices
                                 const int N_pts, // local grid point count
                                 const int g_size, // ghost layer width
                                 ScalarType* query_points_x, // input query points, will be overwritten
@@ -644,7 +644,7 @@ void Interp3_Plan_GPU::test_kernel(ScalarType* f, int nq) {
  */
 
 void Interp3_Plan_GPU::interpolate( ScalarType* f_ghost, // ghost padded regular grid values on GPU
-                                    int* isize_g,              // size of the local grid (including ghost points)
+                                    IntType* isize_g,              // size of the local grid (including ghost points)
                                     const IntType nlghost,         // number of local grid points (including ghost points) owned by process
                                     const IntType N_pts,           // number of local points owned by the process
                                     ScalarType** query_values,      // interpolation result on GPU

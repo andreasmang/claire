@@ -27,11 +27,11 @@
 struct Interp3_Plan_GPU{
   public:
   Interp3_Plan_GPU(size_t g_alloc_max, bool cuda_aware);
-  void allocate (int N_pts, int* data_dofs, int nplans, int gsize, int* isize_g);
-  void scatter(int* N_reg, int * isize, int* istart, const int N_pts, const int g_size, ScalarType* query_points_in_x, ScalarType* query_points_in_y, ScalarType* query_points_in_z, int* c_dims, MPI_Comm c_comm, double * timings, std::string flag);
+  void allocate (int N_pts, int* data_dofs, int nplans, int gsize, IntType* isize_g);
+  void scatter(IntType* N_reg, IntType * isize, IntType* istart, const int N_pts, const int g_size, ScalarType* query_points_in_x, ScalarType* query_points_in_y, ScalarType* query_points_in_z, int* c_dims, MPI_Comm c_comm, double * timings, std::string flag);
   void test_kernel(ScalarType* f, int nq);
   void interpolate( ScalarType* ghost_reg_grid_vals, 
-                    int* isize_g,
+                    IntType* isize_g,
                     const IntType nlghost,
                     const IntType N_pts, 
                     ScalarType** query_values,

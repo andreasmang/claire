@@ -2,14 +2,10 @@
 #include "DifferentiationKernel.hpp"
 
 namespace reg {
-  
-TwoLevel::TwoLevel(RegOpt* opt) : m_Opt(opt) {};
-TwoLevel::~TwoLevel() {};
-
 //--------------------------------------------------------------------------------------------------
 
-TwoLevelFFT::TwoLevelFFT(RegOpt* opt) : TwoLevel(opt) {};
-TwoLevelFFT::~TwoLevelFFT() {};
+TwoLevelFFT::TwoLevelFFT(RegOpt* opt) : TwoLevel(opt) {}
+TwoLevelFFT::~TwoLevelFFT() {}
 
 PetscErrorCode TwoLevelFFT::Restrict(ScaField* dst, ScaField* src) {
   PetscErrorCode ierr = 0;
@@ -344,5 +340,5 @@ PetscErrorCode TwoLevelRegFFT::Prolong(VecField* dst, VecField* src) {
   
   PetscFunctionReturn(ierr);
 }
-  
+
 } // namespace reg

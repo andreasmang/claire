@@ -74,10 +74,10 @@ class DifferentiationFD : public Differentiation {
   cudaTextureObject_t mtex;
 #endif    
 
-  const int nghost = 4;
-  int halo[3] = {nghost, 0, 0};
-  size_t g_alloc_max;
-  int nlghost, isize_g[3], istart_g[3];
+  //const int nghost = 4;
+  //int halo[3] = {nghost, 0, 0};
+  //size_t g_alloc_max;
+  //int nlghost, isize_g[3], istart_g[3];
   ScalarType* m_Ghost, *d_Ghost;//, *m_Work;
 
   GhostPlan* m_GhostPlan;

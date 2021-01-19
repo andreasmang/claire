@@ -21,6 +21,8 @@
 #define _CLAIREBASE_CPP_
 
 #include "CLAIREBase.hpp"
+#include "TwoLevel.hpp"
+#include "nifti1_io.h"
 
 namespace reg {
 
@@ -383,7 +385,48 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
     if (this->m_Opt->m_Verbosity > 3) {
       ierr = this->m_ReferenceImage->DebugInfo("mR", __LINE__, __FILE__);
     }
+    
+    /*
+    printf("Beep Boop\n");
+    ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
 
+    ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
+    
+    TwoLevelFinite mgop(this->m_Opt);
+    
+    this->m_WorkScaField1->Set(0);
+    this->m_WorkScaField2->Set(0);
+    
+    mgop.Restrict(this->m_WorkScaField1, this->m_ReferenceImage);
+    mgop.Prolong(this->m_WorkScaField2, this->m_WorkScaField1);
+    
+    VecAXPY(this->m_WorkScaField2->m_X, -1, this->m_ReferenceImage->m_X);
+    
+    Vec pvec = this->m_WorkScaField2->m_X;
+    ScalarType *data;
+    VecGetArray(pvec, &data);
+    nifti_image *image = nullptr;
+    image = nifti_simple_init_nim();
+    image->dim[0] = image->ndim = 3;
+    image->dim[1] = image->nx = this->m_Opt->m_Domain.isize[2];
+    image->dim[2] = image->ny = this->m_Opt->m_Domain.isize[1];
+    image->dim[3] = image->nz = this->m_Opt->m_Domain.isize[0];
+    image->nvox = image->nx*image->ny*image->nz;
+    image->data = data;
+    image->nbyper = sizeof(ScalarType);
+    image->datatype = NIFTI_TYPE_FLOAT32;
+    image->nifti_type = NIFTI_FTYPE_NIFTI1_1;
+    image->fname = nifti_makehdrname("org.nii.gz", image->nifti_type, false, true);
+    image->iname = nifti_makeimgname("org.nii.gz", image->nifti_type, false, true);  
+    nifti_image_infodump(image);
+    nifti_image_write(image);
+    image->data = nullptr;
+    nifti_image_free(image); 
+    VecRestoreArray(pvec, &data);
+    */
+    
     // assign pointer
     //this->m_ReferenceImage = mR;
     if (this->m_Opt->m_RegFlags.registerprobmaps) {

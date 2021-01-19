@@ -968,7 +968,7 @@ extern "C" cudaTextureObject_t initTextureFromVolume(cudaPitchedPtr volume, cuda
 /********************************************************************
  * @brief create texture object with empty data (cudaArray)
  *******************************************************************/
-extern "C" cudaTextureObject_t gpuInitEmptyTexture(int* nx) {
+extern "C" cudaTextureObject_t gpuInitEmptyTexture(IntType* nx) {
 
    cudaError_t err = cudaSuccess;
    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
@@ -1199,12 +1199,14 @@ void gpuInterp3D(
            const PetscScalar** xq,
            PetscScalar* yo,
            float *tmp1, float* tmp2,
-           int*  nx,
+           IntType*  inx,
            long int nq,
            cudaTextureObject_t yi_tex,
            int iporder,
            float* interp_time)
 {
+    int nx[3];
+    nx[0] = inx[0]; nx[1] = inx[1]; nx[2] = inx[2];
     // define inv of nx for normalizing in texture interpolation
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 
@@ -1239,8 +1241,10 @@ void gpuInterpVec3D(
            const PetscScalar** xq,
            PetscScalar* yo1, PetscScalar* yo2, PetscScalar* yo3,
            float *tmp1, float* tmp2,
-           int*  nx, long int nq, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
+           IntType*  inx, long int nq, cudaTextureObject_t yi_tex, int iporder, float* interp_time)
 {
+    int nx[3];
+    nx[0] = inx[0]; nx[1] = inx[1]; nx[2] = inx[2];
     // define inv of nx for normalizing in texture interpolation
     const float3 inv_nx = make_float3(  1.0f/static_cast<float>(nx[2]),
                                         1.0f/static_cast<float>(nx[1]), 
@@ -1296,7 +1300,7 @@ __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, Sca
 }
 
 
-void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, int* isize, int* nx, int* procid, int nghost) {
+void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, IntType* isize, IntType* nx, int* procid, int nghost) {
     
     const float3 offset = make_float3( static_cast<float>(nghost-procid[0]*isize[0]),
                                        static_cast<float>(0*nghost-0*procid[1]*isize[1]),

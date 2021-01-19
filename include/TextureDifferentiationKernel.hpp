@@ -28,9 +28,9 @@
 
 namespace reg {
     
-    cudaTextureObject_t gpuInitEmptyGradientTexture(int *);
+    cudaTextureObject_t gpuInitEmptyGradientTexture(IntType *);
     
-    PetscErrorCode initConstants(int*, int*, ScalarType*, int*);
+    PetscErrorCode initConstants(const IntType*, const IntType*, const ScalarType*, const IntType*);
     PetscErrorCode computeGradient(ScalarType* , ScalarType* , ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, bool mgpu=false);
     PetscErrorCode computeDivergence(ScalarType* , const ScalarType* , const ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, bool mgpu=false);
     PetscErrorCode computeLaplacian(ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, ScalarType, bool mgpu=false);
