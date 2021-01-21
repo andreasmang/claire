@@ -1,5 +1,5 @@
 ---
-title: 'CLAIRE: Constrained Large Deformation Diffeomorphic Image Registration on Parallel Computing Architectures'
+title: 'CLAIRE: Constrained Diffeomorphic Image Registration on HPC Architectures'
 tags:
   - c++
   - GPUs
@@ -30,6 +30,8 @@ affiliations:
 date: 25 August 2020
 bibliography: paper.bib
 ---
+
+
 
 # Summary
 [`CLAIRE`](https://andreasmang.github.io/claire) [@claire-web] is a computational framework for Constrained LArge deformation diffeomorphic Image REgistration [@Mang:2019a]. It supports highly-optimized, parallel computational kernels for (multi-node) CPU [@Mang:2016a],[@Gholami:2017a],[@Mang:2019a] and (multi-node multi-)GPU architectures [@Brunn:2020a],[@Brunn:2021a]. `CLAIRE` uses MPI for distributed-memory parallelism and can be scaled up to thousands of cores [@Mang:2019a,@Mang:2016a] and GPU devices [@Brunn:2020a]. The multi-GPU implementation exploiting device direct communication. The computational kernels are interpolation for semi-Lagrangian time integration, and a mixture of high-order finite difference operators and Fast-Fourier-Transforms (FFTs) for differentiation. `CLAIRE` uses a Newton--Krylov solver for numerical optimization [@Mang:2015a],[@Mang:2017a]. It features various schemes for regularization of the control problem [@Mang:2016a] and different similarity measures. `CLAIRE` features different preconditioners for the reduced space Hessian [@Brunn:2020a],[@Mang:2019a] to optimize computational throughput and enable fast convergence. It uses `PETSc` [@petsc-web] for scalable and efficient linear algebra operations and solvers and `TAO` [@petsc-web],[@Munson:2015a] for numerical optimization. `CLAIRE` can be downloaded at <https://github.com/andreasmang/claire>.
