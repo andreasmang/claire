@@ -1,5 +1,5 @@
 ---
-title: 'CLAIRE: Constrained Large Deformation Diffeomorphic Image Registration on Parallel Architectures'
+title: 'CLAIRE: Constrained Large Deformation Diffeomorphic Image Registration on Parallel Computing Architectures'
 tags:
   - C++
   - GPUs
