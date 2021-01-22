@@ -17,7 +17,7 @@ authors:
     affiliation: 2
   - name: Miriam Mehl
     affiliation: 1
-  - name: Andreas Mang^[Corresponding author: andreas@math.uh.edu]
+  - name: Andreas Mang
     orcid: 0000-0003-4605-3290
     affiliation: 3
 affiliations:
