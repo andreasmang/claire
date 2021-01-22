@@ -11,7 +11,7 @@ A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory sol
 
 
 ## Parallel GPU Implementation
-* M. Brunn, N. Himthani, G. Biros, M. Mehl, & A. Mang. *Multi-node multi-GPU diffeomorphic image registration for large-scale imaging problems*. Proc ACM/IEEE Conference on Supercomputing 2020. [[arxiv](https://arxiv.org/abs/2008.12820)], [ieee](https://doi.ieeecomputersociety.org/10.1109/SC41405.2020.00042)].
+* M. Brunn, N. Himthani, G. Biros, M. Mehl, & A. Mang. *Multi-node multi-GPU diffeomorphic image registration for large-scale imaging problems*. Proc ACM/IEEE Conference on Supercomputing 2020. [[arxiv](https://arxiv.org/abs/2008.12820), [ieee](https://doi.ieeecomputersociety.org/10.1109/SC41405.2020.00042)].
 * M. Brunn, N. Himthani, G. Biros, M. Mehl, & A. Mang. *Fast GPU 3D diffeomorphic image registration*. Journal of Parallel and Distributed Computing, 149:149-162, 2021 [[arxiv](https://arxiv.org/abs/2004.08893), [jpdc](https://doi.org/10.1016/j.jpdc.2020.11.006)].
 
 
