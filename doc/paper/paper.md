@@ -10,22 +10,22 @@ tags:
   - medical imaging
 authors:
   - name: Malte Brunn
-    affiliation: 1
+    affiliation: "1"
   - name: Naveen Himthani
-    affiliation: 2
+    affiliation: "2"
   - name: George Biros
-    affiliation: 2
+    affiliation: "2"
   - name: Miriam Mehl
-    affiliation: 1
-  - name: Andreas Mang
+    affiliation: "1"
+  - name: Andreas Mang^[Corresponding Author]
     orcid: 0000-0003-4605-3290
-    affiliation: 3
+    affiliation: "3"
 affiliations:
- - name: Computer Science, University Stuttgart
+ - name: Department of Computer Science, University Stuttgart
    index: 1
- - name: Oden Institute, University of Texas at Austin
+ - name: Oden Institute for Computational Engineering and Sciences, University of Texas at Austin
    index: 2
- - name: Mathematics, University of Houston
+ - name: Department of Mathematics, University of Houston
    index: 3
 date: 21 Januar 2021
 bibliography: paper.bib
