@@ -1260,7 +1260,7 @@ PetscErrorCode RegOpt::Initialize() {
     //this->m_RegModel = RELAXEDSTOKES;
 
     this->m_RegNorm = {};
-    this->m_RegNorm.type = H2SN;
+    this->m_RegNorm.type = H1SN;
 //    this->m_RegNorm.type = H1SN;                    ///< default regularization norm
     this->m_RegNorm.beta[0] = 1E-2;                 ///< default regularization parameter for velocity
     this->m_RegNorm.beta[1] = 1E-4;                 ///< default regularization parameter for norm (idenity)

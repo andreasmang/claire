@@ -91,7 +91,8 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
         char txt[120];
         double global_runtime;
         double local_runtime = zg.second.Total_s();
-        MPI_Reduce(&local_runtime, &global_runtime, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
+        MPI_Reduce(&local_runtime, &global_runtime, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD);
+        global_runtime /= this->m_Opt->rank_cnt;
         sprintf(txt, "  %-60s: %5lix, %0.10lf",zg.first.c_str(), zg.second.Count(), global_runtime);
         Msg(txt);
       }
