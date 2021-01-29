@@ -46,26 +46,51 @@ Information about the Research Computing Data Core ([RCDC](https://www.uh.edu/rc
 
 GPU version of CLAIRE (GIT version v0.07-363-gb5ed; date: 11/21/2020)
 
-### Modules:
+### Modules
 
 ```bash
-python/3.6
-cmake/3.15.4
-CUDA/9.2.88
-PSM2/10.3.35-cuda
-OpenMPI/gcc-cuda/3.1.2
+module load python$
+module load CMake$
+module load OpenMPI/intel/4.0.1~$
+module load CUDA/10.0.130$
 ```
 
+
+### Build
+
 ```bash
-export MPI_INC="/project/cacds/apps/openmpi/3.1.2/gcc-cuda/include"
-export MPI_DIR="/project/cacds/apps/openmpi/3.1.2/gcc-cuda"
+cd deps
+make -j
+cd ..
+source deps/env_source.sh
+make -j
 ```
 
-### Dependencies:
-* nifticlib
-* petsc-lite-3.11.4
+### Batch Job Submission
 
 ```bash
-./build_libs.sh --enableCUDA=1 --gpu=V100 --bnifti
-./build_libs.sh --enableCUDA=1 --gpu=V100 --bpetsccudasgl
+#!/bin/bash
+#SBATCH -J claire
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -o job%j.out
+#SBATCH -e job%j.err
+#SBATCH -p gpu
+#SBATCH --gres=gpu:1
+#SBATCH --mem=64GB
+#SBATCH -t 01:30:00
+#SBATCH --mail-user=YOUR EMAIL
+#SBATCH --mail-type=begin
+#SBATCH --mail-type=end
+#SBATCH --mail-type=fail
+
+### directory of your code
+CDIR=${HOME}/code/claire
+
+nvidia-smi
+
+#### define paths
+source ${CDIR}/deps/env_source.sh
+
+mpirun ${CDIR}/bin/claire -synthetic 2 -nx 128
 ```
