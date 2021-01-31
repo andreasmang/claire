@@ -124,6 +124,51 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
 ////////////////////////////////////////////////////////////////////////
 //> NCC Distance metric routines 
 ///////////////////////////////////////////////////////////////////////
+PetscErrorCode EvaluateFunctionalNCC::ComputeScaleMask() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+    
+  norm_l2_loc = 0;
+  norm_mT_loc = 0;
+  norm_mR_loc = 0;
+  inpr_mT_mT_loc = 0;
+
+  for (IntType k = 0; k < nc; ++k) {  // for all image components
+    for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
+      ScalarType mRi = pMr[k*nl+i];
+      ScalarType mTi = pMt[k*nl+i];
+      ScalarType w = pW[i];
+      norm_l2_loc += w*(mRi-mTi)*(mRi-mTi);
+      norm_mT_loc += w*mTi*mTi;
+      norm_mR_loc += w*mRi*mRi;
+      inpr_mT_mT_loc += w*mTi*mRi;
+    }
+  }
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode EvaluateFunctionalNCC::ComputeScale() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  norm_l2_loc = 0;
+  norm_mT_loc = 0;
+  norm_mR_loc = 0;
+  inpr_mT_mT_loc = 0;
+
+  for (IntType i=0; i < nc*nl; i++) {
+    ScalarType mRi = pMr[i];
+    ScalarType mTi = pMt[i];
+    norm_l2_loc += (mRi-mTi)*(mRi-mTi);
+    norm_mT_loc += mTi*mTi;
+    norm_mR_loc += mRi*mRi;
+    inpr_mT_mT_loc += mTi*mRi;
+  }
+
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode EvaluateFunctionalNCC::ComputeFunctionalMask() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
@@ -236,16 +281,43 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskIAE() {
 PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
+  
+    norm_m1_loc = 0;
+    norm_mR_loc = 0;
+    inpr_m1_mR_loc = 0;
+#pragma omp parallel
+{
+#pragma omp for
+    for (IntType i = 0; i<nc*nl; ++i) {
+        m1i = pM[i];
+        mRi = pMr[i];
+        norm_mR_loc += mRi*mRi;
+        norm_m1_loc += m1i*m1i;
+        inpr_m1_mR_loc += (m1i*mRi);
+    }
+}
+    PetscFunctionReturn(ierr);
+}
 
+PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+  
+    norm_m1_loc = 0;
+    norm_mR_loc = 0;
+    inpr_m1_mR_loc = 0;
     inpr_m1_mtilde_loc = 0;
     inpr_mR_mtilde_loc = 0;
 #pragma omp parallel
 {
 #pragma omp for
-    for (IntType i = 0; i<nl*nl; ++i) {
+    for (IntType i = 0; i<nc*nl; ++i) {
         m1i = pM[i];
         mRi = pMr[i];
         mtildei = pMtilde[i];
+        norm_mR_loc += mRi*mRi;
+        norm_m1_loc += m1i*m1i;
+        inpr_m1_mR_loc += (m1i*mRi);
         inpr_m1_mtilde_loc += (m1i*mtilde1i);
         inpr_mR_mtilde_loc += (mRi*mtilde1i);
     }

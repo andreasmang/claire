@@ -374,24 +374,26 @@ PetscErrorCode TestGradient(RegOpt *m_Opt) {
   
   std::cout << "starting gradient solver unit test" << std::endl;
   
-  Vec m = 0;
-  reg::VecField* v = NULL;
-  reg::CLAIRE* registration = NULL;
+  reg::ScaField* m = nullptr;
+  reg::VecField* v = nullptr;
+  reg::CLAIRE* registration = nullptr;
 
   ierr = AllocateOnce(registration, m_Opt); CHKERRQ(ierr);
-  ierr = ComputeSyntheticData(m, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(v, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(m, m_Opt); CHKERRQ(ierr);
+  ierr = ComputeSyntheticData(m->m_X, m_Opt); CHKERRQ(ierr);
   ierr = ComputeSyntheticData(v, m_Opt); CHKERRQ(ierr);
 
   ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
   ierr = registration->InitializeSolver(); CHKERRQ(ierr);
-  ierr = registration->SetReferenceImage(m); CHKERRQ(ierr);
-  ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
+  ierr = registration->SetReferenceImage(m->m_X); CHKERRQ(ierr);
+  ierr = registration->SolveForwardProblem(NULL, m->m_X); CHKERRQ(ierr);
   ierr = registration->EvaluateGradient(NULL, NULL); CHKERRQ(ierr);
 
   ierr = registration->DerivativeCheckGradient(); CHKERRQ(ierr);
 
-  if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
-  if (v != NULL) {delete v; v = NULL;}
+  if (m != NULL) {ierr = Free(m); CHKERRQ(ierr); m = NULL;}
+  if (v != NULL) {ierr = Free(v); CHKERRQ(ierr); v = NULL;}
   
   ierr = Free(registration); CHKERRQ(ierr);
   
@@ -405,25 +407,27 @@ PetscErrorCode TestHessian(RegOpt *m_Opt) {
   
   std::cout << "starting gradient solver unit test" << std::endl;
   
-  Vec m = 0;
-  reg::VecField* v = NULL;
-  reg::CLAIRE* registration = NULL;
+  reg::ScaField* m = nullptr;
+  reg::VecField* v = nullptr;
+  reg::CLAIRE* registration = nullptr;
 
   ierr = AllocateOnce(registration, m_Opt); CHKERRQ(ierr);
-  ierr = ComputeSyntheticData(m, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(m, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(v, m_Opt);
+  ierr = ComputeSyntheticData(m->m_X, m_Opt); CHKERRQ(ierr);
   ierr = ComputeSyntheticData(v, m_Opt); CHKERRQ(ierr);
 
   ierr = registration->SetControlVariable(v); CHKERRQ(ierr);
   ierr = registration->InitializeSolver(); CHKERRQ(ierr);
-  ierr = registration->SetReferenceImage(m); CHKERRQ(ierr);
-  ierr = registration->SolveForwardProblem(NULL, m); CHKERRQ(ierr);
+  ierr = registration->SetReferenceImage(m->m_X); CHKERRQ(ierr);
+  ierr = registration->SolveForwardProblem(NULL, m->m_X); CHKERRQ(ierr);
   ierr = registration->EvaluateGradient(NULL, NULL); CHKERRQ(ierr);
   ierr = registration->HessianMatVec(NULL, NULL); CHKERRQ(ierr);
 
   ierr = registration->DerivativeCheckHessian(); CHKERRQ(ierr);
 
-  if (m != NULL) {ierr = VecDestroy(&m); CHKERRQ(ierr); m = NULL;}
-  if (v != NULL) {delete v; v = NULL;}
+  if (m != NULL) {ierr = Free(m); CHKERRQ(ierr); m = NULL;}
+  if (v != NULL) {ierr = Free(v); CHKERRQ(ierr); v = NULL;}
   
   ierr = Free(registration); CHKERRQ(ierr);
   

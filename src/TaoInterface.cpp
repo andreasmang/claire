@@ -623,7 +623,7 @@ PetscErrorCode GetLineSearchStatus(Tao tao, void* ptr) {
 
     ierr = TaoGetLineSearch(tao, &ls); CHKERRQ(ierr);
 
-#if PETSC_VERSION_GE(3,12,4)
+#if PETSC_VERSION_GE(3,13,4)
     ierr = TaoLineSearchGetSolution(ls, 0, &J, 0, &step, &flag); CHKERRQ(ierr);
 #else
 		IntType nl, ng;

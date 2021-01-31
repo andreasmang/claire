@@ -281,6 +281,8 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
         }
 }  // omp*/
     }
+
+    //PetscPrintf(PETSC_COMM_WORLD, "norm2 mtilde = %0.4e\n", kernel.norm_mtilde_loc);
     
     ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);

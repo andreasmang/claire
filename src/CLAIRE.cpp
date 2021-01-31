@@ -1509,6 +1509,10 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     if (vtilde != NULL) {
         ierr = this->m_IncVelocityField->SetComponents(vtilde); CHKERRQ(ierr);
     }
+
+    ScalarType vtilde_norm;
+    ierr = VecNorm(vtilde, NORM_2, &vtilde_norm);
+    //PetscPrintf(PETSC_COMM_WORLD, "vtilde norm = %0.4e\n", vtilde_norm);
     
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);
@@ -2213,6 +2217,11 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
         ierr = DbgMsg2(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
     }
+
+    ScalarType mtilde_norm;
+    ierr = VecNorm(this->m_IncStateVariable->m_X, NORM_2, &mtilde_norm);
+    //PetscPrintf(PETSC_COMM_WORLD, "mtilde norm = %0.4e\n", mtilde_norm);
+
 
     // stop timer
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);

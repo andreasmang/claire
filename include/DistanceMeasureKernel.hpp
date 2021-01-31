@@ -45,10 +45,14 @@ struct EvaluateFunctionalNCC {
   const ScalarType *pW;
   const ScalarType *pM;
   const ScalarType *pMr;
+  const ScalarType *pMt;
   const ScalarType *pWts;
+  ScalarType norm_l2_loc;
   ScalarType norm_m1_loc;
+  ScalarType norm_mT_loc;
   ScalarType norm_mR_loc;
   ScalarType inpr_m1_mR_loc;
+  ScalarType inpr_mT_mR_loc;
   
   IntType nl;
   IntType nc;
@@ -56,7 +60,9 @@ struct EvaluateFunctionalNCC {
   ScalarType value;
   
   PetscErrorCode ComputeFunctional();
+  PetscErrorCode ComputeScale();
   PetscErrorCode ComputeFunctionalMask();
+  PetscErrorCode ComputeScaleMask();
 };
 
 struct FinalConditionSL2 {
@@ -65,6 +71,7 @@ struct FinalConditionSL2 {
   const ScalarType *pMr;
   const ScalarType *pW;
   const ScalarType *pWts;
+  ScalarType norm_mtilde_loc;
   
   IntType nl;
   IntType nc;
@@ -88,6 +95,10 @@ struct FinalConditionNCC {
   ScalarType const3;
   ScalarType const4;
   ScalarType const5;
+  ScalarType norm_m1_loc;
+  ScalarType norm_mR_loc;
+  ScalarType norm_mtilde_loc;
+  ScalarType inpr_m1_mR_loc;
   ScalarType inpr_m1_mtilde_loc;
   ScalarType inpr_mR_mtilde_loc;
   
@@ -98,6 +109,7 @@ struct FinalConditionNCC {
   PetscErrorCode ComputeFinalConditionMaskAE();
   PetscErrorCode ComputeFinalConditionIAE();
   PetscErrorCode ComputeFinalConditionMaskIAE();
+  PetscErrorCode ComputeInnerProductsFinalConditionAE();
   PetscErrorCode ComputeInnerProductsFinalConditionIAE();
 };
 

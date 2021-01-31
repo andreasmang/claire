@@ -19,6 +19,9 @@
 
 #include "DistanceMeasureKernel.hpp"
 #include "cuda_helper.hpp"
+#include "thrust/reduce.h"
+#include "thrust/execution_policy.h"
+
 
 __global__ void VecSubMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pWts,
     const ScalarType *pMr, const ScalarType *pM, int nl) {
@@ -236,6 +239,13 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  stat = cublasCreate(&handle);
+  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_mtilde_loc);
+  stat = cublasDestroy(handle);
+
+  
   PetscFunctionReturn(ierr);
 }
 
@@ -268,17 +278,71 @@ __global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarTy
 }
 
 /* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeScaleMask() {
+  PetscErrorCode ierr = 0;
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, nc, 1);
+  ScalarType *res = nullptr;
+  PetscFunctionBegin;
+  
+  // not implemented
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeScale() {
+  PetscErrorCode ierr = 0;
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, nc, 1);
+  ScalarType *res = nullptr;
+  ScalarType sum = 0.0;
+  PetscFunctionBegin;
+  
+  stat = cublasCreate(&handle);
+
+  stat = cublasSnrm2(handle, nl*nc, pMt, 1, &norm_mT_loc);
+  norm_mT_loc *= norm_mT_loc;
+  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  norm_mR_loc *= norm_mR_loc;
+  stat = cublasSdot(handle, nl*nc, pMt, 1, pMr, 1, &inpr_mT_mR_loc);
+
+  stat = cublasDestroy(handle);
+  
+  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  
+  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pWts, pMr, pMt, nl);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ReductionSum<1024><<<1, 1024>>>(res, grid.x*grid.y);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ierr = cudaMemcpy(reinterpret_cast<void*>(&norm_l2_loc), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+    
+  FreeMemory(res);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Compute the Registration Functional */
 PetscErrorCode EvaluateFunctionalNCC::ComputeFunctional() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
-    
+  
+  //std::cout<<"in ncc compute functional"<<std::endl;
   cublasStatus_t stat;
   cublasHandle_t handle; 
 
   stat = cublasCreate(&handle);
 
   stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  norm_m1_loc *= norm_m1_loc;
   stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  norm_mR_loc *= norm_mR_loc;
   stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
 
   stat = cublasDestroy(handle);
@@ -318,7 +382,7 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskAE() {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
+PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
 
@@ -326,8 +390,39 @@ PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
   cublasHandle_t handle; 
   stat = cublasCreate(&handle);
   
-  stat = cublasSdot(handle, nl*nc, pMR, 1, pMtilde, 1, &inpr_mR_mtilde_loc);
-  stat = cublasSdot(handle, nl*nc, pM, 1, pMtilde, 1, &inpr_m1_mR_loc);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pM, 1, &norm_m1_loc);
+  stat = cublasSdot(handle, nl*nc, pMr, 1, pMr, 1, &norm_mR_loc);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  
+  stat = cublasDestroy(handle);
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  stat = cublasCreate(&handle);
+
+  ScalarType norm_mtilde_loc = 0;
+  stat = cublasSnrm2(handle, nl*nc, pMtilde, 1, &norm_mtilde_loc);
+  norm_mtilde_loc *= norm_mtilde_loc;
+  
+  stat = cublasSdot(handle, nl*nc, pMr, 1, pMtilde, 1, &inpr_mR_mtilde_loc);
+  ierr = Assert(!PetscIsNanReal(inpr_mR_mtilde_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMtilde, 1, &inpr_m1_mtilde_loc);
+  ierr = Assert(!PetscIsNanReal(inpr_m1_mtilde_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  norm_m1_loc *= norm_m1_loc;
+  ierr = Assert(!PetscIsNanReal(norm_m1_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  norm_mR_loc *= norm_mR_loc;
+  ierr = Assert(!PetscIsNanReal(norm_mR_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  ierr = Assert(!PetscIsNanReal(inpr_m1_mR_loc), "is nan"); CHKERRQ(ierr);
   
   stat = cublasDestroy(handle);
 

@@ -78,84 +78,63 @@ PetscErrorCode DistanceMeasureNCC::ClearMemory() {
 ********************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetupScale(){
     PetscErrorCode ierr = 0;	
+    DistanceMeasureKernel::EvaluateFunctionalNCC kernel;
     ScalarType *p_mr = NULL, *p_mt = NULL, *p_w = NULL;
-    IntType nc, nl;
-    ScalarType norm_l2_loc, norm_mT_loc, norm_mR_loc, inpr_mT_mR_loc, 
-	       norm_l2, norm_mT, norm_mR, inpr_mT_mR, mTi, mRi;
+    IntType nc;
+    ScalarType norm_l2, norm_mT, norm_mR, inpr_mT_mR, mTi, mRi;
     int rval;
     ScalarType l2distance, nccdistance, hd;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
 
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
+    kernel.nc = this->m_Opt->m_Domain.nc;
     nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     hd  = this->m_Opt->GetLebesgueMeasure();   
 
-    ierr = GetRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->GetArrayRead(kernel.pMt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
-    norm_l2_loc = 0.0;
-    norm_mT_loc = 0.0;
-    norm_mR_loc = 0.0;
-    inpr_mT_mR_loc = 0.0;
     if (this->m_Mask != NULL) {
         // Mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-		mTi = p_mt[k*nl+i];
-                mRi = p_mr[k*nl+i];
-                
-		// L2 Pieces
-                norm_l2_loc    += p_w[i]*(mTi - mRi)*(mTi - mRi);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
 
-		// NCC Pieces
-                norm_mT_loc    += p_w[i]*(mTi*mTi);
-                norm_mR_loc    += p_w[i]*(mRi*mRi);
-                inpr_mT_mR_loc += p_w[i]*(mTi*mRi);
-            }
-        }
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = kernel.ComputeScaleMask(); CHKERRQ(ierr);
+    
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-            mTi = p_mt[i];
-            mRi = p_mr[i];
-            
-	    // L2 Pieces
-            norm_l2_loc    += (mTi - mRi)*(mTi - mRi);
-            
-	    // NCC Pieces
-            norm_mT_loc    += (mTi*mTi);
-            norm_mR_loc    += (mRi*mRi);
-            inpr_mT_mR_loc += (mTi*mRi);
-        }
+        ierr = kernel.ComputeScale(); CHKERRQ(ierr);
     }
     // All reduce the pieces
-    rval = MPI_Allreduce(&norm_l2_loc, &norm_l2, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_l2_loc, &norm_l2, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&norm_mT_loc, &norm_mT, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_mT_loc, &norm_mT, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&inpr_mT_mR_loc, &inpr_mT_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.inpr_mT_mR_loc, &inpr_mT_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
     // Calculate two distance measures and scale
     l2distance = 0.5*hd*norm_l2/static_cast<ScalarType>(nc);
     nccdistance = 0.5 - 0.5*(inpr_mT_mR*inpr_mT_mR)/(norm_mT*norm_mR);
     this->m_Opt->m_Distance.scale = l2distance/nccdistance;
+    //std::cout<<" scale = " << l2distance/nccdistance << std::endl;
     this->m_Opt->Exit(__func__);
 
 
@@ -172,7 +151,7 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     DistanceMeasureKernel::EvaluateFunctionalNCC kernel;
     IntType nt, nc, nl, l;
-    ScalarType norm_m1, norm_mR, inpr_m1_mR, m1i, mRi, scale;
+    ScalarType norm_m1, norm_mR, inpr_m1_mR, scale;
     int rval;
 
     PetscFunctionBegin;
@@ -215,9 +194,12 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
     
     // save the inner products in order to reuse them for computing final condition for AE and IAE
-    this->inpr_mR = inpr_mR;
-    this->inpr_m1 = inpr_m1;
-    this->inpr_m1_mR = inpr_m1_mR;
+    //this->inpr_mR = norm_mR;
+    //std::cout << "norm_mR = " << norm_mR << std::endl;
+    //this->inpr_m1 = norm_m1;
+    //std::cout << "norm_m1 = " << norm_m1 << std::endl;
+    //this->inpr_m1_mR = inpr_m1_mR;
+    //std::cout << "inpr_m1_mR = " << inpr_m1_mR << std::endl;
 
     // Objective value
     *D = scale*(0.5 - 0.5*(inpr_m1_mR*inpr_m1_mR)/(norm_m1*norm_mR));
@@ -269,16 +251,29 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     /* compute terminal condition
 	lambda = (<m1,mR>/<m1,m1><mR,mR>) * (mR - (<m1,mR>/<m1,m1>)*m1)
     */
+    ierr = kernel.ComputeInnerProductsFinalConditionAE(); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     
     // first load the inner products
     //l = nt*nc*nl;
-    norm_m1 = this->inpr_m1;
-    norm_mR = this->inpr_mR;
-    inpr_m1_mR = this->inpr_m1_mR;
+    //norm_m1 = this->inpr_m1;
+    //norm_mR = this->inpr_mR;
+    //inpr_m1_mR = this->inpr_m1_mR;
 
     // Now, write the terminal condition to lambda
     kernel.const1 = scale*inpr_m1_mR/(hd*norm_m1*norm_mR);
     kernel.const2 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
+
+    //std::cout << "gradient const1 = " << kernel.const1 << std::endl;
+    //std::cout << "gradient const2 = " << kernel.const2 << std::endl;
 
    if (this->m_Mask != NULL) {
         // mask objective functional
@@ -312,8 +307,6 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     PetscErrorCode ierr = 0;
     IntType nt, nc, nl, ll, l;
     int rval;
-    ScalarType *p_m = NULL, *p_mr = NULL, *p_mtilde = NULL,
-                *p_ltilde = NULL, *p_w = NULL;
     //ScalarType const1, const2, const3, const4, const5;
     ScalarType hd, scale; 
     ScalarType norm_m1, norm_mR, inpr_m1_mR, inpr_m1_mtilde, inpr_mR_mtilde;
@@ -334,6 +327,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     scale = this->m_Opt->m_Distance.scale;
 
     // Index for final condition
+    ScalarType norm_mtilde = 0.0;
+    ierr =  VecNorm(this->m_IncStateVariable->m_X, NORM_2, &norm_mtilde); CHKERRQ(ierr);
     ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
     
@@ -347,6 +342,15 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     
     ierr = kernel.ComputeInnerProductsFinalConditionIAE(); CHKERRQ(ierr);
     
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
     rval = MPI_Allreduce(&kernel.inpr_m1_mtilde_loc, &inpr_m1_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
@@ -354,16 +358,28 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     
     // Get the rest of the inner products
-    norm_m1 = this->inpr_m1;
-    norm_mR = this->inpr_mR;
-    inpr_m1_mR = this->inpr_m1_mR;
+    //norm_m1 = this->inpr_m1;
+    //norm_mR = this->inpr_mR;
+    //inpr_m1_mR = this->inpr_m1_mR;
 
     // Now, write the terminal condition to lambda tilde
     kernel.const1 = scale*inpr_mR_mtilde/(hd*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const1), "is nan");
     kernel.const2 = 2.0*scale*(inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const2), "is nan");
     kernel.const3 = 4.0*scale*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const3), "is nan");
     kernel.const4 = 2.0*scale*(inpr_m1_mR*inpr_mR_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const4), "is nan");
     kernel.const5 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const5), "is nan");
+    
+    //std::cout << "norm2 mtilde = " << norm_mtilde << std::endl;
+    //std::cout << "hessian const1 = " << kernel.const1 << std::endl;
+    //std::cout << "hessian const2 = " << kernel.const2 << std::endl;
+    //std::cout << "hessian const3 = " << kernel.const3 << std::endl;
+    //std::cout << "hessian const4 = " << kernel.const4 << std::endl;
+    //std::cout << "hessian const5 = " << kernel.const5 << std::endl;
 
     if (this->m_Mask != NULL) {
         // mask objective functional
