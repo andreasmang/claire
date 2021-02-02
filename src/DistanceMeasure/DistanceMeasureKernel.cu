@@ -19,6 +19,7 @@
 
 #include "DistanceMeasureKernel.hpp"
 #include "cuda_helper.hpp"
+#include "thrust/device_ptr.h"
 #include "thrust/reduce.h"
 #include "thrust/execution_policy.h"
 
@@ -267,14 +268,14 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
 ////////////////////////////////////////////////////////////////////////
 //> NCC Distance metric routines 
 ///////////////////////////////////////////////////////////////////////
-__global__ void FinalConditionAENCC_kernel (ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, ScalarType const1, ScalarType const2) {
+__global__ void FinalConditionAENCC_kernel (ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, ScalarType const1, ScalarType const2, ScalarType const3) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
-  pL[i] = const1*pMr[i] - const2*pM[i];
+  pL[i] = const1*pMr[i] - const2*pM[i] + const3;
 }
 
-__global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarType *pMr, const ScalarType *pM, const ScalarType *pMtilde, ScalarType const1tilde, ScalarType const3tilde, ScalarType const5) {
+__global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarType *pMr, const ScalarType *pM, const ScalarType *pMtilde, ScalarType const1tilde, ScalarType const3tilde, ScalarType const5, ScalarType mean_m1, ScalarType mean_mR) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
-  pLtilde[i] = const1tilde*pMr[i] + const3tilde*pM[i] - const5*pMtilde[i];
+  pLtilde[i] = const1tilde*(pMr[i]-mean_mR) + const3tilde*(pM[i]-mean_m1) - const5*pMtilde[i];
 }
 
 /* Compute the Registration Functional */
@@ -300,6 +301,10 @@ PetscErrorCode EvaluateFunctionalNCC::ComputeScale() {
   ScalarType *res = nullptr;
   ScalarType sum = 0.0;
   PetscFunctionBegin;
+  
+  // compute local sums
+  sum_mT_loc = thrust::reduce(thrust::device, pMt, pMt+nl*nc);
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
   
   stat = cublasCreate(&handle);
 
@@ -333,7 +338,10 @@ PetscErrorCode EvaluateFunctionalNCC::ComputeFunctional() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  //std::cout<<"in ncc compute functional"<<std::endl;
+  // compute local sums
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
+
   cublasStatus_t stat;
   cublasHandle_t handle; 
 
@@ -367,7 +375,7 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionAE() {
   dim3 block(256,1,1);
   dim3 grid((nl*nc + 255)/256,1,1);
 
-  FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2);
+  FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2, const3);
   cudaCheckKernelError();
   
   PetscFunctionReturn(ierr);
@@ -384,10 +392,14 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskAE() {
 
 PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionAE() {
   PetscErrorCode ierr = 0;
-  PetscFunctionBegin;
-
   cublasStatus_t stat;
   cublasHandle_t handle; 
+  PetscFunctionBegin;
+
+  // compute local sums
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
+  
   stat = cublasCreate(&handle);
   
   stat = cublasSdot(handle, nl*nc, pM, 1, pM, 1, &norm_m1_loc);
@@ -402,6 +414,10 @@ PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionAE() {
 PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
+  
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
+  sum_mtilde_loc = thrust::reduce(thrust::device, pMtilde, pMtilde+nl*nc);
 
   cublasStatus_t stat;
   cublasHandle_t handle; 
@@ -430,7 +446,7 @@ PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
 }
 
 /* Final Condition for Incremental Adjoint Equation */
-PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE() {
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE(ScalarType mean_m1, ScalarType mean_mR) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -439,7 +455,7 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE() {
     
   ScalarType const1tilde = const1 - const2;
   ScalarType const3tilde = const3 - const4;
-  FinalConditionIAENCC_kernel<<<grid, block>>>(pLtilde, pMr, pM, pMtilde, const1tilde, const3tilde, const5);
+  FinalConditionIAENCC_kernel<<<grid, block>>>(pLtilde, pMr, pM, pMtilde, const1tilde, const3tilde, const5, mean_m1, mean_mR);
   cudaCheckKernelError();
   
   PetscFunctionReturn(ierr);

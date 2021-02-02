@@ -53,6 +53,9 @@ struct EvaluateFunctionalNCC {
   ScalarType norm_mR_loc;
   ScalarType inpr_m1_mR_loc;
   ScalarType inpr_mT_mR_loc;
+  ScalarType sum_m1_loc;
+  ScalarType sum_mT_loc;
+  ScalarType sum_mR_loc;
   
   IntType nl;
   IntType nc;
@@ -101,13 +104,16 @@ struct FinalConditionNCC {
   ScalarType inpr_m1_mR_loc;
   ScalarType inpr_m1_mtilde_loc;
   ScalarType inpr_mR_mtilde_loc;
+  ScalarType sum_m1_loc;
+  ScalarType sum_mR_loc;
+  ScalarType sum_mtilde_loc;
   
   IntType nl;
   IntType nc;
   
   PetscErrorCode ComputeFinalConditionAE();
   PetscErrorCode ComputeFinalConditionMaskAE();
-  PetscErrorCode ComputeFinalConditionIAE();
+  PetscErrorCode ComputeFinalConditionIAE(ScalarType, ScalarType);
   PetscErrorCode ComputeFinalConditionMaskIAE();
   PetscErrorCode ComputeInnerProductsFinalConditionAE();
   PetscErrorCode ComputeInnerProductsFinalConditionIAE();
