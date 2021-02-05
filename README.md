@@ -23,14 +23,11 @@ If there are any issues, you have questions, you would like to give us feedback 
 If you plan on using CLAIRE in your research please cite the following manuscript:
 A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)]. Additional references are listed [here](doc/README-REFERENCES.md).
 
+## Contributors
+George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, [Andreas Mang](mailto:andreas@math.uh.edu), and Miriam Mehl.
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
 
-
 ## Code of Conduct
 See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-
-
-## Contributors
-George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, [Andreas Mang](mailto:andreas@math.uh.edu), and Miriam Mehl.
