@@ -1,5 +1,7 @@
 # CLAIRE: The Binaries
 
+Go back to [README.md](../README.md).
+
 ## Content
 * [Overview](#clairebins)
 * [Get Help](#clairehelp)

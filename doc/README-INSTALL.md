@@ -1,4 +1,4 @@
-# Installation and Requirements
+# CLAIRE: Installation and Requirements
 
 Go back to [README.md](../README.md).
 
