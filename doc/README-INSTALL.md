@@ -119,7 +119,7 @@ This will provide information on what parameters you can parse. Ideally, it is s
 Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also take a look at the "build" subdirectories of the individual libraries in the "lib" folder (subdirectories of [deps](../deps)). See if folders in "build" were created and the library and include files exist. If not, something went wrong during the build.
 
 
-### Step 3: Setting Environment Variables
+#### Step 3: Setting Environment Variables
 Before you are able to compile and run CLAIRE you need to add *environment variables* to your system. When building the libraries a file called `environment_vars.sh` is created. This file should be located in the [debs/libs](https://github.com/andreasmang/claire/tree/master/deps) subfolder. To add the environment variables temporarily (for the current session) to your system, do
 
 ```bash
