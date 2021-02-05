@@ -1,12 +1,18 @@
 # CLAIRE
-
 * Are you looking for **examples**? Check the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
 * Are in interested in **how CLAIRE works**? Check the [documentation](#clairedoc).
 * Are you interested in **what CLAIRE is**? Read the [about](#claireabout) section.
 
-## About <a name="claireabout"></a>
+## Documentation <a name="clairedoc"></a>
+* [News](doc/README-NEWS.md): Recent updates and news are listed in [doc/README-NEWS.md](doc/README-NEWS.md)
+* [Installation](doc/README-INSTALL.md): An installation guide can be found in [doc/README-INSTALL.md](doc/README-INSTALL.md)
+* [Examples](doc/README-RUNME.md): A description of how to execute and use CLAIRE on your system can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
+* [References](doc/README-REFERENCES.md): If you use CLAIRE as part of your research, please refer to [doc/README-REFERENCES.md](doc/README-REFERENCES.md) for information on citing our work.
 
-**CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core CPU systems and multi-node, multi-GPU architectures. The CPU version uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
+The links above point to individual `markdown` files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded [here](https://github.com/andreasmang/nirep).
+
+## About <a name="claireabout"></a>
+**CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core CPU systems (`master` branch) and multi-node, multi-GPU architectures (`gpu` branch). The CPU version uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
 
 <p align="center">
 <img src="doc/figs/claire4brains.jpg" alt="CLAIRE4Brains"  width="800"/>
@@ -15,24 +21,16 @@
 If there are any issues, you have questions, you would like to give us feedback or you have feature requests, do not hesitate to send an email to <andreas@math.uh.edu>.
 
 If you plan on using CLAIRE in your research please cite the following manuscript:
-A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
-
-## Documentation <a name="clairedoc"></a>
-* [Quick Installation Guide](doc/README-INSTALL-QUICK.md)
-* [Detailed Installation Guide](doc/README-INSTALL.md)
-* [Examples](doc/README-RUNME.md)
-* [News](doc/README-NEWS.md)
-* [Publications](doc/README-REFERENCES.md)
-
-The links above point to individual markdown files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded here: [NIREP Data](https://github.com/andreasmang/nirep).
-
-## News
-
-**08/28/2020** We have released a GPU version of CLAIRE. If you are interested in using our new (multi-node multi-)GPU version, switch to the **GPU branch**. If you are interested in learning more about the GPU version of CLAIRE, check out our [publications](doc/README-REFERENCES.md).
+A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)]. Additional references are listed [here](doc/README-REFERENCES.md).
 
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
 
+
+## Code of Conduct
+See [doc/CODE_OF_CONDUCT.md](doc/CODE_OF_CONDUCT.md).
+
+
 ## Contributors
-George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, Andreas Mang, Miriam Mehl
+George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, [Andreas Mang](mailto:andreas@math.uh.edu), and Miriam Mehl.
