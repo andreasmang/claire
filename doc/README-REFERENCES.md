@@ -4,6 +4,18 @@ If you plan on using CLAIRE in your research please cite the following manuscrip
 
 A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
 
+A BibTeX entry for LaTeX users is
+```TeX
+@article{Mang:2019a,
+author = {A. Mang and A. Gholami and C. Davatzikos and G. Biros},
+journal = {SIAM Journal on Scientific Computing},
+number = {5},
+pages = {C548--C584},
+title = {{CLAIRE}: A distributed-memory solver for constrained large deformation diffeomorphic image registration},
+volume = {41},
+year = {2019}}
+```
+
 
 ## Parallel CPU Implementation
 * A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory solver for constrained large deformation diffeomorphic image registration*. SIAM Journal on Scientific Computing 41(5):C548--C584, 2019 [[arxiv](https://arxiv.org/abs/1808.04487), [sisc](https://epubs.siam.org/doi/abs/10.1137/18M1207818)].
