@@ -1,20 +1,48 @@
-# CLAIRE: Detailed Installation Guide
+# Installation and Requirements
 
+Go back to (README.md)[README.md].
 
 ## Content
 
-* [Requirements](#requirements)
-* [Dependencies](#dependencies)
-	* Required Dependencies
-  * Step 1: Downloading Dependencies
-  * Step 2: Installing Dependencies
-  	* Quick Shot
-  	* Detailed Instructions
-  * Step 3: Setting Environment Variables
-* [Building CLAIRE](#buildclaire)
-* [Additional Info for Dependencies](#depsinf)
-* [Troubleshooting](#faq)
+* [Installation Overview](#installation)
+* [Detailed Installation Guide](#verboseinstall)
+	* [Requirements](#requirements)
+	* [Dependencies](#dependencies)
+	* [Building CLAIRE](#buildclaire)
 
+## Installation Overview <a name="installation"></a>
+
+What follows is a minimal installation guide. We provide scripts to download and install the dependencies using generic settings that have worked on our systems. A more detailed installation guide can be found [below](#verboseinstall).
+
+To install the dependencies go to the top level directory of CLAIRE in your command window and execute the following commands in your command window:
+```bash
+cd deps
+./get_libs.sh
+./build_libs.sh --build
+```
+
+The first bash script downloads the libraries you need to install. The second bash script compiles these libraries using default settings. To add these dependencies to your environment type the following into your command line and press return:
+```bash
+source environment_vars.sh
+```
+
+This step needs to be done every time you log out of your computer. As an alternative, you can add the content of `environment_vars.sh` to your `.bashrc` or `bash_profile`.
+
+Return to the top level directory of CLAIRE and type
+```bash
+cd ..
+make -j
+```
+
+If you would like to verify if CLAIRE has been installed correctly run the following command in your command window:
+
+```bash
+./bin/claire -synthetic 0
+```
+
+If you have trouble executing CLAIRE take a look at the [examples and tests](README-RUNME.md) described in [README-RUNME.md](README-RUNME.md).
+
+# Detailed Installation Guide <a name="verboseinstall"></a>
 
 ## Requirements <a name="requirements"></a>
 
@@ -22,20 +50,37 @@
 * cmake ([https://cmake.org](https://cmake.org)); required by `AccFFT` and `niftilib`
 * python ([https://www.python.org](https://www.python.org)); version 2.7; required by `PETSc`
 
-
 Make sure that the standard *wrappers* for `mpicc` and `mpicxx` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions below). The compilation has been tested with `Open MPI`, `MVAPICH`, and `Intel MPI`.
-
 
 ## Dependencies <a name="dependencies"></a>
 
-### Required Dependencies
 CLAIRE requires the following libraries to be installed on your system:
 * `FFTW` [http://www.fftw.org](http://www.fftw.org)
+	* file: [fftw-3.3.6-pl2.tar.gz](http://www.fftw.org/fftw-3.3.6-pl2.tar.gz)
+	* description: library for computing FFTs
+	* additional details can be found at [http://www.fftw.org](http://www.fftw.org)
 * `AccFFT` [http://accfft.org](http://accfft.org)
+	* file: accfft.tar.gz
+	* source code also available on gitub: [https://github.com/amirgholami/accfft](https://github.com/amirgholami/accfft)
+	* description: library to compute FFT in parallel (requires FFTW)
+	* additional details can be found at [http://www.accfft.org](http://www.accfft.org)
+	* requires `FFTW` to be installed
 * `PETSc` [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/) (requires `python 2.7`)
+	* file: [petsc-lite-3.9.1.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz)
+	* source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
+	* description: library for numerics, linear algebra, and optimization
+	* older versions that have been succesfully used by our group:
+		* [petsc-lite-3.8.3.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz)
+		* [petsc-lite-3.7.6.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz)
+		* [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
 * `niftilib` [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
+	* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0)
+	* description: library to read and write NIFTI images
+	* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/)
 * `zlib` [http://zlib.net](http://zlib.net)
 * `libmorton` [https://github.com/Forceflow/libmorton](https://github.com/Forceflow/libmorton)
+
+
 
 
 ### Step 1: Downloading Dependencies
@@ -85,7 +130,6 @@ source environment_vars.sh
 
 To add them permanently, copy the content of `environment_vars.sh` to your `~/.bashrc`. Notice that `environment_vars.sh` defines *absolute paths*.
 
-
 ## Building CLAIRE <a name="buildclaire"></a>
 
 Before you can build CLAIRE you need to
@@ -104,43 +148,6 @@ make -j
 ```
 
 If you build in parallel using `make -j`, on certain systems to many threads will be used. This will result in compilation errors. To fix this, run `make -j 12` instead (for quick access, you may want to define an alias in your `~/.bashrc`).
-
-
-## Additional Info for Dependencies <a name="depsinf"></a>
-
-### FFTW
-
-* file: [fftw-3.3.6-pl2.tar.gz](http://www.fftw.org/fftw-3.3.6-pl2.tar.gz)
-* description: library for computing FFTs
-* additional details can be found at [http://www.fftw.org](http://www.fftw.org)
-* older versions that have been used successfully:
-	* [fftw-3.3.4.tar.gz](http://www.fftw.org/fftw-3.3.4.tar.gz)
-
-### AccFFT
-
-* file: accfft.tar.gz
-* source code also available on gitub: [https://github.com/amirgholami/accfft](https://github.com/amirgholami/accfft)
-* description: library to compute FFT in parallel (requires FFTW)
-* additional details can be found at [http://www.accfft.org](http://www.accfft.org)
-* requires `FFTW` to be installed
-
-
-### PETSc
-
-* file: [petsc-lite-3.9.1.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz)
-* source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
-* description: library for numerics, linear algebra, and optimization
-* older versions that have been succesfully used by our group:
-	* [petsc-lite-3.8.3.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz)
-	* [petsc-lite-3.7.6.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz)
-	* [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
-
-
-### nifticlib
-
-* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0)
-* description: library to read and write NIFTI images
-* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/)
 
 
 ## Troubleshooting <a name="faq"></a>
