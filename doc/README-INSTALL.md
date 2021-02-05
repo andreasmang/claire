@@ -42,9 +42,9 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 
 If you have trouble executing CLAIRE take a look at the [examples and tests](README-RUNME.md) described in [README-RUNME.md](README-RUNME.md).
 
-# Detailed Installation Guide <a name="verboseinstall"></a>
+## Detailed Installation Guide <a name="verboseinstall"></a>
 
-## Requirements <a name="requirements"></a>
+### Requirements <a name="requirements"></a>
 
 * MPI (Open MPI; MVAPICH; Intel MPI); required by `AccFFT`, `PETSc`, and `CLAIRE`
 * cmake ([https://cmake.org](https://cmake.org)); required by `AccFFT` and `niftilib`
@@ -52,7 +52,7 @@ If you have trouble executing CLAIRE take a look at the [examples and tests](REA
 
 Make sure that the standard *wrappers* for `mpicc` and `mpicxx` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions below). The compilation has been tested with `Open MPI`, `MVAPICH`, and `Intel MPI`.
 
-## Dependencies <a name="dependencies"></a>
+### Dependencies <a name="dependencies"></a>
 
 CLAIRE requires the following libraries to be installed on your system:
 * `FFTW` [http://www.fftw.org](http://www.fftw.org)
@@ -80,10 +80,7 @@ CLAIRE requires the following libraries to be installed on your system:
 * `zlib` [http://zlib.net](http://zlib.net)
 * `libmorton` [https://github.com/Forceflow/libmorton](https://github.com/Forceflow/libmorton)
 
-
-
-
-### Step 1: Downloading Dependencies
+#### Step 1: Downloading Dependencies
 To download the libraries we provide a script called `get_libs.sh` (see [deps/get_libs.sh](../deps/get_libs.sh)). Simply run this script in your command window to download *tarball* files of the libraries identified above.
 
 ```bash
@@ -94,9 +91,9 @@ cd debs
 The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). If the download failed, delete the tarball file and run `get_libs.sh` again. To view the urls for the libraries you can take a look at [deps/get_libs.sh](https://github.com/andreasmang/claire/tree/master/deps/get_libs.sh). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used with CLAIRE before.
 
 
-### Step 2: Installing Dependencies
+#### Step 2: Installing Dependencies
 
-#### Quick Shot
+##### Quick Shot
 To build all libraries at once, execute the build script in your command window as follows:
 
 ```bash
@@ -107,7 +104,7 @@ cd deps
 This will decompress the *tarball* files and compile them with standard settings. The compiled libraries will be installed in in a subfolder of your `deps` folder called `libs`.
 
 
-#### Detailed Instructions
+##### Detailed Instructions
 We build all libraries as **static** by default.
 
 The libraries can be compiled by running the [build_libs.sh](https://github.com/andreasmang/claire/tree/master/deps/build_libs.sh) script in the [external](https://github.com/andreasmang/claire/tree/master/deps) subdirectory. To see all the options do
@@ -130,7 +127,7 @@ source environment_vars.sh
 
 To add them permanently, copy the content of `environment_vars.sh` to your `~/.bashrc`. Notice that `environment_vars.sh` defines *absolute paths*.
 
-## Building CLAIRE <a name="buildclaire"></a>
+### Building CLAIRE <a name="buildclaire"></a>
 
 Before you can build CLAIRE you need to
 
