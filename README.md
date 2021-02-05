@@ -29,7 +29,7 @@ Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) fi
 
 
 ## Code of Conduct
-See [doc/CODE_OF_CONDUCT.md](doc/CODE_OF_CONDUCT.md).
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 
 ## Contributors
