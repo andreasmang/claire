@@ -1,6 +1,6 @@
 # Installation and Requirements
 
-Go back to (README.md)[README.md].
+Go back to [README.md](README.md).
 
 ## Content
 
@@ -9,6 +9,7 @@ Go back to (README.md)[README.md].
 	* [Requirements](#requirements)
 	* [Dependencies](#dependencies)
 	* [Building CLAIRE](#buildclaire)
+* [Trouble Shooting](#faq)
 
 ## Installation Overview <a name="installation"></a>
 
