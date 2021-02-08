@@ -206,7 +206,8 @@ PetscErrorCode TwoLevelFFT::Prolong(VecField* dst, VecField* src) {
 
 //--------------------------------------------------------------------------------------------------
 
-TwoLevelRegFFT::TwoLevelRegFFT(RegOpt* opt, ScalarType beta) : TwoLevelFFT(opt), beta(beta) {};
+TwoLevelRegFFT::TwoLevelRegFFT(RegOpt* opt, ScalarType beta, ScalarType reltol, bool sqrtop) 
+  : TwoLevelFFT(opt), restricted(false), beta(beta), reltol(reltol), sqrtop(sqrtop) {};
 TwoLevelRegFFT::~TwoLevelRegFFT() {};
 
 PetscErrorCode TwoLevelRegFFT::Restrict(VecField* dst, VecField* src) {
@@ -263,17 +264,41 @@ PetscErrorCode TwoLevelRegFFT::Restrict(VecField* dst, VecField* src) {
   fine->fft->FFT_R2C(pVf[2], pXHat_f[2]);
   ierr = src->RestoreArrays(); CHKERRQ(ierr);
   
-  ierr = kernel.InverseLaplacian(false, beta, 0); CHKERRQ(ierr);
+  ScalarType norm_pre[3], norm_post[3];
   
-  fine->fft->Restrict(pXHat_c[0], pXHat_f[0], coarse->fft);
-  fine->fft->Restrict(pXHat_c[1], pXHat_f[1], coarse->fft);
-  fine->fft->Restrict(pXHat_c[2], pXHat_f[2], coarse->fft);
+  if (this->reltol > 0) {
+    ierr = fine->fft->Norm(norm_pre[0], pXHat_f[0]); CHKERRQ(ierr);
+    ierr = fine->fft->Norm(norm_pre[1], pXHat_f[1]); CHKERRQ(ierr);
+    ierr = fine->fft->Norm(norm_pre[2], pXHat_f[2]); CHKERRQ(ierr);
+  }
   
-  ierr = dst->GetArraysWrite(pVc); CHKERRQ(ierr);
-  coarse->fft->FFT_C2R(pXHat_c[0], pVc[0]);
-  coarse->fft->FFT_C2R(pXHat_c[1], pVc[1]);
-  coarse->fft->FFT_C2R(pXHat_c[2], pVc[2]);
-  ierr = dst->RestoreArrays(); CHKERRQ(ierr);
+  ierr = kernel.InverseLaplacian(sqrtop, beta, 0); CHKERRQ(ierr);
+  
+  this->restricted = true;
+  if (this->reltol > 0) {
+    ierr = fine->fft->Norm(norm_post[0], pXHat_f[0]); CHKERRQ(ierr);
+    ierr = fine->fft->Norm(norm_post[1], pXHat_f[1]); CHKERRQ(ierr);
+    ierr = fine->fft->Norm(norm_post[2], pXHat_f[2]); CHKERRQ(ierr);
+    
+    norm_pre[0] += norm_pre[1] + norm_pre[2];
+    norm_post[0] += norm_post[1] + norm_post[2];
+    norm_pre[0] *= scale*scale;
+    
+    if (norm_post[0]/norm_pre[0] < this->reltol*this->reltol) 
+      restricted = false;
+  }
+  
+  if (restricted) {
+    fine->fft->Restrict(pXHat_c[0], pXHat_f[0], coarse->fft);
+    fine->fft->Restrict(pXHat_c[1], pXHat_f[1], coarse->fft);
+    fine->fft->Restrict(pXHat_c[2], pXHat_f[2], coarse->fft);
+  
+    ierr = dst->GetArraysWrite(pVc); CHKERRQ(ierr);
+    coarse->fft->FFT_C2R(pXHat_c[0], pVc[0]);
+    coarse->fft->FFT_C2R(pXHat_c[1], pVc[1]);
+    coarse->fft->FFT_C2R(pXHat_c[2], pVc[2]);
+    ierr = dst->RestoreArrays(); CHKERRQ(ierr);
+  }
   
   ZeitGeist_tock(FFT_RESTRICT);
   ZeitGeist_inc(FFT_RESTRICT);
@@ -314,19 +339,22 @@ PetscErrorCode TwoLevelRegFFT::Prolong(VecField* dst, VecField* src) {
   ierr = Assert(pXHat_f[1] != pXHat_c[1], "using same memory for fine and coarse not supported"); CHKERRQ(ierr);
   ierr = Assert(pXHat_f[2] != pXHat_c[2], "using same memory for fine and coarse not supported"); CHKERRQ(ierr);
   
-  ierr = src->GetArraysRead(pVc); CHKERRQ(ierr);
-  coarse->fft->FFT_R2C(pVc[0], pXHat_c[0]);
-  coarse->fft->FFT_R2C(pVc[1], pXHat_c[1]);
-  coarse->fft->FFT_R2C(pVc[2], pXHat_c[2]);
-  ierr = src->RestoreArrays(); CHKERRQ(ierr);
+  if (restricted || reltol <= 0) {
+    ierr = src->GetArraysRead(pVc); CHKERRQ(ierr);
+    coarse->fft->FFT_R2C(pVc[0], pXHat_c[0]);
+    coarse->fft->FFT_R2C(pVc[1], pXHat_c[1]);
+    coarse->fft->FFT_R2C(pVc[2], pXHat_c[2]);
+    ierr = src->RestoreArrays(); CHKERRQ(ierr);
   
-  coarse->fft->Scale(pXHat_c[0], scale);
-  coarse->fft->Scale(pXHat_c[1], scale);
-  coarse->fft->Scale(pXHat_c[2], scale);
+    coarse->fft->Scale(pXHat_c[0], scale);
+    coarse->fft->Scale(pXHat_c[1], scale);
+    coarse->fft->Scale(pXHat_c[2], scale);
   
-  fine->fft->ProlongMerge(pXHat_f[0], pXHat_c[0], coarse->fft);
-  fine->fft->ProlongMerge(pXHat_f[1], pXHat_c[1], coarse->fft);
-  fine->fft->ProlongMerge(pXHat_f[2], pXHat_c[2], coarse->fft);
+    fine->fft->ProlongMerge(pXHat_f[0], pXHat_c[0], coarse->fft);
+    fine->fft->ProlongMerge(pXHat_f[1], pXHat_c[1], coarse->fft);
+    fine->fft->ProlongMerge(pXHat_f[2], pXHat_c[2], coarse->fft);
+  }
+  restricted = false;
   
   ierr = dst->GetArraysWrite(pVf); CHKERRQ(ierr);
   fine->fft->FFT_C2R(pXHat_f[0], pVf[0]);

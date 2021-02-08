@@ -47,6 +47,8 @@ struct H0PrecondKernel {
   PetscErrorCode pTAp2(ScalarType &res);
   PetscErrorCode CGres(ScalarType &res);
   PetscErrorCode CGp(ScalarType alpha);
+  
+  PetscErrorCode Norm(ScalarType &norm);
 };
 
 struct CFLStatKernel {

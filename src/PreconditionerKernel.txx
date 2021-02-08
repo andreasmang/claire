@@ -89,10 +89,9 @@ struct H0Kernel {
   template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
                                             T* px, T* py, T* pz,
                                             T* rx, T* ry, T* rz,
-                                            const T* vx, const T* vy, const T* vz,
-                                            const T beta) {
+                                            const T* vx, const T* vy, const T* vz) {
     T H0x, H0y, H0z;
-    H0x = mx[i] + beta*vx[i]; H0y = my[i] + beta*vy[i]; H0z = mz[i] + beta*vz[i];
+    H0x = mx[i] + vx[i]; H0y = my[i] + vy[i]; H0z = mz[i] + vz[i];
     rx[i] -= H0x; ry[i] -= H0y; rz[i] -= H0z;
     px[i] = rx[i]; py[i] = ry[i]; pz[i] = rz[i];
     
@@ -100,9 +99,8 @@ struct H0Kernel {
   }
   // computes p^T A p
   template<typename T> ReductionFunctional (int i, T* mx, T* my, T* mz,
-                                            T* px, T* py, T* pz,
-                                            const T beta) {
-    mx[i] += beta*px[i]; my[i] += beta*py[i]; mz[i] += beta*pz[i];
+                                            T* px, T* py, T* pz) {
+    mx[i] += px[i]; my[i] += py[i]; mz[i] += pz[i];
     
     return mx[i]*px[i] + my[i]*py[i] + mz[i]*pz[i];
   }
@@ -133,6 +131,12 @@ struct H0KernelCG {
 struct CFLKernel {
   template<typename T> ReductionFunctional (int i, const T* v, const T h, const T dt) {
     return ((fabs(v[i])*dt > h) ? 1.0 : 0.0);
+  }
+};
+
+struct NormKernel {
+  template<typename T> ReductionFunctional (int i, const T* v) {
+    return v[i]*v[i];
   }
 };
 

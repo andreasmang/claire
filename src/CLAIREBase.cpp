@@ -386,7 +386,7 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
       ierr = this->m_ReferenceImage->DebugInfo("mR", __LINE__, __FILE__);
     }
     
-    /*
+#ifdef BUILD_OPT_TWOLVL_REF
     printf("Beep Boop\n");
     ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
 
@@ -425,7 +425,7 @@ PetscErrorCode CLAIREBase::SetReferenceImage(Vec mR) {
     image->data = nullptr;
     nifti_image_free(image); 
     VecRestoreArray(pvec, &data);
-    */
+#endif
     
     // assign pointer
     //this->m_ReferenceImage = mR;
@@ -571,6 +571,8 @@ PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
     
     this->m_VelocityField = v;
     this->m_DeleteControlVariable = false;
+    
+    this->m_VelocityField->DebugInfo("control variable", __LINE__, __FILE__);
 
     this->m_Opt->Exit(__func__);
 
@@ -1247,7 +1249,23 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
 
     //ierr = this->m_WorkVecField1->SetComponents(x); CHKERRQ(ierr);
     
+    /*FILE *handle = fopen("inreg_res.txt", "a");
+    
+    ScalarType norm_pre, norm_post;
+    
+    int nit =  this->m_Opt->GetCounter(ITERATIONS) - 1;
+    int kit = this->m_Opt->GetCounter(HESSMATVEC);
+    
+    v->Norm2(norm_pre);
+    
+    fprintf(handle, "%i,%i,%e", nit, kit, sqrt(norm_pre));*/
+    
     ierr = this->m_Regularization->ApplyInverse(vinv, v, flag); CHKERRQ(ierr);
+    
+    /*vinv->Norm2(norm_post);
+   
+    fprintf(handle, ",%e\n", sqrt(norm_post));
+    fclose(handle);*/
     
     //ierr = this->m_WorkVecField2->GetComponents(ainvx); CHKERRQ(ierr);
     

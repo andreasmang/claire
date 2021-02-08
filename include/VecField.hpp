@@ -128,6 +128,8 @@ class VecField {
     Vec m_X2;
     Vec m_X3;
     
+    Vec m_X;
+    
     PetscErrorCode GetRawVector(ScalarType*&);
  private:
     typedef enum {None, Read, Write, ReadWrite} AccessType;
@@ -136,7 +138,6 @@ class VecField {
     bool m_Owend;
     bool m_OwendX;
     
-    Vec m_X;
     ScalarType *m_RawPtr;
     
     union {
