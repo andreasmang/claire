@@ -40,7 +40,10 @@ struct TransportKernelAdjointSL {
   IntType nl;
   
   PetscErrorCode ComputeBodyForcePart1();
+  PetscErrorCode ComputeBodyForcePart1b();
+  PetscErrorCode ComputeDiv();
   PetscErrorCode ComputeBodyForcePart2();
+  PetscErrorCode ComputeBodyForcePart0();
 };
 
 struct TransportKernelIncStateSL {
