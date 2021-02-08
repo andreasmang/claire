@@ -22,6 +22,7 @@
 
 #include "Spectral.hpp"
 #include "RegOpt.hpp"
+#include "VecField.hpp"
 
 namespace reg {
 
@@ -349,6 +350,37 @@ PetscErrorCode Spectral::HighPassFilter(ComplexType *xHat, ScalarType pct) {
     ierr = this->m_kernel.LowPassFilter(xHat, pct); CHKERRQ(ierr);
 
     PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode Spectral::Norm(ScalarType &norm, ComplexType *x, Spectral* size) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType *pWS[3];
+  
+  this->m_WorkVecField->GetArraysWrite(pWS);
+  
+  this->m_kernel.pWS = pWS[0];
+  
+  ScalarType lnorm = 0;
+  
+  IntType w[3];
+  
+  if (!size) size = this;
+  
+  w[0] = size->m_FFT->nx[0]/2;
+  w[1] = size->m_FFT->nx[1]/2;
+  w[2] = size->m_FFT->nx[2]/2;
+  
+  this->m_kernel.Norm(lnorm, x, w);
+  
+  MPI_Allreduce(MPI_IN_PLACE, &lnorm, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+  
+  norm = lnorm;
+  
+  this->m_WorkVecField->RestoreArrays();
+
+  PetscFunctionReturn(ierr);
 }
 
 /********************************************************************

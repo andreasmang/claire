@@ -107,11 +107,11 @@ PetscErrorCode Optimizer::ClearMemory(void) {
     }
 
     // delete solution vector
-    if (this->m_Solution != NULL) {
+    if (this->m_Solution != NULL && this->m_SolutionAllocated) {
         ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
-        this->m_Solution = NULL;
-        this->m_SolutionAllocated = false;
     }
+    this->m_Solution = NULL;
+    this->m_SolutionAllocated = false;
 
     if (this->m_MatVec != NULL) {
         ierr = MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
@@ -144,11 +144,20 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     ierr = x->GetRawVector(ptr); CHKERRQ(ierr);
 
     // compute number of unknowns
-    nlu = 3*this->m_Opt->m_Domain.nl;
+    /*nlu = 3*this->m_Opt->m_Domain.nl;
     ngu = 3*this->m_Opt->m_Domain.ng;
+    if (this->m_Solution == NULL) {
+        nlu = 3*this->m_Opt->m_Domain.nl;
+        ngu = 3*this->m_Opt->m_Domain.ng;
+        ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
+        this->m_SolutionAllocated = true;
+    }*/
+    
     if (this->m_SolutionAllocated) {
       ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
     } else {
+      this->m_Solution = x->m_X;
+      /*
       if (this->m_Solution != NULL) {
         ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
         this->m_Solution = NULL;
@@ -175,9 +184,11 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
         }
 #endif
       }
+      */
     }
 
     if (this->m_Opt->m_Verbosity > 1) {
+        x->DebugInfo("inital guess input", __LINE__, __FILE__);
         ierr = VecNorm(this->m_Solution, NORM_2, &value); CHKERRQ(ierr);
         ss << "norm of initial guess " << std::scientific << value;
         ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);

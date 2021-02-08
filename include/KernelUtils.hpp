@@ -181,6 +181,37 @@ __global__ void ReductionKernelGPU(ScalarType *res, int nl, Args ... args) {
 }
 
 /********************************************************************
+ * @brief GPU kernel function wrapper for reduction kernels
+ * this wrapper performs a reduction over all N threads in the block
+ *******************************************************************/
+template<int N, typename KernelFn, typename ... Args>
+__global__ void SpectralReductionKernelGPU(ScalarType *res, real3 wave, real3 nx, int3 nl, Args ... args) {
+  int i3 = threadIdx.x + blockIdx.x*blockDim.x;
+  int i2 = blockIdx.y;
+  int i1 = blockIdx.z;
+  __shared__ ScalarType value[N];
+
+  value[threadIdx.x] = 0.0;
+  if (i3 < nl.z) { // execute kernel
+    wave.x += i1;
+    wave.y += i2;
+    wave.z += i3;
+
+    ComputeWaveNumber(wave, nx);
+    int i = GetLinearIndex(i1, i2, i3, nl);
+    
+    value[threadIdx.x] = KernelFn::func(i, wave, args...);
+  }
+
+  // start the tree reduction
+  __syncthreads();
+  LocalReductionSum<N/2>(value);
+  if (threadIdx.x == 0) { // final value write back
+    res[blockIdx.x + i2*gridDim.x + i1*gridDim.x*gridDim.y] = value[0];
+  }
+}
+
+/********************************************************************
  * @brief GPU kernel function wrapper for spectral operators
  * wave: must be initialized with the offset of local subdomain
  * nx: absolute dimensions of the domain
@@ -282,6 +313,55 @@ PetscErrorCode SpectralKernelCallGPU(IntType nstart[3], IntType nx[3], IntType n
   }
   
   ZeitGeist_tock(KERNEL_SPECTRAL);
+
+  PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief Starts a GPU kernel for spectral reduction operators
+ * Note: Local index must not exceed $2^{31} - 1$
+ *******************************************************************/
+template<typename KernelFn, typename ... Args>
+PetscErrorCode SpectralReductionKernelCallGPU(ScalarType &value, ScalarType *workspace,
+    IntType nstart[3], IntType nx[3], IntType nl[3],
+    Args ... args) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ZeitGeist_define(KERNEL_SPECTRAL_REDUCTION);
+  ZeitGeist_tick(KERNEL_SPECTRAL_REDUCTION);
+
+  dim3 block, grid;
+  
+  block.x = 256; // 128 threads per block
+  grid.x = (nl[2] + 255)/256;  // $\lceil nl_2 / 128 \rceil$
+  
+  grid.y = nl[1];
+  grid.z = nl[0];
+  real3 wave, nx3;
+  int3 nl3;
+  wave.x = nstart[0]; wave.y = nstart[1]; wave.z = nstart[2];
+  nx3.x = nx[0]; nx3.y = nx[1]; nx3.z = nx[2];
+  nl3.x = nl[0]; nl3.y = nl[1]*nl[2]; nl3.z = nl[2];
+  
+  value = 0.;
+
+  if (nl[0]*nl[1]*nl[2] > 0) {
+    SpectralReductionKernelGPU<256, KernelFn><<<grid, block>>>(workspace, wave, nx3, nl3, args...);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+    
+    // reduce over work array
+    ReductionSum<1024><<<1, 1024>>>(workspace, grid.x*grid.y*grid.z);
+    ierr = cudaDeviceSynchronize(); CHKERRCUDA(ierr);
+    ierr = cudaCheckKernelError(); CHKERRCUDA(ierr);
+
+    // copy result to cpu
+    ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(workspace),
+                      sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+  }
+  
+  ZeitGeist_tock(KERNEL_SPECTRAL_REDUCTION);
 
   PetscFunctionReturn(ierr);
 }

@@ -39,7 +39,7 @@ public:
 
 class TwoLevelRegFFT : public TwoLevelFFT {
 public:
-  TwoLevelRegFFT(RegOpt*, ScalarType);
+  TwoLevelRegFFT(RegOpt*, ScalarType, ScalarType = 0, bool = false);
   virtual ~TwoLevelRegFFT();
   
   using TwoLevelFFT::Restrict;
@@ -47,8 +47,12 @@ public:
   
   virtual PetscErrorCode Restrict(VecField*, VecField*);
   virtual PetscErrorCode Prolong(VecField*, VecField*);
+  
+  bool restricted;
 protected:
   ScalarType beta;
+  ScalarType reltol;
+  bool sqrtop;
 };
 
 class TwoLevelFinite : public TwoLevel {
