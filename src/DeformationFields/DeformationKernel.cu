@@ -32,4 +32,13 @@ PetscErrorCode DetDefGradKernel::IntegrateSL() {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode DetDefGradKernel::InitSL(ScalarType val) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+
+  ierr = KernelUtils::KernelCallGPU<DetDefGradSLKernel>(nl, pJ, val); CHKERRQ(ierr);
+
+  PetscFunctionReturn(ierr);
+}
+
 } // namespace reg

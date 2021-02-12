@@ -1038,6 +1038,16 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
     ZeitGeist_define(EVAL_HESS);
     ZeitGeist_tick(EVAL_HESS);
     ierr = this->m_Opt->StartTimer(HMVEXEC); CHKERRQ(ierr);
+    
+    /*{
+    VecField *g_vec = new VecField(m_Opt, vtilde);
+    
+    TwoLevelFFT op(this->m_Opt);
+    op.Restrict(this->m_WorkVecField1, g_vec);
+    op.Prolong(g_vec, this->m_WorkVecField1);
+        
+    delete g_vec;
+    }*/
 
     // switch between hessian operators
     switch (this->m_Opt->m_KrylovMethod.matvectype) {
@@ -1074,6 +1084,16 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
             break;
         }
     }
+    
+    /*{
+    VecField *g_vec = new VecField(m_Opt, Hvtilde);
+    
+    TwoLevelFFT op(this->m_Opt);
+    op.Restrict(this->m_WorkVecField1, g_vec);
+    op.Prolong(g_vec, this->m_WorkVecField1);
+        
+    delete g_vec;
+    }*/
 
     if (Hvtilde != NULL) {
         // TODO @ Andreas: fix for two-level precond
@@ -1105,7 +1125,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
  * @brief applies inverse of H(v=0) (used as preconditioner for our problem)
  * This is a PCG solver solving the H0x = r system and prolonging and restricting it.
  *******************************************************************/
-PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool first, bool twolevel, Preprocessing* preproc) {
+PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField* gradM, bool first, bool twolevel, Preprocessing* preproc) {
     PetscErrorCode ierr = 0;
     H0PrecondKernel kernel;
     const ScalarType *ptr = nullptr;
@@ -1254,21 +1274,23 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
     
     if (first) {
       if (this->m_GradientState) {
-        ierr = gradM[0]->Copy(this->m_GradientState[this->m_Opt->m_Domain.nt]); CHKERRQ(ierr);
+        ierr = gradM->Copy(this->m_GradientState[this->m_Opt->m_Domain.nt]); CHKERRQ(ierr);
       } else {
         ierr = this->m_StateVariable->GetArrayRead(ptr, 0, this->m_Opt->m_Domain.nt); CHKERRQ(ierr);
         if (this->m_Opt->m_Diff.diffPDE == FINITE) {
-          ierr = this->m_DifferentiationFD->Gradient(gradM[0], ptr); CHKERRQ(ierr);
+          ierr = this->m_DifferentiationFD->Gradient(gradM, ptr); CHKERRQ(ierr);
         } else {
-          ierr = this->m_Differentiation->Gradient(gradM[0], ptr); CHKERRQ(ierr);
+          ierr = this->m_Differentiation->Gradient(gradM, ptr); CHKERRQ(ierr);
         }
         ierr = this->m_StateVariable->RestoreArray();
       }
       
       if (twolevel) {
         TwoLevelFFT twolevel_op(this->m_Opt);
-        //TwoLevelFinite twolevel_op(this->m_Opt);
-        ierr = twolevel_op.Restrict(gradM[1], gradM[0]); CHKERRQ(ierr);
+        ierr = twolevel_op.Restrict(gradM, gradM); CHKERRQ(ierr);
+        /*TwoLevelFinite twolevel_op(this->m_Opt);
+        ierr = vecM->Copy(gradM);
+        ierr = twolevel_op.Restrict(gradM, vecM); CHKERRQ(ierr);*/
       }
     }
     
@@ -1299,6 +1321,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
       ierr = twolevel_op.Restrict(vecR, vecX); CHKERRQ(ierr);
       
       solve_h0 = twolevel_op.restricted;
+      //solve_h0 = true; //twolevel_op.restricted;
       
       if (!solve_h0) {
         ierr = twolevel_op.Prolong(vecX, vecR); CHKERRQ(ierr);
@@ -1306,15 +1329,15 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         ZeitGeist_add(PC_H0_INVREG,1);
       }
       
-      //ierr = this->m_Differentiation->InvRegLapOp(vecR, vecR, false, beta); CHKERRQ(ierr);
+      //ierr = this->m_Differentiation->InvRegLapOp(vecR, vecR, false, betav); CHKERRQ(ierr);
     }
     
     if (solve_h0) {
     
     if (!twolevel) {
-      ierr = gradM[0]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+      ierr = gradM->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
     } else {
-      ierr = gradM[1]->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
+      ierr = gradM->GetArraysRead(kernel.pGmt); CHKERRQ(ierr);
       ierr = diff->SetFFT(&this->m_Opt->m_FFT_coarse); CHKERRQ(ierr);
       kernel.nl = this->m_Opt->m_FFT_coarse.isize[0]*this->m_Opt->m_FFT_coarse.isize[1]*this->m_Opt->m_FFT_coarse.isize[2];
     }
@@ -1456,17 +1479,18 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField** gradM, bool 
         TwoLevelRegFFT twolevel_op(this->m_Opt, betav);
         twolevel_op.restricted = true;
         ierr = twolevel_op.Prolong(vecX, vecX);
-        //TwoLevelFinite twolevel_op(this->m_Opt);
-        //ierr = vecR->Copy(vecX); CHKERRQ(ierr);
-        //ierr = twolevel_op.Prolong(vecX, vecR);
+        
+        /*TwoLevelFinite twolevel_op(this->m_Opt);
+        ierr = vecR->Copy(vecX); CHKERRQ(ierr);
+        ierr = twolevel_op.Prolong(vecX, vecR);*/
               
-        ierr = gradM[1]->RestoreArrays(); CHKERRQ(ierr);
+        ierr = gradM->RestoreArrays(); CHKERRQ(ierr);
         
         kernel.nl = this->m_Opt->m_Domain.nl;
         
         cg_eps = this->m_Opt->m_KrylovMethod.pctolint[2];
       } else {
-        ierr = gradM[0]->RestoreArrays(); CHKERRQ(ierr);
+        ierr = gradM->RestoreArrays(); CHKERRQ(ierr);
       }
     }
     
@@ -1767,19 +1791,26 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     // allocate work vec field 5 (1,2,3, and 4 are overwritten
     // during the computation of the incremental forward and adjoint
     // solve and the computation of the incremental body force)
-    ierr = AllocateOnce(this->m_WorkVecField5, this->m_Opt); CHKERRQ(ierr);
+    ierr = Assert(Hvtilde != NULL, "null pointer"); CHKERRQ(ierr);
+    VecField *hv = nullptr;
+    ierr = AllocateOnce(hv, this->m_Opt, Hvtilde); CHKERRQ(ierr);
 
     // parse input (store incremental velocity field \tilde{v})
     if (vtilde != NULL) {
-        ierr = this->m_WorkVecField5->SetComponents(vtilde); CHKERRQ(ierr);
+        ierr = hv->SetComponents(vtilde); CHKERRQ(ierr);
     } else {
-        ierr = this->m_WorkVecField5->Copy(this->m_IncVelocityField); CHKERRQ(ierr);
+        ierr = hv->Copy(this->m_IncVelocityField); CHKERRQ(ierr);
     }
+    
+    /*TwoLevelFinite op(this->m_Opt);
+    op.Restrict(this->m_WorkVecField1, hv);
+    op.Prolong(hv, this->m_WorkVecField1);*/
+    
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta\D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta\D{A})^{-1/2}
 
     // apply (\beta\D{A})^{-1/2} to incremental velocity field
-    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, this->m_WorkVecField5, true); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, hv, true); CHKERRQ(ierr);
 
     // now solve the PDEs given the preconditioned incremental velocity field
 
@@ -1796,13 +1827,17 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
     hd = this->m_Opt->GetLebesgueMeasure();
-    ierr = this->m_WorkVecField5->Scale(hd); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField5->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
+    ierr = hv->Scale(hd); CHKERRQ(ierr);
+    ierr = hv->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
+
+    //TwoLevelFFT op(this->m_Opt);
+    /*op.Restrict(this->m_WorkVecField1, hv);
+    op.Prolong(hv, this->m_WorkVecField1);*/
 
     // pass to output
-    if (Hvtilde != NULL) {
+    /*if (Hvtilde != NULL) {
         ierr = this->m_WorkVecField5->GetComponents(Hvtilde); CHKERRQ(ierr);
-    }
+    }*/
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);

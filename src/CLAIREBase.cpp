@@ -1194,6 +1194,14 @@ PetscErrorCode CLAIREBase::PreKrylovSolve(Vec g, Vec x) {
         // apply square root of inverse regularization operator
         ierr = this->ApplyInvRegularizationOperator(g, g, true); CHKERRQ(ierr);
     }
+    
+    /*VecField *g_vec = new VecField(m_Opt, g);
+    
+    TwoLevelFFT op(this->m_Opt);
+    op.Restrict(this->m_WorkVecField1, g_vec);
+    op.Prolong(g_vec, this->m_WorkVecField1);
+    
+    delete g_vec;*/
 
     this->m_Opt->Exit(__func__);
 
@@ -1216,6 +1224,14 @@ PetscErrorCode CLAIREBase::PostKrylovSolve(Vec g, Vec x) {
     if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
         ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
     }
+    
+    /*VecField *g_vec = new VecField(m_Opt, x);
+    
+    TwoLevelFFT op(this->m_Opt);
+    op.Restrict(this->m_WorkVecField1, g_vec);
+    op.Prolong(g_vec, this->m_WorkVecField1);
+    
+    delete g_vec;*/
 
     this->m_Opt->Exit(__func__);
 
@@ -1261,7 +1277,7 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
     fprintf(handle, "%i,%i,%e", nit, kit, sqrt(norm_pre));*/
     
     ierr = this->m_Regularization->ApplyInverse(vinv, v, flag); CHKERRQ(ierr);
-    
+        
     /*vinv->Norm2(norm_post);
    
     fprintf(handle, ",%e\n", sqrt(norm_post));

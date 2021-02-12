@@ -219,12 +219,7 @@ PetscErrorCode Preconditioner::ClearMemory() {
         this->m_RandomNumGen = NULL;
     }
     
-    if (this->m_GradState) {
-      for (IntType i=0;i<(this->m_Opt->m_KrylovMethod.pctype==H0MG?2:1);++i) {
-        ierr = Free(this->m_GradState[i]); CHKERRQ(ierr);
-      }
-    }
-    ierr = FreeArray(this->m_GradState); CHKERRQ(ierr);
+    ierr = Free(this->m_GradState); CHKERRQ(ierr);
 
     delete this->m_CoarseGrid;
 
@@ -746,13 +741,8 @@ PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x, bool twolevel) {
     // start timer
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
     
-    if (!this->m_GradState) {
-      ierr = AllocateArrayOnce(this->m_GradState, 2); CHKERRQ(ierr);
-      for (IntType i=0; i<(twolevel?2:1); ++i) {
-        this->m_GradState[i] = nullptr;
-        ierr = AllocateOnce(this->m_GradState[i], this->m_Opt); CHKERRQ(ierr);
-      }
-    }
+
+    ierr = AllocateOnce(this->m_GradState, this->m_Opt); CHKERRQ(ierr);
 
     // apply inverse regularization operator
     ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x, this->m_GradState, this->firstrun, twolevel, this->m_PreProc); CHKERRQ(ierr);

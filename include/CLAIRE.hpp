@@ -61,7 +61,7 @@ class CLAIRE : public CLAIREBase {
     PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true);
     
     /*! apply inverse H(v=0) */
-    PetscErrorCode ApplyInvHessian(Vec, Vec, VecField**, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr);
+    PetscErrorCode ApplyInvHessian(Vec, Vec, VecField*, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr);
 
     /*! get state variable */
     PetscErrorCode GetStateVariable(Vec&);
