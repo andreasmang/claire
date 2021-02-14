@@ -268,9 +268,9 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
 ////////////////////////////////////////////////////////////////////////
 //> NCC Distance metric routines 
 ///////////////////////////////////////////////////////////////////////
-__global__ void FinalConditionAENCC_kernel (ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, ScalarType const1, ScalarType const2, ScalarType const3) {
+__global__ void FinalConditionAENCC_kernel (ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, ScalarType const1, ScalarType const2, ScalarType mean_m1, ScalarType mean_mR) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
-  pL[i] = const1*pMr[i] - const2*pM[i] + const3;
+  pL[i] = const1*(pMr[i]-mean_mR) - const2*(pM[i]-mean_m1);
 }
 
 __global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarType *pMr, const ScalarType *pM, const ScalarType *pMtilde, ScalarType const1tilde, ScalarType const3tilde, ScalarType const5, ScalarType mean_m1, ScalarType mean_mR) {
@@ -375,7 +375,7 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionAE() {
   dim3 block(256,1,1);
   dim3 grid((nl*nc + 255)/256,1,1);
 
-  FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2, const3);
+  FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2, mean_m1, mean_mR);
   cudaCheckKernelError();
   
   PetscFunctionReturn(ierr);
@@ -446,7 +446,7 @@ PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
 }
 
 /* Final Condition for Incremental Adjoint Equation */
-PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE(ScalarType mean_m1, ScalarType mean_mR) {
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE() {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   

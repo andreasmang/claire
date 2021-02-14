@@ -144,7 +144,7 @@ PetscErrorCode DistanceMeasureNCC::SetupScale(){
     l2distance = 0.5*hd*norm_l2/static_cast<ScalarType>(nc);
     nccdistance = 0.5 - 0.5*(inpr_mT_mR*inpr_mT_mR)/(norm_mT*norm_mR);
     this->m_Opt->m_Distance.scale = l2distance/nccdistance;
-    std::cout<<" scale = " << l2distance/nccdistance << std::endl;
+    //std::cout<<"scale = " << l2distance/nccdistance << std::endl;
     this->m_Opt->Exit(__func__);
 
 
@@ -314,10 +314,14 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     // Now, write the terminal condition to lambda
     kernel.const1 = scale*inpr_m1_mR/(hd*norm_m1*norm_mR);
     kernel.const2 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
-    kernel.const3 = -kernel.const1*sum_mR/ng - kernel.const2*sum_m1/ng;
 
     //std::cout << "gradient const1 = " << kernel.const1 << std::endl;
     //std::cout << "gradient const2 = " << kernel.const2 << std::endl;
+    //
+
+    kernel.mean_m1 = sum_m1/ng;
+    kernel.mean_mR = sum_mR/ng;
+    
 
    if (this->m_Mask != NULL) {
         // mask objective functional
@@ -418,8 +422,8 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     inpr_m1_mR = inpr_m1_mR - sum_m1*sum_mR/ng;
     inpr_m1_mtilde = inpr_m1_mtilde - sum_m1*sum_mtilde/ng;
     inpr_mR_mtilde = inpr_mR_mtilde - sum_mR*sum_mtilde/ng;
-    ScalarType mean_m1 = sum_m1/ng;
-    ScalarType mean_mR = sum_mR/ng;
+    kernel.mean_m1 = sum_m1/ng;
+    kernel.mean_mR = sum_mR/ng;
 
     
     // Now, write the terminal condition to lambda tilde
@@ -450,7 +454,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     
         ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        ierr = kernel.ComputeFinalConditionIAE(mean_m1, mean_mR); CHKERRQ(ierr);
+        ierr = kernel.ComputeFinalConditionIAE(); CHKERRQ(ierr);
     }  
 
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);

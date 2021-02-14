@@ -107,13 +107,16 @@ struct FinalConditionNCC {
   ScalarType sum_m1_loc;
   ScalarType sum_mR_loc;
   ScalarType sum_mtilde_loc;
+  ScalarType mean_m1;
+  ScalarType mean_mR;
+  
   
   IntType nl;
   IntType nc;
   
   PetscErrorCode ComputeFinalConditionAE();
   PetscErrorCode ComputeFinalConditionMaskAE();
-  PetscErrorCode ComputeFinalConditionIAE(ScalarType, ScalarType);
+  PetscErrorCode ComputeFinalConditionIAE();
   PetscErrorCode ComputeFinalConditionMaskIAE();
   PetscErrorCode ComputeInnerProductsFinalConditionAE();
   PetscErrorCode ComputeInnerProductsFinalConditionIAE();
