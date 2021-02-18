@@ -1,4 +1,7 @@
 # CLAIRE
+
+[![status](https://img.shields.io/badge/arXiv-1808.04487-red)](https://arxiv.org/abs/1808.04487)
+
 * Are you looking for **examples**? Check the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
 * Are in interested in **how CLAIRE works**? Check the [documentation](#clairedoc).
 * Are you interested in **what CLAIRE is**? Read the [about](#claireabout) section.
