@@ -1,4 +1,4 @@
-# Contributor Covenant Code of Conduct
+# CLAIRE: Contributor Covenant Code of Conduct
 
 ## Our Pledge
 
