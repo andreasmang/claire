@@ -12,6 +12,7 @@
 * [News](doc/README-NEWS.md): Recent updates and news are listed in [doc/README-NEWS.md](doc/README-NEWS.md)
 * [Installation](doc/README-INSTALL.md): An installation guide can be found in [doc/README-INSTALL.md](doc/README-INSTALL.md)
 * [Examples](doc/README-RUNME.md): A description of how to execute and use CLAIRE on your system can be found in [doc/README-RUNME.md](doc/README-RUNME.md).
+* [Contributing](doc/CONTRIBUTING.md): If you have a bug report, a feature request, or you are interested in contributing to CLAIRE visit [doc/CONTRIBUTING.md](doc/CONTRIBUTING.md).
 * [References](doc/README-REFERENCES.md): If you use CLAIRE as part of your research, please refer to [doc/README-REFERENCES.md](doc/README-REFERENCES.md) for information on citing our work.
 
 The links above point to individual `markdown` files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded [here](https://github.com/andreasmang/nirep).
@@ -30,6 +31,8 @@ A. Mang, A. Gholami, C. Davatzikos & G. Biros. *CLAIRE: A distributed-memory sol
 
 ## Contributors
 George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, [Andreas Mang](mailto:andreas@math.uh.edu), and Miriam Mehl.
+
+If you want to contribute to CLAIRE, read the guidlines (see [doc/CONTRIBUTING.md](doc/CONTRIBUTING.md)). 
 
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.

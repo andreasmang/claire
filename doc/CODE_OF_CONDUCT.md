@@ -1,5 +1,7 @@
 # CLAIRE: Contributor Covenant Code of Conduct
 
+Go back to [README.md](../README.md).
+
 ## Our Pledge
 
 In the interest of fostering an open and welcoming environment, we as
