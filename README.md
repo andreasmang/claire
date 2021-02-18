@@ -35,4 +35,4 @@ George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, [Andrea
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
 
 ## Code of Conduct
-See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+See [doc/CODE_OF_CONDUCT.md](doc/CODE_OF_CONDUCT.md).
