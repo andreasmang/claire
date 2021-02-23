@@ -529,9 +529,20 @@ PetscErrorCode VecField::SetValue(ScalarType value) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+#ifdef REG_HAS_CUDA
+    ScalarType *pW[3];
+    ierr = this->GetArraysWrite(pW); CHKERRQ(ierr);
+    
+    ierr = reg::SetValue(pW[0], value, this->m_Opt->m_Domain.nl); CHKERRQ(ierr);
+    ierr = reg::SetValue(pW[1], value, this->m_Opt->m_Domain.nl); CHKERRQ(ierr);
+    ierr = reg::SetValue(pW[2], value, this->m_Opt->m_Domain.nl); CHKERRQ(ierr);
+    
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
+#else
     ierr = VecSet(this->m_X1, value); CHKERRQ(ierr);
     ierr = VecSet(this->m_X2, value); CHKERRQ(ierr);
     ierr = VecSet(this->m_X3, value); CHKERRQ(ierr);
+#endif
 
     PetscFunctionReturn(ierr);
 }

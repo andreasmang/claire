@@ -808,8 +808,8 @@ PetscErrorCode RegOpt::SetParameter(const std::vector<std::string>& args) {
                 this->m_KrylovMethod.pctype = NOPC;
                 this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
             } else if (strcmp(argv[1], "symh0mg") == 0) {
-                this->m_KrylovMethod.pctype = H0MG;
-                this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
+                this->m_KrylovMethod.pctype = NOPC;
+                this->m_KrylovMethod.matvectype = H0MATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);
@@ -1185,7 +1185,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ss.clear(); ss.str(std::string());
     }
     
-    
     this->m_FFT_coarse.nx[0] = this->m_FFT.nx[0]/2;
     this->m_FFT_coarse.nx[1] = this->m_FFT.nx[1]/2;
     this->m_FFT_coarse.nx[2] = this->m_FFT.nx[2]/2;
@@ -1202,6 +1201,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
       ierr = ThrowError("local domain size to large"); CHKERRQ(ierr);
     }
     
+    //printf("%p\n", this->m_FFT_coarse.fft);
+        
     this->Exit(__func__);
 
     PetscFunctionReturn(ierr);

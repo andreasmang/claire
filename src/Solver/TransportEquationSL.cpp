@@ -21,6 +21,7 @@
 #define _TRANSPORTEQUATIONSL_CPP_
 
 #include "TransportEquationSL.hpp"
+#include "TwoLevel.hpp"
 
 namespace reg {
 
@@ -701,7 +702,24 @@ PetscErrorCode TransportEquationSL::SolveIncAdjointEquationGN() {
     //ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
     //ierr = this->m_Differentiation->Divergence(kernel.pDivV,this->m_VelocityField); CHKERRQ(ierr);
     
+    //ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
+        
+    // compute divergence of velocity field at X
+    if (!this->m_GradientState) {
+      ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    }
+    
+    // compute divergence of velocity field
+    ierr = this->m_Differentiation->Divergence(kernel.pDivV,  this->m_VelocityField); CHKERRQ(ierr);
+
+    // evaluate div(v) along characteristic X
+    ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pDivVx, kernel.pDivV, "adjoint"); CHKERRQ(ierr);
+    
+    ierr = kernel.ComputeDiv();
+    
     //ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pDivVx, kernel.pDivV, "adjoint"); CHKERRQ(ierr);
     
     //ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
@@ -790,7 +808,7 @@ PetscErrorCode TransportEquationSL::SolveIncAdjointEquationGN() {
 
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[2]->RestoreArray(); CHKERRQ(ierr);
-    //ierr = this->m_WorkScaField[1]->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[1]->RestoreArray(); CHKERRQ(ierr);
     //ierr = this->m_WorkScaField[0]->RestoreArray(); CHKERRQ(ierr);
     
     if (!this->m_GradientState) {

@@ -104,6 +104,8 @@ class CLAIRE : public CLAIREBase {
         of lagrangian with respect to control variable(s) for zero velocity */
     PetscErrorCode H0HessMatVec(Vec, Vec);
     
+    PetscErrorCode SymTwoLevelHessMatVec(Vec, Vec);
+    
     /*! init class variables (called by constructor) */
     PetscErrorCode Initialize(void);
 
@@ -141,10 +143,16 @@ class CLAIRE : public CLAIREBase {
         body force and the incremental body force */
     virtual PetscErrorCode ApplyProjection();
 
-    ScaField* m_StateVariable;        ///< time dependent state variable m(x,t)
-    ScaField* m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
-    ScaField* m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
-    ScaField* m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    //ScaField* m_StateVariable;        ///< time dependent state variable m(x,t)
+    //ScaField* m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
+    //ScaField* m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
+    //ScaField* m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    
+    virtual PetscErrorCode CreateCoarseReg();
+    virtual PetscErrorCode InitializeCoarseReg();
+    
+    //CLAIRE* m_CoarseReg;
+    //RegOpt* m_CoarseRegOpt;
 
  private:
     /*! compute the initial guess for the velocity field */

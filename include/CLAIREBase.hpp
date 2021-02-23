@@ -244,10 +244,29 @@ class CLAIREBase : public OptimizationProblem {
     ComplexType *m_x1hat;
     ComplexType *m_x2hat;
     ComplexType *m_x3hat;
+    
+    ScaField* m_StateVariable;        ///< time dependent state variable m(x,t)
+    ScaField* m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
+    ScaField* m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
+    ScaField* m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    
+    virtual PetscErrorCode CreateCoarseReg() = 0;
+    virtual PetscErrorCode InitializeCoarseReg() = 0;
+    
+    CLAIREBase* m_CoarseReg;
+    RegOpt* m_CoarseRegOpt;
+    
+        /*! solve incremental state equation */
+    virtual PetscErrorCode SolveIncStateEquation(void) = 0;
+
+    /*! solve incremental adjoint equation */
+    virtual PetscErrorCode SolveIncAdjointEquation(void) = 0;
 
  private:
     bool m_DeleteControlVariable;
     bool m_DeleteIncControlVariable;
+    
+  friend class CLAIRE;
 };
 
 

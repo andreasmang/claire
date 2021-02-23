@@ -65,6 +65,17 @@ PetscErrorCode CLAIREDivReg::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode CLAIREDivReg::CreateCoarseReg() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = Assert(this->m_CoarseRegOpt != nullptr, "coarse grid RegOpt not initialized"); CHKERRQ(ierr);
+  
+  ierr = AllocateOnce<CLAIREDivReg>(this->m_CoarseReg, this->m_CoarseRegOpt); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/

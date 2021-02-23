@@ -18,8 +18,10 @@ public:
   TwoLevel(RegOpt* opt) : m_Opt(opt) {}
   virtual ~TwoLevel() {}
 
+  virtual PetscErrorCode Restrict(ScalarType*, const ScalarType*) = 0;
   virtual PetscErrorCode Restrict(ScaField*, ScaField*) = 0;
   virtual PetscErrorCode Restrict(VecField*, VecField*) = 0;
+  virtual PetscErrorCode Prolong(ScalarType*, const ScalarType*) = 0;
   virtual PetscErrorCode Prolong(ScaField*, ScaField*) = 0;
   virtual PetscErrorCode Prolong(VecField*, VecField*) = 0;
 protected:
@@ -31,8 +33,10 @@ public:
   TwoLevelFFT(RegOpt*);
   virtual ~TwoLevelFFT();
   
+  virtual PetscErrorCode Restrict(ScalarType*, const ScalarType*);
   virtual PetscErrorCode Restrict(ScaField*, ScaField*);
   virtual PetscErrorCode Restrict(VecField*, VecField*);
+  virtual PetscErrorCode Prolong(ScalarType*, const ScalarType*);
   virtual PetscErrorCode Prolong(ScaField*, ScaField*);
   virtual PetscErrorCode Prolong(VecField*, VecField*);
 };
@@ -60,8 +64,10 @@ public:
   TwoLevelFinite(RegOpt*);
   virtual ~TwoLevelFinite();
   
+  virtual PetscErrorCode Restrict(ScalarType*, const ScalarType*);
   virtual PetscErrorCode Restrict(ScaField*, ScaField*);
   virtual PetscErrorCode Restrict(VecField*, VecField*);
+  virtual PetscErrorCode Prolong(ScalarType*, const ScalarType*);
   virtual PetscErrorCode Prolong(ScaField*, ScaField*);
   virtual PetscErrorCode Prolong(VecField*, VecField*);
 protected:

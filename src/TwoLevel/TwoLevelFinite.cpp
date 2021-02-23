@@ -43,7 +43,7 @@ TwoLevelFinite::~TwoLevelFinite() {
     }
 }
 
-PetscErrorCode TwoLevelFinite::Restrict(ScaField* dst, ScaField* src) {
+PetscErrorCode TwoLevelFinite::Restrict(ScalarType* dst, const ScalarType* src) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -51,34 +51,43 @@ PetscErrorCode TwoLevelFinite::Restrict(ScaField* dst, ScaField* src) {
 
   ZeitGeist_define(FD_RESTRICT);
   ZeitGeist_tick(FD_RESTRICT);
-  
-  const ScalarType* pSrc = nullptr;
-  ScalarType* pDst = nullptr;
-  
-  src->GetArrayRead(pSrc);
-  dst->GetArrayWrite(pDst);
 
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
   if (this->m_Opt->rank_cnt > 1) {
     ZeitGeist_define(FD_COMM);
     ZeitGeist_tick(FD_COMM);
-    this->m_GhostPlan->share_ghost_x(pSrc, this->m_Ghost); 
+    this->m_GhostPlan->share_ghost_x(src, this->m_Ghost); 
     ZeitGeist_tock(FD_COMM);
     
-    ierr = Kernel::Restrict(pDst, this->m_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+    ierr = Kernel::Restrict(dst, this->m_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
   } else {
-    ierr = Kernel::Restrict(pDst, pSrc, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+    ierr = Kernel::Restrict(dst, src, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
   }
 #else
   ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
 
-  src->RestoreArray();
-  dst->RestoreArray();
-
   ZeitGeist_tock(FD_RESTRICT);
   DebugGPUStopEvent();
   
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TwoLevelFinite::Restrict(ScaField* dst, ScaField* src) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  const ScalarType *pVf = nullptr;
+  ScalarType *pVc = nullptr;
+  
+  ierr = src->GetArrayRead(pVf); CHKERRQ(ierr);
+  ierr = dst->GetArrayWrite(pVc); CHKERRQ(ierr);
+  
+  ierr = this->Restrict(pVc, pVf);
+  
+  ierr = src->RestoreArray(); CHKERRQ(ierr);
+  ierr = dst->RestoreArray(); CHKERRQ(ierr);
+    
   PetscFunctionReturn(ierr);
 }
 
@@ -137,7 +146,7 @@ PetscErrorCode TwoLevelFinite::Restrict(VecField* dst, VecField* src) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode TwoLevelFinite::Prolong(ScaField* dst, ScaField* src) {
+PetscErrorCode TwoLevelFinite::Prolong(ScalarType* dst, const ScalarType* src) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -145,34 +154,43 @@ PetscErrorCode TwoLevelFinite::Prolong(ScaField* dst, ScaField* src) {
 
   ZeitGeist_define(FD_PROLONG);
   ZeitGeist_tick(FD_PROLONG);
-  
-  const ScalarType* pSrc = nullptr;
-  ScalarType* pDst = nullptr;
-  
-  src->GetArrayRead(pSrc);
-  dst->GetArrayWrite(pDst);
 
 #if defined(REG_HAS_MPICUDA) || defined(REG_HAS_CUDA)
   if (this->m_Opt->rank_cnt > 1) {
     ZeitGeist_define(FD_COMM);
     ZeitGeist_tick(FD_COMM);
-    this->m_GhostPlan->share_ghost_x(pSrc, this->m_Ghost); 
+    this->m_GhostPlan->share_ghost_x(src, this->m_Ghost); 
     ZeitGeist_tock(FD_COMM);
     
-    ierr = Kernel::Prolong(pDst, this->m_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+    ierr = Kernel::Prolong(dst, this->m_Ghost, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
   } else {
-    ierr = Kernel::Prolong(pDst, pSrc, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
+    ierr = Kernel::Prolong(dst, src, this->m_Opt->m_Domain.isize); CHKERRQ(ierr);
   }
 #else
   ierr = DebugNotImplemented(); CHKERRQ(ierr);
 #endif
 
-  src->RestoreArray();
-  dst->RestoreArray();
-
   ZeitGeist_tock(FD_PROLONG);
   DebugGPUStopEvent();
   
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TwoLevelFinite::Prolong(ScaField* dst, ScaField* src) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  const ScalarType *pVc = nullptr;
+  ScalarType *pVf = nullptr;
+  
+  ierr = src->GetArrayRead(pVc); CHKERRQ(ierr);
+  ierr = dst->GetArrayWrite(pVf); CHKERRQ(ierr);
+  
+  ierr = this->Prolong(pVf, pVc);
+  
+  ierr = src->RestoreArray(); CHKERRQ(ierr);
+  ierr = dst->RestoreArray(); CHKERRQ(ierr);
+    
   PetscFunctionReturn(ierr);
 }
 

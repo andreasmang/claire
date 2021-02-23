@@ -553,24 +553,23 @@ PetscErrorCode CLAIREBase::SetControlVariable(VecField* v) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
-    ierr = Assert(v != NULL, "null pointer"); CHKERRQ(ierr);
     
     if (this->m_Opt->m_Verbosity > 2) {
       ierr = DbgMsg2("Setting control variable"); CHKERRQ(ierr);
     }
 
-    //ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
-//    ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
-
-    //ierr = this->m_VelocityField->Copy(v); CHKERRQ(ierr);
-
-    if (this->m_DeleteControlVariable) {
-        Free(this->m_VelocityField);
-    }
+    if (v == nullptr) {
+      ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+      ierr = this->m_VelocityField->SetValue(0.0); CHKERRQ(ierr);
+      this->m_DeleteControlVariable = true;
+    } else {
+      if (this->m_DeleteControlVariable) {
+          Free(this->m_VelocityField);
+      }
     
-    this->m_VelocityField = v;
-    this->m_DeleteControlVariable = false;
+      this->m_VelocityField = v;
+      this->m_DeleteControlVariable = false;
+    }
     
     this->m_VelocityField->DebugInfo("control variable", __LINE__, __FILE__);
 
@@ -1195,13 +1194,113 @@ PetscErrorCode CLAIREBase::PreKrylovSolve(Vec g, Vec x) {
         ierr = this->ApplyInvRegularizationOperator(g, g, true); CHKERRQ(ierr);
     }
     
-    /*VecField *g_vec = new VecField(m_Opt, g);
+    if (this->m_CoarseReg) {
+      
+      //AllocateOnce(this->m_CoarseReg->m_TemplateImage, this->m_CoarseRegOpt);
+      TwoLevelFFT op(this->m_Opt);
+      
+      //op.Restrict(this->m_CoarseReg->m_TemplateImage, this->m_TemplateImage);
+      
+     //for (int t=0; t<= this->m_Opt->m_Domain.nt; ++t) {
+        const ScalarType *p_m_f;
+        ScalarType *p_m_c;
+        this->m_StateVariable->GetArrayRead(p_m_f, 0, 0);
+        this->m_CoarseReg->m_StateVariable->GetArray(p_m_c, 0, 0);
+        
+        op.Restrict(p_m_c, p_m_f);
+        
+        this->m_StateVariable->RestoreArray();
+        this->m_CoarseReg->m_StateVariable->RestoreArray();
+      //}
+      
+      op.Restrict(this->m_CoarseReg->m_VelocityField, this->m_VelocityField);
+      
+      ierr = this->m_CoarseReg->m_TransportProblem->SetStateVariable(this->m_CoarseReg->m_StateVariable); CHKERRQ(ierr);
+      ierr = this->m_CoarseReg->m_TransportProblem->SetControlVariable(this->m_CoarseReg->m_VelocityField); CHKERRQ(ierr);
+      
+      ierr = this->m_CoarseReg->m_TransportProblem->SolveForwardProblem(); CHKERRQ(ierr);
+      
+      /*{
+      Vec pvec = this->m_CoarseReg->m_StateVariable->m_X;
+      ScalarType *data;
+      VecGetArray(pvec, &data);
+      nifti_image *image = nullptr;
+      image = nifti_simple_init_nim();
+      image->dim[0] = image->ndim = 3;
+      image->dim[1] = image->nx = 128;
+      image->dim[2] = image->ny = 128;
+      image->dim[3] = image->nz = 128;
+      image->nvox = image->nx*image->ny*image->nz;
+      image->data = &data[0];
+      image->nbyper = sizeof(ScalarType);
+      image->datatype = NIFTI_TYPE_FLOAT32;
+      image->nifti_type = NIFTI_FTYPE_NIFTI1_1;
+      image->fname = nifti_makehdrname("m0.nii.gz", image->nifti_type, false, true);
+      image->iname = nifti_makeimgname("m0.nii.gz", image->nifti_type, false, true);  
+      nifti_image_infodump(image);
+      nifti_image_write(image);
+      image->data = nullptr;
+      nifti_image_free(image); 
+      VecRestoreArray(pvec, &data);
+      }
+      
+      {
+      Vec pvec = this->m_CoarseReg->m_StateVariable->m_X;
+      ScalarType *data;
+      VecGetArray(pvec, &data);
+      nifti_image *image = nullptr;
+      image = nifti_simple_init_nim();
+      image->dim[0] = image->ndim = 3;
+      image->dim[1] = image->nx = 128;
+      image->dim[2] = image->ny = 128;
+      image->dim[3] = image->nz = 128;
+      image->nvox = image->nx*image->ny*image->nz;
+      image->data = &data[128*128*128*4];
+      image->nbyper = sizeof(ScalarType);
+      image->datatype = NIFTI_TYPE_FLOAT32;
+      image->nifti_type = NIFTI_FTYPE_NIFTI1_1;
+      image->fname = nifti_makehdrname("m1.nii.gz", image->nifti_type, false, true);
+      image->iname = nifti_makeimgname("m1.nii.gz", image->nifti_type, false, true);  
+      nifti_image_infodump(image);
+      nifti_image_write(image);
+      image->data = nullptr;
+      nifti_image_free(image); 
+      VecRestoreArray(pvec, &data);
+      }*/
+      
+     
+      TransportEquationSL *tpeq = static_cast<TransportEquationSL*>(this->m_CoarseReg->m_TransportProblem);
+      
+      tpeq->GetSemiLagrangian()->SetWorkVecField(this->m_CoarseReg->m_WorkVecField1); CHKERRQ(ierr);
+      //tpeq->GetSemiLagrangian()->ComputeTrajectory(this->m_CoarseReg->m_VelocityField, "state"); CHKERRQ(ierr);
+      tpeq->GetSemiLagrangian()->ComputeTrajectory(this->m_CoarseReg->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+      
+      //ierr = AllocateOnce(this->m_CoarseReg->m_SemiLagrangianMethod, this->m_CoarseRegOpt); CHKERRQ(ierr);
+      //this->m_CoarseReg->m_SemiLagrangianMethod->SetWorkVecField(this->m_CoarseReg->m_WorkVecField1); CHKERRQ(ierr);
+      //this->m_CoarseReg->m_SemiLagrangianMethod->ComputeTrajectory(this->m_CoarseReg->m_VelocityField, "state"); CHKERRQ(ierr);    
+      //this->m_CoarseReg->m_SemiLagrangianMethod->ComputeTrajectory(this->m_CoarseReg->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+      
+      VecField *g_vec = new VecField(m_Opt, g);
+      
+      
+      //this->m_WorkVecField1->SetValue(0.0);
+      
+      //TwoLevelFFT op(this->m_Opt);
+      op.Restrict(this->m_WorkVecField1, g_vec);
+      op.Prolong(g_vec, this->m_WorkVecField1);
+      
+      delete g_vec;
+    }
     
-    TwoLevelFFT op(this->m_Opt);
-    op.Restrict(this->m_WorkVecField1, g_vec);
-    op.Prolong(g_vec, this->m_WorkVecField1);
+    /*{
+      VecField *g_vec = new VecField(m_Opt, g);
     
-    delete g_vec;*/
+      TwoLevelFFT op(this->m_Opt);
+      op.Restrict(this->m_WorkVecField1, g_vec);
+      op.Prolong(g_vec, this->m_WorkVecField1);
+      
+      delete g_vec;
+    }*/
 
     this->m_Opt->Exit(__func__);
 
@@ -1228,7 +1327,10 @@ PetscErrorCode CLAIREBase::PostKrylovSolve(Vec g, Vec x) {
     /*VecField *g_vec = new VecField(m_Opt, x);
     
     TwoLevelFFT op(this->m_Opt);
-    op.Restrict(this->m_WorkVecField1, g_vec);
+    //op.Restrict(this->m_WorkVecField1, g_vec);
+    
+    this->m_WorkVecField1->Copy(g_vec);
+    
     op.Prolong(g_vec, this->m_WorkVecField1);
     
     delete g_vec;*/

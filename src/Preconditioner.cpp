@@ -993,6 +993,7 @@ PetscErrorCode Preconditioner::SetupKrylovMethod(IntType nl, IntType ng) {
     //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
     //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
     ierr = KSPSetNormType(this->m_KrylovMethod, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+    
     //ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
     ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
 

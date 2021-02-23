@@ -7,7 +7,7 @@ namespace reg {
 TwoLevelFFT::TwoLevelFFT(RegOpt* opt) : TwoLevel(opt) {}
 TwoLevelFFT::~TwoLevelFFT() {}
 
-PetscErrorCode TwoLevelFFT::Restrict(ScaField* dst, ScaField* src) {
+PetscErrorCode TwoLevelFFT::Restrict(ScalarType* dst, const ScalarType* src) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -19,9 +19,6 @@ PetscErrorCode TwoLevelFFT::Restrict(ScaField* dst, ScaField* src) {
 
   ScalarType scale = 1./(fine->nx[0]*fine->nx[1]*fine->nx[2]);
   
-  const ScalarType *pVf = nullptr;
-  ScalarType *pVc = nullptr;
-  
   ComplexType *pXHat_c[1], *pXHat_f[1];
   
   pXHat_f[0] =   &fine->fft->m_WorkSpace[0];  
@@ -29,21 +26,32 @@ PetscErrorCode TwoLevelFFT::Restrict(ScaField* dst, ScaField* src) {
   
   ierr = Assert(pXHat_f[0] != pXHat_c[0], "using same memory for fine and coarse not supported"); CHKERRQ(ierr);
   
-  
-  ierr = src->GetArrayRead(pVf); CHKERRQ(ierr);
-  fine->fft->FFT_R2C(pVf, pXHat_f[0]);
-  ierr = src->RestoreArray(); CHKERRQ(ierr);
-    
+  fine->fft->FFT_R2C(src, pXHat_f[0]);
   fine->fft->Restrict(pXHat_c[0], pXHat_f[0], coarse->fft);
   
   coarse->fft->Scale(pXHat_c[0], scale);
-  
-  ierr = dst->GetArrayWrite(pVc); CHKERRQ(ierr);
-  coarse->fft->FFT_C2R(pXHat_c[0], pVc);
-  ierr = dst->RestoreArray(); CHKERRQ(ierr);
+  coarse->fft->FFT_C2R(pXHat_c[0], dst);
   
   ZeitGeist_tock(FFT_RESTRICT);
   
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TwoLevelFFT::Restrict(ScaField* dst, ScaField* src) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  const ScalarType *pVf = nullptr;
+  ScalarType *pVc = nullptr;
+  
+  ierr = src->GetArrayRead(pVf); CHKERRQ(ierr);
+  ierr = dst->GetArrayWrite(pVc); CHKERRQ(ierr);
+  
+  ierr = this->Restrict(pVc, pVf);
+  
+  ierr = src->RestoreArray(); CHKERRQ(ierr);
+  ierr = dst->RestoreArray(); CHKERRQ(ierr);
+    
   PetscFunctionReturn(ierr);
 }
 
@@ -106,7 +114,7 @@ PetscErrorCode TwoLevelFFT::Restrict(VecField* dst, VecField* src) {
   PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode TwoLevelFFT::Prolong(ScaField* dst, ScaField* src) {
+PetscErrorCode TwoLevelFFT::Prolong(ScalarType* dst, const ScalarType* src) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
@@ -118,9 +126,6 @@ PetscErrorCode TwoLevelFFT::Prolong(ScaField* dst, ScaField* src) {
   
   ScalarType scale = 1./(coarse->nx[0]*coarse->nx[1]*coarse->nx[2]);
   
-  ScalarType *pVf = nullptr;
-  const ScalarType *pVc = nullptr;
-  
   ComplexType *pXHat_c[1], *pXHat_f[1];
   
   pXHat_f[0]   = &fine->fft->m_WorkSpace[0];
@@ -128,20 +133,32 @@ PetscErrorCode TwoLevelFFT::Prolong(ScaField* dst, ScaField* src) {
   
   ierr = Assert(pXHat_f[0] != pXHat_c[0], "using same memory for fine and coarse not supported"); CHKERRQ(ierr);
   
-  ierr = src->GetArrayRead(pVc); CHKERRQ(ierr);
-  coarse->fft->FFT_R2C(pVc, pXHat_c[0]);
-  ierr = src->RestoreArray(); CHKERRQ(ierr);
-  
+  coarse->fft->FFT_R2C(src, pXHat_c[0]);
   coarse->fft->Scale(pXHat_c[0], scale);
   
   fine->fft->Prolong(pXHat_f[0], pXHat_c[0], coarse->fft);
-  
-  ierr = dst->GetArrayWrite(pVf); CHKERRQ(ierr);
-  fine->fft->FFT_C2R(pXHat_f[0], pVf);
-  ierr = dst->RestoreArray(); CHKERRQ(ierr);
+  fine->fft->FFT_C2R(pXHat_f[0], dst);
   
   ZeitGeist_tock(FFT_PROLONG);
   
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TwoLevelFFT::Prolong(ScaField* dst, ScaField* src) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  const ScalarType *pVc = nullptr;
+  ScalarType *pVf = nullptr;
+  
+  ierr = src->GetArrayRead(pVc); CHKERRQ(ierr);
+  ierr = dst->GetArrayWrite(pVf); CHKERRQ(ierr);
+  
+  ierr = this->Prolong(pVf, pVc);
+  
+  ierr = src->RestoreArray(); CHKERRQ(ierr);
+  ierr = dst->RestoreArray(); CHKERRQ(ierr);
+    
   PetscFunctionReturn(ierr);
 }
 

@@ -52,7 +52,31 @@ __global__ void CopyStridedFromFlatVecKernel(ScalarType *p_x1, ScalarType *p_x2,
     }
 }
 
+__global__ void SetValueKernel(ScalarType* p, ScalarType v, IntType nl) {
+  int i = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (i < nl) {
+        p[i] = v;
+    }
+}
+
+
 namespace reg {
+  
+  
+PetscErrorCode SetValue(ScalarType* p, ScalarType v, IntType nl) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, 1, 1);
+  
+  SetValueKernel<<<grid, block>>>(p, v, nl);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+
+  PetscFunctionReturn(ierr);
+}
   
 
 /********************************************************************

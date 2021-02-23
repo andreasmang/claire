@@ -52,7 +52,9 @@ class CLAIREDivReg : public CLAIRE {
     /*! apply the projection operator to the
         body force and the incremental body force */
     virtual PetscErrorCode ApplyProjection();
-
+    
+    virtual PetscErrorCode CreateCoarseReg();
+    
  private:
     PetscErrorCode EvaluteRegularizationDIV(ScalarType*);
 };

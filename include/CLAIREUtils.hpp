@@ -125,6 +125,8 @@ PetscErrorCode EnsurePartitionOfUnity(Vec, IntType);
 /*! generic copy function based CPU or GPU implementation */
 PetscErrorCode gencpy(ScalarType*, ScalarType*, size_t);
 
+PetscErrorCode SetValue(ScalarType*, ScalarType, IntType);
+
 /*! ensure partition of unity */
 PetscErrorCode ComputeBackGround(Vec, Vec, IntType);
 

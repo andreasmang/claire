@@ -72,6 +72,9 @@ PetscErrorCode CLAIRE::Initialize() {
     this->m_AdjointVariable = NULL;     ///< adjoint variable
     this->m_IncStateVariable = NULL;    ///< incremental state variable
     this->m_IncAdjointVariable = NULL;  ///< incremental adjoint variable
+    
+    this->m_CoarseReg = nullptr;
+    this->m_CoarseRegOpt = nullptr;
 
     PetscFunctionReturn(ierr);
 }
@@ -104,6 +107,12 @@ PetscErrorCode CLAIRE::ClearMemory(void) {
     cudaPrintDeviceMemory();
   }
 #endif
+    
+    ierr = Free(this->m_CoarseReg); CHKERRQ(ierr);
+    if (this->m_CoarseRegOpt) {
+      this->m_CoarseRegOpt->m_FFT.fft = nullptr;
+    }
+    ierr = Free(this->m_CoarseRegOpt); CHKERRQ(ierr);
 
     // delete all variables
     ierr = this->ClearVariables(); CHKERRQ(ierr);
@@ -139,6 +148,57 @@ PetscErrorCode CLAIRE::ClearVariables(void) {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode CLAIRE::CreateCoarseReg() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = Assert(this->m_CoarseRegOpt != nullptr, "coarse grid RegOpt not initialized"); CHKERRQ(ierr);
+  
+  ierr = AllocateOnce<CLAIRE>(this->m_CoarseReg, this->m_CoarseRegOpt); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode CLAIRE::InitializeCoarseReg() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = Assert(this->m_Opt != nullptr, "fine grid RegOpt not initialized"); CHKERRQ(ierr);
+  
+  //printf("%p\n", this->m_Opt->m_FFT_coarse.fft);
+  //ierr = Assert(this->m_Opt->m_FFT.fft != nullptr, "no FFT"); CHKERRQ(ierr);
+  if (this->m_Opt->m_FFT_coarse.fft) {
+    
+    ierr = AllocateOnce(this->m_CoarseRegOpt, *this->m_Opt); CHKERRQ(ierr);
+  
+    this->m_CoarseRegOpt->m_FFT = this->m_Opt->m_FFT_coarse;
+    this->m_CoarseRegOpt->m_FFT_coarse.fft = nullptr;
+    this->m_CoarseRegOpt->m_Domain.level = this->m_Opt->m_Domain.level;
+    this->m_CoarseRegOpt->m_Domain.nl = 1;
+    this->m_CoarseRegOpt->m_Domain.ng = 1;
+    this->m_CoarseRegOpt->m_Domain.mpicomm = this->m_Opt->m_Domain.mpicomm;
+    this->m_CoarseRegOpt->m_Domain.rowcomm = this->m_Opt->m_Domain.rowcomm;
+    this->m_CoarseRegOpt->m_Domain.colcomm = this->m_Opt->m_Domain.colcomm;
+    for (int i=0; i<3; ++i) {
+      this->m_CoarseRegOpt->m_Domain.nx[i] = this->m_Opt->m_FFT_coarse.nx[i];
+      this->m_CoarseRegOpt->m_Domain.istart[i] = this->m_Opt->m_FFT_coarse.istart[i];
+      this->m_CoarseRegOpt->m_Domain.isize[i] = this->m_Opt->m_FFT_coarse.isize[i];
+      this->m_CoarseRegOpt->m_Domain.ng *= this->m_CoarseRegOpt->m_Domain.nx[i];
+      this->m_CoarseRegOpt->m_Domain.nl *= this->m_CoarseRegOpt->m_Domain.isize[i];
+      this->m_CoarseRegOpt->m_Domain.hx[i] = 2.*PETSC_PI/static_cast<ScalarType>(this->m_CoarseRegOpt->m_Domain.nx[i]);
+    }
+    this->m_CoarseRegOpt->m_SetupDone = true;
+    
+    ierr = this->CreateCoarseReg(); CHKERRQ(ierr);
+    
+    ierr = this->m_CoarseReg->SetControlVariable(nullptr); CHKERRQ(ierr);
+    
+    ierr = this->m_CoarseReg->InitializeSolver();
+  }
+  
+  PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief setup solver (to not have to allocate things on the
  * fly; this allows us to essentially do a warm start)
@@ -156,6 +216,7 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
 
     ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_WorkVecField2, this->m_Opt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_WorkVecField3, this->m_Opt); CHKERRQ(ierr);
     
     
     ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
@@ -189,7 +250,9 @@ PetscErrorCode CLAIRE::InitializeSolver(void) {
       ierr = Assert(this->m_VelocityField != NULL, "null pointer"); CHKERRQ(ierr);
       ierr = this->m_TransportProblem->InitializeControlVariable(this->m_VelocityField); CHKERRQ(ierr);
     }
-
+    
+    //ierr = this->InitializeCoarseReg(); CHKERRQ(ierr);
+    
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1076,6 +1139,7 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
             // apply analytically preconditioned hessian H to \tilde{v}
             // hessian operator is symmetrized
             ierr = this->PrecondHessMatVecSym(Hvtilde, vtilde); CHKERRQ(ierr);
+            //ierr = this->SymTwoLevelHessMatVec(Hvtilde, vtilde); CHKERRQ(ierr);
             break;
         }
         default:
@@ -1345,7 +1409,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField* gradM, bool f
     ierr = vecX->Copy(vecR); CHKERRQ(ierr);
     //ierr = vecX->SetValue(0);
     
-    IntType innerloop = 100;
+    IntType innerloop = this->m_Opt->m_KrylovMethod.pcmaxit;
     
     ScalarType cg_eps;
     
@@ -1792,15 +1856,11 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     // during the computation of the incremental forward and adjoint
     // solve and the computation of the incremental body force)
     ierr = Assert(Hvtilde != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
     VecField *hv = nullptr;
+    VecField *v = nullptr;
     ierr = AllocateOnce(hv, this->m_Opt, Hvtilde); CHKERRQ(ierr);
-
-    // parse input (store incremental velocity field \tilde{v})
-    if (vtilde != NULL) {
-        ierr = hv->SetComponents(vtilde); CHKERRQ(ierr);
-    } else {
-        ierr = hv->Copy(this->m_IncVelocityField); CHKERRQ(ierr);
-    }
+    ierr = AllocateOnce(v, this->m_Opt, vtilde); CHKERRQ(ierr);
     
     /*TwoLevelFinite op(this->m_Opt);
     op.Restrict(this->m_WorkVecField1, hv);
@@ -1808,9 +1868,18 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     
     // apply inverse of 2nd variation of regularization model to
     // incremental body force: (\beta\D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta\D{A})^{-1/2}
-
+  
     // apply (\beta\D{A})^{-1/2} to incremental velocity field
-    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, hv, true); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(this->m_IncVelocityField, v, true); CHKERRQ(ierr);
+    
+    
+    /*{
+      VecField *g_vec = this->m_IncVelocityField;
+    
+      TwoLevelFFT op(this->m_Opt);
+      op.Restrict(this->m_WorkVecField1, g_vec);
+      op.Prolong(g_vec, this->m_WorkVecField1);
+    }*/
 
     // now solve the PDEs given the preconditioned incremental velocity field
 
@@ -1821,19 +1890,83 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
     ierr = this->SolveIncAdjointEquation(); CHKERRQ(ierr);
 
     // apply (\beta\D{A})^{-1/2} to incremental body force
-    ierr = this->m_Regularization->ApplyInverse(this->m_WorkVecField1, this->m_WorkVecField2, true); CHKERRQ(ierr);
+    ierr = this->m_Regularization->ApplyInverse(hv, this->m_WorkVecField2, true); CHKERRQ(ierr);
 
     // \D{H}\vect{\tilde{v}} = \vect{\tilde{v}} + (\beta \D{A})^{-1/2}\D{K}[\vect{\tilde{b}}](\beta \D{A})^{-1/2}
     // we use the same container for the bodyforce and the incremental body force to
     // save some memory
     hd = this->m_Opt->GetLebesgueMeasure();
-    ierr = hv->Scale(hd); CHKERRQ(ierr);
-    ierr = hv->AXPY(1.0, this->m_WorkVecField1); CHKERRQ(ierr);
+    //ierr = hv->Scale(hd); CHKERRQ(ierr);
+    ierr = hv->AXPY(hd, v); CHKERRQ(ierr);
+    
+    /*{
+      VecField *g_vec = hv;
+    
+      TwoLevelFFT op(this->m_Opt);
+      op.Restrict(this->m_WorkVecField1, g_vec);
+      op.Prolong(g_vec, this->m_WorkVecField1);
+    }*/
 
     //TwoLevelFFT op(this->m_Opt);
     /*op.Restrict(this->m_WorkVecField1, hv);
     op.Prolong(hv, this->m_WorkVecField1);*/
+    
+    ierr = Free(hv); CHKERRQ(ierr);
+    ierr = Free(v); CHKERRQ(ierr);
+    
+    // pass to output
+    /*if (Hvtilde != NULL) {
+        ierr = this->m_WorkVecField5->GetComponents(Hvtilde); CHKERRQ(ierr);
+    }*/
+    this->m_Opt->Exit(__func__);
 
+    PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode CLAIRE::SymTwoLevelHessMatVec(Vec Hvtilde, Vec vtilde) {
+    PetscErrorCode ierr = 0;
+    ScalarType hd;
+    PetscFunctionBegin;
+    
+    if (this->m_Opt->m_Verbosity > 2) {
+        ierr = DbgMsg2("symmetric preconditioned two-level hessian matvec"); CHKERRQ(ierr);
+    }
+
+    this->m_Opt->Enter(__func__);
+
+    ierr = Assert(Hvtilde != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(vtilde != NULL, "null pointer"); CHKERRQ(ierr);
+    VecField *hv = nullptr;
+    VecField *v = nullptr;
+    ierr = AllocateOnce(hv, this->m_Opt, Hvtilde); CHKERRQ(ierr);
+    ierr = AllocateOnce(v, this->m_Opt, vtilde); CHKERRQ(ierr);
+
+    // parse input (store incremental velocity field \tilde{v})
+    ierr = AllocateOnce(this->m_CoarseReg->m_IncVelocityField, this->m_CoarseRegOpt); CHKERRQ(ierr);
+    ierr = AllocateOnce(this->m_CoarseReg->m_WorkVecField5, this->m_CoarseRegOpt); CHKERRQ(ierr);
+    
+    TwoLevelFFT op(this->m_Opt);
+    
+    op.Restrict(this->m_CoarseReg->m_WorkVecField5, v);
+    
+    this->m_CoarseReg->m_Regularization->ApplyInverse(this->m_CoarseReg->m_IncVelocityField, this->m_CoarseReg->m_WorkVecField5, true);
+    
+    this->m_CoarseReg->SolveIncStateEquation();
+    this->m_CoarseReg->SolveIncAdjointEquation();
+    
+    this->m_CoarseReg->m_Regularization->ApplyInverse(this->m_CoarseReg->m_WorkVecField1, this->m_CoarseReg->m_WorkVecField2, true);
+    
+    //hd = this->m_CoarseRegOpt->GetLebesgueMeasure();
+    //this->m_CoarseReg->m_WorkVecField1->Scale(this->m_Opt->GetLebesgueMeasure()/hd);
+    
+    hd = this->m_CoarseRegOpt->GetLebesgueMeasure();
+    ierr = this->m_CoarseReg->m_WorkVecField1->AXPY(hd, this->m_CoarseReg->m_WorkVecField5); CHKERRQ(ierr);
+    
+    op.Prolong(hv, this->m_CoarseReg->m_WorkVecField1);  
+    
+    ierr = Free(hv); CHKERRQ(ierr);
+    ierr = Free(v); CHKERRQ(ierr);
+    
     // pass to output
     /*if (Hvtilde != NULL) {
         ierr = this->m_WorkVecField5->GetComponents(Hvtilde); CHKERRQ(ierr);
@@ -2447,8 +2580,8 @@ PetscErrorCode CLAIRE::SolveIncAdjointEquation(void) {
     if (this->m_DistanceMeasure == NULL) {
         ierr = this->SetupDistanceMeasure(); CHKERRQ(ierr);
     }
-    ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
-    ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
+    //ierr = this->m_DistanceMeasure->SetReferenceImage(this->m_ReferenceImage); CHKERRQ(ierr);
+    //ierr = this->m_DistanceMeasure->SetStateVariable(this->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncStateVariable(this->m_IncStateVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetIncAdjointVariable(this->m_IncAdjointVariable); CHKERRQ(ierr);
     ierr = this->m_DistanceMeasure->SetFinalConditionIAE(); CHKERRQ(ierr);
