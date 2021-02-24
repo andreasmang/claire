@@ -48,6 +48,10 @@ class DistanceMeasureNCC : public DistanceMeasure {
  protected:
     PetscErrorCode Initialize(void);
     PetscErrorCode ClearMemory(void);
+
+    ScalarType inpr_m1;
+    ScalarType inpr_mR;
+    ScalarType inpr_m1_mR;
 };
 
 

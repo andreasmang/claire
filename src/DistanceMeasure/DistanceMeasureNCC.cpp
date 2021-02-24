@@ -21,6 +21,7 @@
 #define _DISTANCEMEASURENCC_CPP_
 
 #include "DistanceMeasureNCC.hpp"
+#include "DistanceMeasureKernel.hpp"
 
 
 
@@ -68,93 +69,82 @@ PetscErrorCode DistanceMeasureNCC::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
-
-
-
 /********************************************************************
 * @brief Set up scale for NCC measure given by
 * scale = D_SL2(mR,mT)/D_NCC(mR,mT)
 ********************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetupScale(){
     PetscErrorCode ierr = 0;	
+    DistanceMeasureKernel::EvaluateFunctionalNCC kernel;
     ScalarType *p_mr = NULL, *p_mt = NULL, *p_w = NULL;
-    IntType nc, nl;
-    ScalarType norm_l2_loc, norm_mT_loc, norm_mR_loc, inpr_mT_mR_loc, 
-	       norm_l2, norm_mT, norm_mR, inpr_mT_mR, mTi, mRi;
+    IntType nc, ng;
+    ScalarType norm_l2, norm_mT, norm_mR, inpr_mT_mR, sum_mT, sum_mR;
     int rval;
     ScalarType l2distance, nccdistance, hd;
 
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
 
     ierr = Assert(this->m_TemplateImage != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
+    kernel.nc = this->m_Opt->m_Domain.nc;
     nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    kernel.nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
     hd  = this->m_Opt->GetLebesgueMeasure();   
 
-    ierr = GetRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->GetArrayRead(kernel.pMt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
+    ierr = GetRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
-    norm_l2_loc = 0.0;
-    norm_mT_loc = 0.0;
-    norm_mR_loc = 0.0;
-    inpr_mT_mR_loc = 0.0;
     if (this->m_Mask != NULL) {
         // Mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-		mTi = p_mt[k*nl+i];
-                mRi = p_mr[k*nl+i];
-                
-		// L2 Pieces
-                norm_l2_loc    += p_w[i]*(mTi - mRi)*(mTi - mRi);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
 
-		// NCC Pieces
-                norm_mT_loc    += p_w[i]*(mTi*mTi);
-                norm_mR_loc    += p_w[i]*(mRi*mRi);
-                inpr_mT_mR_loc += p_w[i]*(mTi*mRi);
-            }
-        }
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = kernel.ComputeScaleMask(); CHKERRQ(ierr);
+    
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-            mTi = p_mt[i];
-            mRi = p_mr[i];
-            
-	    // L2 Pieces
-            norm_l2_loc    += (mTi - mRi)*(mTi - mRi);
-            
-	    // NCC Pieces
-            norm_mT_loc    += (mTi*mTi);
-            norm_mR_loc    += (mRi*mRi);
-            inpr_mT_mR_loc += (mTi*mRi);
-        }
+        ierr = kernel.ComputeScale(); CHKERRQ(ierr);
     }
     // All reduce the pieces
-    rval = MPI_Allreduce(&norm_l2_loc, &norm_l2, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_l2_loc, &norm_l2, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&norm_mT_loc, &norm_mT, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_mT_loc, &norm_mT, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&inpr_mT_mR_loc, &inpr_mT_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.inpr_mT_mR_loc, &inpr_mT_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+
+    rval = MPI_Allreduce(&kernel.sum_mR_loc, &sum_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
     
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_TemplateImage, &p_mt); CHKERRQ(ierr);
+    rval = MPI_Allreduce(&kernel.sum_mT_loc, &sum_mT, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+
+    
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_TemplateImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
+
+    // update the inner products and norms to include the image mean differences
+    inpr_mT_mR = inpr_mT_mR - sum_mR*sum_mT/ng;
+    norm_mT = norm_mT - sum_mT*sum_mT/ng;
+    norm_mR = norm_mR - sum_mR*sum_mR/ng;
 
     // Calculate two distance measures and scale
     l2distance = 0.5*hd*norm_l2/static_cast<ScalarType>(nc);
     nccdistance = 0.5 - 0.5*(inpr_mT_mR*inpr_mT_mR)/(norm_mT*norm_mR);
     this->m_Opt->m_Distance.scale = l2distance/nccdistance;
+    //std::cout<<"scale = " << l2distance/nccdistance << std::endl;
     this->m_Opt->Exit(__func__);
 
 
@@ -169,10 +159,9 @@ PetscErrorCode DistanceMeasureNCC::SetupScale(){
 PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
-    IntType nt, nc, nl, l;
-    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, 
-	       norm_m1, norm_mR, inpr_m1_mR,
-               m1i, mRi, scale;
+    DistanceMeasureKernel::EvaluateFunctionalNCC kernel;
+    IntType nt, ng;
+    ScalarType norm_m1, norm_mR, inpr_m1_mR, sum_m1, sum_mR, scale;
     int rval;
 
     PetscFunctionBegin;
@@ -184,55 +173,67 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
 
     // Get sizes
     nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+    kernel.nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     scale = this->m_Opt->m_Distance.scale;
+     
+    ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
 
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-
-    l = nt*nl*nc;
-    norm_m1_loc = 0.0;
-    norm_mR_loc = 0.0;
-    inpr_m1_mR_loc = 0.0;
     if (this->m_Mask != NULL) {
-        // Mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-                m1i = p_m[l+k*nl+i];
-                mRi = p_mr[k*nl+i];
-                norm_m1_loc    += p_w[i]*(m1i*m1i);
-                norm_mR_loc    += p_w[i]*(mRi*mRi);
-                inpr_m1_mR_loc += p_w[i]*(m1i*mRi);
-            }
-        }
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        // mask objective functional
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
+
+        ierr = kernel.ComputeFunctionalMask(); CHKERRQ(ierr);
+    
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-                m1i = p_m[l+i];
-                mRi = p_mr[i];
-                norm_m1_loc    += (m1i*m1i);
-                norm_mR_loc    += (mRi*mRi);
-                inpr_m1_mR_loc += (m1i*mRi);
-        }
+        ierr = kernel.ComputeFunctional(); CHKERRQ(ierr);
     }
     // All reduce various pieces
-    rval = MPI_Allreduce(&norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    rval = MPI_Allreduce(&inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    rval = MPI_Allreduce(&kernel.inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_m1_loc, &sum_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_mR_loc, &sum_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    
+    // save the inner products in order to reuse them for computing final condition for AE and IAE
+    
+    //PetscPrintf(PETSC_COMM_WORLD, "sum_m1 = %0.4e\n", sum_m1);
+    //PetscPrintf(PETSC_COMM_WORLD, "sum_mR = %0.4e\n", sum_mR);
+    //PetscPrintf(PETSC_COMM_WORLD, "inpr_m1_mR = %0.4e\n", inpr_m1_mR);
+    //PetscPrintf(PETSC_COMM_WORLD, "norm_m1 = %0.4e\n", norm_m1);
+    //PetscPrintf(PETSC_COMM_WORLD, "norm_mR = %0.4e\n", norm_mR);
+    //PetscPrintf(PETSC_COMM_WORLD, "ng diff = %0.4e\n", 128*128*128-ng);
+    //PetscPrintf(PETSC_COMM_WORLD, "D_o = %0.4e\n", 0.5 - 0.5*inpr_m1_mR*inpr_m1_mR/(norm_m1*norm_mR));
+
+    // subtract means from inner products and norms
+    inpr_m1_mR = inpr_m1_mR - sum_m1*sum_mR/ng;
+    norm_m1 = norm_m1 - sum_m1*sum_m1/ng;
+    norm_mR = norm_mR - sum_mR*sum_mR/ng;
+
+    //PetscPrintf(PETSC_COMM_WORLD, "inpr_m1_mR_s = %0.4e\n", inpr_m1_mR);
+    //PetscPrintf(PETSC_COMM_WORLD, "norm_m1_s = %0.4e\n", norm_m1);
+    //PetscPrintf(PETSC_COMM_WORLD, "norm_mR_s = %0.4e\n", norm_mR);
+    //PetscPrintf(PETSC_COMM_WORLD, "scale_S = %0.4e\n", scale);
+    //PetscPrintf(PETSC_COMM_WORLD, "true = %0.4e\n", 0.5 - 0.5*(inpr_m1_mR*inpr_m1_mR)/(norm_m1*norm_mR));
 
     // Objective value
     *D = scale*(0.5 - 0.5*(inpr_m1_mR*inpr_m1_mR)/(norm_m1*norm_mR));
-//    printf("scale = %f \n", *D);
+    //PetscPrintf(PETSC_COMM_WORLD, "D = %0.4e\n", *D);
 
     this->m_Opt->Exit(__func__);
 
@@ -248,11 +249,12 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
-    IntType nl, nc, nt, l, ll;
+    IntType nl, nc, nt, ng;
     int rval;
     ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
-    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, norm_m1, norm_mR, inpr_m1_mR;
-    ScalarType const1, const2, m1i, mRi, hd, scale;
+    ScalarType norm_m1, norm_mR, inpr_m1_mR, sum_m1, sum_mR;
+    ScalarType const1, const2, hd, scale;
+    DistanceMeasureKernel::FinalConditionNCC kernel;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -262,94 +264,80 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     ierr = Assert(this->m_AdjointVariable != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+    kernel.nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     hd  = this->m_Opt->GetLebesgueMeasure();
     scale = this->m_Opt->m_Distance.scale;
 
     // Index for final condition
+    ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
+
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        ll = nt*nc*nl;
+      ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, 0, nt); CHKERRQ(ierr);
     } else {
-        ll = 0;
+      ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL); CHKERRQ(ierr);
     }
-
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-
-    l = nt*nc*nl;
-    norm_m1_loc = 0.0;
-    norm_mR_loc = 0.0;
-    inpr_m1_mR_loc = 0.0;
 
     /* compute terminal condition
 	lambda = (<m1,mR>/<m1,m1><mR,mR>) * (mR - (<m1,mR>/<m1,m1>)*m1)
     */
-
-    // First, calculate necessary inner products locally
-    if (this->m_Mask != NULL) {
-        // Mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-                m1i = p_m[l+k*nl+i];
-                mRi = p_mr[k*nl+i];
-                norm_m1_loc    += p_w[i]*(m1i*m1i);
-                norm_mR_loc    += p_w[i]*(mRi*mRi);
-                inpr_m1_mR_loc += p_w[i]*(m1i*mRi);
-            }
-        }
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-    } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-                m1i = p_m[l+i];
-                mRi = p_mr[i];
-                norm_m1_loc    += (m1i*m1i);
-                norm_mR_loc    += (mRi*mRi);
-                inpr_m1_mR_loc += (m1i*mRi);
-        }
-    }
-
-    // All reduce for full inner products
-    rval = MPI_Allreduce(&norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = kernel.ComputeInnerProductsFinalConditionAE(); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    
+    rval = MPI_Allreduce(&kernel.norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    
+    rval = MPI_Allreduce(&kernel.inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
     ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_m1_loc, &sum_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_mR_loc, &sum_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    // first load the inner products
+    //l = nt*nc*nl;
+    //norm_m1 = this->inpr_m1;
+    //norm_mR = this->inpr_mR;
+    //inpr_m1_mR = this->inpr_m1_mR;
+    //
+    //subtract means from inner products
+    inpr_m1_mR = inpr_m1_mR - sum_m1*sum_mR/ng;
+    norm_m1 = norm_m1 - sum_m1*sum_m1/ng;
+    norm_mR = norm_mR - sum_mR*sum_mR/ng;
 
     // Now, write the terminal condition to lambda
-    const1 = scale*inpr_m1_mR/(hd*norm_m1*norm_mR);
-    const2 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
+    kernel.const1 = scale*inpr_m1_mR/(hd*norm_m1*norm_mR);
+    kernel.const2 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
+
+    //std::cout << "gradient const1 = " << kernel.const1 << std::endl;
+    //std::cout << "gradient const2 = " << kernel.const2 << std::endl;
+    //
+
+    kernel.mean_m1 = sum_m1/ng;
+    kernel.mean_mR = sum_mR/ng;
+    
 
    if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {  // for all grid nodes
-                p_l[ll+k*nl+i] = p_w[i]*(const1*p_mr[k*nl+i] - const2*p_m[l+k*nl+i]);
-            }
-        }
-}  // omp
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
+        
+        // not implemented
+        //ierr = kernel.ComputeFinalConditionMaskAE(); CHKERRQ(ierr);
+    
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nc*nl; ++i) {
-            p_l[ll+i] = const1*p_mr[i] - const2*p_m[l+i];
-        }
-}  // omp
-    }
-    ierr = RestoreRawPointer(this->m_AdjointVariable, &p_l); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+        ierr = kernel.ComputeFinalConditionAE(); CHKERRQ(ierr);
+    }  
+
+    ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
@@ -365,14 +353,12 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc, nl, ll, l;
+    IntType nt, nc, nl, ng;
     int rval;
-    ScalarType *p_m = NULL, *p_mr = NULL, *p_mtilde = NULL,
-                *p_ltilde = NULL, *p_w = NULL;
-    ScalarType const1, const2, const3, const4, const5, hd, scale;
-    ScalarType norm_m1_loc, norm_mR_loc, inpr_m1_mR_loc, inpr_m1_mtilde_loc, inpr_mR_mtilde_loc;
-    ScalarType norm_m1, norm_mR, inpr_m1_mR, inpr_m1_mtilde, inpr_mR_mtilde;
-    ScalarType m1i, mRi, mtilde1i;
+    //ScalarType const1, const2, const3, const4, const5;
+    ScalarType hd, scale; 
+    ScalarType norm_m1, norm_mR, inpr_m1_mR, inpr_m1_mtilde, inpr_mR_mtilde, sum_m1, sum_mR, sum_mtilde;
+    DistanceMeasureKernel::FinalConditionNCC kernel;
 
     this->m_Opt->Enter(__func__);
 
@@ -382,124 +368,99 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
-    nc = this->m_Opt->m_Domain.nc;
-    nl = this->m_Opt->m_Domain.nl;
+    ng = this->m_Opt->m_Domain.ng;
+    kernel.nc = this->m_Opt->m_Domain.nc;
+    kernel.nl = this->m_Opt->m_Domain.nl;
     hd  = this->m_Opt->GetLebesgueMeasure();
     scale = this->m_Opt->m_Distance.scale;
 
     // Index for final condition
+    ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
+    
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {
-        ll = nt*nc*nl;
+        ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pLtilde, 0, nt); CHKERRQ(ierr);
+        ierr = this->m_IncStateVariable->GetArrayRead(kernel.pMtilde, 0, nt); CHKERRQ(ierr);
     } else {
-        ll = 0;
+      ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pLtilde); CHKERRQ(ierr);
+      ierr = this->m_IncStateVariable->GetArrayRead(kernel.pMtilde); CHKERRQ(ierr);
     }
-    ierr = GetRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
-    ierr = GetRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
+    
+    ierr = kernel.ComputeInnerProductsFinalConditionIAE(); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.inpr_m1_mtilde_loc, &inpr_m1_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
 
-    // Compute terminal condition
+    rval = MPI_Allreduce(&kernel.inpr_mR_mtilde_loc, &inpr_mR_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_m1_loc, &sum_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_mR_loc, &sum_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    rval = MPI_Allreduce(&kernel.sum_mtilde_loc, &sum_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
+    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
+    
+    // Get the rest of the inner products
+    //norm_m1 = this->inpr_m1;
+    //norm_mR = this->inpr_mR;
+    //inpr_m1_mR = this->inpr_m1_mR;
 
-    // first, calculate necessary inner products locally
-    norm_m1_loc = 0.0;
-    norm_mR_loc = 0.0;
-    inpr_m1_mR_loc = 0.0;
-    inpr_m1_mtilde_loc = 0.0;
-    inpr_mR_mtilde_loc = 0.0;
+    norm_m1 = norm_m1 - sum_m1*sum_m1/ng;
+    norm_mR = norm_mR - sum_mR*sum_mR/ng;
+    inpr_m1_mR = inpr_m1_mR - sum_m1*sum_mR/ng;
+    inpr_m1_mtilde = inpr_m1_mtilde - sum_m1*sum_mtilde/ng;
+    inpr_mR_mtilde = inpr_mR_mtilde - sum_mR*sum_mtilde/ng;
+    kernel.mean_m1 = sum_m1/ng;
+    kernel.mean_mR = sum_mR/ng;
 
-    l = nt*nc*nl;
+    
+    // Now, write the terminal condition to lambda tilde
+    kernel.const1 = scale*inpr_mR_mtilde/(hd*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const1), "is nan");
+    kernel.const2 = 2.0*scale*(inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const2), "is nan");
+    kernel.const3 = 4.0*scale*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const3), "is nan");
+    kernel.const4 = 2.0*scale*(inpr_m1_mR*inpr_mR_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const4), "is nan");
+    kernel.const5 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
+    Assert(!PetscIsNanReal(kernel.const5), "is nan");
+    
+    //std::cout << "norm2 mtilde = " << norm_mtilde << std::endl;
+    //std::cout << "hessian const1 = " << kernel.const1 << std::endl;
+    //std::cout << "hessian const2 = " << kernel.const2 << std::endl;
+    //std::cout << "hessian const3 = " << kernel.const3 << std::endl;
+    //std::cout << "hessian const4 = " << kernel.const4 << std::endl;
+    //std::cout << "hessian const5 = " << kernel.const5 << std::endl;
 
     if (this->m_Mask != NULL) {
         // mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-        for (IntType k = 0; k < nc; ++k) {  // for all image components
-            for (IntType i = 0; i < nl; ++i) {
-                // get values
-                mRi      = p_mr[k*nl+i];            ///< reference image
-                m1i      = p_m[l+k*nl+i];           ///< transported intensitites (state variable)
-                mtilde1i = p_mtilde[ll+k*nl+i];     ///< incremental state variable
-
-                // compute norms and inner products
-                norm_m1_loc        += p_w[i]*(m1i*m1i);
-                norm_mR_loc        += p_w[i]*(mRi*mRi);
-                inpr_m1_mR_loc     += p_w[i]*(m1i*mRi);
-                inpr_m1_mtilde_loc += p_w[i]*(m1i*mtilde1i);
-                inpr_mR_mtilde_loc += p_w[i]*(mRi*mtilde1i);
-            }
-        }
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
+        ierr = this->m_Mask->GetArrayRead(kernel.pW); CHKERRQ(ierr);
+        
+        // not implemented
+        //ierr = kernel.ComputeFinalConditionMaskIAE(); CHKERRQ(ierr);
+    
+        ierr = this->m_Mask->RestoreArray(); CHKERRQ(ierr);
     } else {
-        for (IntType i = 0; i < nc*nl; ++i) {
-            // get values
-            mRi      = p_mr[i];            ///< reference image
-            m1i      = p_m[l+i];           ///< transported intensitites (state variable)
-            mtilde1i = p_mtilde[ll+i];     ///< incremental state variable
+        ierr = kernel.ComputeFinalConditionIAE(); CHKERRQ(ierr);
+    }  
 
-            // compute norms and inner products
-            norm_m1_loc        += (m1i*m1i);
-            norm_mR_loc        += (mRi*mRi);
-            inpr_m1_mR_loc     += (m1i*mRi);
-            inpr_m1_mtilde_loc += (m1i*mtilde1i);
-            inpr_mR_mtilde_loc += (mRi*mtilde1i);
-        }
-    }
-
-    // All reduce for full inner products
-    rval = MPI_Allreduce(&norm_m1_loc, &norm_m1, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&norm_mR_loc, &norm_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&inpr_m1_mR_loc, &inpr_m1_mR, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&inpr_m1_mtilde_loc, &inpr_m1_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    rval = MPI_Allreduce(&inpr_mR_mtilde_loc, &inpr_mR_mtilde, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD);
-    ierr = Assert(rval == MPI_SUCCESS, "mpi error"); CHKERRQ(ierr);
-
-    // Now, write the terminal condition to lambda tilde
-    const1 = scale*inpr_mR_mtilde/(hd*norm_m1*norm_mR);
-    const2 = 2.0*scale*(inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
-    const3 = 4.0*scale*(inpr_m1_mR*inpr_m1_mR*inpr_m1_mtilde)/(hd*norm_m1*norm_m1*norm_m1*norm_mR);
-    const4 = 2.0*scale*(inpr_m1_mR*inpr_mR_mtilde)/(hd*norm_m1*norm_m1*norm_mR);
-    const5 = scale*(inpr_m1_mR*inpr_m1_mR)/(hd*norm_m1*norm_m1*norm_mR);
-
-    if (this->m_Mask != NULL) {
-        // Mask objective functional
-        ierr = GetRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType k = 0; k < nc; ++k) {  // For all image components
-            for (IntType i = 0; i < nl; ++i) {  // For all grid nodes
-                mRi      = p_mr[k*nl+i];
-                m1i      = p_m[l+k*nl+i];
-                mtilde1i = p_mtilde[ll+k*nl+i];
-
-                p_ltilde[ll+k*nl+i] = p_w[i]*(const1*mRi - const2*mRi + const3*m1i - const4*m1i - const5*mtilde1i);
-            }
-        }
-}  // omp
-        ierr = RestoreRawPointer(this->m_Mask, &p_w); CHKERRQ(ierr);
-    } else {
-#pragma omp parallel
-{
-#pragma omp for
-        for (IntType i = 0; i < nl*nc; ++i) {
-            mRi      = p_mr[i];
-            m1i      = p_m[l+i];
-            mtilde1i = p_mtilde[ll+i];
-            p_ltilde[ll+i] = const1*mRi - const2*mRi + const3*m1i - const4*m1i - const5*mtilde1i;
-        }
-}  // omp
-    }
-    ierr = RestoreRawPointer(this->m_IncAdjointVariable, &p_ltilde); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_IncStateVariable, &p_mtilde); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_ReferenceImage, &p_mr); CHKERRQ(ierr);
-    ierr = RestoreRawPointer(this->m_StateVariable, &p_m); CHKERRQ(ierr);
+    ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_IncStateVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
 
