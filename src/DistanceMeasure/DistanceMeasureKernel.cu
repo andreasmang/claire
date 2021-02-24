@@ -22,6 +22,7 @@
 #include "thrust/device_ptr.h"
 #include "thrust/reduce.h"
 #include "thrust/execution_policy.h"
+#include "cublas_v2.h"
 
 
 __global__ void VecSubMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pWts,
