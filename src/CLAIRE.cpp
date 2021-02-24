@@ -2516,6 +2516,11 @@ PetscErrorCode CLAIRE::SolveIncStateEquation(void) {
         ss.str(std::string()); ss.clear();
     }
 
+    ScalarType mtilde_norm;
+    ierr = VecNorm(this->m_IncStateVariable->m_X, NORM_2, &mtilde_norm);
+    //PetscPrintf(PETSC_COMM_WORLD, "mtilde norm = %0.4e\n", mtilde_norm);
+
+
     // stop timer
     ierr = this->m_Opt->StopTimer(PDEEXEC); CHKERRQ(ierr);
 

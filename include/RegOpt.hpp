@@ -574,6 +574,7 @@ class RegOpt {
 
     virtual PetscErrorCode DisplayOptions(void);
     PetscErrorCode DisplayTimeToSolution(void);
+    PetscErrorCode GetTimeToSolution(double&);
     PetscErrorCode WriteLogFile(bool coarse = false);
     PetscErrorCode DoSetup(bool dispteaser = true);
 

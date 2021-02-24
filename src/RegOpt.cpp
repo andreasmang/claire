@@ -4261,6 +4261,21 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 }
 
 
+/********************************************************************
+ * @brief returns the global exection time
+ *******************************************************************/
+PetscErrorCode RegOpt::GetTimeToSolution(double& time) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->Enter(__func__);
+
+    time = this->m_Timer[T2SEXEC][MAX];
+
+    this->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

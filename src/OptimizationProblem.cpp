@@ -174,9 +174,10 @@ PetscErrorCode OptimizationProblem::DerivativeCheckGradient() {
     ng = this->m_Opt->m_Domain.ng;
 
     // create an extra array for initial guess (has to be flat for optimizer)
-    ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
-    ierr = VecSetSizes(v, 3*nl, 3*ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(v); CHKERRQ(ierr);
+    //ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
+    //ierr = VecSetSizes(v, 3*nl, 3*ng); CHKERRQ(ierr);
+    //ierr = VecSetFromOptions(v); CHKERRQ(ierr);
+    ierr = VecCreate(v, 3*nl, 3*ng); CHKERRQ(ierr);
     ierr = VecSet(v, 0.0); CHKERRQ(ierr);
 
     ierr = VecDuplicate(v, &vtilde); CHKERRQ(ierr);
@@ -262,9 +263,10 @@ PetscErrorCode OptimizationProblem::DerivativeCheckHessian() {
     ng = this->m_Opt->m_Domain.ng;
 
     // create an extra array for initial guess (has to be flat for optimizer)
-    ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
-    ierr = VecSetSizes(v, 3*nl, 3*ng); CHKERRQ(ierr);
-    ierr = VecSetFromOptions(v); CHKERRQ(ierr);
+    //ierr = VecCreate(PETSC_COMM_WORLD, &v); CHKERRQ(ierr);
+    //ierr = VecSetSizes(v, 3*nl, 3*ng); CHKERRQ(ierr);
+    //ierr = VecSetFromOptions(v); CHKERRQ(ierr);
+    ierr = VecCreate(v, 3*nl, 3*ng); CHKERRQ(ierr);
     ierr = VecSet(v, 0.0); CHKERRQ(ierr);
 
     ierr = VecDuplicate(v, &vtilde); CHKERRQ(ierr);

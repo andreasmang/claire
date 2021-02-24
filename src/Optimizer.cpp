@@ -668,6 +668,9 @@ PetscErrorCode Optimizer::Finalize() {
     int rank, indent, numindent, linelength;
     std::string line;
     std::stringstream ss;
+    std::ofstream outputcsvfile;
+    std::string filename;
+    double runtime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -684,7 +687,11 @@ PetscErrorCode Optimizer::Finalize() {
 
     linelength = this->m_Opt->m_LineLength;
     line = std::string(linelength, '-');
-    
+    filename = this->m_Opt->m_FileNames.xfolder + "/registration_results_metrics.csv";
+    ierr = this->m_Opt->GetTimeToSolution(runtime); CHKERRQ(ierr);
+    if (rank==0) 
+      outputcsvfile.open(filename, std::ios::out);
+
     ss  << std::scientific << "det(grad(y)) : (min, mean, max) = "
         << "(" << this->m_Opt->m_Monitor.detdgradmin 
         << ", " << this->m_Opt->m_Monitor.detdgradmean 
@@ -728,7 +735,22 @@ PetscErrorCode Optimizer::Finalize() {
            << this->m_Opt->GetCounter(PDESOLVE);
         ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
+
+        if (rank==0) {
+          outputcsvfile << "jacobian min," << std::scientific << this->m_Opt->m_Monitor.detdgradmin << std::endl;
+          outputcsvfile << "jacobian max," << this->m_Opt->m_Monitor.detdgradmax << std::endl;
+          outputcsvfile << "relative mismatch," << this->m_Opt->m_Monitor.dval/this->m_Opt->m_Monitor.dval0 << std::endl;
+          outputcsvfile << "NITER," << this->m_Opt->GetCounter(ITERATIONS) - 1 << std::endl;
+          outputcsvfile << "OBJEVAL," << this->m_Opt->GetCounter(OBJEVAL) << std::endl;
+          outputcsvfile << "HESSMATVEC," << this->m_Opt->GetCounter(HESSMATVEC) << std::endl;
+          outputcsvfile << "PDESOLVE," << this->m_Opt->GetCounter(PDESOLVE) << std::endl;
+          outputcsvfile << "relative gradient norm," << this->m_Opt->m_Monitor.gradnorm/this->m_Opt->m_Monitor.gradnorm0 << std::endl;
+          outputcsvfile << "runtime," << runtime << std::endl;
+        }
     }
+
+    if (rank==0)
+      outputcsvfile.close();
 
     // display info to user, once we're done
 //    ierr = TaoView(this->m_Tao, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
