@@ -1324,6 +1324,7 @@ PetscErrorCode CLAIREBase::PostKrylovSolve(Vec g, Vec x) {
         ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
     }
     
+    
     /*VecField *g_vec = new VecField(m_Opt, x);
     
     TwoLevelFFT op(this->m_Opt);

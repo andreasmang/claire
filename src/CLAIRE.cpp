@@ -1111,6 +1111,10 @@ PetscErrorCode CLAIRE::HessianMatVec(Vec Hvtilde, Vec vtilde, bool scale) {
         
     delete g_vec;
     }*/
+    
+    /*VecCopy(vtilde, Hvtilde);
+    hd = this->m_Opt->GetLebesgueMeasure();
+    VecScale(Hvtilde, hd);*/
 
     // switch between hessian operators
     switch (this->m_Opt->m_KrylovMethod.matvectype) {

@@ -795,6 +795,7 @@ PetscErrorCode RegOpt::SetParameter(const std::vector<std::string>& args) {
                 this->m_KrylovMethod.matvectype = H0MATVEC;
             } else if (strcmp(argv[1], "2level") == 0) {
                 this->m_KrylovMethod.pctype = TWOLEVEL;
+                //this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
                 this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
                 this->m_GridCont.nxmin = 64;
 //                 this->m_KrylovMethod.matvectype = PRECONDMATVEC;

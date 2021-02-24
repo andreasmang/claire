@@ -22,7 +22,7 @@
 
 #include "Preconditioner.hpp"
 #include "petscksp.h"
-
+#include "TwoLevel.hpp"
 
 
 namespace reg {
@@ -811,9 +811,12 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
     ierr = this->m_OptimizationProblem->GetStateVariable(m); CHKERRQ(ierr);
     ierr = this->m_OptimizationProblem->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
+    TwoLevelFFT op(this->m_Opt);
+
     // restrict control variable
+    //op.Restrict(this->m_CoarseGrid->m_ControlVariable, this->m_ControlVariable);
     ierr = this->m_PreProc->Restrict(this->m_CoarseGrid->m_ControlVariable,
-                                     this->m_ControlVariable, nx_c, nx_f); CHKERRQ(ierr);
+                                    this->m_ControlVariable, nx_c, nx_f); CHKERRQ(ierr);
 
     ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
     ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
@@ -833,26 +836,38 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
             ////// state variable
             /////////////////////////////////////////////////////////////////////
             // get time point of state variable on fine grid
+            //op.Restrict(p_mcoarse + l_c, p_m + l_f);
+  #if 1
+            
             ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
+  #ifndef REG_HAS_CUDA
+            try { cudaMemcpy(p_mj, p_m + l_f,  lnext_f-l_f, cudaMemcpyDeviceToDevice); }
+  #else
             try {std::copy(p_m+l_f, p_m+lnext_f, p_mj); }
+  #endif
             catch (std::exception&) {
                 ierr = ThrowError("copy failed"); CHKERRQ(ierr);
             }
             ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
 
             // apply restriction operator to m_j
+            //op.Restrict(this->m_CoarseGrid->m_WorkScaField1, this->m_WorkScaField1);
             ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid->m_WorkScaField1,
                                               this->m_WorkScaField1, nx_c, nx_f); CHKERRQ(ierr);
 
             // store restricted state variable
             l_c = j*nl_c*nc + k*nl_c;
             ierr = VecGetArray(this->m_CoarseGrid->m_WorkScaField1, &p_mjcoarse); CHKERRQ(ierr);
+  #ifndef REG_HAS_CUDA
+            try { cudaMemcpy(p_mcoarse + l_c, p_mjcoarse,  nl_c, cudaMemcpyDeviceToDevice); }
+  #else
             try {std::copy(p_mjcoarse, p_mjcoarse+nl_c, p_mcoarse+l_c);}
+  #endif
             catch (std::exception&) {
                 ierr = ThrowError("copy failed"); CHKERRQ(ierr);
             }
             ierr = VecRestoreArray(this->m_CoarseGrid->m_WorkScaField1, &p_mjcoarse); CHKERRQ(ierr);
-
+  #endif
             /////////////////////////////////////////////////////////////////////
             ////// adjoint variable
             /////////////////////////////////////////////////////////////////////
@@ -863,9 +878,17 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
             }
 
             if (applyrestriction) {
+              
+                //op.Restrict(p_lcoarse+l_c, p_l+l_f);
+  #if 1
+                
                 // get time point of adjoint variable on fine grid
                 ierr = VecGetArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
+  #ifndef REG_HAS_CUDA
+                try { cudaMemcpy(p_lj, p_l+l_f,  lnext_f-l_f, cudaMemcpyDeviceToDevice); }
+  #else
                 try {std::copy(p_l+l_f, p_l+lnext_f, p_lj);}
+  #endif
                 catch(std::exception& err) {
                     ierr = ThrowError(err); CHKERRQ(ierr);
                 }
@@ -877,11 +900,16 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
 
                 // store restricted adjoint variable
                 ierr = VecGetArray(this->m_CoarseGrid->m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
+  #ifndef REG_HAS_CUDA
+                try { cudaMemcpy(p_lcoarse+l_c, p_ljcoarse,  nl_c, cudaMemcpyDeviceToDevice); }
+  #else
                 try {std::copy(p_ljcoarse, p_ljcoarse+nl_c, p_lcoarse+l_c);}
+  #endif
                 catch(std::exception& err) {
                     ierr = ThrowError(err); CHKERRQ(ierr);
                 }
                 ierr = VecRestoreArray(this->m_CoarseGrid->m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
+  #endif
             }
 
         }  // for all components
