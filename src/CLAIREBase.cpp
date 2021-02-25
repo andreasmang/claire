@@ -1172,7 +1172,24 @@ PetscErrorCode CLAIREBase
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode CLAIREBase::PreHessian() {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
+    this->m_Opt->Enter(__func__);
+    
+    if (this->m_Opt->m_PDESolver.type == SL) {
+      TransportEquationSL *tpeq = static_cast<TransportEquationSL*>(this->m_TransportProblem);
+      
+      tpeq->GetSemiLagrangian()->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+      tpeq->GetSemiLagrangian()->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+      tpeq->GetSemiLagrangian()->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
+    }
+    
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

@@ -116,6 +116,8 @@ class CLAIREBase : public OptimizationProblem {
 
     /*! set state variable */
     virtual PetscErrorCode SetAdjointVariable(Vec) = 0;
+    
+    virtual PetscErrorCode PreHessian();
 
     /*! compute determinant of deformation gradient, i.e.
         the jacobian of the deformation map */

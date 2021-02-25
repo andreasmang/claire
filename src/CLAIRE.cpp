@@ -1949,6 +1949,9 @@ PetscErrorCode CLAIRE::SymTwoLevelHessMatVec(Vec Hvtilde, Vec vtilde) {
     ierr = AllocateOnce(this->m_CoarseReg->m_IncVelocityField, this->m_CoarseRegOpt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_CoarseReg->m_WorkVecField5, this->m_CoarseRegOpt); CHKERRQ(ierr);
     
+    ScalarType beta = this->m_Opt->m_RegNorm.beta[0];
+    
+    //TwoLevelRegFFT op(this->m_Opt, beta);
     TwoLevelFFT op(this->m_Opt);
     
     op.Restrict(this->m_CoarseReg->m_WorkVecField5, v);

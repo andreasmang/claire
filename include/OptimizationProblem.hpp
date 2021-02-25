@@ -52,6 +52,9 @@ class OptimizationProblem {
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;
+    
+    /*! allocate all the memory we need */
+    virtual PetscErrorCode InitializeSolver() = 0;
 
     /*! evaluate distance between observed and predicted state */
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
@@ -64,6 +67,8 @@ class OptimizationProblem {
 
     /*! apply Hessian matvec H\tilde{\vect{x}} */
     virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true) = 0;
+    
+    virtual PetscErrorCode PreHessian() = 0;
 
     /*! evaluate regularization functional for given control variable */
     virtual PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*) = 0;
