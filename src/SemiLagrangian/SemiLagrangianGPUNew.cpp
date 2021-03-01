@@ -731,14 +731,26 @@ PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y1, ScalarType* 
 
     ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
     
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA) 
+    ScalarType scale[3];
+    scale[0] = this->m_Opt->m_Domain.hx[0];
+    scale[1] = this->m_Opt->m_Domain.hx[1];
+    scale[2] = this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale);
     ierr = this->m_Xstate->GetComponents(y1, y2, y3); CHKERRQ(ierr);
-#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
-#pragma omp parallel for
+    scale[0] = 1./this->m_Opt->m_Domain.hx[0];
+    scale[1] = 1./this->m_Opt->m_Domain.hx[1];
+    scale[2] = 1./this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale);
+/*#pragma omp parallel for
     for (IntType i = 0; i < this->m_Opt->m_Domain.nl; ++i) {
       y1[i] *= this->m_Opt->m_Domain.hx[0];
       y2[i] *= this->m_Opt->m_Domain.hx[1];
       y3[i] *= this->m_Opt->m_Domain.hx[2];
     }
+    */
+#else
+    ierr = this->m_Xstate->GetComponents(y1, y2, y3); CHKERRQ(ierr);
 #endif
     this->m_Opt->Exit(__func__);
 
@@ -758,14 +770,26 @@ PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y) {
 
     ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->m_Xstate->GetComponents(y, "stride"); CHKERRQ(ierr);
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
-#pragma omp parallel for
+    ScalarType scale[3];
+    scale[0] = this->m_Opt->m_Domain.hx[0];
+    scale[1] = this->m_Opt->m_Domain.hx[1];
+    scale[2] = this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale);
+    ierr = this->m_Xstate->GetComponents(y); CHKERRQ(ierr);
+    scale[0] = 1./this->m_Opt->m_Domain.hx[0];
+    scale[1] = 1./this->m_Opt->m_Domain.hx[1];
+    scale[2] = 1./this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale); 
+/*#pragma omp parallel for
     for (IntType i = 0; i < this->m_Opt->m_Domain.nl; ++i) {
       y[3*i+0] *= this->m_Opt->m_Domain.hx[0];
       y[3*i+1] *= this->m_Opt->m_Domain.hx[1];
       y[3*i+2] *= this->m_Opt->m_Domain.hx[2];
     }
+    */
+#else
+    ierr = this->m_Xstate->GetComponents(y, "stride"); CHKERRQ(ierr);
 #endif
     this->m_Opt->Exit(__func__);
 

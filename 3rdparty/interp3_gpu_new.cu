@@ -1501,7 +1501,7 @@ __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType*
     }
 }
 
-void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, int* isize, int* istart, int* nx, int caseid) {
+void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, IntType* isize, IntType* istart, IntType* nx, int caseid) {
     dim3 threads(1,32,32);
     dim3 blocks((isize[0]+threads.x-1)/threads.x, (isize[1]+threads.y-1)/threads.y, (isize[2]+threads.z-1)/threads.z);
 

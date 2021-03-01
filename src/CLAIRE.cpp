@@ -821,8 +821,9 @@ PetscErrorCode CLAIRE::EvaluateGradient(Vec g, Vec v) {
     //    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt, v); CHKERRQ(ierr);
     //} else {
       ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+    if (v != NULL) {
       ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
-    //}
+    }
 
     if (this->m_Opt->m_Verbosity > 2) {
         ierr = this->m_VelocityField->Norm(nvx1, nvx2, nvx3); CHKERRQ(ierr);
@@ -1719,8 +1720,9 @@ PetscErrorCode CLAIRE::HessMatVec(Vec Hvtilde, Vec vtilde) {
     //    ierr = AllocateOnce(this->m_IncVelocityField, this->m_Opt, vtilde); CHKERRQ(ierr);
     //} else {
       ierr = AllocateOnce(this->m_IncVelocityField, this->m_Opt); CHKERRQ(ierr);
+    if (vtilde != NULL) {
       ierr = this->m_IncVelocityField->SetVector(vtilde); CHKERRQ(ierr);
-    //}
+    }
     
     // compute \tilde{m}(x,t)
     ierr = this->SolveIncStateEquation(); CHKERRQ(ierr);

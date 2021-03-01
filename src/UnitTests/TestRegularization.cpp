@@ -46,6 +46,7 @@ PetscErrorCode TestRegularization(RegOpt *m_Opt) {
   Regularization *m_reg = nullptr;
   VecField *v1 = nullptr;
   VecField *t = nullptr;
+  ScaField *ts = nullptr;
   ScalarType value = 0;
   ScalarType ref = 0;
   ScalarType beta0 = 0;
@@ -53,6 +54,7 @@ PetscErrorCode TestRegularization(RegOpt *m_Opt) {
   
   ierr = AllocateOnce(v1, m_Opt); CHKERRQ(ierr);
   ierr = AllocateOnce(t, m_Opt); CHKERRQ(ierr);
+  ierr = AllocateOnce(ts, m_Opt); CHKERRQ(ierr);
   
   // v = (sin(z)cos(y)sin(y), sin(x)cos(z)sin(z), sin(y)cos(x)sin(x))
   ierr = ComputeSyntheticData(v1, m_Opt, 1); CHKERRQ(ierr);
@@ -94,6 +96,7 @@ PetscErrorCode TestRegularization(RegOpt *m_Opt) {
   ierr = m_reg->SetDifferentiation(Differentiation::Type::Spectral); CHKERRQ(ierr);
   ierr = m_reg->SetSpectralData(); CHKERRQ(ierr);
   ierr = m_reg->SetWorkVecField(t); CHKERRQ(ierr);
+  ierr = m_reg->SetWorkScaField(ts); CHKERRQ(ierr);
   
   ierr = m_reg->EvaluateFunctional(&value, v1); CHKERRQ(ierr);
   ref *= .5;
