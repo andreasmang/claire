@@ -1455,7 +1455,7 @@ __global__ void checkDomainKernel(short* which_proc, ScalarType* xq, ScalarType*
         x = xq[tid];
         y = yq[tid];
         z = zq[tid];
-        if ( iX0.x-dh.x <= x && x <= iX1.z+dh.x &&
+        if ( iX0.x-dh.x <= x && x <= iX1.x+dh.x &&
              iX0.y-dh.y <= y && y <= iX1.y+dh.y &&
              iX0.z-dh.z <= z && z <= iX1.z+dh.z ) {
             which_proc[tid] = static_cast<short>(procid);
