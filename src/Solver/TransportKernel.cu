@@ -42,6 +42,33 @@ __global__ void TransformKernelAdjointSLGPU(ScalarType *pL, ScalarType* pLnext,
     pB3[i] += scale*pVec3[i]*lambda;
   }
 }
+__global__ void TransformKernelAdjointSLDivGPU(ScalarType *pDivV, ScalarType *pDivVx, ScalarType ht, IntType nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  if (i < nl) {
+    ScalarType divx = pDivVx[i];
+    ScalarType div = pDivV[i];
+    
+    pDivVx[i] = 1. + 0.5*ht*(divx + div + ht*divx*div);
+  }
+}
+__global__ void TransformKernelAdjointSLGPU(ScalarType* pLnext, ScalarType *pDivVx, 
+    ScalarType *pVec1, ScalarType *pVec2, ScalarType *pVec3,
+    ScalarType *pB1, ScalarType *pB2, ScalarType *pB3, 
+    ScalarType scale, ScalarType ht, IntType nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  if (i < nl) {
+    //ScalarType lambda  = pL[i];
+    ScalarType lambdax = pLnext[i]*pDivVx[i];
+
+    // compute \lambda(x,t^{j+1})
+    pLnext[i] = lambdax;
+
+    // compute bodyforce
+    pB1[i] += scale*pVec1[i]*lambdax;
+    pB2[i] += scale*pVec2[i]*lambdax;
+    pB3[i] += scale*pVec3[i]*lambdax;
+  }
+}
 __global__ void TransformKernelAdjointSLGPU(const ScalarType *pL,
     const ScalarType *pVec1, const ScalarType *pVec2, const ScalarType *pVec3,
     ScalarType *pB1, ScalarType *pB2, ScalarType *pB3, 
@@ -54,6 +81,20 @@ __global__ void TransformKernelAdjointSLGPU(const ScalarType *pL,
     pB1[i] += scale*pVec1[i]*lambda;
     pB2[i] += scale*pVec2[i]*lambda;
     pB3[i] += scale*pVec3[i]*lambda;
+  }
+}
+__global__ void TransformKernelAdjoint0SLGPU(const ScalarType *pL,
+    const ScalarType *pVec1, const ScalarType *pVec2, const ScalarType *pVec3,
+    ScalarType *pB1, ScalarType *pB2, ScalarType *pB3, 
+    ScalarType scale, IntType nl) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  if (i < nl) {
+    ScalarType lambda  = pL[i];
+
+    // compute bodyforce
+    pB1[i] = scale*pVec1[i]*lambda;
+    pB2[i] = scale*pVec2[i]*lambda;
+    pB3[i] = scale*pVec3[i]*lambda;
   }
 }
 __global__ void TransformKernelIncStateSLGPU(ScalarType *pM,
@@ -275,6 +316,35 @@ PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart1() {
   PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart1b() {
+  PetscErrorCode ierr = 0;
+  dim3 block = dim3(256);
+  dim3 grid  = dim3((nl + 255)/256);
+  PetscFunctionBegin;
+
+  TransformKernelAdjointSLGPU<<<grid, block>>>(pLnext, pDivVx, 
+    pGm[0], pGm[1], pGm [2], 
+    pB[0], pB[1], pB[2], 
+    scale, ht, nl);
+  //cudaDeviceSynchronize();
+  cudaCheckKernelError();
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TransportKernelAdjointSL::ComputeDiv() {
+  PetscErrorCode ierr = 0;
+  dim3 block = dim3(256);
+  dim3 grid  = dim3((nl + 255)/256);
+  PetscFunctionBegin;
+
+  TransformKernelAdjointSLDivGPU<<<grid, block>>>(pDivV, pDivVx, ht, nl);
+  //cudaDeviceSynchronize();
+  cudaCheckKernelError();
+
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart2() {
   PetscErrorCode ierr = 0;
   dim3 block = dim3(256);
@@ -282,6 +352,21 @@ PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart2() {
   PetscFunctionBegin;
 
   TransformKernelAdjointSLGPU<<<grid, block>>>(pL, 
+    pGm[0], pGm[1], pGm[2], 
+    pB[0], pB[1], pB[2], 
+    scale, nl);
+  //cudaDeviceSynchronize();
+  cudaCheckKernelError();
+
+  PetscFunctionReturn(ierr);
+}
+PetscErrorCode TransportKernelAdjointSL::ComputeBodyForcePart0() {
+  PetscErrorCode ierr = 0;
+  dim3 block = dim3(256);
+  dim3 grid  = dim3((nl + 255)/256);
+  PetscFunctionBegin;
+
+  TransformKernelAdjoint0SLGPU<<<grid, block>>>(pL, 
     pGm[0], pGm[1], pGm[2], 
     pB[0], pB[1], pB[2], 
     scale, nl);

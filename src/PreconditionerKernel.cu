@@ -42,7 +42,7 @@ PetscErrorCode H0PrecondKernel::res2 (ScalarType &res) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = ReductionKernelCallGPU<H0Kernel2>(res, nl, 
+  ierr = ReductionKernelCallGPU<H0Kernel2>(res, pWS, nl, 
                                           pM[0], pM[1], pM[2],
                                           pP[0], pP[1], pP[2],
                                           pRes[0], pRes[1], pRes[2],
@@ -55,7 +55,7 @@ PetscErrorCode H0PrecondKernel::pTAp2 (ScalarType &res) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = ReductionKernelCallGPU<H0Kernel2>(res, nl, 
+  ierr = ReductionKernelCallGPU<H0Kernel2>(res, pWS, nl, 
                                           pM[0], pM[1], pM[2],
                                           pP[0], pP[1], pP[2],
                                           pGmt[0], pGmt[1], pGmt[2],
@@ -80,12 +80,11 @@ PetscErrorCode H0PrecondKernel::res (ScalarType &res) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = ReductionKernelCallGPU<H0Kernel>(res, nl, 
+  ierr = ReductionKernelCallGPU<H0Kernel>(res, pWS, nl, 
                                           pM[0], pM[1], pM[2],
                                           pP[0], pP[1], pP[2],
                                           pRes[0], pRes[1], pRes[2],
-                                          pVhat[0], pVhat[1], pVhat[2],
-                                          beta); CHKERRQ(ierr);
+                                          pVhat[0], pVhat[1], pVhat[2]); CHKERRQ(ierr);
     
   PetscFunctionReturn(ierr);
 }
@@ -94,10 +93,9 @@ PetscErrorCode H0PrecondKernel::pTAp (ScalarType &res) {
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  ierr = ReductionKernelCallGPU<H0Kernel>(res, nl, 
+  ierr = ReductionKernelCallGPU<H0Kernel>(res, pWS, nl, 
                                           pM[0], pM[1], pM[2],
-                                          pP[0], pP[1], pP[2],
-                                          beta); CHKERRQ(ierr);
+                                          pP[0], pP[1], pP[2]); CHKERRQ(ierr);
     
   PetscFunctionReturn(ierr);
 }
@@ -108,7 +106,7 @@ PetscErrorCode H0PrecondKernel::CGres (ScalarType &res) {
   
   ScalarType alpha = res;
   
-  ierr = ReductionKernelCallGPU<H0KernelCG>(res, nl, 
+  ierr = ReductionKernelCallGPU<H0KernelCG>(res, pWS, nl, 
                                             pM[0], pM[1], pM[2],
                                             pP[0], pP[1], pP[2],
                                             pRes[0], pRes[1], pRes[2],
@@ -126,6 +124,36 @@ PetscErrorCode H0PrecondKernel::CGp (ScalarType alpha) {
                                    pP[0], pP[1], pP[2],
                                    pRes[0], pRes[1], pRes[2],
                                    alpha); CHKERRQ(ierr);
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode CFLStatKernel::CFLx (ScalarType &ratio) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType res;
+    
+  ierr = ReductionKernelCallGPU<CFLKernel>(res, nl, pV[0], h, dt); CHKERRQ(ierr);
+  
+  //ratio = res/ng;
+  
+  ratio = res;
+    
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode H0PrecondKernel::Norm (ScalarType &norm) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType res;
+    
+  ierr = ReductionKernelCallGPU<NormKernel>(res, nl, pGmt[0]); CHKERRQ(ierr);
+  
+  //ratio = res/ng;
+  
+  norm = res;
     
   PetscFunctionReturn(ierr);
 }

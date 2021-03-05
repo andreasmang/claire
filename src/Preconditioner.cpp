@@ -22,7 +22,7 @@
 
 #include "Preconditioner.hpp"
 #include "petscksp.h"
-
+#include "TwoLevel.hpp"
 
 
 namespace reg {
@@ -210,6 +210,7 @@ PetscErrorCode Preconditioner::ClearMemory() {
     if (this->m_CoarseGrid->m_Opt != NULL) {
         this->m_CoarseGrid->m_Opt->ProcessTimers();
         this->m_CoarseGrid->m_Opt->WriteLogFile(true);
+        this->m_CoarseGrid->m_Opt->m_FFT.fft = nullptr;
         delete this->m_CoarseGrid->m_Opt;
         this->m_CoarseGrid->m_Opt = NULL;
     }
@@ -219,12 +220,7 @@ PetscErrorCode Preconditioner::ClearMemory() {
         this->m_RandomNumGen = NULL;
     }
     
-    if (this->m_GradState) {
-      for (IntType i=0;i<(this->m_Opt->m_KrylovMethod.pctype==H0MG?2:1);++i) {
-        ierr = Free(this->m_GradState[i]); CHKERRQ(ierr);
-      }
-    }
-    ierr = FreeArray(this->m_GradState); CHKERRQ(ierr);
+    ierr = Free(this->m_GradState); CHKERRQ(ierr);
 
     delete this->m_CoarseGrid;
 
@@ -406,14 +402,33 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
         ierr = reg::ThrowError("allocation failed"); CHKERRQ(ierr);
     }
     this->m_CoarseGrid->m_Opt->m_Domain.level = this->m_Opt->m_Domain.level + 1;
+    this->m_CoarseGrid->m_Opt->m_FFT = this->m_Opt->m_FFT_coarse;
+    this->m_CoarseGrid->m_Opt->m_FFT_coarse.fft = nullptr;
+    this->m_CoarseGrid->m_Opt->m_Domain.nl = 1;
+    this->m_CoarseGrid->m_Opt->m_Domain.ng = 1;
+    this->m_CoarseGrid->m_Opt->m_Domain.mpicomm = this->m_Opt->m_Domain.mpicomm;
+    this->m_CoarseGrid->m_Opt->m_Domain.rowcomm = this->m_Opt->m_Domain.rowcomm;
+    this->m_CoarseGrid->m_Opt->m_Domain.colcomm = this->m_Opt->m_Domain.colcomm;
+    for (int i=0; i<3; ++i) {
+      this->m_CoarseGrid->m_Opt->m_Domain.nx[i] = this->m_Opt->m_FFT_coarse.nx[i];
+      this->m_CoarseGrid->m_Opt->m_Domain.istart[i] = this->m_Opt->m_FFT_coarse.istart[i];
+      this->m_CoarseGrid->m_Opt->m_Domain.isize[i] = this->m_Opt->m_FFT_coarse.isize[i];
+      this->m_CoarseGrid->m_Opt->m_Domain.ng *= this->m_CoarseGrid->m_Opt->m_Domain.nx[i];
+      this->m_CoarseGrid->m_Opt->m_Domain.nl *= this->m_CoarseGrid->m_Opt->m_Domain.isize[i];
+      this->m_CoarseGrid->m_Opt->m_Domain.hx[i] = 2.*PETSC_PI/static_cast<ScalarType>(this->m_CoarseGrid->m_Opt->m_Domain.nx[i]);
+    }
+    this->m_CoarseGrid->m_Opt->m_SetupDone = true;
+    //this->m_CoarseGrid->m_Opt->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
+    //this->m_CoarseGrid->m_Opt->m_KrylovMethod.pctype = NOPC;
 
     // get grid scale and compute number of grid points
-    scale = this->m_Opt->m_KrylovMethod.pcgridscale;
+    /*scale = this->m_Opt->m_KrylovMethod.pcgridscale;
     for (int i = 0; i < 3; ++i) {
         value = static_cast<ScalarType>(this->m_Opt->m_Domain.nx[i])/scale;
         this->m_CoarseGrid->m_Opt->m_Domain.nx[i] = static_cast<IntType>(std::ceil(value));
     }
-    ierr = this->m_CoarseGrid->m_Opt->DoSetup(false); CHKERRQ(ierr);
+    ierr = this->m_CoarseGrid->m_Opt->DoSetup(false); CHKERRQ(ierr);*/
+    
     if (this->m_PreProc) {
       ierr = this->m_PreProc->SetOptCoarse(this->m_CoarseGrid->m_Opt); CHKERRQ(ierr);
     }
@@ -518,6 +533,10 @@ PetscErrorCode Preconditioner::SetupCoarseGrid() {
 
     //ierr = VecView(this->m_CoarseGrid->m_ReferenceImage); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetReferenceImage(this->m_CoarseGrid->m_ReferenceImage); CHKERRQ(ierr);
+    
+    ierr = this->m_CoarseGrid->m_OptimizationProblem->SetControlVariable(this->m_CoarseGrid->m_ControlVariable); CHKERRQ(ierr);
+    
+    this->m_CoarseGrid->m_OptimizationProblem->InitializeSolver();
 
     // switch flag
     this->m_CoarseGrid->setupdone = true;
@@ -559,20 +578,20 @@ PetscErrorCode Preconditioner::MatVec(Vec Px, Vec x) {
         }
         case H0:
         {
-            if (this->m_Opt->m_RegNorm.beta[0] > 5e-1) {
-              ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
-            } else {
+            //if (this->m_Opt->m_RegNorm.beta[0] > 5e-1) {
+            //  ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
+            //} else {
               ierr = this->ApplyH0Precond(Px, x, false); CHKERRQ(ierr);
-            }
+            //}
             break;
         }
         case H0MG:
         {
-            if (this->m_Opt->m_RegNorm.beta[0] > 5e-1) {
-              ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
-            } else {
+            //if (this->m_Opt->m_RegNorm.beta[0] > 5e-1) {
+            //  ierr = this->ApplySpectralPrecond(Px, x); CHKERRQ(ierr);
+            //} else {
               ierr = this->ApplyH0Precond(Px, x, true); CHKERRQ(ierr);
-            }
+            //}
             break;
         }
         default:
@@ -611,6 +630,7 @@ PetscErrorCode Preconditioner::ApplySpectralPrecond(Vec precx, Vec x) {
     ZeitGeist_define(PC_INVREG);
     ZeitGeist_tick(PC_INVREG);
     ierr = this->m_OptimizationProblem->ApplyInvRegularizationOperator(precx, x, false); CHKERRQ(ierr);
+    //ierr = this->m_OptimizationProblem->SymTwoLevelHessMatVec(precx, x); CHKERRQ(ierr);
     ZeitGeist_tock(PC_INVREG);
 
     // stop timer
@@ -675,6 +695,10 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
 
         pct = value > pct ? value : pct;
     }
+    
+    TwoLevelFFT op(this->m_Opt);
+
+    //this->m_OptimizationProblem->ApplyInvRegularizationOperator(Px, x, true); CHKERRQ(ierr);
 
     // set components
     ierr = this->m_WorkVecField->SetComponents(x); CHKERRQ(ierr);
@@ -685,8 +709,9 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
                                                 this->m_WorkVecField, pct); CHKERRQ(ierr);
 
     // apply restriction operator to incremental control variable
-    ierr = this->m_PreProc->Restrict(this->m_CoarseGrid->m_IncControlVariable,
-                                     this->m_IncControlVariable, nxc, nx); CHKERRQ(ierr);
+    op.Restrict(this->m_CoarseGrid->m_IncControlVariable, this->m_IncControlVariable);
+    //ierr = this->m_PreProc->Restrict(this->m_CoarseGrid->m_IncControlVariable,
+    //                                 this->m_IncControlVariable, nxc, nx); CHKERRQ(ierr);
 
     // get the components to interface hessian mat vec
     ierr = this->m_CoarseGrid->m_IncControlVariable->GetComponents(this->m_CoarseGrid->x); CHKERRQ(ierr);
@@ -707,8 +732,9 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
     ierr = this->m_CoarseGrid->m_IncControlVariable->SetComponents(this->m_CoarseGrid->y); CHKERRQ(ierr);
 
     // apply prolongation operator
-    ierr = this->m_PreProc->Prolong(this->m_IncControlVariable,
-                                    this->m_CoarseGrid->m_IncControlVariable, nx, nxc); CHKERRQ(ierr);
+    op.Prolong(this->m_IncControlVariable, this->m_CoarseGrid->m_IncControlVariable);
+    //ierr = this->m_PreProc->Prolong(this->m_IncControlVariable,
+    //                                this->m_CoarseGrid->m_IncControlVariable, nx, nxc); CHKERRQ(ierr);
 
     // apply low pass filter to output of hessian matvec
     ierr = this->m_PreProc->ApplyRectFreqFilter(this->m_IncControlVariable,
@@ -720,9 +746,11 @@ PetscErrorCode Preconditioner::Apply2LevelPrecond(Vec Px, Vec x) {
 
     // add up high and low frequency components
     this->m_IncControlVariable->AXPY(1.0, this->m_WorkVecField); CHKERRQ(ierr);
-
+    
     // parse to output
     ierr = this->m_IncControlVariable->GetComponents(Px); CHKERRQ(ierr);
+    
+    //this->m_OptimizationProblem->ApplyInvRegularizationOperator(Px, Px, true); CHKERRQ(ierr);
 
 
     this->m_Opt->Exit(__func__);
@@ -746,13 +774,8 @@ PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x, bool twolevel) {
     // start timer
     ierr = this->m_Opt->StartTimer(PMVEXEC); CHKERRQ(ierr);
     
-    if (!this->m_GradState) {
-      ierr = AllocateArrayOnce(this->m_GradState, 2); CHKERRQ(ierr);
-      for (IntType i=0; i<(twolevel?2:1); ++i) {
-        this->m_GradState[i] = nullptr;
-        ierr = AllocateOnce(this->m_GradState[i], this->m_Opt); CHKERRQ(ierr);
-      }
-    }
+
+    ierr = AllocateOnce(this->m_GradState, this->m_Opt); CHKERRQ(ierr);
 
     // apply inverse regularization operator
     ierr = this->m_OptimizationProblem->ApplyInvHessian(precx, x, this->m_GradState, this->firstrun, twolevel, this->m_PreProc); CHKERRQ(ierr);
@@ -821,14 +844,17 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
     ierr = this->m_OptimizationProblem->GetStateVariable(m); CHKERRQ(ierr);
     ierr = this->m_OptimizationProblem->GetAdjointVariable(lambda); CHKERRQ(ierr);
 
-    // restrict control variable
-    ierr = this->m_PreProc->Restrict(this->m_CoarseGrid->m_ControlVariable,
-                                     this->m_ControlVariable, nx_c, nx_f); CHKERRQ(ierr);
+    TwoLevelFFT op(this->m_Opt);
 
-    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
-    ierr = VecGetArray(lambda, &p_l); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_CoarseGrid->m_StateVariable, &p_mcoarse); CHKERRQ(ierr);
-    ierr = VecGetArray(this->m_CoarseGrid->m_AdjointVariable, &p_lcoarse); CHKERRQ(ierr);
+    // restrict control variable
+    op.Restrict(this->m_CoarseGrid->m_ControlVariable, this->m_ControlVariable);
+    //ierr = this->m_PreProc->Restrict(this->m_CoarseGrid->m_ControlVariable,
+    //                                this->m_ControlVariable, nx_c, nx_f); CHKERRQ(ierr);
+
+    ierr = GetRawPointer(m, &p_m); CHKERRQ(ierr);
+    ierr = GetRawPointer(lambda, &p_l); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_CoarseGrid->m_StateVariable, &p_mcoarse); CHKERRQ(ierr);
+    ierr = GetRawPointer(this->m_CoarseGrid->m_AdjointVariable, &p_lcoarse); CHKERRQ(ierr);
 
     nl_c = this->m_CoarseGrid->m_Opt->m_Domain.nl;
     nl_f = this->m_Opt->m_Domain.nl;
@@ -843,26 +869,9 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
             ////// state variable
             /////////////////////////////////////////////////////////////////////
             // get time point of state variable on fine grid
-            ierr = VecGetArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
-            try {std::copy(p_m+l_f, p_m+lnext_f, p_mj); }
-            catch (std::exception&) {
-                ierr = ThrowError("copy failed"); CHKERRQ(ierr);
-            }
-            ierr = VecRestoreArray(this->m_WorkScaField1, &p_mj); CHKERRQ(ierr);
-
-            // apply restriction operator to m_j
-            ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid->m_WorkScaField1,
-                                              this->m_WorkScaField1, nx_c, nx_f); CHKERRQ(ierr);
-
-            // store restricted state variable
             l_c = j*nl_c*nc + k*nl_c;
-            ierr = VecGetArray(this->m_CoarseGrid->m_WorkScaField1, &p_mjcoarse); CHKERRQ(ierr);
-            try {std::copy(p_mjcoarse, p_mjcoarse+nl_c, p_mcoarse+l_c);}
-            catch (std::exception&) {
-                ierr = ThrowError("copy failed"); CHKERRQ(ierr);
-            }
-            ierr = VecRestoreArray(this->m_CoarseGrid->m_WorkScaField1, &p_mjcoarse); CHKERRQ(ierr);
-
+            op.Restrict(p_mcoarse + l_c, p_m + l_f);
+  
             /////////////////////////////////////////////////////////////////////
             ////// adjoint variable
             /////////////////////////////////////////////////////////////////////
@@ -871,43 +880,26 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
                     applyrestriction = false;
                 }
             }
-
             if (applyrestriction) {
-                // get time point of adjoint variable on fine grid
-                ierr = VecGetArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
-                try {std::copy(p_l+l_f, p_l+lnext_f, p_lj);}
-                catch(std::exception& err) {
-                    ierr = ThrowError(err); CHKERRQ(ierr);
-                }
-                ierr = VecRestoreArray(this->m_WorkScaField2, &p_lj); CHKERRQ(ierr);
-
-                // apply restriction operator
-                ierr = this->m_PreProc->Restrict(&this->m_CoarseGrid->m_WorkScaField2,
-                                                  this->m_WorkScaField2, nx_c, nx_f); CHKERRQ(ierr);
-
-                // store restricted adjoint variable
-                ierr = VecGetArray(this->m_CoarseGrid->m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
-                try {std::copy(p_ljcoarse, p_ljcoarse+nl_c, p_lcoarse+l_c);}
-                catch(std::exception& err) {
-                    ierr = ThrowError(err); CHKERRQ(ierr);
-                }
-                ierr = VecRestoreArray(this->m_CoarseGrid->m_WorkScaField2, &p_ljcoarse); CHKERRQ(ierr);
+                op.Restrict(p_lcoarse+l_c, p_l+l_f);
             }
 
         }  // for all components
     }  // for all time points
 
-    ierr = VecRestoreArray(this->m_CoarseGrid->m_AdjointVariable, &p_lcoarse); CHKERRQ(ierr);
-    ierr = VecRestoreArray(this->m_CoarseGrid->m_StateVariable, &p_mcoarse); CHKERRQ(ierr);
-    ierr = VecRestoreArray(lambda, &p_l); CHKERRQ(ierr);
-    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_CoarseGrid->m_AdjointVariable, &p_lcoarse); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(this->m_CoarseGrid->m_StateVariable, &p_mcoarse); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(lambda, &p_l); CHKERRQ(ierr);
+    ierr = RestoreRawPointer(m, &p_m); CHKERRQ(ierr);
 
     // parse variables to optimization problem on coarse level
     // (we have to set the control variable first)
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetControlVariable(this->m_CoarseGrid->m_ControlVariable); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetStateVariable(this->m_CoarseGrid->m_StateVariable); CHKERRQ(ierr);
     ierr = this->m_CoarseGrid->m_OptimizationProblem->SetAdjointVariable(this->m_CoarseGrid->m_AdjointVariable); CHKERRQ(ierr);
-
+    
+    this->m_CoarseGrid->m_OptimizationProblem->PreHessian();
+    
     // if mask was set, we should have allocated mask for coarse grid
     // during the setup phase
     if (this->m_Mask != NULL) {
@@ -1003,6 +995,7 @@ PetscErrorCode Preconditioner::SetupKrylovMethod(IntType nl, IntType ng) {
     //KSP_NORM_PRECONDITIONED   preconditioned norm: ||P(b-Ax)||_2)
     //KSP_NORM_NATURAL          natural norm: sqrt((b-A*x)*P*(b-A*x))
     ierr = KSPSetNormType(this->m_KrylovMethod, KSP_NORM_UNPRECONDITIONED); CHKERRQ(ierr);
+    
     //ierr = KSPSetNormType(this->m_KrylovMethod,KSP_NORM_PRECONDITIONED); CHKERRQ(ierr);
     ierr = KSPSetInitialGuessNonzero(this->m_KrylovMethod, PETSC_FALSE); CHKERRQ(ierr);
 

@@ -48,6 +48,8 @@ CPU_FILES += $(SRC_DIR)/CLAIREStokes.cpp
 CPU_FILES += $(SRC_DIR)/CLAIREDivReg.cpp
 CPU_FILES += $(SRC_DIR)/Preprocessing.cpp
 CPU_FILES += $(SRC_DIR)/Spectral/Spectral.cpp
+CPU_FILES += $(SRC_DIR)/TwoLevel/TwoLevelFFT.cpp
+CPU_FILES += $(SRC_DIR)/TwoLevel/TwoLevelFinite.cpp
 
 ifneq ($(BUILD_GPU),yes)
 	# CPU build specific C++ files
@@ -80,6 +82,7 @@ else
 	GPU_FILES += $(SRC_DIR)/Interpolation/Interp3_Plan_GPU.cu
 	GPU_FILES += $(SRC_DIR)/Interpolation/Interp3_Plan_GPU_kernel.cu
 	GPU_FILES += $(SRC_DIR)/SemiLagrangian/SemiLagrangianKernel.cu
+	GPU_FILES += $(SRC_DIR)/TwoLevel/TwoLevelKernel.cu
 endif
 
 APP_FILES += $(APP_DIR)/claire.cpp

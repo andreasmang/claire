@@ -72,11 +72,54 @@ VecField::VecField(RegOpt* opt, Vec x1, Vec x2, Vec x3) {
     this->m_X3 = x3;
     this->m_Allocated = this->m_Opt->m_Domain.nl*3;
     this->m_Owend = false;
-    this->SetValue(0.);
+    this->m_OwendX = false;
+    //this->SetValue(0.);
 }
 
-
-
+/********************************************************************
+ * @brief constructor
+ *******************************************************************/
+VecField::VecField(RegOpt* opt, Vec x) {
+    this->Initialize();
+    this->SetOpt(opt);
+    
+    this->m_X = x;
+    
+    IntType nl = this->m_Opt->m_Domain.nl;
+    IntType ng = this->m_Opt->m_Domain.ng;
+    
+    GetRawPointer(this->m_X, &this->m_RawPtr);
+    
+    #ifdef REG_HAS_CUDA
+      if (this->m_Opt->rank_cnt > 1) {
+        VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[0*nl], &this->m_X1);
+        VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[1*nl], &this->m_X2);
+        VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[2*nl], &this->m_X3);
+      } else {
+        VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[0*nl], &this->m_X1);
+        VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[1*nl], &this->m_X2);
+        VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[2*nl], &this->m_X3);
+      }
+      //ierr = VecSetType(this->m_X1, VECCUDA); CHKERRQ(ierr);
+      //ierr = VecSetType(this->m_X2, VECCUDA); CHKERRQ(ierr);
+      //ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
+    #else
+      if (this->m_Opt->rank_cnt > 1) {
+        VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[0*nl], &this->m_X1);
+        VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[1*nl], &this->m_X2);
+        VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[2*nl], &this->m_X3);
+      } else {
+        VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[0*nl], &this->m_X1);
+        VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[1*nl], &this->m_X2);
+        VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[2*nl], &this->m_X3);
+      }
+    #endif
+    
+    this->m_Allocated = this->m_Opt->m_Domain.nl*3;
+    this->m_Owend = true;
+    this->m_OwendX = false;
+    //this->SetValue(0.);
+}
 
 
 /********************************************************************
@@ -114,6 +157,7 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_X1 = NULL;
     this->m_X2 = NULL;
     this->m_X3 = NULL;
+    this->m_X = NULL;
 
     this->m_Allocated = 0;
     
@@ -122,7 +166,10 @@ PetscErrorCode VecField::Initialize(void) {
     this->m_Ptr[1] = nullptr;
     this->m_Ptr[2] = nullptr;
     
+    this->m_RawPtr = nullptr;
+    
     this->m_Owend = false;
+    this->m_OwendX = false;
     
     PetscFunctionReturn(ierr);
 }
@@ -151,7 +198,17 @@ PetscErrorCode VecField::ClearMemory() {
           this->m_X3 = NULL;
       }
     }
-    
+    if (this->m_RawPtr) {
+      ierr = RestoreRawPointer(this->m_X, &this->m_RawPtr); CHKERRQ(ierr);
+      this->m_RawPtr = nullptr;
+    }
+    if (this->m_OwendX) {
+      if (this->m_X != NULL) {
+        ierr = VecDestroy(&this->m_X); CHKERRQ(ierr);
+        this->m_X = NULL;
+      }
+    }
+       
     this->m_Type = AccessType::None;
     this->m_Ptr[0] = nullptr;
     this->m_Ptr[1] = nullptr;
@@ -161,6 +218,55 @@ PetscErrorCode VecField::ClearMemory() {
 }
 
 
+
+/********************************************************************
+ * @brief function to allocate vector field
+ *******************************************************************/
+PetscErrorCode VecField::SetVector(Vec x) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    // make sure, that all pointers are deallocated
+    ierr = this->ClearMemory(); CHKERRQ(ierr);
+    
+    this->m_X = x;
+    
+    IntType nl = this->m_Opt->m_Domain.nl;
+    IntType ng = this->m_Opt->m_Domain.ng;
+    
+    GetRawPointer(this->m_X, &this->m_RawPtr);
+    
+    #ifdef REG_HAS_CUDA
+      if (this->m_Opt->rank_cnt > 1) {
+        ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[2*nl], &this->m_X3);
+      } else {
+        ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[2*nl], &this->m_X3);
+      }
+      //ierr = VecSetType(this->m_X1, VECCUDA); CHKERRQ(ierr);
+      //ierr = VecSetType(this->m_X2, VECCUDA); CHKERRQ(ierr);
+      //ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
+    #else
+      if (this->m_Opt->rank_cnt > 1) {
+        ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[2*nl], &this->m_X3);
+      } else {
+        ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[2*nl], &this->m_X3);
+      }
+    #endif
+    
+    this->m_Allocated = this->m_Opt->m_Domain.nl*3;
+    this->m_Owend = true;
+    this->m_OwendX = false;
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************
@@ -256,7 +362,42 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
     // make sure, that all pointers are deallocated
     ierr = this->ClearMemory(); CHKERRQ(ierr);
     
-    // allocate vector field
+    ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X); CHKERRQ(ierr);
+    ierr = VecSetSizes(this->m_X, 3*nl, 3*ng); CHKERRQ(ierr);
+    #ifdef REG_HAS_CUDA
+        ierr = VecSetType(this->m_X, VECCUDA); CHKERRQ(ierr);
+    #else
+        ierr = VecSetFromOptions(this->m_X); CHKERRQ(ierr);
+    #endif
+    
+    ierr = GetRawPointer(this->m_X, &this->m_RawPtr); CHKERRQ(ierr);
+    
+    #ifdef REG_HAS_CUDA
+      if (this->m_Opt->rank_cnt > 1) {
+        ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[2*nl], &this->m_X3);
+      } else {
+        ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[2*nl], &this->m_X3);
+      }
+      //ierr = VecSetType(this->m_X1, VECCUDA); CHKERRQ(ierr);
+      //ierr = VecSetType(this->m_X2, VECCUDA); CHKERRQ(ierr);
+      //ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
+    #else
+      if (this->m_Opt->rank_cnt > 1) {
+        ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nl, ng, &this->m_RawPtr[2*nl], &this->m_X3);
+      } else {
+        ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[0*nl], &this->m_X1);
+        ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[1*nl], &this->m_X2);
+        ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nl, &this->m_RawPtr[2*nl], &this->m_X3);
+      }
+    #endif
+    
+    /*// allocate vector field
     ierr = VecCreate(PETSC_COMM_WORLD, &this->m_X1); CHKERRQ(ierr);
     ierr = VecSetSizes(this->m_X1, nl, ng); CHKERRQ(ierr);
     #ifdef REG_HAS_CUDA
@@ -281,10 +422,11 @@ PetscErrorCode VecField::Allocate(IntType nl, IntType ng) {
         ierr = VecSetType(this->m_X3, VECCUDA); CHKERRQ(ierr);
     #else
         ierr = VecSetFromOptions(this->m_X3); CHKERRQ(ierr);
-    #endif
+    #endif*/
     
     this->m_Allocated = 3*nl;
     this->m_Owend = true;
+    this->m_OwendX = true;
 
     PetscFunctionReturn(ierr);
 }
@@ -387,9 +529,20 @@ PetscErrorCode VecField::SetValue(ScalarType value) {
     PetscErrorCode ierr = 0;
     PetscFunctionBegin;
 
+#ifdef REG_HAS_CUDA
+    ScalarType *pW[3];
+    ierr = this->GetArraysWrite(pW); CHKERRQ(ierr);
+    
+    ierr = reg::SetValue(pW[0], value, this->m_Opt->m_Domain.nl); CHKERRQ(ierr);
+    ierr = reg::SetValue(pW[1], value, this->m_Opt->m_Domain.nl); CHKERRQ(ierr);
+    ierr = reg::SetValue(pW[2], value, this->m_Opt->m_Domain.nl); CHKERRQ(ierr);
+    
+    ierr = this->RestoreArrays(); CHKERRQ(ierr);
+#else
     ierr = VecSet(this->m_X1, value); CHKERRQ(ierr);
     ierr = VecSet(this->m_X2, value); CHKERRQ(ierr);
     ierr = VecSet(this->m_X3, value); CHKERRQ(ierr);
+#endif
 
     PetscFunctionReturn(ierr);
 }
@@ -781,8 +934,18 @@ PetscErrorCode VecField::SetComponents(const ScalarType *pX1, const ScalarType *
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode VecField::GetRawVector(ScalarType*& ptr) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
 
+    if (this->m_OwendX) {
+      ptr = this->m_RawPtr;
+    } else {
+      ptr = nullptr;
+    }
 
+    PetscFunctionReturn(ierr);
+}
 
 /********************************************************************
  * @brief get components of vector field and store them

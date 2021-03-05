@@ -130,7 +130,7 @@ class Preconditioner {
     Vec m_WorkScaField2;                    ///< temprary scalar field
     VecField* m_WorkVecField;               ///< temporary vector field
     
-    VecField** m_GradState;                  ///< gradient of state Variable
+    VecField* m_GradState;                  ///< gradient of state Variable
 
     Mat m_MatVec;                           ///< mat vec object (PETSc)
     Mat m_MatVecEigEst;                     ///< mat vec object (PETSc)

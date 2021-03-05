@@ -27,7 +27,7 @@ namespace reg {
 struct GhostPlan {
   
   public:
-    GhostPlan(RegOpt*, int);
+    GhostPlan(RegOpt*, IntType);
     ~GhostPlan();
     
     RegOpt* m_Opt;
@@ -56,8 +56,8 @@ struct GhostPlan {
 
     void share_top_bottom(ScalarType* ghost_data, double* timers);
 
-    size_t get_ghost_local_size_x(int * isize_g, int* istart_g);
-    size_t get_ghost_local_size_xy(int * isize_g, int* istart_g);
+    size_t get_ghost_local_size_x(IntType * isize_g, IntType* istart_g);
+    size_t get_ghost_local_size_xy(IntType * isize_g, IntType* istart_g);
 };
 
 }

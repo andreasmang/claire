@@ -105,6 +105,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
     ierr = Assert(this->m_StateVariable != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(this->m_ReferenceImage != NULL, "null pointer"); CHKERRQ(ierr);
+    ierr = Assert(this->m_WorkScaField != NULL, "null pointer"); CHKERRQ(ierr);
 
     // get sizes
     nt = this->m_Opt->m_Domain.nt;
@@ -114,6 +115,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
     ierr = this->m_StateVariable->GetArrayRead(kernel.pM, 0, nt); CHKERRQ(ierr);
     ierr = this->m_ReferenceImage->GetArrayRead(kernel.pMr); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField->GetArray(kernel.res); CHKERRQ(ierr);
 
     ierr = GetRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
@@ -133,6 +135,7 @@ PetscErrorCode DistanceMeasureSL2::EvaluateFunctional(ScalarType* D) {
 
     ierr = this->m_ReferenceImage->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField->RestoreArray(); CHKERRQ(ierr);
     ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
 
     // objective value
@@ -281,6 +284,8 @@ PetscErrorCode DistanceMeasureSL2::SetFinalConditionIAE() {
         }
 }  // omp*/
     }
+
+    //PetscPrintf(PETSC_COMM_WORLD, "norm2 mtilde = %0.4e\n", kernel.norm_mtilde_loc);
     
     ierr = RestoreRawPointerRead(this->m_ObjWts, &kernel.pWts); CHKERRQ(ierr);
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);

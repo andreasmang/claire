@@ -28,6 +28,7 @@
 #include "SpectralKernel.txx"
 
 using KernelUtils::SpectralKernelCallGPU;
+using KernelUtils::SpectralReductionKernelCallGPU;
 
 namespace reg {
   
@@ -83,6 +84,19 @@ __global__ void FilterKernel(int3 wave, int3 nl, ComplexType *x, int3 nxc) {
       x[i][1] = 0.;
     }
   }
+}
+
+PetscErrorCode SpectralKernel::Norm(ScalarType &norm, ComplexType *pXHat, const IntType w[3]) {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ScalarType l1 = w[0];
+  ScalarType l2 = w[1];
+  ScalarType l3 = w[2];
+  
+  ierr = SpectralReductionKernelCallGPU<NormKernel>(norm, pWS, nstart, nx, nl, pXHat, l1, l2, l3); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
 }
 
 PetscErrorCode SpectralKernel::Restrict(ComplexType *pXc, const ComplexType *pXf, 

@@ -28,15 +28,15 @@
 
 namespace reg {
     
-    cudaTextureObject_t gpuInitEmptyGradientTexture(int *);
+    cudaTextureObject_t gpuInitEmptyGradientTexture(IntType *);
     
-    PetscErrorCode initConstants(int*, int*, ScalarType*, int*);
-    PetscErrorCode computeGradient(ScalarType* , ScalarType* , ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, bool mgpu=false);
-    PetscErrorCode computeDivergence(ScalarType* , const ScalarType* , const ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, bool mgpu=false);
-    PetscErrorCode computeLaplacian(ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, ScalarType, bool mgpu=false);
-    PetscErrorCode computeDivergenceX(ScalarType* , ScalarType*, IntType*, bool mgpu=false);
-    PetscErrorCode computeDivergenceY(ScalarType* , ScalarType*, IntType*, bool mgpu=false);
-    PetscErrorCode computeDivergenceZ(ScalarType* , ScalarType*, IntType*, bool mgpu=false);
+    PetscErrorCode initConstants(const IntType*, const IntType*, const ScalarType*, const IntType*);
+    PetscErrorCode computeGradient(ScalarType* , ScalarType* , ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, IntType*, IntType*, ScalarType*, bool mgpu=false);
+    PetscErrorCode computeDivergence(ScalarType* , const ScalarType* , const ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, IntType*, IntType*,  ScalarType*, bool mgpu=false);
+    PetscErrorCode computeLaplacian(ScalarType* , const ScalarType*, cudaTextureObject_t, IntType*, IntType*, IntType*, ScalarType*,  ScalarType, bool mgpu=false);
+    PetscErrorCode computeDivergenceX(ScalarType* , ScalarType*, IntType*, IntType*, IntType*, ScalarType*, bool mgpu=false);
+    PetscErrorCode computeDivergenceY(ScalarType* , ScalarType*, IntType*, IntType*, IntType*,  ScalarType*, bool mgpu=false);
+    PetscErrorCode computeDivergenceZ(ScalarType* , ScalarType*, IntType*, IntType*, IntType*,  ScalarType*, bool mgpu=false);
 }
 
 #endif

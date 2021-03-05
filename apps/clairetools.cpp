@@ -413,7 +413,9 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     ierr = reg::Assert(v != NULL, "set input velocity field"); CHKERRQ(ierr);
 
     // treat individual labels as components
-    regopt->m_Domain.nc = regopt->m_LabelIDs.size();
+    //regopt->m_Domain.nc = regopt->m_LabelIDs.size();
+    regopt->m_Domain.nc = 1;//regopt->m_LabelIDs.size();
+    int nlbl = regopt->m_LabelIDs.size();
     ierr = reg::Assert(regopt->m_Domain.nc > 0, "number of labels is zero"); CHKERRQ(ierr);
 
     // make sure we apply smoothing before we solve the forward problem
@@ -470,39 +472,82 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
       ierr = VecRestoreArray(labelref, &p_mr); CHKERRQ(ierr);
       ierr = VecRestoreArray(labelmap, &p_mt); CHKERRQ(ierr);
     }
-
+  
+    Vec mmax = nullptr;
+    Vec msum = nullptr;
+    Vec labelm = nullptr;
+    
     // allocate images for individual labels
     ierr = reg::VecCreate(m0, nl*nc, ng*nc); CHKERRQ(ierr);
     ierr = reg::VecCreate(m1, nl*nc, ng*nc); CHKERRQ(ierr);
-
-    // map label image / hard segmentation to multi component image
-    ierr = reg::DbgMsg("extracting individual label maps"); CHKERRQ(ierr);
-    ierr = preproc->Labels2MultiCompImage(m0, labelmap); CHKERRQ(ierr);
-//    ierr = readwrite->WriteT(m0, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
-
+    ierr = reg::VecCreate(mmax, nl*nc, ng*nc); CHKERRQ(ierr);
+    ierr = reg::VecCreate(msum, nl*nc, ng*nc); CHKERRQ(ierr);
+    ierr = VecDuplicate(labelmap, &labelm); CHKERRQ(ierr);
+    
+    ierr = VecCopy(labelmap, labelm);
+    ierr = VecSet(labelmap, 0); CHKERRQ(ierr);
+    
+    {
+      ScalarType *p1, *p2, *p3;
+      
+      VecGetArray(msum, &p1);
+      VecGetArray(mmax, &p2);
+      VecGetArray(labelmap, &p3);
+      
+      for (IntType i = 0; i < nl; ++i) {
+        p1[i] = 1.;
+        p2[i] = 0.;
+        p3[i] = 0.;
+      }
+      
+      VecRestoreArray(msum, &p1);
+      VecRestoreArray(mmax, &p2);
+      VecRestoreArray(labelmap, &p3);
+    }
+    
     // solve forward problem
     ierr = reg::DbgMsg("computing solution of transport problem"); CHKERRQ(ierr);
     ierr = registration->SetReadWrite(readwrite); CHKERRQ(ierr);
+    
+    for (int l=0;l<nlbl;++l) {
+
+      // map label image / hard segmentation to multi component image
+      ierr = reg::DbgMsg("extracting individual label maps"); CHKERRQ(ierr);
+      //ierr = preproc->Labels2MultiCompImage(m0, labelmap); CHKERRQ(ierr);
+      ierr = preproc->Labels2MultiCompImage(m0, labelm, l); CHKERRQ(ierr);
+//    ierr = readwrite->WriteT(m0, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
 
 
-    // map from template space to reference space (i.e., compute inverse
-    // deformation)
-    if (regopt->m_RegToolFlags.reference2template) {
-        ierr = v->Scale(-1.0); CHKERRQ(ierr);
+      // map from template space to reference space (i.e., compute inverse
+      // deformation)
+      if (regopt->m_RegToolFlags.reference2template) {
+          ierr = v->Scale(-1.0); CHKERRQ(ierr);
+      }
+
+      ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
+      ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+      
+      ierr = VecAXPY(msum, -1., m1); CHKERRQ(ierr);
+      
+      
+      // map transported "probability maps" (smooth classes)
+      // to a hard segmentation
+      ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
+      ierr = preproc->MultiCompImage2Labels(labelmap, mmax, m1, l); CHKERRQ(ierr);
     }
-
-    ierr = registration->SetInitialGuess(v); CHKERRQ(ierr);
-    ierr = registration->SolveForwardProblem(m1, m0); CHKERRQ(ierr);
+    
+    ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
+    ierr = preproc->MultiCompImage2Labels(labelmap, mmax, msum, -1); CHKERRQ(ierr);
 
     // write probability maps
-    if (regopt->m_RegToolFlags.saveprob) {
+    /*if (regopt->m_RegToolFlags.saveprob) {
         ierr = preproc->EnsurePatitionOfUnity(m1);
         ierr = readwrite->Write(m1, regopt->m_FileNames.xsc, nc); CHKERRQ(ierr);
     }
     // map transported "probability maps" (smooth classes)
-    // to a hard segmentation
-    ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
-    ierr = preproc->MultiCompImage2Labels(labelmap, m1); CHKERRQ(ierr);
+    // to a hard segmentation*/
+    //ierr = reg::DbgMsg("generating hard segmentation"); CHKERRQ(ierr);
+    //ierr = preproc->MultiCompImage2Labels(labelmap, m1); CHKERRQ(ierr);
     
     if (regopt->m_RegToolFlags.computedice) {
       IntType cnt_common = 0;
@@ -543,6 +588,9 @@ PetscErrorCode TransportLabelMap(reg::RegToolsOpt* regopt) {
     if (readwrite != NULL) {delete readwrite; readwrite = NULL;}
     if (m0 != NULL) {ierr = VecDestroy(&m0); CHKERRQ(ierr); m0 = NULL;}
     if (m1 != NULL) {ierr = VecDestroy(&m1); CHKERRQ(ierr); m1 = NULL;}
+    if (mmax != NULL) {ierr = VecDestroy(&mmax); CHKERRQ(ierr); mmax = NULL;}
+    if (msum != NULL) {ierr = VecDestroy(&msum); CHKERRQ(ierr); msum = NULL;}
+    if (labelm != NULL) {ierr = VecDestroy(&labelm); CHKERRQ(ierr); labelm = NULL;}
     if (registration != NULL) {delete registration; registration = NULL;}
     if (preproc != NULL) {delete preproc; preproc = NULL;}
 

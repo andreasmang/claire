@@ -688,6 +688,11 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
     //ierr = GetRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
     //ierr = GetRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);
     //ierr = GetRawPointer(this->m_WorkScaField4, &kernel.pDivVx); CHKERRQ(ierr);
+    
+    //ScalarType *dummy1, *dummy2;
+    //ierr = this->m_WorkVecField3->GetArrays(kernel.pJ, dummy1, dummy2); CHKERRQ(ierr);
+    
+    ierr = kernel.InitSL(1.); CHKERRQ(ierr);
 
     ierr = this->m_WorkVecField2->GetArrays(kernel.pJx, kernel.pDivV, kernel.pDivVx); CHKERRQ(ierr);
     
@@ -734,6 +739,7 @@ PetscErrorCode DeformationFields::ComputeDetDefGradSL() {
 
     ierr = RestoreRawPointer(this->m_WorkScaField1, &kernel.pJ); CHKERRQ(ierr);
     
+    //ierr = this->m_WorkVecField3->RestoreArrays(); CHKERRQ(ierr);
     ierr = this->m_WorkVecField2->RestoreArrays(); CHKERRQ(ierr);
     //ierr = RestoreRawPointer(this->m_WorkScaField2, &kernel.pJx); CHKERRQ(ierr);
     //ierr = RestoreRawPointer(this->m_WorkScaField3, &kernel.pDivV); CHKERRQ(ierr);

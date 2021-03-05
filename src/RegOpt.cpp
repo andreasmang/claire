@@ -795,6 +795,7 @@ PetscErrorCode RegOpt::SetParameter(const std::vector<std::string>& args) {
                 this->m_KrylovMethod.matvectype = H0MATVEC;
             } else if (strcmp(argv[1], "2level") == 0) {
                 this->m_KrylovMethod.pctype = TWOLEVEL;
+                //this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
                 this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
                 this->m_GridCont.nxmin = 64;
 //                 this->m_KrylovMethod.matvectype = PRECONDMATVEC;
@@ -803,6 +804,15 @@ PetscErrorCode RegOpt::SetParameter(const std::vector<std::string>& args) {
                 this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
             } else if (strcmp(argv[1], "h0mg") == 0) {
                 this->m_KrylovMethod.pctype = H0MG;
+                this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
+            } else if (strcmp(argv[1], "syminv") == 0) {
+                this->m_KrylovMethod.pctype = NOPC;
+                this->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
+            } else if (strcmp(argv[1], "symh0mg") == 0) {
+                this->m_KrylovMethod.pctype = NOPC;
+                this->m_KrylovMethod.matvectype = H0MATVEC;
+            } else if (strcmp(argv[1], "nopc") == 0) {
+                this->m_KrylovMethod.pctype = NOPC;
                 this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
@@ -1179,7 +1189,6 @@ PetscErrorCode RegOpt::InitializeFFT() {
         ss.clear(); ss.str(std::string());
     }
     
-    
     this->m_FFT_coarse.nx[0] = this->m_FFT.nx[0]/2;
     this->m_FFT_coarse.nx[1] = this->m_FFT.nx[1]/2;
     this->m_FFT_coarse.nx[2] = this->m_FFT.nx[2]/2;
@@ -1196,6 +1205,8 @@ PetscErrorCode RegOpt::InitializeFFT() {
       ierr = ThrowError("local domain size to large"); CHKERRQ(ierr);
     }
     
+    //printf("%p\n", this->m_FFT_coarse.fft);
+        
     this->Exit(__func__);
 
     PetscFunctionReturn(ierr);
@@ -1260,7 +1271,7 @@ PetscErrorCode RegOpt::Initialize() {
     //this->m_RegModel = RELAXEDSTOKES;
 
     this->m_RegNorm = {};
-    this->m_RegNorm.type = H2SN;
+    this->m_RegNorm.type = H1SN;
 //    this->m_RegNorm.type = H1SN;                    ///< default regularization norm
     this->m_RegNorm.beta[0] = 1E-2;                 ///< default regularization parameter for velocity
     this->m_RegNorm.beta[1] = 1E-4;                 ///< default regularization parameter for norm (idenity)
@@ -1693,8 +1704,8 @@ PetscErrorCode RegOpt::Usage(bool advanced) {
         std::cout << " -krylovmaxit <int>          maximum number of (inner) Krylov iterations (default: 50)" << std::endl;
         std::cout << " -krylovfseq <type>          forcing sequence for Krylov solver (tolerance for inner iterations)" << std::endl;
         std::cout << "                             <type> is one of the following" << std::endl;
-        std::cout << "                                 quadratic     quadratic (default)" << std::endl;
-        std::cout << "                                 suplinear     super-linear" << std::endl;
+        std::cout << "                                 suplinear     super-linear (default)" << std::endl;
+        std::cout << "                                 quadratic     quadratic" << std::endl;
         std::cout << "                                 none          exact solve (expensive)" << std::endl;
         std::cout << " -krylovtol <dbl>            relative tolerance for krylov method (default: 1E-12); forcing sequence" << std::endl;
         std::cout << "                             needs to be switched off (i.g., use with '-krylovfseq none')" << std::endl;
@@ -4254,6 +4265,21 @@ PetscErrorCode RegOpt::WriteKSPLog() {
 }
 
 
+/********************************************************************
+ * @brief returns the global exection time
+ *******************************************************************/
+PetscErrorCode RegOpt::GetTimeToSolution(double& time) {
+    PetscErrorCode ierr = 0;
+    PetscFunctionBegin;
+
+    this->Enter(__func__);
+
+    time = this->m_Timer[T2SEXEC][MAX];
+
+    this->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

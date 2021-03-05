@@ -23,6 +23,7 @@
 #include "RegOpt.hpp"
 #include "CLAIREUtils.hpp"
 #include "VecField.hpp"
+#include "ScaField.hpp"
 #include "Differentiation.hpp"
 
 
@@ -39,6 +40,7 @@ class Regularization {
     virtual ~Regularization(void);
 
     PetscErrorCode SetWorkVecField(VecField*);
+    PetscErrorCode SetWorkScaField(ScaField*);
     PetscErrorCode SetDifferentiation(Differentiation::Type);
     PetscErrorCode SetDifferentiation(Differentiation*);
     PetscErrorCode SetSpectralData(ComplexType* =nullptr, ComplexType* =nullptr, ComplexType* =nullptr);
@@ -57,6 +59,7 @@ class Regularization {
     
     RegOpt* m_Opt;
     VecField* m_WorkVecField;
+    ScaField* m_WorkScaField;
     
     Differentiation *m_Differentiation;
     bool m_DiffAllocated;

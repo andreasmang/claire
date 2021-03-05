@@ -19,6 +19,11 @@
 
 #include "DistanceMeasureKernel.hpp"
 #include "cuda_helper.hpp"
+#include "thrust/device_ptr.h"
+#include "thrust/reduce.h"
+#include "thrust/execution_policy.h"
+#include "cublas_v2.h"
+
 
 __global__ void VecSubMulGPU(ScalarType *pL, const ScalarType *pW, const ScalarType *pWts,
     const ScalarType *pMr, const ScalarType *pM, int nl) {
@@ -152,10 +157,9 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
-  ScalarType *res = nullptr;
   PetscFunctionBegin;
   
-  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  //ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
   DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pW, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
@@ -167,8 +171,6 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctionalMask() {
   
   ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     
-  FreeMemory(res);
-  
   PetscFunctionReturn(ierr);
 }
 
@@ -177,10 +179,9 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   PetscErrorCode ierr = 0;
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
-  ScalarType *res = nullptr;
   PetscFunctionBegin;
   
-  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  //ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
   DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pWts, pMr, pM, nl);
   cudaDeviceSynchronize();
@@ -192,9 +193,11 @@ PetscErrorCode EvaluateFunctionalSL2::ComputeFunctional() {
   
   ierr = cudaMemcpy(reinterpret_cast<void*>(&value), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
     
-  FreeMemory(res);
-  
   PetscFunctionReturn(ierr);
+}
+
+IntType GetTempResSize(IntType nl, IntType nc) {
+  return (nl + 255)/256 * nc;
 }
 
 /* Final Condition for Adjoint Equation */
@@ -236,6 +239,13 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  stat = cublasCreate(&handle);
+  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_mtilde_loc);
+  stat = cublasDestroy(handle);
+
+  
   PetscFunctionReturn(ierr);
 }
 
@@ -249,6 +259,213 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionMaskIAE() {
   VecMulGPU<<<grid, block>>>(pL, pW, pWts, pM, nl);
   cudaDeviceSynchronize();
   cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+//> NCC Distance metric routines 
+///////////////////////////////////////////////////////////////////////
+__global__ void FinalConditionAENCC_kernel (ScalarType *pL, const ScalarType *pMr, const ScalarType *pM, ScalarType const1, ScalarType const2, ScalarType mean_m1, ScalarType mean_mR) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  pL[i] = const1*(pMr[i]-mean_mR) - const2*(pM[i]-mean_m1);
+}
+
+__global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarType *pMr, const ScalarType *pM, const ScalarType *pMtilde, ScalarType const1tilde, ScalarType const3tilde, ScalarType const5, ScalarType mean_m1, ScalarType mean_mR) {
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  pLtilde[i] = const1tilde*(pMr[i]-mean_mR) + const3tilde*(pM[i]-mean_m1) - const5*pMtilde[i];
+}
+
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeScaleMask() {
+  PetscErrorCode ierr = 0;
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, nc, 1);
+  ScalarType *res = nullptr;
+  PetscFunctionBegin;
+  
+  // not implemented
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeScale() {
+  PetscErrorCode ierr = 0;
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  dim3 block(256, 1, 1);
+  dim3 grid((nl + 255)/256, nc, 1);
+  ScalarType *res = nullptr;
+  ScalarType sum = 0.0;
+  PetscFunctionBegin;
+  
+  // compute local sums
+  sum_mT_loc = thrust::reduce(thrust::device, pMt, pMt+nl*nc);
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  
+  stat = cublasCreate(&handle);
+
+  stat = cublasSnrm2(handle, nl*nc, pMt, 1, &norm_mT_loc);
+  norm_mT_loc *= norm_mT_loc;
+  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  norm_mR_loc *= norm_mR_loc;
+  stat = cublasSdot(handle, nl*nc, pMt, 1, pMr, 1, &inpr_mT_mR_loc);
+
+  stat = cublasDestroy(handle);
+  
+  ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
+  
+  DistanceMeasureFunctionalGPU<256><<<grid, block>>>(res, pWts, pMr, pMt, nl);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ReductionSum<1024><<<1, 1024>>>(res, grid.x*grid.y);
+  cudaDeviceSynchronize();
+  cudaCheckKernelError();
+  
+  ierr = cudaMemcpy(reinterpret_cast<void*>(&norm_l2_loc), reinterpret_cast<void*>(res), sizeof(ScalarType), cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
+    
+  FreeMemory(res);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeFunctional() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  // compute local sums
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
+
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+
+  stat = cublasCreate(&handle);
+
+  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  norm_m1_loc *= norm_m1_loc;
+  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  norm_mR_loc *= norm_mR_loc;
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+
+  stat = cublasDestroy(handle);
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Compute the Registration Functional */
+PetscErrorCode EvaluateFunctionalNCC::ComputeFunctionalMask() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+    
+  // not implemented 
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  dim3 block(256,1,1);
+  dim3 grid((nl*nc + 255)/256,1,1);
+
+  FinalConditionAENCC_kernel<<<grid, block>>>(pL, pMr, pM, const1, const2, mean_m1, mean_mR);
+  cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  // not implemented 
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionAE() {
+  PetscErrorCode ierr = 0;
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  PetscFunctionBegin;
+
+  // compute local sums
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
+  
+  stat = cublasCreate(&handle);
+  
+  stat = cublasSdot(handle, nl*nc, pM, 1, pM, 1, &norm_m1_loc);
+  stat = cublasSdot(handle, nl*nc, pMr, 1, pMr, 1, &norm_mR_loc);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  
+  stat = cublasDestroy(handle);
+
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
+  sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
+  sum_mtilde_loc = thrust::reduce(thrust::device, pMtilde, pMtilde+nl*nc);
+
+  cublasStatus_t stat;
+  cublasHandle_t handle; 
+  stat = cublasCreate(&handle);
+
+  ScalarType norm_mtilde_loc = 0;
+  stat = cublasSnrm2(handle, nl*nc, pMtilde, 1, &norm_mtilde_loc);
+  norm_mtilde_loc *= norm_mtilde_loc;
+  
+  stat = cublasSdot(handle, nl*nc, pMr, 1, pMtilde, 1, &inpr_mR_mtilde_loc);
+  ierr = Assert(!PetscIsNanReal(inpr_mR_mtilde_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMtilde, 1, &inpr_m1_mtilde_loc);
+  ierr = Assert(!PetscIsNanReal(inpr_m1_mtilde_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  norm_m1_loc *= norm_m1_loc;
+  ierr = Assert(!PetscIsNanReal(norm_m1_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  norm_mR_loc *= norm_mR_loc;
+  ierr = Assert(!PetscIsNanReal(norm_mR_loc), "is nan"); CHKERRQ(ierr);
+  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  ierr = Assert(!PetscIsNanReal(inpr_m1_mR_loc), "is nan"); CHKERRQ(ierr);
+  
+  stat = cublasDestroy(handle);
+
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Incremental Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  dim3 block(256,1,1);
+  dim3 grid((nl*nc + 255)/256,1,1);
+    
+  ScalarType const1tilde = const1 - const2;
+  ScalarType const3tilde = const3 - const4;
+  FinalConditionIAENCC_kernel<<<grid, block>>>(pLtilde, pMr, pM, pMtilde, const1tilde, const3tilde, const5, mean_m1, mean_mR);
+  cudaCheckKernelError();
+  
+  PetscFunctionReturn(ierr);
+}
+
+/* Final Condition for Incremental Adjoint Equation */
+PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskIAE() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  // not implemented
   
   PetscFunctionReturn(ierr);
 }

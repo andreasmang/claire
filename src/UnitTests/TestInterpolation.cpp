@@ -111,7 +111,7 @@ PetscErrorCode TestInterpolation(RegOpt *m_Opt) {
   
   srand(time(0));
   
-  int nx[3], istart[3], isize[3], nl;
+  IntType nx[3], istart[3], isize[3], nl;
   ScalarType hx[3], scale;
   
   nl = 1;
@@ -329,13 +329,13 @@ PetscErrorCode TestInterpolationMultiGPU(RegOpt *m_Opt) {
   
   srand(time(0));
   
-  int nx[3], istart[3], isize[3];
+  IntType nx[3], isize[3], istart[3];
   IntType nl = 1, ng = 1;
   ScalarType hx[3], scale;
   double error=0, max=0;
   ScalarType m_GPUtime;
   int nghost = 3;
-  int isize_g[3], istart_g[3];
+  IntType isize_g[3], istart_g[3];
   IntType nlghost = 1;
   double timers[4] = {0,0,0,0};
   double global_error, global_max;

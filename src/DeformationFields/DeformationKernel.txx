@@ -103,6 +103,9 @@ struct ScaleVectorKernel {
 };
 
 struct DetDefGradSLKernel {
+  template<typename T> KernelOperator (int i, Tp<T> pJ, T v) {
+    pJ[i] = v;
+  }
   template<typename T> KernelOperator (int i, Tp<T> pJ, 
       cTp<T> pJx, cTp<T> pDivV, cTp<T> pDivVx,
       T alpha, T ht) {

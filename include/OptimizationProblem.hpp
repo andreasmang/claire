@@ -52,6 +52,9 @@ class OptimizationProblem {
 
     /*! evaluate objective, gradient and distance measure for initial guess */
     virtual PetscErrorCode InitializeOptimization() = 0;
+    
+    /*! allocate all the memory we need */
+    virtual PetscErrorCode InitializeSolver() = 0;
 
     /*! evaluate distance between observed and predicted state */
     virtual PetscErrorCode EvaluateDistanceMeasure(ScalarType*) = 0;
@@ -64,6 +67,8 @@ class OptimizationProblem {
 
     /*! apply Hessian matvec H\tilde{\vect{x}} */
     virtual PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true) = 0;
+    
+    virtual PetscErrorCode PreHessian() = 0;
 
     /*! evaluate regularization functional for given control variable */
     virtual PetscErrorCode EvaluateRegularizationFunctional(ScalarType*, VecField*) = 0;
@@ -81,7 +86,9 @@ class OptimizationProblem {
     virtual PetscErrorCode ApplyInvRegularizationOperator(Vec, Vec, bool flag = false) = 0;
     
     /*! apply inverse H(v=0) */
-    virtual PetscErrorCode ApplyInvHessian(Vec, Vec, VecField**, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr) = 0;
+    virtual PetscErrorCode ApplyInvHessian(Vec, Vec, VecField*, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr) = 0;
+    
+    virtual PetscErrorCode SymTwoLevelHessMatVec(Vec, Vec) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;

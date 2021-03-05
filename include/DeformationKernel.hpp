@@ -37,6 +37,7 @@ struct DetDefGradKernel {
   IntType nl;
   
   PetscErrorCode IntegrateSL();
+  PetscErrorCode InitSL(ScalarType);
 };
 
 } // namespace reg

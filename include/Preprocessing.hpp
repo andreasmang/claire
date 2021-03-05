@@ -83,7 +83,9 @@ class Preprocessing {
     inline void ResetGridChangeOps(bool flag){this->m_ResetGridChangeOps = flag;};
     PetscErrorCode ComputeGridChangeIndices(IntType*, IntType*);
 
+    PetscErrorCode Labels2MultiCompImage(Vec, Vec, int);
     PetscErrorCode Labels2MultiCompImage(Vec, Vec);
+    PetscErrorCode MultiCompImage2Labels(Vec, Vec, Vec, int);
     PetscErrorCode MultiCompImage2Labels(Vec, Vec);
     PetscErrorCode EnsurePatitionOfUnity(Vec);
 

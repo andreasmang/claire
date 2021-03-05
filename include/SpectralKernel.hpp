@@ -31,6 +31,8 @@ struct SpectralKernel {
   
   ScalarType scale;
   
+  ScalarType *pWS;
+  
   PetscErrorCode LowPassFilter(ComplexType *pXHat, ScalarType pct);
   PetscErrorCode HighPassFilter(ComplexType *pXHat, ScalarType pct);
   
@@ -40,6 +42,8 @@ struct SpectralKernel {
                          const IntType nx_c[3],  const IntType osize_c[3], const IntType ostart_c[3]);
   
   PetscErrorCode Scale(ComplexType *pX, ScalarType val);
+  
+  PetscErrorCode Norm(ScalarType &norm, ComplexType *pXHat, const IntType w[3]);
 };
 
 } // namespace reg

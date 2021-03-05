@@ -450,7 +450,10 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
     
     // m and \lambda are constant in time
     ierr = this->m_WorkVecField[1]->GetArraysReadWrite(kernel.pB); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    
+    if (!this->m_GradientState) {
+      ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    }
 
     
     for (IntType k = 0; k < nc; ++k) {  // for all components
@@ -458,14 +461,24 @@ PetscErrorCode TransportProblem::SolveAdjointProblem() {
         ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
         
         // compute gradient of m
-        ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
+        if (this->m_GradientState) {
+          ierr = this->m_GradientState[k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+        } else {
+          ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
+        }
 
         // b = \sum_k\int_0^1 \lambda_k \grad m_k dt
         ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
+        
+        if (this->m_GradientState) {
+          ierr = this->m_GradientState[k]->RestoreArrays(); CHKERRQ(ierr);
+        }
     }
    
     ierr = this->m_WorkVecField[1]->RestoreArrays(); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+    if (!this->m_GradientState) {
+      ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+    }
     ierr = this->m_TemplateImage->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
       
@@ -497,7 +510,9 @@ PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
     ierr = Assert(this->m_Differentiation != nullptr, "null pointer"); CHKERRQ(ierr);
 
     // m and \lambda are constant in time
-    ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    if (!this->m_GradientState) {
+      ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    }
 
     // init body force for numerical integration
     ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
@@ -509,12 +524,22 @@ PetscErrorCode TransportProblem::SolveIncAdjointProblem() {
         ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
         
         // compute gradient of m
-        ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
+        if (this->m_GradientState) {
+          ierr = this->m_GradientState[k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+        } else {
+          ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
+        }
 
         ierr = kernel.ComputeBodyForce(); CHKERRQ(ierr);
+        
+        if (this->m_GradientState) {
+          ierr = this->m_GradientState[k]->RestoreArrays(); CHKERRQ(ierr);
+        }
     }
     ierr = this->m_WorkVecField[1]->RestoreArrays(); CHKERRQ(ierr);
-    ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+    if (!this->m_GradientState) {
+      ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+    }
     ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
   

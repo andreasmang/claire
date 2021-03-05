@@ -80,6 +80,12 @@ PetscErrorCode SemiLagrangianGPUNew::Initialize() {
     this->m_WorkVecField1 = nullptr;
     this->m_InitialTrajectory = nullptr;
     this->m_texture = 0;
+    
+#ifdef REG_HAS_MPICUDA
+    this->cuda_aware = true;
+#else
+    this->cuda_aware = false;
+#endif
 
     this->m_Dofs[0] = 1;
     this->m_Dofs[1] = 3;
@@ -192,11 +198,11 @@ PetscErrorCode SemiLagrangianGPUNew::InitializeInterpolationTexture() {
     PetscFunctionBegin;
 
     if (this->m_Opt->rank_cnt == 1) {
-      int isize[3];
-      isize[0] = static_cast<int>(this->m_Opt->m_Domain.isize[0]);
-      isize[1] = static_cast<int>(this->m_Opt->m_Domain.isize[1]);
-      isize[2] = static_cast<int>(this->m_Opt->m_Domain.isize[2]);
-      this->m_texture = gpuInitEmptyTexture(isize);
+      //int isize[3];
+      //isize[0] = static_cast<int>(this->m_Opt->m_Domain.isize[0]);
+      //isize[1] = static_cast<int>(this->m_Opt->m_Domain.isize[1]);
+      //isize[2] = static_cast<int>(this->m_Opt->m_Domain.isize[2]);
+      this->m_texture = gpuInitEmptyTexture(this->m_Opt->m_Domain.isize);
       if (this->m_Opt->m_PDESolver.iporder == 3) {
         cudaMalloc((void**) &this->m_tmpInterpol1, sizeof(float)*this->m_Opt->m_Domain.nl);
         cudaMalloc((void**) &this->m_tmpInterpol2, sizeof(float)*this->m_Opt->m_Domain.nl);
@@ -486,7 +492,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(Vec* xo, Vec xi, std::string fl
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi, std::string flag) {
     PetscErrorCode ierr = 0;
-    int nx[3];
+    //int nx[3];
     IntType nl;
     std::stringstream ss;
     double timers[4] = {0, 0, 0, 0};
@@ -502,9 +508,9 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
     
     nl     = this->m_Opt->m_Domain.nl;
 
-    for (int i = 0; i < 3; ++i) {
+    /*for (int i = 0; i < 3; ++i) {
         nx[i]     = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-    }
+    }*/
     
     ZeitGeist_define(SL_INTERPOL);
     ZeitGeist_tick(SL_INTERPOL);
@@ -536,13 +542,13 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* xo, ScalarType* xi,
           ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
           ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
           const ScalarType* xq[3] = {xq1, xq2, xq3};
-          gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, this->m_Opt->m_Domain.nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
       } else if (flag.compare("adjoint") == 0) {
           ierr = Assert(this->m_Xadjoint != nullptr, "null pointer"); CHKERRQ(ierr);
           ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
           const ScalarType* xq[3] = {xq1, xq2, xq3};
-          gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          gpuInterp3D(xi, xq, xo, this->m_tmpInterpol1, this->m_tmpInterpol2, this->m_Opt->m_Domain.nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
       } else {
           ierr = ThrowError("flag wrong"); CHKERRQ(ierr);
@@ -591,7 +597,7 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(VecField* vo, VecField* vi, std
 PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx2, ScalarType* wx3,
                                                  ScalarType* vx1, ScalarType* vx2, ScalarType* vx3, std::string flag) {
     PetscErrorCode ierr = 0;
-    int nx[3];
+    //int nx[3];
     double timers[4] = {0, 0, 0, 0};
     std::stringstream ss;
     IntType nl;
@@ -611,9 +617,9 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
 
     nl = this->m_Opt->m_Domain.nl;
 
-    for (int i = 0; i < 3; ++i) {
-        nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
-    }
+    //for (int i = 0; i < 3; ++i) {
+    //    nx[i] = static_cast<int>(this->m_Opt->m_Domain.nx[i]);
+    //}
     
     ZeitGeist_define(SL_INTERPOL);
     ZeitGeist_tick(SL_INTERPOL);
@@ -654,14 +660,14 @@ PetscErrorCode SemiLagrangianGPUNew::Interpolate(ScalarType* wx1, ScalarType* wx
 
           ierr = this->m_Xstate->GetArraysRead(xq1, xq2, xq3);
           const ScalarType* xq[3] = {xq1, xq2, xq3};
-          gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, this->m_Opt->m_Domain.nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xstate->RestoreArrays(); CHKERRQ(ierr);
 
       } else if (flag.compare("adjoint") == 0) {
           
           ierr = this->m_Xadjoint->GetArraysRead(xq1, xq2, xq3);
           const ScalarType* xq[3] = {xq1, xq2, xq3};
-          gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
+          gpuInterpVec3D(vx1, vx2, vx3, xq, wx1, wx2, wx3, this->m_tmpInterpol1, this->m_tmpInterpol2, this->m_Opt->m_Domain.nx, static_cast<long int>(nl), this->m_texture, this->m_Opt->m_PDESolver.iporder, &(this->m_Opt->m_GPUtime));
           ierr = this->m_Xadjoint->RestoreArrays(); CHKERRQ(ierr);
          
       } else {
@@ -725,14 +731,26 @@ PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y1, ScalarType* 
 
     ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
     
+#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA) 
+    ScalarType scale[3];
+    scale[0] = this->m_Opt->m_Domain.hx[0];
+    scale[1] = this->m_Opt->m_Domain.hx[1];
+    scale[2] = this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale);
     ierr = this->m_Xstate->GetComponents(y1, y2, y3); CHKERRQ(ierr);
-#if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
-#pragma omp parallel for
+    scale[0] = 1./this->m_Opt->m_Domain.hx[0];
+    scale[1] = 1./this->m_Opt->m_Domain.hx[1];
+    scale[2] = 1./this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale);
+/*#pragma omp parallel for
     for (IntType i = 0; i < this->m_Opt->m_Domain.nl; ++i) {
       y1[i] *= this->m_Opt->m_Domain.hx[0];
       y2[i] *= this->m_Opt->m_Domain.hx[1];
       y3[i] *= this->m_Opt->m_Domain.hx[2];
     }
+    */
+#else
+    ierr = this->m_Xstate->GetComponents(y1, y2, y3); CHKERRQ(ierr);
 #endif
     this->m_Opt->Exit(__func__);
 
@@ -752,14 +770,26 @@ PetscErrorCode SemiLagrangianGPUNew::GetQueryPoints(ScalarType* y) {
 
     ierr = Assert(this->m_Xstate != nullptr, "null pointer"); CHKERRQ(ierr);
 
-    ierr = this->m_Xstate->GetComponents(y, "stride"); CHKERRQ(ierr);
 #if defined(REG_HAS_CUDA) && !defined(REG_HAS_MPICUDA)
-#pragma omp parallel for
+    ScalarType scale[3];
+    scale[0] = this->m_Opt->m_Domain.hx[0];
+    scale[1] = this->m_Opt->m_Domain.hx[1];
+    scale[2] = this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale);
+    ierr = this->m_Xstate->GetComponents(y); CHKERRQ(ierr);
+    scale[0] = 1./this->m_Opt->m_Domain.hx[0];
+    scale[1] = 1./this->m_Opt->m_Domain.hx[1];
+    scale[2] = 1./this->m_Opt->m_Domain.hx[2];
+    this->m_Xstate->Scale(scale); 
+/*#pragma omp parallel for
     for (IntType i = 0; i < this->m_Opt->m_Domain.nl; ++i) {
       y[3*i+0] *= this->m_Opt->m_Domain.hx[0];
       y[3*i+1] *= this->m_Opt->m_Domain.hx[1];
       y[3*i+2] *= this->m_Opt->m_Domain.hx[2];
     }
+    */
+#else
+    ierr = this->m_Xstate->GetComponents(y, "stride"); CHKERRQ(ierr);
 #endif
     this->m_Opt->Exit(__func__);
 
@@ -780,7 +810,8 @@ PetscErrorCode SemiLagrangianGPUNew::CommunicateCoord(std::string flag) {
  *******************************************************************/
 PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     PetscErrorCode ierr;
-    int nx[3], c_dims[2], isize[3], istart[3];
+    //int nx[3], c_dims[2], isize[3], istart[3];
+    int c_dims[2];
     IntType nl;
     double timers[4] = {0,0,0,0};
     ScalarType* p_X[3] = {nullptr, nullptr, nullptr};
@@ -791,11 +822,11 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
       ierr = DbgMsgCall("Mapping query points"); CHKERRQ(ierr);
     }
 
-    for (int i = 0; i < 3; ++i){
+    /*for (int i = 0; i < 3; ++i){
         nx[i] = this->m_Opt->m_Domain.nx[i];
         isize[i] = this->m_Opt->m_Domain.isize[i];
         istart[i] = this->m_Opt->m_Domain.istart[i];
-    }
+    }*/
     
     c_dims[0] = this->m_Opt->m_CartGridDims[0];
     c_dims[1] = this->m_Opt->m_CartGridDims[1];
@@ -807,7 +838,7 @@ PetscErrorCode SemiLagrangianGPUNew::MapCoordinateVector(std::string flag) {
     
     ierr = this->m_WorkVecField1->GetArrays(p_X); CHKERRQ(ierr);
     
-    this->m_StatePlan->scatter(nx, isize, istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers, flag);
+    this->m_StatePlan->scatter(this->m_Opt->m_Domain.nx, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.istart, nl, this->nghost, p_X[0], p_X[1], p_X[2], c_dims, this->m_Opt->m_Domain.mpicomm, timers, flag);
 
     ierr = this->m_WorkVecField1->RestoreArrays(); CHKERRQ(ierr);
 

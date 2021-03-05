@@ -65,6 +65,17 @@ PetscErrorCode CLAIREDivReg::ClearMemory() {
     PetscFunctionReturn(ierr);
 }
 
+PetscErrorCode CLAIREDivReg::CreateCoarseReg() {
+  PetscErrorCode ierr = 0;
+  PetscFunctionBegin;
+  
+  ierr = Assert(this->m_CoarseRegOpt != nullptr, "coarse grid RegOpt not initialized"); CHKERRQ(ierr);
+  
+  ierr = AllocateOnce<CLAIREDivReg>(this->m_CoarseReg, this->m_CoarseRegOpt); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(ierr);
+}
+
 /********************************************************************
  * @brief evaluates the objective value
  *******************************************************************/
@@ -77,7 +88,13 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     this->m_Opt->Enter(__func__);
 
     // allocate velocity field
-    ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+    //if (v) {
+    //  ierr = Free(this->m_VelocityField); CHKERRQ(ierr);
+    //  ierr = AllocateOnce(this->m_VelocityField, this->m_Opt, v); CHKERRQ(ierr);
+    //} else {
+      ierr = AllocateOnce(this->m_VelocityField, this->m_Opt); CHKERRQ(ierr);
+      ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    //}
 
     // allocate regularization model
     if (this->m_Regularization == NULL) {
@@ -93,7 +110,7 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
     ierr = this->m_Opt->StartTimer(OBJEXEC); CHKERRQ(ierr);
 
     // set components of velocity field
-    ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
+    //ierr = this->m_VelocityField->SetComponents(v); CHKERRQ(ierr);
 
     // evaluate the L2 distance
     ierr = this->EvaluateDistanceMeasure(&D); CHKERRQ(ierr);
@@ -104,6 +121,11 @@ PetscErrorCode CLAIREDivReg::EvaluateObjective(ScalarType* J, Vec v) {
         // evaluate the regularization model for v
         ierr = AllocateOnce(this->m_WorkVecField1, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_Regularization->SetWorkVecField(this->m_WorkVecField1); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkVecField4, this->m_Opt); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkScaField1, this->m_Opt, this->m_WorkVecField4->m_X1); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkScaField2, this->m_Opt, this->m_WorkVecField4->m_X2); CHKERRQ(ierr);
+        ierr = AllocateOnce(this->m_WorkScaField3, this->m_Opt, this->m_WorkVecField4->m_X3); CHKERRQ(ierr);
+        ierr = this->m_Regularization->SetWorkScaField(this->m_WorkScaField1); CHKERRQ(ierr);
         if (this->m_Opt->m_Diff.diffPDE == FINITE && 
             (this->m_Opt->m_RegNorm.type == H1 || this->m_Opt->m_RegNorm.type == H1SN)) {
           ierr = AllocateOnce(this->m_DifferentiationFD, this->m_Opt); CHKERRQ(ierr);

@@ -84,6 +84,8 @@ PetscErrorCode Optimizer::Initialize(void) {
 
     this->m_KrylovMethod = NULL;
     this->m_OptimizationProblem = NULL;
+    
+    m_SolutionAllocated = false;
 
     PetscFunctionReturn(ierr);
 }
@@ -105,10 +107,11 @@ PetscErrorCode Optimizer::ClearMemory(void) {
     }
 
     // delete solution vector
-    if (this->m_Solution != NULL) {
+    if (this->m_Solution != NULL && this->m_SolutionAllocated) {
         ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
-        this->m_Solution = NULL;
     }
+    this->m_Solution = NULL;
+    this->m_SolutionAllocated = false;
 
     if (this->m_MatVec != NULL) {
         ierr = MatDestroy(&this->m_MatVec); CHKERRQ(ierr);
@@ -132,20 +135,60 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);
+    
+    // the input better is not zero
+    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
+    
+    ScalarType *ptr;
+    
+    ierr = x->GetRawVector(ptr); CHKERRQ(ierr);
 
+    // compute number of unknowns
+    /*nlu = 3*this->m_Opt->m_Domain.nl;
+    ngu = 3*this->m_Opt->m_Domain.ng;
     if (this->m_Solution == NULL) {
-        // compute number of unknowns
         nlu = 3*this->m_Opt->m_Domain.nl;
         ngu = 3*this->m_Opt->m_Domain.ng;
         ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
+        this->m_SolutionAllocated = true;
+    }*/
+    
+    if (this->m_SolutionAllocated) {
+      ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+    } else {
+      this->m_Solution = x->m_X;
+      /*
+      if (this->m_Solution != NULL) {
+        ierr = VecDestroy(&this->m_Solution); CHKERRQ(ierr);
+        this->m_Solution = NULL;
+        this->m_SolutionAllocated = false;
+      }
+      if (!ptr) {
+        ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
+        ierr = VecSetType(this->m_Solution, VECCUDA); CHKERRQ(ierr);
         ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
+        this->m_SolutionAllocated = true;
+        ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
+      } else {
+#ifdef REG_HAS_CUDA
+        if (this->m_Opt->rank_cnt > 1) {
+          ierr = VecCreateMPICUDAWithArray(PETSC_COMM_WORLD, 1, nlu, ngu, ptr, &this->m_Solution);
+        } else {
+          ierr = VecCreateSeqCUDAWithArray(PETSC_COMM_WORLD, 1, nlu, ptr, &this->m_Solution);
+        }
+#else
+        if (this->m_Opt->rank_cnt > 1) {
+          ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD, 1, nlu, ngu, ptr, &this->m_Solution);
+        } else {
+          ierr = VecCreateSeqWithArray(PETSC_COMM_WORLD, 1, nlu, ptr, &this->m_Solution);
+        }
+#endif
+      }
+      */
     }
 
-    // the input better is not zero
-    ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
-    ierr = x->GetComponents(this->m_Solution); CHKERRQ(ierr);
-
     if (this->m_Opt->m_Verbosity > 1) {
+        x->DebugInfo("inital guess input", __LINE__, __FILE__);
         ierr = VecNorm(this->m_Solution, NORM_2, &value); CHKERRQ(ierr);
         ss << "norm of initial guess " << std::scientific << value;
         ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
@@ -177,6 +220,7 @@ PetscErrorCode Optimizer::SetInitialGuess() {
         ngu = 3*this->m_Opt->m_Domain.ng;
         ierr = VecCreate(this->m_Solution, nlu, ngu); CHKERRQ(ierr);
         ierr = VecSet(this->m_Solution, 0.0); CHKERRQ(ierr);
+        this->m_SolutionAllocated = true;
     }
 
     // parse initial guess to tao
@@ -624,6 +668,9 @@ PetscErrorCode Optimizer::Finalize() {
     int rank, indent, numindent, linelength;
     std::string line;
     std::stringstream ss;
+    std::ofstream outputcsvfile;
+    std::string filename;
+    double runtime;
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
@@ -640,7 +687,11 @@ PetscErrorCode Optimizer::Finalize() {
 
     linelength = this->m_Opt->m_LineLength;
     line = std::string(linelength, '-');
-    
+    filename = this->m_Opt->m_FileNames.xfolder + "/registration_results_metrics.csv";
+    ierr = this->m_Opt->GetTimeToSolution(runtime); CHKERRQ(ierr);
+    if (rank==0) 
+      outputcsvfile.open(filename, std::ios::out);
+
     ss  << std::scientific << "det(grad(y)) : (min, mean, max) = "
         << "(" << this->m_Opt->m_Monitor.detdgradmin 
         << ", " << this->m_Opt->m_Monitor.detdgradmean 
@@ -663,7 +714,7 @@ PetscErrorCode Optimizer::Finalize() {
         }
         ss << std::left << std::setw(indent)
            << "newton iterations" << std::right << std::setw(numindent)
-           << this->m_Opt->GetCounter(ITERATIONS) - 1;
+           << this->m_Opt->GetCounter(ITERATIONS);
         ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
@@ -684,7 +735,22 @@ PetscErrorCode Optimizer::Finalize() {
            << this->m_Opt->GetCounter(PDESOLVE);
         ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
+
+        if (rank==0) {
+          outputcsvfile << "jacobian min," << std::scientific << this->m_Opt->m_Monitor.detdgradmin << std::endl;
+          outputcsvfile << "jacobian max," << this->m_Opt->m_Monitor.detdgradmax << std::endl;
+          outputcsvfile << "relative mismatch," << this->m_Opt->m_Monitor.dval/this->m_Opt->m_Monitor.dval0 << std::endl;
+          outputcsvfile << "NITER," << this->m_Opt->GetCounter(ITERATIONS) << std::endl;
+          outputcsvfile << "OBJEVAL," << this->m_Opt->GetCounter(OBJEVAL) << std::endl;
+          outputcsvfile << "HESSMATVEC," << this->m_Opt->GetCounter(HESSMATVEC) << std::endl;
+          outputcsvfile << "PDESOLVE," << this->m_Opt->GetCounter(PDESOLVE) << std::endl;
+          outputcsvfile << "relative gradient norm," << this->m_Opt->m_Monitor.gradnorm/this->m_Opt->m_Monitor.gradnorm0 << std::endl;
+          outputcsvfile << "runtime," << runtime << std::endl;
+        }
     }
+
+    if (rank==0)
+      outputcsvfile.close();
 
     // display info to user, once we're done
 //    ierr = TaoView(this->m_Tao, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);

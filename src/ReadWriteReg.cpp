@@ -372,7 +372,10 @@ PetscErrorCode ReadWriteReg::Read(Vec* x, std::vector< std::string > filenames) 
         ng = this->m_Opt->m_Domain.ng;
 
         if (*x == NULL) {
-            ierr = VecCreate(*x, nc*nl, nc*ng); CHKERRQ(ierr);
+            ierr = VecCreate(PETSC_COMM_WORLD, x); CHKERRQ(ierr);
+            ierr = VecSetSizes(*(x), nl*nc, ng*nc); CHKERRQ(ierr);
+            ierr = VecSetType(*(x), VECSTANDARD); CHKERRQ(ierr);
+            //ierr = VecCreate(*x, nc*nl, nc*ng); CHKERRQ(ierr);
         }
 
         ierr = VecGetArray(*x, &p_x); CHKERRQ(ierr);
@@ -442,6 +445,9 @@ PetscErrorCode ReadWriteReg::Read(Vec* x) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(IO_READ);
+    ZeitGeist_tick(IO_READ);
 
     ierr = Assert(!this->m_FileName.empty(), "filename not set"); CHKERRQ(ierr);
 
@@ -474,6 +480,8 @@ PetscErrorCode ReadWriteReg::Read(Vec* x) {
     } else {
         ierr = ThrowError("could not read: data type not supported"); CHKERRQ(ierr);
     }
+    
+    ZeitGeist_tock(IO_READ);
 
     this->m_Opt->Exit(__func__);
 
@@ -660,7 +668,10 @@ PetscErrorCode ReadWriteReg::Write(Vec x, std::string filename, bool multicompon
         ng = this->m_Opt->m_Domain.ng;
 
         // allocate data
-        ierr = VecCreate(xk, nl, ng); CHKERRQ(ierr);
+        //ierr = VecCreate(xk, nl, ng); CHKERRQ(ierr);
+        ierr = VecCreate(PETSC_COMM_WORLD, &xk); CHKERRQ(ierr);
+        ierr = VecSetSizes(xk, nl, ng); CHKERRQ(ierr);
+        ierr = VecSetType(xk, VECSTANDARD); CHKERRQ(ierr);
 
         ierr = VecGetArray(x, &p_x); CHKERRQ(ierr);
         for (IntType k = 0; k < nc; ++k) {
@@ -709,6 +720,9 @@ PetscErrorCode ReadWriteReg::Write(Vec x) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ZeitGeist_define(IO_WRITE);
+    ZeitGeist_tick(IO_WRITE);
 
     ierr = Assert(x != NULL, "null pointer"); CHKERRQ(ierr);
     ierr = Assert(!this->m_FileName.empty(), "filename not set"); CHKERRQ(ierr);
@@ -742,6 +756,8 @@ PetscErrorCode ReadWriteReg::Write(Vec x) {
     } else {
         ierr = ThrowError("could not write: data type not supported"); CHKERRQ(ierr);
     }
+    
+    ZeitGeist_tock(IO_WRITE);
 
     this->m_Opt->Exit(__func__);
 
@@ -902,10 +918,15 @@ PetscErrorCode ReadWriteReg::ReadNII(Vec* x) {
     ierr = Assert(ng == nglobal, "problem in setup"); CHKERRQ(ierr);
 
     // allocate vector
-    if (*x != NULL) {
-        ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;
+    //if (*x != NULL) {
+    //    ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;
+    //}
+    if (*x == NULL) {
+      //ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
+      ierr = VecCreate(PETSC_COMM_WORLD, x); CHKERRQ(ierr);
+      ierr = VecSetSizes(*(x), nl, ng); CHKERRQ(ierr);
+      ierr = VecSetType(*(x), VECSTANDARD); CHKERRQ(ierr);
     }
-    ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
 
     // compute offset and number of entries to send
     ierr = this->CollectSizes(); CHKERRQ(ierr);
@@ -1479,17 +1500,22 @@ PetscErrorCode ReadWriteReg::ReadBIN(Vec* x) {
     PetscViewer viewer = NULL;
     PetscFunctionBegin;
 
-    if (*x != NULL) {
-        ierr = VecDestroy(x); CHKERRQ(ierr);
-        *x = NULL;
-    }
+    //if (*x != NULL) {
+    //   ierr = VecDestroy(x); CHKERRQ(ierr);
+    //    *x = NULL;
+    //}
 
     if (!this->m_Opt->m_SetupDone) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
-    ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
+    if (*x == NULL) {
+      //ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
+      ierr = VecCreate(PETSC_COMM_WORLD, x); CHKERRQ(ierr);
+      ierr = VecSetSizes(*(x), nl, ng); CHKERRQ(ierr);
+      ierr = VecSetType(*(x), VECSTANDARD); CHKERRQ(ierr);
+    }
 
     ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, this->m_FileName.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
     ierr = Assert(viewer != NULL, "could not read binary file"); CHKERRQ(ierr);
@@ -1546,14 +1572,19 @@ PetscErrorCode ReadWriteReg::ReadNC(Vec* x) {
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-    if ((*x) != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;}
+    //if ((*x) != NULL) {ierr = VecDestroy(x); CHKERRQ(ierr); *x = NULL;}
 
     if (!this->m_Opt->m_SetupDone) {
         ierr = this->m_Opt->DoSetup(); CHKERRQ(ierr);
     }
     nl = this->m_Opt->m_Domain.nl;
     ng = this->m_Opt->m_Domain.ng;
-    ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
+    if (*x == NULL) {
+      //ierr = VecCreate(*x, nl, ng); CHKERRQ(ierr);
+      ierr = VecCreate(PETSC_COMM_WORLD, x); CHKERRQ(ierr);
+      ierr = VecSetSizes(*(x), nl, ng); CHKERRQ(ierr);
+      ierr = VecSetType(*(x), VECSTANDARD); CHKERRQ(ierr);
+    }
 
     // open file
     ncerr = ncmpi_open(PETSC_COMM_WORLD,this->m_FileName.c_str(), NC_NOWRITE, MPI_INFO_NULL, &fileid);

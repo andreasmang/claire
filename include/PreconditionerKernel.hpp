@@ -32,6 +32,8 @@ struct H0PrecondKernel {
   ScalarType *pP[3];
   ScalarType *pRes[3];
   
+  ScalarType *pWS;
+  
   ScalarType beta;
   ScalarType diag;
   
@@ -45,6 +47,19 @@ struct H0PrecondKernel {
   PetscErrorCode pTAp2(ScalarType &res);
   PetscErrorCode CGres(ScalarType &res);
   PetscErrorCode CGp(ScalarType alpha);
+  
+  PetscErrorCode Norm(ScalarType &norm);
+};
+
+struct CFLStatKernel {
+  const ScalarType *pV[3];
+  ScalarType h;
+  ScalarType dt;
+  
+  ScalarType ng;
+  IntType nl;
+  
+  PetscErrorCode CFLx(ScalarType &res);
 };
 
 } // namepsace reg

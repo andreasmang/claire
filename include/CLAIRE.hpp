@@ -61,7 +61,7 @@ class CLAIRE : public CLAIREBase {
     PetscErrorCode HessianMatVec(Vec, Vec, bool scale = true);
     
     /*! apply inverse H(v=0) */
-    PetscErrorCode ApplyInvHessian(Vec, Vec, VecField**, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr);
+    PetscErrorCode ApplyInvHessian(Vec, Vec, VecField*, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr);
 
     /*! get state variable */
     PetscErrorCode GetStateVariable(Vec&);
@@ -99,6 +99,7 @@ class CLAIRE : public CLAIREBase {
     /*! solve state equation */
     virtual PetscErrorCode SolveStateEquation(void);
 
+    PetscErrorCode SymTwoLevelHessMatVec(Vec, Vec);
  protected:
     /*! compute Hessian matvec (second variation
         of lagrangian with respect to control variable(s) for zero velocity */
@@ -141,10 +142,16 @@ class CLAIRE : public CLAIREBase {
         body force and the incremental body force */
     virtual PetscErrorCode ApplyProjection();
 
-    ScaField* m_StateVariable;        ///< time dependent state variable m(x,t)
-    ScaField* m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
-    ScaField* m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
-    ScaField* m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    //ScaField* m_StateVariable;        ///< time dependent state variable m(x,t)
+    //ScaField* m_AdjointVariable;      ///< time dependent adjoint variable \lambda(x,t)
+    //ScaField* m_IncStateVariable;     ///< time dependent incremental state variable \tilde{m}(x,t)
+    //ScaField* m_IncAdjointVariable;   ///< time dependent incremental adjoint variable \tilde{\lambda}(x,t)
+    
+    virtual PetscErrorCode CreateCoarseReg();
+    virtual PetscErrorCode InitializeCoarseReg();
+    
+    //CLAIRE* m_CoarseReg;
+    //RegOpt* m_CoarseRegOpt;
 
  private:
     /*! compute the initial guess for the velocity field */

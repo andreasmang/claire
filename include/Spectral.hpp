@@ -33,6 +33,7 @@ namespace reg {
   
 class RegOpt;
 class FourierTransform;
+class VecField;
 
 class Spectral {
  public:
@@ -56,7 +57,10 @@ class Spectral {
     
     PetscErrorCode Scale(ComplexType *x, ScalarType scale);
     
+    PetscErrorCode Norm(ScalarType &norm, ComplexType *x, Spectral* size=nullptr);
+    
     ComplexType *m_WorkSpace; // 3*nalloc > 3*N
+    VecField* m_WorkVecField;
  protected:
     PetscErrorCode Initialize();
     PetscErrorCode ClearMemory();

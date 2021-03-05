@@ -392,6 +392,47 @@ PetscErrorCode Preprocessing::SetupGridChangeOps(IntType* nx_f, IntType* nx_c) {
  * @param labelim label image
  * @param multi-component image
  *******************************************************************/
+PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap, int lbl) {
+    PetscErrorCode ierr = 0;
+    IntType nl, nc;
+    const ScalarType *p_labelmap = nullptr;
+    ScalarType *p_m = nullptr;
+    int label;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(1 == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
+
+    // now assign the individual labels to the
+    // individual components
+    ierr = VecGetArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(labelmap, &p_labelmap); CHKERRQ(ierr);
+    label = this->m_Opt->m_LabelIDs[lbl];
+    for (IntType i = 0; i < nl; ++i) {
+        // get current label
+        if (label == p_labelmap[i]) {
+            p_m[i] = 1.0;
+        } else {
+            p_m[i] = 0.0;
+        }
+    }
+    ierr = VecRestoreArray(m, &p_m); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(labelmap, &p_labelmap); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
+
+/********************************************************************
+ * @brief convert sharp label image to smooth multi-component image
+ * @param labelim label image
+ * @param multi-component image
+ *******************************************************************/
 PetscErrorCode Preprocessing::Labels2MultiCompImage(Vec m, Vec labelmap) {
     PetscErrorCode ierr = 0;
     IntType nl, nc;
@@ -576,6 +617,48 @@ PetscErrorCode Preprocessing::EnsurePatitionOfUnity(Vec m) {
     PetscFunctionReturn(ierr);
 }
 
+
+/********************************************************************
+ * @brief convert smooth multi-component image to sharp label image
+ * @param labelim label image
+ * @param multi-component image
+ *******************************************************************/
+PetscErrorCode Preprocessing::MultiCompImage2Labels(Vec labelim, Vec mmax, Vec m, int label) {
+    PetscErrorCode ierr = 0;
+    IntType nl, nc;
+    ScalarType *p_labels = nullptr;
+    const ScalarType *p_m = nullptr;
+    ScalarType *p_max = nullptr;
+    PetscFunctionBegin;
+
+    this->m_Opt->Enter(__func__);
+
+    nc = this->m_Opt->m_Domain.nc;
+    nl = this->m_Opt->m_Domain.nl;
+
+    ierr = Assert(1 == static_cast<unsigned int>(nc), "size mismatch"); CHKERRQ(ierr);
+
+    // set dummy values
+    ierr = VecGetArrayRead(m, &p_m); CHKERRQ(ierr);
+    ierr = VecGetArray(labelim, &p_labels); CHKERRQ(ierr);
+    ierr = VecGetArray(mmax, &p_max); CHKERRQ(ierr);
+    for (IntType i = 0; i < nl; ++i) {
+        if (p_m[i] > p_max[i]) {
+          if (label >= 0)
+            p_labels[i] = this->m_Opt->m_LabelIDs[label];
+          else
+            p_labels[i] = 0;
+          p_max[i] = p_m[i];
+        }
+    }
+    ierr = VecRestoreArray(mmax, &p_max); CHKERRQ(ierr);
+    ierr = VecRestoreArray(labelim, &p_labels); CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(m, &p_m); CHKERRQ(ierr);
+
+    this->m_Opt->Exit(__func__);
+
+    PetscFunctionReturn(ierr);
+}
 
 
 /********************************************************************

@@ -21,6 +21,7 @@
 #define _TRANSPORTEQUATIONSL_CPP_
 
 #include "TransportEquationSL.hpp"
+#include "TwoLevel.hpp"
 
 namespace reg {
 
@@ -57,6 +58,8 @@ PetscErrorCode TransportEquationSL::Initialize() {
     
     this->m_SemiLagrangianMethod = nullptr;
     this->m_GradientState = nullptr;
+    this->update_grad = false;
+    this->update_gradx = false;
 
     PetscFunctionReturn(0);
 }
@@ -114,14 +117,17 @@ PetscErrorCode TransportEquationSL::SolveForwardProblem() {
         ierr = this->SolveStateEquation(this->m_VelocityField); CHKERRQ(ierr);
     }
     
-    ierr = this->ComputeGradientState(VelocityIsZero); CHKERRQ(ierr);
+    update_grad = true;
+    update_gradx = true;
+    
+    //ierr = this->ComputeGradientState(VelocityIsZero, true, true); CHKERRQ(ierr);
     
     this->m_Opt->Exit(__func__);
 
     PetscFunctionReturn(ierr);
 }
 
-PetscErrorCode TransportEquationSL::ComputeGradientState (bool V0) {
+PetscErrorCode TransportEquationSL::ComputeGradientState (bool V0, bool grad, bool gradx) {
   PetscErrorCode ierr = 0;
   IntType nt, nc;
   const ScalarType *pM = nullptr;
@@ -136,68 +142,74 @@ PetscErrorCode TransportEquationSL::ComputeGradientState (bool V0) {
   ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
   ierr = Assert(this->m_WorkVecField[0] != nullptr, "null pointer"); CHKERRQ(ierr);
     
-  if (V0) {
-    if (this->m_GradientState) {
-      for (IntType k = 0; k < nc; ++k) {
-        ierr = this->m_StateVariable->GetArrayRead(pM, k); CHKERRQ(ierr);
-        ierr = this->m_Differentiation->Gradient(this->m_GradientState[k], pM); CHKERRQ(ierr);
-        if (this->m_GradientXState) {
-          ierr = this->m_GradientXState[k]->Copy(this->m_GradientState[k]); CHKERRQ(ierr);
-        }
-      }
-      ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
-      for (IntType j = 1; j < (this->m_Opt->m_RegFlags.runinversion?nt+1:1); ++j) {
+    if (V0) {
+      if (this->m_GradientState && grad && update_grad) {
         for (IntType k = 0; k < nc; ++k) {
-          this->m_GradientState[j*nc+k]->Copy(this->m_GradientState[k]);
-          if (this->m_GradientXState && j < nt) {
-            ierr = this->m_GradientXState[j*nc + k]->Copy(this->m_GradientState[k]); CHKERRQ(ierr);
+          ierr = this->m_StateVariable->GetArrayRead(pM, k); CHKERRQ(ierr);
+          ierr = this->m_Differentiation->Gradient(this->m_GradientState[k], pM); CHKERRQ(ierr);
+          if (this->m_GradientXState) {
+            ierr = this->m_GradientXState[k]->Copy(this->m_GradientState[k]); CHKERRQ(ierr);
           }
         }
-      }
-    } else if (this->m_GradientXState) {
-      for (IntType k = 0; k < nc; ++k) {
-        ierr = this->m_StateVariable->GetArrayRead(pM, k); CHKERRQ(ierr);
-        ierr = this->m_Differentiation->Gradient(this->m_WorkVecField[0], pM);
-        for (IntType j = 0; j < (this->m_Opt->m_RegFlags.runinversion?nt:1); ++j) {
-          ierr = this->m_GradientXState[k]->Copy(this->m_WorkVecField[0]); CHKERRQ(ierr);
-        }
-      }
-      ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
-    }
-  } else {
-    ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
-        
-    if (this->m_GradientState) {
-      for (IntType j = 0; j < (this->m_Opt->m_RegFlags.runinversion?nt+1:1); ++j) {
-        for (IntType k = 0; k < nc; ++k) {
-          ierr = this->m_StateVariable->GetArrayRead(pM, k, j); CHKERRQ(ierr);
-          ierr = this->m_Differentiation->Gradient(this->m_GradientState[j*nc + k], pM);
-        }
-      }
-      ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
-    }
-    
-    if (this->m_GradientXState) {
-      // compute trajectory
-      //ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
-      //ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-      
-      for (IntType j = 0; j < (this->m_Opt->m_RegFlags.runinversion?nt:1); ++j) {
-        for (IntType k = 0; k < nc; ++k) {
-          if (this->m_GradientState) {
-            ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_GradientXState[j*nc + k], this->m_GradientState[j*nc + k], "state"); CHKERRQ(ierr);
-          } else {
-            ierr = this->m_StateVariable->GetArrayRead(pM, k, j); CHKERRQ(ierr);
-            ierr = this->m_Differentiation->Gradient(this->m_WorkVecField[0], pM);
-            ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_GradientXState[j*nc + k], this->m_WorkVecField[0], "state"); CHKERRQ(ierr);
-          }
-        }
-      }
-      if (!this->m_GradientState) {
         ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+        for (IntType j = 1; j < (this->m_Opt->m_RegFlags.runinversion?nt+1:1); ++j) {
+          for (IntType k = 0; k < nc; ++k) {
+            this->m_GradientState[j*nc+k]->Copy(this->m_GradientState[k]);
+            if (this->m_GradientXState && j < nt) {
+              ierr = this->m_GradientXState[j*nc + k]->Copy(this->m_GradientState[k]); CHKERRQ(ierr);
+            }
+          }
+        }
+        update_grad = false;
+        if (this->m_GradientXState) update_gradx = false;
+      } else if (this->m_GradientXState && gradx && update_gradx) {
+        for (IntType k = 0; k < nc; ++k) {
+          ierr = this->m_StateVariable->GetArrayRead(pM, k); CHKERRQ(ierr);
+          ierr = this->m_Differentiation->Gradient(this->m_WorkVecField[0], pM);
+          for (IntType j = 0; j < (this->m_Opt->m_RegFlags.runinversion?nt:1); ++j) {
+            ierr = this->m_GradientXState[k]->Copy(this->m_WorkVecField[0]); CHKERRQ(ierr);
+          }
+        }
+        ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+        update_gradx = false;
+      }
+    } else {
+      ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
+          
+      if (this->m_GradientState && grad && update_grad) {
+        for (IntType j = 0; j < (this->m_Opt->m_RegFlags.runinversion?nt+1:1); ++j) {
+          for (IntType k = 0; k < nc; ++k) {
+            ierr = this->m_StateVariable->GetArrayRead(pM, k, j); CHKERRQ(ierr);
+            ierr = this->m_Differentiation->Gradient(this->m_GradientState[j*nc + k], pM);
+          }
+        }
+        ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+        update_grad = false;
+      }
+      
+      if (this->m_GradientXState && gradx && update_gradx) {
+        // compute trajectory
+        //ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
+        //ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
+        
+        for (IntType j = 0; j < (this->m_Opt->m_RegFlags.runinversion?nt:1); ++j) {
+          for (IntType k = 0; k < nc; ++k) {
+            if (this->m_GradientState) {
+              ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_GradientXState[j*nc + k], this->m_GradientState[j*nc + k], "state"); CHKERRQ(ierr);
+            } else {
+              ierr = this->m_StateVariable->GetArrayRead(pM, k, j); CHKERRQ(ierr);
+              ierr = this->m_Differentiation->Gradient(this->m_WorkVecField[0], pM);
+              ierr = this->m_SemiLagrangianMethod->Interpolate(this->m_GradientXState[j*nc + k], this->m_WorkVecField[0], "state"); CHKERRQ(ierr);
+            }
+          }
+        }
+        if (!this->m_GradientState) {
+          ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
+        }
+        update_gradx = false;
       }
     }
-  }
+
     
     this->m_Opt->Exit(__func__);
 
@@ -302,6 +314,9 @@ PetscErrorCode TransportEquationSL::SolveAdjointProblem() {
     ierr = Assert(this->m_VelocityField != nullptr, "null pointer"); CHKERRQ(ierr);
     
     ierr = this->m_VelocityField->IsZero(VelocityIsZero); CHKERRQ(ierr);
+    
+    ierr = this->ComputeGradientState(VelocityIsZero, true, false); CHKERRQ(ierr);
+    
     if (VelocityIsZero) {
         ierr = SuperClass::SolveAdjointProblem(); CHKERRQ(ierr);
     } else {
@@ -354,9 +369,9 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
         fullnewton = true;
     }
     
-    ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
-    ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
-    ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
 
     // compute divergence of velocity field
     ierr = this->m_Differentiation->Divergence(kernel.pDivV,  this->m_VelocityField); CHKERRQ(ierr);
@@ -369,10 +384,38 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
     // evaluate div(v) along characteristic X
     ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pDivVx, kernel.pDivV, "adjoint"); CHKERRQ(ierr);
     
+    ierr = kernel.ComputeDiv();
+    
     // init body force for numerical integration
-    ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
     ierr = this->m_WorkVecField[1]->GetArraysReadWrite(kernel.pB); CHKERRQ(ierr);
 
+    if (fullnewton) {
+      ll = (nt); llnext = (nt-1);
+    } else {
+      ll = 0; llnext = 0;
+    }
+    kernel.scale *= 0.5;
+    // compute body force for last time point t = 0 (i.e., for j = nt)
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+      ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, k, ll); CHKERRQ(ierr);
+
+      // compute gradient of m (for incremental body force)
+      if (this->m_GradientState) {
+        ierr = this->m_GradientState[nt*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+      } else {
+        ierr = this->m_StateVariable->GetArrayRead(pM, k, nt); CHKERRQ(ierr);
+        ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
+      }
+      
+      ierr = kernel.ComputeBodyForcePart0(); CHKERRQ(ierr);
+      
+      if (this->m_GradientState) {
+        ierr = this->m_GradientState[nt*nc + k]->RestoreArrays(); CHKERRQ(ierr);
+      }
+    }
+    kernel.scale *= 2.0;
+    
     // perform numerical time integration for adjoint variable and
     // add up body force
     for (IntType j = 0; j < nt; ++j) {
@@ -383,34 +426,39 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
         }
 
         // scaling for trapezoidal rule (for body force)
-        if (j == 0) kernel.scale *= 0.5;
+        //if (j == 0) kernel.scale *= 0.5;
+        if (j == nt-1) kernel.scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {
             ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pL, k, ll); CHKERRQ(ierr);
             ierr = this->m_AdjointVariable->GetArrayReadWrite(kernel.pLnext, k, llnext); CHKERRQ(ierr);
-            ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j); CHKERRQ(ierr);
+            //ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j); CHKERRQ(ierr);
 
             // compute lambda(t^j,X)
-            ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLx, kernel.pL, "adjoint"); CHKERRQ(ierr);
+            //ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLx, kernel.pL, "adjoint"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLnext, kernel.pL, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m (for body force)
             if (this->m_GradientState) {
-              ierr = this->m_GradientState[(nt-j)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+              //ierr = this->m_GradientState[(nt-j)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+              ierr = this->m_GradientState[(nt-j-1)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
             } else {
+              ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j-1); CHKERRQ(ierr);
               ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
             }
             
             // compute \lambda(x,t^{j+1}) and bodyforce
-            ierr = kernel.ComputeBodyForcePart1(); CHKERRQ(ierr);
+            ierr = kernel.ComputeBodyForcePart1b(); CHKERRQ(ierr);
             
             if (this->m_GradientState) {
-              ierr = this->m_GradientState[(nt-j)*nc + k]->RestoreArrays(); CHKERRQ(ierr);
+              //ierr = this->m_GradientState[(nt-j)*nc + k]->RestoreArrays(); CHKERRQ(ierr);
+              ierr = this->m_GradientState[(nt-j-1)*nc + k]->RestoreArrays(); CHKERRQ(ierr);
             }
         }
         // trapezoidal rule (revert scaling; for body force)
-        if (j == 0) kernel.scale *= 2.0;
+        //if (j == 0) kernel.scale *= 2.0;
     }
     
-    kernel.scale *= 0.5;
+   /* kernel.scale *= 0.5;
     
     // compute body force for last time point t = 0 (i.e., for j = nt)
     for (IntType k = 0; k < nc; ++k) {  // for all image components
@@ -430,16 +478,17 @@ PetscErrorCode TransportEquationSL::SolveAdjointEquation() {
         ierr = this->m_GradientState[k]->RestoreArrays(); CHKERRQ(ierr);
       }
     }
+    */
         
     ierr = this->m_WorkVecField[1]->RestoreArrays(); CHKERRQ(ierr);
     if (!this->m_GradientState) {
       ierr = this->m_WorkVecField[0]->RestoreArrays(); CHKERRQ(ierr);
+      ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
     }
     
-    ierr = this->m_WorkScaField[0]->RestoreArray(); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[0]->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[1]->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[2]->RestoreArray(); CHKERRQ(ierr);
-    ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_AdjointVariable->RestoreArray(); CHKERRQ(ierr);
 
     this->m_Opt->Exit(__func__);
@@ -460,6 +509,8 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
+    
+    ierr = this->ComputeGradientState(false, true, true); CHKERRQ(ierr);
 
     nt = this->m_Opt->m_Domain.nt;
     nc = this->m_Opt->m_Domain.nc;
@@ -479,10 +530,10 @@ PetscErrorCode TransportEquationSL::SolveIncForwardProblem() {
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-    } else if (this->m_Opt->m_KrylovMethod.pctype == TWOLEVEL) {
+    }/* else if (this->m_Opt->m_KrylovMethod.pctype == TWOLEVEL) {
       ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
       ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
-    }
+    }*/
     //ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "state"); CHKERRQ(ierr);
 
     if (this->m_Opt->m_OptPara.method == FULLNEWTON) {   // gauss newton
@@ -642,57 +693,99 @@ PetscErrorCode TransportEquationSL::SolveIncAdjointEquationGN() {
         ierr = AllocateOnce(this->m_SemiLagrangianMethod, this->m_Opt); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
         ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-    } else if (this->m_Opt->m_Domain.level > 0) {
+    }/* else if (this->m_Opt->m_Domain.level > 0) {
       ierr = this->m_SemiLagrangianMethod->SetWorkVecField(this->m_WorkVecField[0]); CHKERRQ(ierr);
       ierr = this->m_SemiLagrangianMethod->ComputeTrajectory(this->m_VelocityField, "adjoint"); CHKERRQ(ierr);
-    }
+    }*/
 
     // compute divergence of velocity field
-    ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
-    ierr = this->m_Differentiation->Divergence(kernel.pDivV,this->m_VelocityField); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
+    //ierr = this->m_Differentiation->Divergence(kernel.pDivV,this->m_VelocityField); CHKERRQ(ierr);
     
-    ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[1]->GetArrayWrite(kernel.pDivV); CHKERRQ(ierr);
+    ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pDivVx); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
+        
+    // compute divergence of velocity field at X
+    if (!this->m_GradientState) {
+      ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
+    }
+    
+    // compute divergence of velocity field
+    ierr = this->m_Differentiation->Divergence(kernel.pDivV,  this->m_VelocityField); CHKERRQ(ierr);
+
+    // evaluate div(v) along characteristic X
     ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pDivVx, kernel.pDivV, "adjoint"); CHKERRQ(ierr);
     
-    ierr = this->m_WorkScaField[2]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
+    ierr = kernel.ComputeDiv();
+    
+    //ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pDivVx, kernel.pDivV, "adjoint"); CHKERRQ(ierr);
+    
+    //ierr = this->m_WorkScaField[0]->GetArrayWrite(kernel.pLx); CHKERRQ(ierr);
     
     if (!this->m_GradientState) {
       ierr = this->m_WorkVecField[0]->GetArraysWrite(kernel.pGm); CHKERRQ(ierr);
     }
 
+    kernel.scale *= 0.5;
     // initialize work vec field
-    ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
+    //ierr = this->m_WorkVecField[1]->SetValue(0.0); CHKERRQ(ierr);
     ierr = this->m_WorkVecField[1]->GetArraysReadWrite(kernel.pB); CHKERRQ(ierr);
     
+    // compute body force for last time point t = 0 (i.e., for j = nt)
+    for (IntType k = 0; k < nc; ++k) {  // for all image components
+        ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
+        
+        // compute gradient of m (for incremental body force)
+        if (this->m_GradientState) {
+          ierr = this->m_GradientState[nt*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+        } else {
+          ierr = this->m_StateVariable->GetArrayRead(pM, k, nt); CHKERRQ(ierr);
+          ierr = this->m_Differentiation->Gradient(kernel.pGm,pM); CHKERRQ(ierr);
+        }
+        
+        ierr = kernel.ComputeBodyForcePart0(); CHKERRQ(ierr);
+        
+        if (this->m_GradientState) {
+          ierr = this->m_GradientState[nt*nc + k]->RestoreArrays();
+        }
+    }
+    kernel.scale *= 2.0;
+    
     for (IntType j = 0; j < nt; ++j) {
-        if (j == 0) kernel.scale *= 0.5;
+        //if (j == 0) kernel.scale *= 0.5;
+        if (j == nt-1) kernel.scale *= 0.5;
         for (IntType k = 0; k < nc; ++k) {
             ierr = this->m_IncAdjointVariable->GetArrayReadWrite(kernel.pL, k); CHKERRQ(ierr);
-            if (!this->m_GradientState) {
-              ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j); CHKERRQ(ierr);
-            }
+            //if (!this->m_GradientState) {
+              //ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j); CHKERRQ(ierr);
+            //}
             kernel.pLnext = kernel.pL;
             
-            ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLx, kernel.pL, "adjoint"); CHKERRQ(ierr);
+            //ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLx, kernel.pL, "adjoint"); CHKERRQ(ierr);
+            ierr = this->m_SemiLagrangianMethod->Interpolate(kernel.pLnext, kernel.pL, "adjoint"); CHKERRQ(ierr);
 
             // compute gradient of m^j
             if (this->m_GradientState) {
-              ierr = this->m_GradientState[(nt-j)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+              //ierr = this->m_GradientState[(nt-j)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
+              ierr = this->m_GradientState[(nt-j-1)*nc + k]->GetArraysReadWrite(kernel.pGm); CHKERRQ(ierr);
             } else {
+              ierr = this->m_StateVariable->GetArrayRead(pM, k, nt-j-1); CHKERRQ(ierr);
               ierr = this->m_Differentiation->Gradient(kernel.pGm, pM); CHKERRQ(ierr);
             }
             
             // compute body force
-            ierr = kernel.ComputeBodyForcePart1();
+            ierr = kernel.ComputeBodyForcePart1b();
             
             if (this->m_GradientState) {
-              ierr = this->m_GradientState[(nt-j)*nc + k]->RestoreArrays();
+              ierr = this->m_GradientState[(nt-j-1)*nc + k]->RestoreArrays();
             }
         }  // for all image components
-        if (j == 0) kernel.scale *= 2.0;
+        //if (j == 0) kernel.scale *= 2.0;
     }  // for all time points
     
-    kernel.scale *= 0.5;
+    /*kernel.scale *= 0.5;
 
     // compute body force for last time point t = 0 (i.e., for j = nt)
     for (IntType k = 0; k < nc; ++k) {  // for all image components
@@ -711,12 +804,12 @@ PetscErrorCode TransportEquationSL::SolveIncAdjointEquationGN() {
         if (this->m_GradientState) {
           ierr = this->m_GradientState[k]->RestoreArrays();
         }
-    }
+    }*/
 
     ierr = this->m_IncAdjointVariable->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[2]->RestoreArray(); CHKERRQ(ierr);
     ierr = this->m_WorkScaField[1]->RestoreArray(); CHKERRQ(ierr);
-    ierr = this->m_WorkScaField[0]->RestoreArray(); CHKERRQ(ierr);
+    //ierr = this->m_WorkScaField[0]->RestoreArray(); CHKERRQ(ierr);
     
     if (!this->m_GradientState) {
       ierr = this->m_StateVariable->RestoreArray(); CHKERRQ(ierr);
