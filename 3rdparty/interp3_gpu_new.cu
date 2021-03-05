@@ -171,8 +171,19 @@ __device__ void getCoordinates(ScalarType* x, ScalarType* y, ScalarType* z, cons
 #endif
 }
 
+template<typename T, int I> struct __prefilter_value {
+  static const T value = __prefilter_value<T, I-1>::value*static_cast<T>(1.732050807568877293527446341505872366942805253810380628055806 - 2.);//(sqrt(3.) - 2.);
+  static const T sum = __prefilter_value<T, I-1>::sum + 2*value;
+};
+template<typename T> struct __prefilter_value<T, 0> {
+  static const T value = static_cast<T>(1.732050807568877293527446341505872366942805253810380628055806);//sqrt(3.);;
+  static const T sum = value;
+};
+template<typename T, int I, int L> struct prefilter_value {
+  static const T value = __prefilter_value<T,I>::value / __prefilter_value<T,L>::sum;
+};
 
-template<typename T, int I, int L> __device__ inline constexpr T prefilter_value() {
+/*template<typename T, int I, int L> inline __device__ T prefilter_value() {
   T value = static_cast<T>(1.732050807568877293527446341505872366942805253810380628055806);//sqrt(3.);
   T sum = value;
   T rval = value;
@@ -182,7 +193,7 @@ template<typename T, int I, int L> __device__ inline constexpr T prefilter_value
     if (i == I) rval = value;
   }
   return rval/sum;
-};
+};*/
 
 /********************************************************************
  * @brief prefilte for z-direction
@@ -199,14 +210,14 @@ __global__ void prefilter_z(float* dfz, float* f, int3 nl) {
   int zblock_width, id;
   
   const float d_c[HALO + 1] = { 
-    prefilter_value<float, 0, HALO>(),
-    prefilter_value<float, 1, HALO>(),
-    prefilter_value<float, 2, HALO>(),
-    prefilter_value<float, 3, HALO>(),
-    prefilter_value<float, 4, HALO>(),
-    prefilter_value<float, 5, HALO>(),
-    prefilter_value<float, 6, HALO>(),
-    prefilter_value<float, 7, HALO>(),
+    prefilter_value<float, 0, HALO>::value,
+    prefilter_value<float, 1, HALO>::value,
+    prefilter_value<float, 2, HALO>::value,
+    prefilter_value<float, 3, HALO>::value,
+    prefilter_value<float, 4, HALO>::value,
+    prefilter_value<float, 5, HALO>::value,
+    prefilter_value<float, 6, HALO>::value,
+    prefilter_value<float, 7, HALO>::value
   };
       
   
@@ -272,14 +283,14 @@ __global__ void prefilter_y(float* dfy, float* f, int3 nl) {
   }
   
   const float d_c[HALO + 1] = { 
-    prefilter_value<float, 0, HALO>(),
-    prefilter_value<float, 1, HALO>(),
-    prefilter_value<float, 2, HALO>(),
-    prefilter_value<float, 3, HALO>(),
-    prefilter_value<float, 4, HALO>(),
-    prefilter_value<float, 5, HALO>(),
-    prefilter_value<float, 6, HALO>(),
-    prefilter_value<float, 7, HALO>(),
+    prefilter_value<float, 0, HALO>::value,
+    prefilter_value<float, 1, HALO>::value,
+    prefilter_value<float, 2, HALO>::value,
+    prefilter_value<float, 3, HALO>::value,
+    prefilter_value<float, 4, HALO>::value,
+    prefilter_value<float, 5, HALO>::value,
+    prefilter_value<float, 6, HALO>::value,
+    prefilter_value<float, 7, HALO>::value
   };
   
     
@@ -351,14 +362,14 @@ __global__ void prefilter_x(float* dfx, float* f, int3 nl) {
   }
   
   const float d_c[HALO + 1] = { 
-    prefilter_value<float, 0, HALO>(),
-    prefilter_value<float, 1, HALO>(),
-    prefilter_value<float, 2, HALO>(),
-    prefilter_value<float, 3, HALO>(),
-    prefilter_value<float, 4, HALO>(),
-    prefilter_value<float, 5, HALO>(),
-    prefilter_value<float, 6, HALO>(),
-    prefilter_value<float, 7, HALO>(),
+    prefilter_value<float, 0, HALO>::value,
+    prefilter_value<float, 1, HALO>::value,
+    prefilter_value<float, 2, HALO>::value,
+    prefilter_value<float, 3, HALO>::value,
+    prefilter_value<float, 4, HALO>::value,
+    prefilter_value<float, 5, HALO>::value,
+    prefilter_value<float, 6, HALO>::value,
+    prefilter_value<float, 7, HALO>::value
   };
     
   for(int i = threadIdx.y; i < xblock_width; i += blockDim.y) {
